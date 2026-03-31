@@ -7,6 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -353,7 +354,7 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		Filters: ledger.Filters{
 			Route: ledger.RouteFilter{
 				Currency:  currencyx.Code("USD"),
-				CostBasis: lo.ToPtr(mustDecimal(t, "0.70")),
+				CostBasis: mo.Some(lo.ToPtr(mustDecimal(t, "0.70"))),
 			},
 		},
 	})
@@ -375,7 +376,7 @@ func TestSumEntriesQuery_SQL(t *testing.T) {
 				},
 				Route: ledger.RouteFilter{
 					Currency:       currencyx.Code("USD"),
-					CostBasis:      lo.ToPtr(mustDecimal(t, "0.70")),
+					CostBasis:      mo.Some(lo.ToPtr(mustDecimal(t, "0.70"))),
 					CreditPriority: lo.ToPtr(7),
 				},
 			},

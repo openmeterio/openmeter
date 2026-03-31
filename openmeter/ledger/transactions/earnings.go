@@ -12,14 +12,15 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
-// RecognizeEarningsFromAccruedTemplate recognizes earnings from invoiced values
-type RecognizeEarningsFromAccruedTemplate struct {
+// RecognizeEarningsFromAttributableAccruedTemplate recognizes up to Amount from accrued
+// routes that already have a known cost basis. Unknown-cost accrued balances are skipped.
+type RecognizeEarningsFromAttributableAccruedTemplate struct {
 	At       time.Time
 	Amount   alpacadecimal.Decimal
 	Currency currencyx.Code
 }
 
-func (t RecognizeEarningsFromAccruedTemplate) Validate() error {
+func (t RecognizeEarningsFromAttributableAccruedTemplate) Validate() error {
 	if t.At.IsZero() {
 		return fmt.Errorf("at is required")
 	}
@@ -35,23 +36,19 @@ func (t RecognizeEarningsFromAccruedTemplate) Validate() error {
 	return nil
 }
 
-func (t RecognizeEarningsFromAccruedTemplate) typeGuard() guard {
+func (t RecognizeEarningsFromAttributableAccruedTemplate) typeGuard() guard {
 	return true
 }
 
-var _ CustomerTransactionTemplate = (RecognizeEarningsFromAccruedTemplate{})
+var _ CustomerTransactionTemplate = (RecognizeEarningsFromAttributableAccruedTemplate{})
 
-func (t RecognizeEarningsFromAccruedTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
-	customerAccounts, err := resolvers.AccountService.GetCustomerAccounts(ctx, customerID)
+func (t RecognizeEarningsFromAttributableAccruedTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
+	collections, err := collectFromAttributableCustomerAccrued(ctx, customerID, t.Currency, t.Amount, resolvers)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get customer accounts: %w", err)
+		return nil, fmt.Errorf("collect from attributable accrued: %w", err)
 	}
-
-	accrued, err := customerAccounts.AccruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
-		Currency: t.Currency,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to get accrued sub-account: %w", err)
+	if len(collections) == 0 {
+		return nil, nil
 	}
 
 	businessAccounts, err := resolvers.AccountService.GetBusinessAccounts(ctx, customerID.Namespace)
@@ -59,24 +56,27 @@ func (t RecognizeEarningsFromAccruedTemplate) resolve(ctx context.Context, custo
 		return nil, fmt.Errorf("failed to get business accounts: %w", err)
 	}
 
-	earnings, err := businessAccounts.EarningsAccount.GetSubAccountForRoute(ctx, ledger.BusinessRouteParams{
-		Currency: t.Currency,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to get earnings sub-account: %w", err)
+	entryInputs := make([]*EntryInput, 0, len(collections)*2)
+	for _, collection := range collections {
+		earnings, err := businessAccounts.EarningsAccount.GetSubAccountForRoute(ctx, ledger.BusinessRouteParams{
+			Currency:  t.Currency,
+			CostBasis: collection.subAccount.Route().CostBasis,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get earnings sub-account: %w", err)
+		}
+
+		entryInputs = append(entryInputs, &EntryInput{
+			address: collection.subAccount.Address(),
+			amount:  collection.amount.Neg(),
+		}, &EntryInput{
+			address: earnings.Address(),
+			amount:  collection.amount,
+		})
 	}
 
 	return &TransactionInput{
-		bookedAt: t.At,
-		entryInputs: []*EntryInput{
-			{
-				address: accrued.Address(),
-				amount:  t.Amount.Neg(),
-			},
-			{
-				address: earnings.Address(),
-				amount:  t.Amount,
-			},
-		},
+		bookedAt:    t.At,
+		entryInputs: entryInputs,
 	}, nil
 }

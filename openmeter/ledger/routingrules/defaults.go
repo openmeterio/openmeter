@@ -8,6 +8,8 @@ var DefaultValidator = Validator{
 			Sets: [][]ledger.AccountType{
 				{ledger.AccountTypeCustomerFBO, ledger.AccountTypeCustomerReceivable},
 				{ledger.AccountTypeCustomerReceivable},
+				{ledger.AccountTypeCustomerFBO},
+				{ledger.AccountTypeCustomerAccrued},
 				{ledger.AccountTypeCustomerFBO, ledger.AccountTypeCustomerAccrued},
 				{ledger.AccountTypeCustomerReceivable, ledger.AccountTypeCustomerAccrued},
 				{ledger.AccountTypeCustomerReceivable, ledger.AccountTypeWash},
@@ -40,6 +42,8 @@ var DefaultValidator = Validator{
 			Expected:    ledger.TransactionAuthorizationStatusAuthorized,
 		},
 		RequireReceivableAuthorizationStageRule{},
+		RequireFBOCostBasisTranslationRule{},
+		RequireAccruedCostBasisTranslationRule{},
 		RequireSameRouteRule{
 			Left:  ledger.AccountTypeCustomerFBO,
 			Right: ledger.AccountTypeCustomerReceivable,
@@ -55,6 +59,7 @@ var DefaultValidator = Validator{
 			Right: ledger.AccountTypeCustomerAccrued,
 			Fields: []RouteField{
 				RouteFieldCurrency,
+				RouteFieldCostBasis,
 			},
 		},
 		RequireSameRouteRule{
@@ -62,6 +67,7 @@ var DefaultValidator = Validator{
 			Right: ledger.AccountTypeCustomerAccrued,
 			Fields: []RouteField{
 				RouteFieldCurrency,
+				RouteFieldCostBasis,
 			},
 		},
 		RequireSameRouteRule{
@@ -69,6 +75,7 @@ var DefaultValidator = Validator{
 			Right: ledger.AccountTypeEarnings,
 			Fields: []RouteField{
 				RouteFieldCurrency,
+				RouteFieldCostBasis,
 			},
 		},
 		RequireSameRouteRule{
@@ -76,6 +83,7 @@ var DefaultValidator = Validator{
 			Right: ledger.AccountTypeWash,
 			Fields: []RouteField{
 				RouteFieldCurrency,
+				RouteFieldCostBasis,
 			},
 		},
 	},

@@ -255,6 +255,84 @@ func (t SettleCustomerReceivablePaymentTemplate) resolve(ctx context.Context, cu
 	}, nil
 }
 
+// AttributeCustomerAdvanceReceivableCostBasisTemplate attributes existing open advance
+// receivable (`cost_basis=nil`) into a known purchase cost-basis bucket.
+type AttributeCustomerAdvanceReceivableCostBasisTemplate struct {
+	At        time.Time
+	Amount    alpacadecimal.Decimal
+	Currency  currencyx.Code
+	CostBasis *alpacadecimal.Decimal
+}
+
+func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) Validate() error {
+	if t.At.IsZero() {
+		return fmt.Errorf("at is required")
+	}
+
+	if err := ledger.ValidateTransactionAmount(t.Amount); err != nil {
+		return fmt.Errorf("amount: %w", err)
+	}
+
+	if err := ledger.ValidateCurrency(t.Currency); err != nil {
+		return fmt.Errorf("currency: %w", err)
+	}
+
+	if t.CostBasis == nil {
+		return fmt.Errorf("cost basis is required")
+	}
+
+	if err := ledger.ValidateCostBasis(*t.CostBasis); err != nil {
+		return fmt.Errorf("cost basis: %w", err)
+	}
+
+	return nil
+}
+
+func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) typeGuard() guard {
+	return true
+}
+
+var _ CustomerTransactionTemplate = (AttributeCustomerAdvanceReceivableCostBasisTemplate{})
+
+func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
+	customerAccounts, err := resolvers.AccountService.GetCustomerAccounts(ctx, customerID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get customer accounts: %w", err)
+	}
+
+	advanceReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
+		Currency:                       t.Currency,
+		CostBasis:                      nil,
+		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get advance receivable sub-account: %w", err)
+	}
+
+	attributedReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
+		Currency:                       t.Currency,
+		CostBasis:                      t.CostBasis,
+		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get attributed receivable sub-account: %w", err)
+	}
+
+	return &TransactionInput{
+		bookedAt: t.At,
+		entryInputs: []*EntryInput{
+			{
+				address: advanceReceivable.Address(),
+				amount:  t.Amount,
+			},
+			{
+				address: attributedReceivable.Address(),
+				amount:  t.Amount.Neg(),
+			},
+		},
+	}, nil
+}
+
 // CoverCustomerReceivableTemplate covers a customer receivable account from FBO account
 type CoverCustomerReceivableTemplate struct {
 	At        time.Time

@@ -133,3 +133,37 @@ func TestSettleCustomerReceivablePaymentTemplate(t *testing.T) {
 	require.True(t, env.SumBalance(t, env.ReceivableSubAccountWithStatus(t, ledger.TransactionAuthorizationStatusAuthorized)).Equal(alpacadecimal.Zero))
 	require.True(t, env.SumBalance(t, env.WashSubAccount(t)).Equal(alpacadecimal.NewFromInt(-40)))
 }
+
+func TestAttributeCustomerAdvanceReceivableCostBasisTemplate(t *testing.T) {
+	env := newTransactionsTestEnv(t)
+	purchasedCostBasis := alpacadecimal.NewFromInt(1)
+
+	env.resolveAndCommit(
+		t,
+		IssueCustomerReceivableTemplate{
+			At:       env.Now(),
+			Amount:   alpacadecimal.NewFromInt(40),
+			Currency: env.Currency,
+		},
+		FundCustomerReceivableTemplate{
+			At:        env.Now(),
+			Amount:    alpacadecimal.NewFromInt(40),
+			Currency:  env.Currency,
+			CostBasis: &purchasedCostBasis,
+		},
+	)
+
+	inputs := env.resolveAndCommit(
+		t,
+		AttributeCustomerAdvanceReceivableCostBasisTemplate{
+			At:        env.Now(),
+			Amount:    alpacadecimal.NewFromInt(40),
+			Currency:  env.Currency,
+			CostBasis: &purchasedCostBasis,
+		},
+	)
+	require.Len(t, inputs, 1)
+
+	require.True(t, env.SumBalance(t, env.ReceivableSubAccountWithCostBasis(t, &purchasedCostBasis)).Equal(alpacadecimal.NewFromInt(-40)))
+	require.True(t, env.SumBalance(t, env.ReceivableSubAccount(t)).Equal(alpacadecimal.Zero))
+}

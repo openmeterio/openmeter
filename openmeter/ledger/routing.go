@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -184,7 +185,14 @@ func (r Route) Validate() error {
 
 // Filter converts a Route to a RouteFilter for use in queries.
 func (r Route) Filter() RouteFilter {
-	return RouteFilter(r)
+	return RouteFilter{
+		Currency:                       r.Currency,
+		TaxCode:                        r.TaxCode,
+		Features:                       r.Features,
+		CostBasis:                      mo.Some(r.CostBasis),
+		CreditPriority:                 r.CreditPriority,
+		TransactionAuthorizationStatus: r.TransactionAuthorizationStatus,
+	}
 }
 
 // Normalize canonicalizes route values so semantically equivalent routes share
@@ -202,16 +210,36 @@ func (r Route) Normalize() (Route, error) {
 
 // Normalize canonicalizes route filter values before querying.
 func (f RouteFilter) Normalize() (RouteFilter, error) {
-	if f.Currency == "" && f.TaxCode == nil && len(f.Features) == 0 && f.CostBasis == nil && f.CreditPriority == nil && f.TransactionAuthorizationStatus == nil {
+	if f.Currency == "" && f.TaxCode == nil && len(f.Features) == 0 && f.CostBasis.IsAbsent() && f.CreditPriority == nil && f.TransactionAuthorizationStatus == nil {
 		return f, nil
 	}
 
-	normalized, err := Route(f).Normalize()
+	costBasis, _ := f.CostBasis.Get()
+	normalized, err := Route{
+		Currency:                       f.Currency,
+		TaxCode:                        f.TaxCode,
+		Features:                       f.Features,
+		CostBasis:                      costBasis,
+		CreditPriority:                 f.CreditPriority,
+		TransactionAuthorizationStatus: f.TransactionAuthorizationStatus,
+	}.Normalize()
 	if err != nil {
 		return RouteFilter{}, err
 	}
 
-	return RouteFilter(normalized), nil
+	normalizedCostBasis := mo.None[*alpacadecimal.Decimal]()
+	if f.CostBasis.IsPresent() {
+		normalizedCostBasis = mo.Some(normalized.CostBasis)
+	}
+
+	return RouteFilter{
+		Currency:                       normalized.Currency,
+		TaxCode:                        normalized.TaxCode,
+		Features:                       normalized.Features,
+		CostBasis:                      normalizedCostBasis,
+		CreditPriority:                 normalized.CreditPriority,
+		TransactionAuthorizationStatus: normalized.TransactionAuthorizationStatus,
+	}, nil
 }
 
 // ----------------------------------------------------------------------------
