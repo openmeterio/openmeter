@@ -6,11 +6,12 @@ import (
 	"slices"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
+	"github.com/samber/lo/mutable"
+
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
-	"github.com/samber/lo"
-	"github.com/samber/lo/mutable"
 )
 
 type Realizations []Realization

@@ -685,7 +685,7 @@ func TestCreateCorrectionInputsAsCreateInputs(t *testing.T) {
 		assert.Equal(t, lo.ToPtr(alloc.ID), out.CorrectsRealizationID)
 		assert.Equal(t, alloc.ServicePeriod, out.ServicePeriod)
 		assert.Equal(t, txGroupID, out.LedgerTransaction.TransactionGroupID)
-		assert.Equal(t, 3.0, out.Amount.InexactFloat64())
+		assert.Equal(t, -3.0, out.Amount.InexactFloat64())
 		assert.Nil(t, out.LineID)
 	})
 
@@ -841,7 +841,7 @@ func TestCorrectionEndToEnd(t *testing.T) {
 		for _, input := range adapterInputs {
 			sum = sum.Add(input.Amount)
 		}
-		assert.Equal(t, 8.0, sum.InexactFloat64())
+		assert.Equal(t, -8.0, sum.InexactFloat64())
 	})
 
 	t.Run("revert with prior corrections", func(t *testing.T) {

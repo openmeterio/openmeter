@@ -6,10 +6,11 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/google/uuid"
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
-	"github.com/samber/lo"
 )
 
 type CreateAllocationInput struct {

@@ -6,11 +6,12 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/google/uuid"
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
-	"github.com/samber/lo"
 )
 
 type CorrectionRequest []CorrectionRequestItem
