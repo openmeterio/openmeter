@@ -4,6 +4,7 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
@@ -13,6 +14,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/app/stripe/invoicesync"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
@@ -30,6 +32,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustominvoicingcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripeinvoicesyncop"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripeinvoicesyncplan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomerlock"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
@@ -123,6 +127,8 @@ const (
 	TypeAppCustomer                                      = "AppCustomer"
 	TypeAppStripe                                        = "AppStripe"
 	TypeAppStripeCustomer                                = "AppStripeCustomer"
+	TypeAppStripeInvoiceSyncOp                           = "AppStripeInvoiceSyncOp"
+	TypeAppStripeInvoiceSyncPlan                         = "AppStripeInvoiceSyncPlan"
 	TypeBalanceSnapshot                                  = "BalanceSnapshot"
 	TypeBillingCustomerLock                              = "BillingCustomerLock"
 	TypeBillingCustomerOverride                          = "BillingCustomerOverride"
@@ -8892,6 +8898,2231 @@ func (m *AppStripeCustomerMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown AppStripeCustomer edge %s", name)
 }
 
+// AppStripeInvoiceSyncOpMutation represents an operation that mutates the AppStripeInvoiceSyncOp nodes in the graph.
+type AppStripeInvoiceSyncOpMutation struct {
+	config
+	op                    Op
+	typ                   string
+	id                    *string
+	created_at            *time.Time
+	updated_at            *time.Time
+	deleted_at            *time.Time
+	sequence              *int
+	addsequence           *int
+	_type                 *invoicesync.OpType
+	payload               *json.RawMessage
+	appendpayload         json.RawMessage
+	idempotency_key       *string
+	status                *invoicesync.OpStatus
+	stripe_response       *json.RawMessage
+	appendstripe_response json.RawMessage
+	error                 *string
+	completed_at          *time.Time
+	clearedFields         map[string]struct{}
+	sync_plan             *string
+	clearedsync_plan      bool
+	done                  bool
+	oldValue              func(context.Context) (*AppStripeInvoiceSyncOp, error)
+	predicates            []predicate.AppStripeInvoiceSyncOp
+}
+
+var _ ent.Mutation = (*AppStripeInvoiceSyncOpMutation)(nil)
+
+// appstripeinvoicesyncopOption allows management of the mutation configuration using functional options.
+type appstripeinvoicesyncopOption func(*AppStripeInvoiceSyncOpMutation)
+
+// newAppStripeInvoiceSyncOpMutation creates new mutation for the AppStripeInvoiceSyncOp entity.
+func newAppStripeInvoiceSyncOpMutation(c config, op Op, opts ...appstripeinvoicesyncopOption) *AppStripeInvoiceSyncOpMutation {
+	m := &AppStripeInvoiceSyncOpMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeAppStripeInvoiceSyncOp,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withAppStripeInvoiceSyncOpID sets the ID field of the mutation.
+func withAppStripeInvoiceSyncOpID(id string) appstripeinvoicesyncopOption {
+	return func(m *AppStripeInvoiceSyncOpMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *AppStripeInvoiceSyncOp
+		)
+		m.oldValue = func(ctx context.Context) (*AppStripeInvoiceSyncOp, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().AppStripeInvoiceSyncOp.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withAppStripeInvoiceSyncOp sets the old AppStripeInvoiceSyncOp of the mutation.
+func withAppStripeInvoiceSyncOp(node *AppStripeInvoiceSyncOp) appstripeinvoicesyncopOption {
+	return func(m *AppStripeInvoiceSyncOpMutation) {
+		m.oldValue = func(context.Context) (*AppStripeInvoiceSyncOp, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m AppStripeInvoiceSyncOpMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m AppStripeInvoiceSyncOpMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of AppStripeInvoiceSyncOp entities.
+func (m *AppStripeInvoiceSyncOpMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *AppStripeInvoiceSyncOpMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *AppStripeInvoiceSyncOpMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().AppStripeInvoiceSyncOp.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *AppStripeInvoiceSyncOpMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *AppStripeInvoiceSyncOpMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the AppStripeInvoiceSyncOp entity.
+// If the AppStripeInvoiceSyncOp object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceSyncOpMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *AppStripeInvoiceSyncOpMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *AppStripeInvoiceSyncOpMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *AppStripeInvoiceSyncOpMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the AppStripeInvoiceSyncOp entity.
+// If the AppStripeInvoiceSyncOp object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceSyncOpMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *AppStripeInvoiceSyncOpMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *AppStripeInvoiceSyncOpMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *AppStripeInvoiceSyncOpMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the AppStripeInvoiceSyncOp entity.
+// If the AppStripeInvoiceSyncOp object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceSyncOpMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *AppStripeInvoiceSyncOpMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[appstripeinvoicesyncop.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *AppStripeInvoiceSyncOpMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[appstripeinvoicesyncop.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *AppStripeInvoiceSyncOpMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, appstripeinvoicesyncop.FieldDeletedAt)
+}
+
+// SetPlanID sets the "plan_id" field.
+func (m *AppStripeInvoiceSyncOpMutation) SetPlanID(s string) {
+	m.sync_plan = &s
+}
+
+// PlanID returns the value of the "plan_id" field in the mutation.
+func (m *AppStripeInvoiceSyncOpMutation) PlanID() (r string, exists bool) {
+	v := m.sync_plan
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPlanID returns the old "plan_id" field's value of the AppStripeInvoiceSyncOp entity.
+// If the AppStripeInvoiceSyncOp object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceSyncOpMutation) OldPlanID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPlanID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPlanID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPlanID: %w", err)
+	}
+	return oldValue.PlanID, nil
+}
+
+// ResetPlanID resets all changes to the "plan_id" field.
+func (m *AppStripeInvoiceSyncOpMutation) ResetPlanID() {
+	m.sync_plan = nil
+}
+
+// SetSequence sets the "sequence" field.
+func (m *AppStripeInvoiceSyncOpMutation) SetSequence(i int) {
+	m.sequence = &i
+	m.addsequence = nil
+}
+
+// Sequence returns the value of the "sequence" field in the mutation.
+func (m *AppStripeInvoiceSyncOpMutation) Sequence() (r int, exists bool) {
+	v := m.sequence
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSequence returns the old "sequence" field's value of the AppStripeInvoiceSyncOp entity.
+// If the AppStripeInvoiceSyncOp object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceSyncOpMutation) OldSequence(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSequence is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSequence requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSequence: %w", err)
+	}
+	return oldValue.Sequence, nil
+}
+
+// AddSequence adds i to the "sequence" field.
+func (m *AppStripeInvoiceSyncOpMutation) AddSequence(i int) {
+	if m.addsequence != nil {
+		*m.addsequence += i
+	} else {
+		m.addsequence = &i
+	}
+}
+
+// AddedSequence returns the value that was added to the "sequence" field in this mutation.
+func (m *AppStripeInvoiceSyncOpMutation) AddedSequence() (r int, exists bool) {
+	v := m.addsequence
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSequence resets all changes to the "sequence" field.
+func (m *AppStripeInvoiceSyncOpMutation) ResetSequence() {
+	m.sequence = nil
+	m.addsequence = nil
+}
+
+// SetType sets the "type" field.
+func (m *AppStripeInvoiceSyncOpMutation) SetType(it invoicesync.OpType) {
+	m._type = &it
+}
+
+// GetType returns the value of the "type" field in the mutation.
+func (m *AppStripeInvoiceSyncOpMutation) GetType() (r invoicesync.OpType, exists bool) {
+	v := m._type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldType returns the old "type" field's value of the AppStripeInvoiceSyncOp entity.
+// If the AppStripeInvoiceSyncOp object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceSyncOpMutation) OldType(ctx context.Context) (v invoicesync.OpType, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldType: %w", err)
+	}
+	return oldValue.Type, nil
+}
+
+// ResetType resets all changes to the "type" field.
+func (m *AppStripeInvoiceSyncOpMutation) ResetType() {
+	m._type = nil
+}
+
+// SetPayload sets the "payload" field.
+func (m *AppStripeInvoiceSyncOpMutation) SetPayload(jm json.RawMessage) {
+	m.payload = &jm
+	m.appendpayload = nil
+}
+
+// Payload returns the value of the "payload" field in the mutation.
+func (m *AppStripeInvoiceSyncOpMutation) Payload() (r json.RawMessage, exists bool) {
+	v := m.payload
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPayload returns the old "payload" field's value of the AppStripeInvoiceSyncOp entity.
+// If the AppStripeInvoiceSyncOp object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceSyncOpMutation) OldPayload(ctx context.Context) (v json.RawMessage, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPayload is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPayload requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPayload: %w", err)
+	}
+	return oldValue.Payload, nil
+}
+
+// AppendPayload adds jm to the "payload" field.
+func (m *AppStripeInvoiceSyncOpMutation) AppendPayload(jm json.RawMessage) {
+	m.appendpayload = append(m.appendpayload, jm...)
+}
+
+// AppendedPayload returns the list of values that were appended to the "payload" field in this mutation.
+func (m *AppStripeInvoiceSyncOpMutation) AppendedPayload() (json.RawMessage, bool) {
+	if len(m.appendpayload) == 0 {
+		return nil, false
+	}
+	return m.appendpayload, true
+}
+
+// ResetPayload resets all changes to the "payload" field.
+func (m *AppStripeInvoiceSyncOpMutation) ResetPayload() {
+	m.payload = nil
+	m.appendpayload = nil
+}
+
+// SetIdempotencyKey sets the "idempotency_key" field.
+func (m *AppStripeInvoiceSyncOpMutation) SetIdempotencyKey(s string) {
+	m.idempotency_key = &s
+}
+
+// IdempotencyKey returns the value of the "idempotency_key" field in the mutation.
+func (m *AppStripeInvoiceSyncOpMutation) IdempotencyKey() (r string, exists bool) {
+	v := m.idempotency_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIdempotencyKey returns the old "idempotency_key" field's value of the AppStripeInvoiceSyncOp entity.
+// If the AppStripeInvoiceSyncOp object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceSyncOpMutation) OldIdempotencyKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIdempotencyKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIdempotencyKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIdempotencyKey: %w", err)
+	}
+	return oldValue.IdempotencyKey, nil
+}
+
+// ResetIdempotencyKey resets all changes to the "idempotency_key" field.
+func (m *AppStripeInvoiceSyncOpMutation) ResetIdempotencyKey() {
+	m.idempotency_key = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *AppStripeInvoiceSyncOpMutation) SetStatus(is invoicesync.OpStatus) {
+	m.status = &is
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *AppStripeInvoiceSyncOpMutation) Status() (r invoicesync.OpStatus, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the AppStripeInvoiceSyncOp entity.
+// If the AppStripeInvoiceSyncOp object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceSyncOpMutation) OldStatus(ctx context.Context) (v invoicesync.OpStatus, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *AppStripeInvoiceSyncOpMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetStripeResponse sets the "stripe_response" field.
+func (m *AppStripeInvoiceSyncOpMutation) SetStripeResponse(jm json.RawMessage) {
+	m.stripe_response = &jm
+	m.appendstripe_response = nil
+}
+
+// StripeResponse returns the value of the "stripe_response" field in the mutation.
+func (m *AppStripeInvoiceSyncOpMutation) StripeResponse() (r json.RawMessage, exists bool) {
+	v := m.stripe_response
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStripeResponse returns the old "stripe_response" field's value of the AppStripeInvoiceSyncOp entity.
+// If the AppStripeInvoiceSyncOp object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceSyncOpMutation) OldStripeResponse(ctx context.Context) (v json.RawMessage, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStripeResponse is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStripeResponse requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStripeResponse: %w", err)
+	}
+	return oldValue.StripeResponse, nil
+}
+
+// AppendStripeResponse adds jm to the "stripe_response" field.
+func (m *AppStripeInvoiceSyncOpMutation) AppendStripeResponse(jm json.RawMessage) {
+	m.appendstripe_response = append(m.appendstripe_response, jm...)
+}
+
+// AppendedStripeResponse returns the list of values that were appended to the "stripe_response" field in this mutation.
+func (m *AppStripeInvoiceSyncOpMutation) AppendedStripeResponse() (json.RawMessage, bool) {
+	if len(m.appendstripe_response) == 0 {
+		return nil, false
+	}
+	return m.appendstripe_response, true
+}
+
+// ClearStripeResponse clears the value of the "stripe_response" field.
+func (m *AppStripeInvoiceSyncOpMutation) ClearStripeResponse() {
+	m.stripe_response = nil
+	m.appendstripe_response = nil
+	m.clearedFields[appstripeinvoicesyncop.FieldStripeResponse] = struct{}{}
+}
+
+// StripeResponseCleared returns if the "stripe_response" field was cleared in this mutation.
+func (m *AppStripeInvoiceSyncOpMutation) StripeResponseCleared() bool {
+	_, ok := m.clearedFields[appstripeinvoicesyncop.FieldStripeResponse]
+	return ok
+}
+
+// ResetStripeResponse resets all changes to the "stripe_response" field.
+func (m *AppStripeInvoiceSyncOpMutation) ResetStripeResponse() {
+	m.stripe_response = nil
+	m.appendstripe_response = nil
+	delete(m.clearedFields, appstripeinvoicesyncop.FieldStripeResponse)
+}
+
+// SetError sets the "error" field.
+func (m *AppStripeInvoiceSyncOpMutation) SetError(s string) {
+	m.error = &s
+}
+
+// Error returns the value of the "error" field in the mutation.
+func (m *AppStripeInvoiceSyncOpMutation) Error() (r string, exists bool) {
+	v := m.error
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldError returns the old "error" field's value of the AppStripeInvoiceSyncOp entity.
+// If the AppStripeInvoiceSyncOp object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceSyncOpMutation) OldError(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldError is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldError requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldError: %w", err)
+	}
+	return oldValue.Error, nil
+}
+
+// ClearError clears the value of the "error" field.
+func (m *AppStripeInvoiceSyncOpMutation) ClearError() {
+	m.error = nil
+	m.clearedFields[appstripeinvoicesyncop.FieldError] = struct{}{}
+}
+
+// ErrorCleared returns if the "error" field was cleared in this mutation.
+func (m *AppStripeInvoiceSyncOpMutation) ErrorCleared() bool {
+	_, ok := m.clearedFields[appstripeinvoicesyncop.FieldError]
+	return ok
+}
+
+// ResetError resets all changes to the "error" field.
+func (m *AppStripeInvoiceSyncOpMutation) ResetError() {
+	m.error = nil
+	delete(m.clearedFields, appstripeinvoicesyncop.FieldError)
+}
+
+// SetCompletedAt sets the "completed_at" field.
+func (m *AppStripeInvoiceSyncOpMutation) SetCompletedAt(t time.Time) {
+	m.completed_at = &t
+}
+
+// CompletedAt returns the value of the "completed_at" field in the mutation.
+func (m *AppStripeInvoiceSyncOpMutation) CompletedAt() (r time.Time, exists bool) {
+	v := m.completed_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCompletedAt returns the old "completed_at" field's value of the AppStripeInvoiceSyncOp entity.
+// If the AppStripeInvoiceSyncOp object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceSyncOpMutation) OldCompletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCompletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCompletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCompletedAt: %w", err)
+	}
+	return oldValue.CompletedAt, nil
+}
+
+// ClearCompletedAt clears the value of the "completed_at" field.
+func (m *AppStripeInvoiceSyncOpMutation) ClearCompletedAt() {
+	m.completed_at = nil
+	m.clearedFields[appstripeinvoicesyncop.FieldCompletedAt] = struct{}{}
+}
+
+// CompletedAtCleared returns if the "completed_at" field was cleared in this mutation.
+func (m *AppStripeInvoiceSyncOpMutation) CompletedAtCleared() bool {
+	_, ok := m.clearedFields[appstripeinvoicesyncop.FieldCompletedAt]
+	return ok
+}
+
+// ResetCompletedAt resets all changes to the "completed_at" field.
+func (m *AppStripeInvoiceSyncOpMutation) ResetCompletedAt() {
+	m.completed_at = nil
+	delete(m.clearedFields, appstripeinvoicesyncop.FieldCompletedAt)
+}
+
+// SetSyncPlanID sets the "sync_plan" edge to the AppStripeInvoiceSyncPlan entity by id.
+func (m *AppStripeInvoiceSyncOpMutation) SetSyncPlanID(id string) {
+	m.sync_plan = &id
+}
+
+// ClearSyncPlan clears the "sync_plan" edge to the AppStripeInvoiceSyncPlan entity.
+func (m *AppStripeInvoiceSyncOpMutation) ClearSyncPlan() {
+	m.clearedsync_plan = true
+	m.clearedFields[appstripeinvoicesyncop.FieldPlanID] = struct{}{}
+}
+
+// SyncPlanCleared reports if the "sync_plan" edge to the AppStripeInvoiceSyncPlan entity was cleared.
+func (m *AppStripeInvoiceSyncOpMutation) SyncPlanCleared() bool {
+	return m.clearedsync_plan
+}
+
+// SyncPlanID returns the "sync_plan" edge ID in the mutation.
+func (m *AppStripeInvoiceSyncOpMutation) SyncPlanID() (id string, exists bool) {
+	if m.sync_plan != nil {
+		return *m.sync_plan, true
+	}
+	return
+}
+
+// SyncPlanIDs returns the "sync_plan" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SyncPlanID instead. It exists only for internal usage by the builders.
+func (m *AppStripeInvoiceSyncOpMutation) SyncPlanIDs() (ids []string) {
+	if id := m.sync_plan; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSyncPlan resets all changes to the "sync_plan" edge.
+func (m *AppStripeInvoiceSyncOpMutation) ResetSyncPlan() {
+	m.sync_plan = nil
+	m.clearedsync_plan = false
+}
+
+// Where appends a list predicates to the AppStripeInvoiceSyncOpMutation builder.
+func (m *AppStripeInvoiceSyncOpMutation) Where(ps ...predicate.AppStripeInvoiceSyncOp) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the AppStripeInvoiceSyncOpMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *AppStripeInvoiceSyncOpMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.AppStripeInvoiceSyncOp, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *AppStripeInvoiceSyncOpMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *AppStripeInvoiceSyncOpMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (AppStripeInvoiceSyncOp).
+func (m *AppStripeInvoiceSyncOpMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *AppStripeInvoiceSyncOpMutation) Fields() []string {
+	fields := make([]string, 0, 12)
+	if m.created_at != nil {
+		fields = append(fields, appstripeinvoicesyncop.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, appstripeinvoicesyncop.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, appstripeinvoicesyncop.FieldDeletedAt)
+	}
+	if m.sync_plan != nil {
+		fields = append(fields, appstripeinvoicesyncop.FieldPlanID)
+	}
+	if m.sequence != nil {
+		fields = append(fields, appstripeinvoicesyncop.FieldSequence)
+	}
+	if m._type != nil {
+		fields = append(fields, appstripeinvoicesyncop.FieldType)
+	}
+	if m.payload != nil {
+		fields = append(fields, appstripeinvoicesyncop.FieldPayload)
+	}
+	if m.idempotency_key != nil {
+		fields = append(fields, appstripeinvoicesyncop.FieldIdempotencyKey)
+	}
+	if m.status != nil {
+		fields = append(fields, appstripeinvoicesyncop.FieldStatus)
+	}
+	if m.stripe_response != nil {
+		fields = append(fields, appstripeinvoicesyncop.FieldStripeResponse)
+	}
+	if m.error != nil {
+		fields = append(fields, appstripeinvoicesyncop.FieldError)
+	}
+	if m.completed_at != nil {
+		fields = append(fields, appstripeinvoicesyncop.FieldCompletedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *AppStripeInvoiceSyncOpMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case appstripeinvoicesyncop.FieldCreatedAt:
+		return m.CreatedAt()
+	case appstripeinvoicesyncop.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case appstripeinvoicesyncop.FieldDeletedAt:
+		return m.DeletedAt()
+	case appstripeinvoicesyncop.FieldPlanID:
+		return m.PlanID()
+	case appstripeinvoicesyncop.FieldSequence:
+		return m.Sequence()
+	case appstripeinvoicesyncop.FieldType:
+		return m.GetType()
+	case appstripeinvoicesyncop.FieldPayload:
+		return m.Payload()
+	case appstripeinvoicesyncop.FieldIdempotencyKey:
+		return m.IdempotencyKey()
+	case appstripeinvoicesyncop.FieldStatus:
+		return m.Status()
+	case appstripeinvoicesyncop.FieldStripeResponse:
+		return m.StripeResponse()
+	case appstripeinvoicesyncop.FieldError:
+		return m.Error()
+	case appstripeinvoicesyncop.FieldCompletedAt:
+		return m.CompletedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *AppStripeInvoiceSyncOpMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case appstripeinvoicesyncop.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case appstripeinvoicesyncop.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case appstripeinvoicesyncop.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case appstripeinvoicesyncop.FieldPlanID:
+		return m.OldPlanID(ctx)
+	case appstripeinvoicesyncop.FieldSequence:
+		return m.OldSequence(ctx)
+	case appstripeinvoicesyncop.FieldType:
+		return m.OldType(ctx)
+	case appstripeinvoicesyncop.FieldPayload:
+		return m.OldPayload(ctx)
+	case appstripeinvoicesyncop.FieldIdempotencyKey:
+		return m.OldIdempotencyKey(ctx)
+	case appstripeinvoicesyncop.FieldStatus:
+		return m.OldStatus(ctx)
+	case appstripeinvoicesyncop.FieldStripeResponse:
+		return m.OldStripeResponse(ctx)
+	case appstripeinvoicesyncop.FieldError:
+		return m.OldError(ctx)
+	case appstripeinvoicesyncop.FieldCompletedAt:
+		return m.OldCompletedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown AppStripeInvoiceSyncOp field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AppStripeInvoiceSyncOpMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case appstripeinvoicesyncop.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case appstripeinvoicesyncop.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case appstripeinvoicesyncop.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case appstripeinvoicesyncop.FieldPlanID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPlanID(v)
+		return nil
+	case appstripeinvoicesyncop.FieldSequence:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSequence(v)
+		return nil
+	case appstripeinvoicesyncop.FieldType:
+		v, ok := value.(invoicesync.OpType)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetType(v)
+		return nil
+	case appstripeinvoicesyncop.FieldPayload:
+		v, ok := value.(json.RawMessage)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPayload(v)
+		return nil
+	case appstripeinvoicesyncop.FieldIdempotencyKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIdempotencyKey(v)
+		return nil
+	case appstripeinvoicesyncop.FieldStatus:
+		v, ok := value.(invoicesync.OpStatus)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case appstripeinvoicesyncop.FieldStripeResponse:
+		v, ok := value.(json.RawMessage)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStripeResponse(v)
+		return nil
+	case appstripeinvoicesyncop.FieldError:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetError(v)
+		return nil
+	case appstripeinvoicesyncop.FieldCompletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCompletedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown AppStripeInvoiceSyncOp field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *AppStripeInvoiceSyncOpMutation) AddedFields() []string {
+	var fields []string
+	if m.addsequence != nil {
+		fields = append(fields, appstripeinvoicesyncop.FieldSequence)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *AppStripeInvoiceSyncOpMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case appstripeinvoicesyncop.FieldSequence:
+		return m.AddedSequence()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AppStripeInvoiceSyncOpMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case appstripeinvoicesyncop.FieldSequence:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSequence(v)
+		return nil
+	}
+	return fmt.Errorf("unknown AppStripeInvoiceSyncOp numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *AppStripeInvoiceSyncOpMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(appstripeinvoicesyncop.FieldDeletedAt) {
+		fields = append(fields, appstripeinvoicesyncop.FieldDeletedAt)
+	}
+	if m.FieldCleared(appstripeinvoicesyncop.FieldStripeResponse) {
+		fields = append(fields, appstripeinvoicesyncop.FieldStripeResponse)
+	}
+	if m.FieldCleared(appstripeinvoicesyncop.FieldError) {
+		fields = append(fields, appstripeinvoicesyncop.FieldError)
+	}
+	if m.FieldCleared(appstripeinvoicesyncop.FieldCompletedAt) {
+		fields = append(fields, appstripeinvoicesyncop.FieldCompletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *AppStripeInvoiceSyncOpMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *AppStripeInvoiceSyncOpMutation) ClearField(name string) error {
+	switch name {
+	case appstripeinvoicesyncop.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case appstripeinvoicesyncop.FieldStripeResponse:
+		m.ClearStripeResponse()
+		return nil
+	case appstripeinvoicesyncop.FieldError:
+		m.ClearError()
+		return nil
+	case appstripeinvoicesyncop.FieldCompletedAt:
+		m.ClearCompletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown AppStripeInvoiceSyncOp nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *AppStripeInvoiceSyncOpMutation) ResetField(name string) error {
+	switch name {
+	case appstripeinvoicesyncop.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case appstripeinvoicesyncop.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case appstripeinvoicesyncop.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case appstripeinvoicesyncop.FieldPlanID:
+		m.ResetPlanID()
+		return nil
+	case appstripeinvoicesyncop.FieldSequence:
+		m.ResetSequence()
+		return nil
+	case appstripeinvoicesyncop.FieldType:
+		m.ResetType()
+		return nil
+	case appstripeinvoicesyncop.FieldPayload:
+		m.ResetPayload()
+		return nil
+	case appstripeinvoicesyncop.FieldIdempotencyKey:
+		m.ResetIdempotencyKey()
+		return nil
+	case appstripeinvoicesyncop.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case appstripeinvoicesyncop.FieldStripeResponse:
+		m.ResetStripeResponse()
+		return nil
+	case appstripeinvoicesyncop.FieldError:
+		m.ResetError()
+		return nil
+	case appstripeinvoicesyncop.FieldCompletedAt:
+		m.ResetCompletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown AppStripeInvoiceSyncOp field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *AppStripeInvoiceSyncOpMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.sync_plan != nil {
+		edges = append(edges, appstripeinvoicesyncop.EdgeSyncPlan)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *AppStripeInvoiceSyncOpMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case appstripeinvoicesyncop.EdgeSyncPlan:
+		if id := m.sync_plan; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *AppStripeInvoiceSyncOpMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *AppStripeInvoiceSyncOpMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *AppStripeInvoiceSyncOpMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedsync_plan {
+		edges = append(edges, appstripeinvoicesyncop.EdgeSyncPlan)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *AppStripeInvoiceSyncOpMutation) EdgeCleared(name string) bool {
+	switch name {
+	case appstripeinvoicesyncop.EdgeSyncPlan:
+		return m.clearedsync_plan
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *AppStripeInvoiceSyncOpMutation) ClearEdge(name string) error {
+	switch name {
+	case appstripeinvoicesyncop.EdgeSyncPlan:
+		m.ClearSyncPlan()
+		return nil
+	}
+	return fmt.Errorf("unknown AppStripeInvoiceSyncOp unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *AppStripeInvoiceSyncOpMutation) ResetEdge(name string) error {
+	switch name {
+	case appstripeinvoicesyncop.EdgeSyncPlan:
+		m.ResetSyncPlan()
+		return nil
+	}
+	return fmt.Errorf("unknown AppStripeInvoiceSyncOp edge %s", name)
+}
+
+// AppStripeInvoiceSyncPlanMutation represents an operation that mutates the AppStripeInvoiceSyncPlan nodes in the graph.
+type AppStripeInvoiceSyncPlanMutation struct {
+	config
+	op                     Op
+	typ                    string
+	id                     *string
+	namespace              *string
+	created_at             *time.Time
+	updated_at             *time.Time
+	deleted_at             *time.Time
+	app_id                 *string
+	session_id             *string
+	phase                  *invoicesync.SyncPlanPhase
+	status                 *invoicesync.PlanStatus
+	error                  *string
+	completed_at           *time.Time
+	clearedFields          map[string]struct{}
+	billing_invoice        *string
+	clearedbilling_invoice bool
+	operations             map[string]struct{}
+	removedoperations      map[string]struct{}
+	clearedoperations      bool
+	done                   bool
+	oldValue               func(context.Context) (*AppStripeInvoiceSyncPlan, error)
+	predicates             []predicate.AppStripeInvoiceSyncPlan
+}
+
+var _ ent.Mutation = (*AppStripeInvoiceSyncPlanMutation)(nil)
+
+// appstripeinvoicesyncplanOption allows management of the mutation configuration using functional options.
+type appstripeinvoicesyncplanOption func(*AppStripeInvoiceSyncPlanMutation)
+
+// newAppStripeInvoiceSyncPlanMutation creates new mutation for the AppStripeInvoiceSyncPlan entity.
+func newAppStripeInvoiceSyncPlanMutation(c config, op Op, opts ...appstripeinvoicesyncplanOption) *AppStripeInvoiceSyncPlanMutation {
+	m := &AppStripeInvoiceSyncPlanMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeAppStripeInvoiceSyncPlan,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withAppStripeInvoiceSyncPlanID sets the ID field of the mutation.
+func withAppStripeInvoiceSyncPlanID(id string) appstripeinvoicesyncplanOption {
+	return func(m *AppStripeInvoiceSyncPlanMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *AppStripeInvoiceSyncPlan
+		)
+		m.oldValue = func(ctx context.Context) (*AppStripeInvoiceSyncPlan, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().AppStripeInvoiceSyncPlan.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withAppStripeInvoiceSyncPlan sets the old AppStripeInvoiceSyncPlan of the mutation.
+func withAppStripeInvoiceSyncPlan(node *AppStripeInvoiceSyncPlan) appstripeinvoicesyncplanOption {
+	return func(m *AppStripeInvoiceSyncPlanMutation) {
+		m.oldValue = func(context.Context) (*AppStripeInvoiceSyncPlan, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m AppStripeInvoiceSyncPlanMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m AppStripeInvoiceSyncPlanMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of AppStripeInvoiceSyncPlan entities.
+func (m *AppStripeInvoiceSyncPlanMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *AppStripeInvoiceSyncPlanMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().AppStripeInvoiceSyncPlan.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *AppStripeInvoiceSyncPlanMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the AppStripeInvoiceSyncPlan entity.
+// If the AppStripeInvoiceSyncPlan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceSyncPlanMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *AppStripeInvoiceSyncPlanMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *AppStripeInvoiceSyncPlanMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the AppStripeInvoiceSyncPlan entity.
+// If the AppStripeInvoiceSyncPlan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceSyncPlanMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *AppStripeInvoiceSyncPlanMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *AppStripeInvoiceSyncPlanMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the AppStripeInvoiceSyncPlan entity.
+// If the AppStripeInvoiceSyncPlan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceSyncPlanMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *AppStripeInvoiceSyncPlanMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *AppStripeInvoiceSyncPlanMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the AppStripeInvoiceSyncPlan entity.
+// If the AppStripeInvoiceSyncPlan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceSyncPlanMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *AppStripeInvoiceSyncPlanMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[appstripeinvoicesyncplan.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[appstripeinvoicesyncplan.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *AppStripeInvoiceSyncPlanMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, appstripeinvoicesyncplan.FieldDeletedAt)
+}
+
+// SetInvoiceID sets the "invoice_id" field.
+func (m *AppStripeInvoiceSyncPlanMutation) SetInvoiceID(s string) {
+	m.billing_invoice = &s
+}
+
+// InvoiceID returns the value of the "invoice_id" field in the mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) InvoiceID() (r string, exists bool) {
+	v := m.billing_invoice
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInvoiceID returns the old "invoice_id" field's value of the AppStripeInvoiceSyncPlan entity.
+// If the AppStripeInvoiceSyncPlan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceSyncPlanMutation) OldInvoiceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInvoiceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInvoiceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInvoiceID: %w", err)
+	}
+	return oldValue.InvoiceID, nil
+}
+
+// ResetInvoiceID resets all changes to the "invoice_id" field.
+func (m *AppStripeInvoiceSyncPlanMutation) ResetInvoiceID() {
+	m.billing_invoice = nil
+}
+
+// SetAppID sets the "app_id" field.
+func (m *AppStripeInvoiceSyncPlanMutation) SetAppID(s string) {
+	m.app_id = &s
+}
+
+// AppID returns the value of the "app_id" field in the mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) AppID() (r string, exists bool) {
+	v := m.app_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAppID returns the old "app_id" field's value of the AppStripeInvoiceSyncPlan entity.
+// If the AppStripeInvoiceSyncPlan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceSyncPlanMutation) OldAppID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAppID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAppID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAppID: %w", err)
+	}
+	return oldValue.AppID, nil
+}
+
+// ResetAppID resets all changes to the "app_id" field.
+func (m *AppStripeInvoiceSyncPlanMutation) ResetAppID() {
+	m.app_id = nil
+}
+
+// SetSessionID sets the "session_id" field.
+func (m *AppStripeInvoiceSyncPlanMutation) SetSessionID(s string) {
+	m.session_id = &s
+}
+
+// SessionID returns the value of the "session_id" field in the mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) SessionID() (r string, exists bool) {
+	v := m.session_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSessionID returns the old "session_id" field's value of the AppStripeInvoiceSyncPlan entity.
+// If the AppStripeInvoiceSyncPlan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceSyncPlanMutation) OldSessionID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSessionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSessionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSessionID: %w", err)
+	}
+	return oldValue.SessionID, nil
+}
+
+// ResetSessionID resets all changes to the "session_id" field.
+func (m *AppStripeInvoiceSyncPlanMutation) ResetSessionID() {
+	m.session_id = nil
+}
+
+// SetPhase sets the "phase" field.
+func (m *AppStripeInvoiceSyncPlanMutation) SetPhase(ipp invoicesync.SyncPlanPhase) {
+	m.phase = &ipp
+}
+
+// Phase returns the value of the "phase" field in the mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) Phase() (r invoicesync.SyncPlanPhase, exists bool) {
+	v := m.phase
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPhase returns the old "phase" field's value of the AppStripeInvoiceSyncPlan entity.
+// If the AppStripeInvoiceSyncPlan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceSyncPlanMutation) OldPhase(ctx context.Context) (v invoicesync.SyncPlanPhase, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPhase is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPhase requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPhase: %w", err)
+	}
+	return oldValue.Phase, nil
+}
+
+// ResetPhase resets all changes to the "phase" field.
+func (m *AppStripeInvoiceSyncPlanMutation) ResetPhase() {
+	m.phase = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *AppStripeInvoiceSyncPlanMutation) SetStatus(is invoicesync.PlanStatus) {
+	m.status = &is
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) Status() (r invoicesync.PlanStatus, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the AppStripeInvoiceSyncPlan entity.
+// If the AppStripeInvoiceSyncPlan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceSyncPlanMutation) OldStatus(ctx context.Context) (v invoicesync.PlanStatus, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *AppStripeInvoiceSyncPlanMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetError sets the "error" field.
+func (m *AppStripeInvoiceSyncPlanMutation) SetError(s string) {
+	m.error = &s
+}
+
+// Error returns the value of the "error" field in the mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) Error() (r string, exists bool) {
+	v := m.error
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldError returns the old "error" field's value of the AppStripeInvoiceSyncPlan entity.
+// If the AppStripeInvoiceSyncPlan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceSyncPlanMutation) OldError(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldError is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldError requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldError: %w", err)
+	}
+	return oldValue.Error, nil
+}
+
+// ClearError clears the value of the "error" field.
+func (m *AppStripeInvoiceSyncPlanMutation) ClearError() {
+	m.error = nil
+	m.clearedFields[appstripeinvoicesyncplan.FieldError] = struct{}{}
+}
+
+// ErrorCleared returns if the "error" field was cleared in this mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) ErrorCleared() bool {
+	_, ok := m.clearedFields[appstripeinvoicesyncplan.FieldError]
+	return ok
+}
+
+// ResetError resets all changes to the "error" field.
+func (m *AppStripeInvoiceSyncPlanMutation) ResetError() {
+	m.error = nil
+	delete(m.clearedFields, appstripeinvoicesyncplan.FieldError)
+}
+
+// SetCompletedAt sets the "completed_at" field.
+func (m *AppStripeInvoiceSyncPlanMutation) SetCompletedAt(t time.Time) {
+	m.completed_at = &t
+}
+
+// CompletedAt returns the value of the "completed_at" field in the mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) CompletedAt() (r time.Time, exists bool) {
+	v := m.completed_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCompletedAt returns the old "completed_at" field's value of the AppStripeInvoiceSyncPlan entity.
+// If the AppStripeInvoiceSyncPlan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceSyncPlanMutation) OldCompletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCompletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCompletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCompletedAt: %w", err)
+	}
+	return oldValue.CompletedAt, nil
+}
+
+// ClearCompletedAt clears the value of the "completed_at" field.
+func (m *AppStripeInvoiceSyncPlanMutation) ClearCompletedAt() {
+	m.completed_at = nil
+	m.clearedFields[appstripeinvoicesyncplan.FieldCompletedAt] = struct{}{}
+}
+
+// CompletedAtCleared returns if the "completed_at" field was cleared in this mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) CompletedAtCleared() bool {
+	_, ok := m.clearedFields[appstripeinvoicesyncplan.FieldCompletedAt]
+	return ok
+}
+
+// ResetCompletedAt resets all changes to the "completed_at" field.
+func (m *AppStripeInvoiceSyncPlanMutation) ResetCompletedAt() {
+	m.completed_at = nil
+	delete(m.clearedFields, appstripeinvoicesyncplan.FieldCompletedAt)
+}
+
+// SetBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by id.
+func (m *AppStripeInvoiceSyncPlanMutation) SetBillingInvoiceID(id string) {
+	m.billing_invoice = &id
+}
+
+// ClearBillingInvoice clears the "billing_invoice" edge to the BillingInvoice entity.
+func (m *AppStripeInvoiceSyncPlanMutation) ClearBillingInvoice() {
+	m.clearedbilling_invoice = true
+	m.clearedFields[appstripeinvoicesyncplan.FieldInvoiceID] = struct{}{}
+}
+
+// BillingInvoiceCleared reports if the "billing_invoice" edge to the BillingInvoice entity was cleared.
+func (m *AppStripeInvoiceSyncPlanMutation) BillingInvoiceCleared() bool {
+	return m.clearedbilling_invoice
+}
+
+// BillingInvoiceID returns the "billing_invoice" edge ID in the mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) BillingInvoiceID() (id string, exists bool) {
+	if m.billing_invoice != nil {
+		return *m.billing_invoice, true
+	}
+	return
+}
+
+// BillingInvoiceIDs returns the "billing_invoice" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// BillingInvoiceID instead. It exists only for internal usage by the builders.
+func (m *AppStripeInvoiceSyncPlanMutation) BillingInvoiceIDs() (ids []string) {
+	if id := m.billing_invoice; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetBillingInvoice resets all changes to the "billing_invoice" edge.
+func (m *AppStripeInvoiceSyncPlanMutation) ResetBillingInvoice() {
+	m.billing_invoice = nil
+	m.clearedbilling_invoice = false
+}
+
+// AddOperationIDs adds the "operations" edge to the AppStripeInvoiceSyncOp entity by ids.
+func (m *AppStripeInvoiceSyncPlanMutation) AddOperationIDs(ids ...string) {
+	if m.operations == nil {
+		m.operations = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.operations[ids[i]] = struct{}{}
+	}
+}
+
+// ClearOperations clears the "operations" edge to the AppStripeInvoiceSyncOp entity.
+func (m *AppStripeInvoiceSyncPlanMutation) ClearOperations() {
+	m.clearedoperations = true
+}
+
+// OperationsCleared reports if the "operations" edge to the AppStripeInvoiceSyncOp entity was cleared.
+func (m *AppStripeInvoiceSyncPlanMutation) OperationsCleared() bool {
+	return m.clearedoperations
+}
+
+// RemoveOperationIDs removes the "operations" edge to the AppStripeInvoiceSyncOp entity by IDs.
+func (m *AppStripeInvoiceSyncPlanMutation) RemoveOperationIDs(ids ...string) {
+	if m.removedoperations == nil {
+		m.removedoperations = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.operations, ids[i])
+		m.removedoperations[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedOperations returns the removed IDs of the "operations" edge to the AppStripeInvoiceSyncOp entity.
+func (m *AppStripeInvoiceSyncPlanMutation) RemovedOperationsIDs() (ids []string) {
+	for id := range m.removedoperations {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// OperationsIDs returns the "operations" edge IDs in the mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) OperationsIDs() (ids []string) {
+	for id := range m.operations {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetOperations resets all changes to the "operations" edge.
+func (m *AppStripeInvoiceSyncPlanMutation) ResetOperations() {
+	m.operations = nil
+	m.clearedoperations = false
+	m.removedoperations = nil
+}
+
+// Where appends a list predicates to the AppStripeInvoiceSyncPlanMutation builder.
+func (m *AppStripeInvoiceSyncPlanMutation) Where(ps ...predicate.AppStripeInvoiceSyncPlan) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the AppStripeInvoiceSyncPlanMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *AppStripeInvoiceSyncPlanMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.AppStripeInvoiceSyncPlan, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *AppStripeInvoiceSyncPlanMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *AppStripeInvoiceSyncPlanMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (AppStripeInvoiceSyncPlan).
+func (m *AppStripeInvoiceSyncPlanMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *AppStripeInvoiceSyncPlanMutation) Fields() []string {
+	fields := make([]string, 0, 11)
+	if m.namespace != nil {
+		fields = append(fields, appstripeinvoicesyncplan.FieldNamespace)
+	}
+	if m.created_at != nil {
+		fields = append(fields, appstripeinvoicesyncplan.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, appstripeinvoicesyncplan.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, appstripeinvoicesyncplan.FieldDeletedAt)
+	}
+	if m.billing_invoice != nil {
+		fields = append(fields, appstripeinvoicesyncplan.FieldInvoiceID)
+	}
+	if m.app_id != nil {
+		fields = append(fields, appstripeinvoicesyncplan.FieldAppID)
+	}
+	if m.session_id != nil {
+		fields = append(fields, appstripeinvoicesyncplan.FieldSessionID)
+	}
+	if m.phase != nil {
+		fields = append(fields, appstripeinvoicesyncplan.FieldPhase)
+	}
+	if m.status != nil {
+		fields = append(fields, appstripeinvoicesyncplan.FieldStatus)
+	}
+	if m.error != nil {
+		fields = append(fields, appstripeinvoicesyncplan.FieldError)
+	}
+	if m.completed_at != nil {
+		fields = append(fields, appstripeinvoicesyncplan.FieldCompletedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *AppStripeInvoiceSyncPlanMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case appstripeinvoicesyncplan.FieldNamespace:
+		return m.Namespace()
+	case appstripeinvoicesyncplan.FieldCreatedAt:
+		return m.CreatedAt()
+	case appstripeinvoicesyncplan.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case appstripeinvoicesyncplan.FieldDeletedAt:
+		return m.DeletedAt()
+	case appstripeinvoicesyncplan.FieldInvoiceID:
+		return m.InvoiceID()
+	case appstripeinvoicesyncplan.FieldAppID:
+		return m.AppID()
+	case appstripeinvoicesyncplan.FieldSessionID:
+		return m.SessionID()
+	case appstripeinvoicesyncplan.FieldPhase:
+		return m.Phase()
+	case appstripeinvoicesyncplan.FieldStatus:
+		return m.Status()
+	case appstripeinvoicesyncplan.FieldError:
+		return m.Error()
+	case appstripeinvoicesyncplan.FieldCompletedAt:
+		return m.CompletedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *AppStripeInvoiceSyncPlanMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case appstripeinvoicesyncplan.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case appstripeinvoicesyncplan.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case appstripeinvoicesyncplan.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case appstripeinvoicesyncplan.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case appstripeinvoicesyncplan.FieldInvoiceID:
+		return m.OldInvoiceID(ctx)
+	case appstripeinvoicesyncplan.FieldAppID:
+		return m.OldAppID(ctx)
+	case appstripeinvoicesyncplan.FieldSessionID:
+		return m.OldSessionID(ctx)
+	case appstripeinvoicesyncplan.FieldPhase:
+		return m.OldPhase(ctx)
+	case appstripeinvoicesyncplan.FieldStatus:
+		return m.OldStatus(ctx)
+	case appstripeinvoicesyncplan.FieldError:
+		return m.OldError(ctx)
+	case appstripeinvoicesyncplan.FieldCompletedAt:
+		return m.OldCompletedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown AppStripeInvoiceSyncPlan field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AppStripeInvoiceSyncPlanMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case appstripeinvoicesyncplan.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case appstripeinvoicesyncplan.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case appstripeinvoicesyncplan.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case appstripeinvoicesyncplan.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case appstripeinvoicesyncplan.FieldInvoiceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInvoiceID(v)
+		return nil
+	case appstripeinvoicesyncplan.FieldAppID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAppID(v)
+		return nil
+	case appstripeinvoicesyncplan.FieldSessionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSessionID(v)
+		return nil
+	case appstripeinvoicesyncplan.FieldPhase:
+		v, ok := value.(invoicesync.SyncPlanPhase)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPhase(v)
+		return nil
+	case appstripeinvoicesyncplan.FieldStatus:
+		v, ok := value.(invoicesync.PlanStatus)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case appstripeinvoicesyncplan.FieldError:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetError(v)
+		return nil
+	case appstripeinvoicesyncplan.FieldCompletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCompletedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown AppStripeInvoiceSyncPlan field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *AppStripeInvoiceSyncPlanMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AppStripeInvoiceSyncPlanMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown AppStripeInvoiceSyncPlan numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(appstripeinvoicesyncplan.FieldDeletedAt) {
+		fields = append(fields, appstripeinvoicesyncplan.FieldDeletedAt)
+	}
+	if m.FieldCleared(appstripeinvoicesyncplan.FieldError) {
+		fields = append(fields, appstripeinvoicesyncplan.FieldError)
+	}
+	if m.FieldCleared(appstripeinvoicesyncplan.FieldCompletedAt) {
+		fields = append(fields, appstripeinvoicesyncplan.FieldCompletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *AppStripeInvoiceSyncPlanMutation) ClearField(name string) error {
+	switch name {
+	case appstripeinvoicesyncplan.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case appstripeinvoicesyncplan.FieldError:
+		m.ClearError()
+		return nil
+	case appstripeinvoicesyncplan.FieldCompletedAt:
+		m.ClearCompletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown AppStripeInvoiceSyncPlan nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *AppStripeInvoiceSyncPlanMutation) ResetField(name string) error {
+	switch name {
+	case appstripeinvoicesyncplan.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case appstripeinvoicesyncplan.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case appstripeinvoicesyncplan.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case appstripeinvoicesyncplan.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case appstripeinvoicesyncplan.FieldInvoiceID:
+		m.ResetInvoiceID()
+		return nil
+	case appstripeinvoicesyncplan.FieldAppID:
+		m.ResetAppID()
+		return nil
+	case appstripeinvoicesyncplan.FieldSessionID:
+		m.ResetSessionID()
+		return nil
+	case appstripeinvoicesyncplan.FieldPhase:
+		m.ResetPhase()
+		return nil
+	case appstripeinvoicesyncplan.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case appstripeinvoicesyncplan.FieldError:
+		m.ResetError()
+		return nil
+	case appstripeinvoicesyncplan.FieldCompletedAt:
+		m.ResetCompletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown AppStripeInvoiceSyncPlan field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.billing_invoice != nil {
+		edges = append(edges, appstripeinvoicesyncplan.EdgeBillingInvoice)
+	}
+	if m.operations != nil {
+		edges = append(edges, appstripeinvoicesyncplan.EdgeOperations)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case appstripeinvoicesyncplan.EdgeBillingInvoice:
+		if id := m.billing_invoice; id != nil {
+			return []ent.Value{*id}
+		}
+	case appstripeinvoicesyncplan.EdgeOperations:
+		ids := make([]ent.Value, 0, len(m.operations))
+		for id := range m.operations {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.removedoperations != nil {
+		edges = append(edges, appstripeinvoicesyncplan.EdgeOperations)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case appstripeinvoicesyncplan.EdgeOperations:
+		ids := make([]ent.Value, 0, len(m.removedoperations))
+		for id := range m.removedoperations {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedbilling_invoice {
+		edges = append(edges, appstripeinvoicesyncplan.EdgeBillingInvoice)
+	}
+	if m.clearedoperations {
+		edges = append(edges, appstripeinvoicesyncplan.EdgeOperations)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *AppStripeInvoiceSyncPlanMutation) EdgeCleared(name string) bool {
+	switch name {
+	case appstripeinvoicesyncplan.EdgeBillingInvoice:
+		return m.clearedbilling_invoice
+	case appstripeinvoicesyncplan.EdgeOperations:
+		return m.clearedoperations
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *AppStripeInvoiceSyncPlanMutation) ClearEdge(name string) error {
+	switch name {
+	case appstripeinvoicesyncplan.EdgeBillingInvoice:
+		m.ClearBillingInvoice()
+		return nil
+	}
+	return fmt.Errorf("unknown AppStripeInvoiceSyncPlan unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *AppStripeInvoiceSyncPlanMutation) ResetEdge(name string) error {
+	switch name {
+	case appstripeinvoicesyncplan.EdgeBillingInvoice:
+		m.ResetBillingInvoice()
+		return nil
+	case appstripeinvoicesyncplan.EdgeOperations:
+		m.ResetOperations()
+		return nil
+	}
+	return fmt.Errorf("unknown AppStripeInvoiceSyncPlan edge %s", name)
+}
+
 // BalanceSnapshotMutation represents an operation that mutates the BalanceSnapshot nodes in the graph.
 type BalanceSnapshotMutation struct {
 	config
@@ -11932,6 +14163,9 @@ type BillingInvoiceMutation struct {
 	billing_invoice_validation_issues        map[string]struct{}
 	removedbilling_invoice_validation_issues map[string]struct{}
 	clearedbilling_invoice_validation_issues bool
+	app_stripe_invoice_sync_plans            map[string]struct{}
+	removedapp_stripe_invoice_sync_plans     map[string]struct{}
+	clearedapp_stripe_invoice_sync_plans     bool
 	billing_invoice_customer                 *string
 	clearedbilling_invoice_customer          bool
 	tax_app                                  *string
@@ -14828,6 +17062,60 @@ func (m *BillingInvoiceMutation) ResetBillingInvoiceValidationIssues() {
 	m.removedbilling_invoice_validation_issues = nil
 }
 
+// AddAppStripeInvoiceSyncPlanIDs adds the "app_stripe_invoice_sync_plans" edge to the AppStripeInvoiceSyncPlan entity by ids.
+func (m *BillingInvoiceMutation) AddAppStripeInvoiceSyncPlanIDs(ids ...string) {
+	if m.app_stripe_invoice_sync_plans == nil {
+		m.app_stripe_invoice_sync_plans = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.app_stripe_invoice_sync_plans[ids[i]] = struct{}{}
+	}
+}
+
+// ClearAppStripeInvoiceSyncPlans clears the "app_stripe_invoice_sync_plans" edge to the AppStripeInvoiceSyncPlan entity.
+func (m *BillingInvoiceMutation) ClearAppStripeInvoiceSyncPlans() {
+	m.clearedapp_stripe_invoice_sync_plans = true
+}
+
+// AppStripeInvoiceSyncPlansCleared reports if the "app_stripe_invoice_sync_plans" edge to the AppStripeInvoiceSyncPlan entity was cleared.
+func (m *BillingInvoiceMutation) AppStripeInvoiceSyncPlansCleared() bool {
+	return m.clearedapp_stripe_invoice_sync_plans
+}
+
+// RemoveAppStripeInvoiceSyncPlanIDs removes the "app_stripe_invoice_sync_plans" edge to the AppStripeInvoiceSyncPlan entity by IDs.
+func (m *BillingInvoiceMutation) RemoveAppStripeInvoiceSyncPlanIDs(ids ...string) {
+	if m.removedapp_stripe_invoice_sync_plans == nil {
+		m.removedapp_stripe_invoice_sync_plans = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.app_stripe_invoice_sync_plans, ids[i])
+		m.removedapp_stripe_invoice_sync_plans[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedAppStripeInvoiceSyncPlans returns the removed IDs of the "app_stripe_invoice_sync_plans" edge to the AppStripeInvoiceSyncPlan entity.
+func (m *BillingInvoiceMutation) RemovedAppStripeInvoiceSyncPlansIDs() (ids []string) {
+	for id := range m.removedapp_stripe_invoice_sync_plans {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// AppStripeInvoiceSyncPlansIDs returns the "app_stripe_invoice_sync_plans" edge IDs in the mutation.
+func (m *BillingInvoiceMutation) AppStripeInvoiceSyncPlansIDs() (ids []string) {
+	for id := range m.app_stripe_invoice_sync_plans {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetAppStripeInvoiceSyncPlans resets all changes to the "app_stripe_invoice_sync_plans" edge.
+func (m *BillingInvoiceMutation) ResetAppStripeInvoiceSyncPlans() {
+	m.app_stripe_invoice_sync_plans = nil
+	m.clearedapp_stripe_invoice_sync_plans = false
+	m.removedapp_stripe_invoice_sync_plans = nil
+}
+
 // SetBillingInvoiceCustomerID sets the "billing_invoice_customer" edge to the Customer entity by id.
 func (m *BillingInvoiceMutation) SetBillingInvoiceCustomerID(id string) {
 	m.billing_invoice_customer = &id
@@ -16273,7 +18561,7 @@ func (m *BillingInvoiceMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *BillingInvoiceMutation) AddedEdges() []string {
-	edges := make([]string, 0, 9)
+	edges := make([]string, 0, 10)
 	if m.source_billing_profile != nil {
 		edges = append(edges, billinginvoice.EdgeSourceBillingProfile)
 	}
@@ -16288,6 +18576,9 @@ func (m *BillingInvoiceMutation) AddedEdges() []string {
 	}
 	if m.billing_invoice_validation_issues != nil {
 		edges = append(edges, billinginvoice.EdgeBillingInvoiceValidationIssues)
+	}
+	if m.app_stripe_invoice_sync_plans != nil {
+		edges = append(edges, billinginvoice.EdgeAppStripeInvoiceSyncPlans)
 	}
 	if m.billing_invoice_customer != nil {
 		edges = append(edges, billinginvoice.EdgeBillingInvoiceCustomer)
@@ -16334,6 +18625,12 @@ func (m *BillingInvoiceMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case billinginvoice.EdgeAppStripeInvoiceSyncPlans:
+		ids := make([]ent.Value, 0, len(m.app_stripe_invoice_sync_plans))
+		for id := range m.app_stripe_invoice_sync_plans {
+			ids = append(ids, id)
+		}
+		return ids
 	case billinginvoice.EdgeBillingInvoiceCustomer:
 		if id := m.billing_invoice_customer; id != nil {
 			return []ent.Value{*id}
@@ -16356,7 +18653,7 @@ func (m *BillingInvoiceMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *BillingInvoiceMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 9)
+	edges := make([]string, 0, 10)
 	if m.removedbilling_invoice_lines != nil {
 		edges = append(edges, billinginvoice.EdgeBillingInvoiceLines)
 	}
@@ -16365,6 +18662,9 @@ func (m *BillingInvoiceMutation) RemovedEdges() []string {
 	}
 	if m.removedbilling_invoice_validation_issues != nil {
 		edges = append(edges, billinginvoice.EdgeBillingInvoiceValidationIssues)
+	}
+	if m.removedapp_stripe_invoice_sync_plans != nil {
+		edges = append(edges, billinginvoice.EdgeAppStripeInvoiceSyncPlans)
 	}
 	return edges
 }
@@ -16391,13 +18691,19 @@ func (m *BillingInvoiceMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case billinginvoice.EdgeAppStripeInvoiceSyncPlans:
+		ids := make([]ent.Value, 0, len(m.removedapp_stripe_invoice_sync_plans))
+		for id := range m.removedapp_stripe_invoice_sync_plans {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *BillingInvoiceMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 9)
+	edges := make([]string, 0, 10)
 	if m.clearedsource_billing_profile {
 		edges = append(edges, billinginvoice.EdgeSourceBillingProfile)
 	}
@@ -16412,6 +18718,9 @@ func (m *BillingInvoiceMutation) ClearedEdges() []string {
 	}
 	if m.clearedbilling_invoice_validation_issues {
 		edges = append(edges, billinginvoice.EdgeBillingInvoiceValidationIssues)
+	}
+	if m.clearedapp_stripe_invoice_sync_plans {
+		edges = append(edges, billinginvoice.EdgeAppStripeInvoiceSyncPlans)
 	}
 	if m.clearedbilling_invoice_customer {
 		edges = append(edges, billinginvoice.EdgeBillingInvoiceCustomer)
@@ -16442,6 +18751,8 @@ func (m *BillingInvoiceMutation) EdgeCleared(name string) bool {
 		return m.clearedbilling_invoice_detailed_lines
 	case billinginvoice.EdgeBillingInvoiceValidationIssues:
 		return m.clearedbilling_invoice_validation_issues
+	case billinginvoice.EdgeAppStripeInvoiceSyncPlans:
+		return m.clearedapp_stripe_invoice_sync_plans
 	case billinginvoice.EdgeBillingInvoiceCustomer:
 		return m.clearedbilling_invoice_customer
 	case billinginvoice.EdgeTaxApp:
@@ -16498,6 +18809,9 @@ func (m *BillingInvoiceMutation) ResetEdge(name string) error {
 		return nil
 	case billinginvoice.EdgeBillingInvoiceValidationIssues:
 		m.ResetBillingInvoiceValidationIssues()
+		return nil
+	case billinginvoice.EdgeAppStripeInvoiceSyncPlans:
+		m.ResetAppStripeInvoiceSyncPlans()
 		return nil
 	case billinginvoice.EdgeBillingInvoiceCustomer:
 		m.ResetBillingInvoiceCustomer()
