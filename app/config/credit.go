@@ -14,6 +14,8 @@ type CreditConfiguration struct {
 func (c CreditConfiguration) Validate() error {
 	var errs []error
 
+	// Add any validation logic for CreditConfiguration here if needed.
+
 	return errors.Join(errs...)
 }
 

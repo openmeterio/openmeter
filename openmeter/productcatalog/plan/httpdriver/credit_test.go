@@ -84,21 +84,46 @@ const planCreateCreditOnlyBody = `{
 	"phases": [{"key": "default", "name": "Default Phase", "rateCards": []}]
 }`
 
+// planCreateCreditThenInvoiceBody is a minimal valid PlanCreate JSON with credit_then_invoice settlement mode.
+const planCreateCreditThenInvoiceBody = `{
+	"key": "test-plan",
+	"name": "Test Plan",
+	"currency": "USD",
+	"billingCadence": "P1M",
+	"settlementMode": "credit_then_invoice",
+	"phases": [{"key": "default", "name": "Default Phase", "rateCards": []}]
+}`
+
 func TestCreatePlanCreditConfiguration(t *testing.T) {
 	const namespace = "test-ns"
 
 	tests := []struct {
 		name           string
+		body           string
 		creditEnabled  bool
 		wantStatusCode int
 	}{
 		{
 			name:           "credit disabled: credit_only settlement mode is rejected",
+			body:           planCreateCreditOnlyBody,
 			creditEnabled:  false,
 			wantStatusCode: http.StatusBadRequest,
 		},
 		{
 			name:           "credit enabled: credit_only settlement mode is allowed",
+			body:           planCreateCreditOnlyBody,
+			creditEnabled:  true,
+			wantStatusCode: http.StatusCreated,
+		},
+		{
+			name:           "credit disabled: non-credit settlement mode is allowed",
+			body:           planCreateCreditThenInvoiceBody,
+			creditEnabled:  false,
+			wantStatusCode: http.StatusCreated,
+		},
+		{
+			name:           "credit enabled: non-credit settlement mode is allowed",
+			body:           planCreateCreditThenInvoiceBody,
 			creditEnabled:  true,
 			wantStatusCode: http.StatusCreated,
 		},
@@ -106,8 +131,10 @@ func TestCreatePlanCreditConfiguration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			var createPlanCalled bool
 			svc := &stubPlanService{
 				createPlan: func(_ context.Context, params plan.CreatePlanInput) (*plan.Plan, error) {
+					createPlanCalled = true
 					return stubPlan(namespace, params.SettlementMode), nil
 				},
 			}
@@ -117,7 +144,7 @@ func TestCreatePlanCreditConfiguration(t *testing.T) {
 				svc,
 			)
 
-			req := httptest.NewRequest(http.MethodPost, "/api/v1/plans", bytes.NewBufferString(planCreateCreditOnlyBody))
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/plans", bytes.NewBufferString(tt.body))
 			req.Header.Set("Content-Type", "application/json")
 
 			rec := httptest.NewRecorder()
@@ -125,8 +152,11 @@ func TestCreatePlanCreditConfiguration(t *testing.T) {
 			h.CreatePlan().With(appconfig.CreditConfiguration{Enabled: tt.creditEnabled}).ServeHTTP(rec, req)
 
 			require.Equal(t, tt.wantStatusCode, rec.Code, "response body: %s", rec.Body.String())
-			if !tt.creditEnabled {
+			if tt.wantStatusCode == http.StatusBadRequest {
 				assert.Contains(t, rec.Body.String(), "credits are not enabled on this deployment of OpenMeter")
+				assert.False(t, createPlanCalled, "service must not be called when credit check rejects the request")
+			} else {
+				assert.True(t, createPlanCalled, "service must be called when credit check passes")
 			}
 		})
 	}

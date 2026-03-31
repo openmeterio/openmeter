@@ -1181,3 +1181,92 @@ func TestPlan(t *testing.T) {
 		require.True(t, res.JSON200.Entitlements[PlanFeatureKey].HasAccess)
 	})
 }
+
+// TestSettlementMode verifies the credit_only settlement mode guard and that
+// credit_then_invoice is accepted and round-tripped correctly. credit.enabled
+// defaults to false in the e2e environment, so credit_only must be rejected.
+func TestSettlementMode(t *testing.T) {
+	client := initClient(t)
+
+	ctx := t.Context()
+
+	// Minimal single-phase plan body reused across sub-tests.
+	defaultPhase := api.PlanPhase{
+		Key:       "default",
+		Name:      "Default Phase",
+		RateCards: []api.RateCard{},
+	}
+
+	t.Run("Should reject a plan with credit_only settlement mode when credit is disabled", func(t *testing.T) {
+		res, err := client.CreatePlanWithResponse(ctx, api.PlanCreate{
+			Key:            "test_plan_settlement_credit_only",
+			Name:           "Credit Only Plan",
+			Currency:       "USD",
+			BillingCadence: "P1M",
+			SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditOnly),
+			Phases:         []api.PlanPhase{defaultPhase},
+		})
+		require.Nil(t, err)
+		assert.Equal(t, 400, res.StatusCode(), "received the following body: %s", res.Body)
+		require.NotNil(t, res.ApplicationproblemJSON400)
+		assert.Contains(t, res.ApplicationproblemJSON400.Detail, "credits are not enabled on this deployment of OpenMeter")
+	})
+
+	t.Run("Should accept a plan with credit_then_invoice settlement mode and return it in the response", func(t *testing.T) {
+		res, err := client.CreatePlanWithResponse(ctx, api.PlanCreate{
+			Key:            "test_plan_settlement_credit_then_invoice",
+			Name:           "Credit Then Invoice Plan",
+			Currency:       "USD",
+			BillingCadence: "P1M",
+			SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditThenInvoice),
+			Phases:         []api.PlanPhase{defaultPhase},
+		})
+		require.Nil(t, err)
+		require.Equal(t, 201, res.StatusCode(), "received the following body: %s", res.Body)
+		require.NotNil(t, res.JSON201)
+		assert.Equal(t, lo.ToPtr(api.BillingSettlementModeCreditThenInvoice), res.JSON201.SettlementMode)
+	})
+
+	t.Run("Should reject a custom subscription with credit_only settlement mode when credit is disabled", func(t *testing.T) {
+		// The credit check fires before getCustomer, so a non-existent customer ID is fine here.
+		create := api.SubscriptionCreate{}
+		err := create.FromCustomSubscriptionCreate(api.CustomSubscriptionCreate{
+			CustomerId: lo.ToPtr("non-existent-customer-id"),
+			CustomPlan: api.CustomPlanInput{
+				Name:           "Credit Only Custom Plan",
+				Currency:       "USD",
+				BillingCadence: "P1M",
+				SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditOnly),
+				Phases:         []api.PlanPhase{defaultPhase},
+			},
+		})
+		require.Nil(t, err)
+
+		res, err := client.CreateSubscriptionWithResponse(ctx, create)
+		require.Nil(t, err)
+		assert.Equal(t, 400, res.StatusCode(), "received the following body: %s", res.Body)
+	})
+
+	t.Run("Should reject a custom subscription change with credit_only settlement mode when credit is disabled", func(t *testing.T) {
+		ct := &api.SubscriptionTiming{}
+		require.NoError(t, ct.FromSubscriptionTimingEnum(api.SubscriptionTimingEnumImmediate))
+
+		req := api.SubscriptionChange{}
+		err := req.FromCustomSubscriptionChange(api.CustomSubscriptionChange{
+			Timing: *ct,
+			CustomPlan: api.CustomPlanInput{
+				Name:           "Credit Only Custom Plan",
+				Currency:       "USD",
+				BillingCadence: "P1M",
+				SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditOnly),
+				Phases:         []api.PlanPhase{defaultPhase},
+			},
+		})
+		require.Nil(t, err)
+
+		// The credit check fires before the subscription lookup, so a non-existent ID is fine here.
+		res, err := client.ChangeSubscriptionWithResponse(ctx, "non-existent-subscription-id", req)
+		require.Nil(t, err)
+		assert.Equal(t, 400, res.StatusCode(), "received the following body: %s", res.Body)
+	})
+}

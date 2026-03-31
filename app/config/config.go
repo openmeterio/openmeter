@@ -164,6 +164,10 @@ func (c Configuration) Validate() error {
 		errs = append(errs, errorsx.WithPrefix(err, "customer"))
 	}
 
+	if err := c.Credit.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "credit"))
+	}
+
 	return errors.Join(errs...)
 }
 

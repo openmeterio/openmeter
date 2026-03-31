@@ -200,7 +200,6 @@ func TestCreateSubscriptionCreditConfiguration(t *testing.T) {
 				NamespaceDecoder:        namespacedriver.StaticNamespaceDecoder(namespace),
 				CustomerService:         customerSvc,
 				PlanSubscriptionService: planSubSvc,
-				Credit:                  appconfig.CreditConfiguration{Enabled: tt.creditEnabled},
 			})
 
 			req := httptest.NewRequest(http.MethodPost, "/api/v1/subscriptions", bytes.NewBufferString(subscriptionCreateCreditOnlyBody))
