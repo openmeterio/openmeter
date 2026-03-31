@@ -2,11 +2,11 @@ package features
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -23,10 +23,8 @@ func (h *handler) UpdateFeature() UpdateFeatureHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, featureID UpdateFeatureParams) (UpdateFeatureRequest, error) {
 			body := api.UpdateFeatureRequest{}
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				return UpdateFeatureRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-					{Reason: "unable to parse body", Source: apierrors.InvalidParamSourceBody},
-				})
+			if err := request.ParseBody(r, &body); err != nil {
+				return UpdateFeatureRequest{}, err
 			}
 
 			ns, err := h.resolveNamespace(ctx)
