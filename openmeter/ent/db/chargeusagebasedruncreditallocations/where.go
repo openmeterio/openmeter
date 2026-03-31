@@ -802,6 +802,52 @@ func RunIDContainsFold(v string) predicate.ChargeUsageBasedRunCreditAllocations 
 	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldContainsFold(FieldRunID, v))
 }
 
+// HasCorrections applies the HasEdge predicate on the "corrections" edge.
+func HasCorrections() predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, CorrectionsTable, CorrectionsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCorrectionsWith applies the HasEdge predicate on the "corrections" edge with a given conditions (other predicates).
+func HasCorrectionsWith(preds ...predicate.ChargeUsageBasedRunCreditAllocations) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(func(s *sql.Selector) {
+		step := newCorrectionsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasAllocation applies the HasEdge predicate on the "allocation" edge.
+func HasAllocation() predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, AllocationTable, AllocationColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasAllocationWith applies the HasEdge predicate on the "allocation" edge with a given conditions (other predicates).
+func HasAllocationWith(preds ...predicate.ChargeUsageBasedRunCreditAllocations) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(func(s *sql.Selector) {
+		step := newAllocationStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasRun applies the HasEdge predicate on the "run" edge.
 func HasRun() predicate.ChargeUsageBasedRunCreditAllocations {
 	return predicate.ChargeUsageBasedRunCreditAllocations(func(s *sql.Selector) {

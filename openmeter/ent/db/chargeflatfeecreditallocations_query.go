@@ -4,6 +4,7 @@ package db
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -25,6 +26,8 @@ type ChargeFlatFeeCreditAllocationsQuery struct {
 	order                  []chargeflatfeecreditallocations.OrderOption
 	inters                 []Interceptor
 	predicates             []predicate.ChargeFlatFeeCreditAllocations
+	withCorrections        *ChargeFlatFeeCreditAllocationsQuery
+	withAllocation         *ChargeFlatFeeCreditAllocationsQuery
 	withFlatFee            *ChargeFlatFeeQuery
 	withBillingInvoiceLine *BillingInvoiceLineQuery
 	modifiers              []func(*sql.Selector)
@@ -62,6 +65,50 @@ func (_q *ChargeFlatFeeCreditAllocationsQuery) Unique(unique bool) *ChargeFlatFe
 func (_q *ChargeFlatFeeCreditAllocationsQuery) Order(o ...chargeflatfeecreditallocations.OrderOption) *ChargeFlatFeeCreditAllocationsQuery {
 	_q.order = append(_q.order, o...)
 	return _q
+}
+
+// QueryCorrections chains the current query on the "corrections" edge.
+func (_q *ChargeFlatFeeCreditAllocationsQuery) QueryCorrections() *ChargeFlatFeeCreditAllocationsQuery {
+	query := (&ChargeFlatFeeCreditAllocationsClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfeecreditallocations.Table, chargeflatfeecreditallocations.FieldID, selector),
+			sqlgraph.To(chargeflatfeecreditallocations.Table, chargeflatfeecreditallocations.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, chargeflatfeecreditallocations.CorrectionsTable, chargeflatfeecreditallocations.CorrectionsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryAllocation chains the current query on the "allocation" edge.
+func (_q *ChargeFlatFeeCreditAllocationsQuery) QueryAllocation() *ChargeFlatFeeCreditAllocationsQuery {
+	query := (&ChargeFlatFeeCreditAllocationsClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfeecreditallocations.Table, chargeflatfeecreditallocations.FieldID, selector),
+			sqlgraph.To(chargeflatfeecreditallocations.Table, chargeflatfeecreditallocations.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, chargeflatfeecreditallocations.AllocationTable, chargeflatfeecreditallocations.AllocationColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // QueryFlatFee chains the current query on the "flat_fee" edge.
@@ -300,12 +347,36 @@ func (_q *ChargeFlatFeeCreditAllocationsQuery) Clone() *ChargeFlatFeeCreditAlloc
 		order:                  append([]chargeflatfeecreditallocations.OrderOption{}, _q.order...),
 		inters:                 append([]Interceptor{}, _q.inters...),
 		predicates:             append([]predicate.ChargeFlatFeeCreditAllocations{}, _q.predicates...),
+		withCorrections:        _q.withCorrections.Clone(),
+		withAllocation:         _q.withAllocation.Clone(),
 		withFlatFee:            _q.withFlatFee.Clone(),
 		withBillingInvoiceLine: _q.withBillingInvoiceLine.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
+}
+
+// WithCorrections tells the query-builder to eager-load the nodes that are connected to
+// the "corrections" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeFlatFeeCreditAllocationsQuery) WithCorrections(opts ...func(*ChargeFlatFeeCreditAllocationsQuery)) *ChargeFlatFeeCreditAllocationsQuery {
+	query := (&ChargeFlatFeeCreditAllocationsClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withCorrections = query
+	return _q
+}
+
+// WithAllocation tells the query-builder to eager-load the nodes that are connected to
+// the "allocation" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeFlatFeeCreditAllocationsQuery) WithAllocation(opts ...func(*ChargeFlatFeeCreditAllocationsQuery)) *ChargeFlatFeeCreditAllocationsQuery {
+	query := (&ChargeFlatFeeCreditAllocationsClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withAllocation = query
+	return _q
 }
 
 // WithFlatFee tells the query-builder to eager-load the nodes that are connected to
@@ -408,7 +479,9 @@ func (_q *ChargeFlatFeeCreditAllocationsQuery) sqlAll(ctx context.Context, hooks
 	var (
 		nodes       = []*ChargeFlatFeeCreditAllocations{}
 		_spec       = _q.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [4]bool{
+			_q.withCorrections != nil,
+			_q.withAllocation != nil,
 			_q.withFlatFee != nil,
 			_q.withBillingInvoiceLine != nil,
 		}
@@ -434,6 +507,21 @@ func (_q *ChargeFlatFeeCreditAllocationsQuery) sqlAll(ctx context.Context, hooks
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := _q.withCorrections; query != nil {
+		if err := _q.loadCorrections(ctx, query, nodes,
+			func(n *ChargeFlatFeeCreditAllocations) { n.Edges.Corrections = []*ChargeFlatFeeCreditAllocations{} },
+			func(n *ChargeFlatFeeCreditAllocations, e *ChargeFlatFeeCreditAllocations) {
+				n.Edges.Corrections = append(n.Edges.Corrections, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withAllocation; query != nil {
+		if err := _q.loadAllocation(ctx, query, nodes, nil,
+			func(n *ChargeFlatFeeCreditAllocations, e *ChargeFlatFeeCreditAllocations) { n.Edges.Allocation = e }); err != nil {
+			return nil, err
+		}
+	}
 	if query := _q.withFlatFee; query != nil {
 		if err := _q.loadFlatFee(ctx, query, nodes, nil,
 			func(n *ChargeFlatFeeCreditAllocations, e *ChargeFlatFee) { n.Edges.FlatFee = e }); err != nil {
@@ -449,6 +537,71 @@ func (_q *ChargeFlatFeeCreditAllocationsQuery) sqlAll(ctx context.Context, hooks
 	return nodes, nil
 }
 
+func (_q *ChargeFlatFeeCreditAllocationsQuery) loadCorrections(ctx context.Context, query *ChargeFlatFeeCreditAllocationsQuery, nodes []*ChargeFlatFeeCreditAllocations, init func(*ChargeFlatFeeCreditAllocations), assign func(*ChargeFlatFeeCreditAllocations, *ChargeFlatFeeCreditAllocations)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*ChargeFlatFeeCreditAllocations)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargeflatfeecreditallocations.FieldCorrectsRealizationID)
+	}
+	query.Where(predicate.ChargeFlatFeeCreditAllocations(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(chargeflatfeecreditallocations.CorrectionsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CorrectsRealizationID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "corrects_realization_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "corrects_realization_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *ChargeFlatFeeCreditAllocationsQuery) loadAllocation(ctx context.Context, query *ChargeFlatFeeCreditAllocationsQuery, nodes []*ChargeFlatFeeCreditAllocations, init func(*ChargeFlatFeeCreditAllocations), assign func(*ChargeFlatFeeCreditAllocations, *ChargeFlatFeeCreditAllocations)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*ChargeFlatFeeCreditAllocations)
+	for i := range nodes {
+		if nodes[i].CorrectsRealizationID == nil {
+			continue
+		}
+		fk := *nodes[i].CorrectsRealizationID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(chargeflatfeecreditallocations.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "corrects_realization_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 func (_q *ChargeFlatFeeCreditAllocationsQuery) loadFlatFee(ctx context.Context, query *ChargeFlatFeeQuery, nodes []*ChargeFlatFeeCreditAllocations, init func(*ChargeFlatFeeCreditAllocations), assign func(*ChargeFlatFeeCreditAllocations, *ChargeFlatFee)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*ChargeFlatFeeCreditAllocations)
@@ -538,6 +691,9 @@ func (_q *ChargeFlatFeeCreditAllocationsQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != chargeflatfeecreditallocations.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withAllocation != nil {
+			_spec.Node.AddColumnOnce(chargeflatfeecreditallocations.FieldCorrectsRealizationID)
 		}
 		if _q.withFlatFee != nil {
 			_spec.Node.AddColumnOnce(chargeflatfeecreditallocations.FieldChargeID)

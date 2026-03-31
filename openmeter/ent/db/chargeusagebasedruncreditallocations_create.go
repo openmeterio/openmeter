@@ -165,6 +165,40 @@ func (_c *ChargeUsageBasedRunCreditAllocationsCreate) SetNillableID(v *string) *
 	return _c
 }
 
+// AddCorrectionIDs adds the "corrections" edge to the ChargeUsageBasedRunCreditAllocations entity by IDs.
+func (_c *ChargeUsageBasedRunCreditAllocationsCreate) AddCorrectionIDs(ids ...string) *ChargeUsageBasedRunCreditAllocationsCreate {
+	_c.mutation.AddCorrectionIDs(ids...)
+	return _c
+}
+
+// AddCorrections adds the "corrections" edges to the ChargeUsageBasedRunCreditAllocations entity.
+func (_c *ChargeUsageBasedRunCreditAllocationsCreate) AddCorrections(v ...*ChargeUsageBasedRunCreditAllocations) *ChargeUsageBasedRunCreditAllocationsCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddCorrectionIDs(ids...)
+}
+
+// SetAllocationID sets the "allocation" edge to the ChargeUsageBasedRunCreditAllocations entity by ID.
+func (_c *ChargeUsageBasedRunCreditAllocationsCreate) SetAllocationID(id string) *ChargeUsageBasedRunCreditAllocationsCreate {
+	_c.mutation.SetAllocationID(id)
+	return _c
+}
+
+// SetNillableAllocationID sets the "allocation" edge to the ChargeUsageBasedRunCreditAllocations entity by ID if the given value is not nil.
+func (_c *ChargeUsageBasedRunCreditAllocationsCreate) SetNillableAllocationID(id *string) *ChargeUsageBasedRunCreditAllocationsCreate {
+	if id != nil {
+		_c = _c.SetAllocationID(*id)
+	}
+	return _c
+}
+
+// SetAllocation sets the "allocation" edge to the ChargeUsageBasedRunCreditAllocations entity.
+func (_c *ChargeUsageBasedRunCreditAllocationsCreate) SetAllocation(v *ChargeUsageBasedRunCreditAllocations) *ChargeUsageBasedRunCreditAllocationsCreate {
+	return _c.SetAllocationID(v.ID)
+}
+
 // SetRun sets the "run" edge to the ChargeUsageBasedRuns entity.
 func (_c *ChargeUsageBasedRunCreditAllocationsCreate) SetRun(v *ChargeUsageBasedRuns) *ChargeUsageBasedRunCreditAllocationsCreate {
 	return _c.SetRunID(v.ID)
@@ -343,10 +377,6 @@ func (_c *ChargeUsageBasedRunCreditAllocationsCreate) createSpec() (*ChargeUsage
 		_spec.SetField(chargeusagebasedruncreditallocations.FieldType, field.TypeEnum, value)
 		_node.Type = value
 	}
-	if value, ok := _c.mutation.CorrectsRealizationID(); ok {
-		_spec.SetField(chargeusagebasedruncreditallocations.FieldCorrectsRealizationID, field.TypeString, value)
-		_node.CorrectsRealizationID = &value
-	}
 	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(chargeusagebasedruncreditallocations.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
@@ -366,6 +396,39 @@ func (_c *ChargeUsageBasedRunCreditAllocationsCreate) createSpec() (*ChargeUsage
 	if value, ok := _c.mutation.Annotations(); ok {
 		_spec.SetField(chargeusagebasedruncreditallocations.FieldAnnotations, field.TypeJSON, value)
 		_node.Annotations = value
+	}
+	if nodes := _c.mutation.CorrectionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   chargeusagebasedruncreditallocations.CorrectionsTable,
+			Columns: []string{chargeusagebasedruncreditallocations.CorrectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruncreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.AllocationIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargeusagebasedruncreditallocations.AllocationTable,
+			Columns: []string{chargeusagebasedruncreditallocations.AllocationColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruncreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CorrectsRealizationID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.RunIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

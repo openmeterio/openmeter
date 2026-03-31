@@ -6518,6 +6518,38 @@ func (c *ChargeFlatFeeCreditAllocationsClient) GetX(ctx context.Context, id stri
 	return obj
 }
 
+// QueryCorrections queries the corrections edge of a ChargeFlatFeeCreditAllocations.
+func (c *ChargeFlatFeeCreditAllocationsClient) QueryCorrections(_m *ChargeFlatFeeCreditAllocations) *ChargeFlatFeeCreditAllocationsQuery {
+	query := (&ChargeFlatFeeCreditAllocationsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfeecreditallocations.Table, chargeflatfeecreditallocations.FieldID, id),
+			sqlgraph.To(chargeflatfeecreditallocations.Table, chargeflatfeecreditallocations.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, chargeflatfeecreditallocations.CorrectionsTable, chargeflatfeecreditallocations.CorrectionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryAllocation queries the allocation edge of a ChargeFlatFeeCreditAllocations.
+func (c *ChargeFlatFeeCreditAllocationsClient) QueryAllocation(_m *ChargeFlatFeeCreditAllocations) *ChargeFlatFeeCreditAllocationsQuery {
+	query := (&ChargeFlatFeeCreditAllocationsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfeecreditallocations.Table, chargeflatfeecreditallocations.FieldID, id),
+			sqlgraph.To(chargeflatfeecreditallocations.Table, chargeflatfeecreditallocations.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, chargeflatfeecreditallocations.AllocationTable, chargeflatfeecreditallocations.AllocationColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryFlatFee queries the flat_fee edge of a ChargeFlatFeeCreditAllocations.
 func (c *ChargeFlatFeeCreditAllocationsClient) QueryFlatFee(_m *ChargeFlatFeeCreditAllocations) *ChargeFlatFeeQuery {
 	query := (&ChargeFlatFeeClient{config: c.config}).Query()
@@ -7256,6 +7288,38 @@ func (c *ChargeUsageBasedRunCreditAllocationsClient) GetX(ctx context.Context, i
 		panic(err)
 	}
 	return obj
+}
+
+// QueryCorrections queries the corrections edge of a ChargeUsageBasedRunCreditAllocations.
+func (c *ChargeUsageBasedRunCreditAllocationsClient) QueryCorrections(_m *ChargeUsageBasedRunCreditAllocations) *ChargeUsageBasedRunCreditAllocationsQuery {
+	query := (&ChargeUsageBasedRunCreditAllocationsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedruncreditallocations.Table, chargeusagebasedruncreditallocations.FieldID, id),
+			sqlgraph.To(chargeusagebasedruncreditallocations.Table, chargeusagebasedruncreditallocations.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, chargeusagebasedruncreditallocations.CorrectionsTable, chargeusagebasedruncreditallocations.CorrectionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryAllocation queries the allocation edge of a ChargeUsageBasedRunCreditAllocations.
+func (c *ChargeUsageBasedRunCreditAllocationsClient) QueryAllocation(_m *ChargeUsageBasedRunCreditAllocations) *ChargeUsageBasedRunCreditAllocationsQuery {
+	query := (&ChargeUsageBasedRunCreditAllocationsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedruncreditallocations.Table, chargeusagebasedruncreditallocations.FieldID, id),
+			sqlgraph.To(chargeusagebasedruncreditallocations.Table, chargeusagebasedruncreditallocations.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, chargeusagebasedruncreditallocations.AllocationTable, chargeusagebasedruncreditallocations.AllocationColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // QueryRun queries the run edge of a ChargeUsageBasedRunCreditAllocations.

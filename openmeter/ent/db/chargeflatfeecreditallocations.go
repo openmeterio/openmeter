@@ -59,13 +59,37 @@ type ChargeFlatFeeCreditAllocations struct {
 
 // ChargeFlatFeeCreditAllocationsEdges holds the relations/edges for other nodes in the graph.
 type ChargeFlatFeeCreditAllocationsEdges struct {
+	// Corrections holds the value of the corrections edge.
+	Corrections []*ChargeFlatFeeCreditAllocations `json:"corrections,omitempty"`
+	// Allocation holds the value of the allocation edge.
+	Allocation *ChargeFlatFeeCreditAllocations `json:"allocation,omitempty"`
 	// FlatFee holds the value of the flat_fee edge.
 	FlatFee *ChargeFlatFee `json:"flat_fee,omitempty"`
 	// BillingInvoiceLine holds the value of the billing_invoice_line edge.
 	BillingInvoiceLine *BillingInvoiceLine `json:"billing_invoice_line,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [4]bool
+}
+
+// CorrectionsOrErr returns the Corrections value or an error if the edge
+// was not loaded in eager-loading.
+func (e ChargeFlatFeeCreditAllocationsEdges) CorrectionsOrErr() ([]*ChargeFlatFeeCreditAllocations, error) {
+	if e.loadedTypes[0] {
+		return e.Corrections, nil
+	}
+	return nil, &NotLoadedError{edge: "corrections"}
+}
+
+// AllocationOrErr returns the Allocation value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeFlatFeeCreditAllocationsEdges) AllocationOrErr() (*ChargeFlatFeeCreditAllocations, error) {
+	if e.Allocation != nil {
+		return e.Allocation, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: chargeflatfeecreditallocations.Label}
+	}
+	return nil, &NotLoadedError{edge: "allocation"}
 }
 
 // FlatFeeOrErr returns the FlatFee value or an error if the edge
@@ -73,7 +97,7 @@ type ChargeFlatFeeCreditAllocationsEdges struct {
 func (e ChargeFlatFeeCreditAllocationsEdges) FlatFeeOrErr() (*ChargeFlatFee, error) {
 	if e.FlatFee != nil {
 		return e.FlatFee, nil
-	} else if e.loadedTypes[0] {
+	} else if e.loadedTypes[2] {
 		return nil, &NotFoundError{label: chargeflatfee.Label}
 	}
 	return nil, &NotLoadedError{edge: "flat_fee"}
@@ -84,7 +108,7 @@ func (e ChargeFlatFeeCreditAllocationsEdges) FlatFeeOrErr() (*ChargeFlatFee, err
 func (e ChargeFlatFeeCreditAllocationsEdges) BillingInvoiceLineOrErr() (*BillingInvoiceLine, error) {
 	if e.BillingInvoiceLine != nil {
 		return e.BillingInvoiceLine, nil
-	} else if e.loadedTypes[1] {
+	} else if e.loadedTypes[3] {
 		return nil, &NotFoundError{label: billinginvoiceline.Label}
 	}
 	return nil, &NotLoadedError{edge: "billing_invoice_line"}
@@ -226,6 +250,16 @@ func (_m *ChargeFlatFeeCreditAllocations) assignValues(columns []string, values 
 // This includes values selected through modifiers, order, etc.
 func (_m *ChargeFlatFeeCreditAllocations) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
+}
+
+// QueryCorrections queries the "corrections" edge of the ChargeFlatFeeCreditAllocations entity.
+func (_m *ChargeFlatFeeCreditAllocations) QueryCorrections() *ChargeFlatFeeCreditAllocationsQuery {
+	return NewChargeFlatFeeCreditAllocationsClient(_m.config).QueryCorrections(_m)
+}
+
+// QueryAllocation queries the "allocation" edge of the ChargeFlatFeeCreditAllocations entity.
+func (_m *ChargeFlatFeeCreditAllocations) QueryAllocation() *ChargeFlatFeeCreditAllocationsQuery {
+	return NewChargeFlatFeeCreditAllocationsClient(_m.config).QueryAllocation(_m)
 }
 
 // QueryFlatFee queries the "flat_fee" edge of the ChargeFlatFeeCreditAllocations entity.

@@ -802,6 +802,52 @@ func ChargeIDContainsFold(v string) predicate.ChargeFlatFeeCreditAllocations {
 	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldContainsFold(FieldChargeID, v))
 }
 
+// HasCorrections applies the HasEdge predicate on the "corrections" edge.
+func HasCorrections() predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, CorrectionsTable, CorrectionsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCorrectionsWith applies the HasEdge predicate on the "corrections" edge with a given conditions (other predicates).
+func HasCorrectionsWith(preds ...predicate.ChargeFlatFeeCreditAllocations) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(func(s *sql.Selector) {
+		step := newCorrectionsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasAllocation applies the HasEdge predicate on the "allocation" edge.
+func HasAllocation() predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, AllocationTable, AllocationColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasAllocationWith applies the HasEdge predicate on the "allocation" edge with a given conditions (other predicates).
+func HasAllocationWith(preds ...predicate.ChargeFlatFeeCreditAllocations) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(func(s *sql.Selector) {
+		step := newAllocationStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasFlatFee applies the HasEdge predicate on the "flat_fee" edge.
 func HasFlatFee() predicate.ChargeFlatFeeCreditAllocations {
 	return predicate.ChargeFlatFeeCreditAllocations(func(s *sql.Selector) {

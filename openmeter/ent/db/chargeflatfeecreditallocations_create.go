@@ -166,6 +166,40 @@ func (_c *ChargeFlatFeeCreditAllocationsCreate) SetNillableID(v *string) *Charge
 	return _c
 }
 
+// AddCorrectionIDs adds the "corrections" edge to the ChargeFlatFeeCreditAllocations entity by IDs.
+func (_c *ChargeFlatFeeCreditAllocationsCreate) AddCorrectionIDs(ids ...string) *ChargeFlatFeeCreditAllocationsCreate {
+	_c.mutation.AddCorrectionIDs(ids...)
+	return _c
+}
+
+// AddCorrections adds the "corrections" edges to the ChargeFlatFeeCreditAllocations entity.
+func (_c *ChargeFlatFeeCreditAllocationsCreate) AddCorrections(v ...*ChargeFlatFeeCreditAllocations) *ChargeFlatFeeCreditAllocationsCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddCorrectionIDs(ids...)
+}
+
+// SetAllocationID sets the "allocation" edge to the ChargeFlatFeeCreditAllocations entity by ID.
+func (_c *ChargeFlatFeeCreditAllocationsCreate) SetAllocationID(id string) *ChargeFlatFeeCreditAllocationsCreate {
+	_c.mutation.SetAllocationID(id)
+	return _c
+}
+
+// SetNillableAllocationID sets the "allocation" edge to the ChargeFlatFeeCreditAllocations entity by ID if the given value is not nil.
+func (_c *ChargeFlatFeeCreditAllocationsCreate) SetNillableAllocationID(id *string) *ChargeFlatFeeCreditAllocationsCreate {
+	if id != nil {
+		_c = _c.SetAllocationID(*id)
+	}
+	return _c
+}
+
+// SetAllocation sets the "allocation" edge to the ChargeFlatFeeCreditAllocations entity.
+func (_c *ChargeFlatFeeCreditAllocationsCreate) SetAllocation(v *ChargeFlatFeeCreditAllocations) *ChargeFlatFeeCreditAllocationsCreate {
+	return _c.SetAllocationID(v.ID)
+}
+
 // SetFlatFeeID sets the "flat_fee" edge to the ChargeFlatFee entity by ID.
 func (_c *ChargeFlatFeeCreditAllocationsCreate) SetFlatFeeID(id string) *ChargeFlatFeeCreditAllocationsCreate {
 	_c.mutation.SetFlatFeeID(id)
@@ -365,10 +399,6 @@ func (_c *ChargeFlatFeeCreditAllocationsCreate) createSpec() (*ChargeFlatFeeCred
 		_spec.SetField(chargeflatfeecreditallocations.FieldType, field.TypeEnum, value)
 		_node.Type = value
 	}
-	if value, ok := _c.mutation.CorrectsRealizationID(); ok {
-		_spec.SetField(chargeflatfeecreditallocations.FieldCorrectsRealizationID, field.TypeString, value)
-		_node.CorrectsRealizationID = &value
-	}
 	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(chargeflatfeecreditallocations.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
@@ -388,6 +418,39 @@ func (_c *ChargeFlatFeeCreditAllocationsCreate) createSpec() (*ChargeFlatFeeCred
 	if value, ok := _c.mutation.Annotations(); ok {
 		_spec.SetField(chargeflatfeecreditallocations.FieldAnnotations, field.TypeJSON, value)
 		_node.Annotations = value
+	}
+	if nodes := _c.mutation.CorrectionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   chargeflatfeecreditallocations.CorrectionsTable,
+			Columns: []string{chargeflatfeecreditallocations.CorrectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.AllocationIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargeflatfeecreditallocations.AllocationTable,
+			Columns: []string{chargeflatfeecreditallocations.AllocationColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CorrectsRealizationID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.FlatFeeIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

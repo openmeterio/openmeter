@@ -1,10 +1,12 @@
 package creditrealization
 
 import (
+	"slices"
 	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/mixin"
 	"github.com/alpacahq/alpacadecimal"
@@ -15,7 +17,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-type Mixin = entutils.RecursiveMixin[mixinBase]
+type Mixin struct {
+	entutils.RecursiveMixin[mixinBase]
+
+	SelfReferenceType any
+}
 
 type mixinBase struct {
 	mixin.Schema
@@ -72,10 +78,21 @@ func (m mixinBase) Fields() []ent.Field {
 }
 
 func (mixinBase) Edges() []ent.Edge {
-	return []ent.Edge{
-		// TODO: add edge to the correction entry
-		// edge.To("corrects_realization", Realization.Type),
+	return nil
+}
+
+func (m Mixin) Edges() []ent.Edge {
+	edges := m.RecursiveMixin.Edges()
+	if m.SelfReferenceType == nil {
+		return edges
 	}
+
+	return slices.Concat(edges, []ent.Edge{
+		edge.To("allocation", m.SelfReferenceType).
+			Field("corrects_realization_id").
+			Unique().
+			From("corrections"),
+	})
 }
 
 type Creator[T any] interface {

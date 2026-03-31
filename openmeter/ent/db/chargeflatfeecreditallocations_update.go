@@ -172,6 +172,40 @@ func (_u *ChargeFlatFeeCreditAllocationsUpdate) ClearAnnotations() *ChargeFlatFe
 	return _u
 }
 
+// AddCorrectionIDs adds the "corrections" edge to the ChargeFlatFeeCreditAllocations entity by IDs.
+func (_u *ChargeFlatFeeCreditAllocationsUpdate) AddCorrectionIDs(ids ...string) *ChargeFlatFeeCreditAllocationsUpdate {
+	_u.mutation.AddCorrectionIDs(ids...)
+	return _u
+}
+
+// AddCorrections adds the "corrections" edges to the ChargeFlatFeeCreditAllocations entity.
+func (_u *ChargeFlatFeeCreditAllocationsUpdate) AddCorrections(v ...*ChargeFlatFeeCreditAllocations) *ChargeFlatFeeCreditAllocationsUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCorrectionIDs(ids...)
+}
+
+// SetAllocationID sets the "allocation" edge to the ChargeFlatFeeCreditAllocations entity by ID.
+func (_u *ChargeFlatFeeCreditAllocationsUpdate) SetAllocationID(id string) *ChargeFlatFeeCreditAllocationsUpdate {
+	_u.mutation.SetAllocationID(id)
+	return _u
+}
+
+// SetNillableAllocationID sets the "allocation" edge to the ChargeFlatFeeCreditAllocations entity by ID if the given value is not nil.
+func (_u *ChargeFlatFeeCreditAllocationsUpdate) SetNillableAllocationID(id *string) *ChargeFlatFeeCreditAllocationsUpdate {
+	if id != nil {
+		_u = _u.SetAllocationID(*id)
+	}
+	return _u
+}
+
+// SetAllocation sets the "allocation" edge to the ChargeFlatFeeCreditAllocations entity.
+func (_u *ChargeFlatFeeCreditAllocationsUpdate) SetAllocation(v *ChargeFlatFeeCreditAllocations) *ChargeFlatFeeCreditAllocationsUpdate {
+	return _u.SetAllocationID(v.ID)
+}
+
 // SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
 func (_u *ChargeFlatFeeCreditAllocationsUpdate) SetBillingInvoiceLineID(id string) *ChargeFlatFeeCreditAllocationsUpdate {
 	_u.mutation.SetBillingInvoiceLineID(id)
@@ -194,6 +228,33 @@ func (_u *ChargeFlatFeeCreditAllocationsUpdate) SetBillingInvoiceLine(v *Billing
 // Mutation returns the ChargeFlatFeeCreditAllocationsMutation object of the builder.
 func (_u *ChargeFlatFeeCreditAllocationsUpdate) Mutation() *ChargeFlatFeeCreditAllocationsMutation {
 	return _u.mutation
+}
+
+// ClearCorrections clears all "corrections" edges to the ChargeFlatFeeCreditAllocations entity.
+func (_u *ChargeFlatFeeCreditAllocationsUpdate) ClearCorrections() *ChargeFlatFeeCreditAllocationsUpdate {
+	_u.mutation.ClearCorrections()
+	return _u
+}
+
+// RemoveCorrectionIDs removes the "corrections" edge to ChargeFlatFeeCreditAllocations entities by IDs.
+func (_u *ChargeFlatFeeCreditAllocationsUpdate) RemoveCorrectionIDs(ids ...string) *ChargeFlatFeeCreditAllocationsUpdate {
+	_u.mutation.RemoveCorrectionIDs(ids...)
+	return _u
+}
+
+// RemoveCorrections removes "corrections" edges to ChargeFlatFeeCreditAllocations entities.
+func (_u *ChargeFlatFeeCreditAllocationsUpdate) RemoveCorrections(v ...*ChargeFlatFeeCreditAllocations) *ChargeFlatFeeCreditAllocationsUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCorrectionIDs(ids...)
+}
+
+// ClearAllocation clears the "allocation" edge to the ChargeFlatFeeCreditAllocations entity.
+func (_u *ChargeFlatFeeCreditAllocationsUpdate) ClearAllocation() *ChargeFlatFeeCreditAllocationsUpdate {
+	_u.mutation.ClearAllocation()
+	return _u
 }
 
 // ClearBillingInvoiceLine clears the "billing_invoice_line" edge to the BillingInvoiceLine entity.
@@ -283,12 +344,6 @@ func (_u *ChargeFlatFeeCreditAllocationsUpdate) sqlSave(ctx context.Context) (_n
 	if value, ok := _u.mutation.AddedSortHint(); ok {
 		_spec.AddField(chargeflatfeecreditallocations.FieldSortHint, field.TypeInt, value)
 	}
-	if value, ok := _u.mutation.CorrectsRealizationID(); ok {
-		_spec.SetField(chargeflatfeecreditallocations.FieldCorrectsRealizationID, field.TypeString, value)
-	}
-	if _u.mutation.CorrectsRealizationIDCleared() {
-		_spec.ClearField(chargeflatfeecreditallocations.FieldCorrectsRealizationID, field.TypeString)
-	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(chargeflatfeecreditallocations.FieldUpdatedAt, field.TypeTime, value)
 	}
@@ -303,6 +358,80 @@ func (_u *ChargeFlatFeeCreditAllocationsUpdate) sqlSave(ctx context.Context) (_n
 	}
 	if _u.mutation.AnnotationsCleared() {
 		_spec.ClearField(chargeflatfeecreditallocations.FieldAnnotations, field.TypeJSON)
+	}
+	if _u.mutation.CorrectionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   chargeflatfeecreditallocations.CorrectionsTable,
+			Columns: []string{chargeflatfeecreditallocations.CorrectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCorrectionsIDs(); len(nodes) > 0 && !_u.mutation.CorrectionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   chargeflatfeecreditallocations.CorrectionsTable,
+			Columns: []string{chargeflatfeecreditallocations.CorrectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CorrectionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   chargeflatfeecreditallocations.CorrectionsTable,
+			Columns: []string{chargeflatfeecreditallocations.CorrectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.AllocationCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargeflatfeecreditallocations.AllocationTable,
+			Columns: []string{chargeflatfeecreditallocations.AllocationColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.AllocationIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargeflatfeecreditallocations.AllocationTable,
+			Columns: []string{chargeflatfeecreditallocations.AllocationColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.BillingInvoiceLineCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -494,6 +623,40 @@ func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) ClearAnnotations() *ChargeFla
 	return _u
 }
 
+// AddCorrectionIDs adds the "corrections" edge to the ChargeFlatFeeCreditAllocations entity by IDs.
+func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) AddCorrectionIDs(ids ...string) *ChargeFlatFeeCreditAllocationsUpdateOne {
+	_u.mutation.AddCorrectionIDs(ids...)
+	return _u
+}
+
+// AddCorrections adds the "corrections" edges to the ChargeFlatFeeCreditAllocations entity.
+func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) AddCorrections(v ...*ChargeFlatFeeCreditAllocations) *ChargeFlatFeeCreditAllocationsUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCorrectionIDs(ids...)
+}
+
+// SetAllocationID sets the "allocation" edge to the ChargeFlatFeeCreditAllocations entity by ID.
+func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) SetAllocationID(id string) *ChargeFlatFeeCreditAllocationsUpdateOne {
+	_u.mutation.SetAllocationID(id)
+	return _u
+}
+
+// SetNillableAllocationID sets the "allocation" edge to the ChargeFlatFeeCreditAllocations entity by ID if the given value is not nil.
+func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) SetNillableAllocationID(id *string) *ChargeFlatFeeCreditAllocationsUpdateOne {
+	if id != nil {
+		_u = _u.SetAllocationID(*id)
+	}
+	return _u
+}
+
+// SetAllocation sets the "allocation" edge to the ChargeFlatFeeCreditAllocations entity.
+func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) SetAllocation(v *ChargeFlatFeeCreditAllocations) *ChargeFlatFeeCreditAllocationsUpdateOne {
+	return _u.SetAllocationID(v.ID)
+}
+
 // SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
 func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) SetBillingInvoiceLineID(id string) *ChargeFlatFeeCreditAllocationsUpdateOne {
 	_u.mutation.SetBillingInvoiceLineID(id)
@@ -516,6 +679,33 @@ func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) SetBillingInvoiceLine(v *Bill
 // Mutation returns the ChargeFlatFeeCreditAllocationsMutation object of the builder.
 func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) Mutation() *ChargeFlatFeeCreditAllocationsMutation {
 	return _u.mutation
+}
+
+// ClearCorrections clears all "corrections" edges to the ChargeFlatFeeCreditAllocations entity.
+func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) ClearCorrections() *ChargeFlatFeeCreditAllocationsUpdateOne {
+	_u.mutation.ClearCorrections()
+	return _u
+}
+
+// RemoveCorrectionIDs removes the "corrections" edge to ChargeFlatFeeCreditAllocations entities by IDs.
+func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) RemoveCorrectionIDs(ids ...string) *ChargeFlatFeeCreditAllocationsUpdateOne {
+	_u.mutation.RemoveCorrectionIDs(ids...)
+	return _u
+}
+
+// RemoveCorrections removes "corrections" edges to ChargeFlatFeeCreditAllocations entities.
+func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) RemoveCorrections(v ...*ChargeFlatFeeCreditAllocations) *ChargeFlatFeeCreditAllocationsUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCorrectionIDs(ids...)
+}
+
+// ClearAllocation clears the "allocation" edge to the ChargeFlatFeeCreditAllocations entity.
+func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) ClearAllocation() *ChargeFlatFeeCreditAllocationsUpdateOne {
+	_u.mutation.ClearAllocation()
+	return _u
 }
 
 // ClearBillingInvoiceLine clears the "billing_invoice_line" edge to the BillingInvoiceLine entity.
@@ -635,12 +825,6 @@ func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) sqlSave(ctx context.Context) 
 	if value, ok := _u.mutation.AddedSortHint(); ok {
 		_spec.AddField(chargeflatfeecreditallocations.FieldSortHint, field.TypeInt, value)
 	}
-	if value, ok := _u.mutation.CorrectsRealizationID(); ok {
-		_spec.SetField(chargeflatfeecreditallocations.FieldCorrectsRealizationID, field.TypeString, value)
-	}
-	if _u.mutation.CorrectsRealizationIDCleared() {
-		_spec.ClearField(chargeflatfeecreditallocations.FieldCorrectsRealizationID, field.TypeString)
-	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(chargeflatfeecreditallocations.FieldUpdatedAt, field.TypeTime, value)
 	}
@@ -655,6 +839,80 @@ func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) sqlSave(ctx context.Context) 
 	}
 	if _u.mutation.AnnotationsCleared() {
 		_spec.ClearField(chargeflatfeecreditallocations.FieldAnnotations, field.TypeJSON)
+	}
+	if _u.mutation.CorrectionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   chargeflatfeecreditallocations.CorrectionsTable,
+			Columns: []string{chargeflatfeecreditallocations.CorrectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCorrectionsIDs(); len(nodes) > 0 && !_u.mutation.CorrectionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   chargeflatfeecreditallocations.CorrectionsTable,
+			Columns: []string{chargeflatfeecreditallocations.CorrectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CorrectionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   chargeflatfeecreditallocations.CorrectionsTable,
+			Columns: []string{chargeflatfeecreditallocations.CorrectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.AllocationCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargeflatfeecreditallocations.AllocationTable,
+			Columns: []string{chargeflatfeecreditallocations.AllocationColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.AllocationIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargeflatfeecreditallocations.AllocationTable,
+			Columns: []string{chargeflatfeecreditallocations.AllocationColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.BillingInvoiceLineCleared() {
 		edge := &sqlgraph.EdgeSpec{
