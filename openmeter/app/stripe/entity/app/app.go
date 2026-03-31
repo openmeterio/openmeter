@@ -9,6 +9,7 @@ import (
 	stripeapp "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	"github.com/openmeterio/openmeter/openmeter/app/stripe/invoicesync"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/secret"
 )
@@ -41,6 +42,9 @@ type App struct {
 	StripeAppClientFactory stripeclient.StripeAppClientFactory `json:"-"`
 	StripeAppService       stripeapp.Service                   `json:"-"`
 	SecretService          secret.Service                      `json:"-"`
+
+	// Sync plan support for async invoice sync
+	SyncPlanService invoicesync.Service `json:"-"`
 }
 
 func (a App) Validate() error {
@@ -82,6 +86,10 @@ func (a App) Validate() error {
 
 	if a.Logger == nil {
 		return errors.New("logger is required")
+	}
+
+	if a.SyncPlanService == nil {
+		return errors.New("sync plan service is required")
 	}
 
 	return nil

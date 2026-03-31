@@ -361,7 +361,29 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, appService, customerService, secretserviceService, billingRegistry, eventbusPublisher)
+	invoicesyncadapterAdapter, err := common.NewSyncPlanAdapter(client)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	invoicesyncService, err := common.NewSyncPlanService(invoicesyncadapterAdapter, eventbusPublisher, logger)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, appService, customerService, secretserviceService, billingRegistry, eventbusPublisher, invoicesyncService)
 	if err != nil {
 		cleanup7()
 		cleanup6()

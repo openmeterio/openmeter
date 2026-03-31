@@ -229,6 +229,7 @@ func (s *Service) newApp(appBase app.AppBase, stripeApp appstripeentity.AppData)
 		SecretService:          s.secretService,
 		StripeAppClientFactory: s.adapter.GetStripeAppClientFactory(),
 		Logger:                 s.logger,
+		SyncPlanService:        s.syncPlanService,
 	}
 
 	if err := app.Validate(); err != nil {

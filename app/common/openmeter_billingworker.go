@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"syscall"
@@ -11,11 +12,19 @@ import (
 	"github.com/oklog/run"
 
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/app"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
+	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
+	"github.com/openmeterio/openmeter/openmeter/app/stripe/invoicesync"
+	invoicesyncadapter "github.com/openmeterio/openmeter/openmeter/app/stripe/invoicesync/adapter"
 	billingworker "github.com/openmeterio/openmeter/openmeter/billing/worker"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
+	"github.com/openmeterio/openmeter/openmeter/secret"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/openmeter/watermill/grouphandler"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
@@ -96,11 +105,60 @@ func NewBillingWorkerOptions(
 	}
 }
 
-func NewBillingWorker(workerOptions billingworker.WorkerOptions) (*billingworker.Worker, error) {
+func NewBillingWorker(
+	workerOptions billingworker.WorkerOptions,
+	appService app.Service,
+	stripeAppService appstripe.Service,
+	secretService secret.Service,
+	billingRegistry BillingRegistry,
+	publisher eventbus.Publisher,
+	logger *slog.Logger,
+	syncPlanAdapter *invoicesyncadapter.Adapter,
+) (*billingworker.Worker, error) {
 	worker, err := billingworker.New(workerOptions)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize worker: %w", err)
 	}
+
+	// Create locker for advisory locks on sync plan execution
+	syncPlanLocker, err := lockr.NewLocker(&lockr.LockerConfig{
+		Logger: logger.With("component", "stripe-sync-plan-locker"),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create sync plan locker: %w", err)
+	}
+
+	// Register sync plan handler for async Stripe invoice sync
+	syncPlanHandler, err := invoicesync.NewHandler(invoicesync.HandlerConfig{
+		Adapter:                syncPlanAdapter,
+		AppService:             appService,
+		BillingService:         billingRegistry.Billing,
+		StripeAppService:       stripeAppService,
+		SecretService:          secretService,
+		StripeAppClientFactory: stripeclient.NewStripeAppClient,
+		Publisher:              publisher,
+		LockFunc: func(ctx context.Context, namespace, invoiceID string) error {
+			key, err := lockr.NewKey("namespace", namespace, "invoice_sync", invoiceID)
+			if err != nil {
+				return fmt.Errorf("creating lock key: %w", err)
+			}
+			if err := syncPlanLocker.LockForTX(ctx, key); err != nil {
+				if errors.Is(err, lockr.ErrLockTimeout) {
+					return invoicesync.ErrSyncPlanLocked
+				}
+				return err
+			}
+			return nil
+		},
+		Logger: logger.With("component", "stripe-sync-plan"),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create sync plan handler: %w", err)
+	}
+
+	worker.AddHandler(grouphandler.NewGroupEventHandler(func(ctx context.Context, event *invoicesync.ExecuteSyncPlanEvent) error {
+		return syncPlanHandler.Handle(ctx, event)
+	}))
 
 	return worker, nil
 }

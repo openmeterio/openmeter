@@ -17,6 +17,9 @@ import (
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripeadapter "github.com/openmeterio/openmeter/openmeter/app/stripe/adapter"
+	"github.com/openmeterio/openmeter/openmeter/app/stripe/invoicesync"
+	invoicesyncadapter "github.com/openmeterio/openmeter/openmeter/app/stripe/invoicesync/adapter"
+	invoicesyncservice "github.com/openmeterio/openmeter/openmeter/app/stripe/invoicesync/service"
 	appstripeservice "github.com/openmeterio/openmeter/openmeter/app/stripe/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -28,6 +31,8 @@ import (
 var App = wire.NewSet(
 	NewAppRegistry,
 	NewAppService,
+	NewSyncPlanAdapter,
+	NewSyncPlanService,
 	NewAppStripeService,
 	NewAppSandboxFactory,
 	NewAppSandboxProvisioner,
@@ -54,7 +59,21 @@ func NewAppService(
 	})
 }
 
-func NewAppStripeService(logger *slog.Logger, db *entdb.Client, appsConfig config.AppsConfiguration, appService app.Service, customerService customer.Service, secretService secret.Service, billingRegistry BillingRegistry, publisher eventbus.Publisher) (appstripe.Service, error) {
+func NewSyncPlanAdapter(db *entdb.Client) (*invoicesyncadapter.Adapter, error) {
+	return invoicesyncadapter.New(invoicesyncadapter.Config{
+		Client: db,
+	})
+}
+
+func NewSyncPlanService(adapter *invoicesyncadapter.Adapter, publisher eventbus.Publisher, logger *slog.Logger) (invoicesync.Service, error) {
+	return invoicesyncservice.New(invoicesyncservice.Config{
+		Adapter:   adapter,
+		Publisher: publisher,
+		Logger:    logger.With("component", "invoicesync-service"),
+	})
+}
+
+func NewAppStripeService(logger *slog.Logger, db *entdb.Client, appsConfig config.AppsConfiguration, appService app.Service, customerService customer.Service, secretService secret.Service, billingRegistry BillingRegistry, publisher eventbus.Publisher, syncPlanService invoicesync.Service) (appstripe.Service, error) {
 	appStripeAdapter, err := appstripeadapter.New(appstripeadapter.Config{
 		Client:          db,
 		AppService:      appService,
@@ -87,6 +106,7 @@ func NewAppStripeService(logger *slog.Logger, db *entdb.Client, appsConfig confi
 		DisableWebhookRegistration: appsConfig.Stripe.DisableWebhookRegistration,
 		Publisher:                  publisher,
 		WebhookURLGenerator:        webhookGenerator,
+		SyncPlanService:            syncPlanService,
 	})
 }
 

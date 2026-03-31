@@ -14,6 +14,7 @@ import (
 	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
 	appstripeadapter "github.com/openmeterio/openmeter/openmeter/app/stripe/adapter"
+	"github.com/openmeterio/openmeter/openmeter/app/stripe/invoicesync"
 	appstripeservice "github.com/openmeterio/openmeter/openmeter/app/stripe/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
@@ -172,6 +173,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		BillingService:      billingService,
 		Publisher:           publisher,
 		WebhookURLGenerator: webhookURLGenerator,
+		SyncPlanService:     invoicesync.NoopService{},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create appstripe service: %w", err)

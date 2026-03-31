@@ -1,4 +1,4 @@
-h1:3h45KhnCKbMp1AMnqzd5zffCDpODjTyvtXQjrsM9+Uk=
+h1:byafSgvniCoGVWtQQmEBUmPcOl+SDPT11FqU8O6zRCQ=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -175,3 +175,4 @@ h1:3h45KhnCKbMp1AMnqzd5zffCDpODjTyvtXQjrsM9+Uk=
 20260331103521_charges-negative-realization-runs.up.sql h1:KumaFFsXqo6SskhFBeLvZi8LFq5GFt5uXNevx4iNZ6A=
 20260402130955_add_credit_purchase_effective_at_priority.up.sql h1:Gi2Xk3hjOlTgfaL3M/08RS0VyZ3/Lt2pcoanmhbApRM=
 20260403090155_charges_feature_ids.up.sql h1:fc/bLQ1teUmFSIsB2547wYeV5ge8hQwFdWh1poxMx60=
+20260405151300_app_stripe_invoice_sync.up.sql h1:A49Vw78wHn0WATaHRXf3dSluVDg+Z3244jbFmJ5xPAg=
