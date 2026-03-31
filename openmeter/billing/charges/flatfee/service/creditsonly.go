@@ -149,12 +149,7 @@ func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
 	}
 
 	if len(creditAllocations) > 0 {
-		creates, err := creditAllocations.AsAdapterCreateInputs()
-		if err != nil {
-			return fmt.Errorf("as adapter create inputs: %w", err)
-		}
-
-		realizations, err := s.Adapter.CreateCreditAllocations(ctx, s.Charge.GetChargeID(), creates)
+		realizations, err := s.Adapter.CreateCreditAllocations(ctx, s.Charge.GetChargeID(), creditAllocations.AsCreateInputs())
 		if err != nil {
 			return fmt.Errorf("create credit allocations: %w", err)
 		}

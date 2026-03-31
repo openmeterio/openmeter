@@ -60,7 +60,7 @@ func (b *allocationBuilder) build(amount float64) Realization {
 			CreatedAt: b.createdAt,
 			UpdatedAt: b.createdAt,
 		},
-		AdapterCreateInput: AdapterCreateInput{
+		CreateInput: CreateInput{
 			ID:            id,
 			ServicePeriod: testServicePeriod,
 			Amount:        alpacadecimal.NewFromFloat(amount),
@@ -83,7 +83,7 @@ func correctionFor(allocation Realization, amount float64) Realization {
 			CreatedAt: time.Now().UTC(),
 			UpdatedAt: time.Now().UTC(),
 		},
-		AdapterCreateInput: AdapterCreateInput{
+		CreateInput: CreateInput{
 			ID:            uuid.New().String(),
 			ServicePeriod: allocation.ServicePeriod,
 			Amount:        alpacadecimal.NewFromFloat(amount),
@@ -655,7 +655,7 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 	})
 }
 
-func TestCreateCorrectionInputsAsAdapterCreateInputs(t *testing.T) {
+func TestCreateCorrectionInputsAsCreateInputs(t *testing.T) {
 	t.Run("maps fields correctly", func(t *testing.T) {
 		b := newAllocationBuilder()
 		alloc := b.build(10)
@@ -674,7 +674,7 @@ func TestCreateCorrectionInputsAsAdapterCreateInputs(t *testing.T) {
 			},
 		}
 
-		result, err := inputs.AsAdapterCreateInputs(Realizations{alloc})
+		result, err := inputs.AsCreateInputs(Realizations{alloc})
 		require.NoError(t, err)
 		require.Len(t, result, 1)
 
@@ -703,7 +703,7 @@ func TestCreateCorrectionInputsAsAdapterCreateInputs(t *testing.T) {
 			},
 		}
 
-		result, err := inputs.AsAdapterCreateInputs(Realizations{alloc})
+		result, err := inputs.AsCreateInputs(Realizations{alloc})
 		require.NoError(t, err)
 		assert.Empty(t, result[0].ID)
 	})
@@ -730,7 +730,7 @@ func TestCreateCorrectionInputsAsAdapterCreateInputs(t *testing.T) {
 			},
 		}
 
-		result, err := inputs.AsAdapterCreateInputs(Realizations{a1, a2})
+		result, err := inputs.AsCreateInputs(Realizations{a1, a2})
 		require.NoError(t, err)
 		require.Len(t, result, 2)
 
@@ -752,7 +752,7 @@ func TestCreateCorrectionInputsAsAdapterCreateInputs(t *testing.T) {
 			},
 		}
 
-		_, err := inputs.AsAdapterCreateInputs(Realizations{alloc})
+		_, err := inputs.AsCreateInputs(Realizations{alloc})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "not found")
 	})
@@ -792,7 +792,7 @@ func TestCorrectionEndToEnd(t *testing.T) {
 		require.NoError(t, err)
 
 		// Step 3: convert to adapter inputs
-		adapterInputs, err := correctionInputs.AsAdapterCreateInputs(realizations)
+		adapterInputs, err := correctionInputs.AsCreateInputs(realizations)
 		require.NoError(t, err)
 
 		// All adapter inputs should be valid
@@ -801,7 +801,7 @@ func TestCorrectionEndToEnd(t *testing.T) {
 			assert.NotNil(t, input.CorrectsRealizationID)
 		}
 
-		err = AdapterCreateInputs(adapterInputs).Validate()
+		err = CreateInputs(adapterInputs).Validate()
 		require.NoError(t, err)
 	})
 
@@ -833,7 +833,7 @@ func TestCorrectionEndToEnd(t *testing.T) {
 		err = correctionInputs.ValidateWith(realizations, alpacadecimal.NewFromFloat(8), currency)
 		require.NoError(t, err)
 
-		adapterInputs, err := correctionInputs.AsAdapterCreateInputs(realizations)
+		adapterInputs, err := correctionInputs.AsCreateInputs(realizations)
 		require.NoError(t, err)
 
 		// Sum of corrections equals total allocated
@@ -874,11 +874,11 @@ func TestCorrectionEndToEnd(t *testing.T) {
 		err = correctionInputs.ValidateWith(realizations, alpacadecimal.NewFromFloat(8), currency)
 		require.NoError(t, err)
 
-		adapterInputs, err := correctionInputs.AsAdapterCreateInputs(realizations)
+		adapterInputs, err := correctionInputs.AsCreateInputs(realizations)
 		require.NoError(t, err)
 		require.Len(t, adapterInputs, 2)
 
-		err = AdapterCreateInputs(adapterInputs).Validate()
+		err = CreateInputs(adapterInputs).Validate()
 		require.NoError(t, err)
 	})
 

@@ -146,16 +146,16 @@ func (i CreateCorrectionInputs) ValidateWith(existingRealizations Realizations, 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (i CreateCorrectionInputs) AsAdapterCreateInputs(existingRealizations Realizations) ([]AdapterCreateInput, error) {
+func (i CreateCorrectionInputs) AsCreateInputs(existingRealizations Realizations) ([]CreateInput, error) {
 	existingAllocations := existingRealizations.AllocationsByID()
 
-	return slicesx.MapWithErr(i, func(input CreateCorrectionInput) (AdapterCreateInput, error) {
+	return slicesx.MapWithErr(i, func(input CreateCorrectionInput) (CreateInput, error) {
 		allocation, ok := existingAllocations[input.CorrectsRealizationID]
 		if !ok {
-			return AdapterCreateInput{}, fmt.Errorf("allocation %s not found", input.CorrectsRealizationID)
+			return CreateInput{}, fmt.Errorf("allocation %s not found", input.CorrectsRealizationID)
 		}
 
-		return AdapterCreateInput{
+		return CreateInput{
 			ID:                    input.ID,
 			Annotations:           input.Annotations,
 			ServicePeriod:         allocation.ServicePeriod,

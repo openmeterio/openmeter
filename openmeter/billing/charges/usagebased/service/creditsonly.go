@@ -104,7 +104,7 @@ func (s *CreditsOnlyStateMachine) ClearAdvanceAfter(ctx context.Context) error {
 	return nil
 }
 
-func (s *CreditsOnlyStateMachine) allocateCredits(ctx context.Context, in usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.AdapterCreateInputs, error) {
+func (s *CreditsOnlyStateMachine) allocateCredits(ctx context.Context, in usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateInputs, error) {
 	if err := in.Validate(); err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func (s *CreditsOnlyStateMachine) allocateCredits(ctx context.Context, in usageb
 			})
 	}
 
-	return creditAllocations.AsAdapterCreateInputs()
+	return creditAllocations.AsCreateInputs(), nil
 }
 
 func (s *CreditsOnlyStateMachine) StartFinalRealizationRun(ctx context.Context) error {
@@ -152,12 +152,28 @@ func (s *CreditsOnlyStateMachine) StartFinalRealizationRun(ctx context.Context) 
 			})
 	}
 
-	var creditAllocations creditrealization.CreateAllocationInputs
+	updatedCharge, err := s.Service.createNewRealizationRun(ctx, s.Charge, usagebased.CreateRealizationRunInput{
+		Type:          usagebased.RealizationRunTypeFinalRealization,
+		AsOf:          storedAtOffset,
+		CollectionEnd: collectionEnd,
+		MeterValue:    ratingResult.Quantity,
+		Totals:        totals,
+	})
+	if err != nil {
+		return fmt.Errorf("create new realization run: %w", err)
+	}
+
+	currentRun, err := updatedCharge.GetCurrentRealizationRun()
+	if err != nil {
+		return err
+	}
+
+	var creditRealizations creditrealization.Realizations
 	if !totals.Total.IsZero() {
-		creditAllocations, err = s.allocateCredits(ctx,
+		creditAllocations, err := s.allocateCredits(ctx,
 			usagebased.CreditsOnlyUsageAccruedInput{
 				Charge:           s.Charge,
-				Run:              s.Charge.Realizations.GetCurrent(),
+				Run:              currentRun,
 				AllocateAt:       storedAtOffset,
 				AmountToAllocate: totals.Total,
 			},
@@ -165,27 +181,36 @@ func (s *CreditsOnlyStateMachine) StartFinalRealizationRun(ctx context.Context) 
 		if err != nil {
 			return fmt.Errorf("allocate credits: %w", err)
 		}
+
+		if len(creditAllocations) > 0 {
+			creditRealizations, err = s.Adapter.CreateRunCreditRealization(ctx, currentRun.ID, creditAllocations)
+			if err != nil {
+				return fmt.Errorf("create credit allocations: %w", err)
+			}
+		}
+
+		currentRun.CreditsAllocated = creditRealizations
 	}
 
 	// We have allocated the required amount from credits, so we need to update totals accordingly
 	totals.CreditsTotal = totals.CreditsTotal.Add(totals.Total)
 	totals.Total = alpacadecimal.Zero
 
-	updatedCharge, err := s.Service.createNewRealizationRun(ctx, s.Charge, createRealizationRunInput{
-		Run: usagebased.CreateRealizationRunInput{
-			Type:          usagebased.RealizationRunTypeFinalRealization,
-			AsOf:          storedAtOffset,
-			CollectionEnd: collectionEnd,
-			MeterValue:    ratingResult.Quantity,
-			Totals:        totals,
-		},
-		CreditAllocations: creditAllocations,
+	currentRunBase, err := s.Adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
+		ID:         currentRun.ID,
+		AsOf:       storedAtOffset,
+		MeterValue: ratingResult.Quantity,
+		Totals:     totals,
 	})
 	if err != nil {
-		return fmt.Errorf("create new realization run: %w", err)
+		return fmt.Errorf("update realization run: %w", err)
 	}
 
-	s.Charge = updatedCharge
+	currentRun.RealizationRunBase = currentRunBase
+
+	if err := s.Charge.Realizations.SetRealizationRun(currentRun); err != nil {
+		return fmt.Errorf("update realization run: %w", err)
+	}
 
 	return nil
 }

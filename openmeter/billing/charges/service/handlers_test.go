@@ -17,9 +17,9 @@ import (
 var _ flatfee.Handler = (*flatFeeTestHandler)(nil)
 
 type flatFeeTestHandler struct {
-	onAssignedToInvoice       func(ctx context.Context, input flatfee.OnAssignedToInvoiceInput) ([]creditrealization.CreateInput, error)
+	onAssignedToInvoice       func(ctx context.Context, input flatfee.OnAssignedToInvoiceInput) (creditrealization.CreateAllocationInputs, error)
 	onInvoiceUsageAccrued     func(ctx context.Context, input flatfee.OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error)
-	onCreditsOnlyUsageAccrued func(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) ([]creditrealization.CreateInput, error)
+	onCreditsOnlyUsageAccrued func(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error)
 	onPaymentAuthorized       func(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error)
 	onPaymentSettled          func(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error)
 	onPaymentUncollectible    func(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error)
@@ -29,7 +29,7 @@ func newFlatFeeTestHandler() *flatFeeTestHandler {
 	return &flatFeeTestHandler{}
 }
 
-func (h *flatFeeTestHandler) OnAssignedToInvoice(ctx context.Context, input flatfee.OnAssignedToInvoiceInput) ([]creditrealization.CreateInput, error) {
+func (h *flatFeeTestHandler) OnAssignedToInvoice(ctx context.Context, input flatfee.OnAssignedToInvoiceInput) (creditrealization.CreateAllocationInputs, error) {
 	if h.onAssignedToInvoice == nil {
 		return nil, errors.New("onAssignedToInvoice is not set")
 	}
@@ -45,7 +45,7 @@ func (h *flatFeeTestHandler) OnInvoiceUsageAccrued(ctx context.Context, input fl
 	return h.onInvoiceUsageAccrued(ctx, input)
 }
 
-func (h *flatFeeTestHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) ([]creditrealization.CreateInput, error) {
+func (h *flatFeeTestHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
 	if h.onCreditsOnlyUsageAccrued == nil {
 		return nil, errors.New("onCreditsOnlyUsageAccrued is not set")
 	}
@@ -133,28 +133,28 @@ func (h *creditPurchaseTestHandler) Reset() {
 var _ usagebased.Handler = (*usageBasedTestHandler)(nil)
 
 type usageBasedTestHandler struct {
-	onCollectionStarted   func(ctx context.Context, input usagebased.AllocateCreditsInput) (creditrealization.CreateInputs, error)
-	onCollectionFinalized func(ctx context.Context, input usagebased.AllocateCreditsInput) (creditrealization.CreateInputs, error)
+	onCreditsOnlyUsageAccrued           func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error)
+	onCreditsOnlyUsageAccruedCorrection func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error)
 }
 
 func newUsageBasedTestHandler() *usageBasedTestHandler {
 	return &usageBasedTestHandler{}
 }
 
-func (h *usageBasedTestHandler) OnCollectionStarted(ctx context.Context, input usagebased.AllocateCreditsInput) (creditrealization.CreateInputs, error) {
-	if h.onCollectionStarted == nil {
-		return nil, errors.New("onCollectionStarted is not set")
+func (h *usageBasedTestHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
+	if h.onCreditsOnlyUsageAccrued == nil {
+		return nil, errors.New("onCreditsOnlyUsageAccrued is not set")
 	}
 
-	return h.onCollectionStarted(ctx, input)
+	return h.onCreditsOnlyUsageAccrued(ctx, input)
 }
 
-func (h *usageBasedTestHandler) OnCollectionFinalized(ctx context.Context, input usagebased.AllocateCreditsInput) (creditrealization.CreateInputs, error) {
-	if h.onCollectionFinalized == nil {
-		return nil, errors.New("onCollectionFinalized is not set")
+func (h *usageBasedTestHandler) OnCreditsOnlyUsageAccruedCorrection(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error) {
+	if h.onCreditsOnlyUsageAccruedCorrection == nil {
+		return nil, errors.New("onCreditsOnlyUsageAccruedCorrection is not set")
 	}
 
-	return h.onCollectionFinalized(ctx, input)
+	return h.onCreditsOnlyUsageAccruedCorrection(ctx, input)
 }
 
 func (h *usageBasedTestHandler) Reset() {

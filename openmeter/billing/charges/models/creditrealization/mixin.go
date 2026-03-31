@@ -93,7 +93,7 @@ type Creator[T any] interface {
 	SetSortHint(sortHint int) T
 }
 
-func Create[T Creator[T]](creator Creator[T], ns string, sortHint int, realization AdapterCreateInput) T {
+func Create[T Creator[T]](creator Creator[T], ns string, sortHint int, realization CreateInput) T {
 	create := creator.SetAnnotations(realization.Annotations).
 		SetNamespace(ns).
 		SetNillableLineID(realization.LineID).
@@ -135,7 +135,7 @@ func MapFromDB(dbEntity Getter) Realization {
 		},
 		ManagedModel: entutils.MapTimeMixinFromDB(dbEntity),
 
-		AdapterCreateInput: AdapterCreateInput{
+		CreateInput: CreateInput{
 			ID:          dbEntity.GetID(),
 			Annotations: dbEntity.GetAnnotations(),
 

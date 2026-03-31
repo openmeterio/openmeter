@@ -13,7 +13,7 @@ import (
 
 var _ usagebased.RealizationRunCreditAllocationAdapter = (*adapter)(nil)
 
-func (a *adapter) CreateRunCreditRealization(ctx context.Context, runID usagebased.RealizationRunID, creditAllocations creditrealization.AdapterCreateInputs) (creditrealization.Realizations, error) {
+func (a *adapter) CreateRunCreditRealization(ctx context.Context, runID usagebased.RealizationRunID, creditAllocations creditrealization.CreateInputs) (creditrealization.Realizations, error) {
 	if err := runID.Validate(); err != nil {
 		return nil, err
 	}
@@ -23,7 +23,7 @@ func (a *adapter) CreateRunCreditRealization(ctx context.Context, runID usagebas
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (creditrealization.Realizations, error) {
-		creates := lo.Map(creditAllocations, func(creditAllocation creditrealization.AdapterCreateInput, idx int) *entdb.ChargeUsageBasedRunCreditAllocationsCreate {
+		creates := lo.Map(creditAllocations, func(creditAllocation creditrealization.CreateInput, idx int) *entdb.ChargeUsageBasedRunCreditAllocationsCreate {
 			create := tx.db.ChargeUsageBasedRunCreditAllocations.Create().
 				SetRunID(runID.ID).
 				SetNamespace(runID.Namespace)

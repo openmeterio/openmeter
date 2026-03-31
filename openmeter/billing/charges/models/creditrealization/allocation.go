@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
+	"github.com/samber/lo"
 )
 
 type CreateAllocationInput struct {
@@ -71,9 +71,9 @@ func (i CreateAllocationInputs) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (i CreateAllocationInputs) AsAdapterCreateInputs() ([]AdapterCreateInput, error) {
-	return slicesx.MapWithErr(i, func(input CreateAllocationInput) (AdapterCreateInput, error) {
-		return AdapterCreateInput{
+func (i CreateAllocationInputs) AsCreateInputs() CreateInputs {
+	return lo.Map(i, func(input CreateAllocationInput, _ int) CreateInput {
+		return CreateInput{
 			ID:                input.ID,
 			Annotations:       input.Annotations,
 			ServicePeriod:     input.ServicePeriod,
@@ -81,7 +81,7 @@ func (i CreateAllocationInputs) AsAdapterCreateInputs() ([]AdapterCreateInput, e
 			Amount:            input.Amount,
 			Type:              TypeAllocation,
 			LineID:            input.LineID,
-		}, nil
+		}
 	})
 }
 

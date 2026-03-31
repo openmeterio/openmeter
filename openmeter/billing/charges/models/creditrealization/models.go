@@ -13,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-type AdapterCreateInput struct {
+type CreateInput struct {
 	// ID is the ID of the credit realization, if empty a new ID will be generated.
 	// If set, the ID must be a valid UUID.
 	ID            string                `json:"id"`
@@ -54,7 +54,7 @@ func (t Type) Validate() error {
 	return nil
 }
 
-func (i AdapterCreateInput) Validate() error {
+func (i CreateInput) Validate() error {
 	var errs []error
 
 	if i.ID != "" {
@@ -101,9 +101,9 @@ func (i AdapterCreateInput) Validate() error {
 	return errors.Join(errs...)
 }
 
-type AdapterCreateInputs []AdapterCreateInput
+type CreateInputs []CreateInput
 
-func (i AdapterCreateInputs) Validate() error {
+func (i CreateInputs) Validate() error {
 	var errs []error
 
 	for idx, input := range i {
@@ -115,7 +115,7 @@ func (i AdapterCreateInputs) Validate() error {
 	return errors.Join(errs...)
 }
 
-func (i AdapterCreateInputs) Sum() alpacadecimal.Decimal {
+func (i CreateInputs) Sum() alpacadecimal.Decimal {
 	sum := alpacadecimal.Zero
 	for _, input := range i {
 		sum = sum.Add(input.Amount)
@@ -126,7 +126,7 @@ func (i AdapterCreateInputs) Sum() alpacadecimal.Decimal {
 type Realization struct {
 	models.NamespacedModel
 	models.ManagedModel
-	AdapterCreateInput
+	CreateInput
 
 	// SortHint is the hint for the order of the credit realizations created in the same batch.
 	// Given collection is in priority order, reverting any transaction group should happen in reverse order.
@@ -136,7 +136,7 @@ type Realization struct {
 func (r Realization) Validate() error {
 	var errs []error
 
-	if err := r.AdapterCreateInput.Validate(); err != nil {
+	if err := r.CreateInput.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("credit realization input: %w", err))
 	}
 

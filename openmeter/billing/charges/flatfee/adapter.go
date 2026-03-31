@@ -21,7 +21,7 @@ type Adapter interface {
 
 	CreateInvoicedUsage(ctx context.Context, chargeID meta.ChargeID, invoicedUsage invoicedusage.AccruedUsage) (invoicedusage.AccruedUsage, error)
 
-	CreateCreditAllocations(ctx context.Context, chargeID meta.ChargeID, creditAllocations creditrealization.AdapterCreateInputs) (creditrealization.Realizations, error)
+	CreateCreditAllocations(ctx context.Context, chargeID meta.ChargeID, creditAllocations creditrealization.CreateInputs) (creditrealization.Realizations, error)
 
 	CreatePayment(ctx context.Context, chargeID meta.ChargeID, paymentSettlement payment.InvoicedCreate) (payment.Invoiced, error)
 	UpdatePayment(ctx context.Context, paymentSettlement payment.Invoiced) (payment.Invoiced, error)

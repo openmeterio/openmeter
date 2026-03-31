@@ -127,10 +127,10 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 
 		testTrnsGroupID := ulid.Make().String()
 		creditRealizationCallbackInvocations := 0
-		s.FlatFeeTestHandler.onAssignedToInvoice = func(ctx context.Context, input flatfee.OnAssignedToInvoiceInput) ([]creditrealization.CreateInput, error) {
+		s.FlatFeeTestHandler.onAssignedToInvoice = func(ctx context.Context, input flatfee.OnAssignedToInvoiceInput) (creditrealization.CreateAllocationInputs, error) {
 			creditRealizationCallbackInvocations++
 
-			return []creditrealization.CreateInput{
+			return creditrealization.CreateAllocationInputs{
 				{
 					ServicePeriod: input.ServicePeriod,
 					Amount:        input.PreTaxTotalAmount.Mul(alpacadecimal.NewFromFloat(0.3)), // 30% as credits
@@ -408,15 +408,15 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 		defer s.UsageBasedTestHandler.Reset()
 
 		type callbackInvocation struct {
-			Input usagebased.AllocateCreditsInput
+			Input usagebased.CreditsOnlyUsageAccruedInput
 		}
 
 		var startedCallbacks []callbackInvocation
 
-		s.UsageBasedTestHandler.onCollectionStarted = func(ctx context.Context, input usagebased.AllocateCreditsInput) (creditrealization.CreateInputs, error) {
+		s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
 			startedCallbacks = append(startedCallbacks, callbackInvocation{Input: input})
 
-			return creditrealization.CreateInputs{
+			return creditrealization.CreateAllocationInputs{
 				{
 					ServicePeriod: input.Charge.Intent.ServicePeriod,
 					Amount:        input.AmountToAllocate,
@@ -475,7 +475,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 
 		s.Len(startedCallbacks, 1)
 		s.Equal(float64(3), startedCallbacks[0].Input.AmountToAllocate.InexactFloat64())
-		s.Equal(usagebased.RealizationRunTypeFinalRealization, startedCallbacks[0].Input.CollectionType)
+		s.Equal(usagebased.RealizationRunTypeFinalRealization, startedCallbacks[0].Input.Run.Type)
 		s.True(firstStoredAtOffset.Equal(startedCallbacks[0].Input.AllocateAt))
 	})
 
@@ -509,15 +509,15 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 		defer s.UsageBasedTestHandler.Reset()
 
 		type callbackInvocation struct {
-			Input usagebased.AllocateCreditsInput
+			Input usagebased.CreditsOnlyUsageAccruedInput
 		}
 
 		var finalizedCallbacks []callbackInvocation
 
-		s.UsageBasedTestHandler.onCollectionFinalized = func(ctx context.Context, input usagebased.AllocateCreditsInput) (creditrealization.CreateInputs, error) {
+		s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
 			finalizedCallbacks = append(finalizedCallbacks, callbackInvocation{Input: input})
 
-			return creditrealization.CreateInputs{
+			return creditrealization.CreateAllocationInputs{
 				{
 					ServicePeriod: input.Charge.Intent.ServicePeriod,
 					Amount:        input.AmountToAllocate,
@@ -570,7 +570,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 
 		s.Len(finalizedCallbacks, 1)
 		s.Equal(float64(8), finalizedCallbacks[0].Input.AmountToAllocate.InexactFloat64())
-		s.Equal(usagebased.RealizationRunTypeFinalRealization, finalizedCallbacks[0].Input.CollectionType)
+		s.Equal(usagebased.RealizationRunTypeFinalRealization, finalizedCallbacks[0].Input.Run.Type)
 		s.True(finalStoredAtOffset.Equal(finalizedCallbacks[0].Input.AllocateAt))
 	})
 
@@ -701,8 +701,8 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreateImmediatelyFinal() {
 	// OnCollectionStarted is called during StartFinalRealizationRun because usage > 0.
 	// OnCollectionFinalized is not called because the finalize rating is identical to the start
 	// rating (frozen clock) so additionalAmount == 0.
-	s.UsageBasedTestHandler.onCollectionStarted = func(ctx context.Context, input usagebased.AllocateCreditsInput) (creditrealization.CreateInputs, error) {
-		return creditrealization.CreateInputs{
+	s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
+		return creditrealization.CreateAllocationInputs{
 			{
 				ServicePeriod: input.Charge.Intent.ServicePeriod,
 				Amount:        input.AmountToAllocate,
@@ -869,10 +869,10 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 
 		var callbacks []callbackInvocation
 
-		s.FlatFeeTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) ([]creditrealization.CreateInput, error) {
+		s.FlatFeeTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
 			callbacks = append(callbacks, callbackInvocation{Input: input})
 
-			return []creditrealization.CreateInput{
+			return creditrealization.CreateAllocationInputs{
 				{
 					ServicePeriod: input.Charge.Intent.ServicePeriod,
 					Amount:        input.AmountToAllocate,
@@ -948,8 +948,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyCreateImmediatelyFinal
 		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
 	}
 
-	s.FlatFeeTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) ([]creditrealization.CreateInput, error) {
-		return []creditrealization.CreateInput{
+	s.FlatFeeTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
+		return creditrealization.CreateAllocationInputs{
 			{
 				ServicePeriod: input.Charge.Intent.ServicePeriod,
 				Amount:        input.AmountToAllocate,

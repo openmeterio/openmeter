@@ -96,7 +96,7 @@ func (r Realizations) CreateCorrectionRequest(amount alpacadecimal.Decimal, curr
 	return out, nil
 }
 
-func (r Realizations) Correct(amount alpacadecimal.Decimal, currency currencyx.Calculator, cb func(req CorrectionRequest) (CreateCorrectionInputs, error)) (AdapterCreateInputs, error) {
+func (r Realizations) Correct(amount alpacadecimal.Decimal, currency currencyx.Calculator, cb func(req CorrectionRequest) (CreateCorrectionInputs, error)) (CreateInputs, error) {
 	req, err := r.CreateCorrectionRequest(amount, currency)
 	if err != nil {
 		return nil, err
@@ -115,7 +115,7 @@ func (r Realizations) Correct(amount alpacadecimal.Decimal, currency currencyx.C
 		return nil, err
 	}
 
-	return corrections.AsAdapterCreateInputs(r)
+	return corrections.AsCreateInputs(r)
 }
 
 type allocationWithCorrections struct {
