@@ -532,10 +532,20 @@ func TestBackfillTaxConfig(t *testing.T) {
 				TaxCodeID: lo.ToPtr("existing-id"),
 			},
 		},
+		{
+			name:        "tc with empty ID does not set TaxCodeID",
+			cfg:         nil,
+			taxBehavior: nil,
+			tc:          newTaxCode("", "txcd_10000000"),
+			want: &TaxConfig{
+				Stripe: &StripeTaxConfig{Code: "txcd_10000000"},
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := BackfillTaxConfig(tt.cfg, tt.taxBehavior, tt.tc)
 			assert.Equal(t, tt.want, got)
 		})
