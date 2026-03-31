@@ -247,7 +247,7 @@ func (s *Server) CreatePlan(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) GetPlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {
-	unimplemented.GetPlan(w, r, planId)
+	s.plansHandler.GetPlan().With(planId).ServeHTTP(w, r)
 }
 
 func (s *Server) UpdatePlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {
