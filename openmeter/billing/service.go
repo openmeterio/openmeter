@@ -141,6 +141,15 @@ type InvoiceAppService interface {
 	// Async sync support
 	SyncDraftInvoice(ctx context.Context, input SyncDraftStandardInvoiceInput) (StandardInvoice, error)
 	SyncIssuingInvoice(ctx context.Context, input SyncIssuingStandardInvoiceInput) (StandardInvoice, error)
+
+	// SyncExternalIDs writes back external IDs (e.g., Stripe invoice/line IDs) without
+	// triggering the state machine. Used for incremental sync during async plan execution.
+	SyncExternalIDs(ctx context.Context, input SyncExternalIDsInput) error
+
+	// FailSyncInvoice transitions the invoice to a sync-failed state and records the error
+	// as a validation issue visible to API consumers. Used by async sync plan handlers when
+	// a Stripe API call fails with a non-retryable error.
+	FailSyncInvoice(ctx context.Context, input FailSyncInvoiceInput) error
 }
 
 type LockableService interface {

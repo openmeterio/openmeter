@@ -1,6 +1,7 @@
 package billing
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
@@ -130,6 +131,24 @@ func (e ValidationError) Error() string {
 
 func (e ValidationError) Unwrap() error {
 	return e.Err
+}
+
+// InvoiceStateMismatchError is returned when an operation expects the invoice to be in a specific
+// state but it has already moved past it (e.g., a stale sync plan completing after a newer one
+// already advanced the invoice).
+type InvoiceStateMismatchError struct {
+	InvoiceID     InvoiceID
+	ExpectedState StandardInvoiceStatus
+	ActualState   StandardInvoiceStatus
+}
+
+func (e InvoiceStateMismatchError) Error() string {
+	return fmt.Sprintf("invoice %s is in %s state, expected %s", e.InvoiceID.ID, e.ActualState, e.ExpectedState)
+}
+
+func IsInvoiceStateMismatchError(err error) bool {
+	var e InvoiceStateMismatchError
+	return errors.As(err, &e)
 }
 
 var _ error = (*UpdateAfterDeleteError)(nil)
