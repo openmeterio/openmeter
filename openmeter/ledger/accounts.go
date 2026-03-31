@@ -104,7 +104,8 @@ type CustomerAccruedAccount interface {
 // CustomerAccruedRouteParams are routing parameters specific to customer accrued sub-accounts.
 // Routed by currency only for now.
 type CustomerAccruedRouteParams struct {
-	Currency currencyx.Code
+	Currency  currencyx.Code
+	CostBasis *alpacadecimal.Decimal
 }
 
 func (p CustomerAccruedRouteParams) Validate() error {
@@ -113,7 +114,8 @@ func (p CustomerAccruedRouteParams) Validate() error {
 
 func (p CustomerAccruedRouteParams) Route() Route {
 	return Route{
-		Currency: p.Currency,
+		Currency:  p.Currency,
+		CostBasis: p.CostBasis,
 	}
 }
 

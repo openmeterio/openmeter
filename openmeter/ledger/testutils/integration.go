@@ -139,14 +139,27 @@ func (e *IntegrationEnv) FBOSubAccount(t *testing.T, priority int) ledger.SubAcc
 func (e *IntegrationEnv) ReceivableSubAccount(t *testing.T) ledger.SubAccount {
 	t.Helper()
 
-	return e.ReceivableSubAccountWithStatus(t, ledger.TransactionAuthorizationStatusOpen)
+	return e.ReceivableSubAccountWithCostBasisAndStatus(t, nil, ledger.TransactionAuthorizationStatusOpen)
 }
 
 func (e *IntegrationEnv) ReceivableSubAccountWithStatus(t *testing.T, status ledger.TransactionAuthorizationStatus) ledger.SubAccount {
 	t.Helper()
 
+	return e.ReceivableSubAccountWithCostBasisAndStatus(t, nil, status)
+}
+
+func (e *IntegrationEnv) ReceivableSubAccountWithCostBasis(t *testing.T, costBasis *alpacadecimal.Decimal) ledger.SubAccount {
+	t.Helper()
+
+	return e.ReceivableSubAccountWithCostBasisAndStatus(t, costBasis, ledger.TransactionAuthorizationStatusOpen)
+}
+
+func (e *IntegrationEnv) ReceivableSubAccountWithCostBasisAndStatus(t *testing.T, costBasis *alpacadecimal.Decimal, status ledger.TransactionAuthorizationStatus) ledger.SubAccount {
+	t.Helper()
+
 	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
 		Currency:                       e.Currency,
+		CostBasis:                      costBasis,
 		TransactionAuthorizationStatus: status,
 	})
 	require.NoError(t, err)
@@ -157,8 +170,15 @@ func (e *IntegrationEnv) ReceivableSubAccountWithStatus(t *testing.T, status led
 func (e *IntegrationEnv) AccruedSubAccount(t *testing.T) ledger.SubAccount {
 	t.Helper()
 
+	return e.AccruedSubAccountWithCostBasis(t, nil)
+}
+
+func (e *IntegrationEnv) AccruedSubAccountWithCostBasis(t *testing.T, costBasis *alpacadecimal.Decimal) ledger.SubAccount {
+	t.Helper()
+
 	subAccount, err := e.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
-		Currency: e.Currency,
+		Currency:  e.Currency,
+		CostBasis: costBasis,
 	})
 	require.NoError(t, err)
 
@@ -168,8 +188,15 @@ func (e *IntegrationEnv) AccruedSubAccount(t *testing.T) ledger.SubAccount {
 func (e *IntegrationEnv) WashSubAccount(t *testing.T) ledger.SubAccount {
 	t.Helper()
 
+	return e.WashSubAccountWithCostBasis(t, nil)
+}
+
+func (e *IntegrationEnv) WashSubAccountWithCostBasis(t *testing.T, costBasis *alpacadecimal.Decimal) ledger.SubAccount {
+	t.Helper()
+
 	subAccount, err := e.BusinessAccounts.WashAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
-		Currency: e.Currency,
+		Currency:  e.Currency,
+		CostBasis: costBasis,
 	})
 	require.NoError(t, err)
 
@@ -179,8 +206,15 @@ func (e *IntegrationEnv) WashSubAccount(t *testing.T) ledger.SubAccount {
 func (e *IntegrationEnv) EarningsSubAccount(t *testing.T) ledger.SubAccount {
 	t.Helper()
 
+	return e.EarningsSubAccountWithCostBasis(t, nil)
+}
+
+func (e *IntegrationEnv) EarningsSubAccountWithCostBasis(t *testing.T, costBasis *alpacadecimal.Decimal) ledger.SubAccount {
+	t.Helper()
+
 	subAccount, err := e.BusinessAccounts.EarningsAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
-		Currency: e.Currency,
+		Currency:  e.Currency,
+		CostBasis: costBasis,
 	})
 	require.NoError(t, err)
 

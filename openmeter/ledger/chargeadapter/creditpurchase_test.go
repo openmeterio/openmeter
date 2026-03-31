@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
+	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -47,6 +48,23 @@ func TestOnCreditPurchaseInitiated(t *testing.T) {
 
 	require.True(t, env.sumBalance(t, env.fboSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(100)))
 	require.True(t, env.sumBalance(t, env.receivableSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(-100)))
+}
+
+func TestOnCreditPurchaseInitiated_OnlyIssuesExcessBeyondAdvance(t *testing.T) {
+	env := newCreditPurchaseHandlerTestEnv(t)
+	env.createAdvanceExposure(t, alpacadecimal.NewFromInt(40))
+
+	costBasis := mustDecimal(t, "0.5")
+	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
+	ref, err := env.handler.OnCreditPurchaseInitiated(t.Context(), charge)
+	require.NoError(t, err)
+	require.NotEmpty(t, ref.TransactionGroupID)
+
+	require.True(t, env.sumBalance(t, env.fboSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(60)))
+	require.True(t, env.sumBalance(t, env.receivableSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(-100)))
+	require.True(t, env.sumBalance(t, env.unknownReceivableSubAccount(t)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.unknownAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.accruedSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(40)))
 }
 
 func TestOnCreditPurchasePaymentAuthorized(t *testing.T) {
@@ -87,6 +105,31 @@ func TestOnCreditPurchasePaymentSettled(t *testing.T) {
 	require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t, costBasis)).Equal(alpacadecimal.Zero))
 	require.True(t, env.sumBalance(t, env.washSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(-100)))
 	require.True(t, env.sumBalance(t, env.fboSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(100)))
+}
+
+func TestOnCreditPurchasePaymentSettled_BacksAdvanceBeforeTopUp(t *testing.T) {
+	env := newCreditPurchaseHandlerTestEnv(t)
+	env.createAdvanceExposure(t, alpacadecimal.NewFromInt(40))
+
+	costBasis := mustDecimal(t, "0.5")
+	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
+
+	_, err := env.handler.OnCreditPurchaseInitiated(t.Context(), charge)
+	require.NoError(t, err)
+
+	_, err = env.handler.OnCreditPurchasePaymentAuthorized(t.Context(), charge)
+	require.NoError(t, err)
+
+	ref, err := env.handler.OnCreditPurchasePaymentSettled(t.Context(), charge)
+	require.NoError(t, err)
+	require.NotEmpty(t, ref.TransactionGroupID)
+
+	require.True(t, env.sumBalance(t, env.receivableSubAccount(t, costBasis)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t, costBasis)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.unknownReceivableSubAccount(t)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.unknownAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.accruedSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(40)))
+	require.True(t, env.sumBalance(t, env.fboSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(60)))
 }
 
 type creditPurchaseHandlerTestEnv struct {
@@ -196,6 +239,43 @@ func (e *creditPurchaseHandlerTestEnv) fboSubAccount(t *testing.T, costBasis alp
 	return subAccount
 }
 
+func (e *creditPurchaseHandlerTestEnv) unknownReceivableSubAccount(t *testing.T) ledger.SubAccount {
+	t.Helper()
+
+	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
+		Currency:                       e.Currency,
+		CostBasis:                      nil,
+		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
+	})
+	require.NoError(t, err)
+
+	return subAccount
+}
+
+func (e *creditPurchaseHandlerTestEnv) unknownAccruedSubAccount(t *testing.T) ledger.SubAccount {
+	t.Helper()
+
+	subAccount, err := e.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
+		Currency:  e.Currency,
+		CostBasis: nil,
+	})
+	require.NoError(t, err)
+
+	return subAccount
+}
+
+func (e *creditPurchaseHandlerTestEnv) accruedSubAccount(t *testing.T, costBasis alpacadecimal.Decimal) ledger.SubAccount {
+	t.Helper()
+
+	subAccount, err := e.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
+		Currency:  e.Currency,
+		CostBasis: &costBasis,
+	})
+	require.NoError(t, err)
+
+	return subAccount
+}
+
 func (e *creditPurchaseHandlerTestEnv) receivableSubAccount(t *testing.T, costBasis alpacadecimal.Decimal) ledger.SubAccount {
 	t.Helper()
 
@@ -236,6 +316,36 @@ func (e *creditPurchaseHandlerTestEnv) washSubAccount(t *testing.T, costBasis al
 
 func (e *creditPurchaseHandlerTestEnv) sumBalance(t *testing.T, subAccount ledger.SubAccount) alpacadecimal.Decimal {
 	return e.SumBalance(t, subAccount)
+}
+
+func (e *creditPurchaseHandlerTestEnv) createAdvanceExposure(t *testing.T, amount alpacadecimal.Decimal) {
+	t.Helper()
+
+	inputs, err := transactions.ResolveTransactions(
+		t.Context(),
+		transactions.ResolverDependencies{
+			AccountService:    e.Deps.ResolversService,
+			SubAccountService: e.Deps.AccountService,
+		},
+		transactions.ResolutionScope{
+			CustomerID: e.CustomerID,
+			Namespace:  e.Namespace,
+		},
+		transactions.IssueCustomerReceivableTemplate{
+			At:       e.Now(),
+			Amount:   amount,
+			Currency: e.Currency,
+		},
+		transactions.TransferCustomerFBOBucketToAccruedTemplate{
+			At:       e.Now(),
+			Amount:   amount,
+			Currency: e.Currency,
+		},
+	)
+	require.NoError(t, err)
+
+	_, err = e.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(e.Namespace, nil, inputs...))
+	require.NoError(t, err)
 }
 
 func (e *creditPurchaseHandlerTestEnv) transactionGroupAnnotations(t *testing.T, groupID string) models.Annotations {

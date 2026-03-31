@@ -62,7 +62,18 @@ func (e *transactionsTestEnv) resolveAndCommit(t *testing.T, templates ...Resolv
 func (e *transactionsTestEnv) fundPriority(t *testing.T, priority int, amount int64) ledger.SubAccount {
 	t.Helper()
 
-	subAccount := e.FBOSubAccount(t, priority)
+	return e.fundPriorityWithCostBasis(t, priority, amount, nil)
+}
+
+func (e *transactionsTestEnv) fundPriorityWithCostBasis(t *testing.T, priority int, amount int64, costBasis *alpacadecimal.Decimal) ledger.SubAccount {
+	t.Helper()
+
+	subAccount, err := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
+		Currency:       e.Currency,
+		CostBasis:      costBasis,
+		CreditPriority: priority,
+	})
+	require.NoError(t, err)
 
 	e.resolveAndCommit(
 		t,
@@ -70,17 +81,20 @@ func (e *transactionsTestEnv) fundPriority(t *testing.T, priority int, amount in
 			At:             e.Now(),
 			Amount:         alpacadecimal.NewFromInt(amount),
 			Currency:       e.Currency,
+			CostBasis:      costBasis,
 			CreditPriority: &priority,
 		},
 		FundCustomerReceivableTemplate{
-			At:       e.Now(),
-			Amount:   alpacadecimal.NewFromInt(amount),
-			Currency: e.Currency,
+			At:        e.Now(),
+			Amount:    alpacadecimal.NewFromInt(amount),
+			Currency:  e.Currency,
+			CostBasis: costBasis,
 		},
 		SettleCustomerReceivablePaymentTemplate{
-			At:       e.Now(),
-			Amount:   alpacadecimal.NewFromInt(amount),
-			Currency: e.Currency,
+			At:        e.Now(),
+			Amount:    alpacadecimal.NewFromInt(amount),
+			Currency:  e.Currency,
+			CostBasis: costBasis,
 		},
 	)
 

@@ -161,8 +161,13 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 				s.Where(sqljson.ValueEQ(dbledgersubaccountroute.FieldFeatures, normalizedRoute.Features))
 			})
 		}
-		if normalizedRoute.CostBasis != nil {
-			routePredicates = append(routePredicates, dbledgersubaccountroute.CostBasis(*normalizedRoute.CostBasis))
+		if normalizedRoute.CostBasis.IsPresent() {
+			costBasis, _ := normalizedRoute.CostBasis.Get()
+			if costBasis != nil {
+				routePredicates = append(routePredicates, dbledgersubaccountroute.CostBasis(*costBasis))
+			} else {
+				routePredicates = append(routePredicates, dbledgersubaccountroute.CostBasisIsNil())
+			}
 		}
 		if normalizedRoute.TransactionAuthorizationStatus != nil {
 			routePredicates = append(routePredicates, dbledgersubaccountroute.TransactionAuthorizationStatus(*normalizedRoute.TransactionAuthorizationStatus))

@@ -14,15 +14,19 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type fboSource struct {
+type subAccountBalance struct {
 	subAccount ledger.SubAccount
-	priority   int
 	balance    alpacadecimal.Decimal
 }
 
-type fboCollection struct {
+type subAccountAmount struct {
 	subAccount ledger.SubAccount
 	amount     alpacadecimal.Decimal
+}
+
+type prioritizedSubAccountBalance struct {
+	subAccountBalance
+	priority int
 }
 
 type accountIdentifier interface {
@@ -35,7 +39,21 @@ func collectFromPrioritizedCustomerFBO(
 	currency currencyx.Code,
 	target alpacadecimal.Decimal,
 	deps ResolverDependencies,
-) ([]fboCollection, error) {
+) ([]subAccountAmount, error) {
+	sources, err := listCustomerFBOSources(ctx, customerID, currency, deps)
+	if err != nil {
+		return nil, err
+	}
+
+	return collectFromPrioritizedSources(sources, target), nil
+}
+
+func listCustomerFBOSources(
+	ctx context.Context,
+	customerID customer.CustomerID,
+	currency currencyx.Code,
+	deps ResolverDependencies,
+) ([]prioritizedSubAccountBalance, error) {
 	if deps.SubAccountService == nil {
 		return nil, fmt.Errorf("sub-account service is required")
 	}
@@ -58,7 +76,7 @@ func collectFromPrioritizedCustomerFBO(
 		return nil, fmt.Errorf("list sub-accounts: %w", err)
 	}
 
-	sources := make([]fboSource, 0, len(subAccounts))
+	sources := make([]prioritizedSubAccountBalance, 0, len(subAccounts))
 	for _, subAccount := range subAccounts {
 		route := subAccount.Route()
 		if route.Currency != currency {
@@ -75,10 +93,12 @@ func collectFromPrioritizedCustomerFBO(
 			priority = *route.CreditPriority
 		}
 
-		sources = append(sources, fboSource{
-			subAccount: subAccount,
-			priority:   priority,
-			balance:    balance,
+		sources = append(sources, prioritizedSubAccountBalance{
+			subAccountBalance: subAccountBalance{
+				subAccount: subAccount,
+				balance:    balance,
+			},
+			priority: priority,
 		})
 	}
 
@@ -90,12 +110,12 @@ func collectFromPrioritizedCustomerFBO(
 		return sources[i].priority < sources[j].priority
 	})
 
-	return collectFromPrioritizedSources(sources, target), nil
+	return sources, nil
 }
 
-func collectFromPrioritizedSources(sources []fboSource, target alpacadecimal.Decimal) []fboCollection {
+func collectFromPrioritizedSources(sources []prioritizedSubAccountBalance, target alpacadecimal.Decimal) []subAccountAmount {
 	remaining := target
-	out := make([]fboCollection, 0, len(sources))
+	out := make([]subAccountAmount, 0, len(sources))
 
 	for _, source := range sources {
 		if !remaining.IsPositive() {
@@ -111,7 +131,7 @@ func collectFromPrioritizedSources(sources []fboSource, target alpacadecimal.Dec
 			amount = remaining
 		}
 
-		out = append(out, fboCollection{
+		out = append(out, subAccountAmount{
 			subAccount: source.subAccount,
 			amount:     amount,
 		})
@@ -119,6 +139,95 @@ func collectFromPrioritizedSources(sources []fboSource, target alpacadecimal.Dec
 	}
 
 	return out
+}
+
+func collectFromAttributableCustomerAccrued(
+	ctx context.Context,
+	customerID customer.CustomerID,
+	currency currencyx.Code,
+	target alpacadecimal.Decimal,
+	deps ResolverDependencies,
+) ([]subAccountAmount, error) {
+	customerAccounts, err := deps.AccountService.GetCustomerAccounts(ctx, customerID)
+	if err != nil {
+		return nil, fmt.Errorf("get customer accounts: %w", err)
+	}
+
+	accruedAccountWithID, ok := customerAccounts.AccruedAccount.(accountIdentifier)
+	if !ok {
+		return nil, fmt.Errorf("customer accrued account does not expose an ID")
+	}
+
+	subAccounts, err := deps.SubAccountService.ListSubAccounts(ctx, ledgeraccount.ListSubAccountsInput{
+		Namespace: accruedAccountWithID.ID().Namespace,
+		AccountID: accruedAccountWithID.ID().ID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list accrued sub-accounts: %w", err)
+	}
+
+	sources := make([]subAccountBalance, 0, len(subAccounts))
+	for _, subAccount := range subAccounts {
+		route := subAccount.Route()
+		if route.Currency != currency || route.CostBasis == nil {
+			continue
+		}
+
+		balance, err := settledBalanceForSubAccount(ctx, subAccount)
+		if err != nil {
+			return nil, err
+		}
+
+		sources = append(sources, subAccountBalance{
+			subAccount: subAccount,
+			balance:    balance,
+		})
+	}
+
+	sort.Slice(sources, func(i, j int) bool {
+		return sources[i].subAccount.Address().SubAccountID() < sources[j].subAccount.Address().SubAccountID()
+	})
+
+	return collectFromBalanceSources(sources, target), nil
+}
+
+func collectFromBalanceSources(sources []subAccountBalance, target alpacadecimal.Decimal) []subAccountAmount {
+	remaining := target
+	out := make([]subAccountAmount, 0, len(sources))
+
+	for _, source := range sources {
+		if !remaining.IsPositive() {
+			break
+		}
+
+		if !source.balance.IsPositive() {
+			continue
+		}
+
+		amount := source.balance
+		if source.balance.GreaterThan(remaining) {
+			amount = remaining
+		}
+
+		out = append(out, subAccountAmount{
+			subAccount: source.subAccount,
+			amount:     amount,
+		})
+		remaining = remaining.Sub(amount)
+	}
+
+	return out
+}
+
+func decimalPointersEqual(left, right *alpacadecimal.Decimal) bool {
+	switch {
+	case left == nil && right == nil:
+		return true
+	case left == nil || right == nil:
+		return false
+	default:
+		return left.Equal(*right)
+	}
 }
 
 func settledBalanceForSubAccount(ctx context.Context, subAccount ledger.SubAccount) (alpacadecimal.Decimal, error) {
