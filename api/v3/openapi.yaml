@@ -4216,7 +4216,7 @@ components:
         - static
         - boolean
       description: The type of the entitlement.
-    BillingFeatureLLMTokenType:
+    BillingFeatureLlmTokenType:
       type: string
       enum:
         - input
@@ -4227,7 +4227,7 @@ components:
         - request
         - response
       description: Token type for LLM cost lookup.
-    BillingFeatureLLMUnitCost:
+    BillingFeatureLlmUnitCost:
       type: object
       required:
         - type
@@ -4236,6 +4236,7 @@ components:
           type: string
           enum:
             - llm
+          description: Discriminator for LLM unit cost.
         provider_property:
           type: string
           description: |-
@@ -4273,7 +4274,7 @@ components:
           title: Token type property
         token_type:
           allOf:
-            - $ref: '#/components/schemas/BillingFeatureLLMTokenType'
+            - $ref: '#/components/schemas/BillingFeatureLlmTokenType'
           description: |-
             Static token type value.
             Use this when the feature tracks a single token type (e.g., only input tokens).
@@ -4282,7 +4283,7 @@ components:
           title: Token type
         pricing:
           allOf:
-            - $ref: '#/components/schemas/BillingFeatureLLMUnitCostPricing'
+            - $ref: '#/components/schemas/BillingFeatureLlmUnitCostPricing'
           description: |-
             Resolved per-token pricing from the LLM cost database.
             Populated in responses when the provider and model can be determined,
@@ -4293,7 +4294,7 @@ components:
         LLM cost lookup configuration.
         Each dimension (provider, model, token type) can be specified as either
         a static value or a meter group-by property name (mutually exclusive).
-    BillingFeatureLLMUnitCostPricing:
+    BillingFeatureLlmUnitCostPricing:
       type: object
       required:
         - input_per_token
@@ -4335,6 +4336,7 @@ components:
           type: string
           enum:
             - manual
+          description: Discriminator for manual unit cost.
         amount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -4344,12 +4346,12 @@ components:
       type: object
       oneOf:
         - $ref: '#/components/schemas/BillingFeatureManualUnitCost'
-        - $ref: '#/components/schemas/BillingFeatureLLMUnitCost'
+        - $ref: '#/components/schemas/BillingFeatureLlmUnitCost'
       discriminator:
         propertyName: type
         mapping:
           manual: '#/components/schemas/BillingFeatureManualUnitCost'
-          llm: '#/components/schemas/BillingFeatureLLMUnitCost'
+          llm: '#/components/schemas/BillingFeatureLlmUnitCost'
       description: |-
         Per-unit cost configuration for a feature.
         Either a fixed manual amount or a dynamic LLM cost lookup.

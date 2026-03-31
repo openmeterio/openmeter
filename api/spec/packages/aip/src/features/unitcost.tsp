@@ -7,8 +7,8 @@ namespace Features;
  */
 @friendlyName("BillingFeatureUnitCostType")
 enum FeatureUnitCostType {
-  llm: "llm",
-  manual: "manual",
+  Llm: "llm",
+  Manual: "manual",
 }
 
 /**
@@ -16,7 +16,8 @@ enum FeatureUnitCostType {
  */
 @friendlyName("BillingFeatureManualUnitCost")
 model FeatureManualUnitCost {
-  type: FeatureUnitCostType.manual;
+  /** Discriminator for manual unit cost. */
+  type: FeatureUnitCostType.Manual;
 
   /** Fixed per-unit cost amount in USD. */
   amount: Shared.Numeric;
@@ -25,19 +26,19 @@ model FeatureManualUnitCost {
 /**
  * Token type for LLM cost lookup.
  */
-@friendlyName("BillingFeatureLLMTokenType")
-enum FeatureLLMTokenType {
-  input: "input",
-  output: "output",
-  cache_read: "cache_read",
-  cache_write: "cache_write",
-  reasoning: "reasoning",
+@friendlyName("BillingFeatureLlmTokenType")
+enum FeatureLlmTokenType {
+  Input: "input",
+  Output: "output",
+  CacheRead: "cache_read",
+  CacheWrite: "cache_write",
+  Reasoning: "reasoning",
 
   /** Alias for `input`. */
-  request: "request",
+  Request: "request",
 
   /** Alias for `output`. */
-  response: "response",
+  Response: "response",
 }
 
 /**
@@ -45,9 +46,11 @@ enum FeatureLLMTokenType {
  * Each dimension (provider, model, token type) can be specified as either
  * a static value or a meter group-by property name (mutually exclusive).
  */
-@friendlyName("BillingFeatureLLMUnitCost")
-model FeatureLLMUnitCost {
-  type: FeatureUnitCostType.llm;
+#suppress "@openmeter/api-spec-aip/repeated-prefix-grouping" "token_type and token_type_property are independent dimensions, not a nested group"
+@friendlyName("BillingFeatureLlmUnitCost")
+model FeatureLlmUnitCost {
+  /** Discriminator for LLM unit cost. */
+  type: FeatureUnitCostType.Llm;
 
   /**
    * Meter group-by property that holds the LLM provider.
@@ -96,7 +99,7 @@ model FeatureLLMUnitCost {
    * Mutually exclusive with `token_type_property`.
    */
   @summary("Token type")
-  token_type?: FeatureLLMTokenType;
+  token_type?: FeatureLlmTokenType;
 
   /**
    * Resolved per-token pricing from the LLM cost database.
@@ -105,14 +108,15 @@ model FeatureLLMUnitCost {
    */
   @summary("Resolved pricing")
   @visibility(Lifecycle.Read)
-  pricing?: FeatureLLMUnitCostPricing;
+  pricing?: FeatureLlmUnitCostPricing;
 }
 
 /**
  * Resolved per-token pricing from the LLM cost database.
  */
-@friendlyName("BillingFeatureLLMUnitCostPricing")
-model FeatureLLMUnitCostPricing {
+#suppress "@openmeter/api-spec-aip/repeated-prefix-grouping" "cache_read and cache_write are distinct token types, not a nested cache group"
+@friendlyName("BillingFeatureLlmUnitCostPricing")
+model FeatureLlmUnitCostPricing {
   /** Cost per input token in USD. */
   @summary("Input per token")
   input_per_token: Shared.Numeric;
@@ -145,5 +149,5 @@ union FeatureUnitCost {
   manual: FeatureManualUnitCost,
 
   @summary("LLM unit cost")
-  llm: FeatureLLMUnitCost,
+  llm: FeatureLlmUnitCost,
 }
