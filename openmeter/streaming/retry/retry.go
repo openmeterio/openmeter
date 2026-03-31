@@ -3,13 +3,13 @@ package streamingretry
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"log/slog"
 	"time"
 
 	chproto "github.com/ClickHouse/ch-go/proto"
 	"github.com/ClickHouse/clickhouse-go/v2"
+	retryLib "github.com/avast/retry-go/v4"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -39,7 +39,7 @@ func (c Config) Validate() error {
 	}
 
 	if c.MaxTries <= 1 {
-		errs = append(errs, errors.New("max retries must be greater than or equal to 1"))
+		errs = append(errs, errors.New("max tries must be greater than 1"))
 	}
 
 	return errors.Join(errs...)
@@ -121,50 +121,43 @@ func (c *Connector) DeleteNamespace(ctx context.Context, namespace string) error
 }
 
 func retry[T any](ctx context.Context, c *Connector, fn func() (T, error)) (T, error) {
-	var empty T
-	var err error
+	return retryLib.DoWithData(fn,
+		retryLib.Context(ctx),
+		retryLib.Attempts(uint(c.maxTries)),
+		retryLib.LastErrorOnly(true),
+		retryLib.DelayType(retryLib.CombineDelay(
+			retryLib.BackOffDelay,
+			retryLib.RandomDelay,
+		)),
+		retryLib.Delay(c.retryWaitDuration),
+		retryLib.OnRetry(func(n uint, err error) {
+			c.logger.WarnContext(ctx, "operation failed, retrying",
+				"attempt", n+1,
+				"max_attempts", c.maxTries,
+				"error", err,
+			)
+		}),
+		retryLib.RetryIf(func(err error) bool {
+			// Connection pool seems to be neglecting the pings in the connection pool, so we need to retry on EOFs to
+			// compensate for clickhouse restarts due to updates.
+			if errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF) {
+				return true
+			}
 
-	for i := 0; i < c.maxTries; i++ {
-		var res T
+			// If the connection pool is full, we can retry, hoping for a free connection.
+			if errors.Is(err, clickhouse.ErrAcquireConnTimeout) {
+				return true
+			}
 
-		res, err = fn()
-		if err == nil {
-			return res, nil
-		}
+			chException, ok := lo.ErrorsAs[*clickhouse.Exception](err)
+			if ok {
+				// During upscale/downscale of the cluster, CH might return this error, so let's retry.
+				if chException.Code == int32(chproto.ErrAllConnectionTriesFailed) {
+					return true
+				}
+			}
 
-		// Retirable errors
-		if isErrorRetirable(ctx, c, err) {
-			time.Sleep(c.retryWaitDuration)
-			continue
-		}
-
-		// Everything else is permanent.
-		return empty, err
-	}
-
-	return empty, fmt.Errorf("maximum retries exceeded: %w", err)
-}
-
-func isErrorRetirable(ctx context.Context, c *Connector, err error) bool {
-	// Connection pool seems to be neglecting the pings in the connection pool, so we need to retry on EOFs to
-	// compensate for clickhouse restarts due to updates.
-	if errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF) {
-		return true
-	}
-
-	// If the connection pool is full, we can retry, hoping for a free connection.
-	if errors.Is(err, clickhouse.ErrAcquireConnTimeout) {
-		c.logger.WarnContext(ctx, "clickhouse acquire connection timeout, connection pool is full", "error", err)
-		return true
-	}
-
-	chException, ok := lo.ErrorsAs[*clickhouse.Exception](err)
-	if ok {
-		// During upscale/downscale of the cluster CH might return this error, so let's retry.
-		if chException.Code == int32(chproto.ErrAllConnectionTriesFailed) {
-			return true
-		}
-	}
-
-	return false
+			return false
+		}),
+	)
 }
