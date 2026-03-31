@@ -87,7 +87,7 @@ func correctionFor(allocation Realization, amount float64) Realization {
 		CreateInput: CreateInput{
 			ID:            uuid.New().String(),
 			ServicePeriod: allocation.ServicePeriod,
-			Amount:        alpacadecimal.NewFromFloat(amount).Neg(),
+			Amount:        alpacadecimal.NewFromFloat(amount),
 			LedgerTransaction: ledgertransaction.GroupReference{
 				TransactionGroupID: uuid.New().String(),
 			},
@@ -194,7 +194,7 @@ func TestCreateCorrectionRequest(t *testing.T) {
 	t.Run("revert with already-corrected allocation uses remaining", func(t *testing.T) {
 		b := newAllocationBuilder()
 		alloc := b.build(10)
-		correction := correctionFor(alloc, 4)
+		correction := correctionFor(alloc, -4)
 
 		cr, err := Realizations{alloc, correction}.CreateCorrectionRequest(
 			alpacadecimal.NewFromFloat(-6),
@@ -210,7 +210,7 @@ func TestCreateCorrectionRequest(t *testing.T) {
 	t.Run("skips fully corrected allocations", func(t *testing.T) {
 		b := newAllocationBuilder()
 		a1 := b.build(5)
-		c1 := correctionFor(a1, 5) // fully corrected
+		c1 := correctionFor(a1, -5) // fully corrected
 		a2 := b.build(5)
 
 		cr, err := Realizations{a1, a2, c1}.CreateCorrectionRequest(
@@ -304,7 +304,7 @@ func TestCreateCorrectionRequest(t *testing.T) {
 	t.Run("error: insufficient after existing corrections", func(t *testing.T) {
 		b := newAllocationBuilder()
 		alloc := b.build(10)
-		correction := correctionFor(alloc, 8)
+		correction := correctionFor(alloc, -8)
 
 		_, err := Realizations{alloc, correction}.CreateCorrectionRequest(
 			alpacadecimal.NewFromFloat(-5),
@@ -330,9 +330,9 @@ func TestCreateCorrectionRequest(t *testing.T) {
 	t.Run("error: all allocations fully corrected", func(t *testing.T) {
 		b := newAllocationBuilder()
 		a1 := b.build(5)
-		c1 := correctionFor(a1, 5)
+		c1 := correctionFor(a1, -5)
 		a2 := b.build(3)
-		c2 := correctionFor(a2, 3)
+		c2 := correctionFor(a2, -3)
 
 		_, err := Realizations{a1, a2, c1, c2}.CreateCorrectionRequest(
 			alpacadecimal.NewFromFloat(-1),
@@ -376,7 +376,7 @@ func TestCreateCorrectionRequest(t *testing.T) {
 	t.Run("exact boundary: request equals remaining after corrections", func(t *testing.T) {
 		b := newAllocationBuilder()
 		alloc := b.build(10)
-		correction := correctionFor(alloc, 7)
+		correction := correctionFor(alloc, -7)
 
 		cr, err := Realizations{alloc, correction}.CreateCorrectionRequest(
 			alpacadecimal.NewFromFloat(-3),
@@ -491,7 +491,7 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 	t.Run("error: correction exceeds remaining", func(t *testing.T) {
 		b := newAllocationBuilder()
 		alloc := b.build(10)
-		existingCorrection := correctionFor(alloc, 8)
+		existingCorrection := correctionFor(alloc, -8)
 		currency := testCurrency(t)
 
 		inputs := CreateCorrectionInputs{
@@ -597,7 +597,7 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 	t.Run("error: correction targets a correction, not an allocation", func(t *testing.T) {
 		b := newAllocationBuilder()
 		alloc := b.build(10)
-		correction := correctionFor(alloc, 3)
+		correction := correctionFor(alloc, -3)
 		currency := testCurrency(t)
 
 		inputs := CreateCorrectionInputs{
@@ -696,7 +696,7 @@ func TestCreateCorrectionInputsAsCreateInputs(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				Amount:      alpacadecimal.NewFromFloat(-3),
+				Amount: alpacadecimal.NewFromFloat(-3),
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
 				},
@@ -716,14 +716,14 @@ func TestCreateCorrectionInputsAsCreateInputs(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				Amount:      alpacadecimal.NewFromFloat(-2),
+				Amount: alpacadecimal.NewFromFloat(-2),
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
 				},
 				CorrectsRealizationID: a1.ID,
 			},
 			{
-				Amount:      alpacadecimal.NewFromFloat(-4),
+				Amount: alpacadecimal.NewFromFloat(-4),
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
 				},
@@ -745,7 +745,7 @@ func TestCreateCorrectionInputsAsCreateInputs(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				Amount:      alpacadecimal.NewFromFloat(-3),
+				Amount: alpacadecimal.NewFromFloat(-3),
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
 				},
@@ -849,11 +849,11 @@ func TestCorrectionEndToEnd(t *testing.T) {
 		b := newAllocationBuilder()
 		a1 := b.build(10)
 		a2 := b.build(5)
-		c1 := correctionFor(a1, 4) // a1 has $6 remaining
+		c1 := correctionFor(a1, -4) // a1 has $6 remaining
 		currency := testCurrency(t)
 		realizations := Realizations{a1, a2, c1}
 
-		// Request $8: should take $5 from a2, $3 from a1
+		// Request -8: should take -5 from a2, -3 from a1.
 		cr, err := realizations.CreateCorrectionRequest(
 			alpacadecimal.NewFromFloat(-8),
 			currency,
@@ -889,7 +889,7 @@ func TestCorrectionEndToEnd(t *testing.T) {
 		currency := testCurrency(t)
 		realizations := Realizations{alloc}
 
-		// First correction: $3
+		// First correction: -3.
 		cr1, err := realizations.CreateCorrectionRequest(
 			alpacadecimal.NewFromFloat(-3),
 			currency,
@@ -897,10 +897,10 @@ func TestCorrectionEndToEnd(t *testing.T) {
 		require.NoError(t, err)
 
 		// Simulate the first correction being applied
-		firstCorrection := correctionFor(alloc, 3)
+		firstCorrection := correctionFor(alloc, -3)
 		realizations = append(realizations, firstCorrection)
 
-		// Second correction: $4 (from $7 remaining)
+		// Second correction: -4 (from 7 remaining).
 		cr2, err := realizations.CreateCorrectionRequest(
 			alpacadecimal.NewFromFloat(-4),
 			currency,
@@ -970,14 +970,14 @@ func TestCorrect(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, result, 2)
 
-		sum := CreateInputs(result).Sum()
+		sum := result.Sum()
 		assert.Equal(t, -8.0, sum.InexactFloat64())
 	})
 
 	t.Run("with existing corrections", func(t *testing.T) {
 		b := newAllocationBuilder()
 		a1 := b.build(10)
-		c1 := correctionFor(a1, 4)
+		c1 := correctionFor(a1, -4)
 		currency := testCurrency(t)
 		realizations := Realizations{a1, c1}
 
