@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecreditallocations"
@@ -68,6 +69,26 @@ func (_c *ChargeFlatFeeCreditAllocationsCreate) SetLedgerTransactionGroupID(v st
 // SetSortHint sets the "sort_hint" field.
 func (_c *ChargeFlatFeeCreditAllocationsCreate) SetSortHint(v int) *ChargeFlatFeeCreditAllocationsCreate {
 	_c.mutation.SetSortHint(v)
+	return _c
+}
+
+// SetType sets the "type" field.
+func (_c *ChargeFlatFeeCreditAllocationsCreate) SetType(v creditrealization.Type) *ChargeFlatFeeCreditAllocationsCreate {
+	_c.mutation.SetType(v)
+	return _c
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (_c *ChargeFlatFeeCreditAllocationsCreate) SetCorrectsRealizationID(v string) *ChargeFlatFeeCreditAllocationsCreate {
+	_c.mutation.SetCorrectsRealizationID(v)
+	return _c
+}
+
+// SetNillableCorrectsRealizationID sets the "corrects_realization_id" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreditAllocationsCreate) SetNillableCorrectsRealizationID(v *string) *ChargeFlatFeeCreditAllocationsCreate {
+	if v != nil {
+		_c.SetCorrectsRealizationID(*v)
+	}
 	return _c
 }
 
@@ -251,6 +272,19 @@ func (_c *ChargeFlatFeeCreditAllocationsCreate) check() error {
 	if _, ok := _c.mutation.SortHint(); !ok {
 		return &ValidationError{Name: "sort_hint", err: errors.New(`db: missing required field "ChargeFlatFeeCreditAllocations.sort_hint"`)}
 	}
+	if _, ok := _c.mutation.GetType(); !ok {
+		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "ChargeFlatFeeCreditAllocations.type"`)}
+	}
+	if v, ok := _c.mutation.GetType(); ok {
+		if err := chargeflatfeecreditallocations.TypeValidator(v); err != nil {
+			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeCreditAllocations.type": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.CorrectsRealizationID(); ok {
+		if err := chargeflatfeecreditallocations.CorrectsRealizationIDValidator(v); err != nil {
+			return &ValidationError{Name: "corrects_realization_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeCreditAllocations.corrects_realization_id": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "ChargeFlatFeeCreditAllocations.namespace"`)}
 	}
@@ -326,6 +360,14 @@ func (_c *ChargeFlatFeeCreditAllocationsCreate) createSpec() (*ChargeFlatFeeCred
 	if value, ok := _c.mutation.SortHint(); ok {
 		_spec.SetField(chargeflatfeecreditallocations.FieldSortHint, field.TypeInt, value)
 		_node.SortHint = value
+	}
+	if value, ok := _c.mutation.GetType(); ok {
+		_spec.SetField(chargeflatfeecreditallocations.FieldType, field.TypeEnum, value)
+		_node.Type = value
+	}
+	if value, ok := _c.mutation.CorrectsRealizationID(); ok {
+		_spec.SetField(chargeflatfeecreditallocations.FieldCorrectsRealizationID, field.TypeString, value)
+		_node.CorrectsRealizationID = &value
 	}
 	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(chargeflatfeecreditallocations.FieldNamespace, field.TypeString, value)
@@ -505,6 +547,24 @@ func (u *ChargeFlatFeeCreditAllocationsUpsert) AddSortHint(v int) *ChargeFlatFee
 	return u
 }
 
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (u *ChargeFlatFeeCreditAllocationsUpsert) SetCorrectsRealizationID(v string) *ChargeFlatFeeCreditAllocationsUpsert {
+	u.Set(chargeflatfeecreditallocations.FieldCorrectsRealizationID, v)
+	return u
+}
+
+// UpdateCorrectsRealizationID sets the "corrects_realization_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeCreditAllocationsUpsert) UpdateCorrectsRealizationID() *ChargeFlatFeeCreditAllocationsUpsert {
+	u.SetExcluded(chargeflatfeecreditallocations.FieldCorrectsRealizationID)
+	return u
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (u *ChargeFlatFeeCreditAllocationsUpsert) ClearCorrectsRealizationID() *ChargeFlatFeeCreditAllocationsUpsert {
+	u.SetNull(chargeflatfeecreditallocations.FieldCorrectsRealizationID)
+	return u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (u *ChargeFlatFeeCreditAllocationsUpsert) SetUpdatedAt(v time.Time) *ChargeFlatFeeCreditAllocationsUpsert {
 	u.Set(chargeflatfeecreditallocations.FieldUpdatedAt, v)
@@ -572,6 +632,9 @@ func (u *ChargeFlatFeeCreditAllocationsUpsertOne) UpdateNewValues() *ChargeFlatF
 		}
 		if _, exists := u.create.mutation.LedgerTransactionGroupID(); exists {
 			s.SetIgnore(chargeflatfeecreditallocations.FieldLedgerTransactionGroupID)
+		}
+		if _, exists := u.create.mutation.GetType(); exists {
+			s.SetIgnore(chargeflatfeecreditallocations.FieldType)
 		}
 		if _, exists := u.create.mutation.Namespace(); exists {
 			s.SetIgnore(chargeflatfeecreditallocations.FieldNamespace)
@@ -694,6 +757,27 @@ func (u *ChargeFlatFeeCreditAllocationsUpsertOne) AddSortHint(v int) *ChargeFlat
 func (u *ChargeFlatFeeCreditAllocationsUpsertOne) UpdateSortHint() *ChargeFlatFeeCreditAllocationsUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeCreditAllocationsUpsert) {
 		s.UpdateSortHint()
+	})
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (u *ChargeFlatFeeCreditAllocationsUpsertOne) SetCorrectsRealizationID(v string) *ChargeFlatFeeCreditAllocationsUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeCreditAllocationsUpsert) {
+		s.SetCorrectsRealizationID(v)
+	})
+}
+
+// UpdateCorrectsRealizationID sets the "corrects_realization_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeCreditAllocationsUpsertOne) UpdateCorrectsRealizationID() *ChargeFlatFeeCreditAllocationsUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeCreditAllocationsUpsert) {
+		s.UpdateCorrectsRealizationID()
+	})
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (u *ChargeFlatFeeCreditAllocationsUpsertOne) ClearCorrectsRealizationID() *ChargeFlatFeeCreditAllocationsUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeCreditAllocationsUpsert) {
+		s.ClearCorrectsRealizationID()
 	})
 }
 
@@ -939,6 +1023,9 @@ func (u *ChargeFlatFeeCreditAllocationsUpsertBulk) UpdateNewValues() *ChargeFlat
 			if _, exists := b.mutation.LedgerTransactionGroupID(); exists {
 				s.SetIgnore(chargeflatfeecreditallocations.FieldLedgerTransactionGroupID)
 			}
+			if _, exists := b.mutation.GetType(); exists {
+				s.SetIgnore(chargeflatfeecreditallocations.FieldType)
+			}
 			if _, exists := b.mutation.Namespace(); exists {
 				s.SetIgnore(chargeflatfeecreditallocations.FieldNamespace)
 			}
@@ -1061,6 +1148,27 @@ func (u *ChargeFlatFeeCreditAllocationsUpsertBulk) AddSortHint(v int) *ChargeFla
 func (u *ChargeFlatFeeCreditAllocationsUpsertBulk) UpdateSortHint() *ChargeFlatFeeCreditAllocationsUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeCreditAllocationsUpsert) {
 		s.UpdateSortHint()
+	})
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (u *ChargeFlatFeeCreditAllocationsUpsertBulk) SetCorrectsRealizationID(v string) *ChargeFlatFeeCreditAllocationsUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeCreditAllocationsUpsert) {
+		s.SetCorrectsRealizationID(v)
+	})
+}
+
+// UpdateCorrectsRealizationID sets the "corrects_realization_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeCreditAllocationsUpsertBulk) UpdateCorrectsRealizationID() *ChargeFlatFeeCreditAllocationsUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeCreditAllocationsUpsert) {
+		s.UpdateCorrectsRealizationID()
+	})
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (u *ChargeFlatFeeCreditAllocationsUpsertBulk) ClearCorrectsRealizationID() *ChargeFlatFeeCreditAllocationsUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeCreditAllocationsUpsert) {
+		s.ClearCorrectsRealizationID()
 	})
 }
 

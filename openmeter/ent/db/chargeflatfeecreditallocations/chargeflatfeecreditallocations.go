@@ -3,10 +3,12 @@
 package chargeflatfeecreditallocations
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 )
 
 const (
@@ -26,6 +28,10 @@ const (
 	FieldLedgerTransactionGroupID = "ledger_transaction_group_id"
 	// FieldSortHint holds the string denoting the sort_hint field in the database.
 	FieldSortHint = "sort_hint"
+	// FieldType holds the string denoting the type field in the database.
+	FieldType = "type"
+	// FieldCorrectsRealizationID holds the string denoting the corrects_realization_id field in the database.
+	FieldCorrectsRealizationID = "corrects_realization_id"
 	// FieldNamespace holds the string denoting the namespace field in the database.
 	FieldNamespace = "namespace"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -69,6 +75,8 @@ var Columns = []string{
 	FieldServicePeriodTo,
 	FieldLedgerTransactionGroupID,
 	FieldSortHint,
+	FieldType,
+	FieldCorrectsRealizationID,
 	FieldNamespace,
 	FieldCreatedAt,
 	FieldUpdatedAt,
@@ -92,6 +100,8 @@ var (
 	LineIDValidator func(string) error
 	// LedgerTransactionGroupIDValidator is a validator for the "ledger_transaction_group_id" field. It is called by the builders before save.
 	LedgerTransactionGroupIDValidator func(string) error
+	// CorrectsRealizationIDValidator is a validator for the "corrects_realization_id" field. It is called by the builders before save.
+	CorrectsRealizationIDValidator func(string) error
 	// NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	NamespaceValidator func(string) error
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
@@ -103,6 +113,16 @@ var (
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
+
+// TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
+func TypeValidator(_type creditrealization.Type) error {
+	switch _type {
+	case "allocation", "correction":
+		return nil
+	default:
+		return fmt.Errorf("chargeflatfeecreditallocations: invalid enum value for type field: %q", _type)
+	}
+}
 
 // OrderOption defines the ordering options for the ChargeFlatFeeCreditAllocations queries.
 type OrderOption func(*sql.Selector)
@@ -140,6 +160,16 @@ func ByLedgerTransactionGroupID(opts ...sql.OrderTermOption) OrderOption {
 // BySortHint orders the results by the sort_hint field.
 func BySortHint(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSortHint, opts...).ToFunc()
+}
+
+// ByType orders the results by the type field.
+func ByType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldType, opts...).ToFunc()
+}
+
+// ByCorrectsRealizationID orders the results by the corrects_realization_id field.
+func ByCorrectsRealizationID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCorrectsRealizationID, opts...).ToFunc()
 }
 
 // ByNamespace orders the results by the namespace field.

@@ -3,15 +3,20 @@ package creditrealization
 import (
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/google/uuid"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-type CreateInput struct {
+type AdapterCreateInput struct {
+	// ID is the ID of the credit realization, if empty a new ID will be generated.
+	// If set, the ID must be a valid UUID.
+	ID            string                `json:"id"`
 	Annotations   models.Annotations    `json:"annotations"`
 	ServicePeriod timeutil.ClosedPeriod `json:"servicePeriod"`
 
@@ -23,17 +28,66 @@ type CreateInput struct {
 	// If nil, the credit is not allocated to any invoice line (e.g. line is still in gathering,
 	// credit_only mode without invoicing, etc.)
 	LineID *string `json:"lineID"`
+
+	Type                  Type    `json:"type"`
+	CorrectsRealizationID *string `json:"correctsRealizationID"`
 }
 
-func (i CreateInput) Validate() error {
+type Type string
+
+const (
+	TypeAllocation Type = "allocation"
+	TypeCorrection Type = "correction"
+)
+
+func (t Type) Values() []string {
+	return []string{
+		string(TypeAllocation),
+		string(TypeCorrection),
+	}
+}
+
+func (t Type) Validate() error {
+	if !slices.Contains(t.Values(), string(t)) {
+		return fmt.Errorf("invalid credit realization type: %s", t)
+	}
+	return nil
+}
+
+func (i AdapterCreateInput) Validate() error {
 	var errs []error
+
+	if i.ID != "" {
+		if err := uuid.Validate(i.ID); err != nil {
+			errs = append(errs, fmt.Errorf("id must be a valid UUID: %w", err))
+		}
+	}
 
 	if err := i.ServicePeriod.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("service period: %w", err))
 	}
 
-	if !i.Amount.IsPositive() {
-		errs = append(errs, fmt.Errorf("amount must be positive"))
+	if err := i.Type.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("type: %w", err))
+	}
+
+	switch i.Type {
+	case TypeAllocation:
+		if i.LineID == nil {
+			errs = append(errs, fmt.Errorf("line ID is required"))
+		}
+
+		if !i.Amount.IsPositive() {
+			errs = append(errs, fmt.Errorf("amount must be positive"))
+		}
+	case TypeCorrection:
+		if i.CorrectsRealizationID == nil {
+			errs = append(errs, fmt.Errorf("corrects realization ID is required"))
+		}
+
+		if !i.Amount.IsNegative() {
+			errs = append(errs, fmt.Errorf("amount must be negative"))
+		}
 	}
 
 	if err := i.LedgerTransaction.Validate(); err != nil {
@@ -47,9 +101,9 @@ func (i CreateInput) Validate() error {
 	return errors.Join(errs...)
 }
 
-type CreateInputs []CreateInput
+type AdapterCreateInputs []AdapterCreateInput
 
-func (i CreateInputs) Validate() error {
+func (i AdapterCreateInputs) Validate() error {
 	var errs []error
 
 	for idx, input := range i {
@@ -61,7 +115,7 @@ func (i CreateInputs) Validate() error {
 	return errors.Join(errs...)
 }
 
-func (i CreateInputs) Sum() alpacadecimal.Decimal {
+func (i AdapterCreateInputs) Sum() alpacadecimal.Decimal {
 	sum := alpacadecimal.Zero
 	for _, input := range i {
 		sum = sum.Add(input.Amount)
@@ -70,9 +124,9 @@ func (i CreateInputs) Sum() alpacadecimal.Decimal {
 }
 
 type Realization struct {
-	models.NamespacedID
+	models.NamespacedModel
 	models.ManagedModel
-	CreateInput
+	AdapterCreateInput
 
 	// SortHint is the hint for the order of the credit realizations created in the same batch.
 	// Given collection is in priority order, reverting any transaction group should happen in reverse order.
@@ -82,31 +136,9 @@ type Realization struct {
 func (r Realization) Validate() error {
 	var errs []error
 
-	if err := r.CreateInput.Validate(); err != nil {
+	if err := r.AdapterCreateInput.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("credit realization input: %w", err))
 	}
 
 	return errors.Join(errs...)
-}
-
-type Realizations []Realization
-
-func (r Realizations) Validate() error {
-	var errs []error
-
-	for idx, realization := range r {
-		if err := realization.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("credit realization[%d]: %w", idx, err))
-		}
-	}
-
-	return errors.Join(errs...)
-}
-
-func (r Realizations) Sum() alpacadecimal.Decimal {
-	sum := alpacadecimal.Zero
-	for _, realization := range r {
-		sum = sum.Add(realization.Amount)
-	}
-	return sum
 }

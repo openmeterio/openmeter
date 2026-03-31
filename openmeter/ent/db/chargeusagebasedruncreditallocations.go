@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -33,6 +34,10 @@ type ChargeUsageBasedRunCreditAllocations struct {
 	LedgerTransactionGroupID string `json:"ledger_transaction_group_id,omitempty"`
 	// SortHint holds the value of the "sort_hint" field.
 	SortHint int `json:"sort_hint,omitempty"`
+	// Type holds the value of the "type" field.
+	Type creditrealization.Type `json:"type,omitempty"`
+	// CorrectsRealizationID holds the value of the "corrects_realization_id" field.
+	CorrectsRealizationID *string `json:"corrects_realization_id,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -82,7 +87,7 @@ func (*ChargeUsageBasedRunCreditAllocations) scanValues(columns []string) ([]any
 			values[i] = new(alpacadecimal.Decimal)
 		case chargeusagebasedruncreditallocations.FieldSortHint:
 			values[i] = new(sql.NullInt64)
-		case chargeusagebasedruncreditallocations.FieldID, chargeusagebasedruncreditallocations.FieldLineID, chargeusagebasedruncreditallocations.FieldLedgerTransactionGroupID, chargeusagebasedruncreditallocations.FieldNamespace, chargeusagebasedruncreditallocations.FieldRunID:
+		case chargeusagebasedruncreditallocations.FieldID, chargeusagebasedruncreditallocations.FieldLineID, chargeusagebasedruncreditallocations.FieldLedgerTransactionGroupID, chargeusagebasedruncreditallocations.FieldType, chargeusagebasedruncreditallocations.FieldCorrectsRealizationID, chargeusagebasedruncreditallocations.FieldNamespace, chargeusagebasedruncreditallocations.FieldRunID:
 			values[i] = new(sql.NullString)
 		case chargeusagebasedruncreditallocations.FieldServicePeriodFrom, chargeusagebasedruncreditallocations.FieldServicePeriodTo, chargeusagebasedruncreditallocations.FieldCreatedAt, chargeusagebasedruncreditallocations.FieldUpdatedAt, chargeusagebasedruncreditallocations.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -143,6 +148,19 @@ func (_m *ChargeUsageBasedRunCreditAllocations) assignValues(columns []string, v
 				return fmt.Errorf("unexpected type %T for field sort_hint", values[i])
 			} else if value.Valid {
 				_m.SortHint = int(value.Int64)
+			}
+		case chargeusagebasedruncreditallocations.FieldType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field type", values[i])
+			} else if value.Valid {
+				_m.Type = creditrealization.Type(value.String)
+			}
+		case chargeusagebasedruncreditallocations.FieldCorrectsRealizationID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field corrects_realization_id", values[i])
+			} else if value.Valid {
+				_m.CorrectsRealizationID = new(string)
+				*_m.CorrectsRealizationID = value.String
 			}
 		case chargeusagebasedruncreditallocations.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -243,6 +261,14 @@ func (_m *ChargeUsageBasedRunCreditAllocations) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("sort_hint=")
 	builder.WriteString(fmt.Sprintf("%v", _m.SortHint))
+	builder.WriteString(", ")
+	builder.WriteString("type=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Type))
+	builder.WriteString(", ")
+	if v := _m.CorrectsRealizationID; v != nil {
+		builder.WriteString("corrects_realization_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("namespace=")
 	builder.WriteString(_m.Namespace)

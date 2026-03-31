@@ -12,14 +12,14 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-func (a *adapter) CreateCreditAllocations(ctx context.Context, chargeID meta.ChargeID, creditAllocations creditrealization.CreateInputs) (creditrealization.Realizations, error) {
+func (a *adapter) CreateCreditAllocations(ctx context.Context, chargeID meta.ChargeID, creditAllocations creditrealization.AdapterCreateInputs) (creditrealization.Realizations, error) {
 	if err := creditAllocations.Validate(); err != nil {
 		return creditrealization.Realizations{}, err
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (creditrealization.Realizations, error) {
 		dbEntities, err := tx.db.ChargeFlatFeeCreditAllocations.CreateBulk(
-			lo.Map(creditAllocations, func(creditAllocation creditrealization.CreateInput, idx int) *db.ChargeFlatFeeCreditAllocationsCreate {
+			lo.Map(creditAllocations, func(creditAllocation creditrealization.AdapterCreateInput, idx int) *db.ChargeFlatFeeCreditAllocationsCreate {
 				create := tx.db.ChargeFlatFeeCreditAllocations.Create().
 					SetChargeID(chargeID.ID)
 

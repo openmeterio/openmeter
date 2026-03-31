@@ -30,5 +30,5 @@ type RealizationRunAdapter interface {
 }
 
 type RealizationRunCreditAllocationAdapter interface {
-	CreateRunCreditAllocations(ctx context.Context, runID RealizationRunID, creditAllocations creditrealization.CreateInputs) (creditrealization.Realizations, error)
+	CreateRunCreditAllocations(ctx context.Context, runID RealizationRunID, creditAllocations creditrealization.AdapterCreateInputs) (creditrealization.Realizations, error)
 }

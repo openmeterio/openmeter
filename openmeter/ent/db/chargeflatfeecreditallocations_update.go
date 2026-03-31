@@ -114,6 +114,26 @@ func (_u *ChargeFlatFeeCreditAllocationsUpdate) AddSortHint(v int) *ChargeFlatFe
 	return _u
 }
 
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (_u *ChargeFlatFeeCreditAllocationsUpdate) SetCorrectsRealizationID(v string) *ChargeFlatFeeCreditAllocationsUpdate {
+	_u.mutation.SetCorrectsRealizationID(v)
+	return _u
+}
+
+// SetNillableCorrectsRealizationID sets the "corrects_realization_id" field if the given value is not nil.
+func (_u *ChargeFlatFeeCreditAllocationsUpdate) SetNillableCorrectsRealizationID(v *string) *ChargeFlatFeeCreditAllocationsUpdate {
+	if v != nil {
+		_u.SetCorrectsRealizationID(*v)
+	}
+	return _u
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (_u *ChargeFlatFeeCreditAllocationsUpdate) ClearCorrectsRealizationID() *ChargeFlatFeeCreditAllocationsUpdate {
+	_u.mutation.ClearCorrectsRealizationID()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *ChargeFlatFeeCreditAllocationsUpdate) SetUpdatedAt(v time.Time) *ChargeFlatFeeCreditAllocationsUpdate {
 	_u.mutation.SetUpdatedAt(v)
@@ -225,6 +245,11 @@ func (_u *ChargeFlatFeeCreditAllocationsUpdate) check() error {
 			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeCreditAllocations.line_id": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.CorrectsRealizationID(); ok {
+		if err := chargeflatfeecreditallocations.CorrectsRealizationIDValidator(v); err != nil {
+			return &ValidationError{Name: "corrects_realization_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeCreditAllocations.corrects_realization_id": %w`, err)}
+		}
+	}
 	if _u.mutation.FlatFeeCleared() && len(_u.mutation.FlatFeeIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeFlatFeeCreditAllocations.flat_fee"`)
 	}
@@ -257,6 +282,12 @@ func (_u *ChargeFlatFeeCreditAllocationsUpdate) sqlSave(ctx context.Context) (_n
 	}
 	if value, ok := _u.mutation.AddedSortHint(); ok {
 		_spec.AddField(chargeflatfeecreditallocations.FieldSortHint, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.CorrectsRealizationID(); ok {
+		_spec.SetField(chargeflatfeecreditallocations.FieldCorrectsRealizationID, field.TypeString, value)
+	}
+	if _u.mutation.CorrectsRealizationIDCleared() {
+		_spec.ClearField(chargeflatfeecreditallocations.FieldCorrectsRealizationID, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(chargeflatfeecreditallocations.FieldUpdatedAt, field.TypeTime, value)
@@ -405,6 +436,26 @@ func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) AddSortHint(v int) *ChargeFla
 	return _u
 }
 
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) SetCorrectsRealizationID(v string) *ChargeFlatFeeCreditAllocationsUpdateOne {
+	_u.mutation.SetCorrectsRealizationID(v)
+	return _u
+}
+
+// SetNillableCorrectsRealizationID sets the "corrects_realization_id" field if the given value is not nil.
+func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) SetNillableCorrectsRealizationID(v *string) *ChargeFlatFeeCreditAllocationsUpdateOne {
+	if v != nil {
+		_u.SetCorrectsRealizationID(*v)
+	}
+	return _u
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) ClearCorrectsRealizationID() *ChargeFlatFeeCreditAllocationsUpdateOne {
+	_u.mutation.ClearCorrectsRealizationID()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) SetUpdatedAt(v time.Time) *ChargeFlatFeeCreditAllocationsUpdateOne {
 	_u.mutation.SetUpdatedAt(v)
@@ -529,6 +580,11 @@ func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) check() error {
 			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeCreditAllocations.line_id": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.CorrectsRealizationID(); ok {
+		if err := chargeflatfeecreditallocations.CorrectsRealizationIDValidator(v); err != nil {
+			return &ValidationError{Name: "corrects_realization_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeCreditAllocations.corrects_realization_id": %w`, err)}
+		}
+	}
 	if _u.mutation.FlatFeeCleared() && len(_u.mutation.FlatFeeIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeFlatFeeCreditAllocations.flat_fee"`)
 	}
@@ -578,6 +634,12 @@ func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) sqlSave(ctx context.Context) 
 	}
 	if value, ok := _u.mutation.AddedSortHint(); ok {
 		_spec.AddField(chargeflatfeecreditallocations.FieldSortHint, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.CorrectsRealizationID(); ok {
+		_spec.SetField(chargeflatfeecreditallocations.FieldCorrectsRealizationID, field.TypeString, value)
+	}
+	if _u.mutation.CorrectsRealizationIDCleared() {
+		_spec.ClearField(chargeflatfeecreditallocations.FieldCorrectsRealizationID, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(chargeflatfeecreditallocations.FieldUpdatedAt, field.TypeTime, value)

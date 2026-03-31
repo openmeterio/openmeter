@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
@@ -44029,6 +44030,8 @@ type ChargeFlatFeeCreditAllocationsMutation struct {
 	ledger_transaction_group_id *string
 	sort_hint                   *int
 	addsort_hint                *int
+	_type                       *creditrealization.Type
+	corrects_realization_id     *string
 	namespace                   *string
 	created_at                  *time.Time
 	updated_at                  *time.Time
@@ -44397,6 +44400,91 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) ResetSortHint() {
 	m.addsort_hint = nil
 }
 
+// SetType sets the "type" field.
+func (m *ChargeFlatFeeCreditAllocationsMutation) SetType(c creditrealization.Type) {
+	m._type = &c
+}
+
+// GetType returns the value of the "type" field in the mutation.
+func (m *ChargeFlatFeeCreditAllocationsMutation) GetType() (r creditrealization.Type, exists bool) {
+	v := m._type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldType returns the old "type" field's value of the ChargeFlatFeeCreditAllocations entity.
+// If the ChargeFlatFeeCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeCreditAllocationsMutation) OldType(ctx context.Context) (v creditrealization.Type, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldType: %w", err)
+	}
+	return oldValue.Type, nil
+}
+
+// ResetType resets all changes to the "type" field.
+func (m *ChargeFlatFeeCreditAllocationsMutation) ResetType() {
+	m._type = nil
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (m *ChargeFlatFeeCreditAllocationsMutation) SetCorrectsRealizationID(s string) {
+	m.corrects_realization_id = &s
+}
+
+// CorrectsRealizationID returns the value of the "corrects_realization_id" field in the mutation.
+func (m *ChargeFlatFeeCreditAllocationsMutation) CorrectsRealizationID() (r string, exists bool) {
+	v := m.corrects_realization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCorrectsRealizationID returns the old "corrects_realization_id" field's value of the ChargeFlatFeeCreditAllocations entity.
+// If the ChargeFlatFeeCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeCreditAllocationsMutation) OldCorrectsRealizationID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCorrectsRealizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCorrectsRealizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCorrectsRealizationID: %w", err)
+	}
+	return oldValue.CorrectsRealizationID, nil
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (m *ChargeFlatFeeCreditAllocationsMutation) ClearCorrectsRealizationID() {
+	m.corrects_realization_id = nil
+	m.clearedFields[chargeflatfeecreditallocations.FieldCorrectsRealizationID] = struct{}{}
+}
+
+// CorrectsRealizationIDCleared returns if the "corrects_realization_id" field was cleared in this mutation.
+func (m *ChargeFlatFeeCreditAllocationsMutation) CorrectsRealizationIDCleared() bool {
+	_, ok := m.clearedFields[chargeflatfeecreditallocations.FieldCorrectsRealizationID]
+	return ok
+}
+
+// ResetCorrectsRealizationID resets all changes to the "corrects_realization_id" field.
+func (m *ChargeFlatFeeCreditAllocationsMutation) ResetCorrectsRealizationID() {
+	m.corrects_realization_id = nil
+	delete(m.clearedFields, chargeflatfeecreditallocations.FieldCorrectsRealizationID)
+}
+
 // SetNamespace sets the "namespace" field.
 func (m *ChargeFlatFeeCreditAllocationsMutation) SetNamespace(s string) {
 	m.namespace = &s
@@ -44753,7 +44841,7 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeFlatFeeCreditAllocationsMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 14)
 	if m.billing_invoice_line != nil {
 		fields = append(fields, chargeflatfeecreditallocations.FieldLineID)
 	}
@@ -44771,6 +44859,12 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) Fields() []string {
 	}
 	if m.sort_hint != nil {
 		fields = append(fields, chargeflatfeecreditallocations.FieldSortHint)
+	}
+	if m._type != nil {
+		fields = append(fields, chargeflatfeecreditallocations.FieldType)
+	}
+	if m.corrects_realization_id != nil {
+		fields = append(fields, chargeflatfeecreditallocations.FieldCorrectsRealizationID)
 	}
 	if m.namespace != nil {
 		fields = append(fields, chargeflatfeecreditallocations.FieldNamespace)
@@ -44810,6 +44904,10 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) Field(name string) (ent.Value, 
 		return m.LedgerTransactionGroupID()
 	case chargeflatfeecreditallocations.FieldSortHint:
 		return m.SortHint()
+	case chargeflatfeecreditallocations.FieldType:
+		return m.GetType()
+	case chargeflatfeecreditallocations.FieldCorrectsRealizationID:
+		return m.CorrectsRealizationID()
 	case chargeflatfeecreditallocations.FieldNamespace:
 		return m.Namespace()
 	case chargeflatfeecreditallocations.FieldCreatedAt:
@@ -44843,6 +44941,10 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) OldField(ctx context.Context, n
 		return m.OldLedgerTransactionGroupID(ctx)
 	case chargeflatfeecreditallocations.FieldSortHint:
 		return m.OldSortHint(ctx)
+	case chargeflatfeecreditallocations.FieldType:
+		return m.OldType(ctx)
+	case chargeflatfeecreditallocations.FieldCorrectsRealizationID:
+		return m.OldCorrectsRealizationID(ctx)
 	case chargeflatfeecreditallocations.FieldNamespace:
 		return m.OldNamespace(ctx)
 	case chargeflatfeecreditallocations.FieldCreatedAt:
@@ -44905,6 +45007,20 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) SetField(name string, value ent
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetSortHint(v)
+		return nil
+	case chargeflatfeecreditallocations.FieldType:
+		v, ok := value.(creditrealization.Type)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetType(v)
+		return nil
+	case chargeflatfeecreditallocations.FieldCorrectsRealizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCorrectsRealizationID(v)
 		return nil
 	case chargeflatfeecreditallocations.FieldNamespace:
 		v, ok := value.(string)
@@ -44996,6 +45112,9 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) ClearedFields() []string {
 	if m.FieldCleared(chargeflatfeecreditallocations.FieldLineID) {
 		fields = append(fields, chargeflatfeecreditallocations.FieldLineID)
 	}
+	if m.FieldCleared(chargeflatfeecreditallocations.FieldCorrectsRealizationID) {
+		fields = append(fields, chargeflatfeecreditallocations.FieldCorrectsRealizationID)
+	}
 	if m.FieldCleared(chargeflatfeecreditallocations.FieldDeletedAt) {
 		fields = append(fields, chargeflatfeecreditallocations.FieldDeletedAt)
 	}
@@ -45018,6 +45137,9 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) ClearField(name string) error {
 	switch name {
 	case chargeflatfeecreditallocations.FieldLineID:
 		m.ClearLineID()
+		return nil
+	case chargeflatfeecreditallocations.FieldCorrectsRealizationID:
+		m.ClearCorrectsRealizationID()
 		return nil
 	case chargeflatfeecreditallocations.FieldDeletedAt:
 		m.ClearDeletedAt()
@@ -45050,6 +45172,12 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) ResetField(name string) error {
 		return nil
 	case chargeflatfeecreditallocations.FieldSortHint:
 		m.ResetSortHint()
+		return nil
+	case chargeflatfeecreditallocations.FieldType:
+		m.ResetType()
+		return nil
+	case chargeflatfeecreditallocations.FieldCorrectsRealizationID:
+		m.ResetCorrectsRealizationID()
 		return nil
 	case chargeflatfeecreditallocations.FieldNamespace:
 		m.ResetNamespace()
@@ -50577,6 +50705,8 @@ type ChargeUsageBasedRunCreditAllocationsMutation struct {
 	ledger_transaction_group_id *string
 	sort_hint                   *int
 	addsort_hint                *int
+	_type                       *creditrealization.Type
+	corrects_realization_id     *string
 	namespace                   *string
 	created_at                  *time.Time
 	updated_at                  *time.Time
@@ -50943,6 +51073,91 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) ResetSortHint() {
 	m.addsort_hint = nil
 }
 
+// SetType sets the "type" field.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) SetType(c creditrealization.Type) {
+	m._type = &c
+}
+
+// GetType returns the value of the "type" field in the mutation.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) GetType() (r creditrealization.Type, exists bool) {
+	v := m._type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldType returns the old "type" field's value of the ChargeUsageBasedRunCreditAllocations entity.
+// If the ChargeUsageBasedRunCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) OldType(ctx context.Context) (v creditrealization.Type, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldType: %w", err)
+	}
+	return oldValue.Type, nil
+}
+
+// ResetType resets all changes to the "type" field.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) ResetType() {
+	m._type = nil
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) SetCorrectsRealizationID(s string) {
+	m.corrects_realization_id = &s
+}
+
+// CorrectsRealizationID returns the value of the "corrects_realization_id" field in the mutation.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) CorrectsRealizationID() (r string, exists bool) {
+	v := m.corrects_realization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCorrectsRealizationID returns the old "corrects_realization_id" field's value of the ChargeUsageBasedRunCreditAllocations entity.
+// If the ChargeUsageBasedRunCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) OldCorrectsRealizationID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCorrectsRealizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCorrectsRealizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCorrectsRealizationID: %w", err)
+	}
+	return oldValue.CorrectsRealizationID, nil
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) ClearCorrectsRealizationID() {
+	m.corrects_realization_id = nil
+	m.clearedFields[chargeusagebasedruncreditallocations.FieldCorrectsRealizationID] = struct{}{}
+}
+
+// CorrectsRealizationIDCleared returns if the "corrects_realization_id" field was cleared in this mutation.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) CorrectsRealizationIDCleared() bool {
+	_, ok := m.clearedFields[chargeusagebasedruncreditallocations.FieldCorrectsRealizationID]
+	return ok
+}
+
+// ResetCorrectsRealizationID resets all changes to the "corrects_realization_id" field.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) ResetCorrectsRealizationID() {
+	m.corrects_realization_id = nil
+	delete(m.clearedFields, chargeusagebasedruncreditallocations.FieldCorrectsRealizationID)
+}
+
 // SetNamespace sets the "namespace" field.
 func (m *ChargeUsageBasedRunCreditAllocationsMutation) SetNamespace(s string) {
 	m.namespace = &s
@@ -51246,7 +51461,7 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeUsageBasedRunCreditAllocationsMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 14)
 	if m.line_id != nil {
 		fields = append(fields, chargeusagebasedruncreditallocations.FieldLineID)
 	}
@@ -51264,6 +51479,12 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) Fields() []string {
 	}
 	if m.sort_hint != nil {
 		fields = append(fields, chargeusagebasedruncreditallocations.FieldSortHint)
+	}
+	if m._type != nil {
+		fields = append(fields, chargeusagebasedruncreditallocations.FieldType)
+	}
+	if m.corrects_realization_id != nil {
+		fields = append(fields, chargeusagebasedruncreditallocations.FieldCorrectsRealizationID)
 	}
 	if m.namespace != nil {
 		fields = append(fields, chargeusagebasedruncreditallocations.FieldNamespace)
@@ -51303,6 +51524,10 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) Field(name string) (ent.V
 		return m.LedgerTransactionGroupID()
 	case chargeusagebasedruncreditallocations.FieldSortHint:
 		return m.SortHint()
+	case chargeusagebasedruncreditallocations.FieldType:
+		return m.GetType()
+	case chargeusagebasedruncreditallocations.FieldCorrectsRealizationID:
+		return m.CorrectsRealizationID()
 	case chargeusagebasedruncreditallocations.FieldNamespace:
 		return m.Namespace()
 	case chargeusagebasedruncreditallocations.FieldCreatedAt:
@@ -51336,6 +51561,10 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) OldField(ctx context.Cont
 		return m.OldLedgerTransactionGroupID(ctx)
 	case chargeusagebasedruncreditallocations.FieldSortHint:
 		return m.OldSortHint(ctx)
+	case chargeusagebasedruncreditallocations.FieldType:
+		return m.OldType(ctx)
+	case chargeusagebasedruncreditallocations.FieldCorrectsRealizationID:
+		return m.OldCorrectsRealizationID(ctx)
 	case chargeusagebasedruncreditallocations.FieldNamespace:
 		return m.OldNamespace(ctx)
 	case chargeusagebasedruncreditallocations.FieldCreatedAt:
@@ -51398,6 +51627,20 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) SetField(name string, val
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetSortHint(v)
+		return nil
+	case chargeusagebasedruncreditallocations.FieldType:
+		v, ok := value.(creditrealization.Type)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetType(v)
+		return nil
+	case chargeusagebasedruncreditallocations.FieldCorrectsRealizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCorrectsRealizationID(v)
 		return nil
 	case chargeusagebasedruncreditallocations.FieldNamespace:
 		v, ok := value.(string)
@@ -51489,6 +51732,9 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) ClearedFields() []string 
 	if m.FieldCleared(chargeusagebasedruncreditallocations.FieldLineID) {
 		fields = append(fields, chargeusagebasedruncreditallocations.FieldLineID)
 	}
+	if m.FieldCleared(chargeusagebasedruncreditallocations.FieldCorrectsRealizationID) {
+		fields = append(fields, chargeusagebasedruncreditallocations.FieldCorrectsRealizationID)
+	}
 	if m.FieldCleared(chargeusagebasedruncreditallocations.FieldDeletedAt) {
 		fields = append(fields, chargeusagebasedruncreditallocations.FieldDeletedAt)
 	}
@@ -51511,6 +51757,9 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) ClearField(name string) e
 	switch name {
 	case chargeusagebasedruncreditallocations.FieldLineID:
 		m.ClearLineID()
+		return nil
+	case chargeusagebasedruncreditallocations.FieldCorrectsRealizationID:
+		m.ClearCorrectsRealizationID()
 		return nil
 	case chargeusagebasedruncreditallocations.FieldDeletedAt:
 		m.ClearDeletedAt()
@@ -51543,6 +51792,12 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) ResetField(name string) e
 		return nil
 	case chargeusagebasedruncreditallocations.FieldSortHint:
 		m.ResetSortHint()
+		return nil
+	case chargeusagebasedruncreditallocations.FieldType:
+		m.ResetType()
+		return nil
+	case chargeusagebasedruncreditallocations.FieldCorrectsRealizationID:
+		m.ResetCorrectsRealizationID()
 		return nil
 	case chargeusagebasedruncreditallocations.FieldNamespace:
 		m.ResetNamespace()

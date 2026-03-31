@@ -113,6 +113,26 @@ func (_u *ChargeUsageBasedRunCreditAllocationsUpdate) AddSortHint(v int) *Charge
 	return _u
 }
 
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (_u *ChargeUsageBasedRunCreditAllocationsUpdate) SetCorrectsRealizationID(v string) *ChargeUsageBasedRunCreditAllocationsUpdate {
+	_u.mutation.SetCorrectsRealizationID(v)
+	return _u
+}
+
+// SetNillableCorrectsRealizationID sets the "corrects_realization_id" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunCreditAllocationsUpdate) SetNillableCorrectsRealizationID(v *string) *ChargeUsageBasedRunCreditAllocationsUpdate {
+	if v != nil {
+		_u.SetCorrectsRealizationID(*v)
+	}
+	return _u
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (_u *ChargeUsageBasedRunCreditAllocationsUpdate) ClearCorrectsRealizationID() *ChargeUsageBasedRunCreditAllocationsUpdate {
+	_u.mutation.ClearCorrectsRealizationID()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *ChargeUsageBasedRunCreditAllocationsUpdate) SetUpdatedAt(v time.Time) *ChargeUsageBasedRunCreditAllocationsUpdate {
 	_u.mutation.SetUpdatedAt(v)
@@ -199,6 +219,11 @@ func (_u *ChargeUsageBasedRunCreditAllocationsUpdate) check() error {
 			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunCreditAllocations.line_id": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.CorrectsRealizationID(); ok {
+		if err := chargeusagebasedruncreditallocations.CorrectsRealizationIDValidator(v); err != nil {
+			return &ValidationError{Name: "corrects_realization_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunCreditAllocations.corrects_realization_id": %w`, err)}
+		}
+	}
 	if _u.mutation.RunCleared() && len(_u.mutation.RunIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeUsageBasedRunCreditAllocations.run"`)
 	}
@@ -237,6 +262,12 @@ func (_u *ChargeUsageBasedRunCreditAllocationsUpdate) sqlSave(ctx context.Contex
 	}
 	if value, ok := _u.mutation.AddedSortHint(); ok {
 		_spec.AddField(chargeusagebasedruncreditallocations.FieldSortHint, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.CorrectsRealizationID(); ok {
+		_spec.SetField(chargeusagebasedruncreditallocations.FieldCorrectsRealizationID, field.TypeString, value)
+	}
+	if _u.mutation.CorrectsRealizationIDCleared() {
+		_spec.ClearField(chargeusagebasedruncreditallocations.FieldCorrectsRealizationID, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(chargeusagebasedruncreditallocations.FieldUpdatedAt, field.TypeTime, value)
@@ -356,6 +387,26 @@ func (_u *ChargeUsageBasedRunCreditAllocationsUpdateOne) AddSortHint(v int) *Cha
 	return _u
 }
 
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (_u *ChargeUsageBasedRunCreditAllocationsUpdateOne) SetCorrectsRealizationID(v string) *ChargeUsageBasedRunCreditAllocationsUpdateOne {
+	_u.mutation.SetCorrectsRealizationID(v)
+	return _u
+}
+
+// SetNillableCorrectsRealizationID sets the "corrects_realization_id" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunCreditAllocationsUpdateOne) SetNillableCorrectsRealizationID(v *string) *ChargeUsageBasedRunCreditAllocationsUpdateOne {
+	if v != nil {
+		_u.SetCorrectsRealizationID(*v)
+	}
+	return _u
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (_u *ChargeUsageBasedRunCreditAllocationsUpdateOne) ClearCorrectsRealizationID() *ChargeUsageBasedRunCreditAllocationsUpdateOne {
+	_u.mutation.ClearCorrectsRealizationID()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *ChargeUsageBasedRunCreditAllocationsUpdateOne) SetUpdatedAt(v time.Time) *ChargeUsageBasedRunCreditAllocationsUpdateOne {
 	_u.mutation.SetUpdatedAt(v)
@@ -455,6 +506,11 @@ func (_u *ChargeUsageBasedRunCreditAllocationsUpdateOne) check() error {
 			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunCreditAllocations.line_id": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.CorrectsRealizationID(); ok {
+		if err := chargeusagebasedruncreditallocations.CorrectsRealizationIDValidator(v); err != nil {
+			return &ValidationError{Name: "corrects_realization_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunCreditAllocations.corrects_realization_id": %w`, err)}
+		}
+	}
 	if _u.mutation.RunCleared() && len(_u.mutation.RunIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeUsageBasedRunCreditAllocations.run"`)
 	}
@@ -510,6 +566,12 @@ func (_u *ChargeUsageBasedRunCreditAllocationsUpdateOne) sqlSave(ctx context.Con
 	}
 	if value, ok := _u.mutation.AddedSortHint(); ok {
 		_spec.AddField(chargeusagebasedruncreditallocations.FieldSortHint, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.CorrectsRealizationID(); ok {
+		_spec.SetField(chargeusagebasedruncreditallocations.FieldCorrectsRealizationID, field.TypeString, value)
+	}
+	if _u.mutation.CorrectsRealizationIDCleared() {
+		_spec.ClearField(chargeusagebasedruncreditallocations.FieldCorrectsRealizationID, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(chargeusagebasedruncreditallocations.FieldUpdatedAt, field.TypeTime, value)

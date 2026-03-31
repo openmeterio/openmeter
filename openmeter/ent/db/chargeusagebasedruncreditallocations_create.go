@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -67,6 +68,26 @@ func (_c *ChargeUsageBasedRunCreditAllocationsCreate) SetLedgerTransactionGroupI
 // SetSortHint sets the "sort_hint" field.
 func (_c *ChargeUsageBasedRunCreditAllocationsCreate) SetSortHint(v int) *ChargeUsageBasedRunCreditAllocationsCreate {
 	_c.mutation.SetSortHint(v)
+	return _c
+}
+
+// SetType sets the "type" field.
+func (_c *ChargeUsageBasedRunCreditAllocationsCreate) SetType(v creditrealization.Type) *ChargeUsageBasedRunCreditAllocationsCreate {
+	_c.mutation.SetType(v)
+	return _c
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (_c *ChargeUsageBasedRunCreditAllocationsCreate) SetCorrectsRealizationID(v string) *ChargeUsageBasedRunCreditAllocationsCreate {
+	_c.mutation.SetCorrectsRealizationID(v)
+	return _c
+}
+
+// SetNillableCorrectsRealizationID sets the "corrects_realization_id" field if the given value is not nil.
+func (_c *ChargeUsageBasedRunCreditAllocationsCreate) SetNillableCorrectsRealizationID(v *string) *ChargeUsageBasedRunCreditAllocationsCreate {
+	if v != nil {
+		_c.SetCorrectsRealizationID(*v)
+	}
 	return _c
 }
 
@@ -225,6 +246,19 @@ func (_c *ChargeUsageBasedRunCreditAllocationsCreate) check() error {
 	if _, ok := _c.mutation.SortHint(); !ok {
 		return &ValidationError{Name: "sort_hint", err: errors.New(`db: missing required field "ChargeUsageBasedRunCreditAllocations.sort_hint"`)}
 	}
+	if _, ok := _c.mutation.GetType(); !ok {
+		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "ChargeUsageBasedRunCreditAllocations.type"`)}
+	}
+	if v, ok := _c.mutation.GetType(); ok {
+		if err := chargeusagebasedruncreditallocations.TypeValidator(v); err != nil {
+			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunCreditAllocations.type": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.CorrectsRealizationID(); ok {
+		if err := chargeusagebasedruncreditallocations.CorrectsRealizationIDValidator(v); err != nil {
+			return &ValidationError{Name: "corrects_realization_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunCreditAllocations.corrects_realization_id": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "ChargeUsageBasedRunCreditAllocations.namespace"`)}
 	}
@@ -304,6 +338,14 @@ func (_c *ChargeUsageBasedRunCreditAllocationsCreate) createSpec() (*ChargeUsage
 	if value, ok := _c.mutation.SortHint(); ok {
 		_spec.SetField(chargeusagebasedruncreditallocations.FieldSortHint, field.TypeInt, value)
 		_node.SortHint = value
+	}
+	if value, ok := _c.mutation.GetType(); ok {
+		_spec.SetField(chargeusagebasedruncreditallocations.FieldType, field.TypeEnum, value)
+		_node.Type = value
+	}
+	if value, ok := _c.mutation.CorrectsRealizationID(); ok {
+		_spec.SetField(chargeusagebasedruncreditallocations.FieldCorrectsRealizationID, field.TypeString, value)
+		_node.CorrectsRealizationID = &value
 	}
 	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(chargeusagebasedruncreditallocations.FieldNamespace, field.TypeString, value)
@@ -466,6 +508,24 @@ func (u *ChargeUsageBasedRunCreditAllocationsUpsert) AddSortHint(v int) *ChargeU
 	return u
 }
 
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (u *ChargeUsageBasedRunCreditAllocationsUpsert) SetCorrectsRealizationID(v string) *ChargeUsageBasedRunCreditAllocationsUpsert {
+	u.Set(chargeusagebasedruncreditallocations.FieldCorrectsRealizationID, v)
+	return u
+}
+
+// UpdateCorrectsRealizationID sets the "corrects_realization_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunCreditAllocationsUpsert) UpdateCorrectsRealizationID() *ChargeUsageBasedRunCreditAllocationsUpsert {
+	u.SetExcluded(chargeusagebasedruncreditallocations.FieldCorrectsRealizationID)
+	return u
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (u *ChargeUsageBasedRunCreditAllocationsUpsert) ClearCorrectsRealizationID() *ChargeUsageBasedRunCreditAllocationsUpsert {
+	u.SetNull(chargeusagebasedruncreditallocations.FieldCorrectsRealizationID)
+	return u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (u *ChargeUsageBasedRunCreditAllocationsUpsert) SetUpdatedAt(v time.Time) *ChargeUsageBasedRunCreditAllocationsUpsert {
 	u.Set(chargeusagebasedruncreditallocations.FieldUpdatedAt, v)
@@ -533,6 +593,9 @@ func (u *ChargeUsageBasedRunCreditAllocationsUpsertOne) UpdateNewValues() *Charg
 		}
 		if _, exists := u.create.mutation.LedgerTransactionGroupID(); exists {
 			s.SetIgnore(chargeusagebasedruncreditallocations.FieldLedgerTransactionGroupID)
+		}
+		if _, exists := u.create.mutation.GetType(); exists {
+			s.SetIgnore(chargeusagebasedruncreditallocations.FieldType)
 		}
 		if _, exists := u.create.mutation.Namespace(); exists {
 			s.SetIgnore(chargeusagebasedruncreditallocations.FieldNamespace)
@@ -655,6 +718,27 @@ func (u *ChargeUsageBasedRunCreditAllocationsUpsertOne) AddSortHint(v int) *Char
 func (u *ChargeUsageBasedRunCreditAllocationsUpsertOne) UpdateSortHint() *ChargeUsageBasedRunCreditAllocationsUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRunCreditAllocationsUpsert) {
 		s.UpdateSortHint()
+	})
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (u *ChargeUsageBasedRunCreditAllocationsUpsertOne) SetCorrectsRealizationID(v string) *ChargeUsageBasedRunCreditAllocationsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunCreditAllocationsUpsert) {
+		s.SetCorrectsRealizationID(v)
+	})
+}
+
+// UpdateCorrectsRealizationID sets the "corrects_realization_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunCreditAllocationsUpsertOne) UpdateCorrectsRealizationID() *ChargeUsageBasedRunCreditAllocationsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunCreditAllocationsUpsert) {
+		s.UpdateCorrectsRealizationID()
+	})
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (u *ChargeUsageBasedRunCreditAllocationsUpsertOne) ClearCorrectsRealizationID() *ChargeUsageBasedRunCreditAllocationsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunCreditAllocationsUpsert) {
+		s.ClearCorrectsRealizationID()
 	})
 }
 
@@ -900,6 +984,9 @@ func (u *ChargeUsageBasedRunCreditAllocationsUpsertBulk) UpdateNewValues() *Char
 			if _, exists := b.mutation.LedgerTransactionGroupID(); exists {
 				s.SetIgnore(chargeusagebasedruncreditallocations.FieldLedgerTransactionGroupID)
 			}
+			if _, exists := b.mutation.GetType(); exists {
+				s.SetIgnore(chargeusagebasedruncreditallocations.FieldType)
+			}
 			if _, exists := b.mutation.Namespace(); exists {
 				s.SetIgnore(chargeusagebasedruncreditallocations.FieldNamespace)
 			}
@@ -1022,6 +1109,27 @@ func (u *ChargeUsageBasedRunCreditAllocationsUpsertBulk) AddSortHint(v int) *Cha
 func (u *ChargeUsageBasedRunCreditAllocationsUpsertBulk) UpdateSortHint() *ChargeUsageBasedRunCreditAllocationsUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRunCreditAllocationsUpsert) {
 		s.UpdateSortHint()
+	})
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (u *ChargeUsageBasedRunCreditAllocationsUpsertBulk) SetCorrectsRealizationID(v string) *ChargeUsageBasedRunCreditAllocationsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunCreditAllocationsUpsert) {
+		s.SetCorrectsRealizationID(v)
+	})
+}
+
+// UpdateCorrectsRealizationID sets the "corrects_realization_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunCreditAllocationsUpsertBulk) UpdateCorrectsRealizationID() *ChargeUsageBasedRunCreditAllocationsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunCreditAllocationsUpsert) {
+		s.UpdateCorrectsRealizationID()
+	})
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (u *ChargeUsageBasedRunCreditAllocationsUpsertBulk) ClearCorrectsRealizationID() *ChargeUsageBasedRunCreditAllocationsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunCreditAllocationsUpsert) {
+		s.ClearCorrectsRealizationID()
 	})
 }
 

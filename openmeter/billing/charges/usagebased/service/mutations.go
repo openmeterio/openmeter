@@ -12,7 +12,7 @@ import (
 
 type createRealizationRunInput struct {
 	Run               usagebased.CreateRealizationRunInput
-	CreditAllocations creditrealization.CreateInputs
+	CreditAllocations creditrealization.CreateAllocationInputs
 }
 
 func (i createRealizationRunInput) Validate() error {
@@ -41,7 +41,12 @@ func (s *service) createNewRealizationRun(ctx context.Context, charge usagebased
 		return usagebased.Charge{}, fmt.Errorf("create realization run: %w", err)
 	}
 
-	creditRealizations, err := s.adapter.CreateRunCreditAllocations(ctx, run.ID, in.CreditAllocations)
+	creditRealizationCreates, err := in.CreditAllocations.AsAdapterCreateInputs()
+	if err != nil {
+		return usagebased.Charge{}, fmt.Errorf("as adapter create inputs: %w", err)
+	}
+
+	creditRealizations, err := s.adapter.CreateRunCreditAllocations(ctx, run.ID, creditRealizationCreates)
 	if err != nil {
 		return usagebased.Charge{}, fmt.Errorf("create credit allocations: %w", err)
 	}
