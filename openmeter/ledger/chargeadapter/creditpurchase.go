@@ -129,11 +129,57 @@ func (h *creditPurchaseHandler) OnCreditPurchaseInitiated(ctx context.Context, c
 		return ledgertransaction.GroupReference{}, fmt.Errorf("get outstanding advance balance: %w", err)
 	}
 
-	issuableAmount := charge.Intent.CreditAmount.Sub(advanceOutstanding)
+	unattributedAccrued, err := h.unattributedAccruedBalance(ctx, customerID, charge.Intent.Currency)
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("get unattributed accrued balance: %w", err)
+	}
+
+	advanceAttributionAmount := charge.Intent.CreditAmount
+	if advanceAttributionAmount.GreaterThan(advanceOutstanding) {
+		advanceAttributionAmount = advanceOutstanding
+	}
+
+	accruedAttributionAmount := advanceAttributionAmount
+	if accruedAttributionAmount.GreaterThan(unattributedAccrued) {
+		accruedAttributionAmount = unattributedAccrued
+	}
+
+	issuableAmount := charge.Intent.CreditAmount.Sub(advanceAttributionAmount)
 	if issuableAmount.IsNegative() {
 		issuableAmount = alpacadecimal.Zero
 	}
-	if issuableAmount.IsZero() {
+
+	var templates []transactions.Resolver
+
+	if advanceAttributionAmount.IsPositive() {
+		templates = append(templates, transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{
+			At:        charge.CreatedAt,
+			Amount:    advanceAttributionAmount,
+			Currency:  charge.Intent.Currency,
+			CostBasis: &externalSettlement.CostBasis,
+		})
+	}
+
+	if accruedAttributionAmount.IsPositive() {
+		templates = append(templates, transactions.TranslateCustomerAccruedCostBasisTemplate{
+			At:            charge.CreatedAt,
+			Amount:        accruedAttributionAmount,
+			Currency:      charge.Intent.Currency,
+			FromCostBasis: nil,
+			ToCostBasis:   &externalSettlement.CostBasis,
+		})
+	}
+
+	if issuableAmount.IsPositive() {
+		templates = append(templates, transactions.IssueCustomerReceivableTemplate{
+			At:        charge.CreatedAt,
+			Amount:    issuableAmount,
+			Currency:  charge.Intent.Currency,
+			CostBasis: &externalSettlement.CostBasis,
+		})
+	}
+
+	if len(templates) == 0 {
 		return ledgertransaction.GroupReference{}, nil
 	}
 
@@ -144,12 +190,7 @@ func (h *creditPurchaseHandler) OnCreditPurchaseInitiated(ctx context.Context, c
 			CustomerID: customerID,
 			Namespace:  charge.Namespace,
 		},
-		transactions.IssueCustomerReceivableTemplate{
-			At:        charge.CreatedAt,
-			Amount:    issuableAmount,
-			Currency:  charge.Intent.Currency,
-			CostBasis: &externalSettlement.CostBasis,
-		},
+		templates...,
 	)
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("resolve transactions: %w", err)
@@ -239,50 +280,6 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 		ID:        charge.ID,
 	})
 
-	advanceOutstanding, err := h.outstandingAdvanceBalance(ctx, customerID, charge.Intent.Currency)
-	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("get outstanding advance balance: %w", err)
-	}
-
-	unattributedAccrued, err := h.unattributedAccruedBalance(ctx, customerID, charge.Intent.Currency)
-	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("get unattributed accrued balance: %w", err)
-	}
-
-	backableAmount := charge.Intent.CreditAmount
-	if backableAmount.GreaterThan(advanceOutstanding) {
-		backableAmount = advanceOutstanding
-	}
-	if backableAmount.GreaterThan(unattributedAccrued) {
-		backableAmount = unattributedAccrued
-	}
-
-	templates := []transactions.Resolver{
-		transactions.SettleCustomerReceivablePaymentTemplate{
-			At:        charge.CreatedAt,
-			Amount:    charge.Intent.CreditAmount,
-			Currency:  charge.Intent.Currency,
-			CostBasis: &externalSettlement.CostBasis,
-		},
-	}
-	if backableAmount.IsPositive() {
-		templates = append(templates,
-			transactions.FundCustomerAdvanceReceivableTemplate{
-				At:        charge.CreatedAt,
-				Amount:    backableAmount,
-				Currency:  charge.Intent.Currency,
-				CostBasis: &externalSettlement.CostBasis,
-			},
-			transactions.TranslateCustomerAccruedCostBasisTemplate{
-				At:            charge.CreatedAt,
-				Amount:        backableAmount,
-				Currency:      charge.Intent.Currency,
-				FromCostBasis: nil,
-				ToCostBasis:   &externalSettlement.CostBasis,
-			},
-		)
-	}
-
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
 		h.resolverDependencies(),
@@ -290,7 +287,12 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 			CustomerID: customerID,
 			Namespace:  charge.Namespace,
 		},
-		templates...,
+		transactions.SettleCustomerReceivablePaymentTemplate{
+			At:        charge.CreatedAt,
+			Amount:    charge.Intent.CreditAmount,
+			Currency:  charge.Intent.Currency,
+			CostBasis: &externalSettlement.CostBasis,
+		},
 	)
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("resolve transactions: %w", err)

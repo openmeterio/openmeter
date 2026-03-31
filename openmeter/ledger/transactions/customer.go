@@ -255,58 +255,16 @@ func (t SettleCustomerReceivablePaymentTemplate) resolve(ctx context.Context, cu
 	}, nil
 }
 
-type customerSubAccountResolver func(ctx context.Context, customerAccounts ledger.CustomerAccounts, costBasis *alpacadecimal.Decimal) (ledger.SubAccount, error)
-
-func resolveCustomerCostBasisTranslation(
-	ctx context.Context,
-	customerID customer.CustomerID,
-	resolvers ResolverDependencies,
-	at time.Time,
-	amount alpacadecimal.Decimal,
-	fromCostBasis *alpacadecimal.Decimal,
-	toCostBasis *alpacadecimal.Decimal,
-	resolveSubAccount customerSubAccountResolver,
-) (ledger.TransactionInput, error) {
-	customerAccounts, err := resolvers.AccountService.GetCustomerAccounts(ctx, customerID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get customer accounts: %w", err)
-	}
-
-	fromSubAccount, err := resolveSubAccount(ctx, customerAccounts, fromCostBasis)
-	if err != nil {
-		return nil, err
-	}
-
-	toSubAccount, err := resolveSubAccount(ctx, customerAccounts, toCostBasis)
-	if err != nil {
-		return nil, err
-	}
-
-	return &TransactionInput{
-		bookedAt: at,
-		entryInputs: []*EntryInput{
-			{
-				address: fromSubAccount.Address(),
-				amount:  amount.Neg(),
-			},
-			{
-				address: toSubAccount.Address(),
-				amount:  amount,
-			},
-		},
-	}, nil
-}
-
-// FundCustomerAdvanceReceivableTemplate applies known receivable funding against the
-// open advance receivable bucket (`cost_basis=nil`) without changing authorization stage.
-type FundCustomerAdvanceReceivableTemplate struct {
+// AttributeCustomerAdvanceReceivableCostBasisTemplate attributes existing open advance
+// receivable (`cost_basis=nil`) into a known purchase cost-basis bucket.
+type AttributeCustomerAdvanceReceivableCostBasisTemplate struct {
 	At        time.Time
 	Amount    alpacadecimal.Decimal
 	Currency  currencyx.Code
 	CostBasis *alpacadecimal.Decimal
 }
 
-func (t FundCustomerAdvanceReceivableTemplate) Validate() error {
+func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) Validate() error {
 	if t.At.IsZero() {
 		return fmt.Errorf("at is required")
 	}
@@ -330,34 +288,49 @@ func (t FundCustomerAdvanceReceivableTemplate) Validate() error {
 	return nil
 }
 
-func (t FundCustomerAdvanceReceivableTemplate) typeGuard() guard {
+func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) typeGuard() guard {
 	return true
 }
 
-var _ CustomerTransactionTemplate = (FundCustomerAdvanceReceivableTemplate{})
+var _ CustomerTransactionTemplate = (AttributeCustomerAdvanceReceivableCostBasisTemplate{})
 
-func (t FundCustomerAdvanceReceivableTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
-	return resolveCustomerCostBasisTranslation(
-		ctx,
-		customerID,
-		resolvers,
-		t.At,
-		t.Amount,
-		t.CostBasis,
-		nil,
-		func(ctx context.Context, customerAccounts ledger.CustomerAccounts, costBasis *alpacadecimal.Decimal) (ledger.SubAccount, error) {
-			subAccount, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
-				Currency:                       t.Currency,
-				CostBasis:                      costBasis,
-				TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
-			})
-			if err != nil {
-				return nil, fmt.Errorf("failed to get receivable sub-account: %w", err)
-			}
+func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
+	customerAccounts, err := resolvers.AccountService.GetCustomerAccounts(ctx, customerID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get customer accounts: %w", err)
+	}
 
-			return subAccount, nil
+	advanceReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
+		Currency:                       t.Currency,
+		CostBasis:                      nil,
+		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get advance receivable sub-account: %w", err)
+	}
+
+	attributedReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
+		Currency:                       t.Currency,
+		CostBasis:                      t.CostBasis,
+		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get attributed receivable sub-account: %w", err)
+	}
+
+	return &TransactionInput{
+		bookedAt: t.At,
+		entryInputs: []*EntryInput{
+			{
+				address: advanceReceivable.Address(),
+				amount:  t.Amount,
+			},
+			{
+				address: attributedReceivable.Address(),
+				amount:  t.Amount.Neg(),
+			},
 		},
-	)
+	}, nil
 }
 
 // CoverCustomerReceivableTemplate covers a customer receivable account from FBO account
@@ -443,89 +416,4 @@ func (t CoverCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 			},
 		},
 	}, nil
-}
-
-// TranslateCustomerFBOCostBasisTemplate moves customer FBO value between cost-basis buckets
-// while keeping the same priority bucket.
-type TranslateCustomerFBOCostBasisTemplate struct {
-	At             time.Time
-	Amount         alpacadecimal.Decimal
-	Currency       currencyx.Code
-	FromCostBasis  *alpacadecimal.Decimal
-	ToCostBasis    *alpacadecimal.Decimal
-	CreditPriority *int
-}
-
-func (t TranslateCustomerFBOCostBasisTemplate) Validate() error {
-	if t.At.IsZero() {
-		return fmt.Errorf("at is required")
-	}
-
-	if err := ledger.ValidateTransactionAmount(t.Amount); err != nil {
-		return fmt.Errorf("amount: %w", err)
-	}
-
-	if err := ledger.ValidateCurrency(t.Currency); err != nil {
-		return fmt.Errorf("currency: %w", err)
-	}
-
-	if t.FromCostBasis == nil {
-		return fmt.Errorf("from cost basis is required")
-	}
-
-	if err := ledger.ValidateCostBasis(*t.FromCostBasis); err != nil {
-		return fmt.Errorf("from cost basis: %w", err)
-	}
-
-	if t.ToCostBasis == nil {
-		return fmt.Errorf("to cost basis is required")
-	}
-
-	if err := ledger.ValidateCostBasis(*t.ToCostBasis); err != nil {
-		return fmt.Errorf("to cost basis: %w", err)
-	}
-
-	if decimalPointersEqual(t.FromCostBasis, t.ToCostBasis) {
-		return fmt.Errorf("from and to cost basis must differ")
-	}
-
-	if t.CreditPriority != nil {
-		if err := ledger.ValidateCreditPriority(*t.CreditPriority); err != nil {
-			return fmt.Errorf("credit priority: %w", err)
-		}
-	}
-
-	return nil
-}
-
-func (t TranslateCustomerFBOCostBasisTemplate) typeGuard() guard {
-	return true
-}
-
-var _ CustomerTransactionTemplate = (TranslateCustomerFBOCostBasisTemplate{})
-
-func (t TranslateCustomerFBOCostBasisTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
-	priority := resolveCustomerFBOCreditPriority(t.CreditPriority)
-
-	return resolveCustomerCostBasisTranslation(
-		ctx,
-		customerID,
-		resolvers,
-		t.At,
-		t.Amount,
-		t.FromCostBasis,
-		t.ToCostBasis,
-		func(ctx context.Context, customerAccounts ledger.CustomerAccounts, costBasis *alpacadecimal.Decimal) (ledger.SubAccount, error) {
-			subAccount, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
-				Currency:       t.Currency,
-				CostBasis:      costBasis,
-				CreditPriority: priority,
-			})
-			if err != nil {
-				return nil, fmt.Errorf("failed to get FBO sub-account: %w", err)
-			}
-
-			return subAccount, nil
-		},
-	)
 }

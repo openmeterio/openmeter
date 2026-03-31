@@ -699,7 +699,6 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		type backfillSnapshot struct {
 			externalFBO            alpacadecimal.Decimal
 			externalOpenReceivable alpacadecimal.Decimal
-			externalAuthorized     alpacadecimal.Decimal
 			advanceOpenReceivable  alpacadecimal.Decimal
 			advanceAuthorized      alpacadecimal.Decimal
 			externalAccrued        alpacadecimal.Decimal
@@ -711,7 +710,6 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		start := backfillSnapshot{
 			externalFBO:            s.mustCustomerFBOBalance(cust.GetID(), USD, &externalCostBasis),
 			externalOpenReceivable: s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, &externalCostBasis, ledger.TransactionAuthorizationStatusOpen),
-			externalAuthorized:     s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, &externalCostBasis, ledger.TransactionAuthorizationStatusAuthorized),
 			advanceOpenReceivable:  s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, nil, ledger.TransactionAuthorizationStatusOpen),
 			advanceAuthorized:      s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, nil, ledger.TransactionAuthorizationStatusAuthorized),
 			externalAccrued:        s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, &externalCostBasis),
@@ -753,20 +751,26 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		s.NoError(err)
 		s.NotEmpty(charge.State.CreditGrantRealization.TransactionGroupID)
 
-		// Purchase initiation first backfills the outstanding advance when deciding how much fresh credit to issue.
-		// Only the remainder becomes new FBO credit at the purchased cost basis; the existing unattributed advance stays put.
+		// Purchase initiation performs the whole attribution decision up front:
+		// - the prior advance receivable is re-attributed into the purchased cost-basis bucket
+		// - unattributed accrued is translated into the purchased cost-basis bucket
+		// - only the remainder becomes newly issued purchased credit
 		assertDelta("external FBO after later purchase initiation", start.externalFBO, alpacadecimal.NewFromInt(30), s.mustCustomerFBOBalance(cust.GetID(), USD, &externalCostBasis))
 		s.True(
-			s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, &externalCostBasis, ledger.TransactionAuthorizationStatusOpen).Equal(start.externalOpenReceivable.Sub(alpacadecimal.NewFromInt(30))),
-			"only the non-backfilled portion should be issued as new purchased receivable",
+			s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, &externalCostBasis, ledger.TransactionAuthorizationStatusOpen).Equal(start.externalOpenReceivable.Sub(alpacadecimal.NewFromInt(50))),
+			"the purchased cost-basis open receivable should now represent the full purchase amount",
 		)
 		s.True(
-			s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, nil, ledger.TransactionAuthorizationStatusOpen).Equal(start.advanceOpenReceivable),
-			"the existing advance receivable should remain untouched until the purchase settles",
+			s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, nil, ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero),
+			"the prior advance receivable should be fully re-attributed out of the nil cost-basis bucket at initiation",
 		)
 		s.True(
-			s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, nil).Equal(start.unattributedAccrued),
-			"unattributed accrued should stay in the nil cost-basis bucket until settlement backfills it",
+			s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, nil).Equal(alpacadecimal.Zero),
+			"the unattributed accrued bucket should be translated immediately during attribution",
+		)
+		s.True(
+			s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, &externalCostBasis).Equal(start.externalAccrued.Add(alpacadecimal.NewFromInt(20))),
+			"the backfilled portion should already be visible in the purchased cost-basis accrued bucket after initiation",
 		)
 
 		updatedCharge, err := s.Charges.HandleCreditPurchaseExternalPaymentStateTransition(ctx, charges.HandleCreditPurchaseExternalPaymentStateTransitionInput{
@@ -776,8 +780,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		s.NoError(err)
 		s.Equal(payment.StatusAuthorized, updatedCharge.State.ExternalPaymentSettlement.Status)
 
-		// Authorization stages the full purchase amount in the authorized receivable route, but it still does not
-		// backfill the prior advance or move accrued between cost-basis buckets.
+		// Authorization now only stages settlement funding; attribution already happened during purchase initiation.
 		s.True(
 			s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, &externalCostBasis, ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromInt(50)),
 			"the purchased amount should be visible in the exact authorized receivable route before settlement",
@@ -794,13 +797,11 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		s.NoError(err)
 		s.Equal(payment.StatusSettled, updatedCharge.State.ExternalPaymentSettlement.Status)
 
-		// Settlement is where the real backfill happens:
-		// - the prior open advance receivable is covered
-		// - unattributed accrued is translated into the purchased cost-basis bucket
-		// - only the remainder stays behind as fresh purchased credit
+		// Settlement is now just the normal authorized -> open move in the purchased cost-basis bucket.
+		// The earlier attribution stays intact, and the purchased receivable fully nets out here.
 		s.True(
 			s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, nil, ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero),
-			"the exact open advance receivable bucket should be fully backfilled",
+			"the exact open advance receivable bucket should stay cleared after initiation-time attribution",
 		)
 		s.True(
 			s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, nil, ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero),
@@ -808,11 +809,11 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		)
 		s.True(
 			s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, nil).Equal(alpacadecimal.Zero),
-			"the unattributed accrued bucket should be emptied by the backfill",
+			"the unattributed accrued bucket should remain empty after initiation-time translation",
 		)
 		s.True(
 			s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, &externalCostBasis).Equal(start.externalAccrued.Add(alpacadecimal.NewFromInt(20))),
-			"the backfilled portion should be re-attributed into the purchased cost-basis bucket",
+			"the backfilled portion should remain attributed in the purchased cost-basis bucket",
 		)
 		s.True(
 			s.mustCustomerFBOBalance(cust.GetID(), USD, &externalCostBasis).Equal(start.externalFBO.Add(alpacadecimal.NewFromInt(30))),
