@@ -681,10 +681,156 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		assertDelta("external receivable after credit-only advance", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, &externalCostBasis))
 		assertDelta("total open receivable after credit-only advance", flatFeeStart.totalOpenReceivable, alpacadecimal.NewFromInt(-20), s.mustCustomerReceivableBalance(cust.GetID(), USD, nil))
 		assertDelta("authorized receivable after credit-only advance", flatFeeStart.authorizedReceivable, alpacadecimal.Zero, s.mustCustomerAuthorizedReceivableBalance(cust.GetID(), USD, nil))
+		s.True(
+			s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, nil, ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromInt(-20)),
+			"the uncovered credit_only shortfall should live in the exact open advance receivable route",
+		)
+		s.True(
+			s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, nil).Equal(alpacadecimal.NewFromInt(20)),
+			"the uncovered shortfall should also remain in unattributed accrued until a later purchase backfills it",
+		)
 		assertDelta("accrued after credit-only advance", flatFeeStart.accrued, alpacadecimal.NewFromInt(100), s.mustCustomerAccruedBalance(cust.GetID(), USD))
 		assertDelta("total wash after credit-only advance", flatFeeStart.totalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, nil))
 		assertDelta("external wash after credit-only advance", flatFeeStart.externalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, &externalCostBasis))
 		assertDelta("earnings after credit-only advance", flatFeeStart.earnings, alpacadecimal.Zero, s.mustEarningsBalance(ns, USD))
+	})
+
+	s.Run("the customer later purchases credits and backfills the prior advance", func() {
+		type backfillSnapshot struct {
+			externalFBO            alpacadecimal.Decimal
+			externalOpenReceivable alpacadecimal.Decimal
+			externalAuthorized     alpacadecimal.Decimal
+			advanceOpenReceivable  alpacadecimal.Decimal
+			advanceAuthorized      alpacadecimal.Decimal
+			externalAccrued        alpacadecimal.Decimal
+			unattributedAccrued    alpacadecimal.Decimal
+			totalAccrued           alpacadecimal.Decimal
+			externalWash           alpacadecimal.Decimal
+		}
+
+		start := backfillSnapshot{
+			externalFBO:            s.mustCustomerFBOBalance(cust.GetID(), USD, &externalCostBasis),
+			externalOpenReceivable: s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, &externalCostBasis, ledger.TransactionAuthorizationStatusOpen),
+			externalAuthorized:     s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, &externalCostBasis, ledger.TransactionAuthorizationStatusAuthorized),
+			advanceOpenReceivable:  s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, nil, ledger.TransactionAuthorizationStatusOpen),
+			advanceAuthorized:      s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, nil, ledger.TransactionAuthorizationStatusAuthorized),
+			externalAccrued:        s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, &externalCostBasis),
+			unattributedAccrued:    s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, nil),
+			totalAccrued:           s.mustCustomerAccruedBalance(cust.GetID(), USD),
+			externalWash:           s.mustWashBalance(ns, USD, &externalCostBasis),
+		}
+
+		const laterPurchaseAmount = 50
+		clock.SetTime(servicePeriod.From.Add(time.Hour))
+
+		intent := s.createCreditPurchaseIntent(createCreditPurchaseIntentInput{
+			customer: cust.GetID(),
+			currency: USD,
+			amount:   alpacadecimal.NewFromInt(laterPurchaseAmount),
+			servicePeriod: timeutil.ClosedPeriod{
+				From: clock.Now(),
+				To:   clock.Now(),
+			},
+			settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
+				GenericSettlement: creditpurchase.GenericSettlement{
+					Currency:  USD,
+					CostBasis: externalCostBasis,
+				},
+				InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
+			}),
+		})
+
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				intent,
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+
+		charge, err := res[0].AsCreditPurchaseCharge()
+		s.NoError(err)
+		s.NotEmpty(charge.State.CreditGrantRealization.TransactionGroupID)
+
+		// Purchase initiation first backfills the outstanding advance when deciding how much fresh credit to issue.
+		// Only the remainder becomes new FBO credit at the purchased cost basis; the existing unattributed advance stays put.
+		assertDelta("external FBO after later purchase initiation", start.externalFBO, alpacadecimal.NewFromInt(30), s.mustCustomerFBOBalance(cust.GetID(), USD, &externalCostBasis))
+		s.True(
+			s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, &externalCostBasis, ledger.TransactionAuthorizationStatusOpen).Equal(start.externalOpenReceivable.Sub(alpacadecimal.NewFromInt(30))),
+			"only the non-backfilled portion should be issued as new purchased receivable",
+		)
+		s.True(
+			s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, nil, ledger.TransactionAuthorizationStatusOpen).Equal(start.advanceOpenReceivable),
+			"the existing advance receivable should remain untouched until the purchase settles",
+		)
+		s.True(
+			s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, nil).Equal(start.unattributedAccrued),
+			"unattributed accrued should stay in the nil cost-basis bucket until settlement backfills it",
+		)
+
+		updatedCharge, err := s.Charges.HandleCreditPurchaseExternalPaymentStateTransition(ctx, charges.HandleCreditPurchaseExternalPaymentStateTransitionInput{
+			ChargeID:           charge.GetChargeID(),
+			TargetPaymentState: payment.StatusAuthorized,
+		})
+		s.NoError(err)
+		s.Equal(payment.StatusAuthorized, updatedCharge.State.ExternalPaymentSettlement.Status)
+
+		// Authorization stages the full purchase amount in the authorized receivable route, but it still does not
+		// backfill the prior advance or move accrued between cost-basis buckets.
+		s.True(
+			s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, &externalCostBasis, ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromInt(50)),
+			"the purchased amount should be visible in the exact authorized receivable route before settlement",
+		)
+		s.True(
+			s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, nil, ledger.TransactionAuthorizationStatusAuthorized).Equal(start.advanceAuthorized),
+			"the legacy advance route should still have no authorized staging",
+		)
+
+		updatedCharge, err = s.Charges.HandleCreditPurchaseExternalPaymentStateTransition(ctx, charges.HandleCreditPurchaseExternalPaymentStateTransitionInput{
+			ChargeID:           charge.GetChargeID(),
+			TargetPaymentState: payment.StatusSettled,
+		})
+		s.NoError(err)
+		s.Equal(payment.StatusSettled, updatedCharge.State.ExternalPaymentSettlement.Status)
+
+		// Settlement is where the real backfill happens:
+		// - the prior open advance receivable is covered
+		// - unattributed accrued is translated into the purchased cost-basis bucket
+		// - only the remainder stays behind as fresh purchased credit
+		s.True(
+			s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, nil, ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero),
+			"the exact open advance receivable bucket should be fully backfilled",
+		)
+		s.True(
+			s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, nil, ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero),
+			"the exact authorized advance bucket should stay empty",
+		)
+		s.True(
+			s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, nil).Equal(alpacadecimal.Zero),
+			"the unattributed accrued bucket should be emptied by the backfill",
+		)
+		s.True(
+			s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, &externalCostBasis).Equal(start.externalAccrued.Add(alpacadecimal.NewFromInt(20))),
+			"the backfilled portion should be re-attributed into the purchased cost-basis bucket",
+		)
+		s.True(
+			s.mustCustomerFBOBalance(cust.GetID(), USD, &externalCostBasis).Equal(start.externalFBO.Add(alpacadecimal.NewFromInt(30))),
+			"only the purchase remainder should stay behind as newly available credit",
+		)
+		s.True(
+			s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, &externalCostBasis, ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero),
+			"the purchased cost-basis receivable should net back to zero after settlement and advance funding",
+		)
+		s.True(
+			s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, &externalCostBasis, ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero),
+			"the purchased authorized receivable route should be cleared by settlement",
+		)
+		s.True(
+			s.mustCustomerAccruedBalance(cust.GetID(), USD).Equal(start.totalAccrued),
+			"settlement should only translate accrued between buckets, not change the total accrued amount",
+		)
+		assertDelta("external wash after later purchase settlement", start.externalWash, alpacadecimal.NewFromInt(-50), s.mustWashBalance(ns, USD, &externalCostBasis))
 	})
 }
 
@@ -849,6 +995,43 @@ func (s *CreditsTestSuite) mustCustomerAccruedBalance(customerID customer.Custom
 	balance, err := customerAccounts.AccruedAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
 		Currency: code,
 	})
+	s.NoError(err)
+
+	return balance.Settled()
+}
+
+func (s *CreditsTestSuite) mustCustomerAccruedBalanceWithCostBasis(customerID customer.CustomerID, code currencyx.Code, costBasis *alpacadecimal.Decimal) alpacadecimal.Decimal {
+	s.T().Helper()
+
+	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
+	s.NoError(err)
+
+	subAccount, err := customerAccounts.AccruedAccount.GetSubAccountForRoute(s.T().Context(), ledger.CustomerAccruedRouteParams{
+		Currency:  code,
+		CostBasis: costBasis,
+	})
+	s.NoError(err)
+
+	balance, err := subAccount.GetBalance(s.T().Context())
+	s.NoError(err)
+
+	return balance.Settled()
+}
+
+func (s *CreditsTestSuite) mustCustomerReceivableRouteBalance(customerID customer.CustomerID, code currencyx.Code, costBasis *alpacadecimal.Decimal, status ledger.TransactionAuthorizationStatus) alpacadecimal.Decimal {
+	s.T().Helper()
+
+	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
+	s.NoError(err)
+
+	subAccount, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(s.T().Context(), ledger.CustomerReceivableRouteParams{
+		Currency:                       code,
+		CostBasis:                      costBasis,
+		TransactionAuthorizationStatus: status,
+	})
+	s.NoError(err)
+
+	balance, err := subAccount.GetBalance(s.T().Context())
 	s.NoError(err)
 
 	return balance.Settled()
