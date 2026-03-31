@@ -432,7 +432,7 @@ func TestComplete(t *testing.T) {
 			`^_\..*$`,
 			`^openmeter\..*$`,
 		},
-		Credit: CreditConfiguration{
+		Credits: CreditsConfiguration{
 			Enabled: false,
 		},
 	}

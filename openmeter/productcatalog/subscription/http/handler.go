@@ -36,12 +36,13 @@ type HandlerConfig struct {
 	PlanSubscriptionService     plansubscription.PlanSubscriptionService
 	NamespaceDecoder            namespacedriver.NamespaceDecoder
 	Logger                      *slog.Logger
-	Credit                      appconfig.CreditConfiguration
+	Credits                     appconfig.CreditsConfiguration
 }
 
 type handler struct {
 	HandlerConfig
 	Options []httptransport.HandlerOption
+	Credits appconfig.CreditsConfiguration
 }
 
 func (h *handler) resolveNamespace(ctx context.Context) (string, error) {
@@ -57,5 +58,6 @@ func NewHandler(config HandlerConfig, options ...httptransport.HandlerOption) Ha
 	return &handler{
 		HandlerConfig: config,
 		Options:       options,
+		Credits:       config.Credits,
 	}
 }

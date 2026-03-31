@@ -40,6 +40,12 @@ sink:
 postgres:
   url: postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable
 
+# Credits configuration - disabled for e2e tests.
+# Test cases in productcatalog_test.go (TestSettlementMode) depend on this setting
+# to verify that credit_only settlement mode is rejected when credits are disabled.
+credits:
+  enabled: false
+
 meters:
   - slug: ingest
     description: Meter for testing ingestion

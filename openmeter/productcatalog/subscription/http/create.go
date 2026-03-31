@@ -9,7 +9,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
-	appconfig "github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
@@ -25,12 +24,12 @@ type (
 	CreateSubscriptionRequest = plansubscription.CreateSubscriptionRequest
 
 	CreateSubscriptionResponse = api.Subscription
-	CreateSubscriptionHandler  = httptransport.HandlerWithArgs[CreateSubscriptionRequest, CreateSubscriptionResponse, appconfig.CreditConfiguration]
+	CreateSubscriptionHandler  = httptransport.Handler[CreateSubscriptionRequest, CreateSubscriptionResponse]
 )
 
 func (h *handler) CreateSubscription() CreateSubscriptionHandler {
-	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, config appconfig.CreditConfiguration) (CreateSubscriptionRequest, error) {
+	return httptransport.NewHandler(
+		func(ctx context.Context, r *http.Request) (CreateSubscriptionRequest, error) {
 			body := api.CreateSubscriptionJSONRequestBody{}
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
@@ -71,7 +70,7 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 					return CreateSubscriptionRequest{}, fmt.Errorf("failed to create plan request: %w", err)
 				}
 
-				if !config.Enabled && req.SettlementMode == productcatalog.CreditOnlySettlementMode {
+				if !h.Credits.Enabled && req.SettlementMode == productcatalog.CreditOnlySettlementMode {
 					return CreateSubscriptionRequest{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
 				}
 

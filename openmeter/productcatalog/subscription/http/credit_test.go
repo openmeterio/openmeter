@@ -200,6 +200,7 @@ func TestCreateSubscriptionCreditConfiguration(t *testing.T) {
 				NamespaceDecoder:        namespacedriver.StaticNamespaceDecoder(namespace),
 				CustomerService:         customerSvc,
 				PlanSubscriptionService: planSubSvc,
+				Credits:                 appconfig.CreditsConfiguration{Enabled: tt.creditEnabled},
 			})
 
 			req := httptest.NewRequest(http.MethodPost, "/api/v1/subscriptions", bytes.NewBufferString(subscriptionCreateCreditOnlyBody))
@@ -207,7 +208,7 @@ func TestCreateSubscriptionCreditConfiguration(t *testing.T) {
 
 			rec := httptest.NewRecorder()
 
-			h.CreateSubscription().With(appconfig.CreditConfiguration{Enabled: tt.creditEnabled}).ServeHTTP(rec, req)
+			h.CreateSubscription().ServeHTTP(rec, req)
 
 			require.Equal(t, tt.wantStatusCode, rec.Code, "response body: %s", rec.Body.String())
 			if !tt.creditEnabled {
@@ -251,7 +252,7 @@ func TestChangeSubscriptionCreditConfiguration(t *testing.T) {
 			h := httpdriver.NewHandler(httpdriver.HandlerConfig{
 				NamespaceDecoder:        namespacedriver.StaticNamespaceDecoder(namespace),
 				PlanSubscriptionService: planSubSvc,
-				Credit:                  appconfig.CreditConfiguration{Enabled: tt.creditEnabled},
+				Credits:                 appconfig.CreditsConfiguration{Enabled: tt.creditEnabled},
 			})
 
 			req := httptest.NewRequest(http.MethodPut, "/api/v1/subscriptions/test-sub-id", bytes.NewBufferString(subscriptionChangeCreditOnlyBody))

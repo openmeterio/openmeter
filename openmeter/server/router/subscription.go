@@ -9,7 +9,7 @@ import (
 
 // (POST /api/v1/subscriptions)
 func (a *Router) CreateSubscription(w http.ResponseWriter, r *http.Request) {
-	a.subscriptionHandler.CreateSubscription().With(a.config.Credit).ServeHTTP(w, r)
+	a.subscriptionHandler.CreateSubscription().ServeHTTP(w, r)
 }
 
 func (a *Router) ChangeSubscription(w http.ResponseWriter, r *http.Request, subscriptionId string) {

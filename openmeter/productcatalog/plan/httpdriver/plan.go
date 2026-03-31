@@ -8,7 +8,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
-	appconfig "github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
@@ -101,12 +100,12 @@ func (h *handler) ListPlans() ListPlansHandler {
 type (
 	CreatePlanRequest  = plan.CreatePlanInput
 	CreatePlanResponse = api.Plan
-	CreatePlanHandler  httptransport.HandlerWithArgs[CreatePlanRequest, CreatePlanResponse, appconfig.CreditConfiguration]
+	CreatePlanHandler  httptransport.Handler[CreatePlanRequest, CreatePlanResponse]
 )
 
 func (h *handler) CreatePlan() CreatePlanHandler {
-	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, config appconfig.CreditConfiguration) (CreatePlanRequest, error) {
+	return httptransport.NewHandler(
+		func(ctx context.Context, r *http.Request) (CreatePlanRequest, error) {
 			body := api.PlanCreate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return CreatePlanRequest{}, fmt.Errorf("failed to decode create plan request: %w", err)
@@ -122,7 +121,7 @@ func (h *handler) CreatePlan() CreatePlanHandler {
 				return CreatePlanRequest{}, models.NewGenericValidationError(fmt.Errorf("failed to create plan request: %w", err))
 			}
 
-			if !config.Enabled && req.SettlementMode == productcatalog.CreditOnlySettlementMode {
+			if !h.credits.Enabled && req.SettlementMode == productcatalog.CreditOnlySettlementMode {
 				return CreatePlanRequest{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
 			}
 
@@ -181,6 +180,11 @@ func (h *handler) UpdatePlan() UpdatePlanHandler {
 			}
 
 			req.IgnoreNonCriticalIssues = true
+
+			// Validate credit_only settlement mode when credits are disabled
+			if !h.credits.Enabled && req.SettlementMode != nil && *req.SettlementMode == productcatalog.CreditOnlySettlementMode {
+				return UpdatePlanRequest{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
+			}
 
 			return req, nil
 		},

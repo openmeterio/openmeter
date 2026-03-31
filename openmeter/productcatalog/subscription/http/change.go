@@ -70,7 +70,7 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 					return ChangeSubscriptionRequest{}, fmt.Errorf("failed to create plan request: %w", err)
 				}
 
-				if !h.HandlerConfig.Credit.Enabled && req.SettlementMode == productcatalog.CreditOnlySettlementMode {
+				if !h.Credits.Enabled && req.SettlementMode == productcatalog.CreditOnlySettlementMode {
 					return ChangeSubscriptionRequest{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
 				}
 

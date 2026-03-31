@@ -164,7 +164,7 @@ func main() {
 			MeterEventService:           app.MeterEventService,
 			NamespaceManager:            app.NamespaceManager,
 			Notification:                app.Notification,
-			Credit:                      conf.Credit,
+			Credits:                     conf.Credits,
 			Plan:                        app.Plan,
 			PlanAddon:                   app.PlanAddon,
 			PlanSubscriptionService:     app.Subscription.PlanSubscriptionService,

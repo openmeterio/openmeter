@@ -21,7 +21,7 @@ var Config = wire.NewSet(
 	// Customer
 	wire.FieldsOf(new(config.Configuration), "Customer"),
 	// Credit
-	wire.FieldsOf(new(config.Configuration), "Credit"),
+	wire.FieldsOf(new(config.Configuration), "Credits"),
 	// Database
 	wire.FieldsOf(new(config.Configuration), "Postgres"),
 	// Entitlement
