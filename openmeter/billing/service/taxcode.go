@@ -10,13 +10,21 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 )
 
+type resolveTaxCodesInput struct {
+	Namespace string
+	Invoice   *billing.StandardInvoice
+	// ReadOnly switches between a read-only lookup (GetTaxCodeByAppMapping, for
+	// preview/simulate flows that must not write) and GetOrCreateByAppMapping
+	// (for real write flows in the invoice state machine).
+	ReadOnly bool
+}
+
 // resolveTaxCodes batch-resolves all unique Stripe tax codes referenced in an invoice's lines
 // and its DefaultTaxConfig, returning a TaxCodes map keyed by Stripe code.
-// When readOnly is true it uses a read-only lookup (GetTaxCodeByAppMapping) and silently skips
-// codes that have no stored entity yet — suitable for preview/simulate flows that must not write.
-// When readOnly is false it uses GetOrCreateByAppMapping, which creates missing entities — suitable
-// for real write flows (invoice state machine advancement).
-func (s *Service) resolveTaxCodes(ctx context.Context, namespace string, invoice *billing.StandardInvoice, readOnly bool) (invoicecalc.TaxCodes, error) {
+func (s *Service) resolveTaxCodes(ctx context.Context, in resolveTaxCodesInput) (invoicecalc.TaxCodes, error) {
+	namespace := in.Namespace
+	invoice := in.Invoice
+	readOnly := in.ReadOnly
 	// Collect unique Stripe codes from lines and the invoice-level default.
 	seen := make(map[string]struct{})
 

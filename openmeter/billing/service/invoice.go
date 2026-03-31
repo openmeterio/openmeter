@@ -240,7 +240,11 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 	out.QuantitySnapshotedAt = lo.ToPtr(now)
 	out.Lines = billing.NewStandardInvoiceLines(inScopeLines)
 
-	taxCodes, err := s.resolveTaxCodes(ctx, invoice.Namespace, out, true)
+	taxCodes, err := s.resolveTaxCodes(ctx, resolveTaxCodesInput{
+		Namespace: invoice.Namespace,
+		Invoice:   out,
+		ReadOnly:  true,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("resolving tax codes: %w", err)
 	}
@@ -837,7 +841,11 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 		return billing.StandardInvoice{}, fmt.Errorf("resolving feature meters: %w", err)
 	}
 
-	taxCodes, err := s.resolveTaxCodes(ctx, input.Namespace, &invoice, true)
+	taxCodes, err := s.resolveTaxCodes(ctx, resolveTaxCodesInput{
+		Namespace: input.Namespace,
+		Invoice:   &invoice,
+		ReadOnly:  true,
+	})
 	if err != nil {
 		return billing.StandardInvoice{}, fmt.Errorf("resolving tax codes: %w", err)
 	}

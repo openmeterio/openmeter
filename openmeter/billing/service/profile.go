@@ -632,10 +632,12 @@ func (s *Service) ResolveStripeAppIDFromBillingProfile(ctx context.Context, name
 }
 
 // resolveDefaultTaxCode resolves the TaxCode entity for a DefaultTaxConfig's Stripe.Code and
-// stamps TaxCodeID back onto the pointed-to config before it is persisted. Idempotent: no-op
-// when taxConfig is nil, TaxCodeID is already set, or there is no Stripe code.
+// stamps TaxCodeID back onto the pointed-to config before it is persisted. Always re-resolves
+// from Stripe.Code so that changing the code (txcd_A → txcd_B) on an already-stamped config
+// updates the FK rather than leaving the stale value. No-op when taxConfig is nil or has no
+// Stripe code; GetOrCreateByAppMapping is idempotent for the same code.
 func (s *Service) resolveDefaultTaxCode(ctx context.Context, namespace string, taxConfig *productcatalog.TaxConfig) error {
-	if taxConfig == nil || taxConfig.Stripe == nil || taxConfig.Stripe.Code == "" || taxConfig.TaxCodeID != nil {
+	if taxConfig == nil || taxConfig.Stripe == nil || taxConfig.Stripe.Code == "" {
 		return nil
 	}
 
