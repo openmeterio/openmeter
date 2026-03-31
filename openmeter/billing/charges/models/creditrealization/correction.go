@@ -120,6 +120,15 @@ func (i CreateCorrectionInputs) ValidateWith(existingRealizations Realizations, 
 		return allocationWithCorrections.Allocation.ID
 	})
 
+	correctionTotal := alpacadecimal.NewFromFloat(0)
+	for _, input := range i {
+		correctionTotal = correctionTotal.Add(input.Amount.Abs())
+	}
+
+	if !currency.RoundToPrecision(correctionTotal).Equal(totalAmountToCorrect) {
+		errs = append(errs, fmt.Errorf("corrections total %s does not match the requested amount %s", correctionTotal, totalAmountToCorrect))
+	}
+
 	for idx, input := range i {
 		correctsRealization, ok := realizationsWithRemainingAmountByID[input.CorrectsRealizationID]
 

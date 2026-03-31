@@ -1051,10 +1051,10 @@ func TestCorrect(t *testing.T) {
 			alpacadecimal.NewFromFloat(-5),
 			currency,
 			func(req CorrectionRequest) (CreateCorrectionInputs, error) {
-				// Return a correction for more than the allocation has
+				// Return a correction whose total doesn't match the requested amount
 				return CreateCorrectionInputs{
 					{
-						Amount:                alpacadecimal.NewFromFloat(-15),
+						Amount:                alpacadecimal.NewFromFloat(-4),
 						CorrectsRealizationID: alloc.ID,
 						LedgerTransaction: ledgertransaction.GroupReference{
 							TransactionGroupID: uuid.New().String(),
@@ -1065,7 +1065,7 @@ func TestCorrect(t *testing.T) {
 		)
 
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "greater than the remaining amount")
+		assert.Contains(t, err.Error(), "does not match the requested amount")
 	})
 
 	t.Run("error: callback returns correction for unknown allocation", func(t *testing.T) {
