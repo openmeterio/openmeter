@@ -34,6 +34,7 @@ type Configuration struct {
 	Aggregation        AggregationConfiguration
 	Entitlements       EntitlementsConfiguration
 	Customer           CustomerConfiguration
+	Credit             CreditConfiguration
 	Dedupe             DedupeConfiguration
 	Events             EventsConfiguration
 	Ingest             IngestConfiguration
@@ -212,4 +213,5 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureServer(v, "server")
 	ConfigureProgressManager(v)
 	ConfigureCustomer(v, "customer")
+	ConfigureCredit(v, flags)
 }

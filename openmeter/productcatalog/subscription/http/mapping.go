@@ -205,6 +205,7 @@ func MapSubscriptionToAPI(sub subscription.Subscription) api.Subscription {
 			Enabled: sub.ProRatingConfig.Enabled,
 			Mode:    api.ProRatingMode(sub.ProRatingConfig.Mode),
 		},
+		SettlementMode: api.BillingSettlementMode(sub.SettlementMode),
 	}
 }
 
@@ -466,6 +467,7 @@ func CustomPlanToCreatePlanRequest(a api.CustomPlanInput, namespace string) (pla
 				Description:     a.Description,
 				Metadata:        lo.FromPtr(a.Metadata),
 				ProRatingConfig: asProRatingConfig(a.ProRatingConfig),
+				SettlementMode:  productcatalog.SettlementMode(lo.FromPtr(a.SettlementMode)),
 			},
 			Phases: nil,
 		},

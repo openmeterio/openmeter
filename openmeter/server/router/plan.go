@@ -18,7 +18,7 @@ func (a *Router) ListPlans(w http.ResponseWriter, r *http.Request, params api.Li
 // Create a plan
 // (POST /api/v1/plans)
 func (a *Router) CreatePlan(w http.ResponseWriter, r *http.Request) {
-	a.planHandler.CreatePlan().ServeHTTP(w, r)
+	a.planHandler.CreatePlan().With(a.config.Credit).ServeHTTP(w, r)
 }
 
 // Delete plan

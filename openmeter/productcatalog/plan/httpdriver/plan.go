@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	appconfig "github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
@@ -100,12 +101,12 @@ func (h *handler) ListPlans() ListPlansHandler {
 type (
 	CreatePlanRequest  = plan.CreatePlanInput
 	CreatePlanResponse = api.Plan
-	CreatePlanHandler  httptransport.Handler[CreatePlanRequest, CreatePlanResponse]
+	CreatePlanHandler  httptransport.HandlerWithArgs[CreatePlanRequest, CreatePlanResponse, appconfig.CreditConfiguration]
 )
 
 func (h *handler) CreatePlan() CreatePlanHandler {
-	return httptransport.NewHandler(
-		func(ctx context.Context, r *http.Request) (CreatePlanRequest, error) {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, config appconfig.CreditConfiguration) (CreatePlanRequest, error) {
 			body := api.PlanCreate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return CreatePlanRequest{}, fmt.Errorf("failed to decode create plan request: %w", err)
@@ -119,6 +120,10 @@ func (h *handler) CreatePlan() CreatePlanHandler {
 			req, err := AsCreatePlanRequest(body, ns)
 			if err != nil {
 				return CreatePlanRequest{}, models.NewGenericValidationError(fmt.Errorf("failed to create plan request: %w", err))
+			}
+
+			if !config.Enabled && req.SettlementMode == productcatalog.CreditOnlySettlementMode {
+				return CreatePlanRequest{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
 			}
 
 			req.NamespacedModel = models.NamespacedModel{

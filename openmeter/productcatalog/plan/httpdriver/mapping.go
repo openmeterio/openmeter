@@ -32,6 +32,7 @@ func FromPlan(p plan.Plan) (api.Plan, error) {
 		Version:          p.Version,
 		BillingCadence:   p.BillingCadence.String(),
 		ProRatingConfig:  fromProRatingConfig(p.ProRatingConfig),
+		SettlementMode:   lo.ToPtr(api.BillingSettlementMode(p.SettlementMode)),
 		ValidationErrors: http.FromValidationErrors(validationIssues),
 	}
 
@@ -100,6 +101,7 @@ func AsCreatePlanRequest(a api.PlanCreate, namespace string) (CreatePlanRequest,
 				Description:     a.Description,
 				Metadata:        lo.FromPtr(a.Metadata),
 				ProRatingConfig: asProRatingConfig(a.ProRatingConfig),
+				SettlementMode:  productcatalog.SettlementMode(lo.FromPtr(a.SettlementMode)),
 			},
 			Phases: nil,
 		},
@@ -190,6 +192,10 @@ func AsUpdatePlanRequest(a api.PlanReplaceUpdate, namespace string, planID strin
 		Description:     a.Description,
 		Metadata:        (*models.Metadata)(a.Metadata),
 		ProRatingConfig: lo.ToPtr(asProRatingConfig(a.ProRatingConfig)),
+	}
+
+	if a.SettlementMode != nil {
+		req.SettlementMode = lo.ToPtr(productcatalog.SettlementMode(*a.SettlementMode))
 	}
 
 	if a.BillingCadence != "" {

@@ -9,6 +9,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -67,6 +68,10 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 				req, err := CustomPlanToCreatePlanRequest(parsedBody.CustomPlan, ns)
 				if err != nil {
 					return ChangeSubscriptionRequest{}, fmt.Errorf("failed to create plan request: %w", err)
+				}
+
+				if !h.HandlerConfig.Credit.Enabled && req.SettlementMode == productcatalog.CreditOnlySettlementMode {
+					return ChangeSubscriptionRequest{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
 				}
 
 				planInp := plansubscription.PlanInput{}
