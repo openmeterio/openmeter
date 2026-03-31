@@ -11,10 +11,13 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/chargeupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -27,6 +30,7 @@ type Reconciler interface {
 
 type Config struct {
 	BillingService billing.Service
+	ChargesService charges.Service
 	Logger         *slog.Logger
 }
 
@@ -43,6 +47,10 @@ func (c Config) Validate() error {
 type Service struct {
 	billingService billing.Service
 	logger         *slog.Logger
+
+	invoiceUpdater   *invoiceupdater.Updater
+	chargeUpdater    chargeupdater.Updater
+	chargesAvailable bool
 }
 
 func New(config Config) (*Service, error) {
@@ -50,9 +58,17 @@ func New(config Config) (*Service, error) {
 		return nil, err
 	}
 
+	chargeUpdater := chargeupdater.NewDisabled(config.Logger)
+	if config.ChargesService != nil {
+		chargeUpdater = chargeupdater.New(config.ChargesService, config.Logger)
+	}
+
 	return &Service{
-		billingService: config.BillingService,
-		logger:         config.Logger,
+		billingService:   config.BillingService,
+		logger:           config.Logger,
+		invoiceUpdater:   invoiceupdater.New(config.BillingService, config.Logger),
+		chargeUpdater:    chargeUpdater,
+		chargesAvailable: config.ChargesService != nil,
 	}, nil
 }
 
@@ -92,6 +108,7 @@ func (i ApplyInput) Validate() error {
 
 type Plan struct {
 	InvoicePatches                     []InvoicePatch
+	ChargePatches                      []ChargePatch
 	Invoices                           persistedstate.Invoices
 	SubscriptionMaxGenerationTimeLimit time.Time
 }
@@ -101,7 +118,7 @@ func (p *Plan) IsEmpty() bool {
 		return true
 	}
 
-	return len(p.InvoicePatches) == 0
+	return len(p.InvoicePatches) == 0 && len(p.ChargePatches) == 0
 }
 
 func (s *Service) diffItem(
@@ -122,13 +139,21 @@ func (s *Service) diffItem(
 	existingPeriod := existing.ServicePeriod()
 	targetPeriod := target.GetServicePeriod()
 
-	if decision, err := semanticProrateDecision(existing, *target); err != nil {
-		return err
-	} else if decision.ShouldProrate {
-		// Flat fee lines do not produce usage-based shrink/extend patches. Any period
-		// change for a flat fee line is reconciled through ProratePatch so that the
-		// service period and per-unit amount are updated together.
-		return patches.AddProrate(existing, *target, existingPeriod, targetPeriod, decision.OriginalAmount, decision.TargetAmount)
+	// Charge-backed targets do not use invoice-style semantic proration. The charge
+	// stack materializes and prorates the charge state itself, so reconciliation only
+	// needs to detect create/delete/period-shape changes here.
+	//
+	// In case of charges based sync, the flatfee charge is responsible for handling the omission
+	// of empty invoice lines.
+	if patches.GetBackendType() == BackendTypeInvoicing {
+		if decision, err := semanticProrateDecision(existing, *target); err != nil {
+			return err
+		} else if decision.ShouldProrate {
+			// Flat fee lines do not produce usage-based shrink/extend patches. Any period
+			// change for a flat fee line is reconciled through ProratePatch so that the
+			// service period and per-unit amount are updated together.
+			return patches.AddProrate(existing, *target, existingPeriod, targetPeriod, decision.OriginalAmount, decision.TargetAmount)
+		}
 	}
 
 	switch {
@@ -141,20 +166,30 @@ func (s *Service) diffItem(
 	}
 }
 
-// filterInScopeLinesForInvoiceSync removes target items that should not
-// participate in direct billing reconciliation. We intentionally do this before
-// diff planning so non-billable targets behave as absent targets and naturally
-// reconcile to delete/no-op outcomes.
+// filterInScopeLines removes target items that should not participate in
+// reconciliation. We intentionally do this before diff planning so
+// non-billable targets behave as absent targets and naturally reconcile to
+// delete/no-op outcomes.
 //
-// We also render GetExpectedLine() here and drop items that do not realize to
-// an invoice line. That rendering step is only expected for direct billing
-// syncs. Other provisioning backends, such as charges, can keep different
-// target realization and proration behavior without going through this filter.
-func filterInScopeLinesForInvoiceSync(inScopeLines []targetstate.StateItem) ([]targetstate.StateItem, error) {
+// The router decides which backend a target would use if it had to be created.
+// Only invoicing-backed targets are gated on GetExpectedLine(): if a target
+// does not realize to an invoice line, it should not be diffed as an invoice
+// artifact. Charge-backed targets are filtered by billability only.
+func filterInScopeLines(inScopeLines []targetstate.StateItem, patchCollections *patchCollectionRouter) ([]targetstate.StateItem, error) {
 	out := make([]targetstate.StateItem, 0, len(inScopeLines))
 
 	for _, line := range inScopeLines {
 		if !line.IsBillable() {
+			continue
+		}
+
+		defaultCollection, err := patchCollections.ResolveDefaultCollection(line)
+		if err != nil {
+			return nil, fmt.Errorf("resolving default patch collection for line[%s]: %w", line.UniqueID, err)
+		}
+
+		if defaultCollection.GetBackendType() == BackendTypeCharges {
+			out = append(out, line)
 			continue
 		}
 
@@ -174,9 +209,22 @@ func filterInScopeLinesForInvoiceSync(inScopeLines []targetstate.StateItem) ([]t
 }
 
 func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
-	inScopeLines, err := filterInScopeLinesForInvoiceSync(input.Target.Items)
+	if input.Subscription.SettlementMode == productcatalog.CreditOnlySettlementMode && !s.chargesAvailable {
+		return nil, fmt.Errorf("credit only settlement mode is not supported without charges service enabled")
+	}
+
+	patchCollections, err := newPatchCollectionRouter(len(input.Target.Items)+len(input.Persisted.ByUniqueID), input.Persisted.Invoices)
 	if err != nil {
-		return nil, fmt.Errorf("filtering in-scope lines for invoice sync: %w", err)
+		return nil, fmt.Errorf("creating collection by type: %w", err)
+	}
+
+	if patchCollections == nil {
+		return nil, fmt.Errorf("patchCollectionRouter is nil")
+	}
+
+	inScopeLines, err := filterInScopeLines(input.Target.Items, patchCollections)
+	if err != nil {
+		return nil, fmt.Errorf("filtering in-scope lines: %w", err)
 	}
 	persisted := input.Persisted
 
@@ -201,15 +249,6 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 	slices.Sort(deletedLines)
 	slices.Sort(inScopeLineUniqueIDs)
 
-	patchCollections, err := newPatchCollectionRouter(len(deletedLines)+len(inScopeLineUniqueIDs), input.Persisted.Invoices)
-	if err != nil {
-		return nil, fmt.Errorf("creating collection by type: %w", err)
-	}
-
-	// TODO: Once we have charges wired in we need a helper function to determine the default routing for new lines depending on the
-	// settlement type set on the subscription and feature flags in the config of subscription sync.
-	defaultCollection := patchCollections.ResolveDefaultCollection()
-
 	for _, id := range deletedLines {
 		line, ok := persisted.ByUniqueID[id]
 		if !ok {
@@ -230,9 +269,13 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 		targetLine := inScopeLinesByUniqueID[id]
 		existingLine, ok := persisted.ByUniqueID[id]
 		if !ok {
-			// The line is not in the persisted state, so we need to fall back to the default collection esentially
-			// forcing it to be created using the specified collection. This allows us to transition from invocing based
+			// The line is not in the persisted state, so we need to fall back to the default collection essentially
+			// forcing it to be created using the specified collection. This allows us to transition from invoicing based
 			// upcoming lines to charges based provisioning in a graceful manner.
+			defaultCollection, err := patchCollections.ResolveDefaultCollection(targetLine)
+			if err != nil {
+				return nil, fmt.Errorf("resolving default patch collection for new line[%s]: %w", id, err)
+			}
 
 			if err := s.diffItem(&targetLine, nil, defaultCollection); err != nil {
 				return nil, fmt.Errorf("diffing new line[%s]: %w", id, err)
@@ -252,6 +295,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 
 	return &Plan{
 		InvoicePatches:                     patchCollections.CollectInvoicePatches(),
+		ChargePatches:                      patchCollections.CollectChargePatches(),
 		Invoices:                           input.Persisted.Invoices,
 		SubscriptionMaxGenerationTimeLimit: input.Target.MaxGenerationTimeLimit,
 	}, nil
@@ -278,15 +322,23 @@ func (s *Service) Apply(ctx context.Context, input ApplyInput) error {
 		invoicePatches = append(invoicePatches, newInvoicePatches...)
 	}
 
-	invoiceUpdater := invoiceupdater.New(s.billingService, s.logger)
+	chargePatches := make([]chargeupdater.Patch, 0, len(input.Plan.ChargePatches))
+	for _, patch := range input.Plan.ChargePatches {
+		chargePatches = append(chargePatches, patch.GetChargePatch())
+	}
 
 	if input.DryRun {
-		invoiceUpdater.LogPatches(invoicePatches, input.Plan.Invoices)
+		s.invoiceUpdater.LogPatches(invoicePatches, input.Plan.Invoices)
+		s.chargeUpdater.LogPatches(chargePatches)
 		return nil
 	}
 
-	if err := invoiceUpdater.ApplyPatches(ctx, input.Customer, invoicePatches); err != nil {
+	if err := s.invoiceUpdater.ApplyPatches(ctx, input.Customer, invoicePatches); err != nil {
 		return fmt.Errorf("updating invoices: %w", err)
+	}
+
+	if err := s.chargeUpdater.ApplyPatches(ctx, input.Subscription.Namespace, chargePatches); err != nil {
+		return fmt.Errorf("updating charges: %w", err)
 	}
 
 	return nil

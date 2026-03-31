@@ -139,9 +139,11 @@ func (i AdvanceChargesInput) Validate() error {
 type ListChargesInput struct {
 	pagination.Page
 
-	Namespace   string
-	CustomerIDs []string
-	StatusNotIn []meta.ChargeStatus
+	Namespace       string
+	CustomerIDs     []string
+	SubscriptionIDs []string
+	ChargeTypes     []meta.ChargeType
+	StatusNotIn     []meta.ChargeStatus
 
 	Expands meta.Expands
 }
@@ -151,6 +153,24 @@ func (i ListChargesInput) Validate() error {
 
 	if i.Namespace == "" {
 		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	for _, customerID := range i.CustomerIDs {
+		if customerID == "" {
+			errs = append(errs, errors.New("customer id is required"))
+		}
+	}
+
+	for _, subscriptionID := range i.SubscriptionIDs {
+		if subscriptionID == "" {
+			errs = append(errs, errors.New("subscription id is required"))
+		}
+	}
+
+	for _, chargeType := range i.ChargeTypes {
+		if err := chargeType.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("charge type: %w", err))
+		}
 	}
 
 	for _, status := range i.StatusNotIn {

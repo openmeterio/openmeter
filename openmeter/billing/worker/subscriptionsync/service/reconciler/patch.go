@@ -7,14 +7,18 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/chargeupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-type PatchOperation string
+type (
+	PatchOperation string
+	BackendType    string
+)
 
 const (
 	PatchOperationCreate  PatchOperation = "create"
@@ -22,6 +26,9 @@ const (
 	PatchOperationShrink  PatchOperation = "shrink"
 	PatchOperationExtend  PatchOperation = "extend"
 	PatchOperationProrate PatchOperation = "prorate"
+
+	BackendTypeInvoicing BackendType = "invoicing"
+	BackendTypeCharges   BackendType = "charges"
 )
 
 type Patch interface {
@@ -34,12 +41,23 @@ type InvoicePatch interface {
 	GetInvoicePatches() ([]invoiceupdater.Patch, error)
 }
 
+type ChargePatch interface {
+	Patch
+	GetChargePatch() chargeupdater.Patch
+}
+
 type InvoicePatchCollection interface {
 	Patches() []InvoicePatch
 	IsEmpty() bool
 }
 
+type ChargePatchCollection interface {
+	Patches() []ChargePatch
+	IsEmpty() bool
+}
+
 type PatchCollection interface {
+	GetBackendType() BackendType
 	AddCreate(target targetstate.StateItem) error
 	AddDelete(uniqueID string, existing persistedstate.Item) error
 	AddShrink(uniqueID string, existing persistedstate.Item, target targetstate.StateItem) error
@@ -48,8 +66,10 @@ type PatchCollection interface {
 }
 
 type patchCollectionRouter struct {
-	lineCollection      *lineInvoicePatchCollection
-	hierarchyCollection *lineHierarchyPatchCollection
+	lineCollection             *lineInvoicePatchCollection
+	hierarchyCollection        *lineHierarchyPatchCollection
+	flatFeeChargeCollection    *flatFeeChargeCollection
+	usageBasedChargeCollection *usageBasedChargeCollection
 }
 
 func newPatchCollectionRouter(capacity int, invoices persistedstate.Invoices) (*patchCollectionRouter, error) {
@@ -63,32 +83,61 @@ func newPatchCollectionRouter(capacity int, invoices persistedstate.Invoices) (*
 	}
 
 	return &patchCollectionRouter{
-		lineCollection:      lineCollection,
-		hierarchyCollection: newLineHierarchyPatchCollection(capacity),
+		lineCollection:             lineCollection,
+		hierarchyCollection:        newLineHierarchyPatchCollection(capacity),
+		flatFeeChargeCollection:    newFlatFeeChargeCollection(capacity),
+		usageBasedChargeCollection: newUsageBasedChargeCollection(capacity),
 	}, nil
 }
 
 func (c patchCollectionRouter) GetCollectionFor(item persistedstate.Item) (PatchCollection, error) {
 	switch item.Type() {
-	case billing.LineOrHierarchyTypeLine:
+	case persistedstate.ItemTypeInvoiceLine:
 		return c.lineCollection, nil
-	case billing.LineOrHierarchyTypeHierarchy:
+	case persistedstate.ItemTypeInvoiceSplitLineGroup:
 		return c.hierarchyCollection, nil
+	case persistedstate.ItemTypeChargeFlatFee:
+		return c.flatFeeChargeCollection, nil
+	case persistedstate.ItemTypeChargeUsageBased:
+		return c.usageBasedChargeCollection, nil
 	default:
 		return nil, fmt.Errorf("unsupported persisted item type: %s [id=%s]", item.Type(), item.ID())
 	}
 }
 
-func (c patchCollectionRouter) ResolveDefaultCollection() PatchCollection {
-	// TODO: Once we have charges wired in we need a helper function to determine the default routing for new lines depending on the
-	// settlement type set on the subscription and feature flags in the config of subscription sync.
-	return c.lineCollection
+func (c patchCollectionRouter) ResolveDefaultCollection(target targetstate.StateItem) (PatchCollection, error) {
+	if target.Subscription.SettlementMode != productcatalog.CreditOnlySettlementMode {
+		return c.lineCollection, nil
+	}
+
+	price := target.Spec.RateCard.AsMeta().Price
+	if price == nil {
+		// This should never happen as we are filtering for !IsBillable() targets in the filterInScopeLines function.
+		return nil, fmt.Errorf("price is nil for target[%s]", target.UniqueID)
+	}
+
+	switch price.Type() {
+	case productcatalog.FlatPriceType:
+		return c.flatFeeChargeCollection, nil
+	default:
+		return c.usageBasedChargeCollection, nil
+	}
 }
 
 func (c patchCollectionRouter) CollectInvoicePatches() []InvoicePatch {
 	allPatches := slices.Concat(c.lineCollection.Patches(), c.hierarchyCollection.Patches())
 
 	filtered := lo.Filter(allPatches, func(patch InvoicePatch, _ int) bool {
+		return patch != nil
+	})
+
+	return filtered
+}
+
+func (c patchCollectionRouter) CollectChargePatches() []ChargePatch {
+	allPatches := slices.Concat(c.flatFeeChargeCollection.Patches(), c.usageBasedChargeCollection.Patches())
+
+	filtered := lo.Filter(allPatches, func(patch ChargePatch, _ int) bool {
 		return patch != nil
 	})
 

@@ -253,7 +253,7 @@ model CreditGrant {
   @visibility(Lifecycle.Create, Lifecycle.Read)
   @minValue(1)
   @maxValue(1000)
-  priority: int16 = 10;
+  priority?: int16 = 10;
 
   /**
    * The timestamp when the credit grant becomes effective.

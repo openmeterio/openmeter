@@ -6,7 +6,6 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
@@ -36,7 +35,7 @@ func semanticProrateDecision(existing persistedstate.Item, target targetstate.St
 	}
 
 	switch existing.Type() {
-	case billing.LineOrHierarchyTypeLine:
+	case persistedstate.ItemTypeInvoiceLine:
 		existingLine, err := persistedstate.ItemAsLine(existing)
 		if err != nil {
 			return ProrateDecision{}, err
@@ -56,9 +55,9 @@ func semanticProrateDecision(existing persistedstate.Item, target targetstate.St
 			OriginalAmount: existingAmount,
 			TargetAmount:   targetAmount,
 		}, nil
-	case billing.LineOrHierarchyTypeHierarchy:
+	case persistedstate.ItemTypeInvoiceSplitLineGroup:
 		return ProrateDecision{}, errors.New("flat fee lines cannot be reconciled against a split line hierarchy")
 	default:
-		return ProrateDecision{}, fmt.Errorf("unsupported line or hierarchy type: %s", existing.Type())
+		return ProrateDecision{}, fmt.Errorf("unsupported persisted item type for proration: %s", existing.Type())
 	}
 }
