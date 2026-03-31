@@ -98,8 +98,8 @@ func (mockUsageBasedHandler) OnCreditsOnlyUsageAccrued(_ context.Context, input 
 func (mockUsageBasedHandler) OnCreditsOnlyUsageAccruedCorrection(_ context.Context, input usagebased.CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error) {
 	return lo.Map(input.Corrections, func(correction creditrealization.CorrectionRequestItem, _ int) creditrealization.CreateCorrectionInput {
 		return creditrealization.CreateCorrectionInput{
-			LedgerTransaction:      newMockLedgerTransactionGroupReference(),
-			Amount:                 correction.Amount,
+			LedgerTransaction:     newMockLedgerTransactionGroupReference(),
+			Amount:                correction.Amount,
 			CorrectsRealizationID: correction.Allocation.ID,
 		}
 	}), nil
