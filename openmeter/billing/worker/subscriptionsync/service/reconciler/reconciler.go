@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -47,8 +48,9 @@ type Service struct {
 	billingService billing.Service
 	logger         *slog.Logger
 
-	invoiceUpdater *invoiceupdater.Updater
-	chargeUpdater  chargeupdater.Updater
+	invoiceUpdater   *invoiceupdater.Updater
+	chargeUpdater    chargeupdater.Updater
+	chargesAvailable bool
 }
 
 func New(config Config) (*Service, error) {
@@ -62,10 +64,11 @@ func New(config Config) (*Service, error) {
 	}
 
 	return &Service{
-		billingService: config.BillingService,
-		logger:         config.Logger,
-		invoiceUpdater: invoiceupdater.New(config.BillingService, config.Logger),
-		chargeUpdater:  chargeUpdater,
+		billingService:   config.BillingService,
+		logger:           config.Logger,
+		invoiceUpdater:   invoiceupdater.New(config.BillingService, config.Logger),
+		chargeUpdater:    chargeUpdater,
+		chargesAvailable: config.ChargesService != nil,
 	}, nil
 }
 
@@ -139,6 +142,9 @@ func (s *Service) diffItem(
 	// Charge-backed targets do not use invoice-style semantic proration. The charge
 	// stack materializes and prorates the charge state itself, so reconciliation only
 	// needs to detect create/delete/period-shape changes here.
+	//
+	// In case of charges based sync, the flatfee charge is responsible for handling the omission
+	// of empty invoice lines.
 	if patches.GetBackendType() == BackendTypeInvoicing {
 		if decision, err := semanticProrateDecision(existing, *target); err != nil {
 			return err
@@ -203,13 +209,17 @@ func filterInScopeLines(inScopeLines []targetstate.StateItem, patchCollections *
 }
 
 func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
+	if input.Subscription.SettlementMode == productcatalog.CreditOnlySettlementMode && !s.chargesAvailable {
+		return nil, fmt.Errorf("credit only settlement mode is not supported without charges service enabled")
+	}
+
 	patchCollections, err := newPatchCollectionRouter(len(input.Target.Items)+len(input.Persisted.ByUniqueID), input.Persisted.Invoices)
 	if err != nil {
 		return nil, fmt.Errorf("creating collection by type: %w", err)
 	}
 
 	if patchCollections == nil {
-		return nil, fmt.Errorf("patch patchCollectionRouter is nil")
+		return nil, fmt.Errorf("patchCollectionRouter is nil")
 	}
 
 	inScopeLines, err := filterInScopeLines(input.Target.Items, patchCollections)
@@ -259,8 +269,8 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 		targetLine := inScopeLinesByUniqueID[id]
 		existingLine, ok := persisted.ByUniqueID[id]
 		if !ok {
-			// The line is not in the persisted state, so we need to fall back to the default collection esentially
-			// forcing it to be created using the specified collection. This allows us to transition from invocing based
+			// The line is not in the persisted state, so we need to fall back to the default collection essentially
+			// forcing it to be created using the specified collection. This allows us to transition from invoicing based
 			// upcoming lines to charges based provisioning in a graceful manner.
 			defaultCollection, err := patchCollections.ResolveDefaultCollection(targetLine)
 			if err != nil {

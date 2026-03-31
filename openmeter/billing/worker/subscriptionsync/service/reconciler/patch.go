@@ -112,7 +112,7 @@ func (c patchCollectionRouter) ResolveDefaultCollection(target targetstate.State
 
 	price := target.Spec.RateCard.AsMeta().Price
 	if price == nil {
-		// This should never happen as we are filtering for !IsBillable() targets in the filterInScopeLinesForInvoiceSync function.
+		// This should never happen as we are filtering for !IsBillable() targets in the filterInScopeLines function.
 		return nil, fmt.Errorf("price is nil for target[%s]", target.UniqueID)
 	}
 

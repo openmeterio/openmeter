@@ -74,7 +74,3 @@ func (u *updater) parsePatches(patches []Patch) (patchesParsed, error) {
 
 	return parsed, nil
 }
-
-func (p patchesParsed) IsEmpty() bool {
-	return len(p.creates) == 0
-}

@@ -35,7 +35,7 @@ openmeter/billing/worker/subscriptionsync/
 │   ├── persistedstate/              # package-owned persisted snapshot abstractions
 │   ├── targetstate/                 # expected billing/charge target generation
 │   └── reconciler/                  # plan + apply layer
-│       ├── reconciler.go            # Reconciler interface, Plan/Apply, diffItem, filterInScopeLinesForInvoiceSync
+│       ├── reconciler.go            # Reconciler interface, Plan/Apply, diffItem, filterInScopeLines
 │       ├── patch.go                 # Patch interfaces, PatchCollection, patchCollectionRouter
 │       ├── patchinvoice.go          # invoicePatchCollectionBase (shared invoice patch helpers)
 │       ├── patchinvoiceline.go      # lineInvoicePatchCollection
@@ -111,6 +111,14 @@ For direct billing sync, target items that are not billable or do not render to 
 `reconciler/prorate.go` contains `semanticProrateDecision(existing, target)`. For flat fee lines, it compares the existing per-unit amount and service period against the target. If either differs, it returns `ShouldProrate: true` with original/target amounts so the patch can update period and amount atomically. Non-flat-fee items always return `ShouldProrate: false` and fall through to the normal shrink/extend path.
 
 The service-level `FeatureFlags` (`EnableFlatFeeInAdvanceProrating`, `EnableFlatFeeInArrearsProrating`) gate whether proration is applied during target state generation.
+
+### Invoicing path
+
+Semantic proration (`semanticProrateDecision`) and empty-period filtering (`patchhelpers.go`, `patchinvoicelinehierarchy.go`) are invoice-only concerns — they run only when `patches.GetBackendType() == BackendTypeInvoicing`. Within invoiced lines, flat fee lines are excluded from empty-period filtering because their prorating implementation handles period changes.
+
+### Charges path
+
+Charge-backed targets do not use invoice-style semantic proration. The charge stack materializes and prorates the charge state itself, so reconciliation only needs to detect create/delete/period-shape changes. In the charges path, the flat fee charge is responsible for handling the omission of empty lines.
 
 ## Reconciler
 

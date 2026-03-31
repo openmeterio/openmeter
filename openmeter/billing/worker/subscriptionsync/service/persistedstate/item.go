@@ -26,7 +26,6 @@ type Item interface {
 	ChildUniqueReferenceID() *string
 	ServicePeriod() timeutil.ClosedPeriod
 	IsSubscriptionManaged() bool
-	HasAnnotation(annotation string) bool
 	HasLastLineAnnotation(annotation string) bool
 }
 
@@ -95,12 +94,8 @@ func (i persistedLine) IsSubscriptionManaged() bool {
 	return i.line.GetManagedBy() == billing.SubscriptionManagedLine
 }
 
-func (i persistedLine) HasAnnotation(annotation string) bool {
-	return i.line.GetAnnotations().GetBool(annotation)
-}
-
 func (i persistedLine) HasLastLineAnnotation(annotation string) bool {
-	return i.HasAnnotation(annotation)
+	return i.line.GetAnnotations().GetBool(annotation)
 }
 
 // ItemAsLine returns the wrapped line when the persisted item is line-backed.
@@ -165,17 +160,13 @@ func (i persistedSplitLineHierarchy) IsSubscriptionManaged() bool {
 	return child.GetManagedBy() == billing.SubscriptionManagedLine
 }
 
-func (i persistedSplitLineHierarchy) HasAnnotation(annotation string) bool {
+func (i persistedSplitLineHierarchy) HasLastLineAnnotation(annotation string) bool {
 	child := i.getLastLineForAnnotations()
 	if child == nil {
 		return false
 	}
 
 	return child.GetAnnotations().GetBool(annotation)
-}
-
-func (i persistedSplitLineHierarchy) HasLastLineAnnotation(annotation string) bool {
-	return i.HasAnnotation(annotation)
 }
 
 func (i persistedSplitLineHierarchy) getLastLineForAnnotations() billing.GenericInvoiceLine {
@@ -273,14 +264,10 @@ func (i persistedUsageBasedCharge) IsSubscriptionManaged() bool {
 	return i.charge.Intent.ManagedBy == billing.SubscriptionManagedLine
 }
 
-func (i persistedUsageBasedCharge) HasAnnotation(annotation string) bool {
-	return i.charge.Intent.Annotations.GetBool(annotation)
-}
-
 // Charges carry subscription-sync annotations directly on the charge intent, so
 // the effective "last line" annotation is always the charge annotation itself.
 func (i persistedUsageBasedCharge) HasLastLineAnnotation(annotation string) bool {
-	return i.HasAnnotation(annotation)
+	return i.charge.Intent.Annotations.GetBool(annotation)
 }
 
 func (i persistedUsageBasedCharge) GetUsageBasedCharge() usagebased.Charge {
@@ -342,14 +329,10 @@ func (i persistedFlatFeeCharge) IsSubscriptionManaged() bool {
 	return i.charge.Intent.ManagedBy == billing.SubscriptionManagedLine
 }
 
-func (i persistedFlatFeeCharge) HasAnnotation(annotation string) bool {
-	return i.charge.Intent.Annotations.GetBool(annotation)
-}
-
 // Charges carry subscription-sync annotations directly on the charge intent, so
 // the effective "last line" annotation is always the charge annotation itself.
 func (i persistedFlatFeeCharge) HasLastLineAnnotation(annotation string) bool {
-	return i.HasAnnotation(annotation)
+	return i.charge.Intent.Annotations.GetBool(annotation)
 }
 
 func (i persistedFlatFeeCharge) GetFlatFeeCharge() flatfee.Charge {

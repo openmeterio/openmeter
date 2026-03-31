@@ -22,7 +22,7 @@ type FeatureFlags struct {
 
 type Config struct {
 	BillingService billing.Service
-	// ChargesService is optional and can be nil if charges are not used for this subscription sync.
+	// ChargesService is required for credit-only sync and charge-based provisioning.
 	ChargesService          charges.Service
 	SubscriptionService     subscription.Service
 	SubscriptionSyncAdapter subscriptionsync.Adapter
