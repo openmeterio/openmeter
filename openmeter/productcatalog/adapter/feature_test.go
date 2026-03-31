@@ -512,6 +512,112 @@ func TestUpdateFeature(t *testing.T) {
 			},
 		},
 		{
+			name: "Should clear unit cost with ClearUnitCost flag",
+			run: func(t *testing.T, connector feature.FeatureRepo) {
+				ctx := context.Background()
+
+				featureIn := testFeature
+				featureIn.UnitCost = &feature.UnitCost{
+					Type: feature.UnitCostTypeManual,
+					Manual: &feature.ManualUnitCost{
+						Amount: alpacadecimal.NewFromFloat(0.05),
+					},
+				}
+
+				created, err := connector.CreateFeature(ctx, featureIn)
+				assert.NoError(t, err)
+				assert.NotNil(t, created.UnitCost)
+
+				updated, err := connector.UpdateFeature(ctx, feature.UpdateFeatureInputs{
+					Namespace:     namespace,
+					ID:            created.ID,
+					ClearUnitCost: true,
+				})
+				assert.NoError(t, err)
+				assert.Nil(t, updated.UnitCost)
+
+				// Verify by re-fetching
+				fetched, err := connector.GetByIdOrKey(ctx, namespace, created.ID, false)
+				assert.NoError(t, err)
+				assert.Nil(t, fetched.UnitCost)
+			},
+		},
+		{
+			name: "Should clear LLM unit cost with ClearUnitCost flag",
+			run: func(t *testing.T, connector feature.FeatureRepo) {
+				ctx := context.Background()
+
+				featureIn := testFeature
+				featureIn.UnitCost = &feature.UnitCost{
+					Type: feature.UnitCostTypeLLM,
+					LLM: &feature.LLMUnitCost{
+						Provider:  "openai",
+						Model:     "gpt-4",
+						TokenType: "input",
+					},
+				}
+
+				created, err := connector.CreateFeature(ctx, featureIn)
+				assert.NoError(t, err)
+				assert.NotNil(t, created.UnitCost)
+				assert.Equal(t, feature.UnitCostTypeLLM, created.UnitCost.Type)
+
+				updated, err := connector.UpdateFeature(ctx, feature.UpdateFeatureInputs{
+					Namespace:     namespace,
+					ID:            created.ID,
+					ClearUnitCost: true,
+				})
+				assert.NoError(t, err)
+				assert.Nil(t, updated.UnitCost)
+
+				// Verify by re-fetching
+				fetched, err := connector.GetByIdOrKey(ctx, namespace, created.ID, false)
+				assert.NoError(t, err)
+				assert.Nil(t, fetched.UnitCost)
+			},
+		},
+		{
+			name: "Should clear then set unit cost again",
+			run: func(t *testing.T, connector feature.FeatureRepo) {
+				ctx := context.Background()
+
+				featureIn := testFeature
+				featureIn.UnitCost = &feature.UnitCost{
+					Type: feature.UnitCostTypeManual,
+					Manual: &feature.ManualUnitCost{
+						Amount: alpacadecimal.NewFromFloat(0.05),
+					},
+				}
+
+				created, err := connector.CreateFeature(ctx, featureIn)
+				assert.NoError(t, err)
+
+				// Clear it
+				cleared, err := connector.UpdateFeature(ctx, feature.UpdateFeatureInputs{
+					Namespace:     namespace,
+					ID:            created.ID,
+					ClearUnitCost: true,
+				})
+				assert.NoError(t, err)
+				assert.Nil(t, cleared.UnitCost)
+
+				// Set it again
+				updated, err := connector.UpdateFeature(ctx, feature.UpdateFeatureInputs{
+					Namespace: namespace,
+					ID:        created.ID,
+					UnitCost: &feature.UnitCost{
+						Type: feature.UnitCostTypeManual,
+						Manual: &feature.ManualUnitCost{
+							Amount: alpacadecimal.NewFromFloat(0.99),
+						},
+					},
+				})
+				assert.NoError(t, err)
+				assert.NotNil(t, updated.UnitCost)
+				assert.Equal(t, "0.99", updated.UnitCost.Manual.Amount.String())
+			},
+		},
+		{
 			name: "Should preserve other fields when updating unit cost",
 			run: func(t *testing.T, connector feature.FeatureRepo) {
 				ctx := context.Background()

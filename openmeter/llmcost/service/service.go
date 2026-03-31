@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/openmeterio/openmeter/api/v3/filters"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -31,6 +32,12 @@ func (s *service) ListPrices(ctx context.Context, input llmcost.ListPricesInput)
 
 		// If no namespace, return global prices as-is
 		if input.Namespace == "" || len(result.Items) == 0 {
+			return result, nil
+		}
+
+		// Overrides are always source=manual. If the source filter excludes
+		// manual prices, skip the overlay to avoid violating the filter.
+		if sourceFilterExcludesManual(input.Source) {
 			return result, nil
 		}
 
@@ -126,4 +133,23 @@ func (s *service) ListOverrides(ctx context.Context, input llmcost.ListOverrides
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (pagination.Result[llmcost.Price], error) {
 		return s.adapter.ListOverrides(ctx, input)
 	})
+}
+
+// sourceFilterExcludesManual returns true when the source filter would exclude
+// manual prices. Since namespace overrides are always source=manual, the overlay
+// must be skipped when manual is excluded to avoid violating the filter.
+func sourceFilterExcludesManual(source *filters.StringFilter) bool {
+	if source == nil {
+		return false
+	}
+
+	if source.Eq != nil && *source.Eq != string(llmcost.PriceSourceManual) {
+		return true
+	}
+
+	if source.Neq != nil && *source.Neq == string(llmcost.PriceSourceManual) {
+		return true
+	}
+
+	return false
 }

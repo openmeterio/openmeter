@@ -29,9 +29,10 @@ type CreateFeatureInputs struct {
 }
 
 type UpdateFeatureInputs struct {
-	Namespace string    `json:"namespace"`
-	ID        string    `json:"id"`
-	UnitCost  *UnitCost `json:"unitCost"`
+	Namespace     string    `json:"namespace"`
+	ID            string    `json:"id"`
+	UnitCost      *UnitCost `json:"unitCost"`
+	ClearUnitCost bool      `json:"clearUnitCost"`
 }
 
 func (i UpdateFeatureInputs) Validate() error {
@@ -45,8 +46,12 @@ func (i UpdateFeatureInputs) Validate() error {
 		errs = append(errs, errors.New("id is required"))
 	}
 
-	if i.UnitCost == nil {
+	if i.UnitCost == nil && !i.ClearUnitCost {
 		errs = append(errs, errors.New("unitCost is required"))
+	}
+
+	if i.UnitCost != nil && i.ClearUnitCost {
+		errs = append(errs, errors.New("cannot set and clear unitCost at the same time"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

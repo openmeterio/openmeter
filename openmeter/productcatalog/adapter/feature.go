@@ -104,8 +104,18 @@ func (c *featureDBAdapter) UpdateFeature(ctx context.Context, input feature.Upda
 			dbfeature.ArchivedAtIsNil(),
 		)
 
-	// Clear previous unit cost fields that won't be set, then set new ones
-	if input.UnitCost != nil {
+	// Clear all unit cost columns when explicitly requested
+	if input.ClearUnitCost {
+		query = query.
+			ClearUnitCostType().
+			ClearUnitCostManualAmount().
+			ClearUnitCostLlmProviderProperty().
+			ClearUnitCostLlmProvider().
+			ClearUnitCostLlmModelProperty().
+			ClearUnitCostLlmModel().
+			ClearUnitCostLlmTokenTypeProperty().
+			ClearUnitCostLlmTokenType()
+	} else if input.UnitCost != nil {
 		// Always clear the "other type" fields to handle type switches cleanly
 		switch input.UnitCost.Type {
 		case feature.UnitCostTypeManual:

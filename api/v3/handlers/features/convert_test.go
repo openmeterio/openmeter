@@ -356,6 +356,40 @@ func TestConvertCreateRequestToDomain(t *testing.T) {
 	})
 }
 
+func TestConvertUpdateRequestToDomain(t *testing.T) {
+	t.Run("with unit cost value", func(t *testing.T) {
+		var uc api.BillingFeatureUnitCost
+		err := uc.FromBillingFeatureManualUnitCost(api.BillingFeatureManualUnitCost{Amount: "0.05"})
+		require.NoError(t, err)
+
+		body := api.UpdateFeatureRequest{UnitCost: &uc}
+		result, err := convertUpdateRequestToDomain("ns", "feat-1", body, false)
+		require.NoError(t, err)
+		assert.Equal(t, "ns", result.Namespace)
+		assert.Equal(t, "feat-1", result.ID)
+		assert.NotNil(t, result.UnitCost)
+		assert.Equal(t, feature.UnitCostTypeManual, result.UnitCost.Type)
+		assert.Equal(t, "0.05", result.UnitCost.Manual.Amount.String())
+		assert.False(t, result.ClearUnitCost)
+	})
+
+	t.Run("with clearUnitCost flag", func(t *testing.T) {
+		body := api.UpdateFeatureRequest{} // no UnitCost
+		result, err := convertUpdateRequestToDomain("ns", "feat-1", body, true)
+		require.NoError(t, err)
+		assert.Nil(t, result.UnitCost)
+		assert.True(t, result.ClearUnitCost)
+	})
+
+	t.Run("without unit cost or clear flag", func(t *testing.T) {
+		body := api.UpdateFeatureRequest{}
+		result, err := convertUpdateRequestToDomain("ns", "feat-1", body, false)
+		require.NoError(t, err)
+		assert.Nil(t, result.UnitCost)
+		assert.False(t, result.ClearUnitCost)
+	})
+}
+
 func TestEnrichFeatureResponseWithPricing(t *testing.T) {
 	t.Run("adds pricing to llm unit cost", func(t *testing.T) {
 		var uc api.BillingFeatureUnitCost

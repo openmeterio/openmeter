@@ -79,10 +79,11 @@ func convertCreateRequestToDomain(ns string, body api.CreateFeatureRequest, mete
 	return inputs, nil
 }
 
-func convertUpdateRequestToDomain(ns string, featureID string, body api.UpdateFeatureRequest) (feature.UpdateFeatureInputs, error) {
+func convertUpdateRequestToDomain(ns string, featureID string, body api.UpdateFeatureRequest, clearUnitCost bool) (feature.UpdateFeatureInputs, error) {
 	input := feature.UpdateFeatureInputs{
-		Namespace: ns,
-		ID:        featureID,
+		Namespace:     ns,
+		ID:            featureID,
+		ClearUnitCost: clearUnitCost,
 	}
 
 	if body.UnitCost != nil {
