@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/oapi-codegen/nullable"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -362,8 +363,8 @@ func TestConvertUpdateRequestToDomain(t *testing.T) {
 		err := uc.FromBillingFeatureManualUnitCost(api.BillingFeatureManualUnitCost{Amount: "0.05"})
 		require.NoError(t, err)
 
-		body := api.UpdateFeatureRequest{UnitCost: &uc}
-		result, err := convertUpdateRequestToDomain("ns", "feat-1", body, false)
+		body := api.UpdateFeatureRequest{UnitCost: nullable.NewNullableWithValue(uc)}
+		result, err := convertUpdateRequestToDomain("ns", "feat-1", body)
 		require.NoError(t, err)
 		assert.Equal(t, "ns", result.Namespace)
 		assert.Equal(t, "feat-1", result.ID)
@@ -373,17 +374,17 @@ func TestConvertUpdateRequestToDomain(t *testing.T) {
 		assert.False(t, result.ClearUnitCost)
 	})
 
-	t.Run("with clearUnitCost flag", func(t *testing.T) {
-		body := api.UpdateFeatureRequest{} // no UnitCost
-		result, err := convertUpdateRequestToDomain("ns", "feat-1", body, true)
+	t.Run("with explicit null clears unit cost", func(t *testing.T) {
+		body := api.UpdateFeatureRequest{UnitCost: nullable.NewNullNullable[api.BillingFeatureUnitCost]()}
+		result, err := convertUpdateRequestToDomain("ns", "feat-1", body)
 		require.NoError(t, err)
 		assert.Nil(t, result.UnitCost)
 		assert.True(t, result.ClearUnitCost)
 	})
 
-	t.Run("without unit cost or clear flag", func(t *testing.T) {
+	t.Run("with omitted unit cost", func(t *testing.T) {
 		body := api.UpdateFeatureRequest{}
-		result, err := convertUpdateRequestToDomain("ns", "feat-1", body, false)
+		result, err := convertUpdateRequestToDomain("ns", "feat-1", body)
 		require.NoError(t, err)
 		assert.Nil(t, result.UnitCost)
 		assert.False(t, result.ClearUnitCost)
