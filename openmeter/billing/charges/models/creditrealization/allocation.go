@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/google/uuid"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
@@ -15,7 +14,6 @@ import (
 
 type CreateAllocationInput struct {
 	// ID is the ID of the credit realization, if empty a new ID will be generated.
-	// If set, the ID must be a valid UUID.
 	ID            string                `json:"id"`
 	Annotations   models.Annotations    `json:"annotations"`
 	ServicePeriod timeutil.ClosedPeriod `json:"servicePeriod"`
@@ -32,12 +30,6 @@ type CreateAllocationInput struct {
 
 func (i CreateAllocationInput) Validate() error {
 	var errs []error
-
-	if i.ID != "" {
-		if err := uuid.Validate(i.ID); err != nil {
-			errs = append(errs, fmt.Errorf("id must be a valid UUID: %w", err))
-		}
-	}
 
 	if err := i.ServicePeriod.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("service period: %w", err))

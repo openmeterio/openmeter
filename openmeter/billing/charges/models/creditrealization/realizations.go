@@ -50,8 +50,8 @@ func (r Realizations) AllocationsByID() map[string]Realization {
 var ErrInsufficientFunds = models.NewGenericValidationError(errors.New("insufficient funds"))
 
 func (r Realizations) CreateCorrectionRequest(amount alpacadecimal.Decimal, currency currencyx.Calculator) (CorrectionRequest, error) {
-	if !amount.IsPositive() {
-		return CorrectionRequest{}, models.NewGenericValidationError(errors.New("amount must be positive"))
+	if !amount.IsNegative() {
+		return CorrectionRequest{}, models.NewGenericValidationError(errors.New("amount must be negative"))
 	}
 
 	if !currency.IsRoundedToPrecision(amount) {
@@ -66,7 +66,7 @@ func (r Realizations) CreateCorrectionRequest(amount alpacadecimal.Decimal, curr
 	mutable.Reverse(allocationsWithCorrections)
 
 	out := make(CorrectionRequest, 0, len(allocationsWithCorrections))
-	amountToCorrect := amount
+	amountToCorrect := amount.Abs()
 	for _, allocationWithCorrections := range allocationsWithCorrections {
 		if allocationWithCorrections.RemainingAmount.IsZero() {
 			continue
@@ -74,8 +74,8 @@ func (r Realizations) CreateCorrectionRequest(amount alpacadecimal.Decimal, curr
 
 		if allocationWithCorrections.RemainingAmount.GreaterThan(amountToCorrect) {
 			out = append(out, CorrectionRequestItem{
-				Allocation:      allocationWithCorrections.Allocation,
-				AmountToCorrect: amountToCorrect,
+				Allocation: allocationWithCorrections.Allocation,
+				Amount:     amountToCorrect.Neg(),
 			})
 
 			amountToCorrect = alpacadecimal.Zero
@@ -83,8 +83,8 @@ func (r Realizations) CreateCorrectionRequest(amount alpacadecimal.Decimal, curr
 		}
 
 		out = append(out, CorrectionRequestItem{
-			Allocation:      allocationWithCorrections.Allocation,
-			AmountToCorrect: allocationWithCorrections.RemainingAmount,
+			Allocation: allocationWithCorrections.Allocation,
+			Amount:     allocationWithCorrections.RemainingAmount.Neg(),
 		})
 
 		amountToCorrect = amountToCorrect.Sub(allocationWithCorrections.RemainingAmount)
@@ -112,7 +112,7 @@ func (r Realizations) Correct(amount alpacadecimal.Decimal, currency currencyx.C
 		return nil, err
 	}
 
-	if err := corrections.ValidateWith(r, amount, currency); err != nil {
+	if err := corrections.ValidateWith(r, amount.Abs(), currency); err != nil {
 		return nil, err
 	}
 
@@ -161,7 +161,7 @@ func (r Realizations) allocationsWithCorrections() ([]allocationWithCorrections,
 		remainingAmount := allocation.Amount
 		corrections, hasCorrections := correctionsByAllocationID[allocation.ID]
 		if hasCorrections {
-			remainingAmount = remainingAmount.Sub(corrections.Sum())
+			remainingAmount = remainingAmount.Add(corrections.Sum())
 		}
 
 		if remainingAmount.IsNegative() {

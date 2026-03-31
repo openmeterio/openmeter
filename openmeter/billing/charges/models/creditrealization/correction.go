@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/google/uuid"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
@@ -30,9 +29,9 @@ func (c CorrectionRequest) ValidateWith(currency currencyx.Calculator) error {
 
 type CorrectionRequestItem struct {
 	Allocation Realization `json:"allocation"`
-	// AmountToCorrect is the amount of the correction.
-	// It is positive and rounded to the smallest denomination.
-	AmountToCorrect alpacadecimal.Decimal `json:"amountToCorrect"`
+	// Amount is the amount of the correction request.
+	// It is negative and rounded to the smallest denomination.
+	Amount alpacadecimal.Decimal `json:"amount"`
 }
 
 func (i CorrectionRequestItem) ValidateWith(currency currencyx.Calculator) error {
@@ -42,12 +41,12 @@ func (i CorrectionRequestItem) ValidateWith(currency currencyx.Calculator) error
 		errs = append(errs, fmt.Errorf("allocation: %w", err))
 	}
 
-	if !i.AmountToCorrect.IsPositive() {
-		errs = append(errs, fmt.Errorf("amount to correct must be positive"))
+	if !i.Amount.IsNegative() {
+		errs = append(errs, fmt.Errorf("amount must be negative"))
 	}
 
-	if !currency.IsRoundedToPrecision(i.AmountToCorrect) {
-		errs = append(errs, fmt.Errorf("amount to correct must be a multiple of the smallest denomination"))
+	if !currency.IsRoundedToPrecision(i.Amount) {
+		errs = append(errs, fmt.Errorf("amount must be a multiple of the smallest denomination"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -60,11 +59,11 @@ type CreateCorrectionInput struct {
 
 	LedgerTransaction ledgertransaction.GroupReference `json:"ledgerTransaction"`
 
-	// AmountCorrected is the amount of the correction.
+	// Amount is the amount of the correction.
 	// Expectations:
-	// - It must be positive
+	// - It must be negative
 	// - It must be rounded to the smallest denomination
-	AmountCorrected alpacadecimal.Decimal `json:"amountCorrected"`
+	Amount alpacadecimal.Decimal `json:"amount"`
 
 	// CorrectsRealizationID is the ID of the realization that this correction is correcting.
 	CorrectsRealizationID string `json:"correctsRealizationID"`
@@ -73,17 +72,11 @@ type CreateCorrectionInput struct {
 func (i CreateCorrectionInput) ValidateWith(currency currencyx.Calculator) error {
 	var errs []error
 
-	if i.ID != "" {
-		if err := uuid.Validate(i.ID); err != nil {
-			errs = append(errs, fmt.Errorf("id must be a valid UUID: %w", err))
-		}
+	if !i.Amount.IsNegative() {
+		errs = append(errs, fmt.Errorf("amount must be negative"))
 	}
 
-	if !i.AmountCorrected.IsPositive() {
-		errs = append(errs, fmt.Errorf("amount must be positive"))
-	}
-
-	if !currency.IsRoundedToPrecision(i.AmountCorrected) {
+	if !currency.IsRoundedToPrecision(i.Amount) {
 		errs = append(errs, fmt.Errorf("amount must be rounded to currency precision"))
 	}
 
@@ -135,12 +128,12 @@ func (i CreateCorrectionInputs) ValidateWith(existingRealizations Realizations, 
 			break // let's stop validating we are depending on a corrupt state already
 		}
 
-		if input.AmountCorrected.GreaterThan(correctsRealization.RemainingAmount) {
+		if input.Amount.Abs().GreaterThan(correctsRealization.RemainingAmount) {
 			errs = append(errs, fmt.Errorf("correction input[%d]: amount to correct is greater than the remaining amount for allocation %s", idx, input.CorrectsRealizationID))
 			break // let's stop validating we are depending on a corrupt state already
 		}
 
-		correctsRealization.RemainingAmount = correctsRealization.RemainingAmount.Sub(input.AmountCorrected)
+		correctsRealization.RemainingAmount = correctsRealization.RemainingAmount.Add(input.Amount)
 		realizationsWithRemainingAmountByID[input.CorrectsRealizationID] = correctsRealization
 	}
 
@@ -161,7 +154,7 @@ func (i CreateCorrectionInputs) AsCreateInputs(existingRealizations Realizations
 			Annotations:           input.Annotations,
 			ServicePeriod:         allocation.ServicePeriod,
 			LedgerTransaction:     input.LedgerTransaction,
-			Amount:                input.AmountCorrected.Neg(),
+			Amount:                input.Amount,
 			Type:                  TypeCorrection,
 			CorrectsRealizationID: lo.ToPtr(input.CorrectsRealizationID),
 		}, nil

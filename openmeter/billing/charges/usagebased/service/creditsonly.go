@@ -266,7 +266,7 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 		}
 	case additionalAmount.IsNegative():
 		corrections, err := currentRun.CreditsAllocated.Correct(
-			additionalAmount.Neg(),
+			additionalAmount,
 			s.CurrencyCalculator,
 			func(req creditrealization.CorrectionRequest) (creditrealization.CreateCorrectionInputs, error) {
 				return s.Service.handler.OnCreditsOnlyUsageAccruedCorrection(ctx, usagebased.CreditsOnlyUsageAccruedCorrectionInput{

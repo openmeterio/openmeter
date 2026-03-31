@@ -87,7 +87,7 @@ func correctionFor(allocation Realization, amount float64) Realization {
 		CreateInput: CreateInput{
 			ID:            uuid.New().String(),
 			ServicePeriod: allocation.ServicePeriod,
-			Amount:        alpacadecimal.NewFromFloat(amount),
+			Amount:        alpacadecimal.NewFromFloat(amount).Neg(),
 			LedgerTransaction: ledgertransaction.GroupReference{
 				TransactionGroupID: uuid.New().String(),
 			},
@@ -102,7 +102,7 @@ func correctionFor(allocation Realization, amount float64) Realization {
 func correctionInputsSum(inputs CreateCorrectionInputs) alpacadecimal.Decimal {
 	sum := alpacadecimal.Zero
 	for _, input := range inputs {
-		sum = sum.Add(input.AmountCorrected)
+		sum = sum.Add(input.Amount.Abs())
 	}
 	return sum
 }
@@ -111,7 +111,7 @@ func correctionInputsSum(inputs CreateCorrectionInputs) alpacadecimal.Decimal {
 func correctionRequestAmounts(cr CorrectionRequest) []float64 {
 	out := make([]float64, len(cr))
 	for i, item := range cr {
-		out[i] = item.AmountToCorrect.InexactFloat64()
+		out[i] = item.Amount.InexactFloat64()
 	}
 	return out
 }
@@ -131,14 +131,14 @@ func TestCreateCorrectionRequest(t *testing.T) {
 		alloc := b.build(10)
 
 		cr, err := Realizations{alloc}.CreateCorrectionRequest(
-			alpacadecimal.NewFromFloat(10),
+			alpacadecimal.NewFromFloat(-10),
 			testCurrency(t),
 		)
 
 		require.NoError(t, err)
 		require.Len(t, cr, 1)
 		assert.Equal(t, alloc.ID, cr[0].Allocation.ID)
-		assert.Equal(t, 10.0, cr[0].AmountToCorrect.InexactFloat64())
+		assert.Equal(t, -10.0, cr[0].Amount.InexactFloat64())
 	})
 
 	t.Run("partial revert of single allocation", func(t *testing.T) {
@@ -146,13 +146,13 @@ func TestCreateCorrectionRequest(t *testing.T) {
 		alloc := b.build(10)
 
 		cr, err := Realizations{alloc}.CreateCorrectionRequest(
-			alpacadecimal.NewFromFloat(3),
+			alpacadecimal.NewFromFloat(-3),
 			testCurrency(t),
 		)
 
 		require.NoError(t, err)
 		require.Len(t, cr, 1)
-		assert.Equal(t, 3.0, cr[0].AmountToCorrect.InexactFloat64())
+		assert.Equal(t, -3.0, cr[0].Amount.InexactFloat64())
 	})
 
 	t.Run("full revert spanning multiple allocations in reverse order", func(t *testing.T) {
@@ -162,7 +162,7 @@ func TestCreateCorrectionRequest(t *testing.T) {
 		a3 := b.build(2)
 
 		cr, err := Realizations{a1, a2, a3}.CreateCorrectionRequest(
-			alpacadecimal.NewFromFloat(10),
+			alpacadecimal.NewFromFloat(-10),
 			testCurrency(t),
 		)
 
@@ -170,7 +170,7 @@ func TestCreateCorrectionRequest(t *testing.T) {
 		require.Len(t, cr, 3)
 		// Reverse order: a3, a2, a1
 		assert.Equal(t, []string{a3.ID, a2.ID, a1.ID}, correctionRequestAllocationIDs(cr))
-		assert.Equal(t, []float64{2, 3, 5}, correctionRequestAmounts(cr))
+		assert.Equal(t, []float64{-2, -3, -5}, correctionRequestAmounts(cr))
 	})
 
 	t.Run("partial revert spanning multiple allocations", func(t *testing.T) {
@@ -180,7 +180,7 @@ func TestCreateCorrectionRequest(t *testing.T) {
 		a3 := b.build(2)
 
 		cr, err := Realizations{a1, a2, a3}.CreateCorrectionRequest(
-			alpacadecimal.NewFromFloat(7),
+			alpacadecimal.NewFromFloat(-7),
 			testCurrency(t),
 		)
 
@@ -188,7 +188,7 @@ func TestCreateCorrectionRequest(t *testing.T) {
 		require.Len(t, cr, 3)
 		// Reverse: a3 fully ($2), a2 fully ($3), a1 partially ($2)
 		assert.Equal(t, []string{a3.ID, a2.ID, a1.ID}, correctionRequestAllocationIDs(cr))
-		assert.Equal(t, []float64{2, 3, 2}, correctionRequestAmounts(cr))
+		assert.Equal(t, []float64{-2, -3, -2}, correctionRequestAmounts(cr))
 	})
 
 	t.Run("revert with already-corrected allocation uses remaining", func(t *testing.T) {
@@ -197,14 +197,14 @@ func TestCreateCorrectionRequest(t *testing.T) {
 		correction := correctionFor(alloc, 4)
 
 		cr, err := Realizations{alloc, correction}.CreateCorrectionRequest(
-			alpacadecimal.NewFromFloat(6),
+			alpacadecimal.NewFromFloat(-6),
 			testCurrency(t),
 		)
 
 		require.NoError(t, err)
 		require.Len(t, cr, 1)
 		assert.Equal(t, alloc.ID, cr[0].Allocation.ID)
-		assert.Equal(t, 6.0, cr[0].AmountToCorrect.InexactFloat64())
+		assert.Equal(t, -6.0, cr[0].Amount.InexactFloat64())
 	})
 
 	t.Run("skips fully corrected allocations", func(t *testing.T) {
@@ -214,14 +214,14 @@ func TestCreateCorrectionRequest(t *testing.T) {
 		a2 := b.build(5)
 
 		cr, err := Realizations{a1, a2, c1}.CreateCorrectionRequest(
-			alpacadecimal.NewFromFloat(5),
+			alpacadecimal.NewFromFloat(-5),
 			testCurrency(t),
 		)
 
 		require.NoError(t, err)
 		require.Len(t, cr, 1)
 		assert.Equal(t, a2.ID, cr[0].Allocation.ID)
-		assert.Equal(t, 5.0, cr[0].AmountToCorrect.InexactFloat64())
+		assert.Equal(t, -5.0, cr[0].Amount.InexactFloat64())
 	})
 
 	t.Run("reverse order by CreatedAt", func(t *testing.T) {
@@ -238,7 +238,7 @@ func TestCreateCorrectionRequest(t *testing.T) {
 		a3 := b3.build(5)
 
 		cr, err := Realizations{a1, a2, a3}.CreateCorrectionRequest(
-			alpacadecimal.NewFromFloat(15),
+			alpacadecimal.NewFromFloat(-15),
 			testCurrency(t),
 		)
 
@@ -254,7 +254,7 @@ func TestCreateCorrectionRequest(t *testing.T) {
 		a3 := b.build(5) // sortHint=3
 
 		cr, err := Realizations{a1, a2, a3}.CreateCorrectionRequest(
-			alpacadecimal.NewFromFloat(15),
+			alpacadecimal.NewFromFloat(-15),
 			testCurrency(t),
 		)
 
@@ -273,20 +273,20 @@ func TestCreateCorrectionRequest(t *testing.T) {
 		)
 
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "amount must be positive")
+		assert.Contains(t, err.Error(), "amount must be negative")
 	})
 
-	t.Run("error: negative amount", func(t *testing.T) {
+	t.Run("error: positive amount", func(t *testing.T) {
 		b := newAllocationBuilder()
 		alloc := b.build(10)
 
 		_, err := Realizations{alloc}.CreateCorrectionRequest(
-			alpacadecimal.NewFromFloat(-5),
+			alpacadecimal.NewFromFloat(5),
 			testCurrency(t),
 		)
 
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "amount must be positive")
+		assert.Contains(t, err.Error(), "amount must be negative")
 	})
 
 	t.Run("error: insufficient funds", func(t *testing.T) {
@@ -294,7 +294,7 @@ func TestCreateCorrectionRequest(t *testing.T) {
 		alloc := b.build(5)
 
 		_, err := Realizations{alloc}.CreateCorrectionRequest(
-			alpacadecimal.NewFromFloat(10),
+			alpacadecimal.NewFromFloat(-10),
 			testCurrency(t),
 		)
 
@@ -307,7 +307,7 @@ func TestCreateCorrectionRequest(t *testing.T) {
 		correction := correctionFor(alloc, 8)
 
 		_, err := Realizations{alloc, correction}.CreateCorrectionRequest(
-			alpacadecimal.NewFromFloat(5),
+			alpacadecimal.NewFromFloat(-5),
 			testCurrency(t),
 		)
 
@@ -319,7 +319,7 @@ func TestCreateCorrectionRequest(t *testing.T) {
 		alloc := b.build(10)
 
 		_, err := Realizations{alloc}.CreateCorrectionRequest(
-			alpacadecimal.NewFromFloat(1.005),
+			alpacadecimal.NewFromFloat(-1.005),
 			testCurrency(t),
 		)
 
@@ -335,7 +335,7 @@ func TestCreateCorrectionRequest(t *testing.T) {
 		c2 := correctionFor(a2, 3)
 
 		_, err := Realizations{a1, a2, c1, c2}.CreateCorrectionRequest(
-			alpacadecimal.NewFromFloat(1),
+			alpacadecimal.NewFromFloat(-1),
 			testCurrency(t),
 		)
 
@@ -347,13 +347,13 @@ func TestCreateCorrectionRequest(t *testing.T) {
 		alloc := b.build(0.01)
 
 		cr, err := Realizations{alloc}.CreateCorrectionRequest(
-			alpacadecimal.NewFromFloat(0.01),
+			alpacadecimal.NewFromFloat(-0.01),
 			testCurrency(t),
 		)
 
 		require.NoError(t, err)
 		require.Len(t, cr, 1)
-		assert.Equal(t, 0.01, cr[0].AmountToCorrect.InexactFloat64())
+		assert.Equal(t, -0.01, cr[0].Amount.InexactFloat64())
 	})
 
 	t.Run("many allocations, tiny correction touches only last", func(t *testing.T) {
@@ -363,14 +363,14 @@ func TestCreateCorrectionRequest(t *testing.T) {
 		a3 := b.build(100)
 
 		cr, err := Realizations{a1, a2, a3}.CreateCorrectionRequest(
-			alpacadecimal.NewFromFloat(0.01),
+			alpacadecimal.NewFromFloat(-0.01),
 			testCurrency(t),
 		)
 
 		require.NoError(t, err)
 		require.Len(t, cr, 1)
 		assert.Equal(t, a3.ID, cr[0].Allocation.ID)
-		assert.Equal(t, 0.01, cr[0].AmountToCorrect.InexactFloat64())
+		assert.Equal(t, -0.01, cr[0].Amount.InexactFloat64())
 	})
 
 	t.Run("exact boundary: request equals remaining after corrections", func(t *testing.T) {
@@ -379,13 +379,13 @@ func TestCreateCorrectionRequest(t *testing.T) {
 		correction := correctionFor(alloc, 7)
 
 		cr, err := Realizations{alloc, correction}.CreateCorrectionRequest(
-			alpacadecimal.NewFromFloat(3),
+			alpacadecimal.NewFromFloat(-3),
 			testCurrency(t),
 		)
 
 		require.NoError(t, err)
 		require.Len(t, cr, 1)
-		assert.Equal(t, 3.0, cr[0].AmountToCorrect.InexactFloat64())
+		assert.Equal(t, -3.0, cr[0].Amount.InexactFloat64())
 	})
 }
 
@@ -397,7 +397,7 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				AmountCorrected:       alpacadecimal.NewFromFloat(3),
+				Amount:                alpacadecimal.NewFromFloat(-3),
 				CorrectsRealizationID: alloc.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
@@ -416,14 +416,14 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				AmountCorrected:       alpacadecimal.NewFromFloat(3),
+				Amount:                alpacadecimal.NewFromFloat(-3),
 				CorrectsRealizationID: alloc.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
 				},
 			},
 			{
-				AmountCorrected:       alpacadecimal.NewFromFloat(4),
+				Amount:                alpacadecimal.NewFromFloat(-4),
 				CorrectsRealizationID: alloc.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
@@ -442,14 +442,14 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				AmountCorrected:       alpacadecimal.NewFromFloat(5),
+				Amount:                alpacadecimal.NewFromFloat(-5),
 				CorrectsRealizationID: alloc.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
 				},
 			},
 			{
-				AmountCorrected:       alpacadecimal.NewFromFloat(5),
+				Amount:                alpacadecimal.NewFromFloat(-5),
 				CorrectsRealizationID: alloc.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
@@ -469,14 +469,14 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				AmountCorrected:       alpacadecimal.NewFromFloat(3),
+				Amount:                alpacadecimal.NewFromFloat(-3),
 				CorrectsRealizationID: a1.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
 				},
 			},
 			{
-				AmountCorrected:       alpacadecimal.NewFromFloat(4),
+				Amount:                alpacadecimal.NewFromFloat(-4),
 				CorrectsRealizationID: a2.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
@@ -496,7 +496,7 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				AmountCorrected:       alpacadecimal.NewFromFloat(5),
+				Amount:                alpacadecimal.NewFromFloat(-5),
 				CorrectsRealizationID: alloc.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
@@ -516,7 +516,7 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				AmountCorrected:       alpacadecimal.NewFromFloat(5),
+				Amount:                alpacadecimal.NewFromFloat(-5),
 				CorrectsRealizationID: uuid.New().String(), // doesn't exist
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
@@ -534,7 +534,7 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				AmountCorrected:       alpacadecimal.NewFromFloat(5),
+				Amount:                alpacadecimal.NewFromFloat(-5),
 				CorrectsRealizationID: "",
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
@@ -554,7 +554,7 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				AmountCorrected:       alpacadecimal.NewFromFloat(1.001),
+				Amount:                alpacadecimal.NewFromFloat(-1.001),
 				CorrectsRealizationID: alloc.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
@@ -574,14 +574,14 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				AmountCorrected:       alpacadecimal.NewFromFloat(6),
+				Amount:                alpacadecimal.NewFromFloat(-6),
 				CorrectsRealizationID: alloc.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
 				},
 			},
 			{
-				AmountCorrected:       alpacadecimal.NewFromFloat(6),
+				Amount:                alpacadecimal.NewFromFloat(-6),
 				CorrectsRealizationID: alloc.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
@@ -602,7 +602,7 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				AmountCorrected:       alpacadecimal.NewFromFloat(2),
+				Amount:                alpacadecimal.NewFromFloat(-2),
 				CorrectsRealizationID: correction.ID, // points to a correction, not allocation
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
@@ -622,7 +622,7 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				AmountCorrected:       alpacadecimal.NewFromFloat(3),
+				Amount:                alpacadecimal.NewFromFloat(-3),
 				CorrectsRealizationID: alloc.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
@@ -642,7 +642,7 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				AmountCorrected:       alpacadecimal.NewFromFloat(3),
+				Amount:                alpacadecimal.NewFromFloat(-3),
 				CorrectsRealizationID: alloc.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
@@ -667,7 +667,7 @@ func TestCreateCorrectionInputsAsCreateInputs(t *testing.T) {
 			{
 				ID:          uuid.New().String(),
 				Annotations: annotations,
-				AmountCorrected: alpacadecimal.NewFromFloat(3),
+				Amount:      alpacadecimal.NewFromFloat(-3),
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: txGroupID,
 				},
@@ -696,7 +696,7 @@ func TestCreateCorrectionInputsAsCreateInputs(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				AmountCorrected: alpacadecimal.NewFromFloat(3),
+				Amount:      alpacadecimal.NewFromFloat(-3),
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
 				},
@@ -716,14 +716,14 @@ func TestCreateCorrectionInputsAsCreateInputs(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				AmountCorrected: alpacadecimal.NewFromFloat(2),
+				Amount:      alpacadecimal.NewFromFloat(-2),
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
 				},
 				CorrectsRealizationID: a1.ID,
 			},
 			{
-				AmountCorrected: alpacadecimal.NewFromFloat(4),
+				Amount:      alpacadecimal.NewFromFloat(-4),
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
 				},
@@ -745,7 +745,7 @@ func TestCreateCorrectionInputsAsCreateInputs(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				AmountCorrected: alpacadecimal.NewFromFloat(3),
+				Amount:      alpacadecimal.NewFromFloat(-3),
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
 				},
@@ -770,7 +770,7 @@ func TestCorrectionEndToEnd(t *testing.T) {
 
 		// Step 1: create correction request
 		cr, err := realizations.CreateCorrectionRequest(
-			alpacadecimal.NewFromFloat(4),
+			alpacadecimal.NewFromFloat(-4),
 			currency,
 		)
 		require.NoError(t, err)
@@ -780,7 +780,7 @@ func TestCorrectionEndToEnd(t *testing.T) {
 		txGroupID := uuid.New().String()
 		for i, item := range cr {
 			correctionInputs[i] = CreateCorrectionInput{
-				AmountCorrected:       item.AmountToCorrect,
+				Amount:                item.Amount,
 				CorrectsRealizationID: item.Allocation.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: txGroupID,
@@ -814,7 +814,7 @@ func TestCorrectionEndToEnd(t *testing.T) {
 		realizations := Realizations{a1, a2}
 
 		cr, err := realizations.CreateCorrectionRequest(
-			alpacadecimal.NewFromFloat(8),
+			alpacadecimal.NewFromFloat(-8),
 			currency,
 		)
 		require.NoError(t, err)
@@ -823,7 +823,7 @@ func TestCorrectionEndToEnd(t *testing.T) {
 		txGroupID := uuid.New().String()
 		for i, item := range cr {
 			correctionInputs[i] = CreateCorrectionInput{
-				AmountCorrected:       item.AmountToCorrect,
+				Amount:                item.Amount,
 				CorrectsRealizationID: item.Allocation.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: txGroupID,
@@ -855,7 +855,7 @@ func TestCorrectionEndToEnd(t *testing.T) {
 
 		// Request $8: should take $5 from a2, $3 from a1
 		cr, err := realizations.CreateCorrectionRequest(
-			alpacadecimal.NewFromFloat(8),
+			alpacadecimal.NewFromFloat(-8),
 			currency,
 		)
 		require.NoError(t, err)
@@ -864,7 +864,7 @@ func TestCorrectionEndToEnd(t *testing.T) {
 		txGroupID := uuid.New().String()
 		for i, item := range cr {
 			correctionInputs[i] = CreateCorrectionInput{
-				AmountCorrected:       item.AmountToCorrect,
+				Amount:                item.Amount,
 				CorrectsRealizationID: item.Allocation.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: txGroupID,
@@ -891,7 +891,7 @@ func TestCorrectionEndToEnd(t *testing.T) {
 
 		// First correction: $3
 		cr1, err := realizations.CreateCorrectionRequest(
-			alpacadecimal.NewFromFloat(3),
+			alpacadecimal.NewFromFloat(-3),
 			currency,
 		)
 		require.NoError(t, err)
@@ -902,13 +902,13 @@ func TestCorrectionEndToEnd(t *testing.T) {
 
 		// Second correction: $4 (from $7 remaining)
 		cr2, err := realizations.CreateCorrectionRequest(
-			alpacadecimal.NewFromFloat(4),
+			alpacadecimal.NewFromFloat(-4),
 			currency,
 		)
 		require.NoError(t, err)
 
-		assert.Equal(t, 3.0, cr1[0].AmountToCorrect.InexactFloat64())
-		assert.Equal(t, 4.0, cr2[0].AmountToCorrect.InexactFloat64())
+		assert.Equal(t, -3.0, cr1[0].Amount.InexactFloat64())
+		assert.Equal(t, -4.0, cr2[0].Amount.InexactFloat64())
 	})
 }
 
@@ -919,7 +919,7 @@ func correctionCallback(txGroupID string) func(req CorrectionRequest) (CreateCor
 		out := make(CreateCorrectionInputs, len(req))
 		for i, item := range req {
 			out[i] = CreateCorrectionInput{
-				AmountCorrected:       item.AmountToCorrect,
+				Amount:                item.Amount,
 				CorrectsRealizationID: item.Allocation.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: txGroupID,
@@ -939,7 +939,7 @@ func TestCorrect(t *testing.T) {
 		realizations := Realizations{a1, a2}
 
 		result, err := realizations.Correct(
-			alpacadecimal.NewFromFloat(4),
+			alpacadecimal.NewFromFloat(-4),
 			currency,
 			correctionCallback(uuid.New().String()),
 		)
@@ -962,7 +962,7 @@ func TestCorrect(t *testing.T) {
 		realizations := Realizations{a1, a2}
 
 		result, err := realizations.Correct(
-			alpacadecimal.NewFromFloat(8),
+			alpacadecimal.NewFromFloat(-8),
 			currency,
 			correctionCallback(uuid.New().String()),
 		)
@@ -982,7 +982,7 @@ func TestCorrect(t *testing.T) {
 		realizations := Realizations{a1, c1}
 
 		result, err := realizations.Correct(
-			alpacadecimal.NewFromFloat(6),
+			alpacadecimal.NewFromFloat(-6),
 			currency,
 			correctionCallback(uuid.New().String()),
 		)
@@ -999,7 +999,7 @@ func TestCorrect(t *testing.T) {
 		realizations := Realizations{alloc}
 
 		_, err := realizations.Correct(
-			alpacadecimal.NewFromFloat(10),
+			alpacadecimal.NewFromFloat(-10),
 			currency,
 			correctionCallback(uuid.New().String()),
 		)
@@ -1020,7 +1020,7 @@ func TestCorrect(t *testing.T) {
 		)
 
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "amount must be positive")
+		assert.Contains(t, err.Error(), "amount must be negative")
 	})
 
 	t.Run("error: callback error propagated", func(t *testing.T) {
@@ -1031,7 +1031,7 @@ func TestCorrect(t *testing.T) {
 
 		cbErr := errors.New("ledger unavailable")
 		_, err := realizations.Correct(
-			alpacadecimal.NewFromFloat(5),
+			alpacadecimal.NewFromFloat(-5),
 			currency,
 			func(req CorrectionRequest) (CreateCorrectionInputs, error) {
 				return nil, cbErr
@@ -1048,13 +1048,13 @@ func TestCorrect(t *testing.T) {
 		realizations := Realizations{alloc}
 
 		_, err := realizations.Correct(
-			alpacadecimal.NewFromFloat(5),
+			alpacadecimal.NewFromFloat(-5),
 			currency,
 			func(req CorrectionRequest) (CreateCorrectionInputs, error) {
 				// Return a correction for more than the allocation has
 				return CreateCorrectionInputs{
 					{
-						AmountCorrected:       alpacadecimal.NewFromFloat(15),
+						Amount:                alpacadecimal.NewFromFloat(-15),
 						CorrectsRealizationID: alloc.ID,
 						LedgerTransaction: ledgertransaction.GroupReference{
 							TransactionGroupID: uuid.New().String(),
@@ -1075,12 +1075,12 @@ func TestCorrect(t *testing.T) {
 		realizations := Realizations{alloc}
 
 		_, err := realizations.Correct(
-			alpacadecimal.NewFromFloat(5),
+			alpacadecimal.NewFromFloat(-5),
 			currency,
 			func(req CorrectionRequest) (CreateCorrectionInputs, error) {
 				return CreateCorrectionInputs{
 					{
-						AmountCorrected:       alpacadecimal.NewFromFloat(5),
+						Amount:                alpacadecimal.NewFromFloat(-5),
 						CorrectsRealizationID: uuid.New().String(), // unknown
 						LedgerTransaction: ledgertransaction.GroupReference{
 							TransactionGroupID: uuid.New().String(),
@@ -1103,7 +1103,7 @@ func TestCorrect(t *testing.T) {
 
 		var capturedReq CorrectionRequest
 		_, err := realizations.Correct(
-			alpacadecimal.NewFromFloat(7),
+			alpacadecimal.NewFromFloat(-7),
 			currency,
 			func(req CorrectionRequest) (CreateCorrectionInputs, error) {
 				capturedReq = req
@@ -1115,10 +1115,10 @@ func TestCorrect(t *testing.T) {
 		// Should be in reverse order: a3, a2, a1 partial
 		require.Len(t, capturedReq, 3)
 		assert.Equal(t, a3.ID, capturedReq[0].Allocation.ID)
-		assert.Equal(t, 2.0, capturedReq[0].AmountToCorrect.InexactFloat64())
+		assert.Equal(t, -2.0, capturedReq[0].Amount.InexactFloat64())
 		assert.Equal(t, a2.ID, capturedReq[1].Allocation.ID)
-		assert.Equal(t, 3.0, capturedReq[1].AmountToCorrect.InexactFloat64())
+		assert.Equal(t, -3.0, capturedReq[1].Amount.InexactFloat64())
 		assert.Equal(t, a1.ID, capturedReq[2].Allocation.ID)
-		assert.Equal(t, 2.0, capturedReq[2].AmountToCorrect.InexactFloat64())
+		assert.Equal(t, -2.0, capturedReq[2].Amount.InexactFloat64())
 	})
 }
