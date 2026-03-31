@@ -368,26 +368,26 @@ func TestConvertUpdateRequestToDomain(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "ns", result.Namespace)
 		assert.Equal(t, "feat-1", result.ID)
-		assert.NotNil(t, result.UnitCost)
-		assert.Equal(t, feature.UnitCostTypeManual, result.UnitCost.Type)
-		assert.Equal(t, "0.05", result.UnitCost.Manual.Amount.String())
-		assert.False(t, result.ClearUnitCost)
+		assert.True(t, result.UnitCost.IsSpecified())
+		assert.False(t, result.UnitCost.IsNull())
+		unitCost, err := result.UnitCost.Get()
+		require.NoError(t, err)
+		assert.Equal(t, feature.UnitCostTypeManual, unitCost.Type)
+		assert.Equal(t, "0.05", unitCost.Manual.Amount.String())
 	})
 
 	t.Run("with explicit null clears unit cost", func(t *testing.T) {
 		body := api.UpdateFeatureRequest{UnitCost: nullable.NewNullNullable[api.BillingFeatureUnitCost]()}
 		result, err := convertUpdateRequestToDomain("ns", "feat-1", body)
 		require.NoError(t, err)
-		assert.Nil(t, result.UnitCost)
-		assert.True(t, result.ClearUnitCost)
+		assert.True(t, result.UnitCost.IsNull())
 	})
 
 	t.Run("with omitted unit cost", func(t *testing.T) {
 		body := api.UpdateFeatureRequest{}
 		result, err := convertUpdateRequestToDomain("ns", "feat-1", body)
 		require.NoError(t, err)
-		assert.Nil(t, result.UnitCost)
-		assert.False(t, result.ClearUnitCost)
+		assert.False(t, result.UnitCost.IsSpecified())
 	})
 }
 

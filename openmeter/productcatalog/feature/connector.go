@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/oapi-codegen/nullable"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
@@ -29,10 +30,9 @@ type CreateFeatureInputs struct {
 }
 
 type UpdateFeatureInputs struct {
-	Namespace     string    `json:"namespace"`
-	ID            string    `json:"id"`
-	UnitCost      *UnitCost `json:"unitCost"`
-	ClearUnitCost bool      `json:"clearUnitCost"`
+	Namespace string                    `json:"namespace"`
+	ID        string                    `json:"id"`
+	UnitCost  nullable.Nullable[UnitCost] `json:"unitCost"`
 }
 
 func (i UpdateFeatureInputs) Validate() error {
@@ -46,12 +46,8 @@ func (i UpdateFeatureInputs) Validate() error {
 		errs = append(errs, errors.New("id is required"))
 	}
 
-	if i.UnitCost == nil && !i.ClearUnitCost {
+	if !i.UnitCost.IsSpecified() {
 		errs = append(errs, errors.New("unitCost is required"))
-	}
-
-	if i.UnitCost != nil && i.ClearUnitCost {
-		errs = append(errs, errors.New("cannot set and clear unitCost at the same time"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -242,13 +238,18 @@ func (c *featureConnector) UpdateFeature(ctx context.Context, input UpdateFeatur
 		return Feature{}, err
 	}
 
-	// Validate unit cost if provided
-	if input.UnitCost != nil {
-		if err := input.UnitCost.Validate(); err != nil {
+	// Validate unit cost if a value is provided (not null/clear)
+	if !input.UnitCost.IsNull() {
+		unitCost, err := input.UnitCost.Get()
+		if err != nil {
 			return Feature{}, models.NewGenericValidationError(err)
 		}
 
-		if input.UnitCost.Type == UnitCostTypeLLM {
+		if err := unitCost.Validate(); err != nil {
+			return Feature{}, models.NewGenericValidationError(err)
+		}
+
+		if unitCost.Type == UnitCostTypeLLM {
 			if feat.MeterSlug == nil {
 				return Feature{}, models.NewGenericValidationError(
 					fmt.Errorf("LLM unit cost requires a meter to be associated with the feature"),
@@ -263,7 +264,7 @@ func (c *featureConnector) UpdateFeature(ctx context.Context, input UpdateFeatur
 				return Feature{}, err
 			}
 
-			if err := input.UnitCost.ValidateWithMeter(meter); err != nil {
+			if err := unitCost.ValidateWithMeter(meter); err != nil {
 				return Feature{}, models.NewGenericValidationError(err)
 			}
 		}
