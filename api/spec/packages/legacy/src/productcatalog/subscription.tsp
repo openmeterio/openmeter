@@ -126,6 +126,16 @@ model Subscription {
   @visibility(Lifecycle.Read)
   @summary("Billing anchor")
   billingAnchor: DateTime;
+
+  /**
+   * The settlement mode of the subscription.
+   * - credit_then_invoice: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+   * - credit_only: only credits from the previous billing period are generated and applied. No invoices are generated for the subscription.
+   * This is the default and most common settlement mode.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Settlement mode")
+  settlementMode: SettlementMode = SettlementMode.CreditThenInvoice;
 }
 
 /**
@@ -449,6 +459,11 @@ model PlanSubscriptionCreate {
    * The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
    */
   billingAnchor?: DateTime;
+
+  /**
+   * The settlement mode of the subscription.
+   */
+  settlementMode?: SettlementMode;
 }
 
 /**

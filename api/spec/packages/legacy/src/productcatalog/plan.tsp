@@ -17,6 +17,18 @@ enum PlanStatus {
 }
 
 /**
+ * The settlement mode of a plan.
+ * It determines how the billing system generates invoices and credits for the subscriptions using this plan.
+ * - credit_then_invoice: credits from the previous billing period are applied first, then the remaining balance is invoiced. This is the default and most common settlement mode.
+ * - credit_only: only credits from the previous billing period are generated and applied. No invoices are generated for the subscription.
+ */
+@friendlyName("BillingSettlementMode")
+enum SettlementMode {
+  CreditThenInvoice: "credit_then_invoice",
+  CreditOnly: "credit_only",
+}
+
+/**
  * References an exact plan defaulting to the current active version.
  */
 @friendlyName("PlanReferenceInput")
@@ -126,6 +138,17 @@ model Plan {
   @summary("Status")
   @visibility(Lifecycle.Read)
   status: PlanStatus;
+
+  /**
+   * The settlement mode of the plan.
+   * It determines how the billing system generates invoices and credits for the subscriptions using this plan.
+   * - credit_then_invoice: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+   * - credit_only: only credits from the previous billing period are generated and applied. No invoices are generated for the subscription.
+   * This is the default and most common settlement mode.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Settlement mode")
+  settlementMode?: SettlementMode = SettlementMode.CreditThenInvoice;
 
   /**
    * The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
