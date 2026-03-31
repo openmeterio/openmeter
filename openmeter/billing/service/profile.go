@@ -634,10 +634,16 @@ func (s *Service) ResolveStripeAppIDFromBillingProfile(ctx context.Context, name
 // resolveDefaultTaxCode resolves the TaxCode entity for a DefaultTaxConfig's Stripe.Code and
 // stamps TaxCodeID back onto the pointed-to config before it is persisted. Always re-resolves
 // from Stripe.Code so that changing the code (txcd_A → txcd_B) on an already-stamped config
-// updates the FK rather than leaving the stale value. No-op when taxConfig is nil or has no
-// Stripe code; GetOrCreateByAppMapping is idempotent for the same code.
+// updates the FK rather than leaving the stale value. When Stripe is nil or Code is empty,
+// TaxCodeID is explicitly cleared so that a read-modify-write that removes the Stripe code
+// does not leave a stale FK in the DB. No-op when taxConfig is nil;
+// GetOrCreateByAppMapping is idempotent for the same code.
 func (s *Service) resolveDefaultTaxCode(ctx context.Context, namespace string, taxConfig *productcatalog.TaxConfig) error {
-	if taxConfig == nil || taxConfig.Stripe == nil || taxConfig.Stripe.Code == "" {
+	if taxConfig == nil {
+		return nil
+	}
+	if taxConfig.Stripe == nil || taxConfig.Stripe.Code == "" {
+		taxConfig.TaxCodeID = nil // clear any stale FK left by a previous read
 		return nil
 	}
 

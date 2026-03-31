@@ -150,6 +150,42 @@ func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateClearsTaxCodeFK() {
 	s.Nil(cfg.TaxCodeID, "FK must be cleared by SetOrClearTaxCodeID")
 }
 
+// A4b: Round-trip clear — fetch the profile (TaxCodeID populated), clear only Stripe in-place,
+// then update; the stale FK must be erased, not persisted. Behavior is kept non-nil so that
+// DefaultTaxConfig is not normalized to nil by the adapter.
+func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateClearsTaxCodeFKRoundTrip() {
+	ctx := context.Background()
+	ns := s.GetUniqueNamespace("ns-taxcode-dw")
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+
+	s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID(), WithBillingProfileEditFn(func(p *billing.CreateProfileInput) {
+		p.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
+			Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+			Stripe:   &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+		}
+	}))
+
+	// Real read-modify-write: fetch first so TaxCodeID is populated, then clear Stripe in-place.
+	fetched, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{Namespace: ns})
+	s.NoError(err)
+	s.assertTaxConfigHasStripeCode(fetched.WorkflowConfig.Invoicing.DefaultTaxConfig, "txcd_10000000")
+
+	fetched.WorkflowConfig.Invoicing.DefaultTaxConfig.Stripe = nil // TaxCodeID still points at the old entity
+	fetched.AppReferences = nil
+	_, err = s.BillingService.UpdateProfile(ctx, billing.UpdateProfileInput(fetched.BaseProfile))
+	s.NoError(err)
+
+	readBack, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{Namespace: ns})
+	s.NoError(err)
+
+	cfg := readBack.WorkflowConfig.Invoicing.DefaultTaxConfig
+	s.Require().NotNil(cfg)
+	s.Nil(cfg.Stripe, "Stripe must be nil after clearing")
+	s.Nil(cfg.TaxCodeID, "FK must be cleared even when caller left stale TaxCodeID in the struct")
+	s.Require().NotNil(cfg.Behavior)
+	s.Equal(productcatalog.ExclusiveTaxBehavior, *cfg.Behavior, "behavior must be preserved")
+}
+
 // A5: Updating a profile to nil DefaultTaxConfig clears both the FK and the behavior column.
 func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateToNilClearsBothColumns() {
 	ctx := context.Background()
@@ -429,6 +465,44 @@ func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateStripeCodeChangeUpdatesFK()
 		Count(ctx)
 	s.NoError(err)
 	s.Equal(2, count)
+}
+
+// C4: Round-trip Stripe clear with pre-populated TaxCodeID — FK must be erased, not left stale.
+// Covers the branch where the caller explicitly passes a stale TaxCodeID alongside nil Stripe.
+// Behavior is kept non-nil so DefaultTaxConfig is not normalized to nil by the adapter.
+func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateClearStripeWithStaleFK() {
+	ctx := context.Background()
+	ns := s.GetUniqueNamespace("ns-taxcode-dw")
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+
+	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID(), WithBillingProfileEditFn(func(p *billing.CreateProfileInput) {
+		p.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
+			Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+			Stripe:   &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+		}
+	}))
+
+	firstID := profile.WorkflowConfig.Invoicing.DefaultTaxConfig.TaxCodeID
+	s.Require().NotNil(firstID)
+
+	// Simulate a caller that clears Stripe but forgets to nil out TaxCodeID.
+	profile.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
+		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+		TaxCodeID: firstID, // stale FK
+	}
+	profile.AppReferences = nil
+	_, err := s.BillingService.UpdateProfile(ctx, billing.UpdateProfileInput(profile.BaseProfile))
+	s.NoError(err)
+
+	readBack, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{Namespace: ns})
+	s.NoError(err)
+
+	cfg := readBack.WorkflowConfig.Invoicing.DefaultTaxConfig
+	s.Require().NotNil(cfg)
+	s.Nil(cfg.Stripe, "Stripe must remain nil")
+	s.Nil(cfg.TaxCodeID, "FK must be cleared even when stale TaxCodeID was explicitly passed")
+	s.Require().NotNil(cfg.Behavior)
+	s.Equal(productcatalog.InclusiveTaxBehavior, *cfg.Behavior, "behavior must be preserved")
 }
 
 // ── Group D: Invoice snapshotting (end-to-end) ────────────────────────────

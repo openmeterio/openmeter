@@ -110,7 +110,23 @@ func (a *adapter) createWorkflowConfig(ctx context.Context, ns string, input bil
 		cmd = cmd.SetNillableTaxCodeID(cfg.TaxCodeID).SetNillableTaxBehavior(cfg.Behavior)
 	}
 
-	return cmd.Save(ctx)
+	saved, err := cmd.Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Save never populates edges; manually fetch the TaxCode entity so that
+	// mapWorkflowConfigFromDB can call BackfillTaxConfig without a full node re-fetch
+	// (which would break pointer aliasing for AnchoredAlignmentDetail).
+	if saved.TaxCodeID != nil {
+		tc, err := a.db.TaxCode.Get(ctx, *saved.TaxCodeID)
+		if err != nil {
+			return nil, fmt.Errorf("fetching tax code edge after workflow config create: %w", err)
+		}
+		saved.Edges.TaxCode = tc
+	}
+
+	return saved, nil
 }
 
 func (a *adapter) GetProfile(ctx context.Context, input billing.GetProfileInput) (*billing.AdapterGetProfileResponse, error) {
@@ -398,7 +414,22 @@ func (a *adapter) updateWorkflowConfig(ctx context.Context, ns string, id string
 		cmd = cmd.ClearTaxCodeID().ClearTaxBehavior()
 	}
 
-	return cmd.Save(ctx)
+	saved, err := cmd.Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Save never populates edges; manually fetch the TaxCode entity so that
+	// mapWorkflowConfigFromDB can call BackfillTaxConfig without a full node re-fetch.
+	if saved.TaxCodeID != nil {
+		tc, err := a.db.TaxCode.Get(ctx, *saved.TaxCodeID)
+		if err != nil {
+			return nil, fmt.Errorf("fetching tax code edge after workflow config update: %w", err)
+		}
+		saved.Edges.TaxCode = tc
+	}
+
+	return saved, nil
 }
 
 func mapProfileFromDB(dbProfile *db.BillingProfile) (*billing.AdapterGetProfileResponse, error) {
