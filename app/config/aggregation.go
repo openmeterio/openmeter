@@ -159,7 +159,7 @@ func (c ClickhouseQueryRetryConfig) Validate() error {
 		return nil
 	}
 
-	if c.MaxTries <= 1 {
+	if c.MaxTries < 1 {
 		errs = append(errs, errors.New("max retries must be greater than or equal to 1"))
 	}
 
