@@ -27,6 +27,7 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 	entity, err := r.db.LedgerTransaction.Create().
 		SetNamespace(groupID.Namespace).
 		SetGroupID(groupID.ID).
+		SetAnnotations(input.Annotations()).
 		SetBookedAt(input.BookedAt()).
 		Save(ctx)
 	if err != nil {

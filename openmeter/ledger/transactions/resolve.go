@@ -3,6 +3,7 @@ package transactions
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -98,7 +99,7 @@ func ResolveTransactions(
 			}
 
 			if tx != nil {
-				inputs = append(inputs, tx)
+				inputs = append(inputs, WithAnnotations(tx, ledger.TransactionAnnotations(templateName(template), ledger.TransactionDirectionForward)))
 			}
 		case OrgTransactionTemplate:
 			if err := scope.validateForOrgTransaction(); err != nil {
@@ -111,7 +112,7 @@ func ResolveTransactions(
 			}
 
 			if tx != nil {
-				inputs = append(inputs, tx)
+				inputs = append(inputs, WithAnnotations(tx, ledger.TransactionAnnotations(templateName(template), ledger.TransactionDirectionForward)))
 			}
 		default:
 			return nil, ledger.ErrResolutionTemplateUnknown.WithAttrs(models.Attributes{
@@ -121,4 +122,13 @@ func ResolveTransactions(
 	}
 
 	return inputs, nil
+}
+
+func templateName(template Resolver) string {
+	typ := reflect.TypeOf(template)
+	for typ.Kind() == reflect.Pointer {
+		typ = typ.Elem()
+	}
+
+	return typ.Name()
 }

@@ -48,3 +48,37 @@ func TestResolveTransactions_callsResolverValidate(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, spy.validateCalls, "Resolver.Validate must be invoked for each template")
 }
+
+type annotatedCustomerTemplate struct{}
+
+func (annotatedCustomerTemplate) Validate() error {
+	return nil
+}
+
+func (annotatedCustomerTemplate) typeGuard() guard {
+	return true
+}
+
+func (annotatedCustomerTemplate) resolve(_ context.Context, _ customer.CustomerID, _ ResolverDependencies) (ledger.TransactionInput, error) {
+	return &TransactionInput{}, nil
+}
+
+func TestResolveTransactions_addsTemplateAnnotations(t *testing.T) {
+	t.Parallel()
+
+	inputs, err := ResolveTransactions(
+		t.Context(),
+		ResolverDependencies{},
+		ResolutionScope{
+			CustomerID: customer.CustomerID{
+				Namespace: "ns",
+				ID:        "cust",
+			},
+		},
+		annotatedCustomerTemplate{},
+	)
+	require.NoError(t, err)
+	require.Len(t, inputs, 1)
+	require.Equal(t, "annotatedCustomerTemplate", inputs[0].Annotations()[ledger.AnnotationTransactionTemplateName])
+	require.Equal(t, string(ledger.TransactionDirectionForward), inputs[0].Annotations()[ledger.AnnotationTransactionDirection])
+}

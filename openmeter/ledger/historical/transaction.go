@@ -56,6 +56,10 @@ func (t *Transaction) BookedAt() time.Time {
 	return t.data.BookedAt
 }
 
+func (t *Transaction) Annotations() models.Annotations {
+	return t.data.Annotations
+}
+
 type TransactionGroup struct {
 	data         TransactionGroupData
 	transactions []*Transaction

@@ -85,6 +85,7 @@ type Entry interface {
 type TransactionInput interface {
 	BookedAt() time.Time
 	EntryInputs() []EntryInput
+	Annotations() models.Annotations
 	AsGroupInput(namespace string, annotations models.Annotations) TransactionGroupInput
 }
 
@@ -93,6 +94,7 @@ type Transaction interface {
 	BookedAt() time.Time
 	Entries() []Entry
 	ID() models.NamespacedID
+	Annotations() models.Annotations
 }
 
 type TransactionGroupInput interface {

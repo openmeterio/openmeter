@@ -32,6 +32,7 @@ func (e *EntryInput) Amount() alpacadecimal.Decimal {
 type TransactionInput struct {
 	bookedAt    time.Time
 	entryInputs []*EntryInput
+	annotations models.Annotations
 }
 
 // ----------------------------------------------------------------------------
@@ -50,6 +51,10 @@ func (t *TransactionInput) EntryInputs() []ledger.EntryInput {
 	})
 }
 
+func (t *TransactionInput) Annotations() models.Annotations {
+	return t.annotations
+}
+
 func (t *TransactionInput) AsGroupInput(namespace string, annotations models.Annotations) ledger.TransactionGroupInput {
 	return &TransactionGroupInput{
 		namespace:    namespace,
@@ -64,6 +69,34 @@ func GroupInputs(namespace string, annotations models.Annotations, inputs ...led
 		transactions: inputs,
 		annotations:  annotations,
 	}
+}
+
+func WithAnnotations(input ledger.TransactionInput, annotations models.Annotations) ledger.TransactionInput {
+	merged := make(models.Annotations, len(input.Annotations())+len(annotations))
+
+	for key, value := range input.Annotations() {
+		merged[key] = value
+	}
+
+	for key, value := range annotations {
+		merged[key] = value
+	}
+
+	return &annotatedTransactionInput{
+		TransactionInput: input,
+		annotations:      merged,
+	}
+}
+
+type annotatedTransactionInput struct {
+	ledger.TransactionInput
+	annotations models.Annotations
+}
+
+var _ ledger.TransactionInput = (*annotatedTransactionInput)(nil)
+
+func (a *annotatedTransactionInput) Annotations() models.Annotations {
+	return a.annotations
 }
 
 type TransactionGroupInput struct {

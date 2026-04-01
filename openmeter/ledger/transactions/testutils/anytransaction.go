@@ -28,6 +28,7 @@ func (a *AnyEntryInput) Amount() alpacadecimal.Decimal {
 type AnyTransactionInput struct {
 	BookedAtValue     time.Time
 	EntryInputsValues []*AnyEntryInput
+	AnnotationsValue  models.Annotations
 }
 
 var _ ledger.TransactionInput = (*AnyTransactionInput)(nil)
@@ -40,6 +41,10 @@ func (a *AnyTransactionInput) EntryInputs() []ledger.EntryInput {
 	return lo.Map(a.EntryInputsValues, func(e *AnyEntryInput, _ int) ledger.EntryInput {
 		return e
 	})
+}
+
+func (a *AnyTransactionInput) Annotations() models.Annotations {
+	return a.AnnotationsValue
 }
 
 func (a *AnyTransactionInput) AsGroupInput(namespace string, annotations models.Annotations) ledger.TransactionGroupInput {
