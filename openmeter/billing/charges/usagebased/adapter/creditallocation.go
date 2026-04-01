@@ -13,7 +13,7 @@ import (
 
 var _ usagebased.RealizationRunCreditAllocationAdapter = (*adapter)(nil)
 
-func (a *adapter) CreateRunCreditAllocations(ctx context.Context, runID usagebased.RealizationRunID, creditAllocations creditrealization.CreateInputs) (creditrealization.Realizations, error) {
+func (a *adapter) CreateRunCreditRealization(ctx context.Context, runID usagebased.RealizationRunID, creditAllocations creditrealization.CreateInputs) (creditrealization.Realizations, error) {
 	if err := runID.Validate(); err != nil {
 		return nil, err
 	}
@@ -28,7 +28,7 @@ func (a *adapter) CreateRunCreditAllocations(ctx context.Context, runID usagebas
 				SetRunID(runID.ID).
 				SetNamespace(runID.Namespace)
 
-			create = creditrealization.Create(create, runID.Namespace, idx, creditAllocation)
+			create = creditrealization.Create[*entdb.ChargeUsageBasedRunCreditAllocationsCreate](create, runID.Namespace, idx, creditAllocation)
 
 			return create
 		})

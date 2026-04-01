@@ -1,10 +1,12 @@
 package creditrealization
 
 import (
+	"slices"
 	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/mixin"
 	"github.com/alpacahq/alpacadecimal"
@@ -15,7 +17,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-type Mixin = entutils.RecursiveMixin[mixinBase]
+type Mixin struct {
+	entutils.RecursiveMixin[mixinBase]
+
+	SelfReferenceType any
+}
 
 type mixinBase struct {
 	mixin.Schema
@@ -56,10 +62,41 @@ func (m mixinBase) Fields() []ent.Field {
 			Immutable(),
 
 		field.Int("sort_hint"),
+
+		field.Enum("type").
+			GoType(Type("")).
+			Immutable(),
+
+		field.String("corrects_realization_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			NotEmpty().
+			Nillable(),
 	}
 }
 
+func (mixinBase) Edges() []ent.Edge {
+	return nil
+}
+
+func (m Mixin) Edges() []ent.Edge {
+	edges := m.RecursiveMixin.Edges()
+	if m.SelfReferenceType == nil {
+		return edges
+	}
+
+	return slices.Concat(edges, []ent.Edge{
+		edge.To("allocation", m.SelfReferenceType).
+			Field("corrects_realization_id").
+			Unique().
+			From("corrections"),
+	})
+}
+
 type Creator[T any] interface {
+	SetID(id string) T
 	SetNamespace(namespace string) T
 	SetAnnotations(annotations models.Annotations) T
 	SetLineID(lineID string) T
@@ -68,18 +105,28 @@ type Creator[T any] interface {
 	SetServicePeriodFrom(servicePeriodFrom time.Time) T
 	SetServicePeriodTo(servicePeriodTo time.Time) T
 	SetLedgerTransactionGroupID(ledgerTransactionGroupID string) T
+	SetType(t Type) T
+	SetNillableCorrectsRealizationID(correctsRealizationID *string) T
 	SetSortHint(sortHint int) T
 }
 
 func Create[T Creator[T]](creator Creator[T], ns string, sortHint int, realization CreateInput) T {
-	return creator.SetAnnotations(realization.Annotations).
+	create := creator.SetAnnotations(realization.Annotations).
 		SetNamespace(ns).
 		SetNillableLineID(realization.LineID).
 		SetAmount(realization.Amount).
 		SetServicePeriodFrom(realization.ServicePeriod.From.In(time.UTC)).
 		SetServicePeriodTo(realization.ServicePeriod.To.In(time.UTC)).
 		SetLedgerTransactionGroupID(realization.LedgerTransaction.TransactionGroupID).
-		SetSortHint(sortHint)
+		SetSortHint(sortHint).
+		SetType(realization.Type).
+		SetNillableCorrectsRealizationID(realization.CorrectsRealizationID)
+
+	if realization.ID != "" {
+		create = create.SetID(realization.ID)
+	}
+
+	return create
 }
 
 type Getter interface {
@@ -94,17 +141,19 @@ type Getter interface {
 	GetServicePeriodTo() time.Time
 	GetLedgerTransactionGroupID() string
 	GetSortHint() int
+	GetType() Type
+	GetCorrectsRealizationID() *string
 }
 
 func MapFromDB(dbEntity Getter) Realization {
 	return Realization{
-		NamespacedID: models.NamespacedID{
+		NamespacedModel: models.NamespacedModel{
 			Namespace: dbEntity.GetNamespace(),
-			ID:        dbEntity.GetID(),
 		},
 		ManagedModel: entutils.MapTimeMixinFromDB(dbEntity),
 
 		CreateInput: CreateInput{
+			ID:          dbEntity.GetID(),
 			Annotations: dbEntity.GetAnnotations(),
 
 			ServicePeriod: timeutil.ClosedPeriod{
@@ -115,7 +164,9 @@ func MapFromDB(dbEntity Getter) Realization {
 			LedgerTransaction: ledgertransaction.GroupReference{
 				TransactionGroupID: dbEntity.GetLedgerTransactionGroupID(),
 			},
-			LineID: dbEntity.GetLineID(),
+			LineID:                dbEntity.GetLineID(),
+			Type:                  dbEntity.GetType(),
+			CorrectsRealizationID: dbEntity.GetCorrectsRealizationID(),
 		},
 		SortHint: dbEntity.GetSortHint(),
 	}

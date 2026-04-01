@@ -114,7 +114,7 @@ func getTotalsFromDetailedLines(in rating.GenerateDetailedLinesResult, calc curr
 		lo.Map(in.DetailedLines, func(l rating.DetailedLine, _ int) totals.Totals {
 			return l.Totals
 		})...,
-	)
+	).RoundToPrecision(calc)
 
 	return in
 }
@@ -142,5 +142,5 @@ func calculateDetailedLineTotals(line rating.DetailedLine, calc currencyx.Calcul
 
 	totals.Total = totals.CalculateTotal()
 
-	return totals
+	return totals.RoundToPrecision(calc)
 }

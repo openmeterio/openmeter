@@ -67,6 +67,7 @@ func (s *service) getRatingForUsage(ctx context.Context, in getRatingForUsageInp
 	if err != nil {
 		return getRatingForUsageResult{}, fmt.Errorf("rating: %w", err)
 	}
+
 	return getRatingForUsageResult{
 		GenerateDetailedLinesResult: ratingResult,
 		Quantity:                    snapshotQuantity,

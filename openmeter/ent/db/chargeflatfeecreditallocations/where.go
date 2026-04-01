@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -94,6 +95,11 @@ func LedgerTransactionGroupID(v string) predicate.ChargeFlatFeeCreditAllocations
 // SortHint applies equality check predicate on the "sort_hint" field. It's identical to SortHintEQ.
 func SortHint(v int) predicate.ChargeFlatFeeCreditAllocations {
 	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldEQ(FieldSortHint, v))
+}
+
+// CorrectsRealizationID applies equality check predicate on the "corrects_realization_id" field. It's identical to CorrectsRealizationIDEQ.
+func CorrectsRealizationID(v string) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldEQ(FieldCorrectsRealizationID, v))
 }
 
 // Namespace applies equality check predicate on the "namespace" field. It's identical to NamespaceEQ.
@@ -421,6 +427,111 @@ func SortHintLTE(v int) predicate.ChargeFlatFeeCreditAllocations {
 	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldLTE(FieldSortHint, v))
 }
 
+// TypeEQ applies the EQ predicate on the "type" field.
+func TypeEQ(v creditrealization.Type) predicate.ChargeFlatFeeCreditAllocations {
+	vc := v
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldEQ(FieldType, vc))
+}
+
+// TypeNEQ applies the NEQ predicate on the "type" field.
+func TypeNEQ(v creditrealization.Type) predicate.ChargeFlatFeeCreditAllocations {
+	vc := v
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldNEQ(FieldType, vc))
+}
+
+// TypeIn applies the In predicate on the "type" field.
+func TypeIn(vs ...creditrealization.Type) predicate.ChargeFlatFeeCreditAllocations {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldIn(FieldType, v...))
+}
+
+// TypeNotIn applies the NotIn predicate on the "type" field.
+func TypeNotIn(vs ...creditrealization.Type) predicate.ChargeFlatFeeCreditAllocations {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldNotIn(FieldType, v...))
+}
+
+// CorrectsRealizationIDEQ applies the EQ predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDEQ(v string) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldEQ(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDNEQ applies the NEQ predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDNEQ(v string) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldNEQ(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDIn applies the In predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDIn(vs ...string) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldIn(FieldCorrectsRealizationID, vs...))
+}
+
+// CorrectsRealizationIDNotIn applies the NotIn predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDNotIn(vs ...string) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldNotIn(FieldCorrectsRealizationID, vs...))
+}
+
+// CorrectsRealizationIDGT applies the GT predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDGT(v string) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldGT(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDGTE applies the GTE predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDGTE(v string) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldGTE(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDLT applies the LT predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDLT(v string) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldLT(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDLTE applies the LTE predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDLTE(v string) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldLTE(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDContains applies the Contains predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDContains(v string) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldContains(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDHasPrefix applies the HasPrefix predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDHasPrefix(v string) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldHasPrefix(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDHasSuffix applies the HasSuffix predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDHasSuffix(v string) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldHasSuffix(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDIsNil applies the IsNil predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDIsNil() predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldIsNull(FieldCorrectsRealizationID))
+}
+
+// CorrectsRealizationIDNotNil applies the NotNil predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDNotNil() predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldNotNull(FieldCorrectsRealizationID))
+}
+
+// CorrectsRealizationIDEqualFold applies the EqualFold predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDEqualFold(v string) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldEqualFold(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDContainsFold applies the ContainsFold predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDContainsFold(v string) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldContainsFold(FieldCorrectsRealizationID, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.ChargeFlatFeeCreditAllocations {
 	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldEQ(FieldNamespace, v))
@@ -689,6 +800,52 @@ func ChargeIDEqualFold(v string) predicate.ChargeFlatFeeCreditAllocations {
 // ChargeIDContainsFold applies the ContainsFold predicate on the "charge_id" field.
 func ChargeIDContainsFold(v string) predicate.ChargeFlatFeeCreditAllocations {
 	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldContainsFold(FieldChargeID, v))
+}
+
+// HasCorrections applies the HasEdge predicate on the "corrections" edge.
+func HasCorrections() predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, CorrectionsTable, CorrectionsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCorrectionsWith applies the HasEdge predicate on the "corrections" edge with a given conditions (other predicates).
+func HasCorrectionsWith(preds ...predicate.ChargeFlatFeeCreditAllocations) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(func(s *sql.Selector) {
+		step := newCorrectionsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasAllocation applies the HasEdge predicate on the "allocation" edge.
+func HasAllocation() predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, AllocationTable, AllocationColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasAllocationWith applies the HasEdge predicate on the "allocation" edge with a given conditions (other predicates).
+func HasAllocationWith(preds ...predicate.ChargeFlatFeeCreditAllocations) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(func(s *sql.Selector) {
+		step := newAllocationStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // HasFlatFee applies the HasEdge predicate on the "flat_fee" edge.

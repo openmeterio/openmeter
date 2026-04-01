@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -33,6 +34,10 @@ type ChargeUsageBasedRunCreditAllocations struct {
 	LedgerTransactionGroupID string `json:"ledger_transaction_group_id,omitempty"`
 	// SortHint holds the value of the "sort_hint" field.
 	SortHint int `json:"sort_hint,omitempty"`
+	// Type holds the value of the "type" field.
+	Type creditrealization.Type `json:"type,omitempty"`
+	// CorrectsRealizationID holds the value of the "corrects_realization_id" field.
+	CorrectsRealizationID *string `json:"corrects_realization_id,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -53,11 +58,35 @@ type ChargeUsageBasedRunCreditAllocations struct {
 
 // ChargeUsageBasedRunCreditAllocationsEdges holds the relations/edges for other nodes in the graph.
 type ChargeUsageBasedRunCreditAllocationsEdges struct {
+	// Corrections holds the value of the corrections edge.
+	Corrections []*ChargeUsageBasedRunCreditAllocations `json:"corrections,omitempty"`
+	// Allocation holds the value of the allocation edge.
+	Allocation *ChargeUsageBasedRunCreditAllocations `json:"allocation,omitempty"`
 	// Run holds the value of the run edge.
 	Run *ChargeUsageBasedRuns `json:"run,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [3]bool
+}
+
+// CorrectionsOrErr returns the Corrections value or an error if the edge
+// was not loaded in eager-loading.
+func (e ChargeUsageBasedRunCreditAllocationsEdges) CorrectionsOrErr() ([]*ChargeUsageBasedRunCreditAllocations, error) {
+	if e.loadedTypes[0] {
+		return e.Corrections, nil
+	}
+	return nil, &NotLoadedError{edge: "corrections"}
+}
+
+// AllocationOrErr returns the Allocation value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeUsageBasedRunCreditAllocationsEdges) AllocationOrErr() (*ChargeUsageBasedRunCreditAllocations, error) {
+	if e.Allocation != nil {
+		return e.Allocation, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: chargeusagebasedruncreditallocations.Label}
+	}
+	return nil, &NotLoadedError{edge: "allocation"}
 }
 
 // RunOrErr returns the Run value or an error if the edge
@@ -65,7 +94,7 @@ type ChargeUsageBasedRunCreditAllocationsEdges struct {
 func (e ChargeUsageBasedRunCreditAllocationsEdges) RunOrErr() (*ChargeUsageBasedRuns, error) {
 	if e.Run != nil {
 		return e.Run, nil
-	} else if e.loadedTypes[0] {
+	} else if e.loadedTypes[2] {
 		return nil, &NotFoundError{label: chargeusagebasedruns.Label}
 	}
 	return nil, &NotLoadedError{edge: "run"}
@@ -82,7 +111,7 @@ func (*ChargeUsageBasedRunCreditAllocations) scanValues(columns []string) ([]any
 			values[i] = new(alpacadecimal.Decimal)
 		case chargeusagebasedruncreditallocations.FieldSortHint:
 			values[i] = new(sql.NullInt64)
-		case chargeusagebasedruncreditallocations.FieldID, chargeusagebasedruncreditallocations.FieldLineID, chargeusagebasedruncreditallocations.FieldLedgerTransactionGroupID, chargeusagebasedruncreditallocations.FieldNamespace, chargeusagebasedruncreditallocations.FieldRunID:
+		case chargeusagebasedruncreditallocations.FieldID, chargeusagebasedruncreditallocations.FieldLineID, chargeusagebasedruncreditallocations.FieldLedgerTransactionGroupID, chargeusagebasedruncreditallocations.FieldType, chargeusagebasedruncreditallocations.FieldCorrectsRealizationID, chargeusagebasedruncreditallocations.FieldNamespace, chargeusagebasedruncreditallocations.FieldRunID:
 			values[i] = new(sql.NullString)
 		case chargeusagebasedruncreditallocations.FieldServicePeriodFrom, chargeusagebasedruncreditallocations.FieldServicePeriodTo, chargeusagebasedruncreditallocations.FieldCreatedAt, chargeusagebasedruncreditallocations.FieldUpdatedAt, chargeusagebasedruncreditallocations.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -144,6 +173,19 @@ func (_m *ChargeUsageBasedRunCreditAllocations) assignValues(columns []string, v
 			} else if value.Valid {
 				_m.SortHint = int(value.Int64)
 			}
+		case chargeusagebasedruncreditallocations.FieldType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field type", values[i])
+			} else if value.Valid {
+				_m.Type = creditrealization.Type(value.String)
+			}
+		case chargeusagebasedruncreditallocations.FieldCorrectsRealizationID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field corrects_realization_id", values[i])
+			} else if value.Valid {
+				_m.CorrectsRealizationID = new(string)
+				*_m.CorrectsRealizationID = value.String
+			}
 		case chargeusagebasedruncreditallocations.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
@@ -196,6 +238,16 @@ func (_m *ChargeUsageBasedRunCreditAllocations) Value(name string) (ent.Value, e
 	return _m.selectValues.Get(name)
 }
 
+// QueryCorrections queries the "corrections" edge of the ChargeUsageBasedRunCreditAllocations entity.
+func (_m *ChargeUsageBasedRunCreditAllocations) QueryCorrections() *ChargeUsageBasedRunCreditAllocationsQuery {
+	return NewChargeUsageBasedRunCreditAllocationsClient(_m.config).QueryCorrections(_m)
+}
+
+// QueryAllocation queries the "allocation" edge of the ChargeUsageBasedRunCreditAllocations entity.
+func (_m *ChargeUsageBasedRunCreditAllocations) QueryAllocation() *ChargeUsageBasedRunCreditAllocationsQuery {
+	return NewChargeUsageBasedRunCreditAllocationsClient(_m.config).QueryAllocation(_m)
+}
+
 // QueryRun queries the "run" edge of the ChargeUsageBasedRunCreditAllocations entity.
 func (_m *ChargeUsageBasedRunCreditAllocations) QueryRun() *ChargeUsageBasedRunsQuery {
 	return NewChargeUsageBasedRunCreditAllocationsClient(_m.config).QueryRun(_m)
@@ -243,6 +295,14 @@ func (_m *ChargeUsageBasedRunCreditAllocations) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("sort_hint=")
 	builder.WriteString(fmt.Sprintf("%v", _m.SortHint))
+	builder.WriteString(", ")
+	builder.WriteString("type=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Type))
+	builder.WriteString(", ")
+	if v := _m.CorrectsRealizationID; v != nil {
+		builder.WriteString("corrects_realization_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("namespace=")
 	builder.WriteString(_m.Namespace)

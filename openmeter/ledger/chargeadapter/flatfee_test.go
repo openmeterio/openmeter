@@ -573,7 +573,7 @@ func (e *flatFeeHandlerTestEnv) newChargeWithAccruedUsage(total alpacadecimal.De
 	return charge
 }
 
-func (e *flatFeeHandlerTestEnv) newChargeWithCreditRealizationsAndAccruedUsage(realizations []creditrealization.CreateInput, accruedTotal alpacadecimal.Decimal) chargeflatfee.Charge {
+func (e *flatFeeHandlerTestEnv) newChargeWithCreditRealizationsAndAccruedUsage(realizations creditrealization.CreateAllocationInputs, accruedTotal alpacadecimal.Decimal) chargeflatfee.Charge {
 	now := time.Now().UTC()
 	servicePeriod := timeutil.ClosedPeriod{
 		From: now.Add(-time.Hour),
@@ -583,12 +583,12 @@ func (e *flatFeeHandlerTestEnv) newChargeWithCreditRealizationsAndAccruedUsage(r
 	// Compute total amount (FBO + receivable portions)
 	totalAmount := accruedTotal
 	creditRealizations := make(creditrealization.Realizations, 0, len(realizations))
-	for i, r := range realizations {
+	for i, r := range realizations.AsCreateInputs() {
 		totalAmount = totalAmount.Add(r.Amount)
+		r.ID = fmt.Sprintf("cr-%d", i)
 		creditRealizations = append(creditRealizations, creditrealization.Realization{
-			NamespacedID: models.NamespacedID{
+			NamespacedModel: models.NamespacedModel{
 				Namespace: e.Namespace,
-				ID:        fmt.Sprintf("cr-%d", i),
 			},
 			CreateInput: r,
 		})

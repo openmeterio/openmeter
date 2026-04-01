@@ -45,11 +45,17 @@ func (s *service) AdvanceCharge(ctx context.Context, input usagebased.AdvanceCha
 			return nil, fmt.Errorf("unsupported settlement mode %s [charge_id=%s]", charge.Intent.SettlementMode, charge.ID)
 		}
 
+		currencyCalculator, err := charge.Intent.Currency.Calculator()
+		if err != nil {
+			return nil, fmt.Errorf("get currency calculator: %w", err)
+		}
+
 		stateMachine, err := NewCreditsOnlyStateMachine(StateMachineConfig{
-			Charge:           charge,
-			Service:          s,
-			CustomerOverride: input.CustomerOverride,
-			FeatureMeter:     input.FeatureMeter,
+			Charge:             charge,
+			Service:            s,
+			CustomerOverride:   input.CustomerOverride,
+			FeatureMeter:       input.FeatureMeter,
+			CurrencyCalculator: currencyCalculator,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("new credits only state machine: %w", err)
