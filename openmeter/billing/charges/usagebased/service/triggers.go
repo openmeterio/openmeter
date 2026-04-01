@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
@@ -47,11 +49,12 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 	}
 
 	return s.withLockedCharge(ctx, chargeID, func(ctx context.Context, charge usagebased.Charge) (*usagebased.Charge, error) {
-		stateMachine, err := NewCreditsOnlyStateMachine(StateMachineConfig{
-			Charge:  charge,
-			Service: s,
-			Logger:  nil,
-		})
+		stateMachineConfig, err := s.getStateMachineConfigForPatch(ctx, charge)
+		if err != nil {
+			return nil, fmt.Errorf("get state machine config: %w", err)
+		}
+
+		stateMachine, err := NewCreditsOnlyStateMachine(stateMachineConfig)
 		if err != nil {
 			return nil, fmt.Errorf("new credits only state machine: %w", err)
 		}
@@ -62,6 +65,47 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 
 		return nil, nil
 	})
+}
+
+// getStateMachineConfigForPatch gets the state machine config for a patch.
+//
+// TODO[later]: This is something we can get from the callsite as we are doing a lot of unnecessary fetching here.
+func (s *service) getStateMachineConfigForPatch(ctx context.Context, charge usagebased.Charge) (StateMachineConfig, error) {
+	customerOverride, err := s.customerOverrideService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		Customer: customer.CustomerID{
+			Namespace: charge.Namespace,
+			ID:        charge.Intent.CustomerID,
+		},
+		Expand: billing.CustomerOverrideExpand{
+			Customer: true,
+		},
+	})
+	if err != nil {
+		return StateMachineConfig{}, fmt.Errorf("get customer override: %w", err)
+	}
+
+	featureMeters, err := s.featureService.ResolveFeatureMeters(ctx, charge.Namespace, []string{charge.Intent.FeatureKey})
+	if err != nil {
+		return StateMachineConfig{}, fmt.Errorf("resolve feature meters: %w", err)
+	}
+
+	featureMeter, err := featureMeters.Get(charge.Intent.FeatureKey, true)
+	if err != nil {
+		return StateMachineConfig{}, fmt.Errorf("get feature meter: %w", err)
+	}
+
+	currencyCalculator, err := charge.Intent.Currency.Calculator()
+	if err != nil {
+		return StateMachineConfig{}, fmt.Errorf("get currency calculator: %w", err)
+	}
+
+	return StateMachineConfig{
+		Charge:             charge,
+		Service:            s,
+		CustomerOverride:   customerOverride,
+		FeatureMeter:       featureMeter,
+		CurrencyCalculator: currencyCalculator,
+	}, nil
 }
 
 func (s *service) withLockedCharge(ctx context.Context, chargeID meta.ChargeID, fn func(ctx context.Context, charge usagebased.Charge) (*usagebased.Charge, error)) (*usagebased.Charge, error) {

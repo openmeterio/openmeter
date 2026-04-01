@@ -21,7 +21,7 @@ const (
 	StatusActiveFinalRealizationProcessing           Status = "active.final_realization.processing"
 	StatusActiveFinalRealizationCompleted            Status = "active.final_realization.completed"
 
-	StatusFinal Status = Status(meta.ChargeStatusFinal)
+	StatusFinal   Status = Status(meta.ChargeStatusFinal)
 	StatusDeleted Status = Status(meta.ChargeStatusDeleted)
 )
 

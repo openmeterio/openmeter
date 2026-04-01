@@ -642,6 +642,18 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedProvi
 }
 
 func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedCancellationInCreatedStateDeletesCharge() {
+	// Given:
+	// - a subscription is created with credits_only settlement
+	// - the subscription is single phase with a monthly usage based charge priced at $1 per usage
+	// - the initial sync horizon provisions the first period charge in created state
+	//
+	// When:
+	// - the subscription is canceled at the service period start
+	// - the subscription is synchronized again
+	//
+	// Then:
+	// - the created usage based charge is deleted
+	// - no active usage based charges remain for the subscription
 	ctx := s.testContext()
 	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
 	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
@@ -759,6 +771,20 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedCance
 }
 
 func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedMidPeriodCancellation() {
+	// Given:
+	// - a subscription is created with credits_only settlement
+	// - the subscription is single phase with a monthly usage based charge priced at $1 per usage
+	// - the next two billing cycles are provisioned
+	// - usage is recorded both before and after the mid-period cancellation timestamp
+	//
+	// When:
+	// - the subscription is canceled mid-period
+	// - the subscription is synchronized again
+	//
+	// Then:
+	// - the current usage based charge is shrunk to the cancellation boundary
+	// - the recreated shrunk charge realizes only the pre-cancellation usage
+	// - the future usage based charge is deleted
 	ctx := s.testContext()
 	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
 	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
@@ -836,16 +862,49 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedMidPe
 	}
 
 	var originalSecondPeriodCharge usagebased.Charge
+	var originalFirstPeriodCharge usagebased.Charge
 
 	s.Run("provisions the current and next billing cycle", func() {
 		s.NoError(s.Service.SynchronizeSubscription(ctx, subscriptionView, initialSyncUntil))
 
 		provisionedCharges := s.expectCreditsOnlyUsageBasedCharges(ctx, subscriptionView.Subscription.ID, expectedCharges)
 		s.Len(provisionedCharges, 2)
+		originalFirstPeriodCharge = provisionedCharges[0]
 		originalSecondPeriodCharge = provisionedCharges[1]
 	})
 
 	s.Run("canceling mid-period shrinks the current usage based charge and deletes the future one", func() {
+		s.MockStreamingConnector.AddSimpleEvent(
+			s.APIRequestsTotalFeature.Key,
+			3,
+			periods[0].From.Add(24*time.Hour),
+		)
+		s.MockStreamingConnector.AddSimpleEvent(
+			s.APIRequestsTotalFeature.Key,
+			5,
+			cancelAt.Add(-24*time.Hour),
+		)
+		s.MockStreamingConnector.AddSimpleEvent(
+			s.APIRequestsTotalFeature.Key,
+			13,
+			cancelAt.Add(24*time.Hour),
+		)
+
+		beforeShrinkChargeRes, err := s.Charges.GetByID(ctx, charges.GetByIDInput{
+			ChargeID: chargesmeta.ChargeID{
+				Namespace: s.Namespace,
+				ID:        originalFirstPeriodCharge.ID,
+			},
+			Expands: chargesmeta.Expands{
+				chargesmeta.ExpandRealizations,
+			},
+		})
+		s.NoError(err)
+
+		beforeShrinkCharge, err := beforeShrinkChargeRes.AsUsageBasedCharge()
+		s.NoError(err)
+		s.Empty(beforeShrinkCharge.Realizations)
+
 		clock.FreezeTime(cancelAt)
 		defer clock.UnFreeze()
 
@@ -875,12 +934,34 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedMidPe
 						To:   cancelAt,
 					},
 				},
-				InvoiceAt:   []time.Time{invoiceAt[0]},
-				FeatureKey:  s.APIRequestsTotalFeature.Key,
-				Price:       *unitPrice,
+				InvoiceAt:  []time.Time{invoiceAt[0]},
+				FeatureKey: s.APIRequestsTotalFeature.Key,
+				Price:      *unitPrice,
 			},
 		})
 		s.Len(remainingCharges, 1)
+
+		afterShrinkChargeRes, err := s.Charges.GetByID(ctx, charges.GetByIDInput{
+			ChargeID: chargesmeta.ChargeID{
+				Namespace: s.Namespace,
+				ID:        remainingCharges[0].ID,
+			},
+			Expands: chargesmeta.Expands{
+				chargesmeta.ExpandRealizations,
+			},
+		})
+		s.NoError(err)
+
+		afterShrinkCharge, err := afterShrinkChargeRes.AsUsageBasedCharge()
+		s.NoError(err)
+		s.Len(afterShrinkCharge.Realizations, 1)
+
+		finalRun := afterShrinkCharge.Realizations[0]
+		s.Equal(float64(8), finalRun.MeterValue.InexactFloat64())
+		s.Equal(float64(0), finalRun.Totals.Total.InexactFloat64())
+		s.Equal(float64(8), finalRun.Totals.CreditsTotal.InexactFloat64())
+		s.Len(finalRun.CreditsAllocated, 1)
+		s.Equal(float64(8), finalRun.CreditsAllocated[0].Amount.InexactFloat64())
 
 		deletedChargeRes, err := s.Charges.GetByID(ctx, charges.GetByIDInput{
 			ChargeID: chargesmeta.ChargeID{
