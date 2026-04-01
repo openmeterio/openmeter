@@ -579,6 +579,7 @@ jobs:
           persist-credentials: false
 
       - name: Create override files for quickstart
+        if: github.event.pull_request.head.repo.full_name == github.repository
         env:
           DEPOT_IMAGE_URL: ${{ needs.artifacts.outputs.container-image-url-depot }}
         run: |
@@ -607,7 +608,24 @@ jobs:
           docker ps -a
           docker network ls
           echo "### DEBUG"
-
+      - name: Build as part of quickstart
+        if: github.event.pull_request.head.repo.full_name != github.repository
+        run: |
+          cat > quickstart/docker-compose.override.yaml <<EOF
+          services:
+            openmeter:
+              build: ..
+            sink-worker:
+              build: ..
+            balance-worker:
+              build: ..
+            notification-service:
+              build: ..
+            billing-worker:
+              build: ..
+            openmeter-jobs:
+              build: ..
+          EOF
       - name: Launch Docker Compose
         run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml up -d
         working-directory: quickstart
@@ -679,6 +697,7 @@ jobs:
       - name: Create override files for e2e
         env:
           DEPOT_IMAGE_URL: ${{ needs.artifacts.outputs.container-image-url-depot }}
+        if: github.event.pull_request.head.repo.full_name == github.repository
         run: |
           cat > e2e/docker-compose.override.yaml <<EOF
           services:
@@ -697,6 +716,18 @@ jobs:
           docker ps -a
           docker network ls
           echo "### DEBUG"
+      - name: Build as part of e2e
+        if: github.event.pull_request.head.repo.full_name != github.repository
+        run: |
+          cat > e2e/docker-compose.override.yaml <<EOF
+          services:
+            openmeter:
+              build: ..
+            sink-worker:
+              build: ..
+          EOF
+
+          cat e2e/docker-compose.override.yaml
 
       - name: Launch Docker Compose infra
         run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml up -d
