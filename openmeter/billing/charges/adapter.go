@@ -54,23 +54,3 @@ func (c ChargeSearchItems) Validate() error {
 	}
 	return errors.Join(errs...)
 }
-
-type GetTypesByIDsInput struct {
-	Namespace string
-	IDs       []string
-}
-
-func (i GetTypesByIDsInput) Validate() error {
-	var errs []error
-	if i.Namespace == "" {
-		errs = append(errs, errors.New("namespace is required"))
-	}
-
-	for _, id := range i.IDs {
-		if id == "" {
-			errs = append(errs, errors.New("id is required"))
-		}
-	}
-
-	return errors.Join(errs...)
-}

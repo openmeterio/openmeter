@@ -89,7 +89,6 @@ func (a *adapter) DeleteCharge(ctx context.Context, charge flatfee.Charge) error
 			ManagedResource: charge.ManagedResource,
 			Intent:          charge.Intent.Intent,
 			Status:          charge.Status,
-			AdvanceAfter:    charge.State.AdvanceAfter,
 		})
 		if err != nil {
 			return err
