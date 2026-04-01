@@ -54,6 +54,7 @@ func NewStreamingConnector(
 			Logger:              logger,
 			RetryWaitDuration:   conf.ClickHouse.Retry.RetryWaitDuration,
 			MaxTries:            conf.ClickHouse.Retry.MaxTries,
+			MaxDelay:            conf.ClickHouse.Retry.MaxDelay,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("init retry connector: %w", err)

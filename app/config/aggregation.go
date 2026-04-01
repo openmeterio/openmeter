@@ -150,6 +150,7 @@ type ClickhouseQueryRetryConfig struct {
 	Enabled           bool
 	MaxTries          int
 	RetryWaitDuration time.Duration
+	MaxDelay          time.Duration
 }
 
 func (c ClickhouseQueryRetryConfig) Validate() error {
@@ -212,6 +213,7 @@ func ConfigureAggregation(v *viper.Viper) {
 	v.SetDefault("aggregation.clickhouse.retry.enabled", false)
 	v.SetDefault("aggregation.clickhouse.retry.maxTries", 3)
 	v.SetDefault("aggregation.clickhouse.retry.retryWaitDuration", "20ms")
+	v.SetDefault("aggregation.clickhouse.retry.maxDelay", "5s")
 
 	// Pool metrics
 	v.SetDefault("aggregation.clickhouse.poolMetrics.enabled", true)
