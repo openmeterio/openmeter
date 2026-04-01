@@ -5,9 +5,12 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/alpacahq/alpacadecimal"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
 
@@ -21,6 +24,7 @@ type UsageBasedService interface {
 	GetByIDs(ctx context.Context, input GetByIDsInput) ([]Charge, error)
 	AdvanceCharge(ctx context.Context, input AdvanceChargeInput) (*Charge, error)
 	TriggerPatch(ctx context.Context, charge meta.ChargeID, patch meta.Patch) (*Charge, error)
+	GetCurrentTotals(ctx context.Context, input GetCurrentTotalsInput) (GetCurrentTotalsResult, error)
 }
 
 type InvoiceLifecycleHooks interface {
@@ -118,4 +122,22 @@ func (i GetByIDInput) Validate() error {
 	}
 
 	return errors.Join(errs...)
+}
+
+type GetCurrentTotalsInput struct {
+	ChargeID meta.ChargeID
+}
+
+func (i GetCurrentTotalsInput) Validate() error {
+	if err := i.ChargeID.Validate(); err != nil {
+		return fmt.Errorf("charge ID: %w", err)
+	}
+
+	return nil
+}
+
+type GetCurrentTotalsResult struct {
+	Charge    Charge
+	Quantity  alpacadecimal.Decimal
+	DueTotals totals.Totals
 }

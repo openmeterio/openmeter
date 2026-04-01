@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -129,6 +130,25 @@ func (c Charge) GetChargeID() (meta.ChargeID, error) {
 	}
 
 	return meta.ChargeID{}, fmt.Errorf("invalid charge type: %s", c.t)
+}
+
+func (c Charge) SettlementMode() (productcatalog.SettlementMode, error) {
+	switch c.t {
+	case meta.ChargeTypeFlatFee:
+		if c.flatFee == nil {
+			return "", fmt.Errorf("flat fee charge is nil")
+		}
+
+		return c.flatFee.Intent.SettlementMode, nil
+	case meta.ChargeTypeUsageBased:
+		if c.usageBased == nil {
+			return "", fmt.Errorf("usage based charge is nil")
+		}
+
+		return c.usageBased.Intent.SettlementMode, nil
+	default:
+		return "", fmt.Errorf("settlement mode is not supported for charge type %s", c.t)
+	}
 }
 
 var _ entutils.InIDOrderAccessor = (*Charge)(nil)
