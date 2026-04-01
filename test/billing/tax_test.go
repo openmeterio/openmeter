@@ -11,11 +11,13 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -256,13 +258,28 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 
 	ubpSplitLine := invoiceLines[0]
 	s.NotNil(ubpSplitLine.SplitLineGroupID, "the line is a split line")
-	s.Equal(ubpSplitLine.TaxConfig, taxConfig, "tax config is retained")
+	s.Require().NotNil(ubpSplitLine.TaxConfig, "tax config is retained")
+	s.Equal(taxConfig.Behavior, ubpSplitLine.TaxConfig.Behavior, "tax config behavior is retained")
+	s.Equal(taxConfig.Stripe, ubpSplitLine.TaxConfig.Stripe, "tax config stripe is retained")
+	s.Require().NotNil(ubpSplitLine.TaxConfig.TaxCodeID, "TaxCodeID is stamped during advancement")
+
+	createdTC, err := s.TaxCodeService.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
+		Namespace: namespace,
+		AppType:   app.AppTypeStripe,
+		TaxCode:   taxConfig.Stripe.Code,
+	})
+	s.Require().NoError(err, "TaxCode entity must exist in DB")
+	s.Equal(createdTC.ID, *ubpSplitLine.TaxConfig.TaxCodeID, "TaxCodeID must match the DB entity")
+	s.Require().NotNil(ubpSplitLine.TaxConfig.TaxCode, "TaxCode entity must be stamped on line")
+	s.Equal(createdTC.ID, ubpSplitLine.TaxConfig.TaxCode.ID, "stamped TaxCode entity must match the DB entity")
 
 	ubpSplitLineDetailedLines := ubpSplitLine.DetailedLines
 	s.Len(ubpSplitLineDetailedLines, 1)
 
 	ubpDetailedLine := ubpSplitLineDetailedLines[0]
-	s.Equal(ubpDetailedLine.TaxConfig, taxConfig, "tax config is retained in detailed line")
+	s.Require().NotNil(ubpDetailedLine.TaxConfig, "tax config is retained in detailed line")
+	s.Equal(taxConfig.Behavior, ubpDetailedLine.TaxConfig.Behavior, "detailed line tax config behavior is retained")
+	s.Equal(taxConfig.Stripe, ubpDetailedLine.TaxConfig.Stripe, "detailed line tax config stripe is retained")
 }
 
 func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, customer *customer.Customer) billing.StandardInvoice {

@@ -38,6 +38,9 @@ type TaxConfig struct {
 	Behavior  *TaxBehavior     `json:"behavior,omitempty"`
 	Stripe    *StripeTaxConfig `json:"stripe,omitempty"`
 	TaxCodeID *string          `json:"tax_code_id,omitempty"`
+	// TaxCode is the resolved TaxCode entity, stamped at invoice snapshot time.
+	// Present only on invoice lines (persisted in JSONB); nil on profile/rate-card configs.
+	TaxCode *taxcode.TaxCode `json:"tax_code,omitempty"`
 }
 
 func (c *TaxConfig) Equal(v *TaxConfig) bool {
@@ -99,6 +102,15 @@ func (c TaxConfig) Clone() TaxConfig {
 
 	if c.TaxCodeID != nil {
 		out.TaxCodeID = lo.ToPtr(*c.TaxCodeID)
+	}
+
+	if c.TaxCode != nil {
+		tc := *c.TaxCode
+		tc.AppMappings = append(taxcode.TaxCodeAppMappings(nil), c.TaxCode.AppMappings...)
+		if c.TaxCode.Description != nil {
+			tc.Description = lo.ToPtr(*c.TaxCode.Description)
+		}
+		out.TaxCode = &tc
 	}
 
 	return out

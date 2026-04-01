@@ -19,6 +19,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	dbcustomer "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -28,6 +30,12 @@ import (
 )
 
 var _ billing.ProfileAdapter = (*adapter)(nil)
+
+// workflowConfigWithTaxCode is a reusable eager-load option that also loads the TaxCode edge
+// on BillingWorkflowConfig, enabling BackfillTaxConfig on the read path.
+var workflowConfigWithTaxCode = func(q *db.BillingWorkflowConfigQuery) {
+	q.WithTaxCode()
+}
 
 func (a *adapter) CreateProfile(ctx context.Context, input billing.CreateProfileInput) (*billing.BaseProfile, error) {
 	if err := input.Validate(); err != nil {
@@ -98,7 +106,27 @@ func (a *adapter) createWorkflowConfig(ctx context.Context, ns string, input bil
 		cmd = cmd.SetAnchoredAlignmentDetail(input.Collection.AnchoredAlignmentDetail)
 	}
 
-	return cmd.Save(ctx)
+	if cfg := input.Invoicing.DefaultTaxConfig; cfg != nil {
+		cmd = cmd.SetNillableTaxCodeID(cfg.TaxCodeID).SetNillableTaxBehavior(cfg.Behavior)
+	}
+
+	saved, err := cmd.Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Save never populates edges; manually fetch the TaxCode entity so that
+	// mapWorkflowConfigFromDB can call BackfillTaxConfig without a full node re-fetch
+	// (which would break pointer aliasing for AnchoredAlignmentDetail).
+	if saved.TaxCodeID != nil {
+		tc, err := a.db.TaxCode.Get(ctx, *saved.TaxCodeID)
+		if err != nil {
+			return nil, fmt.Errorf("fetching tax code edge after workflow config create: %w", err)
+		}
+		saved.Edges.TaxCode = tc
+	}
+
+	return saved, nil
 }
 
 func (a *adapter) GetProfile(ctx context.Context, input billing.GetProfileInput) (*billing.AdapterGetProfileResponse, error) {
@@ -109,7 +137,7 @@ func (a *adapter) GetProfile(ctx context.Context, input billing.GetProfileInput)
 	dbProfile, err := a.db.BillingProfile.Query().
 		Where(billingprofile.Namespace(input.Profile.Namespace)).
 		Where(billingprofile.ID(input.Profile.ID)).
-		WithWorkflowConfig().First(ctx)
+		WithWorkflowConfig(workflowConfigWithTaxCode).First(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, billing.NotFoundError{
@@ -126,7 +154,7 @@ func (a *adapter) GetProfile(ctx context.Context, input billing.GetProfileInput)
 func (a *adapter) ListProfiles(ctx context.Context, input billing.ListProfilesInput) (pagination.Result[billing.BaseProfile], error) {
 	query := a.db.BillingProfile.Query().
 		Where(billingprofile.Namespace(input.Namespace)).
-		WithWorkflowConfig()
+		WithWorkflowConfig(workflowConfigWithTaxCode)
 
 	if !input.IncludeArchived {
 		query = query.Where(billingprofile.DeletedAtIsNil())
@@ -189,7 +217,7 @@ func (a *adapter) GetDefaultProfile(ctx context.Context, input billing.GetDefaul
 		Where(billingprofile.Namespace(input.Namespace)).
 		Where(billingprofile.Default(true)).
 		Where(billingprofile.DeletedAtIsNil()).
-		WithWorkflowConfig().
+		WithWorkflowConfig(workflowConfigWithTaxCode).
 		Only(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -366,7 +394,7 @@ func (a *adapter) isBillingProfileUsed(ctx context.Context, appID app.AppID) err
 }
 
 func (a *adapter) updateWorkflowConfig(ctx context.Context, ns string, id string, input billing.WorkflowConfig) (*db.BillingWorkflowConfig, error) {
-	return a.db.BillingWorkflowConfig.UpdateOneID(id).
+	cmd := a.db.BillingWorkflowConfig.UpdateOneID(id).
 		Where(billingworkflowconfig.Namespace(ns)).
 		SetCollectionAlignment(input.Collection.Alignment).
 		SetAnchoredAlignmentDetail(input.Collection.AnchoredAlignmentDetail).
@@ -378,8 +406,30 @@ func (a *adapter) updateWorkflowConfig(ctx context.Context, ns string, id string
 		SetInvoiceProgressiveBilling(input.Invoicing.ProgressiveBilling).
 		SetOrClearInvoiceDefaultTaxSettings(input.Invoicing.DefaultTaxConfig).
 		SetTaxEnabled(input.Tax.Enabled).
-		SetTaxEnforced(input.Tax.Enforced).
-		Save(ctx)
+		SetTaxEnforced(input.Tax.Enforced)
+
+	if cfg := input.Invoicing.DefaultTaxConfig; cfg != nil {
+		cmd = cmd.SetOrClearTaxCodeID(cfg.TaxCodeID).SetOrClearTaxBehavior(cfg.Behavior)
+	} else {
+		cmd = cmd.ClearTaxCodeID().ClearTaxBehavior()
+	}
+
+	saved, err := cmd.Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Save never populates edges; manually fetch the TaxCode entity so that
+	// mapWorkflowConfigFromDB can call BackfillTaxConfig without a full node re-fetch.
+	if saved.TaxCodeID != nil {
+		tc, err := a.db.TaxCode.Get(ctx, *saved.TaxCodeID)
+		if err != nil {
+			return nil, fmt.Errorf("fetching tax code edge after workflow config update: %w", err)
+		}
+		saved.Edges.TaxCode = tc
+	}
+
+	return saved, nil
 }
 
 func mapProfileFromDB(dbProfile *db.BillingProfile) (*billing.AdapterGetProfileResponse, error) {
@@ -447,6 +497,23 @@ func mapWorkflowConfigFromDB(dbWC *db.BillingWorkflowConfig) (billing.WorkflowCo
 		return billing.WorkflowConfig{}, fmt.Errorf("cannot parse invoicing.dueAfter: %w", err)
 	}
 
+	invoicing := billing.InvoicingConfig{
+		AutoAdvance:        dbWC.InvoiceAutoAdvance,
+		DraftPeriod:        draftPeriod,
+		DueAfter:           dueAfter,
+		ProgressiveBilling: dbWC.InvoiceProgressiveBilling,
+		DefaultTaxConfig:   lo.EmptyableToPtr(dbWC.InvoiceDefaultTaxSettings),
+	}
+
+	if taxCodeRow, err := dbWC.Edges.TaxCodeOrErr(); err == nil {
+		tc, err := taxcodeadapter.MapTaxCodeFromEntity(taxCodeRow)
+		if err != nil {
+			return billing.WorkflowConfig{}, fmt.Errorf("mapping tax code for workflow config: %w", err)
+		}
+
+		invoicing.DefaultTaxConfig = productcatalog.BackfillTaxConfig(invoicing.DefaultTaxConfig, dbWC.TaxBehavior, &tc)
+	}
+
 	return billing.WorkflowConfig{
 		Collection: billing.CollectionConfig{
 			Alignment:               dbWC.CollectionAlignment,
@@ -454,13 +521,7 @@ func mapWorkflowConfigFromDB(dbWC *db.BillingWorkflowConfig) (billing.WorkflowCo
 			Interval:                collectionInterval,
 		},
 
-		Invoicing: billing.InvoicingConfig{
-			AutoAdvance:        dbWC.InvoiceAutoAdvance,
-			DraftPeriod:        draftPeriod,
-			DueAfter:           dueAfter,
-			ProgressiveBilling: dbWC.InvoiceProgressiveBilling,
-			DefaultTaxConfig:   lo.EmptyableToPtr(dbWC.InvoiceDefaultTaxSettings),
-		},
+		Invoicing: invoicing,
 
 		Payment: billing.PaymentConfig{
 			CollectionMethod: dbWC.InvoiceCollectionMethod,

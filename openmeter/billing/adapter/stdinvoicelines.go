@@ -841,7 +841,7 @@ func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLin
 			WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
 				tx.expandLineItems(q)
 				q.WithBillingInvoice(func(q *db.BillingInvoiceQuery) {
-					q.WithBillingWorkflowConfig()
+					q.WithBillingWorkflowConfig(workflowConfigWithTaxCode)
 				})
 			}).
 			Where(billinginvoicesplitlinegroup.DeletedAtIsNil()).

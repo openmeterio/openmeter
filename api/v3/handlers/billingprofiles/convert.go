@@ -66,8 +66,9 @@ var (
 	// goverter:map Stripe Stripe
 	ConvertTaxConfigToBillingTaxConfig func(config *productcatalog.TaxConfig) (*api.BillingTaxConfig, error)
 	// goverter:map Stripe Stripe
-	// FIXME: Remove ignore once openapi is updated
+	// FIXME: Remove ignore from TaxCodeID once openapi is updated
 	// goverter:ignore TaxCodeID
+	// goverter:ignore TaxCode
 	ConvertBillingTaxConfigToTaxConfig func(config *api.BillingTaxConfig) (*productcatalog.TaxConfig, error)
 )
 

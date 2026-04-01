@@ -407,6 +407,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		Publisher:                    publisher,
 		AdvancementStrategy:          billing.ForegroundAdvancementStrategy,
 		MaxParallelQuantitySnapshots: 2,
+		TaxCodeService:               taxCodeService,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create billing service: %w", err)

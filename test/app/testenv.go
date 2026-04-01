@@ -28,6 +28,8 @@ import (
 	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
 	secretservice "github.com/openmeterio/openmeter/openmeter/secret/service"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
+	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
+	taxcodeservice "github.com/openmeterio/openmeter/openmeter/taxcode/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -252,6 +254,14 @@ func InitBillingService(t *testing.T, ctx context.Context, in InitBillingService
 	// Feature
 	featureService := entitlementRegistry.Feature
 
+	// TaxCode
+	taxCodeAdapter, err := taxcodeadapter.New(taxcodeadapter.Config{
+		Client: in.DBClient,
+		Logger: slog.Default(),
+	})
+	require.NoError(t, err)
+	taxCodeService := taxcodeservice.New(taxCodeAdapter, slog.Default())
+
 	// Billing
 	billingAdapter, err := billingadapter.New(billingadapter.Config{
 		Client: in.DBClient,
@@ -273,5 +283,6 @@ func InitBillingService(t *testing.T, ctx context.Context, in InitBillingService
 		Publisher:                    eventbus.NewMock(t),
 		AdvancementStrategy:          billing.ForegroundAdvancementStrategy,
 		MaxParallelQuantitySnapshots: 2,
+		TaxCodeService:               taxCodeService,
 	})
 }

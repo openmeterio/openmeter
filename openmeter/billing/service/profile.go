@@ -11,6 +11,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -78,6 +80,10 @@ func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfile
 			return nil, billing.ValidationError{
 				Err: fmt.Errorf("all apps must be the same"),
 			}
+		}
+
+		if err := s.resolveDefaultTaxCode(ctx, input.Namespace, input.WorkflowConfig.Invoicing.DefaultTaxConfig); err != nil {
+			return nil, err
 		}
 
 		profile, err := s.adapter.CreateProfile(ctx, input)
@@ -278,8 +284,13 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 			}
 		}
 
+		targetState := billing.BaseProfile(input)
+		if err := s.resolveDefaultTaxCode(ctx, input.Namespace, targetState.WorkflowConfig.Invoicing.DefaultTaxConfig); err != nil {
+			return nil, err
+		}
+
 		updatedProfile, err := s.adapter.UpdateProfile(ctx, billing.UpdateProfileAdapterInput{
-			TargetState:      billing.BaseProfile(input),
+			TargetState:      targetState,
 			WorkflowConfigID: profile.WorkflowConfigID,
 		})
 		if err != nil {
@@ -618,4 +629,34 @@ func (s *Service) ResolveStripeAppIDFromBillingProfile(ctx context.Context, name
 	}
 
 	return appID, nil
+}
+
+// resolveDefaultTaxCode resolves the TaxCode entity for a DefaultTaxConfig's Stripe.Code and
+// stamps TaxCodeID back onto the pointed-to config before it is persisted. Always re-resolves
+// from Stripe.Code so that changing the code (txcd_A → txcd_B) on an already-stamped config
+// updates the FK rather than leaving the stale value. When Stripe is nil or Code is empty,
+// TaxCodeID is explicitly cleared so that a read-modify-write that removes the Stripe code
+// does not leave a stale FK in the DB. No-op when taxConfig is nil;
+// GetOrCreateByAppMapping is idempotent for the same code.
+func (s *Service) resolveDefaultTaxCode(ctx context.Context, namespace string, taxConfig *productcatalog.TaxConfig) error {
+	if taxConfig == nil {
+		return nil
+	}
+	if taxConfig.Stripe == nil || taxConfig.Stripe.Code == "" {
+		taxConfig.TaxCodeID = nil // clear any stale FK left by a previous read
+		return nil
+	}
+
+	tc, err := s.taxCodeService.GetOrCreateByAppMapping(ctx, taxcode.GetOrCreateByAppMappingInput{
+		Namespace: namespace,
+		AppType:   app.AppTypeStripe,
+		TaxCode:   taxConfig.Stripe.Code,
+	})
+	if err != nil {
+		return fmt.Errorf("resolving default tax code: %w", err)
+	}
+
+	taxConfig.TaxCodeID = lo.ToPtr(tc.ID)
+
+	return nil
 }

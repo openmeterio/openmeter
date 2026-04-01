@@ -26,6 +26,8 @@ import (
 	subscription "github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
+	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
+	taxcodeservice "github.com/openmeterio/openmeter/openmeter/taxcode/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -82,6 +84,13 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 	})
 	require.NoError(t, err)
 
+	taxCodeAdapter, err := taxcodeadapter.New(taxcodeadapter.Config{
+		Client: deps.DBDeps.DBClient,
+		Logger: slog.Default(),
+	})
+	require.NoError(t, err)
+	taxCodeService := taxcodeservice.New(taxCodeAdapter, slog.Default())
+
 	billingService, err := billingservice.New(billingservice.Config{
 		Adapter:                      billingAdapter,
 		RatingService:                billingratingservice.New(),
@@ -94,6 +103,7 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 		Publisher:                    publisher,
 		AdvancementStrategy:          billing.ForegroundAdvancementStrategy,
 		MaxParallelQuantitySnapshots: 2,
+		TaxCodeService:               taxCodeService,
 	})
 	require.NoError(t, err)
 
