@@ -32,6 +32,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -191,6 +192,10 @@ func (e *testEnv) sp() timeutil.ClosedPeriod {
 
 // simply currency based backing (balance doesn't care about most dimensions)
 func (e *testEnv) bookFBOBalance(t *testing.T, amount alpacadecimal.Decimal) {
+	e.bookFBOBalanceInCurrency(t, amount, e.Currency)
+}
+
+func (e *testEnv) bookFBOBalanceInCurrency(t *testing.T, amount alpacadecimal.Decimal, currency currencyx.Code) {
 	t.Helper()
 
 	inputs, err := transactions.ResolveTransactions(
@@ -206,7 +211,7 @@ func (e *testEnv) bookFBOBalance(t *testing.T, amount alpacadecimal.Decimal) {
 		transactions.IssueCustomerReceivableTemplate{
 			At:       e.Now(),
 			Amount:   amount,
-			Currency: e.Currency,
+			Currency: currency,
 		},
 	)
 	require.NoError(t, err)
@@ -216,6 +221,10 @@ func (e *testEnv) bookFBOBalance(t *testing.T, amount alpacadecimal.Decimal) {
 }
 
 func (e *testEnv) createUsageBasedCharge(t *testing.T, unitPrice alpacadecimal.Decimal, settlementMode productcatalog.SettlementMode, servicePeriod timeutil.ClosedPeriod) usagebased.Charge {
+	return e.createUsageBasedChargeInCurrency(t, unitPrice, settlementMode, servicePeriod, e.Currency)
+}
+
+func (e *testEnv) createUsageBasedChargeInCurrency(t *testing.T, unitPrice alpacadecimal.Decimal, settlementMode productcatalog.SettlementMode, servicePeriod timeutil.ClosedPeriod, currency currencyx.Code) usagebased.Charge {
 	t.Helper()
 
 	createdCharges, err := e.usageBasedService.Create(t.Context(), usagebased.CreateInput{
@@ -226,7 +235,7 @@ func (e *testEnv) createUsageBasedCharge(t *testing.T, unitPrice alpacadecimal.D
 					Name:              "API Requests",
 					ManagedBy:         billing.SystemManagedLine,
 					CustomerID:        e.CustomerID.ID,
-					Currency:          e.Currency,
+					Currency:          currency,
 					ServicePeriod:     servicePeriod,
 					FullServicePeriod: servicePeriod,
 					BillingPeriod:     servicePeriod,
@@ -245,6 +254,10 @@ func (e *testEnv) createUsageBasedCharge(t *testing.T, unitPrice alpacadecimal.D
 }
 
 func (e *testEnv) createFlatFeeCharge(t *testing.T, amount alpacadecimal.Decimal, settlementMode productcatalog.SettlementMode, servicePeriod timeutil.ClosedPeriod) flatfee.Charge {
+	return e.createFlatFeeChargeInCurrency(t, amount, settlementMode, servicePeriod, e.Currency)
+}
+
+func (e *testEnv) createFlatFeeChargeInCurrency(t *testing.T, amount alpacadecimal.Decimal, settlementMode productcatalog.SettlementMode, servicePeriod timeutil.ClosedPeriod, currency currencyx.Code) flatfee.Charge {
 	t.Helper()
 
 	createdCharges, err := e.flatFeeService.Create(t.Context(), flatfee.CreateInput{
@@ -255,7 +268,7 @@ func (e *testEnv) createFlatFeeCharge(t *testing.T, amount alpacadecimal.Decimal
 					Name:              "Platform Fee",
 					ManagedBy:         billing.SystemManagedLine,
 					CustomerID:        e.CustomerID.ID,
-					Currency:          e.Currency,
+					Currency:          currency,
 					ServicePeriod:     servicePeriod,
 					FullServicePeriod: servicePeriod,
 					BillingPeriod:     servicePeriod,

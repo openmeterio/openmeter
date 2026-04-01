@@ -38,6 +38,7 @@ import (
 	infohttpdriver "github.com/openmeterio/openmeter/openmeter/info/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	ingesthttpdriver "github.com/openmeterio/openmeter/openmeter/ingest/httpdriver"
+	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meterhttphandler "github.com/openmeterio/openmeter/openmeter/meter/httphandler"
@@ -99,9 +100,11 @@ type Config struct {
 	Billing                     billing.Service
 	BillingInvoicePendingLines  billing.InvoicePendingLinesService
 	BillingFeatureSwitches      config.BillingFeatureSwitchesConfiguration
+	Credits                     config.CreditsConfiguration
 	CurrencyService             currencies.CurrencyService
 	CostService                 cost.Service
 	Customer                    customer.Service
+	CustomerBalanceFacade       *customerbalance.Facade
 	DebugConnector              debug.DebugConnector
 	EntitlementConnector        entitlement.Service
 	EntitlementBalanceConnector meteredentitlement.Connector

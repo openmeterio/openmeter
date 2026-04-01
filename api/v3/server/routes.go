@@ -5,6 +5,7 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	currencieshandler "github.com/openmeterio/openmeter/api/v3/handlers/currencies"
+	customerscreditshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/credits"
 )
 
 // Meters
@@ -322,7 +323,15 @@ func (s *Server) DeletePlanAddon(w http.ResponseWriter, r *http.Request, planId 
 var unimplemented = api.Unimplemented{}
 
 func (s *Server) GetCustomerCreditBalance(w http.ResponseWriter, r *http.Request, customerId api.ULID, params api.GetCustomerCreditBalanceParams) {
-	unimplemented.GetCustomerCreditBalance(w, r, customerId, params)
+	if s.customersCreditsHandler == nil {
+		unimplemented.GetCustomerCreditBalance(w, r, customerId, params)
+		return
+	}
+
+	s.customersCreditsHandler.GetCustomerCreditBalance().With(customerscreditshandler.GetCustomerCreditBalanceParams{
+		CustomerID: customerId,
+		Params:     params,
+	}).ServeHTTP(w, r)
 }
 
 func (s *Server) ListCreditGrants(w http.ResponseWriter, r *http.Request, customerId api.ULID, params api.ListCreditGrantsParams) {

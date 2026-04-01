@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -118,4 +119,31 @@ func TestGetBalance(t *testing.T) {
 			require.True(t, balance.Pending().Equal(alpacadecimal.NewFromInt(tt.wantPending)))
 		})
 	}
+}
+
+func TestGetBalanceWithDifferentCurrency(t *testing.T) {
+	env := newTestEnv(t)
+
+	env.bookFBOBalanceInCurrency(t, alpacadecimal.NewFromInt(100), "USD")
+	env.bookFBOBalanceInCurrency(t, alpacadecimal.NewFromInt(200), "EUR")
+	env.createFlatFeeChargeInCurrency(t, alpacadecimal.NewFromInt(30), productcatalog.CreditOnlySettlementMode, env.sp(), "USD")
+	env.createFlatFeeChargeInCurrency(t, alpacadecimal.NewFromInt(70), productcatalog.CreditOnlySettlementMode, env.sp(), "EUR")
+
+	usdPriority := ledger.DefaultCustomerFBOPriority
+	usdBalance, err := env.Service.GetBalance(t.Context(), env.CustomerID, ledger.RouteFilter{
+		Currency:       currencyx.Code("USD"),
+		CreditPriority: &usdPriority,
+	})
+	require.NoError(t, err)
+	require.True(t, usdBalance.Settled().Equal(alpacadecimal.NewFromInt(100)))
+	require.True(t, usdBalance.Pending().Equal(alpacadecimal.NewFromInt(70)))
+
+	eurPriority := ledger.DefaultCustomerFBOPriority
+	eurBalance, err := env.Service.GetBalance(t.Context(), env.CustomerID, ledger.RouteFilter{
+		Currency:       currencyx.Code("EUR"),
+		CreditPriority: &eurPriority,
+	})
+	require.NoError(t, err)
+	require.True(t, eurBalance.Settled().Equal(alpacadecimal.NewFromInt(200)))
+	require.True(t, eurBalance.Pending().Equal(alpacadecimal.NewFromInt(130)))
 }
