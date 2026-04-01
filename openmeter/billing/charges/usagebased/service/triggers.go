@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func (s *service) AdvanceCharge(ctx context.Context, input usagebased.AdvanceChargeInput) (*usagebased.Charge, error) {
@@ -63,7 +64,7 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 			return nil, err
 		}
 
-		return nil, nil
+		return &stateMachine.Charge, nil
 	})
 }
 
@@ -128,7 +129,9 @@ func (s *service) withLockedCharge(ctx context.Context, chargeID meta.ChargeID, 
 		}
 
 		if charge.Intent.SettlementMode != productcatalog.CreditOnlySettlementMode {
-			return nil, fmt.Errorf("charge %s is not credit_only (settlement_mode=%s)", charge.ID, charge.Intent.SettlementMode)
+			return nil, models.NewGenericNotImplementedError(
+				fmt.Errorf("charge %s is not credit_only (settlement_mode=%s)", charge.ID, charge.Intent.SettlementMode),
+			)
 		}
 
 		return fn(ctx, charge)
