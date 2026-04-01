@@ -157,7 +157,6 @@ func withRetry[T any](ctx context.Context, c *Connector, fn func() (T, error)) (
 
 			// If the connection pool is full, we can retry, hoping for a free connection.
 			if errors.Is(err, clickhouse.ErrAcquireConnTimeout) {
-				c.logger.WarnContext(ctx, "clickhouse acquire connection timeout, connection pool is full", "error", err)
 				return true
 			}
 
