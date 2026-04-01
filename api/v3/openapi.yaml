@@ -7315,6 +7315,7 @@ components:
         unit_cost:
           allOf:
             - $ref: '#/components/schemas/BillingFeatureUnitCost'
+          nullable: true
           description: |-
             Optional per-unit cost configuration.
             Use "manual" for a fixed per-unit cost, or "llm" to look up cost

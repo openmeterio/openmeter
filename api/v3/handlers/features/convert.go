@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/oapi-codegen/nullable"
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
@@ -85,12 +86,18 @@ func convertUpdateRequestToDomain(ns string, featureID string, body api.UpdateFe
 		ID:        featureID,
 	}
 
-	if body.UnitCost != nil {
-		unitCost, err := convertUnitCostFromAPI(body.UnitCost)
+	if body.UnitCost.IsNull() {
+		input.UnitCost = nullable.NewNullNullable[feature.UnitCost]()
+	} else if body.UnitCost.IsSpecified() {
+		v, err := body.UnitCost.Get()
 		if err != nil {
 			return feature.UpdateFeatureInputs{}, fmt.Errorf("invalid unit cost: %w", err)
 		}
-		input.UnitCost = unitCost
+		unitCost, err := convertUnitCostFromAPI(&v)
+		if err != nil {
+			return feature.UpdateFeatureInputs{}, fmt.Errorf("invalid unit cost: %w", err)
+		}
+		input.UnitCost = nullable.NewNullableWithValue(*unitCost)
 	}
 
 	return input, nil

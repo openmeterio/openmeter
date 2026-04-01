@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/oapi-codegen/nullable"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -353,6 +354,40 @@ func TestConvertCreateRequestToDomain(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "prod", result.Metadata["env"])
 		assert.Equal(t, "billing", result.Metadata["team"])
+	})
+}
+
+func TestConvertUpdateRequestToDomain(t *testing.T) {
+	t.Run("with unit cost value", func(t *testing.T) {
+		var uc api.BillingFeatureUnitCost
+		err := uc.FromBillingFeatureManualUnitCost(api.BillingFeatureManualUnitCost{Amount: "0.05"})
+		require.NoError(t, err)
+
+		body := api.UpdateFeatureRequest{UnitCost: nullable.NewNullableWithValue(uc)}
+		result, err := convertUpdateRequestToDomain("ns", "feat-1", body)
+		require.NoError(t, err)
+		assert.Equal(t, "ns", result.Namespace)
+		assert.Equal(t, "feat-1", result.ID)
+		assert.True(t, result.UnitCost.IsSpecified())
+		assert.False(t, result.UnitCost.IsNull())
+		unitCost, err := result.UnitCost.Get()
+		require.NoError(t, err)
+		assert.Equal(t, feature.UnitCostTypeManual, unitCost.Type)
+		assert.Equal(t, "0.05", unitCost.Manual.Amount.String())
+	})
+
+	t.Run("with explicit null clears unit cost", func(t *testing.T) {
+		body := api.UpdateFeatureRequest{UnitCost: nullable.NewNullNullable[api.BillingFeatureUnitCost]()}
+		result, err := convertUpdateRequestToDomain("ns", "feat-1", body)
+		require.NoError(t, err)
+		assert.True(t, result.UnitCost.IsNull())
+	})
+
+	t.Run("with omitted unit cost", func(t *testing.T) {
+		body := api.UpdateFeatureRequest{}
+		result, err := convertUpdateRequestToDomain("ns", "feat-1", body)
+		require.NoError(t, err)
+		assert.False(t, result.UnitCost.IsSpecified())
 	})
 }
 

@@ -57,5 +57,5 @@ model FeatureUpdateRequest {
    * from the LLM cost database based on meter group-by properties.
    */
   @summary("Unit cost")
-  unit_cost?: FeatureUnitCost;
+  unit_cost?: FeatureUnitCost | null;
 }

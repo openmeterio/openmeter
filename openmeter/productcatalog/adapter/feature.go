@@ -104,10 +104,21 @@ func (c *featureDBAdapter) UpdateFeature(ctx context.Context, input feature.Upda
 			dbfeature.ArchivedAtIsNil(),
 		)
 
-	// Clear previous unit cost fields that won't be set, then set new ones
-	if input.UnitCost != nil {
+	// Handle unit cost: null means clear, value means set
+	if input.UnitCost.IsNull() {
+		query = query.
+			ClearUnitCostType().
+			ClearUnitCostManualAmount().
+			ClearUnitCostLlmProviderProperty().
+			ClearUnitCostLlmProvider().
+			ClearUnitCostLlmModelProperty().
+			ClearUnitCostLlmModel().
+			ClearUnitCostLlmTokenTypeProperty().
+			ClearUnitCostLlmTokenType()
+	} else if input.UnitCost.IsSpecified() {
+		unitCost, _ := input.UnitCost.Get()
 		// Always clear the "other type" fields to handle type switches cleanly
-		switch input.UnitCost.Type {
+		switch unitCost.Type {
 		case feature.UnitCostTypeManual:
 			// Clear LLM fields, set manual fields
 			query = query.
@@ -117,23 +128,23 @@ func (c *featureDBAdapter) UpdateFeature(ctx context.Context, input feature.Upda
 				ClearUnitCostLlmModel().
 				ClearUnitCostLlmTokenTypeProperty().
 				ClearUnitCostLlmTokenType().
-				SetUnitCostType(string(input.UnitCost.Type))
-			if input.UnitCost.Manual != nil {
-				query = query.SetUnitCostManualAmount(input.UnitCost.Manual.Amount)
+				SetUnitCostType(string(unitCost.Type))
+			if unitCost.Manual != nil {
+				query = query.SetUnitCostManualAmount(unitCost.Manual.Amount)
 			}
 		case feature.UnitCostTypeLLM:
 			// Clear manual fields, set LLM fields
 			query = query.
 				ClearUnitCostManualAmount().
-				SetUnitCostType(string(input.UnitCost.Type))
-			if input.UnitCost.LLM != nil {
+				SetUnitCostType(string(unitCost.Type))
+			if unitCost.LLM != nil {
 				query = query.
-					SetNillableUnitCostLlmProviderProperty(lo.EmptyableToPtr(input.UnitCost.LLM.ProviderProperty)).
-					SetNillableUnitCostLlmProvider(lo.EmptyableToPtr(input.UnitCost.LLM.Provider)).
-					SetNillableUnitCostLlmModelProperty(lo.EmptyableToPtr(input.UnitCost.LLM.ModelProperty)).
-					SetNillableUnitCostLlmModel(lo.EmptyableToPtr(input.UnitCost.LLM.Model)).
-					SetNillableUnitCostLlmTokenTypeProperty(lo.EmptyableToPtr(input.UnitCost.LLM.TokenTypeProperty)).
-					SetNillableUnitCostLlmTokenType(lo.EmptyableToPtr(input.UnitCost.LLM.TokenType))
+					SetNillableUnitCostLlmProviderProperty(lo.EmptyableToPtr(unitCost.LLM.ProviderProperty)).
+					SetNillableUnitCostLlmProvider(lo.EmptyableToPtr(unitCost.LLM.Provider)).
+					SetNillableUnitCostLlmModelProperty(lo.EmptyableToPtr(unitCost.LLM.ModelProperty)).
+					SetNillableUnitCostLlmModel(lo.EmptyableToPtr(unitCost.LLM.Model)).
+					SetNillableUnitCostLlmTokenTypeProperty(lo.EmptyableToPtr(unitCost.LLM.TokenTypeProperty)).
+					SetNillableUnitCostLlmTokenType(lo.EmptyableToPtr(unitCost.LLM.TokenType))
 			}
 		}
 	}
