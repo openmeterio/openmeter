@@ -162,7 +162,7 @@ func logChargesPatches(ctx context.Context, log *slog.Logger, patches charges.Ap
 		log.Info("patching charge", "charge_id", chargeID, "patch", patch)
 	}
 
-	for chargeID, patch := range patches.Creates {
-		log.Info("creating charge", "charge_id", chargeID, "patch", patch)
+	for _, intent := range patches.Creates {
+		log.Info("creating charge", "intent", intent)
 	}
 }

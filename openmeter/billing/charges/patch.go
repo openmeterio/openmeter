@@ -55,6 +55,10 @@ func (i ApplyPatchesInput) Validate() error {
 
 // ConcatenateApplyPatchesInputs concatenates the given inputs into a single input, while enforcing uniqueness constraints.
 func ConcatenateApplyPatchesInputs(inputs ...ApplyPatchesInput) (ApplyPatchesInput, error) {
+	if len(inputs) == 0 {
+		return ApplyPatchesInput{}, nil
+	}
+
 	result := ApplyPatchesInput{
 		CustomerID:        inputs[0].CustomerID,
 		Creates:           make(ChargeIntents, 0, lo.SumBy(inputs, func(input ApplyPatchesInput) int { return len(input.Creates) })),

@@ -58,7 +58,7 @@ func (s *service) applyPatches(ctx context.Context, customerID customer.Customer
 		}
 
 		if charge.ID.Namespace != customerID.Namespace {
-			return fmt.Errorf("charge %s is not in namespace %s, expected %s", charge.ID.ID, customerID.Namespace, charge.ID.Namespace)
+			return fmt.Errorf("charge %s is not in namespace %s, expected %s", charge.ID.ID, charge.ID.Namespace, customerID.Namespace)
 		}
 	}
 

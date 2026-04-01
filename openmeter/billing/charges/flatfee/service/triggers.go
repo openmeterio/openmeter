@@ -52,7 +52,7 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 			return nil, err
 		}
 
-		return nil, nil
+		return &stateMachine.Charge, nil
 	})
 }
 
