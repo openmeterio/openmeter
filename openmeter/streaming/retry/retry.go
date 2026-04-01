@@ -40,7 +40,11 @@ func (c Config) Validate() error {
 	}
 
 	if c.MaxTries < 1 {
-		errs = append(errs, errors.New("max tries must be at least 1"))
+		errs = append(errs, errors.New("max retries must be greater than or equal to 1"))
+	}
+
+	if c.MaxDelay < 0 {
+		errs = append(errs, errors.New("max delay must not be negative"))
 	}
 
 	return errors.Join(errs...)

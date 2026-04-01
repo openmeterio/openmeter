@@ -67,13 +67,19 @@ func TestConfigValidate(t *testing.T) {
 	t.Run("max tries of 0 is invalid", func(t *testing.T) {
 		cfg := validConfig()
 		cfg.MaxTries = 0
-		assert.ErrorContains(t, cfg.Validate(), "max tries must be at least 1")
+		assert.ErrorContains(t, cfg.Validate(), "max retries must be greater than or equal to 1")
 	})
 
 	t.Run("negative max tries is invalid", func(t *testing.T) {
 		cfg := validConfig()
 		cfg.MaxTries = -1
-		assert.ErrorContains(t, cfg.Validate(), "max tries must be at least 1")
+		assert.ErrorContains(t, cfg.Validate(), "max retries must be greater than or equal to 1")
+	})
+
+	t.Run("negative max delay is invalid", func(t *testing.T) {
+		cfg := validConfig()
+		cfg.MaxDelay = -1
+		assert.ErrorContains(t, cfg.Validate(), "max delay must not be negative")
 	})
 
 	t.Run("multiple errors returned together", func(t *testing.T) {
@@ -82,7 +88,7 @@ func TestConfigValidate(t *testing.T) {
 		assert.ErrorContains(t, err, "downstream connector is required")
 		assert.ErrorContains(t, err, "logger is required")
 		assert.ErrorContains(t, err, "retry wait duration must be greater than 0")
-		assert.ErrorContains(t, err, "max tries must be at least 1")
+		assert.ErrorContains(t, err, "max retries must be greater than or equal to 1")
 	})
 }
 
