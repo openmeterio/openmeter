@@ -120,7 +120,6 @@ type Config struct {
 	NamespaceManager            *namespace.Manager
 	Notification                notification.Service
 	Plan                        plan.Service
-	Credits                     config.CreditsConfiguration
 	PlanAddon                   planaddon.Service
 	PlanSubscriptionService     plansubscription.PlanSubscriptionService
 	PortalCORSEnabled           bool

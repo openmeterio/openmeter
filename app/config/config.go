@@ -48,7 +48,6 @@ type Configuration struct {
 	Notification       NotificationConfiguration
 	ProductCatalog     ProductCatalogConfiguration
 	ProgressManager    ProgressManagerConfiguration
-	Credits            CreditsConfiguration
 	Billing            BillingConfiguration
 	Apps               AppsConfiguration
 	Svix               SvixConfig

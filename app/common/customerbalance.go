@@ -134,9 +134,9 @@ func (s customerBalanceChargeStore) ListCharges(ctx context.Context, input charg
 	for _, item := range searchResult.Items {
 		switch item.Type {
 		case meta.ChargeTypeFlatFee:
-			flatFeeIDs = append(flatFeeIDs, item.ID)
+			flatFeeIDs = append(flatFeeIDs, item.ID.ID)
 		case meta.ChargeTypeUsageBased:
-			usageBasedIDs = append(usageBasedIDs, item.ID)
+			usageBasedIDs = append(usageBasedIDs, item.ID.ID)
 		}
 	}
 
@@ -170,7 +170,7 @@ func (s customerBalanceChargeStore) ListCharges(ctx context.Context, input charg
 
 	items := make([]charges.Charge, 0, len(searchResult.Items))
 	for _, item := range searchResult.Items {
-		charge, ok := chargesByID[item.ID]
+		charge, ok := chargesByID[item.ID.ID]
 		if !ok {
 			continue
 		}
