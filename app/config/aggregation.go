@@ -168,6 +168,10 @@ func (c ClickhouseQueryRetryConfig) Validate() error {
 		errs = append(errs, errors.New("retry wait duration must be greater than 0"))
 	}
 
+	if c.MaxDelay < 0 {
+		errs = append(errs, errors.New("max delay must not be negative"))
+	}
+
 	return errors.Join(errs...)
 }
 
