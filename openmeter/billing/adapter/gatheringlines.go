@@ -243,6 +243,7 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 						u.SetIgnore(billinginvoiceline.FieldCreatedAt)
 					})).
 				UpdateChildUniqueReferenceID().
+				UpdateTaxConfig().
 				UpdateTaxCodeID().
 				UpdateTaxBehavior().
 				Exec(ctx)

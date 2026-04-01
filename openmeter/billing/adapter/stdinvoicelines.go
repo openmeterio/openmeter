@@ -148,6 +148,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					UpdateChildUniqueReferenceID().
 					UpdateCreditsApplied().
 					UpdateChargeID().
+					UpdateTaxConfig().
 					UpdateTaxCodeID().
 					UpdateTaxBehavior().
 					Exec(ctx)
@@ -347,6 +348,7 @@ func (a *adapter) upsertDetailedLines(ctx context.Context, in detailedLineDiff) 
 				UpdateQuantity().
 				UpdateChildUniqueReferenceID().
 				UpdateCreditsApplied().
+				UpdateTaxConfig().
 				UpdateTaxCodeID().
 				UpdateTaxBehavior().
 				Exec(ctx)
