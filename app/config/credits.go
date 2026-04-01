@@ -19,5 +19,5 @@ func (c CreditsConfiguration) Validate() error {
 }
 
 func ConfigureCredits(v *viper.Viper) {
-	v.SetDefault("credit.enabled", false)
+	v.SetDefault("credits.enabled", false)
 }

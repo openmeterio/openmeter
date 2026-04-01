@@ -1269,4 +1269,56 @@ func TestSettlementMode(t *testing.T) {
 		require.Nil(t, err)
 		assert.Equal(t, 400, res.StatusCode(), "received the following body: %s", res.Body)
 	})
+
+	t.Run("Should reject a plan update with credit_only settlement mode when credit is disabled", func(t *testing.T) {
+		// First create a valid plan with allowed settlement mode
+		createRes, err := client.CreatePlanWithResponse(ctx, api.PlanCreate{
+			Key:            "test_plan_settlement_update_credit_only",
+			Name:           "Credit Only Plan Update Test",
+			Currency:       "USD",
+			BillingCadence: "P1M",
+			SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditThenInvoice),
+			Phases:         []api.PlanPhase{defaultPhase},
+		})
+		require.Nil(t, err)
+		require.Equal(t, 201, createRes.StatusCode(), "received the following body: %s", createRes.Body)
+		require.NotNil(t, createRes.JSON201)
+
+		// Then try to update it with credit_only mode (should fail)
+		res, err := client.UpdatePlanWithResponse(ctx, createRes.JSON201.Id, api.PlanReplaceUpdate{
+			Name:           "Credit Only Plan Updated",
+			BillingCadence: "P1M",
+			SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditOnly),
+			Phases:         []api.PlanPhase{defaultPhase},
+		})
+		require.Nil(t, err)
+		assert.Equal(t, 400, res.StatusCode(), "received the following body: %s", res.Body)
+		require.NotNil(t, res.ApplicationproblemJSON400)
+		assert.Contains(t, res.ApplicationproblemJSON400.Detail, "credits are not enabled on this deployment of OpenMeter")
+	})
+
+	t.Run("Should accept a plan update with credit_then_invoice settlement mode and return it in the response", func(t *testing.T) {
+		createRes, err := client.CreatePlanWithResponse(ctx, api.PlanCreate{
+			Key:            "test_plan_settlement_update_cti",
+			Name:           "Update Test Plan",
+			Currency:       "USD",
+			BillingCadence: "P1M",
+			SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditThenInvoice),
+			Phases:         []api.PlanPhase{defaultPhase},
+		})
+		require.Nil(t, err)
+		require.Equal(t, 201, createRes.StatusCode(), "received the following body: %s", createRes.Body)
+		require.NotNil(t, createRes.JSON201)
+
+		res, err := client.UpdatePlanWithResponse(ctx, createRes.JSON201.Id, api.PlanReplaceUpdate{
+			Name:           "Update Test Plan Updated",
+			BillingCadence: "P1M",
+			SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditThenInvoice),
+			Phases:         []api.PlanPhase{defaultPhase},
+		})
+		require.Nil(t, err)
+		require.Equal(t, 200, res.StatusCode(), "received the following body: %s", res.Body)
+		require.NotNil(t, res.JSON200)
+		assert.Equal(t, lo.ToPtr(api.BillingSettlementModeCreditThenInvoice), res.JSON200.SettlementMode)
+	})
 }
