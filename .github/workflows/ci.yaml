@@ -525,6 +525,8 @@ jobs:
   artifacts:
     name: Artifacts
     uses: ./.github/workflows/artifacts.yaml
+    # Skip artifact building for forks
+    if: github.event.pull_request.head.repo.full_name == github.repository
     with:
       publish: ${{ github.event_name == 'push' }}
     permissions:
