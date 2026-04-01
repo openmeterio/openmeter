@@ -106,6 +106,7 @@ func NewCustomerBalanceService(
 
 	return customerbalance.New(customerbalance.Config{
 		AccountResolver:   accountResolver,
+		SubAccountService: accountService,
 		ChargesService:    customerBalanceChargeStore{search: searchAdapter, flatFeeService: flatFeeService, usageBasedService: usageService},
 		UsageBasedService: usageService,
 	})

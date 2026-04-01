@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/invopop/gobl/currency"
-
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -69,8 +67,6 @@ func (f *Facade) GetBalances(ctx context.Context, input GetBalancesInput) ([]Bal
 		return nil, errors.New("facade is required")
 	}
 
-	_ = ctx
-
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -78,22 +74,18 @@ func (f *Facade) GetBalances(ctx context.Context, input GetBalancesInput) ([]Bal
 	var codes []currencyx.Code
 	if len(input.Currencies.Codes) > 0 {
 		codes = dedupeCurrencies(input.Currencies.Codes)
-	} else {
-		codes = make([]currencyx.Code, 0, len(currency.Definitions()))
-		for _, def := range currency.Definitions() {
-			if def.ISONumeric == "" {
-				continue
+
+		for _, code := range codes {
+			if err := code.Validate(); err != nil {
+				return nil, fmt.Errorf("currency %q is not supported by ledger: %w", code, err)
 			}
-
-			codes = append(codes, currencyx.Code(def.ISOCode))
 		}
+	} else {
+		var err error
 
-		codes = dedupeCurrencies(codes)
-	}
-
-	for _, code := range codes {
-		if err := code.Validate(); err != nil {
-			return nil, fmt.Errorf("currency %q is not supported by ledger: %w", code, err)
+		codes, err = f.service.getFBOCurrencies(ctx, input.CustomerID)
+		if err != nil {
+			return nil, fmt.Errorf("get FBO currencies: %w", err)
 		}
 	}
 

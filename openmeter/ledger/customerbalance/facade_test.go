@@ -53,6 +53,8 @@ func TestFacadeGetBalancesWithDiscoveredCurrencies(t *testing.T) {
 		CustomerID: env.CustomerID,
 	})
 	require.NoError(t, err)
+	require.Len(t, balances, 2)
+
 	var usdCount, eurCount int
 	for _, balance := range balances {
 		switch balance.Currency {

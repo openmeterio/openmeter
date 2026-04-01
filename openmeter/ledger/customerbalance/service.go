@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -23,6 +24,10 @@ import (
 
 type chargesService interface {
 	ListCharges(ctx context.Context, input charges.ListChargesInput) (pagination.Result[charges.Charge], error)
+}
+
+type subAccountLister interface {
+	ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubAccountsInput) ([]*ledgeraccount.SubAccount, error)
 }
 
 type usageBasedTotalsService interface {
@@ -40,6 +45,7 @@ const chargeListPageSize = 100
 // - this should be used for balance queries until the RTE is implemented
 type Service struct {
 	AccountResolver   ledger.AccountResolver
+	SubAccountService subAccountLister
 	ChargesService    chargesService
 	UsageBasedService usageBasedTotalsService
 
@@ -48,6 +54,7 @@ type Service struct {
 
 type Config struct {
 	AccountResolver   ledger.AccountResolver
+	SubAccountService subAccountLister
 	ChargesService    chargesService
 	UsageBasedService usageBasedTotalsService
 }
@@ -57,6 +64,10 @@ func (c Config) Validate() error {
 
 	if c.AccountResolver == nil {
 		errs = append(errs, errors.New("account resolver is required"))
+	}
+
+	if c.SubAccountService == nil {
+		errs = append(errs, errors.New("sub account service is required"))
 	}
 
 	if c.ChargesService == nil {
@@ -77,6 +88,7 @@ func New(config Config) (*Service, error) {
 
 	return &Service{
 		AccountResolver:   config.AccountResolver,
+		SubAccountService: config.SubAccountService,
 		ChargesService:    config.ChargesService,
 		UsageBasedService: config.UsageBasedService,
 		balanceCalculator: chargePendingBalanceCalculator{},
@@ -107,6 +119,41 @@ func (s *Service) GetBalance(ctx context.Context, customerID customer.CustomerID
 		settled: bookedBalance.Settled(),
 		pending: s.balanceCalculator.CalculatePendingBalance(bookedBalance.Pending(), impacts),
 	}, nil
+}
+
+func (s *Service) getFBOCurrencies(ctx context.Context, customerID customer.CustomerID) ([]currencyx.Code, error) {
+	customerAccounts, err := s.AccountResolver.GetCustomerAccounts(ctx, customerID)
+	if err != nil {
+		return nil, fmt.Errorf("get customer accounts: %w", err)
+	}
+
+	fboAccount, ok := customerAccounts.FBOAccount.(*ledgeraccount.CustomerFBOAccount)
+	if !ok {
+		return nil, fmt.Errorf("customer FBO account: unexpected type %T", customerAccounts.FBOAccount)
+	}
+
+	subAccounts, err := s.SubAccountService.ListSubAccounts(ctx, ledgeraccount.ListSubAccountsInput{
+		Namespace: fboAccount.ID().Namespace,
+		AccountID: fboAccount.ID().ID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list sub accounts: %w", err)
+	}
+
+	seen := make(map[currencyx.Code]struct{}, len(subAccounts))
+	codes := make([]currencyx.Code, 0, len(subAccounts))
+
+	for _, sa := range subAccounts {
+		c := sa.Route().Currency
+		if _, ok := seen[c]; ok {
+			continue
+		}
+
+		seen[c] = struct{}{}
+		codes = append(codes, c)
+	}
+
+	return codes, nil
 }
 
 func (s *Service) getChargePendingBalanceImpacts(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code) ([]Impact, error) {
@@ -240,6 +287,10 @@ func (s *Service) validate(customerID customer.CustomerID, filters ledger.RouteF
 	} else {
 		if s.AccountResolver == nil {
 			errs = append(errs, errors.New("account resolver is required"))
+		}
+
+		if s.SubAccountService == nil {
+			errs = append(errs, errors.New("sub account service is required"))
 		}
 
 		if s.ChargesService == nil {

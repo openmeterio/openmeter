@@ -156,7 +156,8 @@ func newTestEnv(t *testing.T) *testEnv {
 	require.NoError(t, err)
 
 	service, err := New(Config{
-		AccountResolver: base.Deps.ResolversService,
+		AccountResolver:   base.Deps.ResolversService,
+		SubAccountService: base.Deps.AccountService,
 		ChargesService: chargeStore{
 			search:            searchAdapter,
 			flatFeeService:    flatFeeService,

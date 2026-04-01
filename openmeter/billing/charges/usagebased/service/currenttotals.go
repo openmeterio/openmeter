@@ -51,7 +51,7 @@ func (s *service) GetCurrentTotals(ctx context.Context, input usagebased.GetCurr
 		Charge:         charge,
 		Customer:       customerOverride,
 		FeatureMeter:   featureMeter,
-		StoredAtOffset: clock.Now().Add(-usagebased.InternalCollectionPeriod),
+		StoredAtOffset: clock.Now(),
 	})
 	if err != nil {
 		return usagebased.GetCurrentTotalsResult{}, fmt.Errorf("get rating for usage: %w", err)
