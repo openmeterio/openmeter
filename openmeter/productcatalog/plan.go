@@ -295,6 +295,10 @@ func (p PlanMeta) Equal(o PlanMeta) bool {
 		return false
 	}
 
+	if p.SettlementMode != o.SettlementMode {
+		return false
+	}
+
 	return true
 }
 

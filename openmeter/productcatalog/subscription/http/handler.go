@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	appconfig "github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
@@ -35,6 +36,7 @@ type HandlerConfig struct {
 	PlanSubscriptionService     plansubscription.PlanSubscriptionService
 	NamespaceDecoder            namespacedriver.NamespaceDecoder
 	Logger                      *slog.Logger
+	Credits                     appconfig.CreditsConfiguration
 }
 
 type handler struct {

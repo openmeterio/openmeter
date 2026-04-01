@@ -116,6 +116,7 @@ type Config struct {
 	NamespaceManager            *namespace.Manager
 	Notification                notification.Service
 	Plan                        plan.Service
+	Credits                     config.CreditsConfiguration
 	PlanAddon                   planaddon.Service
 	PlanSubscriptionService     plansubscription.PlanSubscriptionService
 	PortalCORSEnabled           bool
@@ -423,6 +424,7 @@ func NewRouter(config Config) (*Router, error) {
 	router.planHandler = planhttpdriver.New(
 		staticNamespaceDecoder,
 		config.Plan,
+		config.Credits,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
@@ -463,6 +465,7 @@ func NewRouter(config Config) (*Router, error) {
 			NamespaceDecoder:            staticNamespaceDecoder,
 			CustomerService:             config.Customer,
 			Logger:                      config.Logger,
+			Credits:                     config.Credits,
 		},
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
