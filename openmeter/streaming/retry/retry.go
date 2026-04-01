@@ -57,16 +57,9 @@ type Connector struct {
 
 var _ streaming.Connector = (*Connector)(nil)
 
-const defaultMaxDelay = 10 * time.Second
-
 func New(config Config) (*Connector, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
-	}
-
-	if config.MaxDelay == 0 {
-		config.Logger.Debug("max delay not set, using default", "max_delay", defaultMaxDelay)
-		config.MaxDelay = defaultMaxDelay
 	}
 
 	return &Connector{

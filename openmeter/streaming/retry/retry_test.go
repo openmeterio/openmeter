@@ -92,15 +92,6 @@ func TestNewConnector(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("max delay defaults when not set", func(t *testing.T) {
-		cfg := validConfig()
-		cfg.MaxDelay = 0
-
-		c, err := New(cfg)
-		require.NoError(t, err)
-		assert.Equal(t, 10*time.Second, c.maxDelay)
-	})
-
 	t.Run("max delay is preserved when set", func(t *testing.T) {
 		cfg := validConfig()
 		cfg.MaxDelay = 30 * time.Second
