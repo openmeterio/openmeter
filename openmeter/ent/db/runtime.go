@@ -1088,22 +1088,26 @@ func init() {
 	chargeflatfeecreditallocationsDescLedgerTransactionGroupID := chargeflatfeecreditallocationsMixinFields0[4].Descriptor()
 	// chargeflatfeecreditallocations.LedgerTransactionGroupIDValidator is a validator for the "ledger_transaction_group_id" field. It is called by the builders before save.
 	chargeflatfeecreditallocations.LedgerTransactionGroupIDValidator = chargeflatfeecreditallocationsDescLedgerTransactionGroupID.Validators[0].(func(string) error)
+	// chargeflatfeecreditallocationsDescCorrectsRealizationID is the schema descriptor for corrects_realization_id field.
+	chargeflatfeecreditallocationsDescCorrectsRealizationID := chargeflatfeecreditallocationsMixinFields0[7].Descriptor()
+	// chargeflatfeecreditallocations.CorrectsRealizationIDValidator is a validator for the "corrects_realization_id" field. It is called by the builders before save.
+	chargeflatfeecreditallocations.CorrectsRealizationIDValidator = chargeflatfeecreditallocationsDescCorrectsRealizationID.Validators[0].(func(string) error)
 	// chargeflatfeecreditallocationsDescNamespace is the schema descriptor for namespace field.
-	chargeflatfeecreditallocationsDescNamespace := chargeflatfeecreditallocationsMixinFields0[6].Descriptor()
+	chargeflatfeecreditallocationsDescNamespace := chargeflatfeecreditallocationsMixinFields0[8].Descriptor()
 	// chargeflatfeecreditallocations.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	chargeflatfeecreditallocations.NamespaceValidator = chargeflatfeecreditallocationsDescNamespace.Validators[0].(func(string) error)
 	// chargeflatfeecreditallocationsDescCreatedAt is the schema descriptor for created_at field.
-	chargeflatfeecreditallocationsDescCreatedAt := chargeflatfeecreditallocationsMixinFields0[8].Descriptor()
+	chargeflatfeecreditallocationsDescCreatedAt := chargeflatfeecreditallocationsMixinFields0[10].Descriptor()
 	// chargeflatfeecreditallocations.DefaultCreatedAt holds the default value on creation for the created_at field.
 	chargeflatfeecreditallocations.DefaultCreatedAt = chargeflatfeecreditallocationsDescCreatedAt.Default.(func() time.Time)
 	// chargeflatfeecreditallocationsDescUpdatedAt is the schema descriptor for updated_at field.
-	chargeflatfeecreditallocationsDescUpdatedAt := chargeflatfeecreditallocationsMixinFields0[9].Descriptor()
+	chargeflatfeecreditallocationsDescUpdatedAt := chargeflatfeecreditallocationsMixinFields0[11].Descriptor()
 	// chargeflatfeecreditallocations.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	chargeflatfeecreditallocations.DefaultUpdatedAt = chargeflatfeecreditallocationsDescUpdatedAt.Default.(func() time.Time)
 	// chargeflatfeecreditallocations.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	chargeflatfeecreditallocations.UpdateDefaultUpdatedAt = chargeflatfeecreditallocationsDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// chargeflatfeecreditallocationsDescID is the schema descriptor for id field.
-	chargeflatfeecreditallocationsDescID := chargeflatfeecreditallocationsMixinFields0[7].Descriptor()
+	chargeflatfeecreditallocationsDescID := chargeflatfeecreditallocationsMixinFields0[9].Descriptor()
 	// chargeflatfeecreditallocations.DefaultID holds the default value on creation for the id field.
 	chargeflatfeecreditallocations.DefaultID = chargeflatfeecreditallocationsDescID.Default.(func() string)
 	chargeflatfeeinvoicedusageMixin := schema.ChargeFlatFeeInvoicedUsage{}.Mixin()
@@ -1222,22 +1226,26 @@ func init() {
 	chargeusagebasedruncreditallocationsDescLedgerTransactionGroupID := chargeusagebasedruncreditallocationsMixinFields0[4].Descriptor()
 	// chargeusagebasedruncreditallocations.LedgerTransactionGroupIDValidator is a validator for the "ledger_transaction_group_id" field. It is called by the builders before save.
 	chargeusagebasedruncreditallocations.LedgerTransactionGroupIDValidator = chargeusagebasedruncreditallocationsDescLedgerTransactionGroupID.Validators[0].(func(string) error)
+	// chargeusagebasedruncreditallocationsDescCorrectsRealizationID is the schema descriptor for corrects_realization_id field.
+	chargeusagebasedruncreditallocationsDescCorrectsRealizationID := chargeusagebasedruncreditallocationsMixinFields0[7].Descriptor()
+	// chargeusagebasedruncreditallocations.CorrectsRealizationIDValidator is a validator for the "corrects_realization_id" field. It is called by the builders before save.
+	chargeusagebasedruncreditallocations.CorrectsRealizationIDValidator = chargeusagebasedruncreditallocationsDescCorrectsRealizationID.Validators[0].(func(string) error)
 	// chargeusagebasedruncreditallocationsDescNamespace is the schema descriptor for namespace field.
-	chargeusagebasedruncreditallocationsDescNamespace := chargeusagebasedruncreditallocationsMixinFields0[6].Descriptor()
+	chargeusagebasedruncreditallocationsDescNamespace := chargeusagebasedruncreditallocationsMixinFields0[8].Descriptor()
 	// chargeusagebasedruncreditallocations.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	chargeusagebasedruncreditallocations.NamespaceValidator = chargeusagebasedruncreditallocationsDescNamespace.Validators[0].(func(string) error)
 	// chargeusagebasedruncreditallocationsDescCreatedAt is the schema descriptor for created_at field.
-	chargeusagebasedruncreditallocationsDescCreatedAt := chargeusagebasedruncreditallocationsMixinFields0[8].Descriptor()
+	chargeusagebasedruncreditallocationsDescCreatedAt := chargeusagebasedruncreditallocationsMixinFields0[10].Descriptor()
 	// chargeusagebasedruncreditallocations.DefaultCreatedAt holds the default value on creation for the created_at field.
 	chargeusagebasedruncreditallocations.DefaultCreatedAt = chargeusagebasedruncreditallocationsDescCreatedAt.Default.(func() time.Time)
 	// chargeusagebasedruncreditallocationsDescUpdatedAt is the schema descriptor for updated_at field.
-	chargeusagebasedruncreditallocationsDescUpdatedAt := chargeusagebasedruncreditallocationsMixinFields0[9].Descriptor()
+	chargeusagebasedruncreditallocationsDescUpdatedAt := chargeusagebasedruncreditallocationsMixinFields0[11].Descriptor()
 	// chargeusagebasedruncreditallocations.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	chargeusagebasedruncreditallocations.DefaultUpdatedAt = chargeusagebasedruncreditallocationsDescUpdatedAt.Default.(func() time.Time)
 	// chargeusagebasedruncreditallocations.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	chargeusagebasedruncreditallocations.UpdateDefaultUpdatedAt = chargeusagebasedruncreditallocationsDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// chargeusagebasedruncreditallocationsDescID is the schema descriptor for id field.
-	chargeusagebasedruncreditallocationsDescID := chargeusagebasedruncreditallocationsMixinFields0[7].Descriptor()
+	chargeusagebasedruncreditallocationsDescID := chargeusagebasedruncreditallocationsMixinFields0[9].Descriptor()
 	// chargeusagebasedruncreditallocations.DefaultID holds the default value on creation for the id field.
 	chargeusagebasedruncreditallocations.DefaultID = chargeusagebasedruncreditallocationsDescID.Default.(func() string)
 	chargeusagebasedruninvoicedusageMixin := schema.ChargeUsageBasedRunInvoicedUsage{}.Mixin()

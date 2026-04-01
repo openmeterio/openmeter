@@ -163,6 +163,7 @@ func (ChargeUsageBasedRuns) Edges() []ent.Edge {
 			Required().
 			Immutable(),
 		edge.To("credit_allocations", ChargeUsageBasedRunCreditAllocations.Type).
+			StorageKey(edge.Symbol("charge_ub_run_credit_alloc_run")).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("invoiced_usage", ChargeUsageBasedRunInvoicedUsage.Type).
 			Unique().
@@ -185,7 +186,9 @@ type ChargeUsageBasedRunCreditAllocations struct {
 
 func (ChargeUsageBasedRunCreditAllocations) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		creditrealization.Mixin{},
+		creditrealization.Mixin{
+			SelfReferenceType: ChargeUsageBasedRunCreditAllocations.Type,
+		},
 	}
 }
 

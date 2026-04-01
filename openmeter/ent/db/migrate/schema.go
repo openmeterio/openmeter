@@ -1962,6 +1962,7 @@ var (
 		{Name: "service_period_to", Type: field.TypeTime},
 		{Name: "ledger_transaction_group_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "sort_hint", Type: field.TypeInt},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"allocation", "correction"}},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
@@ -1969,6 +1970,7 @@ var (
 		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "line_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "charge_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "corrects_realization_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// ChargeFlatFeeCreditAllocationsTable holds the schema information for the "charge_flat_fee_credit_allocations" table.
 	ChargeFlatFeeCreditAllocationsTable = &schema.Table{
@@ -1978,22 +1980,28 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_flat_fee_credit_allocations_billing_invoice_lines_charge_flat_fee_credit_allocations",
-				Columns:    []*schema.Column{ChargeFlatFeeCreditAllocationsColumns[11]},
+				Columns:    []*schema.Column{ChargeFlatFeeCreditAllocationsColumns[12]},
 				RefColumns: []*schema.Column{BillingInvoiceLinesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
-				Symbol:     "charge_flat_fee_credit_allocations_charge_flat_fees_credit_allocations",
-				Columns:    []*schema.Column{ChargeFlatFeeCreditAllocationsColumns[12]},
+				Symbol:     "charge_ff_credit_alloc_flat_fee",
+				Columns:    []*schema.Column{ChargeFlatFeeCreditAllocationsColumns[13]},
 				RefColumns: []*schema.Column{ChargeFlatFeesColumns[0]},
 				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "charge_flat_fee_credit_allocations_charge_flat_fee_credit_allocations_allocation",
+				Columns:    []*schema.Column{ChargeFlatFeeCreditAllocationsColumns[14]},
+				RefColumns: []*schema.Column{ChargeFlatFeeCreditAllocationsColumns[0]},
+				OnDelete:   schema.SetNull,
 			},
 		},
 		Indexes: []*schema.Index{
 			{
 				Name:    "chargeflatfeecreditallocations_namespace",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeFlatFeeCreditAllocationsColumns[6]},
+				Columns: []*schema.Column{ChargeFlatFeeCreditAllocationsColumns[7]},
 			},
 			{
 				Name:    "chargeflatfeecreditallocations_id",
@@ -2003,7 +2011,7 @@ var (
 			{
 				Name:    "chargeflatfeecreditallocations_annotations",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeFlatFeeCreditAllocationsColumns[10]},
+				Columns: []*schema.Column{ChargeFlatFeeCreditAllocationsColumns[11]},
 				Annotation: &entsql.IndexAnnotation{
 					Types: map[string]string{
 						"postgres": "GIN",
@@ -2260,11 +2268,13 @@ var (
 		{Name: "service_period_to", Type: field.TypeTime},
 		{Name: "ledger_transaction_group_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "sort_hint", Type: field.TypeInt},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"allocation", "correction"}},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "corrects_realization_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "run_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// ChargeUsageBasedRunCreditAllocationsTable holds the schema information for the "charge_usage_based_run_credit_allocations" table.
@@ -2274,8 +2284,14 @@ var (
 		PrimaryKey: []*schema.Column{ChargeUsageBasedRunCreditAllocationsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "charge_usage_based_run_credit_allocations_charge_usage_based_runs_credit_allocations",
-				Columns:    []*schema.Column{ChargeUsageBasedRunCreditAllocationsColumns[12]},
+				Symbol:     "charge_usage_based_run_credit_allocations_charge_usage_based_run_credit_allocations_allocation",
+				Columns:    []*schema.Column{ChargeUsageBasedRunCreditAllocationsColumns[13]},
+				RefColumns: []*schema.Column{ChargeUsageBasedRunCreditAllocationsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "charge_ub_run_credit_alloc_run",
+				Columns:    []*schema.Column{ChargeUsageBasedRunCreditAllocationsColumns[14]},
 				RefColumns: []*schema.Column{ChargeUsageBasedRunsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -2284,7 +2300,7 @@ var (
 			{
 				Name:    "chargeusagebasedruncreditallocations_namespace",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedRunCreditAllocationsColumns[7]},
+				Columns: []*schema.Column{ChargeUsageBasedRunCreditAllocationsColumns[8]},
 			},
 			{
 				Name:    "chargeusagebasedruncreditallocations_id",
@@ -2294,7 +2310,7 @@ var (
 			{
 				Name:    "chargeusagebasedruncreditallocations_annotations",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedRunCreditAllocationsColumns[11]},
+				Columns: []*schema.Column{ChargeUsageBasedRunCreditAllocationsColumns[12]},
 				Annotation: &entsql.IndexAnnotation{
 					Types: map[string]string{
 						"postgres": "GIN",
@@ -4643,6 +4659,7 @@ func init() {
 	ChargeFlatFeesTable.ForeignKeys[3].RefTable = SubscriptionPhasesTable
 	ChargeFlatFeeCreditAllocationsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
 	ChargeFlatFeeCreditAllocationsTable.ForeignKeys[1].RefTable = ChargeFlatFeesTable
+	ChargeFlatFeeCreditAllocationsTable.ForeignKeys[2].RefTable = ChargeFlatFeeCreditAllocationsTable
 	ChargeFlatFeeInvoicedUsagesTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
 	ChargeFlatFeeInvoicedUsagesTable.ForeignKeys[1].RefTable = ChargeFlatFeesTable
 	ChargeFlatFeePaymentsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
@@ -4655,7 +4672,8 @@ func init() {
 	ChargeUsageBasedTable.Annotation = &entsql.Annotation{
 		Table: "charge_usage_based",
 	}
-	ChargeUsageBasedRunCreditAllocationsTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunsTable
+	ChargeUsageBasedRunCreditAllocationsTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunCreditAllocationsTable
+	ChargeUsageBasedRunCreditAllocationsTable.ForeignKeys[1].RefTable = ChargeUsageBasedRunsTable
 	ChargeUsageBasedRunInvoicedUsagesTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunsTable
 	ChargeUsageBasedRunPaymentsTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunsTable
 	ChargeUsageBasedRunsTable.ForeignKeys[0].RefTable = ChargeUsageBasedTable

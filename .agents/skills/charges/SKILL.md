@@ -160,7 +160,10 @@ High-level transitions:
 4. `active.final_realization.waiting_for_collection -> active.final_realization.processing`
    - guarded by `IsAfterCollectionPeriod(...)`
 5. `active.final_realization.processing -> active.final_realization.completed`
-   - `FinalizeRealizationRun(...)` updates the run and allocations
+   - `FinalizeRealizationRun(...)` re-rates usage, computes delta vs initial run totals, then:
+     - positive delta → allocates additional credits via `allocateCredits`
+     - negative delta → corrects existing allocations via `Realizations.Correct()` with handler callback `OnCreditsOnlyUsageAccruedCorrection`
+     - zero delta → no-op
 6. `active.final_realization.completed -> final`
    - clears `AdvanceAfter`
 
@@ -198,7 +201,7 @@ Key differences from usage-based credits-only:
 
 Service construction requires a `*lockr.Locker` (same as usage-based).
 
-Handler interface: `OnCreditsOnlyUsageAccrued(ctx, OnCreditsOnlyUsageAccruedInput)` returns `[]creditrealization.CreateInput`. The production implementation in `ledger/chargeadapter/flatfee.go` is stubbed as not-implemented; the test handler is in `charges/service/handlers_test.go`.
+Handler interface: `OnCreditsOnlyUsageAccrued(ctx, OnCreditsOnlyUsageAccruedInput)` returns `creditrealization.CreateAllocationInputs`. The production implementation in `ledger/chargeadapter/flatfee.go` is stubbed as not-implemented; the test handler is in `charges/service/handlers_test.go`.
 
 Flat fee credit-only charges start with `InitialStatus: meta.ChargeStatusCreated` (not `Active`). The invoiced path still starts as `Active`.
 
@@ -338,7 +341,55 @@ When changing flat-fee charges:
 - `flatfee.Adapter.UpdateCharge(...)` takes the full `flatfee.Charge`, not a `ChargeBase` — extract `State.AdvanceAfter` when building `chargemeta.UpdateInput`
 - the `flatfee.Handler` interface has both invoiced-path methods and credits-only methods — implementors must satisfy all of them
 - adding new `Handler` methods requires updating: `ledger/chargeadapter/flatfee.go`, `test/credits/mockledger.go`, `charges/service/handlers_test.go`
+- the same applies to `usagebased.Handler` — new methods must be added to `UnimplementedHandler`, the ledger adapter, and the test handler
+
+Usage-based handler interface (`usagebased.Handler`):
+- `OnCreditsOnlyUsageAccrued(ctx, CreditsOnlyUsageAccruedInput)` → `creditrealization.CreateAllocationInputs` — allocate credits for a realization run
+- `OnCreditsOnlyUsageAccruedCorrection(ctx, CreditsOnlyUsageAccruedCorrectionInput)` → `creditrealization.CreateCorrectionInputs` — correct (partially revert) existing credit allocations when finalization discovers usage decreased
 - `flatfee/service/service.go` Config requires a `*lockr.Locker` — when constructing in tests, create the locker before the flat fee service
+
+## Credit Realization Model
+
+The `creditrealization` package (`openmeter/billing/charges/models/creditrealization/`) defines the domain model for credit allocations and corrections (partial/full reverts).
+
+### Type hierarchy
+
+- `CreateAllocationInput` — positive-amount allocation input (has `LineID`). Collection type: `CreateAllocationInputs`.
+- `CreateCorrectionInput` — positive-amount correction request (has `CorrectsRealizationID`). Collection type: `CreateCorrectionInputs`.
+- `CreateInput` — unified DB write input (used by both allocations and corrections). Has `Type` field (`TypeAllocation` or `TypeCorrection`). Collection type: `CreateInputs`.
+- `Realization` — full model read from DB, embeds `CreateInput` + `NamespacedModel` + `ManagedModel` + `SortHint`.
+- `Realizations` — slice of `Realization` with query/aggregation methods.
+
+### Sign convention
+
+- **Allocations** have **positive** `Amount` in `CreateInput` and DB.
+- **Corrections** have **negative** `Amount` in `CreateInput` and DB (negated by `AsCreateInputs`).
+- `CreateCorrectionInput.Amount` is always **positive** (the amount to correct). It gets negated when converting to `CreateInput` via `CreateCorrectionInputs.AsCreateInputs()`.
+- `Realizations.Sum()` returns the net total (allocations minus corrections).
+- `allocationsWithCorrections()` computes remaining amounts by calling `.Sub(corrections.Sum())` on each allocation. Since corrections have negative amounts in the DB, `corrections.Sum()` is negative, and `.Sub(negative)` correctly adds back — resulting in `remaining = allocation + |corrections|`. **This is wrong** — it makes remaining larger than the allocation. This is a known sign-convention risk: the `Sub` works correctly only if corrections are stored with positive amounts (old convention) or if the code is updated to use `.Add(corrections.Sum())` with the new negative convention.
+
+### Correction flow
+
+The full correction orchestration is `Realizations.Correct(amount, currency, callback)`:
+
+1. `CreateCorrectionRequest(amount, currency)` — builds `CorrectionRequest` items in **reverse** creation order (latest allocation first)
+2. `CorrectionRequest.ValidateWith(currency)` — validates the request items
+3. Calls `callback(req)` — caller (ledger handler) maps request items to `CreateCorrectionInputs` with ledger transaction references
+4. `CreateCorrectionInputs.ValidateWith(realizations, totalAmount, currency)` — validates corrections don't exceed remaining per-allocation amounts
+5. `CreateCorrectionInputs.AsCreateInputs(realizations)` — maps to `[]CreateInput` with negated amounts, copies `ServicePeriod` from the corrected allocation
+
+### Unit test patterns for creditrealization
+
+Tests are in `correction_test.go` (same package, not `_test`). Reusable helpers:
+
+- `allocationBuilder` — builds allocation `Realization` entries with auto-incrementing `SortHint` and configurable `CreatedAt`
+- `correctionFor(allocation, amount)` — builds a correction `Realization` targeting a given allocation
+- `correctionCallback(txGroupID)` — returns a `func(CorrectionRequest) (CreateCorrectionInputs, error)` for use with `Correct()`
+- `correctionRequestAmounts(cr)` / `correctionRequestAllocationIDs(cr)` — extract slices for assertions
+- `correctionInputsSum(inputs)` — sums `CreateCorrectionInputs` amounts
+- `testCurrency(t)` — returns a USD `currencyx.Calculator`
+
+Test structure follows the `rate_test` pattern: declarative test cases with `t.Run` subtests, shared helpers, no DB required.
 
 ## Adapter Gotchas
 
@@ -346,3 +397,4 @@ When changing flat-fee charges:
 - `GetByMetas` re-orders output to match input order; use `lo.KeyBy` (not `lo.GroupBy`) when building an intermediate lookup map — `GroupBy` produces `map[K][]V` and requires `[0]` indexing, `KeyBy` gives `map[K]V` directly
 - `refetchCharge` in the state machine is a known interim pattern — the preferred direction is in-memory charge updates after adapter writes; avoid adding new `refetchCharge` calls without discussion
 - `buildCreateUsageBasedCharge` is a builder chain — do not call the same setter twice (Ent builder chains accept duplicate `.SetX` calls silently, the last one wins)
+- `currencyx.Calculator.IsRoundedToPrecision(amount)` is the preferred way to check if an amount is rounded to currency precision — use it instead of manual `RoundToPrecision(x).Equal(x)` patterns

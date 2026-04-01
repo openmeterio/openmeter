@@ -71,6 +71,7 @@ func (ChargeFlatFee) Fields() []ent.Field {
 func (ChargeFlatFee) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("credit_allocations", ChargeFlatFeeCreditAllocations.Type).
+			StorageKey(edge.Symbol("charge_ff_credit_alloc_flat_fee")).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("invoiced_usage", ChargeFlatFeeInvoicedUsage.Type).
 			Unique().
@@ -195,7 +196,9 @@ type ChargeFlatFeeCreditAllocations struct {
 
 func (ChargeFlatFeeCreditAllocations) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		creditrealization.Mixin{},
+		creditrealization.Mixin{
+			SelfReferenceType: ChargeFlatFeeCreditAllocations.Type,
+		},
 	}
 }
 

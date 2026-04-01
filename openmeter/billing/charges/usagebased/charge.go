@@ -76,6 +76,14 @@ func (c Charge) Validate() error {
 	return errors.Join(errs...)
 }
 
+func (c Charge) GetCurrentRealizationRun() (RealizationRun, error) {
+	if c.State.CurrentRealizationRunID == nil {
+		return RealizationRun{}, fmt.Errorf("no current realization run")
+	}
+
+	return c.Realizations.GetByID(*c.State.CurrentRealizationRunID)
+}
+
 type Intent struct {
 	meta.Intent
 

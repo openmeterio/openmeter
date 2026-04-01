@@ -82,14 +82,14 @@ func (i OnCreditsOnlyUsageAccruedInput) Validate() error {
 
 type Handler interface {
 	// OnFlatFeeAssignedToInvoice is called when a flat fee is being assigned to an invoice
-	OnAssignedToInvoice(ctx context.Context, input OnAssignedToInvoiceInput) ([]creditrealization.CreateInput, error)
+	OnAssignedToInvoice(ctx context.Context, input OnAssignedToInvoiceInput) (creditrealization.CreateAllocationInputs, error)
 
 	// OnFlatFeeStandardInvoiceUsageAccrued is called when the remaining usage is sent to the customer on a standard invoice.
 	OnInvoiceUsageAccrued(ctx context.Context, input OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error)
 
 	// OnCreditsOnlyUsageAccrued is called when a credit-only flat fee becomes active (clock >= InvoiceAt)
 	// and the full amount needs to be allocated as credits.
-	OnCreditsOnlyUsageAccrued(ctx context.Context, input OnCreditsOnlyUsageAccruedInput) ([]creditrealization.CreateInput, error)
+	OnCreditsOnlyUsageAccrued(ctx context.Context, input OnCreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error)
 
 	// OnFlatFeePaymentAuthorized is called when a flat fee payment is authorized
 	OnPaymentAuthorized(ctx context.Context, charge Charge) (ledgertransaction.GroupReference, error)

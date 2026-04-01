@@ -4,6 +4,8 @@ import (
 	"errors"
 
 	"github.com/alpacahq/alpacadecimal"
+
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 type Totals struct {
@@ -85,6 +87,19 @@ func Sum(others ...Totals) Totals {
 	res := Totals{}
 
 	return res.Add(others...)
+}
+
+func (t Totals) RoundToPrecision(calc currencyx.Calculator) Totals {
+	t.Amount = calc.RoundToPrecision(t.Amount)
+	t.ChargesTotal = calc.RoundToPrecision(t.ChargesTotal)
+	t.DiscountsTotal = calc.RoundToPrecision(t.DiscountsTotal)
+	t.TaxesInclusiveTotal = calc.RoundToPrecision(t.TaxesInclusiveTotal)
+	t.TaxesExclusiveTotal = calc.RoundToPrecision(t.TaxesExclusiveTotal)
+	t.TaxesTotal = calc.RoundToPrecision(t.TaxesTotal)
+	t.CreditsTotal = calc.RoundToPrecision(t.CreditsTotal)
+	t.Total = calc.RoundToPrecision(t.Total)
+
+	return t
 }
 
 func (t Totals) CalculateTotal() alpacadecimal.Decimal {
