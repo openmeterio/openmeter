@@ -9,6 +9,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -89,7 +92,11 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 
 			Currency: dbLine.Currency,
 
-			TaxConfig:         lo.EmptyableToPtr(dbLine.TaxConfig),
+			TaxConfig: productcatalog.BackfillTaxConfig(
+				lo.EmptyableToPtr(dbLine.TaxConfig),
+				dbLine.TaxBehavior,
+				taxCodeFromInvoiceLineEdge(dbLine),
+			),
 			RateCardDiscounts: lo.FromPtr(dbLine.RatecardDiscounts),
 			CreditsApplied:    creditsApplied,
 			Totals:            totals.FromDB(dbLine),
@@ -181,8 +188,12 @@ func (a *adapter) mapStandardInvoiceDetailedLineFromDB(dbLine *db.BillingInvoice
 		Currency: dbLine.Currency,
 
 		CreditsApplied: creditsApplied,
-		TaxConfig:      lo.EmptyableToPtr(dbLine.TaxConfig),
-		Totals:         totals.FromDB(dbLine),
+		TaxConfig: productcatalog.BackfillTaxConfig(
+			lo.EmptyableToPtr(dbLine.TaxConfig),
+			dbLine.TaxBehavior,
+			taxCodeFromInvoiceLineEdge(dbLine),
+		),
+		Totals: totals.FromDB(dbLine),
 		ExternalIDs: billing.LineExternalIDs{
 			Invoicing: lo.FromPtr(dbLine.InvoicingAppExternalID),
 		},
@@ -232,8 +243,12 @@ func (a *adapter) mapStandardInvoiceDetailedLineV2FromDB(dbLine *db.BillingStand
 		Currency: dbLine.Currency,
 
 		CreditsApplied: creditsApplied,
-		TaxConfig:      lo.EmptyableToPtr(dbLine.TaxConfig),
-		Totals:         totals.FromDB(dbLine),
+		TaxConfig: productcatalog.BackfillTaxConfig(
+			lo.EmptyableToPtr(dbLine.TaxConfig),
+			dbLine.TaxBehavior,
+			taxCodeFromDetailedLineV2Edge(dbLine),
+		),
+		Totals: totals.FromDB(dbLine),
 		ExternalIDs: billing.LineExternalIDs{
 			Invoicing: lo.FromPtr(dbLine.InvoicingAppExternalID),
 		},
@@ -324,6 +339,30 @@ func (a *adapter) mapStandardInvoiceLineAmountDiscountFromDB(dbDiscount *db.Bill
 			RoundingAmount:   lo.FromPtr(dbDiscount.RoundingAmount),
 		},
 	}, nil
+}
+
+func taxCodeFromInvoiceLineEdge(dbLine *db.BillingInvoiceLine) *taxcode.TaxCode {
+	tc, err := dbLine.Edges.TaxCodeOrErr()
+	if err != nil {
+		return nil
+	}
+	mapped, err := taxcodeadapter.MapTaxCodeFromEntity(tc)
+	if err != nil {
+		return nil
+	}
+	return &mapped
+}
+
+func taxCodeFromDetailedLineV2Edge(dbLine *db.BillingStandardInvoiceDetailedLine) *taxcode.TaxCode {
+	tc, err := dbLine.Edges.TaxCodeOrErr()
+	if err != nil {
+		return nil
+	}
+	mapped, err := taxcodeadapter.MapTaxCodeFromEntity(tc)
+	if err != nil {
+		return nil
+	}
+	return &mapped
 }
 
 func (a *adapter) mapStandardInvoiceDetailedLineAmountDiscountFromDB(dbDiscount *db.BillingStandardInvoiceDetailedLineAmountDiscount) (billing.AmountLineDiscountManaged, error) {
