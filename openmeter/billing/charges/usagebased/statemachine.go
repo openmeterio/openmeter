@@ -5,8 +5,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/qmuntal/stateless"
-
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 )
 
@@ -24,6 +22,7 @@ const (
 	StatusActiveFinalRealizationCompleted            Status = "active.final_realization.completed"
 
 	StatusFinal Status = Status(meta.ChargeStatusFinal)
+	StatusDeleted Status = Status(meta.ChargeStatusDeleted)
 )
 
 func (Status) Values() []string {
@@ -35,6 +34,7 @@ func (Status) Values() []string {
 		string(StatusActiveFinalRealizationProcessing),
 		string(StatusActiveFinalRealizationCompleted),
 		string(StatusFinal),
+		string(StatusDeleted),
 	}
 }
 
@@ -62,13 +62,6 @@ func (s Status) ToMetaChargeStatus() (meta.ChargeStatus, error) {
 
 	return metaStatus, nil
 }
-
-type Trigger = stateless.Trigger
-
-var (
-	TriggerNext           Trigger = "trigger_next"
-	TriggerInvoicePending Trigger = "trigger_invoice_pending"
-)
 
 type UpdateStatusInput struct {
 	Charge ChargeBase

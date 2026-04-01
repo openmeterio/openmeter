@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeusagebased "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -75,6 +78,47 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 		}
 
 		return MapChargeBaseFromDB(dbUpdatedChargeBase), nil
+	})
+}
+
+func (a *adapter) DeleteCharge(ctx context.Context, charge usagebased.Charge) error {
+	if err := charge.ManagedModel.Validate(); err != nil {
+		return err
+	}
+
+	if err := charge.Validate(); err != nil {
+		return err
+	}
+
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
+		charge.DeletedAt = lo.ToPtr(clock.Now())
+		charge.Status = usagebased.StatusDeleted
+
+		metaStatus, err := charge.Status.ToMetaChargeStatus()
+		if err != nil {
+			return err
+		}
+
+		update := tx.db.ChargeUsageBased.UpdateOneID(charge.ID).
+			Where(dbchargeusagebased.NamespaceEQ(charge.Namespace)).
+			SetStatus(metaStatus).
+			SetStatusDetailed(charge.Status)
+
+		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
+			ManagedResource: charge.ManagedResource,
+			Intent:          charge.Intent.Intent,
+			Status:          metaStatus,
+			AdvanceAfter:    charge.State.AdvanceAfter,
+		})
+		if err != nil {
+			return err
+		}
+
+		if _, err := update.Save(ctx); err != nil {
+			return err
+		}
+
+		return tx.metaAdapter.DeleteRegisteredCharge(ctx, charge.GetChargeID())
 	})
 }
 

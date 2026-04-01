@@ -75,6 +75,11 @@ func (s *service) newInvocableCharges(si charges.ChargeSearchItems) (map[string]
 				chargeID:       si.ID,
 				flatFeeService: s.flatFeeService,
 			}
+		case meta.ChargeTypeUsageBased:
+			result[si.ID.ID] = &usageBasedInvocableCharge{
+				chargeID:          si.ID,
+				usageBasedService: s.usageBasedService,
+			}
 		default:
 			return nil, fmt.Errorf("unsupported charge type: %s", si.Type)
 		}
@@ -103,5 +108,29 @@ func (c *flatFeeInvocableCharge) TriggerPatch(ctx context.Context, patch meta.Pa
 }
 
 func (c *flatFeeInvocableCharge) GetChargeID() meta.ChargeID {
+	return c.chargeID
+}
+
+var _ InvocableCharge = (*usageBasedInvocableCharge)(nil)
+
+type usageBasedInvocableCharge struct {
+	chargeID          meta.ChargeID
+	usageBasedService usagebased.Service
+}
+
+func (c *usageBasedInvocableCharge) TriggerPatch(ctx context.Context, patch meta.Patch) (*charges.Charge, error) {
+	res, err := c.usageBasedService.TriggerPatch(ctx, c.chargeID, patch)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, nil
+	}
+
+	return lo.ToPtr(charges.NewCharge(*res)), nil
+}
+
+func (c *usageBasedInvocableCharge) GetChargeID() meta.ChargeID {
 	return c.chargeID
 }

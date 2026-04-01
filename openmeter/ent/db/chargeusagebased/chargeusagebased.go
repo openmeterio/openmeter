@@ -249,7 +249,7 @@ func SettlementModeValidator(sm productcatalog.SettlementMode) error {
 // StatusDetailedValidator is a validator for the "status_detailed" field enum values. It is called by the builders before save.
 func StatusDetailedValidator(sd usagebased.Status) error {
 	switch sd {
-	case "created", "active", "active.final_realization.started", "active.final_realization.waiting_for_collection", "active.final_realization.processing", "active.final_realization.completed", "final":
+	case "created", "active", "active.final_realization.started", "active.final_realization.waiting_for_collection", "active.final_realization.processing", "active.final_realization.completed", "final", "deleted":
 		return nil
 	default:
 		return fmt.Errorf("chargeusagebased: invalid enum value for status_detailed field: %q", sd)
