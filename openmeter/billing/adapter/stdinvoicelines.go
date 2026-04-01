@@ -119,7 +119,9 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 				}
 
 				if line.TaxConfig != nil {
-					create = create.SetTaxConfig(*line.TaxConfig)
+					create = create.SetTaxConfig(*line.TaxConfig).
+						SetNillableTaxCodeID(line.TaxConfig.TaxCodeID).
+						SetNillableTaxBehavior(line.TaxConfig.Behavior)
 				}
 
 				if !line.RateCardDiscounts.IsEmpty() {
@@ -146,6 +148,9 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					UpdateChildUniqueReferenceID().
 					UpdateCreditsApplied().
 					UpdateChargeID().
+					UpdateTaxConfig().
+					UpdateTaxCodeID().
+					UpdateTaxBehavior().
 					Exec(ctx)
 			},
 			MarkDeleted: func(ctx context.Context, line *billing.StandardLine) (*billing.StandardLine, error) {
@@ -317,7 +322,9 @@ func (a *adapter) upsertDetailedLines(ctx context.Context, in detailedLineDiff) 
 			create = totals.Set(create, line.Totals)
 
 			if line.TaxConfig != nil {
-				create = create.SetTaxConfig(*line.TaxConfig)
+				create = create.SetTaxConfig(*line.TaxConfig).
+					SetNillableTaxCodeID(line.TaxConfig.TaxCodeID).
+					SetNillableTaxBehavior(line.TaxConfig.Behavior)
 			}
 
 			if len(line.CreditsApplied) > 0 {
@@ -341,6 +348,9 @@ func (a *adapter) upsertDetailedLines(ctx context.Context, in detailedLineDiff) 
 				UpdateQuantity().
 				UpdateChildUniqueReferenceID().
 				UpdateCreditsApplied().
+				UpdateTaxConfig().
+				UpdateTaxCodeID().
+				UpdateTaxBehavior().
 				Exec(ctx)
 		},
 		MarkDeleted: func(ctx context.Context, line detailedLineWithParent) (detailedLineWithParent, error) {
@@ -432,7 +442,9 @@ func (a *adapter) upsertDetailedLinesV2(ctx context.Context, in detailedLineDiff
 			}
 
 			if line.TaxConfig != nil {
-				create = create.SetTaxConfig(*line.TaxConfig)
+				create = create.SetTaxConfig(*line.TaxConfig).
+					SetNillableTaxCodeID(line.TaxConfig.TaxCodeID).
+					SetNillableTaxBehavior(line.TaxConfig.Behavior)
 			}
 
 			return create, nil
@@ -450,6 +462,8 @@ func (a *adapter) upsertDetailedLinesV2(ctx context.Context, in detailedLineDiff
 				UpdateChildUniqueReferenceID().
 				UpdateDescription().
 				UpdateTaxConfig().
+				UpdateTaxCodeID().
+				UpdateTaxBehavior().
 				UpdateIndex().
 				UpdateDeletedAt().
 				Exec(ctx)
@@ -622,6 +636,7 @@ func (a *adapter) ListInvoiceLines(ctx context.Context, input billing.ListInvoic
 func (a *adapter) expandLineItems(q *db.BillingInvoiceLineQuery) *db.BillingInvoiceLineQuery {
 	return q.WithFlatFeeLine().
 		WithUsageBasedLine().
+		WithTaxCode().
 		WithLineUsageDiscounts(
 			func(q *db.BillingInvoiceLineUsageDiscountQuery) {
 				q.Where(billinginvoicelineusagediscount.DeletedAtIsNil())
@@ -654,6 +669,7 @@ func (a *adapter) expandLineItemsWithDetailedLines(q *db.BillingInvoiceLineQuery
 		// If we want to reuse the deleted lines in ChildrenWithIDReuse, we must make sure that non-deleted lines are
 		// prioritized for reuse or we will end up with INSERT conflicts due to the child unique reference id uniqueness constraint.
 		bilq.Where(billingstandardinvoicedetailedline.DeletedAtIsNil()).
+			WithTaxCode().
 			WithAmountDiscounts(func(bilq *db.BillingStandardInvoiceDetailedLineAmountDiscountQuery) {
 				bilq.Where(billingstandardinvoicedetailedlineamountdiscount.DeletedAtIsNil())
 			})

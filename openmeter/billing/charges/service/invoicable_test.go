@@ -127,10 +127,10 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 
 		testTrnsGroupID := ulid.Make().String()
 		creditRealizationCallbackInvocations := 0
-		s.FlatFeeTestHandler.onAssignedToInvoice = func(ctx context.Context, input flatfee.OnAssignedToInvoiceInput) ([]creditrealization.CreateInput, error) {
+		s.FlatFeeTestHandler.onAssignedToInvoice = func(ctx context.Context, input flatfee.OnAssignedToInvoiceInput) (creditrealization.CreateAllocationInputs, error) {
 			creditRealizationCallbackInvocations++
 
-			return []creditrealization.CreateInput{
+			return creditrealization.CreateAllocationInputs{
 				{
 					ServicePeriod: input.ServicePeriod,
 					Amount:        input.PreTaxTotalAmount.Mul(alpacadecimal.NewFromFloat(0.3)), // 30% as credits
@@ -408,15 +408,15 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 		defer s.UsageBasedTestHandler.Reset()
 
 		type callbackInvocation struct {
-			Input usagebased.AllocateCreditsInput
+			Input usagebased.CreditsOnlyUsageAccruedInput
 		}
 
 		var startedCallbacks []callbackInvocation
 
-		s.UsageBasedTestHandler.onCollectionStarted = func(ctx context.Context, input usagebased.AllocateCreditsInput) (creditrealization.CreateInputs, error) {
+		s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
 			startedCallbacks = append(startedCallbacks, callbackInvocation{Input: input})
 
-			return creditrealization.CreateInputs{
+			return creditrealization.CreateAllocationInputs{
 				{
 					ServicePeriod: input.Charge.Intent.ServicePeriod,
 					Amount:        input.AmountToAllocate,
@@ -475,7 +475,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 
 		s.Len(startedCallbacks, 1)
 		s.Equal(float64(3), startedCallbacks[0].Input.AmountToAllocate.InexactFloat64())
-		s.Equal(usagebased.RealizationRunTypeFinalRealization, startedCallbacks[0].Input.CollectionType)
+		s.Equal(usagebased.RealizationRunTypeFinalRealization, startedCallbacks[0].Input.Run.Type)
 		s.True(firstStoredAtOffset.Equal(startedCallbacks[0].Input.AllocateAt))
 	})
 
@@ -509,15 +509,15 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 		defer s.UsageBasedTestHandler.Reset()
 
 		type callbackInvocation struct {
-			Input usagebased.AllocateCreditsInput
+			Input usagebased.CreditsOnlyUsageAccruedInput
 		}
 
 		var finalizedCallbacks []callbackInvocation
 
-		s.UsageBasedTestHandler.onCollectionFinalized = func(ctx context.Context, input usagebased.AllocateCreditsInput) (creditrealization.CreateInputs, error) {
+		s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
 			finalizedCallbacks = append(finalizedCallbacks, callbackInvocation{Input: input})
 
-			return creditrealization.CreateInputs{
+			return creditrealization.CreateAllocationInputs{
 				{
 					ServicePeriod: input.Charge.Intent.ServicePeriod,
 					Amount:        input.AmountToAllocate,
@@ -570,7 +570,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 
 		s.Len(finalizedCallbacks, 1)
 		s.Equal(float64(8), finalizedCallbacks[0].Input.AmountToAllocate.InexactFloat64())
-		s.Equal(usagebased.RealizationRunTypeFinalRealization, finalizedCallbacks[0].Input.CollectionType)
+		s.Equal(usagebased.RealizationRunTypeFinalRealization, finalizedCallbacks[0].Input.Run.Type)
 		s.True(finalStoredAtOffset.Equal(finalizedCallbacks[0].Input.AllocateAt))
 	})
 
@@ -583,6 +583,248 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 		// Then no further allocation occurs.
 		s.Nil(advancedCharge)
 		s.Equal(meta.ChargeStatusFinal, meta.ChargeStatus(usageBasedFromDB.Status))
+	})
+}
+
+func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTieredCorrection() {
+	defer s.UsageBasedTestHandler.Reset()
+
+	ctx := context.Background()
+	ns := s.GetUniqueNamespace("charges-service-usage-based-credit-only-lifecycle-volume-tiered-correction")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	profile := s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithProgressiveBilling(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+		billingtest.WithManualApproval(),
+	)
+	s.True(profile.Default)
+
+	createAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-01T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	firstCollectionAdvanceAt := datetime.MustParseTimeInLocation(s.T(), "2026-02-01T12:00:00Z", time.UTC).AsTime()
+	finalAdvanceAt := datetime.MustParseTimeInLocation(s.T(), "2026-02-03T00:01:00Z", time.UTC).AsTime()
+	firstStoredAtOffset := datetime.MustParseTimeInLocation(s.T(), "2026-02-01T11:59:00Z", time.UTC).AsTime()
+	finalStoredAtOffset := datetime.MustParseTimeInLocation(s.T(), "2026-02-03T00:00:00Z", time.UTC).AsTime()
+	expectedCollectionEnd := datetime.MustParseTimeInLocation(s.T(), "2026-02-03T00:00:00Z", time.UTC).AsTime()
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+	meterSlug := apiRequestsTotal.Feature.Key
+
+	price := productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+		Mode: productcatalog.VolumeTieredPrice,
+		Tiers: []productcatalog.PriceTier{
+			{
+				UpToAmount: lo.ToPtr(alpacadecimal.NewFromInt(10)),
+				UnitPrice: &productcatalog.PriceTierUnitPrice{
+					Amount: alpacadecimal.NewFromInt(2),
+				},
+			},
+			{
+				UpToAmount: nil,
+				UnitPrice: &productcatalog.PriceTierUnitPrice{
+					Amount: alpacadecimal.NewFromInt(1),
+				},
+			},
+		},
+	})
+
+	type startedInvocation struct {
+		Input usagebased.CreditsOnlyUsageAccruedInput
+	}
+	type correctedInvocation struct {
+		Input usagebased.CreditsOnlyUsageAccruedCorrectionInput
+	}
+
+	var usageBasedChargeID meta.ChargeID
+	var startedCallbacks []startedInvocation
+	var correctedCallbacks []correctedInvocation
+
+	clock.FreezeTime(createAt)
+	defer clock.UnFreeze()
+
+	s.Run("#1 create before service period start", func() {
+		clock.FreezeTime(createAt)
+
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: []charges.ChargeIntent{
+				s.createMockChargeIntent(createMockChargeIntentInput{
+					customer:          cust.GetID(),
+					currency:          USD,
+					servicePeriod:     servicePeriod,
+					settlementMode:    productcatalog.CreditOnlySettlementMode,
+					price:             price,
+					name:              "usage-based-volume-tiered",
+					managedBy:         billing.SubscriptionManagedLine,
+					uniqueReferenceID: "usage-based-volume-tiered",
+					featureKey:        meterSlug,
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+
+		usageBasedCharge, err := res[0].AsUsageBasedCharge()
+		s.NoError(err)
+		usageBasedChargeID = usageBasedCharge.GetChargeID()
+
+		fetched := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+		s.Equal(meta.ChargeStatusCreated, meta.ChargeStatus(fetched.Status))
+		s.Empty(fetched.Realizations)
+	})
+
+	s.Run("#2 advance into active state", func() {
+		clock.FreezeTime(servicePeriod.From)
+
+		advancedCharge := s.mustAdvanceSingleUsageBasedCharge(ctx, cust.GetID())
+		usageBasedFromDB := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+
+		s.Require().NotNil(advancedCharge)
+		s.Equal(meta.ChargeStatusActive, meta.ChargeStatus(usageBasedFromDB.Status))
+		s.Empty(usageBasedFromDB.Realizations)
+	})
+
+	s.Run("#3 start final realization at quantity 10 and $20", func() {
+		defer s.UsageBasedTestHandler.Reset()
+
+		s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
+			startedCallbacks = append(startedCallbacks, startedInvocation{Input: input})
+
+			s.Equal(usageBasedChargeID.ID, input.Charge.ID)
+			s.Equal(productcatalog.CreditOnlySettlementMode, input.Charge.Intent.SettlementMode)
+			s.Equal(usagebased.RealizationRunTypeFinalRealization, input.Run.Type)
+			s.True(firstStoredAtOffset.Equal(input.AllocateAt))
+			s.Equal(float64(20), input.AmountToAllocate.InexactFloat64())
+			s.Equal(float64(10), input.Run.MeterValue.InexactFloat64())
+			s.Equal(float64(0), input.Run.Totals.CreditsTotal.InexactFloat64())
+			s.Equal(float64(20), input.Run.Totals.Total.InexactFloat64())
+			s.Empty(input.Run.CreditsAllocated)
+
+			return creditrealization.CreateAllocationInputs{
+				{
+					ServicePeriod: input.Charge.Intent.ServicePeriod,
+					Amount:        input.AmountToAllocate,
+					LedgerTransaction: ledgertransaction.GroupReference{
+						TransactionGroupID: ulid.Make().String(),
+					},
+				},
+			}, nil
+		}
+
+		clock.FreezeTime(firstCollectionAdvanceAt)
+
+		s.MockStreamingConnector.AddSimpleEvent(
+			meterSlug,
+			10,
+			datetime.MustParseTimeInLocation(s.T(), "2026-01-15T00:00:00Z", time.UTC).AsTime(),
+		)
+
+		advancedCharge := s.mustAdvanceSingleUsageBasedCharge(ctx, cust.GetID())
+		usageBasedFromDB := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+
+		s.Require().NotNil(advancedCharge)
+		s.Equal(usagebased.StatusActiveFinalRealizationWaitingForCollection, usageBasedFromDB.Status)
+		s.Len(usageBasedFromDB.Realizations, 1)
+		s.Len(startedCallbacks, 1)
+		s.Equal(float64(20), startedCallbacks[0].Input.AmountToAllocate.InexactFloat64())
+
+		currentRun, err := usageBasedFromDB.Realizations.GetByID(*usageBasedFromDB.State.CurrentRealizationRunID)
+		s.NoError(err)
+		s.True(firstStoredAtOffset.Equal(currentRun.AsOf))
+		s.True(expectedCollectionEnd.Equal(currentRun.CollectionEnd.UTC()))
+		s.Equal(float64(10), currentRun.MeterValue.InexactFloat64())
+		s.Equal(float64(20), currentRun.Totals.CreditsTotal.InexactFloat64())
+		s.Equal(float64(0), currentRun.Totals.Total.InexactFloat64())
+		s.Len(currentRun.CreditsAllocated, 1)
+		s.Equal(creditrealization.TypeAllocation, currentRun.CreditsAllocated[0].Type)
+		s.Equal(float64(20), currentRun.CreditsAllocated[0].Amount.InexactFloat64())
+	})
+
+	s.Run("#4 finalize with persisted negative correction", func() {
+		defer s.UsageBasedTestHandler.Reset()
+
+		s.UsageBasedTestHandler.onCreditsOnlyUsageAccruedCorrection = func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error) {
+			correctedCallbacks = append(correctedCallbacks, correctedInvocation{Input: input})
+
+			s.Equal(usageBasedChargeID.ID, input.Charge.ID)
+			s.Equal(productcatalog.CreditOnlySettlementMode, input.Charge.Intent.SettlementMode)
+			s.Equal(usagebased.RealizationRunTypeFinalRealization, input.Run.Type)
+			s.True(finalStoredAtOffset.Equal(input.AllocateAt))
+			s.Equal(float64(10), input.Run.MeterValue.InexactFloat64())
+			s.Equal(float64(20), input.Run.Totals.CreditsTotal.InexactFloat64())
+			s.Equal(float64(0), input.Run.Totals.Total.InexactFloat64())
+			s.Len(input.Run.CreditsAllocated, 1)
+			s.Equal(creditrealization.TypeAllocation, input.Run.CreditsAllocated[0].Type)
+			s.Equal(float64(20), input.Run.CreditsAllocated[0].Amount.InexactFloat64())
+
+			s.Require().Len(input.Corrections, 1)
+			s.Equal(input.Run.CreditsAllocated[0].ID, input.Corrections[0].Allocation.ID)
+			s.Equal(creditrealization.TypeAllocation, input.Corrections[0].Allocation.Type)
+			s.Equal(float64(20), input.Corrections[0].Allocation.Amount.InexactFloat64())
+			s.Equal(float64(-9), input.Corrections[0].Amount.InexactFloat64())
+
+			return creditrealization.CreateCorrectionInputs{
+				{
+					Amount:                input.Corrections[0].Amount,
+					CorrectsRealizationID: input.Corrections[0].Allocation.ID,
+					LedgerTransaction: ledgertransaction.GroupReference{
+						TransactionGroupID: ulid.Make().String(),
+					},
+				},
+			}, nil
+		}
+
+		clock.FreezeTime(finalAdvanceAt)
+
+		// Two additional usages happen during collection, but only one is stored before the final cutoff.
+		s.MockStreamingConnector.AddSimpleEvent(
+			meterSlug,
+			1,
+			datetime.MustParseTimeInLocation(s.T(), "2026-01-20T00:00:00Z", time.UTC).AsTime(),
+			streamingtestutils.WithStoredAt(datetime.MustParseTimeInLocation(s.T(), "2026-02-02T00:00:00Z", time.UTC).AsTime()),
+		)
+		s.MockStreamingConnector.AddSimpleEvent(
+			meterSlug,
+			1,
+			datetime.MustParseTimeInLocation(s.T(), "2026-01-21T00:00:00Z", time.UTC).AsTime(),
+			streamingtestutils.WithStoredAt(datetime.MustParseTimeInLocation(s.T(), "2026-02-03T00:00:30Z", time.UTC).AsTime()),
+		)
+
+		advancedCharge := s.mustAdvanceSingleUsageBasedCharge(ctx, cust.GetID())
+		usageBasedFromDB := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+
+		s.Require().NotNil(advancedCharge)
+		s.Equal(meta.ChargeStatusFinal, meta.ChargeStatus(usageBasedFromDB.Status))
+		s.Len(correctedCallbacks, 1)
+		s.True(finalStoredAtOffset.Equal(correctedCallbacks[0].Input.AllocateAt))
+		s.Len(correctedCallbacks[0].Input.Corrections, 1)
+		s.Equal(float64(-9), correctedCallbacks[0].Input.Corrections[0].Amount.InexactFloat64())
+
+		s.Len(usageBasedFromDB.Realizations, 1)
+		s.Nil(usageBasedFromDB.State.CurrentRealizationRunID)
+		s.Nil(usageBasedFromDB.State.AdvanceAfter)
+
+		finalRun := usageBasedFromDB.Realizations[0]
+		s.True(finalStoredAtOffset.Equal(finalRun.AsOf))
+		s.True(expectedCollectionEnd.Equal(finalRun.CollectionEnd.UTC()))
+		s.Equal(float64(11), finalRun.MeterValue.InexactFloat64())
+		s.Equal(float64(11), finalRun.Totals.CreditsTotal.InexactFloat64())
+		s.Equal(float64(0), finalRun.Totals.Total.InexactFloat64())
+		s.Len(finalRun.CreditsAllocated, 2)
+
+		s.Equal(creditrealization.TypeAllocation, finalRun.CreditsAllocated[0].Type)
+		s.Equal(float64(20), finalRun.CreditsAllocated[0].Amount.InexactFloat64())
+		s.Equal(creditrealization.TypeCorrection, finalRun.CreditsAllocated[1].Type)
+		s.Equal(float64(-9), finalRun.CreditsAllocated[1].Amount.InexactFloat64())
+		s.Equal(finalRun.CreditsAllocated[0].ID, lo.FromPtr(finalRun.CreditsAllocated[1].CorrectsRealizationID))
 	})
 }
 
@@ -701,8 +943,8 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreateImmediatelyFinal() {
 	// OnCollectionStarted is called during StartFinalRealizationRun because usage > 0.
 	// OnCollectionFinalized is not called because the finalize rating is identical to the start
 	// rating (frozen clock) so additionalAmount == 0.
-	s.UsageBasedTestHandler.onCollectionStarted = func(ctx context.Context, input usagebased.AllocateCreditsInput) (creditrealization.CreateInputs, error) {
-		return creditrealization.CreateInputs{
+	s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
+		return creditrealization.CreateAllocationInputs{
 			{
 				ServicePeriod: input.Charge.Intent.ServicePeriod,
 				Amount:        input.AmountToAllocate,
@@ -869,10 +1111,10 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 
 		var callbacks []callbackInvocation
 
-		s.FlatFeeTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) ([]creditrealization.CreateInput, error) {
+		s.FlatFeeTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
 			callbacks = append(callbacks, callbackInvocation{Input: input})
 
-			return []creditrealization.CreateInput{
+			return creditrealization.CreateAllocationInputs{
 				{
 					ServicePeriod: input.Charge.Intent.ServicePeriod,
 					Amount:        input.AmountToAllocate,
@@ -948,8 +1190,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyCreateImmediatelyFinal
 		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
 	}
 
-	s.FlatFeeTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) ([]creditrealization.CreateInput, error) {
-		return []creditrealization.CreateInput{
+	s.FlatFeeTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
+		return creditrealization.CreateAllocationInputs{
 			{
 				ServicePeriod: input.Charge.Intent.ServicePeriod,
 				Amount:        input.AmountToAllocate,

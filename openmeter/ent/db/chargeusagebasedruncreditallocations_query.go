@@ -4,6 +4,7 @@ package db
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -20,12 +21,14 @@ import (
 // ChargeUsageBasedRunCreditAllocationsQuery is the builder for querying ChargeUsageBasedRunCreditAllocations entities.
 type ChargeUsageBasedRunCreditAllocationsQuery struct {
 	config
-	ctx        *QueryContext
-	order      []chargeusagebasedruncreditallocations.OrderOption
-	inters     []Interceptor
-	predicates []predicate.ChargeUsageBasedRunCreditAllocations
-	withRun    *ChargeUsageBasedRunsQuery
-	modifiers  []func(*sql.Selector)
+	ctx             *QueryContext
+	order           []chargeusagebasedruncreditallocations.OrderOption
+	inters          []Interceptor
+	predicates      []predicate.ChargeUsageBasedRunCreditAllocations
+	withCorrections *ChargeUsageBasedRunCreditAllocationsQuery
+	withAllocation  *ChargeUsageBasedRunCreditAllocationsQuery
+	withRun         *ChargeUsageBasedRunsQuery
+	modifiers       []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -60,6 +63,50 @@ func (_q *ChargeUsageBasedRunCreditAllocationsQuery) Unique(unique bool) *Charge
 func (_q *ChargeUsageBasedRunCreditAllocationsQuery) Order(o ...chargeusagebasedruncreditallocations.OrderOption) *ChargeUsageBasedRunCreditAllocationsQuery {
 	_q.order = append(_q.order, o...)
 	return _q
+}
+
+// QueryCorrections chains the current query on the "corrections" edge.
+func (_q *ChargeUsageBasedRunCreditAllocationsQuery) QueryCorrections() *ChargeUsageBasedRunCreditAllocationsQuery {
+	query := (&ChargeUsageBasedRunCreditAllocationsClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedruncreditallocations.Table, chargeusagebasedruncreditallocations.FieldID, selector),
+			sqlgraph.To(chargeusagebasedruncreditallocations.Table, chargeusagebasedruncreditallocations.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, chargeusagebasedruncreditallocations.CorrectionsTable, chargeusagebasedruncreditallocations.CorrectionsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryAllocation chains the current query on the "allocation" edge.
+func (_q *ChargeUsageBasedRunCreditAllocationsQuery) QueryAllocation() *ChargeUsageBasedRunCreditAllocationsQuery {
+	query := (&ChargeUsageBasedRunCreditAllocationsClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedruncreditallocations.Table, chargeusagebasedruncreditallocations.FieldID, selector),
+			sqlgraph.To(chargeusagebasedruncreditallocations.Table, chargeusagebasedruncreditallocations.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, chargeusagebasedruncreditallocations.AllocationTable, chargeusagebasedruncreditallocations.AllocationColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // QueryRun chains the current query on the "run" edge.
@@ -271,16 +318,40 @@ func (_q *ChargeUsageBasedRunCreditAllocationsQuery) Clone() *ChargeUsageBasedRu
 		return nil
 	}
 	return &ChargeUsageBasedRunCreditAllocationsQuery{
-		config:     _q.config,
-		ctx:        _q.ctx.Clone(),
-		order:      append([]chargeusagebasedruncreditallocations.OrderOption{}, _q.order...),
-		inters:     append([]Interceptor{}, _q.inters...),
-		predicates: append([]predicate.ChargeUsageBasedRunCreditAllocations{}, _q.predicates...),
-		withRun:    _q.withRun.Clone(),
+		config:          _q.config,
+		ctx:             _q.ctx.Clone(),
+		order:           append([]chargeusagebasedruncreditallocations.OrderOption{}, _q.order...),
+		inters:          append([]Interceptor{}, _q.inters...),
+		predicates:      append([]predicate.ChargeUsageBasedRunCreditAllocations{}, _q.predicates...),
+		withCorrections: _q.withCorrections.Clone(),
+		withAllocation:  _q.withAllocation.Clone(),
+		withRun:         _q.withRun.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
+}
+
+// WithCorrections tells the query-builder to eager-load the nodes that are connected to
+// the "corrections" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeUsageBasedRunCreditAllocationsQuery) WithCorrections(opts ...func(*ChargeUsageBasedRunCreditAllocationsQuery)) *ChargeUsageBasedRunCreditAllocationsQuery {
+	query := (&ChargeUsageBasedRunCreditAllocationsClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withCorrections = query
+	return _q
+}
+
+// WithAllocation tells the query-builder to eager-load the nodes that are connected to
+// the "allocation" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeUsageBasedRunCreditAllocationsQuery) WithAllocation(opts ...func(*ChargeUsageBasedRunCreditAllocationsQuery)) *ChargeUsageBasedRunCreditAllocationsQuery {
+	query := (&ChargeUsageBasedRunCreditAllocationsClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withAllocation = query
+	return _q
 }
 
 // WithRun tells the query-builder to eager-load the nodes that are connected to
@@ -372,7 +443,9 @@ func (_q *ChargeUsageBasedRunCreditAllocationsQuery) sqlAll(ctx context.Context,
 	var (
 		nodes       = []*ChargeUsageBasedRunCreditAllocations{}
 		_spec       = _q.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [3]bool{
+			_q.withCorrections != nil,
+			_q.withAllocation != nil,
 			_q.withRun != nil,
 		}
 	)
@@ -397,6 +470,25 @@ func (_q *ChargeUsageBasedRunCreditAllocationsQuery) sqlAll(ctx context.Context,
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := _q.withCorrections; query != nil {
+		if err := _q.loadCorrections(ctx, query, nodes,
+			func(n *ChargeUsageBasedRunCreditAllocations) {
+				n.Edges.Corrections = []*ChargeUsageBasedRunCreditAllocations{}
+			},
+			func(n *ChargeUsageBasedRunCreditAllocations, e *ChargeUsageBasedRunCreditAllocations) {
+				n.Edges.Corrections = append(n.Edges.Corrections, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withAllocation; query != nil {
+		if err := _q.loadAllocation(ctx, query, nodes, nil,
+			func(n *ChargeUsageBasedRunCreditAllocations, e *ChargeUsageBasedRunCreditAllocations) {
+				n.Edges.Allocation = e
+			}); err != nil {
+			return nil, err
+		}
+	}
 	if query := _q.withRun; query != nil {
 		if err := _q.loadRun(ctx, query, nodes, nil,
 			func(n *ChargeUsageBasedRunCreditAllocations, e *ChargeUsageBasedRuns) { n.Edges.Run = e }); err != nil {
@@ -406,6 +498,71 @@ func (_q *ChargeUsageBasedRunCreditAllocationsQuery) sqlAll(ctx context.Context,
 	return nodes, nil
 }
 
+func (_q *ChargeUsageBasedRunCreditAllocationsQuery) loadCorrections(ctx context.Context, query *ChargeUsageBasedRunCreditAllocationsQuery, nodes []*ChargeUsageBasedRunCreditAllocations, init func(*ChargeUsageBasedRunCreditAllocations), assign func(*ChargeUsageBasedRunCreditAllocations, *ChargeUsageBasedRunCreditAllocations)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*ChargeUsageBasedRunCreditAllocations)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargeusagebasedruncreditallocations.FieldCorrectsRealizationID)
+	}
+	query.Where(predicate.ChargeUsageBasedRunCreditAllocations(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(chargeusagebasedruncreditallocations.CorrectionsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CorrectsRealizationID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "corrects_realization_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "corrects_realization_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *ChargeUsageBasedRunCreditAllocationsQuery) loadAllocation(ctx context.Context, query *ChargeUsageBasedRunCreditAllocationsQuery, nodes []*ChargeUsageBasedRunCreditAllocations, init func(*ChargeUsageBasedRunCreditAllocations), assign func(*ChargeUsageBasedRunCreditAllocations, *ChargeUsageBasedRunCreditAllocations)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*ChargeUsageBasedRunCreditAllocations)
+	for i := range nodes {
+		if nodes[i].CorrectsRealizationID == nil {
+			continue
+		}
+		fk := *nodes[i].CorrectsRealizationID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(chargeusagebasedruncreditallocations.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "corrects_realization_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 func (_q *ChargeUsageBasedRunCreditAllocationsQuery) loadRun(ctx context.Context, query *ChargeUsageBasedRunsQuery, nodes []*ChargeUsageBasedRunCreditAllocations, init func(*ChargeUsageBasedRunCreditAllocations), assign func(*ChargeUsageBasedRunCreditAllocations, *ChargeUsageBasedRuns)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*ChargeUsageBasedRunCreditAllocations)
@@ -463,6 +620,9 @@ func (_q *ChargeUsageBasedRunCreditAllocationsQuery) querySpec() *sqlgraph.Query
 			if fields[i] != chargeusagebasedruncreditallocations.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withAllocation != nil {
+			_spec.Node.AddColumnOnce(chargeusagebasedruncreditallocations.FieldCorrectsRealizationID)
 		}
 		if _q.withRun != nil {
 			_spec.Node.AddColumnOnce(chargeusagebasedruncreditallocations.FieldRunID)

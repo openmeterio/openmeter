@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -94,6 +95,11 @@ func LedgerTransactionGroupID(v string) predicate.ChargeUsageBasedRunCreditAlloc
 // SortHint applies equality check predicate on the "sort_hint" field. It's identical to SortHintEQ.
 func SortHint(v int) predicate.ChargeUsageBasedRunCreditAllocations {
 	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldEQ(FieldSortHint, v))
+}
+
+// CorrectsRealizationID applies equality check predicate on the "corrects_realization_id" field. It's identical to CorrectsRealizationIDEQ.
+func CorrectsRealizationID(v string) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldEQ(FieldCorrectsRealizationID, v))
 }
 
 // Namespace applies equality check predicate on the "namespace" field. It's identical to NamespaceEQ.
@@ -421,6 +427,111 @@ func SortHintLTE(v int) predicate.ChargeUsageBasedRunCreditAllocations {
 	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldLTE(FieldSortHint, v))
 }
 
+// TypeEQ applies the EQ predicate on the "type" field.
+func TypeEQ(v creditrealization.Type) predicate.ChargeUsageBasedRunCreditAllocations {
+	vc := v
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldEQ(FieldType, vc))
+}
+
+// TypeNEQ applies the NEQ predicate on the "type" field.
+func TypeNEQ(v creditrealization.Type) predicate.ChargeUsageBasedRunCreditAllocations {
+	vc := v
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldNEQ(FieldType, vc))
+}
+
+// TypeIn applies the In predicate on the "type" field.
+func TypeIn(vs ...creditrealization.Type) predicate.ChargeUsageBasedRunCreditAllocations {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldIn(FieldType, v...))
+}
+
+// TypeNotIn applies the NotIn predicate on the "type" field.
+func TypeNotIn(vs ...creditrealization.Type) predicate.ChargeUsageBasedRunCreditAllocations {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldNotIn(FieldType, v...))
+}
+
+// CorrectsRealizationIDEQ applies the EQ predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDEQ(v string) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldEQ(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDNEQ applies the NEQ predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDNEQ(v string) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldNEQ(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDIn applies the In predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDIn(vs ...string) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldIn(FieldCorrectsRealizationID, vs...))
+}
+
+// CorrectsRealizationIDNotIn applies the NotIn predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDNotIn(vs ...string) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldNotIn(FieldCorrectsRealizationID, vs...))
+}
+
+// CorrectsRealizationIDGT applies the GT predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDGT(v string) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldGT(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDGTE applies the GTE predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDGTE(v string) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldGTE(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDLT applies the LT predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDLT(v string) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldLT(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDLTE applies the LTE predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDLTE(v string) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldLTE(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDContains applies the Contains predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDContains(v string) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldContains(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDHasPrefix applies the HasPrefix predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDHasPrefix(v string) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldHasPrefix(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDHasSuffix applies the HasSuffix predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDHasSuffix(v string) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldHasSuffix(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDIsNil applies the IsNil predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDIsNil() predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldIsNull(FieldCorrectsRealizationID))
+}
+
+// CorrectsRealizationIDNotNil applies the NotNil predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDNotNil() predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldNotNull(FieldCorrectsRealizationID))
+}
+
+// CorrectsRealizationIDEqualFold applies the EqualFold predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDEqualFold(v string) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldEqualFold(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDContainsFold applies the ContainsFold predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDContainsFold(v string) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldContainsFold(FieldCorrectsRealizationID, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.ChargeUsageBasedRunCreditAllocations {
 	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldEQ(FieldNamespace, v))
@@ -689,6 +800,52 @@ func RunIDEqualFold(v string) predicate.ChargeUsageBasedRunCreditAllocations {
 // RunIDContainsFold applies the ContainsFold predicate on the "run_id" field.
 func RunIDContainsFold(v string) predicate.ChargeUsageBasedRunCreditAllocations {
 	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldContainsFold(FieldRunID, v))
+}
+
+// HasCorrections applies the HasEdge predicate on the "corrections" edge.
+func HasCorrections() predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, CorrectionsTable, CorrectionsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCorrectionsWith applies the HasEdge predicate on the "corrections" edge with a given conditions (other predicates).
+func HasCorrectionsWith(preds ...predicate.ChargeUsageBasedRunCreditAllocations) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(func(s *sql.Selector) {
+		step := newCorrectionsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasAllocation applies the HasEdge predicate on the "allocation" edge.
+func HasAllocation() predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, AllocationTable, AllocationColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasAllocationWith applies the HasEdge predicate on the "allocation" edge with a given conditions (other predicates).
+func HasAllocationWith(preds ...predicate.ChargeUsageBasedRunCreditAllocations) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(func(s *sql.Selector) {
+		step := newAllocationStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // HasRun applies the HasEdge predicate on the "run" edge.

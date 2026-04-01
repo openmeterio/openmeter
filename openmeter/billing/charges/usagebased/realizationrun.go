@@ -204,3 +204,13 @@ func (r RealizationRuns) GetByID(id string) (RealizationRun, error) {
 	}
 	return RealizationRun{}, fmt.Errorf("realization run not found [id=%s]", id)
 }
+
+func (r *RealizationRuns) SetRealizationRun(updatedRun RealizationRun) error {
+	for idx, realizationRun := range *r {
+		if realizationRun.ID.ID == updatedRun.ID.ID {
+			(*r)[idx] = updatedRun
+			return nil
+		}
+	}
+	return fmt.Errorf("realization run not found [id=%s]", updatedRun.ID.ID)
+}

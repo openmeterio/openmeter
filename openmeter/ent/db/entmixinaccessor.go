@@ -8,6 +8,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -1194,6 +1195,14 @@ func (e *ChargeFlatFeeCreditAllocations) GetSortHint() int {
 	return e.SortHint
 }
 
+func (e *ChargeFlatFeeCreditAllocations) GetType() creditrealization.Type {
+	return e.Type
+}
+
+func (e *ChargeFlatFeeCreditAllocations) GetCorrectsRealizationID() *string {
+	return e.CorrectsRealizationID
+}
+
 func (e *ChargeFlatFeeCreditAllocations) GetNamespace() string {
 	return e.Namespace
 }
@@ -1476,6 +1485,14 @@ func (e *ChargeUsageBasedRunCreditAllocations) GetLedgerTransactionGroupID() str
 
 func (e *ChargeUsageBasedRunCreditAllocations) GetSortHint() int {
 	return e.SortHint
+}
+
+func (e *ChargeUsageBasedRunCreditAllocations) GetType() creditrealization.Type {
+	return e.Type
+}
+
+func (e *ChargeUsageBasedRunCreditAllocations) GetCorrectsRealizationID() *string {
+	return e.CorrectsRealizationID
 }
 
 func (e *ChargeUsageBasedRunCreditAllocations) GetNamespace() string {

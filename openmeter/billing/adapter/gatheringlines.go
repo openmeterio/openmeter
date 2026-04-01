@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/entitydiff"
@@ -219,7 +220,9 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 			}
 
 			if line.TaxConfig != nil {
-				create = create.SetTaxConfig(*line.TaxConfig)
+				create = create.SetTaxConfig(*line.TaxConfig).
+					SetNillableTaxCodeID(line.TaxConfig.TaxCodeID).
+					SetNillableTaxBehavior(line.TaxConfig.Behavior)
 			}
 
 			if !line.RateCardDiscounts.IsEmpty() {
@@ -240,6 +243,9 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 						u.SetIgnore(billinginvoiceline.FieldCreatedAt)
 					})).
 				UpdateChildUniqueReferenceID().
+				UpdateTaxConfig().
+				UpdateTaxCodeID().
+				UpdateTaxBehavior().
 				Exec(ctx)
 		},
 		MarkDeleted: func(ctx context.Context, line *billing.GatheringLine) (*billing.GatheringLine, error) {
@@ -301,7 +307,11 @@ func (a *adapter) mapGatheringInvoiceLineFromDB(schemaLevel int, dbLine *db.Bill
 
 			Currency: dbLine.Currency,
 
-			TaxConfig:         lo.EmptyableToPtr(dbLine.TaxConfig),
+			TaxConfig: productcatalog.BackfillTaxConfig(
+				lo.EmptyableToPtr(dbLine.TaxConfig),
+				dbLine.TaxBehavior,
+				taxCodeFromInvoiceLineEdge(dbLine),
+			),
 			RateCardDiscounts: lo.FromPtr(dbLine.RatecardDiscounts),
 
 			UBPConfigID: ubpLine.ID,

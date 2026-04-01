@@ -432,6 +432,9 @@ func TestComplete(t *testing.T) {
 			`^_\..*$`,
 			`^openmeter\..*$`,
 		},
+		Credits: CreditsConfiguration{
+			Enabled: false,
+		},
 	}
 
 	assert.Equal(t, expected, actual)

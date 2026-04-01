@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
@@ -67,6 +68,10 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				req, err := CustomPlanToCreatePlanRequest(parsedBody.CustomPlan, ns)
 				if err != nil {
 					return CreateSubscriptionRequest{}, fmt.Errorf("failed to create plan request: %w", err)
+				}
+
+				if !h.Credits.Enabled && req.SettlementMode == productcatalog.CreditOnlySettlementMode {
+					return CreateSubscriptionRequest{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
 				}
 
 				plan := plansubscription.PlanInput{}

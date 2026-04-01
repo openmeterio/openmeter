@@ -54,3 +54,7 @@ func (c Calculator) Validate() error {
 	}
 	return errors.Join(errs...)
 }
+
+func (c Calculator) IsRoundedToPrecision(amount alpacadecimal.Decimal) bool {
+	return amount.Equal(c.RoundToPrecision(amount))
+}

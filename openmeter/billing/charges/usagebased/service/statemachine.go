@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 type StateMachine struct {
@@ -27,16 +28,18 @@ type StateMachine struct {
 	Service *service
 	Adapter usagebased.Adapter
 
-	CustomerOverride billing.CustomerOverrideWithDetails
-	FeatureMeter     feature.FeatureMeter
+	CustomerOverride   billing.CustomerOverrideWithDetails
+	FeatureMeter       feature.FeatureMeter
+	CurrencyCalculator currencyx.Calculator
 }
 
 type StateMachineConfig struct {
-	Charge           usagebased.Charge
-	Service          *service
-	Logger           *slog.Logger
-	CustomerOverride billing.CustomerOverrideWithDetails
-	FeatureMeter     feature.FeatureMeter
+	Charge             usagebased.Charge
+	Service            *service
+	Logger             *slog.Logger
+	CustomerOverride   billing.CustomerOverrideWithDetails
+	FeatureMeter       feature.FeatureMeter
+	CurrencyCalculator currencyx.Calculator
 }
 
 func (c StateMachineConfig) Validate() error {
@@ -62,6 +65,10 @@ func (c StateMachineConfig) Validate() error {
 		errs = append(errs, errors.New("feature meter is required"))
 	}
 
+	if err := c.CurrencyCalculator.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("currency calculator: %w", err))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -71,12 +78,13 @@ func NewStateMachine(config StateMachineConfig) (*StateMachine, error) {
 	}
 
 	out := &StateMachine{
-		Charge:           config.Charge,
-		Service:          config.Service,
-		Logger:           lo.CoalesceOrEmpty(config.Logger, slog.Default()),
-		Adapter:          config.Service.adapter,
-		CustomerOverride: config.CustomerOverride,
-		FeatureMeter:     config.FeatureMeter,
+		Charge:             config.Charge,
+		Service:            config.Service,
+		Logger:             lo.CoalesceOrEmpty(config.Logger, slog.Default()),
+		Adapter:            config.Service.adapter,
+		CustomerOverride:   config.CustomerOverride,
+		FeatureMeter:       config.FeatureMeter,
+		CurrencyCalculator: config.CurrencyCalculator,
 	}
 
 	stateMachine := stateless.NewStateMachineWithExternalStorage(

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/oapi-codegen/nullable"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -352,12 +353,12 @@ func TestUpdateFeature(t *testing.T) {
 				updated, err := connector.UpdateFeature(ctx, feature.UpdateFeatureInputs{
 					Namespace: namespace,
 					ID:        created.ID,
-					UnitCost: &feature.UnitCost{
+					UnitCost: nullable.NewNullableWithValue(feature.UnitCost{
 						Type: feature.UnitCostTypeManual,
 						Manual: &feature.ManualUnitCost{
 							Amount: alpacadecimal.NewFromFloat(0.05),
 						},
-					},
+					}),
 				})
 				assert.NoError(t, err)
 				assert.NotNil(t, updated.UnitCost)
@@ -392,12 +393,12 @@ func TestUpdateFeature(t *testing.T) {
 				updated, err := connector.UpdateFeature(ctx, feature.UpdateFeatureInputs{
 					Namespace: namespace,
 					ID:        created.ID,
-					UnitCost: &feature.UnitCost{
+					UnitCost: nullable.NewNullableWithValue(feature.UnitCost{
 						Type: feature.UnitCostTypeManual,
 						Manual: &feature.ManualUnitCost{
 							Amount: alpacadecimal.NewFromFloat(0.99),
 						},
-					},
+					}),
 				})
 				assert.NoError(t, err)
 				assert.Equal(t, "0.99", updated.UnitCost.Manual.Amount.String())
@@ -423,14 +424,14 @@ func TestUpdateFeature(t *testing.T) {
 				updated, err := connector.UpdateFeature(ctx, feature.UpdateFeatureInputs{
 					Namespace: namespace,
 					ID:        created.ID,
-					UnitCost: &feature.UnitCost{
+					UnitCost: nullable.NewNullableWithValue(feature.UnitCost{
 						Type: feature.UnitCostTypeLLM,
 						LLM: &feature.LLMUnitCost{
 							Provider:  "openai",
 							Model:     "gpt-4",
 							TokenType: "input",
 						},
-					},
+					}),
 				})
 				assert.NoError(t, err)
 				assert.Equal(t, feature.UnitCostTypeLLM, updated.UnitCost.Type)
@@ -452,12 +453,12 @@ func TestUpdateFeature(t *testing.T) {
 				updated, err := connector.UpdateFeature(ctx, feature.UpdateFeatureInputs{
 					Namespace: namespace,
 					ID:        created.Key,
-					UnitCost: &feature.UnitCost{
+					UnitCost: nullable.NewNullableWithValue(feature.UnitCost{
 						Type: feature.UnitCostTypeManual,
 						Manual: &feature.ManualUnitCost{
 							Amount: alpacadecimal.NewFromFloat(0.10),
 						},
-					},
+					}),
 				})
 				assert.NoError(t, err)
 				assert.NotNil(t, updated.UnitCost)
@@ -472,12 +473,12 @@ func TestUpdateFeature(t *testing.T) {
 				_, err := connector.UpdateFeature(ctx, feature.UpdateFeatureInputs{
 					Namespace: namespace,
 					ID:        ulid.Make().String(),
-					UnitCost: &feature.UnitCost{
+					UnitCost: nullable.NewNullableWithValue(feature.UnitCost{
 						Type: feature.UnitCostTypeManual,
 						Manual: &feature.ManualUnitCost{
 							Amount: alpacadecimal.NewFromFloat(0.01),
 						},
-					},
+					}),
 				})
 				assert.Error(t, err)
 				assert.IsType(t, &feature.FeatureNotFoundError{}, err)
@@ -500,15 +501,121 @@ func TestUpdateFeature(t *testing.T) {
 				_, err = connector.UpdateFeature(ctx, feature.UpdateFeatureInputs{
 					Namespace: namespace,
 					ID:        created.ID,
-					UnitCost: &feature.UnitCost{
+					UnitCost: nullable.NewNullableWithValue(feature.UnitCost{
 						Type: feature.UnitCostTypeManual,
 						Manual: &feature.ManualUnitCost{
 							Amount: alpacadecimal.NewFromFloat(0.01),
 						},
-					},
+					}),
 				})
 				assert.Error(t, err)
 				assert.IsType(t, &feature.FeatureNotFoundError{}, err)
+			},
+		},
+		{
+			name: "Should clear unit cost with null",
+			run: func(t *testing.T, connector feature.FeatureRepo) {
+				ctx := context.Background()
+
+				featureIn := testFeature
+				featureIn.UnitCost = &feature.UnitCost{
+					Type: feature.UnitCostTypeManual,
+					Manual: &feature.ManualUnitCost{
+						Amount: alpacadecimal.NewFromFloat(0.05),
+					},
+				}
+
+				created, err := connector.CreateFeature(ctx, featureIn)
+				assert.NoError(t, err)
+				assert.NotNil(t, created.UnitCost)
+
+				updated, err := connector.UpdateFeature(ctx, feature.UpdateFeatureInputs{
+					Namespace: namespace,
+					ID:        created.ID,
+					UnitCost:  nullable.NewNullNullable[feature.UnitCost](),
+				})
+				assert.NoError(t, err)
+				assert.Nil(t, updated.UnitCost)
+
+				// Verify by re-fetching
+				fetched, err := connector.GetByIdOrKey(ctx, namespace, created.ID, false)
+				assert.NoError(t, err)
+				assert.Nil(t, fetched.UnitCost)
+			},
+		},
+		{
+			name: "Should clear LLM unit cost with null",
+			run: func(t *testing.T, connector feature.FeatureRepo) {
+				ctx := context.Background()
+
+				featureIn := testFeature
+				featureIn.UnitCost = &feature.UnitCost{
+					Type: feature.UnitCostTypeLLM,
+					LLM: &feature.LLMUnitCost{
+						Provider:  "openai",
+						Model:     "gpt-4",
+						TokenType: "input",
+					},
+				}
+
+				created, err := connector.CreateFeature(ctx, featureIn)
+				assert.NoError(t, err)
+				assert.NotNil(t, created.UnitCost)
+				assert.Equal(t, feature.UnitCostTypeLLM, created.UnitCost.Type)
+
+				updated, err := connector.UpdateFeature(ctx, feature.UpdateFeatureInputs{
+					Namespace: namespace,
+					ID:        created.ID,
+					UnitCost:  nullable.NewNullNullable[feature.UnitCost](),
+				})
+				assert.NoError(t, err)
+				assert.Nil(t, updated.UnitCost)
+
+				// Verify by re-fetching
+				fetched, err := connector.GetByIdOrKey(ctx, namespace, created.ID, false)
+				assert.NoError(t, err)
+				assert.Nil(t, fetched.UnitCost)
+			},
+		},
+		{
+			name: "Should clear then set unit cost again",
+			run: func(t *testing.T, connector feature.FeatureRepo) {
+				ctx := context.Background()
+
+				featureIn := testFeature
+				featureIn.UnitCost = &feature.UnitCost{
+					Type: feature.UnitCostTypeManual,
+					Manual: &feature.ManualUnitCost{
+						Amount: alpacadecimal.NewFromFloat(0.05),
+					},
+				}
+
+				created, err := connector.CreateFeature(ctx, featureIn)
+				assert.NoError(t, err)
+
+				// Clear it
+				cleared, err := connector.UpdateFeature(ctx, feature.UpdateFeatureInputs{
+					Namespace: namespace,
+					ID:        created.ID,
+					UnitCost:  nullable.NewNullNullable[feature.UnitCost](),
+				})
+				assert.NoError(t, err)
+				assert.Nil(t, cleared.UnitCost)
+
+				// Set it again
+				updated, err := connector.UpdateFeature(ctx, feature.UpdateFeatureInputs{
+					Namespace: namespace,
+					ID:        created.ID,
+					UnitCost: nullable.NewNullableWithValue(feature.UnitCost{
+						Type: feature.UnitCostTypeManual,
+						Manual: &feature.ManualUnitCost{
+							Amount: alpacadecimal.NewFromFloat(0.99),
+						},
+					}),
+				})
+				assert.NoError(t, err)
+				assert.NotNil(t, updated.UnitCost)
+				assert.Equal(t, "0.99", updated.UnitCost.Manual.Amount.String())
 			},
 		},
 		{
@@ -525,12 +632,12 @@ func TestUpdateFeature(t *testing.T) {
 				updated, err := connector.UpdateFeature(ctx, feature.UpdateFeatureInputs{
 					Namespace: namespace,
 					ID:        created.ID,
-					UnitCost: &feature.UnitCost{
+					UnitCost: nullable.NewNullableWithValue(feature.UnitCost{
 						Type: feature.UnitCostTypeManual,
 						Manual: &feature.ManualUnitCost{
 							Amount: alpacadecimal.NewFromFloat(0.05),
 						},
-					},
+					}),
 				})
 				assert.NoError(t, err)
 

@@ -2677,6 +2677,20 @@ func (u *ChargeFlatFeeCreditAllocationsUpdateOne) SetOrClearLineID(value *string
 	return u.SetLineID(*value)
 }
 
+func (u *ChargeFlatFeeCreditAllocationsUpdate) SetOrClearCorrectsRealizationID(value *string) *ChargeFlatFeeCreditAllocationsUpdate {
+	if value == nil {
+		return u.ClearCorrectsRealizationID()
+	}
+	return u.SetCorrectsRealizationID(*value)
+}
+
+func (u *ChargeFlatFeeCreditAllocationsUpdateOne) SetOrClearCorrectsRealizationID(value *string) *ChargeFlatFeeCreditAllocationsUpdateOne {
+	if value == nil {
+		return u.ClearCorrectsRealizationID()
+	}
+	return u.SetCorrectsRealizationID(*value)
+}
+
 func (u *ChargeFlatFeeCreditAllocationsUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeCreditAllocationsUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
@@ -2955,6 +2969,20 @@ func (u *ChargeUsageBasedRunCreditAllocationsUpdateOne) SetOrClearLineID(value *
 		return u.ClearLineID()
 	}
 	return u.SetLineID(*value)
+}
+
+func (u *ChargeUsageBasedRunCreditAllocationsUpdate) SetOrClearCorrectsRealizationID(value *string) *ChargeUsageBasedRunCreditAllocationsUpdate {
+	if value == nil {
+		return u.ClearCorrectsRealizationID()
+	}
+	return u.SetCorrectsRealizationID(*value)
+}
+
+func (u *ChargeUsageBasedRunCreditAllocationsUpdateOne) SetOrClearCorrectsRealizationID(value *string) *ChargeUsageBasedRunCreditAllocationsUpdateOne {
+	if value == nil {
+		return u.ClearCorrectsRealizationID()
+	}
+	return u.SetCorrectsRealizationID(*value)
 }
 
 func (u *ChargeUsageBasedRunCreditAllocationsUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedRunCreditAllocationsUpdate {

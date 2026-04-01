@@ -123,7 +123,7 @@ func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
 		return fmt.Errorf("charge total is negative [charge_id=%s, amount=%s]", s.Charge.ID, amount.String())
 	}
 
-	var creditAllocations creditrealization.CreateInputs
+	var creditAllocations creditrealization.CreateAllocationInputs
 	if !amount.IsZero() {
 		input := flatfee.OnCreditsOnlyUsageAccruedInput{
 			Charge:           s.Charge,
@@ -149,7 +149,7 @@ func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
 	}
 
 	if len(creditAllocations) > 0 {
-		realizations, err := s.Adapter.CreateCreditAllocations(ctx, s.Charge.GetChargeID(), creditAllocations)
+		realizations, err := s.Adapter.CreateCreditAllocations(ctx, s.Charge.GetChargeID(), creditAllocations.AsCreateInputs())
 		if err != nil {
 			return fmt.Errorf("create credit allocations: %w", err)
 		}

@@ -42,7 +42,7 @@ func NewFlatFeeHandler(
 // OnFlatFeeAssignedToInvoice is called when a flat fee is being assigned to an invoice.
 // This acknowledges FBO-backed usage on the ledger by consuming value from prioritized
 // customer FBO subaccounts and moving it into customer_accrued. This is NOT revenue recognition.
-func (h *flatFeeHandler) OnAssignedToInvoice(ctx context.Context, input flatfee.OnAssignedToInvoiceInput) ([]creditrealization.CreateInput, error) {
+func (h *flatFeeHandler) OnAssignedToInvoice(ctx context.Context, input flatfee.OnAssignedToInvoiceInput) (creditrealization.CreateAllocationInputs, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -138,7 +138,7 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 
 // OnCreditsOnlyUsageAccrued is called when a credit-only flat fee becomes active.
 // It consumes value from prioritized customer FBO subaccounts and moves it into customer_accrued.
-func (h *flatFeeHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) ([]creditrealization.CreateInput, error) {
+func (h *flatFeeHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -389,15 +389,15 @@ func (h *flatFeeHandler) allocateCreditsToAccrued(ctx context.Context, charge fl
 	return transactionGroup.ID().ID, inputs, nil
 }
 
-func creditRealizationsFromCollectedInputs(servicePeriod timeutil.ClosedPeriod, transactionGroupID string, inputs ...ledger.TransactionInput) []creditrealization.CreateInput {
-	out := make([]creditrealization.CreateInput, 0)
+func creditRealizationsFromCollectedInputs(servicePeriod timeutil.ClosedPeriod, transactionGroupID string, inputs ...ledger.TransactionInput) creditrealization.CreateAllocationInputs {
+	out := make(creditrealization.CreateAllocationInputs, 0, len(inputs))
 	for _, input := range inputs {
 		if input == nil {
 			continue
 		}
 		for _, entry := range input.EntryInputs() {
 			if entry.Amount().IsNegative() && entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO {
-				out = append(out, creditrealization.CreateInput{
+				out = append(out, creditrealization.CreateAllocationInput{
 					ServicePeriod: servicePeriod,
 					Amount:        entry.Amount().Abs(),
 					LedgerTransaction: ledgertransaction.GroupReference{

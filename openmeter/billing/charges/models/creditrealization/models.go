@@ -3,6 +3,7 @@ package creditrealization
 import (
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/alpacahq/alpacadecimal"
 
@@ -12,6 +13,8 @@ import (
 )
 
 type CreateInput struct {
+	// ID is the ID of the credit realization, if empty a new ID will be generated.
+	ID            string                `json:"id"`
 	Annotations   models.Annotations    `json:"annotations"`
 	ServicePeriod timeutil.ClosedPeriod `json:"servicePeriod"`
 
@@ -23,6 +26,30 @@ type CreateInput struct {
 	// If nil, the credit is not allocated to any invoice line (e.g. line is still in gathering,
 	// credit_only mode without invoicing, etc.)
 	LineID *string `json:"lineID"`
+
+	Type                  Type    `json:"type"`
+	CorrectsRealizationID *string `json:"correctsRealizationID"`
+}
+
+type Type string
+
+const (
+	TypeAllocation Type = "allocation"
+	TypeCorrection Type = "correction"
+)
+
+func (t Type) Values() []string {
+	return []string{
+		string(TypeAllocation),
+		string(TypeCorrection),
+	}
+}
+
+func (t Type) Validate() error {
+	if !slices.Contains(t.Values(), string(t)) {
+		return fmt.Errorf("invalid credit realization type: %s", t)
+	}
+	return nil
 }
 
 func (i CreateInput) Validate() error {
@@ -32,8 +59,23 @@ func (i CreateInput) Validate() error {
 		errs = append(errs, fmt.Errorf("service period: %w", err))
 	}
 
-	if !i.Amount.IsPositive() {
-		errs = append(errs, fmt.Errorf("amount must be positive"))
+	if err := i.Type.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("type: %w", err))
+	}
+
+	switch i.Type {
+	case TypeAllocation:
+		if !i.Amount.IsPositive() {
+			errs = append(errs, fmt.Errorf("amount must be positive"))
+		}
+	case TypeCorrection:
+		if i.CorrectsRealizationID == nil {
+			errs = append(errs, fmt.Errorf("corrects realization ID is required"))
+		}
+
+		if !i.Amount.IsNegative() {
+			errs = append(errs, fmt.Errorf("amount must be negative"))
+		}
 	}
 
 	if err := i.LedgerTransaction.Validate(); err != nil {
@@ -70,7 +112,7 @@ func (i CreateInputs) Sum() alpacadecimal.Decimal {
 }
 
 type Realization struct {
-	models.NamespacedID
+	models.NamespacedModel
 	models.ManagedModel
 	CreateInput
 
@@ -87,26 +129,4 @@ func (r Realization) Validate() error {
 	}
 
 	return errors.Join(errs...)
-}
-
-type Realizations []Realization
-
-func (r Realizations) Validate() error {
-	var errs []error
-
-	for idx, realization := range r {
-		if err := realization.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("credit realization[%d]: %w", idx, err))
-		}
-	}
-
-	return errors.Join(errs...)
-}
-
-func (r Realizations) Sum() alpacadecimal.Decimal {
-	sum := alpacadecimal.Zero
-	for _, realization := range r {
-		sum = sum.Add(realization.Amount)
-	}
-	return sum
 }

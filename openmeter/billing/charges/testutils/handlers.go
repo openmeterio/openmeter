@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
@@ -30,7 +31,7 @@ type mockFlatFeeHandler struct{}
 
 var _ flatfee.Handler = (*mockFlatFeeHandler)(nil)
 
-func (mockFlatFeeHandler) OnAssignedToInvoice(context.Context, flatfee.OnAssignedToInvoiceInput) ([]creditrealization.CreateInput, error) {
+func (mockFlatFeeHandler) OnAssignedToInvoice(context.Context, flatfee.OnAssignedToInvoiceInput) (creditrealization.CreateAllocationInputs, error) {
 	return nil, nil
 }
 
@@ -38,8 +39,8 @@ func (mockFlatFeeHandler) OnInvoiceUsageAccrued(context.Context, flatfee.OnInvoi
 	return newMockLedgerTransactionGroupReference(), nil
 }
 
-func (mockFlatFeeHandler) OnCreditsOnlyUsageAccrued(_ context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) ([]creditrealization.CreateInput, error) {
-	return []creditrealization.CreateInput{
+func (mockFlatFeeHandler) OnCreditsOnlyUsageAccrued(_ context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
+	return creditrealization.CreateAllocationInputs{
 		{
 			ServicePeriod:     input.Charge.Intent.ServicePeriod,
 			LedgerTransaction: newMockLedgerTransactionGroupReference(),
@@ -84,8 +85,8 @@ type mockUsageBasedHandler struct{}
 
 var _ usagebased.Handler = (*mockUsageBasedHandler)(nil)
 
-func (mockUsageBasedHandler) OnCollectionStarted(_ context.Context, input usagebased.AllocateCreditsInput) (creditrealization.CreateInputs, error) {
-	return []creditrealization.CreateInput{
+func (mockUsageBasedHandler) OnCreditsOnlyUsageAccrued(_ context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
+	return creditrealization.CreateAllocationInputs{
 		{
 			ServicePeriod:     input.Charge.Intent.ServicePeriod,
 			LedgerTransaction: newMockLedgerTransactionGroupReference(),
@@ -94,14 +95,14 @@ func (mockUsageBasedHandler) OnCollectionStarted(_ context.Context, input usageb
 	}, nil
 }
 
-func (mockUsageBasedHandler) OnCollectionFinalized(_ context.Context, input usagebased.AllocateCreditsInput) (creditrealization.CreateInputs, error) {
-	return []creditrealization.CreateInput{
-		{
-			ServicePeriod:     input.Charge.Intent.ServicePeriod,
-			LedgerTransaction: newMockLedgerTransactionGroupReference(),
-			Amount:            input.AmountToAllocate,
-		},
-	}, nil
+func (mockUsageBasedHandler) OnCreditsOnlyUsageAccruedCorrection(_ context.Context, input usagebased.CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error) {
+	return lo.Map(input.Corrections, func(correction creditrealization.CorrectionRequestItem, _ int) creditrealization.CreateCorrectionInput {
+		return creditrealization.CreateCorrectionInput{
+			LedgerTransaction:     newMockLedgerTransactionGroupReference(),
+			Amount:                correction.Amount,
+			CorrectsRealizationID: correction.Allocation.ID,
+		}
+	}), nil
 }
 
 func newMockLedgerTransactionGroupReference() ledgertransaction.GroupReference {
