@@ -52,8 +52,8 @@ func (c chargePatchCollection) Patches() charges.ApplyPatchesInput {
 }
 
 func (c *chargePatchCollection) addCreate(intent charges.ChargeIntent) error {
-	if intent.Validate() != nil {
-		return fmt.Errorf("invalid intent: %w", intent.Validate())
+	if err := intent.Validate(); err != nil {
+		return fmt.Errorf("invalid intent: %w", err)
 	}
 
 	uniqueReferenceID, err := intent.GetUniqueReferenceID()
@@ -159,10 +159,10 @@ func newChargeIntentBaseFromTargetState(target targetstate.StateItem) (chargesme
 
 func logChargesPatches(ctx context.Context, log *slog.Logger, patches charges.ApplyPatchesInput) {
 	for chargeID, patch := range patches.PatchesByChargeID {
-		log.Info("patching charge", "charge_id", chargeID, "patch", patch)
+		log.InfoContext(ctx, "patching charge", "charge_id", chargeID, "patch", patch)
 	}
 
 	for _, intent := range patches.Creates {
-		log.Info("creating charge", "intent", intent)
+		log.InfoContext(ctx, "creating charge", "intent", intent)
 	}
 }

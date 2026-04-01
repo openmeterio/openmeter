@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -48,7 +47,7 @@ type InvoicePatchCollection interface {
 }
 
 type ChargePatchCollection interface {
-	Patches(customerID customer.CustomerID) charges.ApplyPatchesInput
+	Patches() charges.ApplyPatchesInput
 	IsEmpty() bool
 }
 
