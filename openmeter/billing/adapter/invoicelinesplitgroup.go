@@ -10,6 +10,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -39,6 +42,11 @@ func (a *adapter) CreateSplitLineGroup(ctx context.Context, input billing.Create
 			SetPrice(input.Price).
 			SetNillableTaxConfig(input.TaxConfig).
 			SetNillableFeatureKey(input.FeatureKey)
+
+		if input.TaxConfig != nil {
+			create = create.SetNillableTaxCodeID(input.TaxConfig.TaxCodeID).
+				SetNillableTaxBehavior(input.TaxConfig.Behavior)
+		}
 
 		if input.Subscription != nil {
 			create = create.SetSubscriptionID(input.Subscription.SubscriptionID).
@@ -77,6 +85,14 @@ func (a *adapter) UpdateSplitLineGroup(ctx context.Context, input billing.Update
 			Where(
 				billinginvoicesplitlinegroup.Namespace(input.Namespace),
 			)
+
+		if input.TaxConfig != nil {
+			updateQuery = updateQuery.
+				SetOrClearTaxCodeID(input.TaxConfig.TaxCodeID).
+				SetOrClearTaxBehavior(input.TaxConfig.Behavior)
+		} else {
+			updateQuery = updateQuery.ClearTaxCodeID().ClearTaxBehavior()
+		}
 
 		dbSplitLineGroup, err := updateQuery.Save(ctx)
 		if err != nil {
@@ -127,6 +143,7 @@ func (a *adapter) GetSplitLineGroup(ctx context.Context, input billing.GetSplitL
 				billinginvoicesplitlinegroup.Namespace(input.Namespace),
 				billinginvoicesplitlinegroup.ID(input.ID),
 			).
+			WithTaxCode().
 			WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
 				a.expandLineItems(q)
 				q.WithBillingInvoice(func(q *db.BillingInvoiceQuery) {
@@ -146,6 +163,18 @@ func (a *adapter) GetSplitLineGroup(ctx context.Context, input billing.GetSplitL
 
 		return a.mapSplitLineHierarchyFromDB(ctx, dbSplitLineGroup)
 	})
+}
+
+func taxCodeFromSplitLineGroupEdge(dbGroup *db.BillingInvoiceSplitLineGroup) *taxcode.TaxCode {
+	tc, err := dbGroup.Edges.TaxCodeOrErr()
+	if err != nil {
+		return nil
+	}
+	mapped, err := taxcodeadapter.MapTaxCodeFromEntity(tc)
+	if err != nil {
+		return nil
+	}
+	return &mapped
 }
 
 func (a *adapter) mapSplitLineGroupFromDB(dbSplitLineGroup *db.BillingInvoiceSplitLineGroup) (billing.SplitLineGroup, error) {
@@ -192,7 +221,11 @@ func (a *adapter) mapSplitLineGroupFromDB(dbSplitLineGroup *db.BillingInvoiceSpl
 
 			RatecardDiscounts: lo.FromPtr(dbSplitLineGroup.RatecardDiscounts),
 
-			TaxConfig: lo.EmptyableToPtr(dbSplitLineGroup.TaxConfig),
+			TaxConfig: productcatalog.BackfillTaxConfig(
+				lo.EmptyableToPtr(dbSplitLineGroup.TaxConfig),
+				dbSplitLineGroup.TaxBehavior,
+				taxCodeFromSplitLineGroupEdge(dbSplitLineGroup),
+			),
 		},
 		UniqueReferenceID: dbSplitLineGroup.UniqueReferenceID,
 
@@ -336,6 +369,7 @@ func (a *adapter) fetchAllSplitLineGroups(ctx context.Context, namespace string,
 			billinginvoicesplitlinegroup.Namespace(namespace),
 			billinginvoicesplitlinegroup.IDIn(splitLineGroupIDs...),
 		).
+		WithTaxCode().
 		WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
 			a.expandLineItems(q)
 			q.WithBillingInvoice(func(q *db.BillingInvoiceQuery) {
