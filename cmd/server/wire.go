@@ -51,6 +51,7 @@ type Application struct {
 	Addon                            addon.Service
 	AppRegistry                      common.AppRegistry
 	Customer                         customer.Service
+	CustomerLedgerHook               common.CustomerLedgerHook
 	CustomerSubjectHook              common.CustomerSubjectHook
 	CustomerEntitlementValidatorHook common.CustomerEntitlementValidatorHook
 	BillingRegistry                  common.BillingRegistry
@@ -67,6 +68,7 @@ type Application struct {
 	KafkaProducer                    *kafka.Producer
 	KafkaMetrics                     *kafkametrics.Metrics
 	KafkaIngestNamespaceHandler      *kafkaingest.NamespaceHandler
+	LedgerNamespaceHandler           namespace.Handler
 	LLMCostService                   llmcost.Service
 	Logger                           *slog.Logger
 	MetricMeter                      metric.Meter
@@ -103,6 +105,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Currency,
 		common.Customer,
 		common.CustomerBalance,
+		common.NewCustomerLedgerServiceHook,
 		common.NewCustomerSubjectServiceHook,
 		common.NewCustomerEntitlementValidatorServiceHook,
 		common.Database,

@@ -7,6 +7,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -15,12 +16,14 @@ import (
 type AccountResolver struct {
 	AccountService ledgeraccount.Service
 	Repo           CustomerAccountRepo
+	Locker         *lockr.Locker
 }
 
 // AccountResolverConfig holds the dependencies for constructing a Service.
 type AccountResolverConfig struct {
 	AccountService ledgeraccount.Service
 	Repo           CustomerAccountRepo
+	Locker         *lockr.Locker
 }
 
 // NewAccountResolver constructs a resolvers Service from the given config.
@@ -28,6 +31,7 @@ func NewAccountResolver(cfg AccountResolverConfig) *AccountResolver {
 	return &AccountResolver{
 		AccountService: cfg.AccountService,
 		Repo:           cfg.Repo,
+		Locker:         cfg.Locker,
 	}
 }
 
@@ -37,6 +41,10 @@ var _ ledger.AccountResolver = (*AccountResolver)(nil)
 // and stores the mappings in the linking table.
 func (s *AccountResolver) CreateCustomerAccounts(ctx context.Context, customerID customer.CustomerID) (ledger.CustomerAccounts, error) {
 	return transaction.Run(ctx, s.Repo, func(ctx context.Context) (ledger.CustomerAccounts, error) {
+		if err := s.lockCustomerProvisioning(ctx, customerID); err != nil {
+			return ledger.CustomerAccounts{}, fmt.Errorf("failed to lock customer account provisioning: %w", err)
+		}
+
 		ns := customerID.Namespace
 
 		accountIDs, err := s.Repo.GetCustomerAccountIDs(ctx, customerID)
@@ -44,13 +52,7 @@ func (s *AccountResolver) CreateCustomerAccounts(ctx context.Context, customerID
 			return ledger.CustomerAccounts{}, fmt.Errorf("failed to get customer account IDs: %w", err)
 		}
 
-		requiredTypes := []ledger.AccountType{
-			ledger.AccountTypeCustomerFBO,
-			ledger.AccountTypeCustomerReceivable,
-			ledger.AccountTypeCustomerAccrued,
-		}
-
-		for _, accountType := range requiredTypes {
+		for _, accountType := range ledger.CustomerAccountTypes {
 			if _, ok := accountIDs[accountType]; ok {
 				continue
 			}
@@ -155,53 +157,79 @@ func (s *AccountResolver) GetCustomerAccounts(ctx context.Context, customerID cu
 	}, nil
 }
 
-// GetBusinessAccounts retrieves (and idempotently creates) the shared business accounts
-// for a namespace.
-func (s *AccountResolver) GetBusinessAccounts(ctx context.Context, namespace string) (ledger.BusinessAccounts, error) {
-	types := []ledger.AccountType{
-		ledger.AccountTypeWash,
-		ledger.AccountTypeEarnings,
-		ledger.AccountTypeBrokerage,
-	}
+func (s *AccountResolver) EnsureBusinessAccounts(ctx context.Context, namespace string) (ledger.BusinessAccounts, error) {
+	return transaction.Run(ctx, s.Repo, func(ctx context.Context) (ledger.BusinessAccounts, error) {
+		if err := s.lockBusinessProvisioning(ctx, namespace); err != nil {
+			return ledger.BusinessAccounts{}, fmt.Errorf("failed to lock business account provisioning: %w", err)
+		}
 
-	existing, err := s.AccountService.ListAccounts(ctx, ledgeraccount.ListAccountsInput{
-		Namespace:    namespace,
-		AccountTypes: types,
-	})
-	if err != nil {
-		return ledger.BusinessAccounts{}, fmt.Errorf("failed to list business accounts: %w", err)
-	}
+		existing, err := s.listBusinessAccountsByType(ctx, namespace)
+		if err != nil {
+			return ledger.BusinessAccounts{}, err
+		}
 
-	byType := make(map[ledger.AccountType]*ledgeraccount.Account, len(existing))
-	for _, acc := range existing {
-		byType[acc.Type()] = acc
-	}
+		for _, accountType := range ledger.BusinessAccountTypes {
+			if _, ok := existing[accountType]; ok {
+				continue
+			}
 
-	// Idempotently create any missing accounts
-	for _, t := range types {
-		if _, ok := byType[t]; !ok {
 			acc, err := s.AccountService.CreateAccount(ctx, ledgeraccount.CreateAccountInput{
 				Namespace: namespace,
-				Type:      t,
+				Type:      accountType,
 			})
 			if err != nil {
-				return ledger.BusinessAccounts{}, fmt.Errorf("failed to create %s account: %w", t, err)
+				return ledger.BusinessAccounts{}, fmt.Errorf("failed to create %s account: %w", accountType, err)
 			}
-			byType[t] = acc
+
+			existing[accountType] = acc
 		}
-	}
 
-	washAcc, err := byType[ledger.AccountTypeWash].AsBusinessAccount()
+		return s.GetBusinessAccounts(ctx, namespace)
+	})
+}
+
+// GetBusinessAccounts retrieves the shared business accounts for a namespace.
+func (s *AccountResolver) GetBusinessAccounts(ctx context.Context, namespace string) (ledger.BusinessAccounts, error) {
+	existing, err := s.listBusinessAccountsByType(ctx, namespace)
 	if err != nil {
 		return ledger.BusinessAccounts{}, err
 	}
 
-	earningsAcc, err := byType[ledger.AccountTypeEarnings].AsBusinessAccount()
+	wash, ok := existing[ledger.AccountTypeWash]
+	if !ok {
+		return ledger.BusinessAccounts{}, ledger.ErrBusinessAccountMissing.WithAttrs(models.Attributes{
+			"namespace":    namespace,
+			"account_type": ledger.AccountTypeWash,
+		})
+	}
+
+	earnings, ok := existing[ledger.AccountTypeEarnings]
+	if !ok {
+		return ledger.BusinessAccounts{}, ledger.ErrBusinessAccountMissing.WithAttrs(models.Attributes{
+			"namespace":    namespace,
+			"account_type": ledger.AccountTypeEarnings,
+		})
+	}
+
+	brokerage, ok := existing[ledger.AccountTypeBrokerage]
+	if !ok {
+		return ledger.BusinessAccounts{}, ledger.ErrBusinessAccountMissing.WithAttrs(models.Attributes{
+			"namespace":    namespace,
+			"account_type": ledger.AccountTypeBrokerage,
+		})
+	}
+
+	washAcc, err := wash.AsBusinessAccount()
 	if err != nil {
 		return ledger.BusinessAccounts{}, err
 	}
 
-	brokerageAcc, err := byType[ledger.AccountTypeBrokerage].AsBusinessAccount()
+	earningsAcc, err := earnings.AsBusinessAccount()
+	if err != nil {
+		return ledger.BusinessAccounts{}, err
+	}
+
+	brokerageAcc, err := brokerage.AsBusinessAccount()
 	if err != nil {
 		return ledger.BusinessAccounts{}, err
 	}
@@ -211,4 +239,63 @@ func (s *AccountResolver) GetBusinessAccounts(ctx context.Context, namespace str
 		EarningsAccount:  earningsAcc,
 		BrokerageAccount: brokerageAcc,
 	}, nil
+}
+
+func (s *AccountResolver) listBusinessAccountsByType(ctx context.Context, namespace string) (map[ledger.AccountType]*ledgeraccount.Account, error) {
+	existing, err := s.AccountService.ListAccounts(ctx, ledgeraccount.ListAccountsInput{
+		Namespace:    namespace,
+		AccountTypes: ledger.BusinessAccountTypes,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list business accounts: %w", err)
+	}
+
+	byType := make(map[ledger.AccountType]*ledgeraccount.Account, len(existing))
+	for _, acc := range existing {
+		if prev, ok := byType[acc.Type()]; ok {
+			return nil, fmt.Errorf("multiple %s accounts found in namespace %s: %s and %s", acc.Type(), namespace, prev.ID().ID, acc.ID().ID)
+		}
+
+		byType[acc.Type()] = acc
+	}
+
+	return byType, nil
+}
+
+func (s *AccountResolver) lockCustomerProvisioning(ctx context.Context, customerID customer.CustomerID) error {
+	if s.Locker == nil {
+		return nil
+	}
+
+	key, err := lockr.NewKey(
+		"ledger",
+		"customer_accounts",
+		"namespace",
+		customerID.Namespace,
+		"customer",
+		customerID.ID,
+	)
+	if err != nil {
+		return err
+	}
+
+	return s.Locker.LockForTX(ctx, key)
+}
+
+func (s *AccountResolver) lockBusinessProvisioning(ctx context.Context, namespace string) error {
+	if s.Locker == nil {
+		return nil
+	}
+
+	key, err := lockr.NewKey(
+		"ledger",
+		"business_accounts",
+		"namespace",
+		namespace,
+	)
+	if err != nil {
+		return err
+	}
+
+	return s.Locker.LockForTX(ctx, key)
 }

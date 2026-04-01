@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
 	resolversadapter "github.com/openmeterio/openmeter/openmeter/ledger/resolvers/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ledger/routingrules"
+	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
 
@@ -26,6 +27,7 @@ var LedgerStack = wire.NewSet(
 	NewLedgerAccountLiveServices,
 	NewLedgerAccountService,
 	NewLedgerHistoricalLedger,
+	NewLedgerNamespaceHandler,
 	NewLedgerResolversService,
 	wire.Bind(new(ledger.Ledger), new(*historical.Ledger)),
 	wire.Bind(new(ledger.AccountResolver), new(*resolvers.AccountResolver)),
@@ -75,9 +77,15 @@ func NewLedgerHistoricalLedger(
 func NewLedgerResolversService(
 	accountSvc ledgeraccount.Service,
 	repo resolvers.CustomerAccountRepo,
+	locker *lockr.Locker,
 ) *resolvers.AccountResolver {
 	return resolvers.NewAccountResolver(resolvers.AccountResolverConfig{
 		AccountService: accountSvc,
 		Repo:           repo,
+		Locker:         locker,
 	})
+}
+
+func NewLedgerNamespaceHandler(accountResolver *resolvers.AccountResolver) namespace.Handler {
+	return resolvers.NewNamespaceHandler(accountResolver)
 }

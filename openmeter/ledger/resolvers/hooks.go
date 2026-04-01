@@ -7,6 +7,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -16,8 +17,12 @@ type (
 	NoopCustomerLedgerHook = models.NoopServiceHook[customer.Customer]
 )
 
+type customerAccountProvisioner interface {
+	CreateCustomerAccounts(ctx context.Context, customerID customer.CustomerID) (ledger.CustomerAccounts, error)
+}
+
 type CustomerLedgerHookConfig struct {
-	Service AccountResolver
+	Service customerAccountProvisioner
 	Tracer  trace.Tracer
 }
 

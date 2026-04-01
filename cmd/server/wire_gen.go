@@ -382,6 +382,22 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	appRegistry := common.NewAppRegistry(appService, appSandboxProvisioner, appstripeService, appcustominvoicingService)
+	repo := common.NewLedgerAccountRepo(client)
+	accountLiveServices := common.NewLedgerAccountLiveServices(locker)
+	accountService := common.NewLedgerAccountService(repo, accountLiveServices)
+	customerAccountRepo := common.NewLedgerResolversRepo(client)
+	accountResolver := common.NewLedgerResolversService(accountService, customerAccountRepo, locker)
+	customerLedgerHook, err := common.NewCustomerLedgerServiceHook(tracer, accountResolver, customerService)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	customerConfiguration := conf.Customer
 	subjectAdapter, err := common.NewSubjectAdapter(client)
 	if err != nil {
@@ -564,6 +580,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	handler := common.NewLedgerNamespaceHandler(accountResolver)
 	v4 := conf.Meters
 	v5 := conf.ReservedEventTypes
 	v6, err := common.NewReservedEventTypePatterns(v5)
@@ -608,7 +625,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	handler, err := common.NewNotificationWebhookHandler(logger, tracer, webhookConfiguration, svix)
+	webhookHandler, err := common.NewNotificationWebhookHandler(logger, tracer, webhookConfiguration, svix)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -620,7 +637,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	eventHandler, cleanup9, err := common.NewNotificationEventHandler(notificationConfiguration, logger, tracer, notificationRepository, handler)
+	eventHandler, cleanup9, err := common.NewNotificationEventHandler(notificationConfiguration, logger, tracer, notificationRepository, webhookHandler)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -632,7 +649,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	notificationService, err := common.NewNotificationService(logger, notificationRepository, handler, eventHandler, featureConnector)
+	notificationService, err := common.NewNotificationService(logger, notificationRepository, webhookHandler, eventHandler, featureConnector)
 	if err != nil {
 		cleanup9()
 		cleanup8()
@@ -716,6 +733,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Addon:                            addonService,
 		AppRegistry:                      appRegistry,
 		Customer:                         customerService,
+		CustomerLedgerHook:               customerLedgerHook,
 		CustomerSubjectHook:              customerSubjectHook,
 		CustomerEntitlementValidatorHook: customerEntitlementValidatorHook,
 		BillingRegistry:                  billingRegistry,
@@ -732,6 +750,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		KafkaProducer:                    producer,
 		KafkaMetrics:                     metrics,
 		KafkaIngestNamespaceHandler:      namespaceHandler,
+		LedgerNamespaceHandler:           handler,
 		LLMCostService:                   llmcostService,
 		Logger:                           logger,
 		MetricMeter:                      meter,
@@ -780,6 +799,7 @@ type Application struct {
 	Addon                            addon.Service
 	AppRegistry                      common.AppRegistry
 	Customer                         customer.Service
+	CustomerLedgerHook               common.CustomerLedgerHook
 	CustomerSubjectHook              common.CustomerSubjectHook
 	CustomerEntitlementValidatorHook common.CustomerEntitlementValidatorHook
 	BillingRegistry                  common.BillingRegistry
@@ -796,6 +816,7 @@ type Application struct {
 	KafkaProducer                    *kafka2.Producer
 	KafkaMetrics                     *metrics.Metrics
 	KafkaIngestNamespaceHandler      *kafkaingest.NamespaceHandler
+	LedgerNamespaceHandler           namespace.Handler
 	LLMCostService                   llmcost.Service
 	Logger                           *slog.Logger
 	MetricMeter                      metric.Meter

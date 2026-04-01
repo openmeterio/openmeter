@@ -40,6 +40,7 @@ func InitDeps(db *entdb.Client, logger *slog.Logger) (Deps, error) {
 	accountResolver := resolvers.NewAccountResolver(resolvers.AccountResolverConfig{
 		AccountService: accountService,
 		Repo:           customerAccountRepo,
+		Locker:         locker,
 	})
 	historicalRepo := historicaladapter.NewRepo(db)
 	historicalLedger := historical.NewLedger(historicalRepo, accountService, locker, routingrules.DefaultValidator)

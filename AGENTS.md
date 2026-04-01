@@ -49,6 +49,8 @@ Core business logic is in `openmeter/`, shared utilities in `pkg/`, API layer in
 
 Domain packages under `openmeter/` follow a layered service/adapter pattern. See the `/service` skill for full details.
 
+`cmd/server/main.go` now migrates the database before creating the default namespace. Register namespace handlers before `initNamespace(...)` if they must provision the default namespace during startup.
+
 ### Project Layout
 
 ```

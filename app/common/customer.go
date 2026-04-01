@@ -14,6 +14,7 @@ import (
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	customerservicehooks "github.com/openmeterio/openmeter/openmeter/customer/service/hooks"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	ledgerresolvers "github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -48,6 +49,26 @@ func NewCustomerService(
 }
 
 type CustomerSubjectHook customerservicehooks.SubjectCustomerHook
+
+type CustomerLedgerHook ledgerresolvers.CustomerLedgerHook
+
+func NewCustomerLedgerServiceHook(
+	tracer trace.Tracer,
+	accountResolver *ledgerresolvers.AccountResolver,
+	customerService customer.Service,
+) (CustomerLedgerHook, error) {
+	h, err := ledgerresolvers.NewCustomerLedgerHook(ledgerresolvers.CustomerLedgerHookConfig{
+		Service: accountResolver,
+		Tracer:  tracer,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create customer ledger hook: %w", err)
+	}
+
+	customerService.RegisterHooks(h)
+
+	return h, nil
+}
 
 func NewCustomerSubjectServiceHook(
 	config config.CustomerConfiguration,

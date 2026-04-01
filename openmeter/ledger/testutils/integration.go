@@ -96,6 +96,7 @@ func NewIntegrationEnv(t *testing.T, namespacePrefix string) *IntegrationEnv {
 	resolversService := resolvers.NewAccountResolver(resolvers.AccountResolverConfig{
 		AccountService: accountSvc,
 		Repo:           resolversRepo,
+		Locker:         locker,
 	})
 
 	deps := Deps{
@@ -111,7 +112,7 @@ func NewIntegrationEnv(t *testing.T, namespacePrefix string) *IntegrationEnv {
 	customerAccounts, err := deps.ResolversService.CreateCustomerAccounts(t.Context(), customerID)
 	require.NoError(t, err)
 
-	businessAccounts, err := deps.ResolversService.GetBusinessAccounts(t.Context(), namespace)
+	businessAccounts, err := deps.ResolversService.EnsureBusinessAccounts(t.Context(), namespace)
 	require.NoError(t, err)
 
 	return &IntegrationEnv{

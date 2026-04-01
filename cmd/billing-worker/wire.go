@@ -25,8 +25,8 @@ type Application struct {
 	Logger                  *slog.Logger
 	Meter                   meter.Service
 	RuntimeMetricsCollector common.RuntimeMetricsCollector
-	NamespaceManager *namespace.Manager
-	Streaming        streaming.Connector
+	NamespaceManager        *namespace.Manager
+	Streaming               streaming.Connector
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
