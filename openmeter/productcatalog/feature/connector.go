@@ -30,8 +30,8 @@ type CreateFeatureInputs struct {
 }
 
 type UpdateFeatureInputs struct {
-	Namespace string                    `json:"namespace"`
-	ID        string                    `json:"id"`
+	Namespace string                      `json:"namespace"`
+	ID        string                      `json:"id"`
 	UnitCost  nullable.Nullable[UnitCost] `json:"unitCost"`
 }
 
