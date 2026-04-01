@@ -44,15 +44,3 @@ func (c *usageBasedChargeCollection) AddCreate(target targetstate.StateItem) err
 
 	return c.addCreate(intent)
 }
-
-func (c *usageBasedChargeCollection) AddDelete(uniqueID string, existing persistedstate.Item) error {
-	return c.unsupportedOperationError(PatchOperationDelete, uniqueID, existing)
-}
-
-func (c *usageBasedChargeCollection) AddShrink(uniqueID string, existing persistedstate.Item, target targetstate.StateItem) error {
-	return c.unsupportedOperationError(PatchOperationShrink, uniqueID, existing)
-}
-
-func (c *usageBasedChargeCollection) AddExtend(existing persistedstate.Item, target targetstate.StateItem) error {
-	return c.unsupportedOperationError(PatchOperationExtend, target.UniqueID, existing)
-}

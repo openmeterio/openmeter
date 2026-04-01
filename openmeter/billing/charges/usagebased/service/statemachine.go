@@ -186,8 +186,8 @@ func (s *StateMachine) getCurrentRunCollectionEnd() (time.Time, error) {
 	return currentRun.CollectionEnd.UTC(), nil
 }
 
-func (s *CreditsOnlyStateMachine) FireAndActivate(ctx context.Context, trigger usagebased.Trigger) error {
-	if err := s.StateMachine.FireCtx(ctx, trigger); err != nil {
+func (s *CreditsOnlyStateMachine) FireAndActivate(ctx context.Context, trigger meta.Trigger, args ...any) error {
+	if err := s.StateMachine.FireCtx(ctx, trigger, args...); err != nil {
 		return err
 	}
 

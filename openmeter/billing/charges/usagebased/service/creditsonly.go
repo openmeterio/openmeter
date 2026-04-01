@@ -49,6 +49,7 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			usagebased.StatusActive,
 			statelessx.BoolFn(s.IsInsideServicePeriod),
 		).
+		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
 		OnActive(
 			s.AdvanceAfterServicePeriodFrom,
 		)
@@ -59,6 +60,7 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			usagebased.StatusActiveFinalRealizationStarted,
 			statelessx.BoolFn(s.IsAfterServicePeriod),
 		).
+		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
 		OnActive(
 			s.AdvanceAfterServicePeriodTo,
 		)
@@ -68,6 +70,7 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			meta.TriggerNext,
 			usagebased.StatusActiveFinalRealizationWaitingForCollection,
 		).
+		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
 		OnActive(
 			s.StartFinalRealizationRun,
 		)
@@ -78,6 +81,7 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			usagebased.StatusActiveFinalRealizationProcessing,
 			s.IsAfterCollectionPeriod,
 		).
+		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
 		// TODO: Transition to a failed state if the collection period end is not set
 		OnActive(s.AdvanceAfterCollectionPeriodEnd)
 
@@ -86,6 +90,7 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			meta.TriggerNext,
 			usagebased.StatusActiveFinalRealizationCompleted,
 		).
+		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
 		OnActive(
 			s.FinalizeRealizationRun,
 		)
@@ -94,15 +99,55 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 		Permit(
 			meta.TriggerNext,
 			usagebased.StatusFinal,
-		)
+		).
+		Permit(meta.TriggerDelete, usagebased.StatusDeleted)
 
 	s.Configure(usagebased.StatusFinal).
+		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
 		OnActive(s.ClearAdvanceAfter)
+
+	s.Configure(usagebased.StatusDeleted).
+		OnEntry(statelessx.WithParameters(s.DeleteCharge))
 }
 
 func (s *CreditsOnlyStateMachine) ClearAdvanceAfter(ctx context.Context) error {
 	s.Charge.State.AdvanceAfter = nil
 	return nil
+}
+
+func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, policy meta.PatchDeletePolicy) error {
+	if policy.CreditRefundPolicy == meta.CreditRefundPolicyCorrect {
+		currencyCalculator, err := s.Charge.Intent.Currency.Calculator()
+		if err != nil {
+			return fmt.Errorf("get currency calculator: %w", err)
+		}
+
+		for _, run := range s.Charge.Realizations {
+			corrections, err := run.CreditsAllocated.CorrectAll(currencyCalculator, func(req creditrealization.CorrectionRequest) (creditrealization.CreateCorrectionInputs, error) {
+				return s.Service.handler.OnCreditsOnlyUsageAccruedCorrection(ctx, usagebased.CreditsOnlyUsageAccruedCorrectionInput{
+					Charge:      s.Charge,
+					Run:         run,
+					AllocateAt:  clock.Now(),
+					Corrections: req,
+				})
+			})
+			if err != nil {
+				return fmt.Errorf("correct credits for run %s: %w", run.ID.ID, err)
+			}
+
+			if len(corrections) > 0 {
+				if _, err := s.Adapter.CreateRunCreditRealization(ctx, run.ID, corrections); err != nil {
+					return fmt.Errorf("create credit corrections for run %s: %w", run.ID.ID, err)
+				}
+			}
+		}
+	}
+
+	if err := s.Adapter.DeleteCharge(ctx, s.Charge); err != nil {
+		return fmt.Errorf("delete charge: %w", err)
+	}
+
+	return s.refetchCharge(ctx)
 }
 
 func (s *CreditsOnlyStateMachine) allocateCredits(ctx context.Context, in usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateInputs, error) {
