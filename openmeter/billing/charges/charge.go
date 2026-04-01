@@ -260,6 +260,31 @@ func (i ChargeIntent) AsUsageBasedIntent() (usagebased.Intent, error) {
 	return *i.usageBased, nil
 }
 
+func (c ChargeIntent) GetUniqueReferenceID() (*string, error) {
+	switch c.t {
+	case meta.ChargeTypeFlatFee:
+		if c.flatFee == nil {
+			return nil, fmt.Errorf("flat fee charge is nil")
+		}
+
+		return c.flatFee.Intent.UniqueReferenceID, nil
+	case meta.ChargeTypeCreditPurchase:
+		if c.creditPurchase == nil {
+			return nil, fmt.Errorf("credit purchase charge is nil")
+		}
+
+		return c.creditPurchase.Intent.UniqueReferenceID, nil
+	case meta.ChargeTypeUsageBased:
+		if c.usageBased == nil {
+			return nil, fmt.Errorf("usage based charge is nil")
+		}
+
+		return c.usageBased.Intent.UniqueReferenceID, nil
+	}
+
+	return nil, fmt.Errorf("invalid charge type: %s", c.t)
+}
+
 type ChargeIntents []ChargeIntent
 
 func (i ChargeIntents) Validate() error {

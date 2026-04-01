@@ -7,8 +7,8 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
-	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/chargeupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -41,18 +41,13 @@ type InvoicePatch interface {
 	GetInvoicePatches() ([]invoiceupdater.Patch, error)
 }
 
-type ChargePatch interface {
-	Patch
-	GetChargePatch() chargeupdater.Patch
-}
-
 type InvoicePatchCollection interface {
 	Patches() []InvoicePatch
 	IsEmpty() bool
 }
 
 type ChargePatchCollection interface {
-	Patches() []ChargePatch
+	Patches() charges.ApplyPatchesInput
 	IsEmpty() bool
 }
 
@@ -134,12 +129,9 @@ func (c patchCollectionRouter) CollectInvoicePatches() []InvoicePatch {
 	return filtered
 }
 
-func (c patchCollectionRouter) CollectChargePatches() []ChargePatch {
-	allPatches := slices.Concat(c.flatFeeChargeCollection.Patches(), c.usageBasedChargeCollection.Patches())
-
-	filtered := lo.Filter(allPatches, func(patch ChargePatch, _ int) bool {
-		return patch != nil
-	})
-
-	return filtered
+func (c patchCollectionRouter) CollectChargePatches() (charges.ApplyPatchesInput, error) {
+	return charges.ConcatenateApplyPatchesInputs(
+		c.flatFeeChargeCollection.Patches(),
+		c.usageBasedChargeCollection.Patches(),
+	)
 }

@@ -98,6 +98,8 @@ const (
 	// ChargeStatusFinal is the status of a charge that is final and is fully settled for the service period. The charge will not receive any additional
 	// late events in the future.
 	ChargeStatusFinal ChargeStatus = "final"
+	// ChargeStatusDeleted is the status of a charge that is deleted no further actions are possible on it.
+	ChargeStatusDeleted ChargeStatus = "deleted"
 )
 
 func (s ChargeStatus) Values() []string {
@@ -106,6 +108,7 @@ func (s ChargeStatus) Values() []string {
 		string(ChargeStatusActive),
 		string(ChargeStatusSettled),
 		string(ChargeStatusFinal),
+		string(ChargeStatusDeleted),
 	}
 }
 

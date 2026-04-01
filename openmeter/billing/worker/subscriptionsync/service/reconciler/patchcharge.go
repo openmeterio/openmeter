@@ -1,19 +1,24 @@
 package reconciler
 
 import (
+	"context"
 	"fmt"
+	"log/slog"
+
+	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
-	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/chargeupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type chargePatchCollection struct {
 	itemType persistedstate.ItemType
-	patches  []ChargePatch
+	patches  charges.ApplyPatchesInput
 }
 
 func (c chargePatchCollection) GetBackendType() BackendType {
@@ -27,18 +32,11 @@ func newChargePatchCollection(itemType persistedstate.ItemType, preallocatedCapa
 
 	return chargePatchCollection{
 		itemType: itemType,
-		patches:  make([]ChargePatch, 0, preallocatedCapacity),
+		patches: charges.ApplyPatchesInput{
+			PatchesByChargeID: make(map[string]charges.Patch, preallocatedCapacity),
+			Creates:           make(charges.ChargeIntents, 0, preallocatedCapacity),
+		},
 	}
-}
-
-func (c *chargePatchCollection) addPatch(uniqueID string, operation PatchOperation, updaterPatch chargeupdater.Patch) error {
-	if uniqueID == "" {
-		return fmt.Errorf("unique id is required [operation=%s, item_type=%s]", operation, c.itemType)
-	}
-
-	c.patches = append(c.patches, newGenericChargePatch(uniqueID, operation, c.itemType, updaterPatch))
-
-	return nil
 }
 
 func (c chargePatchCollection) unsupportedOperationError(operation PatchOperation, uniqueID string, existing persistedstate.Item) error {
@@ -46,39 +44,83 @@ func (c chargePatchCollection) unsupportedOperationError(operation PatchOperatio
 }
 
 func (c chargePatchCollection) IsEmpty() bool {
-	return len(c.patches) == 0
+	return len(c.patches.PatchesByChargeID) == 0 && len(c.patches.Creates) == 0
 }
 
-func (c chargePatchCollection) Patches() []ChargePatch {
+func (c chargePatchCollection) Patches() charges.ApplyPatchesInput {
 	return c.patches
 }
 
-type genericChargePatch struct {
-	uniqueID     string
-	operation    PatchOperation
-	itemType     persistedstate.ItemType
-	updaterPatch chargeupdater.Patch
-}
-
-func newGenericChargePatch(uniqueID string, operation PatchOperation, itemType persistedstate.ItemType, updaterPatch chargeupdater.Patch) genericChargePatch {
-	return genericChargePatch{
-		uniqueID:     uniqueID,
-		operation:    operation,
-		itemType:     itemType,
-		updaterPatch: updaterPatch,
+func (c *chargePatchCollection) addCreate(intent charges.ChargeIntent) error {
+	if err := intent.Validate(); err != nil {
+		return fmt.Errorf("invalid intent: %w", err)
 	}
+
+	uniqueReferenceID, err := intent.GetUniqueReferenceID()
+	if err != nil {
+		return fmt.Errorf("getting unique reference ID: %w", err)
+	}
+
+	if lo.FromPtr(uniqueReferenceID) == "" {
+		return fmt.Errorf("unique reference ID is required")
+	}
+
+	c.patches.Creates = append(c.patches.Creates, intent)
+	return nil
 }
 
-func (p genericChargePatch) Operation() PatchOperation {
-	return p.operation
+func (c *chargePatchCollection) addPatch(chargeID string, patch charges.Patch) error {
+	if chargeID == "" {
+		return fmt.Errorf("charge ID is required")
+	}
+
+	if patch == nil {
+		return fmt.Errorf("patch is required")
+	}
+
+	if err := patch.Validate(); err != nil {
+		return fmt.Errorf("invalid patch: %w", err)
+	}
+
+	if _, exists := c.patches.PatchesByChargeID[chargeID]; exists {
+		return fmt.Errorf("patch for charge ID %s already exists", chargeID)
+	}
+
+	c.patches.PatchesByChargeID[chargeID] = patch
+	return nil
 }
 
-func (p genericChargePatch) UniqueReferenceID() string {
-	return p.uniqueID
+func (c *chargePatchCollection) AddDelete(_ string, existing persistedstate.Item) error {
+	return c.addPatch(existing.ID().ID, chargesmeta.PatchDelete{
+		Policy: chargesmeta.RefundAsCreditsDeletePolicy,
+	})
 }
 
-func (p genericChargePatch) GetChargePatch() chargeupdater.Patch {
-	return p.updaterPatch
+func (c *chargePatchCollection) AddShrink(uniqueID string, existing persistedstate.Item, target targetstate.StateItem) error {
+	targetServicePeriod := target.GetServicePeriod()
+
+	return c.addPatch(existing.ID().ID, chargesmeta.PatchShrink{
+		NewServicePeriodTo:     targetServicePeriod.To,
+		NewFullServicePeriodTo: target.FullServicePeriod.End,
+		NewBillingPeriodTo:     target.BillingPeriod.End,
+	})
+}
+
+func (c *chargePatchCollection) AddExtend(existing persistedstate.Item, target targetstate.StateItem) error {
+	targetServicePeriod := target.GetServicePeriod()
+
+	return c.addPatch(existing.ID().ID, chargesmeta.PatchExtend{
+		NewServicePeriodTo:     targetServicePeriod.To,
+		NewFullServicePeriodTo: target.FullServicePeriod.End,
+		NewBillingPeriodTo:     target.BillingPeriod.End,
+	})
+}
+
+func (c *chargePatchCollection) AddProrate(existing persistedstate.Item, target targetstate.StateItem, originalPeriod, targetPeriod timeutil.ClosedPeriod, originalAmount, targetAmount alpacadecimal.Decimal) error {
+	// Charge-backed reconciliation does not emit explicit prorate patches. For charges,
+	// any period-shape change is carried by shrink/extend and the charge domain is
+	// responsible for recalculating the effective amount from the updated periods.
+	return c.unsupportedOperationError(PatchOperationProrate, target.UniqueID, existing)
 }
 
 func newChargeIntentBaseFromTargetState(target targetstate.StateItem) (chargesmeta.Intent, error) {
@@ -113,4 +155,14 @@ func newChargeIntentBaseFromTargetState(target targetstate.StateItem) (chargesme
 			ItemID:         target.SubscriptionItem.ID,
 		},
 	}, nil
+}
+
+func logChargesPatches(ctx context.Context, log *slog.Logger, patches charges.ApplyPatchesInput) {
+	for chargeID, patch := range patches.PatchesByChargeID {
+		log.InfoContext(ctx, "patching charge", "charge_id", chargeID, "patch", patch)
+	}
+
+	for _, intent := range patches.Creates {
+		log.InfoContext(ctx, "creating charge", "intent", intent)
+	}
 }

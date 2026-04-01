@@ -162,6 +162,14 @@ func (h *flatFeeHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input fl
 	return creditRealizationsFromCollectedInputs(input.Charge.Intent.ServicePeriod, groupID, inputs...), nil
 }
 
+func (h *flatFeeHandler) OnCreditsOnlyUsageAccruedCorrection(ctx context.Context, input flatfee.CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	return nil, fmt.Errorf("credits only usage accrued correction is not implemented")
+}
+
 // OnFlatFeePaymentAuthorized is the current revenue recognition point.
 // It replenishes receivable from wash for the directly-invoiced portion, and
 // recognizes revenue by moving from customer_accrued to earnings.

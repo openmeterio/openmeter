@@ -27,6 +27,10 @@ type ChargeService interface {
 	Create(ctx context.Context, input CreateInput) (Charges, error)
 
 	AdvanceCharges(ctx context.Context, input AdvanceChargesInput) (Charges, error)
+	// ApplyPatches currently returns no affected-charge payload. If exact post-apply
+	// results are needed, shrink/extend must first be implemented properly instead of
+	// going through the temporary delete+create remap.
+	ApplyPatches(ctx context.Context, input ApplyPatchesInput) error
 	ListCharges(ctx context.Context, input ListChargesInput) (pagination.Result[Charge], error)
 }
 
@@ -144,6 +148,7 @@ type ListChargesInput struct {
 	SubscriptionIDs []string
 	ChargeTypes     []meta.ChargeType
 	StatusNotIn     []meta.ChargeStatus
+	IncludeDeleted  bool
 
 	Expands meta.Expands
 }

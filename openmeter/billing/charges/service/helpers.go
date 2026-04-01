@@ -1,7 +1,10 @@
 package service
 
 import (
+	"context"
 	"fmt"
+
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
@@ -52,4 +55,53 @@ func chargesByType(in charges.Charges) (chargesByTypeResult, error) {
 	}
 
 	return result, nil
+}
+
+type InvocableCharge interface {
+	GetChargeID() meta.ChargeID
+	TriggerPatch(ctx context.Context, patch meta.Patch) (*charges.Charge, error)
+}
+
+func (s *service) newInvocableCharges(si charges.ChargeSearchItems) (map[string]InvocableCharge, error) {
+	result := make(map[string]InvocableCharge, len(si))
+	for _, si := range si {
+		if _, exists := result[si.ID.ID]; exists {
+			return nil, fmt.Errorf("duplicated charge ID: %s", si.ID.ID)
+		}
+
+		switch si.Type {
+		case meta.ChargeTypeFlatFee:
+			result[si.ID.ID] = &flatFeeInvocableCharge{
+				chargeID:       si.ID,
+				flatFeeService: s.flatFeeService,
+			}
+		default:
+			return nil, fmt.Errorf("unsupported charge type: %s", si.Type)
+		}
+	}
+	return result, nil
+}
+
+var _ InvocableCharge = (*flatFeeInvocableCharge)(nil)
+
+type flatFeeInvocableCharge struct {
+	chargeID       meta.ChargeID
+	flatFeeService flatfee.Service
+}
+
+func (c *flatFeeInvocableCharge) TriggerPatch(ctx context.Context, patch meta.Patch) (*charges.Charge, error) {
+	res, err := c.flatFeeService.TriggerPatch(ctx, c.chargeID, patch)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, nil
+	}
+
+	return lo.ToPtr(charges.NewCharge(*res)), nil
+}
+
+func (c *flatFeeInvocableCharge) GetChargeID() meta.ChargeID {
+	return c.chargeID
 }

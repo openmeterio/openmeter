@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/samber/lo"
@@ -12,7 +13,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeflatfee "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -63,6 +66,39 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.Charge) error
 		}
 
 		return nil
+	})
+}
+
+func (a *adapter) DeleteCharge(ctx context.Context, charge flatfee.Charge) error {
+	if err := charge.ManagedModel.Validate(); err != nil {
+		return err
+	}
+
+	if err := charge.Validate(); err != nil {
+		return err
+	}
+
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
+		update := tx.db.ChargeFlatFee.UpdateOneID(charge.ID).
+			Where(dbchargeflatfee.NamespaceEQ(charge.Namespace))
+
+		charge.DeletedAt = lo.ToPtr(clock.Now())
+		charge.Status = meta.ChargeStatusDeleted
+
+		update, err := chargemeta.Update(update, chargemeta.UpdateInput{
+			ManagedResource: charge.ManagedResource,
+			Intent:          charge.Intent.Intent,
+			Status:          charge.Status,
+		})
+		if err != nil {
+			return err
+		}
+
+		if _, err := update.Save(ctx); err != nil {
+			return err
+		}
+
+		return tx.metaAdapter.DeleteRegisteredCharge(ctx, charge.GetChargeID())
 	})
 }
 
@@ -122,9 +158,7 @@ func (a *adapter) GetByIDs(ctx context.Context, input flatfee.GetByIDsInput) ([]
 			Where(dbchargeflatfee.IDIn(input.IDs...))
 
 		if input.Expands.Has(meta.ExpandRealizations) {
-			query = query.WithCreditAllocations().
-				WithInvoicedUsage().
-				WithPayment()
+			query = expandRealizations(query)
 		}
 
 		entities, err := query.All(ctx)
@@ -141,6 +175,39 @@ func (a *adapter) GetByIDs(ctx context.Context, input flatfee.GetByIDsInput) ([]
 			return MapChargeFlatFeeFromDB(entity, input.Expands)
 		})
 	})
+}
+
+func (a *adapter) GetByID(ctx context.Context, input flatfee.GetByIDInput) (flatfee.Charge, error) {
+	if err := input.Validate(); err != nil {
+		return flatfee.Charge{}, err
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (flatfee.Charge, error) {
+		query := tx.db.ChargeFlatFee.Query().
+			Where(dbchargeflatfee.Namespace(input.ChargeID.Namespace)).
+			Where(dbchargeflatfee.ID(input.ChargeID.ID))
+
+		if input.Expands.Has(meta.ExpandRealizations) {
+			query = expandRealizations(query)
+		}
+
+		entity, err := query.First(ctx)
+		if err != nil {
+			if db.IsNotFound(err) {
+				return flatfee.Charge{}, models.NewGenericNotFoundError(fmt.Errorf("flat fee charge [id=%s] not found", input.ChargeID))
+			}
+
+			return flatfee.Charge{}, fmt.Errorf("querying flat fee charge [id=%s]: %w", input.ChargeID, err)
+		}
+
+		return MapChargeFlatFeeFromDB(entity, input.Expands)
+	})
+}
+
+func expandRealizations(query *db.ChargeFlatFeeQuery) *db.ChargeFlatFeeQuery {
+	return query.WithCreditAllocations().
+		WithInvoicedUsage().
+		WithPayment()
 }
 
 func (a *adapter) buildCreateFlatFeeCharge(ns string, intent flatfee.IntentWithInitialStatus) (*db.ChargeFlatFeeCreate, error) {

@@ -42,7 +42,7 @@ func (s *service) GetByIDs(ctx context.Context, input charges.GetByIDsInput) (ch
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (charges.Charges, error) {
-		chargesWithTypes, err := s.adapter.GetTypesByIDs(ctx, charges.GetTypesByIDsInput{
+		chargesItems, err := s.adapter.GetByIDs(ctx, charges.GetByIDsInput{
 			Namespace: input.Namespace,
 			IDs:       input.IDs,
 		})
@@ -50,14 +50,14 @@ func (s *service) GetByIDs(ctx context.Context, input charges.GetByIDsInput) (ch
 			return nil, err
 		}
 
-		return s.expandChargesWithTypes(ctx, input.Namespace, chargesWithTypes, input.Expands)
+		return s.expandChargesWithTypes(ctx, input.Namespace, chargesItems, input.Expands)
 	})
 }
 
 // expandChargesWithTypes fetches the charges by type and expands them with the given expands.
-func (s *service) expandChargesWithTypes(ctx context.Context, namespace string, chargesWithTypes []charges.ChargeWithType, expands meta.Expands) (charges.Charges, error) {
-	chargesByType := lo.GroupByMap(chargesWithTypes, func(chargeMeta charges.ChargeWithType) (meta.ChargeType, string) {
-		return chargeMeta.Type, chargeMeta.ID
+func (s *service) expandChargesWithTypes(ctx context.Context, namespace string, chargesItems charges.ChargeSearchItems, expands meta.Expands) (charges.Charges, error) {
+	chargesByType := lo.GroupByMap(chargesItems, func(chargeMeta charges.ChargeSearchItem) (meta.ChargeType, string) {
+		return chargeMeta.Type, chargeMeta.ID.ID
 	})
 
 	// Let's validate the type support
@@ -110,9 +110,9 @@ func (s *service) expandChargesWithTypes(ctx context.Context, namespace string, 
 	return entutils.InIDOrder(
 		namespace,
 		lo.Map(
-			chargesWithTypes,
-			func(charge charges.ChargeWithType, _ int) string {
-				return charge.ID
+			chargesItems,
+			func(charge charges.ChargeSearchItem, _ int) string {
+				return charge.ID.ID
 			},
 		), out)
 }

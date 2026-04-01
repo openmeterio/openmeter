@@ -118,6 +118,8 @@ Uses [ent](https://entgo.io) for schema definition and [Atlas](https://atlasgo.i
 
 Tests require PostgreSQL running locally. Start it with `docker compose up -d postgres`.
 
+For OpenMeter Go tests that touch the database, explicitly set `POSTGRES_HOST=127.0.0.1`. Without it, many suites will skip during setup even if PostgreSQL is running and the repo environment is otherwise loaded correctly.
+
 Use the repo's Nix CI dev shell when `go`, `gofmt`, or other toolchain binaries are missing from the ambient shell. The CI and local-compatible invocation pattern is:
 
 ```bash

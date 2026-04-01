@@ -37,6 +37,36 @@ type expectedFlatFeeCharge struct {
 	FullServicePeriods      []timeutil.ClosedPeriod
 	BillingPeriods          []timeutil.ClosedPeriod
 	InvoiceAt               []time.Time
+	AmountBeforeProration   []alpacadecimal.Decimal
+	AmountAfterProration    []alpacadecimal.Decimal
+}
+
+func (e expectedFlatFeeCharge) Indexes(indexes ...int) expectedFlatFeeCharge {
+	return expectedFlatFeeCharge{
+		ChildUniqueReferenceIDs: lo.Map(indexes, func(index int, _ int) string { return e.ChildUniqueReferenceIDs[index] }),
+		ServicePeriods:          lo.Map(indexes, func(index int, _ int) timeutil.ClosedPeriod { return e.ServicePeriods[index] }),
+		FullServicePeriods:      lo.Map(indexes, func(index int, _ int) timeutil.ClosedPeriod { return e.FullServicePeriods[index] }),
+		BillingPeriods:          lo.Map(indexes, func(index int, _ int) timeutil.ClosedPeriod { return e.BillingPeriods[index] }),
+		InvoiceAt:               lo.Map(indexes, func(index int, _ int) time.Time { return e.InvoiceAt[index] }),
+		AmountBeforeProration:   lo.Map(indexes, func(index int, _ int) alpacadecimal.Decimal { return e.amountBeforeProration(index) }),
+		AmountAfterProration:    lo.Map(indexes, func(index int, _ int) alpacadecimal.Decimal { return e.amountAfterProration(index) }),
+	}
+}
+
+func (e expectedFlatFeeCharge) amountBeforeProration(index int) alpacadecimal.Decimal {
+	if len(e.AmountBeforeProration) == 0 {
+		return alpacadecimal.NewFromFloat(100)
+	}
+
+	return e.AmountBeforeProration[index]
+}
+
+func (e expectedFlatFeeCharge) amountAfterProration(index int) alpacadecimal.Decimal {
+	if len(e.AmountAfterProration) == 0 {
+		return alpacadecimal.NewFromFloat(100)
+	}
+
+	return e.AmountAfterProration[index]
 }
 
 type expectedUsageBasedCharge struct {
@@ -47,6 +77,18 @@ type expectedUsageBasedCharge struct {
 	InvoiceAt               []time.Time
 	FeatureKey              string
 	Price                   productcatalog.Price
+}
+
+func (e expectedUsageBasedCharge) Indexes(indexes ...int) expectedUsageBasedCharge {
+	return expectedUsageBasedCharge{
+		ChildUniqueReferenceIDs: lo.Map(indexes, func(index int, _ int) string { return e.ChildUniqueReferenceIDs[index] }),
+		ServicePeriods:          lo.Map(indexes, func(index int, _ int) timeutil.ClosedPeriod { return e.ServicePeriods[index] }),
+		FullServicePeriods:      lo.Map(indexes, func(index int, _ int) timeutil.ClosedPeriod { return e.FullServicePeriods[index] }),
+		BillingPeriods:          lo.Map(indexes, func(index int, _ int) timeutil.ClosedPeriod { return e.BillingPeriods[index] }),
+		InvoiceAt:               lo.Map(indexes, func(index int, _ int) time.Time { return e.InvoiceAt[index] }),
+		FeatureKey:              e.FeatureKey,
+		Price:                   e.Price,
+	}
 }
 
 func TestCreditsOnlySubscriptionHandlerScenarios(t *testing.T) {
@@ -190,7 +232,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeProvisio
 	})
 }
 
-func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeCancellationAtPeriodBoundaryFailsDelete() {
+func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeCancellationAtPeriodBoundary() {
 	// Given:
 	// - a subscription is created with credits_only settlement
 	// - the subscription is single phase with a flat fee charge of $100
@@ -208,7 +250,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeCancella
 	// - the subscription is canceled at the end of the first period exactly
 	//
 	// Then:
-	// - reconciliation throws an error that delete is not supported
+	// - the second flat fee charge is deleted
 	ctx := s.testContext()
 	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
 	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
@@ -278,12 +320,18 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeCancella
 		},
 	}
 
+	var originalSecondPeriodCharge flatfee.Charge
+
 	s.Run("provisions the next two billing cycles", func() {
 		s.NoError(s.Service.SynchronizeSubscription(ctx, subscriptionView, syncUntil))
-		s.expectCreditsOnlyFlatFeeCharges(ctx, subscriptionView.Subscription.ID, expectedCharges)
+		provisionedCharges := s.expectCreditsOnlyFlatFeeCharges(ctx, subscriptionView.Subscription.ID, expectedCharges)
+		s.Len(provisionedCharges, 2)
+
+		originalSecondPeriodCharge = provisionedCharges[1]
+		s.Equal(expectedCharges[0].ChildUniqueReferenceIDs[1], lo.FromPtr(originalSecondPeriodCharge.Intent.UniqueReferenceID))
 	})
 
-	s.Run("canceling at the first period boundary fails reconciliation", func() {
+	s.Run("canceling at the first period boundary deletes the second flat fee", func() {
 		cancelAt := s.mustParseTime("2024-03-01T00:00:00Z")
 		clock.SetTime(cancelAt)
 
@@ -295,8 +343,181 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeCancella
 		subscriptionView, err = s.SubscriptionService.GetView(ctx, subscriptionModel.NamespacedID)
 		s.NoError(err)
 
-		err = s.Service.SynchronizeSubscription(ctx, subscriptionView, syncUntil)
-		s.ErrorContains(err, "unsupported operation delete")
+		s.NoError(s.Service.SynchronizeSubscription(ctx, subscriptionView, syncUntil))
+
+		remainingCharges := s.expectCreditsOnlyFlatFeeCharges(ctx, subscriptionView.Subscription.ID, []expectedFlatFeeCharge{
+			expectedCharges[0].Indexes(0),
+		})
+		s.Len(remainingCharges, 1)
+
+		deletedChargeRes, err := s.Charges.GetByID(ctx, charges.GetByIDInput{
+			ChargeID: chargesmeta.ChargeID{
+				Namespace: s.Namespace,
+				ID:        originalSecondPeriodCharge.ID,
+			},
+		})
+		s.NoError(err)
+
+		deletedCharge, err := deletedChargeRes.AsFlatFeeCharge()
+		s.NoError(err)
+		s.Equal(chargesmeta.ChargeStatusDeleted, deletedCharge.Status)
+		s.NotNil(deletedCharge.DeletedAt)
+		s.Equal(expectedCharges[0].ChildUniqueReferenceIDs[1], lo.FromPtr(deletedCharge.Intent.UniqueReferenceID))
+	})
+}
+
+func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeMidPeriodCancellation() {
+	// Given:
+	// - a subscription is created with credits_only settlement
+	// - the subscription is single phase with a flat fee charge of $100
+	//
+	// When:
+	// - the charge is provisioned for the current and next billing cycle
+	//
+	// Then:
+	// - two charges are created with matching properties and child unique reference IDs
+	//
+	// Given:
+	// - the subscription is canceled mid-period
+	//
+	// When:
+	// - the subscription is synchronized again past the cancellation timestamp
+	//
+	// Then:
+	// - the current period charge is shrunk and prorated
+	// - the future period charge is deleted
+	ctx := s.testContext()
+	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
+	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
+	initialSyncUntil := s.mustParseTime("2024-02-15T00:00:00Z")
+	cancelAt := s.mustParseTime("2024-02-16T00:00:00Z")
+	resyncUntil := s.mustParseTime("2024-03-01T00:00:00Z")
+
+	clock.SetTime(setupAt)
+	defer clock.ResetTime()
+
+	subscriptionView := s.createSubscriptionFromPlanAt(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Credits Only Flat Fee Mid Period Cancellation",
+				Key:            "credits-only-flat-fee-mid-period-cancellation",
+				Version:        1,
+				Currency:       currency.USD,
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Name: "flat-fee",
+								Key:  "flat-fee",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromFloat(100),
+									PaymentTerm: productcatalog.InAdvancePaymentTerm,
+								}),
+							},
+							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+						},
+					},
+				},
+			},
+		},
+	}, startAt)
+	timeline := timeutil.NewSimpleTimeline([]time.Time{
+		s.mustParseTime("2024-02-01T00:00:00Z"),
+		s.mustParseTime("2024-03-01T00:00:00Z"),
+		s.mustParseTime("2024-04-01T00:00:00Z"),
+	})
+	periods := timeline.GetClosedPeriods()
+	invoiceAt := timeline.GetTimes()[:len(timeline.GetTimes())-1]
+
+	expectedCharges := []expectedFlatFeeCharge{
+		{
+			ChildUniqueReferenceIDs: recurringLineMatcher{
+				PhaseKey:  "first-phase",
+				ItemKey:   "flat-fee",
+				Version:   0,
+				PeriodMin: 0,
+				PeriodMax: 1,
+			}.ChildIDs(subscriptionView.Subscription.ID),
+			ServicePeriods:     periods,
+			FullServicePeriods: periods,
+			BillingPeriods:     periods,
+			InvoiceAt:          invoiceAt,
+		},
+	}
+
+	var originalSecondPeriodCharge flatfee.Charge
+
+	s.Run("provisions the current and next billing cycle", func() {
+		s.NoError(s.Service.SynchronizeSubscription(ctx, subscriptionView, initialSyncUntil))
+
+		provisionedCharges := s.expectCreditsOnlyFlatFeeCharges(ctx, subscriptionView.Subscription.ID, expectedCharges)
+		s.Len(provisionedCharges, 2)
+
+		originalSecondPeriodCharge = provisionedCharges[1]
+	})
+
+	s.Run("canceling mid-period shrinks the current charge and deletes the future one", func() {
+		clock.FreezeTime(cancelAt)
+		defer clock.UnFreeze()
+
+		subscriptionModel, err := s.SubscriptionService.Cancel(ctx, subscriptionView.Subscription.NamespacedID, subscription.Timing{
+			Enum: lo.ToPtr(subscription.TimingImmediate),
+		})
+		s.NoError(err)
+
+		subscriptionView, err = s.SubscriptionService.GetView(ctx, subscriptionModel.NamespacedID)
+		s.NoError(err)
+
+		s.NoError(s.Service.SynchronizeSubscription(ctx, subscriptionView, resyncUntil))
+
+		remainingCharges := s.expectCreditsOnlyFlatFeeCharges(ctx, subscriptionView.Subscription.ID, []expectedFlatFeeCharge{
+			{
+				ChildUniqueReferenceIDs: []string{expectedCharges[0].ChildUniqueReferenceIDs[0]},
+				ServicePeriods: []timeutil.ClosedPeriod{
+					{
+						From: periods[0].From,
+						To:   cancelAt,
+					},
+				},
+				FullServicePeriods: []timeutil.ClosedPeriod{periods[0]},
+				BillingPeriods: []timeutil.ClosedPeriod{
+					{
+						From: periods[0].From,
+						To:   cancelAt,
+					},
+				},
+				InvoiceAt:             []time.Time{invoiceAt[0]},
+				AmountBeforeProration: []alpacadecimal.Decimal{alpacadecimal.NewFromFloat(100)},
+				AmountAfterProration:  []alpacadecimal.Decimal{alpacadecimal.NewFromFloat(51.72)},
+			},
+		})
+		s.Len(remainingCharges, 1)
+
+		deletedChargeRes, err := s.Charges.GetByID(ctx, charges.GetByIDInput{
+			ChargeID: chargesmeta.ChargeID{
+				Namespace: s.Namespace,
+				ID:        originalSecondPeriodCharge.ID,
+			},
+		})
+		s.NoError(err)
+
+		deletedCharge, err := deletedChargeRes.AsFlatFeeCharge()
+		s.NoError(err)
+		s.Equal(chargesmeta.ChargeStatusDeleted, deletedCharge.Status)
+		s.NotNil(deletedCharge.DeletedAt)
+		s.Equal(expectedCharges[0].ChildUniqueReferenceIDs[1], lo.FromPtr(deletedCharge.Intent.UniqueReferenceID))
 	})
 }
 
@@ -518,29 +739,21 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyMixedProvisioni
 	}
 
 	expectedUsageBasedCharges := []expectedUsageBasedCharge{
-		{
+		(expectedUsageBasedCharge{
 			ChildUniqueReferenceIDs: recurringLineMatcher{
 				PhaseKey:  "first-phase",
 				ItemKey:   s.APIRequestsTotalFeature.Key,
 				Version:   0,
 				PeriodMin: 0,
-				PeriodMax: 0,
+				PeriodMax: 1,
 			}.ChildIDs(subscriptionView.Subscription.ID),
-			ServicePeriods: []timeutil.ClosedPeriod{
-				periods[0],
-			},
-			FullServicePeriods: []timeutil.ClosedPeriod{
-				periods[0],
-			},
-			BillingPeriods: []timeutil.ClosedPeriod{
-				periods[0],
-			},
-			InvoiceAt: []time.Time{
-				usageBasedInvoiceAt[0],
-			},
-			FeatureKey: s.APIRequestsTotalFeature.Key,
-			Price:      *unitPrice,
-		},
+			ServicePeriods:     periods,
+			FullServicePeriods: periods,
+			BillingPeriods:     periods,
+			InvoiceAt:          usageBasedInvoiceAt,
+			FeatureKey:         s.APIRequestsTotalFeature.Key,
+			Price:              *unitPrice,
+		}).Indexes(0),
 	}
 
 	s.NoError(s.Service.SynchronizeSubscription(ctx, subscriptionView, syncUntil))
@@ -650,8 +863,8 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) assertExpectedFlatFeeCharges(c
 			s.Equalf(productcatalog.CreditOnlySettlementMode, charge.Intent.SettlementMode, "expected[%d] charge[%d] settlement mode", expectedIdx, periodIdx)
 			s.Equalf(productcatalog.InAdvancePaymentTerm, charge.Intent.PaymentTerm, "expected[%d] charge[%d] payment term", expectedIdx, periodIdx)
 			s.Equalf(string(currency.USD), string(charge.Intent.Currency), "expected[%d] charge[%d] currency", expectedIdx, periodIdx)
-			s.Equalf(alpacadecimal.NewFromFloat(100), charge.Intent.AmountBeforeProration, "expected[%d] charge[%d] amount before proration", expectedIdx, periodIdx)
-			s.Equalf(alpacadecimal.NewFromFloat(100), charge.State.AmountAfterProration, "expected[%d] charge[%d] amount after proration", expectedIdx, periodIdx)
+			s.Equalf(expectedCharge.amountBeforeProration(periodIdx), charge.Intent.AmountBeforeProration, "expected[%d] charge[%d] amount before proration", expectedIdx, periodIdx)
+			s.Equalf(expectedCharge.amountAfterProration(periodIdx), charge.State.AmountAfterProration, "expected[%d] charge[%d] amount after proration", expectedIdx, periodIdx)
 			s.Equalf(subscriptionID, charge.Intent.Subscription.SubscriptionID, "expected[%d] charge[%d] subscription id", expectedIdx, periodIdx)
 			s.Equalf(expectedPhaseID, charge.Intent.Subscription.PhaseID, "expected[%d] charge[%d] subscription phase id", expectedIdx, periodIdx)
 			s.Equalf("flat-fee", charge.Intent.Name, "expected[%d] charge[%d] charge name", expectedIdx, periodIdx)

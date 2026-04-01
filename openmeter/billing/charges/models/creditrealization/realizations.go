@@ -119,6 +119,15 @@ func (r Realizations) Correct(amount alpacadecimal.Decimal, currency currencyx.C
 	return corrections.AsCreateInputs(r)
 }
 
+func (r Realizations) CorrectAll(currency currencyx.Calculator, cb func(req CorrectionRequest) (CreateCorrectionInputs, error)) (CreateInputs, error) {
+	total := r.Sum()
+	if total.IsZero() {
+		return nil, nil
+	}
+
+	return r.Correct(total.Neg(), currency, cb)
+}
+
 type allocationWithCorrections struct {
 	Allocation      Realization
 	Corrections     []Realization

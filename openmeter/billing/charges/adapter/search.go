@@ -15,12 +15,12 @@ import (
 
 var _ charges.ChargesSearchAdapter = (*adapter)(nil)
 
-func (a *adapter) GetTypesByIDs(ctx context.Context, input charges.GetTypesByIDsInput) (charges.GetTypesByIDsResult, error) {
+func (a *adapter) GetByIDs(ctx context.Context, input charges.GetByIDsInput) (charges.ChargeSearchItems, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
 
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (charges.GetTypesByIDsResult, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (charges.ChargeSearchItems, error) {
 		dbCharges, err := tx.db.ChargesSearchV1.Query().
 			Where(dbchargessearchv1.Namespace(input.Namespace)).
 			Where(dbchargessearchv1.IDIn(input.IDs...)).
@@ -35,20 +35,24 @@ func (a *adapter) GetTypesByIDs(ctx context.Context, input charges.GetTypesByIDs
 			return nil, err
 		}
 
-		return lo.Map(resultsInOrder, func(result searchResultIDAccessor, _ int) charges.ChargeWithType {
+		return lo.Map(resultsInOrder, func(result searchResultIDAccessor, _ int) charges.ChargeSearchItem {
 			return mapChargeSearchToChargeWithType(result.ChargesSearchV1)
 		}), nil
 	})
 }
 
-func (a *adapter) ListCharges(ctx context.Context, input charges.ListChargesInput) (pagination.Result[charges.ChargeWithType], error) {
+func (a *adapter) ListCharges(ctx context.Context, input charges.ListChargesInput) (pagination.Result[charges.ChargeSearchItem], error) {
 	if err := input.Validate(); err != nil {
-		return pagination.Result[charges.ChargeWithType]{}, err
+		return pagination.Result[charges.ChargeSearchItem]{}, err
 	}
 
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (pagination.Result[charges.ChargeWithType], error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (pagination.Result[charges.ChargeSearchItem], error) {
 		query := tx.db.ChargesSearchV1.Query().
 			Where(dbchargessearchv1.Namespace(input.Namespace))
+
+		if !input.IncludeDeleted {
+			query = query.Where(dbchargessearchv1.DeletedAtIsNil())
+		}
 
 		if len(input.CustomerIDs) > 0 {
 			query = query.Where(dbchargessearchv1.CustomerIDIn(input.CustomerIDs...))
@@ -68,23 +72,24 @@ func (a *adapter) ListCharges(ctx context.Context, input charges.ListChargesInpu
 
 		dbEntities, err := query.Paginate(ctx, input.Page)
 		if err != nil {
-			return pagination.Result[charges.ChargeWithType]{}, err
+			return pagination.Result[charges.ChargeSearchItem]{}, err
 		}
 
-		return pagination.Result[charges.ChargeWithType]{
+		return pagination.Result[charges.ChargeSearchItem]{
 			Page:       dbEntities.Page,
 			TotalCount: dbEntities.TotalCount,
-			Items: lo.Map(dbEntities.Items, func(item *db.ChargesSearchV1, _ int) charges.ChargeWithType {
+			Items: lo.Map(dbEntities.Items, func(item *db.ChargesSearchV1, _ int) charges.ChargeSearchItem {
 				return mapChargeSearchToChargeWithType(item)
 			}),
 		}, nil
 	})
 }
 
-func mapChargeSearchToChargeWithType(item *db.ChargesSearchV1) charges.ChargeWithType {
-	return charges.ChargeWithType{
-		ID:   item.ID,
-		Type: item.Type,
+func mapChargeSearchToChargeWithType(item *db.ChargesSearchV1) charges.ChargeSearchItem {
+	return charges.ChargeSearchItem{
+		ID:         meta.ChargeID{Namespace: item.Namespace, ID: item.ID},
+		Type:       item.Type,
+		CustomerID: item.CustomerID,
 	}
 }
 

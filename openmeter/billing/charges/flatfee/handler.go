@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -80,6 +82,41 @@ func (i OnCreditsOnlyUsageAccruedInput) Validate() error {
 	return errors.Join(errs...)
 }
 
+type CreditsOnlyUsageAccruedCorrectionInput struct {
+	Charge     Charge    `json:"charge"`
+	AllocateAt time.Time `json:"allocateAt"`
+
+	Corrections creditrealization.CorrectionRequest `json:"corrections"`
+}
+
+func (i CreditsOnlyUsageAccruedCorrectionInput) Validate() error {
+	var errs []error
+
+	if err := i.Charge.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge: %w", err))
+	}
+
+	if i.AllocateAt.IsZero() {
+		errs = append(errs, fmt.Errorf("allocate at is required"))
+	}
+
+	return errors.Join(errs...)
+}
+
+func (i CreditsOnlyUsageAccruedCorrectionInput) ValidateWith(currencyCalculator currencyx.Calculator) error {
+	var errs []error
+
+	if err := i.Validate(); err != nil {
+		return err
+	}
+
+	if err := i.Corrections.ValidateWith(currencyCalculator); err != nil {
+		errs = append(errs, fmt.Errorf("corrections: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
 type Handler interface {
 	// OnFlatFeeAssignedToInvoice is called when a flat fee is being assigned to an invoice
 	OnAssignedToInvoice(ctx context.Context, input OnAssignedToInvoiceInput) (creditrealization.CreateAllocationInputs, error)
@@ -90,6 +127,9 @@ type Handler interface {
 	// OnCreditsOnlyUsageAccrued is called when a credit-only flat fee becomes active (clock >= InvoiceAt)
 	// and the full amount needs to be allocated as credits.
 	OnCreditsOnlyUsageAccrued(ctx context.Context, input OnCreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error)
+
+	// OnCreditsOnlyUsageAccruedCorrection is called when a credit allocation needs to be corrected.
+	OnCreditsOnlyUsageAccruedCorrection(ctx context.Context, input CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error)
 
 	// OnFlatFeePaymentAuthorized is called when a flat fee payment is authorized
 	OnPaymentAuthorized(ctx context.Context, charge Charge) (ledgertransaction.GroupReference, error)

@@ -198,7 +198,7 @@ func (s *CreditsOnlyStateMachine) AdvanceUntilStateStable(ctx context.Context) (
 	var advanced bool
 
 	for {
-		canFire, err := s.StateMachine.CanFireCtx(ctx, usagebased.TriggerNext)
+		canFire, err := s.StateMachine.CanFireCtx(ctx, meta.TriggerNext)
 		if err != nil {
 			return nil, err
 		}
@@ -212,7 +212,7 @@ func (s *CreditsOnlyStateMachine) AdvanceUntilStateStable(ctx context.Context) (
 			return &charge, nil
 		}
 
-		if err := s.FireAndActivate(ctx, usagebased.TriggerNext); err != nil {
+		if err := s.FireAndActivate(ctx, meta.TriggerNext); err != nil {
 			return nil, fmt.Errorf("cannot transition to the next status [current_status=%s]: %w", s.Charge.Status, err)
 		}
 
