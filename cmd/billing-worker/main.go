@@ -83,6 +83,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	_, err = app.LedgerAccountResolver.EnsureBusinessAccounts(ctx, app.NamespaceManager.GetDefaultNamespace())
+	if err != nil {
+		logger.Error("failed to provision ledger business accounts", "error", err)
+		os.Exit(1)
+	}
+
 	// Provision sandbox app
 	err = app.AppRegistry.SandboxProvisioner(ctx, app.NamespaceManager.GetDefaultNamespace())
 	if err != nil {

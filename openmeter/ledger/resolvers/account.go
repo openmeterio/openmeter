@@ -2,7 +2,9 @@ package resolvers
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -36,6 +38,12 @@ func NewAccountResolver(cfg AccountResolverConfig) *AccountResolver {
 }
 
 var _ ledger.AccountResolver = (*AccountResolver)(nil)
+
+const provisioningLockTimeout = 5 * time.Second
+
+// TODO: Replace provisioning locks with create-then-fetch / upsert-style convergence.
+// For now we keep the lock as a guardrail, but bound the wait time so simultaneous
+// multi-service startups fail fast instead of blocking indefinitely.
 
 // CreateCustomerAccounts creates FBO and Receivable ledger accounts for a new customer
 // and stores the mappings in the linking table.
@@ -279,7 +287,7 @@ func (s *AccountResolver) lockCustomerProvisioning(ctx context.Context, customer
 		return err
 	}
 
-	return s.Locker.LockForTX(ctx, key)
+	return s.lockProvisioning(ctx, key)
 }
 
 func (s *AccountResolver) lockBusinessProvisioning(ctx context.Context, namespace string) error {
@@ -297,5 +305,20 @@ func (s *AccountResolver) lockBusinessProvisioning(ctx context.Context, namespac
 		return err
 	}
 
-	return s.Locker.LockForTX(ctx, key)
+	return s.lockProvisioning(ctx, key)
+}
+
+func (s *AccountResolver) lockProvisioning(ctx context.Context, key lockr.Key) error {
+	lockCtx, cancel := context.WithTimeout(ctx, provisioningLockTimeout)
+	defer cancel()
+
+	if err := s.Locker.LockForTX(lockCtx, key); err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return lockr.ErrLockTimeout
+		}
+
+		return err
+	}
+
+	return nil
 }

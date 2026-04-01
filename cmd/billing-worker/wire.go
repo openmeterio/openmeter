@@ -11,6 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -22,6 +23,7 @@ type Application struct {
 	common.Runner
 
 	AppRegistry             common.AppRegistry
+	LedgerAccountResolver   ledger.AccountResolver
 	Logger                  *slog.Logger
 	Meter                   meter.Service
 	RuntimeMetricsCollector common.RuntimeMetricsCollector
@@ -40,6 +42,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Config,
 		common.Database,
 		common.Framework,
+		common.LedgerStack,
 		common.Meter,
 		common.Namespace,
 		common.NewDefaultTextMapPropagator,

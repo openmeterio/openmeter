@@ -10,6 +10,7 @@ import (
 	"context"
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -426,6 +427,11 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	appRegistry := common.NewAppRegistry(service, appSandboxProvisioner, appstripeService, appcustominvoicingService)
+	repo := common.NewLedgerAccountRepo(client)
+	accountLiveServices := common.NewLedgerAccountLiveServices(locker)
+	accountService := common.NewLedgerAccountService(repo, accountLiveServices)
+	customerAccountRepo := common.NewLedgerResolversRepo(client)
+	accountResolver := common.NewLedgerResolversService(accountService, customerAccountRepo, locker)
 	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, logger)
 	if err != nil {
 		cleanup8()
@@ -443,6 +449,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Migrator:                migrator,
 		Runner:                  runner,
 		AppRegistry:             appRegistry,
+		LedgerAccountResolver:   accountResolver,
 		Logger:                  logger,
 		Meter:                   meterService,
 		RuntimeMetricsCollector: runtimeMetricsCollector,
@@ -469,6 +476,7 @@ type Application struct {
 	common.Runner
 
 	AppRegistry             common.AppRegistry
+	LedgerAccountResolver   ledger.AccountResolver
 	Logger                  *slog.Logger
 	Meter                   meter.Service
 	RuntimeMetricsCollector common.RuntimeMetricsCollector
