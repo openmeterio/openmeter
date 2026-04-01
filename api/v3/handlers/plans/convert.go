@@ -16,9 +16,9 @@ func FromPlan(p plan.Plan) (api.BillingPlan, error) {
 	validationIssues, _ := p.AsProductCatalogPlan().ValidationErrors()
 
 	resp := api.BillingPlan{
-		BillingCadence:   api.ISO8601Duration(p.BillingCadence.String()),
+		BillingCadence:   p.BillingCadence.String(),
 		CreatedAt:        lo.ToPtr(p.CreatedAt),
-		Currency:         api.CurrencyCode(p.Currency.String()),
+		Currency:         p.Currency.String(),
 		DeletedAt:        p.DeletedAt,
 		Description:      p.Description,
 		EffectiveFrom:    p.EffectiveFrom,
@@ -102,7 +102,7 @@ func fromRateCard(rc productcatalog.RateCard) (api.BillingRateCard, error) {
 	switch rc.Type() {
 	case productcatalog.FlatFeeRateCardType:
 		if bc := rc.GetBillingCadence(); bc != nil {
-			result.BillingCadence = lo.ToPtr(api.ISO8601Duration(bc.ISOString().String()))
+			result.BillingCadence = lo.ToPtr(bc.ISOString().String())
 		}
 
 		if meta.Price != nil {
@@ -120,7 +120,7 @@ func fromRateCard(rc productcatalog.RateCard) (api.BillingRateCard, error) {
 			return result, fmt.Errorf("usage-based rate card %q missing billing cadence", meta.Key)
 		}
 
-		result.BillingCadence = lo.ToPtr(api.ISO8601Duration(bc.ISOString().String()))
+		result.BillingCadence = lo.ToPtr(bc.ISOString().String())
 
 		if meta.Price != nil {
 			result.Commitments = fromBillingCommitments(meta.Price.GetCommitments())
@@ -161,7 +161,7 @@ func fromBillingPrice(p *productcatalog.Price) (api.BillingPrice, error) {
 		}
 
 		if err = result.FromBillingPriceFlat(api.BillingPriceFlat{
-			Amount: api.Numeric(flat.Amount.String()),
+			Amount: flat.Amount.String(),
 			Type:   api.BillingPriceFlatType("flat"),
 		}); err != nil {
 			return result, fmt.Errorf("failed to set flat price: %w", err)
@@ -174,7 +174,7 @@ func fromBillingPrice(p *productcatalog.Price) (api.BillingPrice, error) {
 		}
 
 		if err = result.FromBillingPriceUnit(api.BillingPriceUnit{
-			Amount: api.Numeric(unit.Amount.String()),
+			Amount: unit.Amount.String(),
 			Type:   api.BillingPriceUnitType("unit"),
 		}); err != nil {
 			return result, fmt.Errorf("failed to set unit price: %w", err)
@@ -229,19 +229,19 @@ func fromBillingPriceTiers(tiers []productcatalog.PriceTier) []api.BillingPriceT
 		tier := api.BillingPriceTier{}
 
 		if t.UpToAmount != nil {
-			tier.UpToAmount = lo.ToPtr(api.Numeric(t.UpToAmount.String()))
+			tier.UpToAmount = lo.ToPtr(t.UpToAmount.String())
 		}
 
 		if t.FlatPrice != nil {
 			tier.FlatPrice = &api.BillingPriceFlat{
-				Amount: api.Numeric(t.FlatPrice.Amount.String()),
+				Amount: t.FlatPrice.Amount.String(),
 				Type:   api.BillingPriceFlatType("flat"),
 			}
 		}
 
 		if t.UnitPrice != nil {
 			tier.UnitPrice = &api.BillingPriceUnit{
-				Amount: api.Numeric(t.UnitPrice.Amount.String()),
+				Amount: t.UnitPrice.Amount.String(),
 				Type:   api.BillingPriceUnitType("unit"),
 			}
 		}
@@ -283,7 +283,7 @@ func fromBillingDiscounts(d productcatalog.Discounts) *api.BillingRateCardDiscou
 	}
 
 	if d.Usage != nil {
-		result.Usage = lo.ToPtr(api.Numeric(d.Usage.Quantity.String()))
+		result.Usage = lo.ToPtr(d.Usage.Quantity.String())
 	}
 
 	return result
@@ -297,11 +297,11 @@ func fromBillingCommitments(c productcatalog.Commitments) *api.BillingSpendCommi
 	result := &api.BillingSpendCommitments{}
 
 	if c.MinimumAmount != nil {
-		result.MinimumAmount = lo.ToPtr(api.Numeric(c.MinimumAmount.String()))
+		result.MinimumAmount = lo.ToPtr(c.MinimumAmount.String())
 	}
 
 	if c.MaximumAmount != nil {
-		result.MaximumAmount = lo.ToPtr(api.Numeric(c.MaximumAmount.String()))
+		result.MaximumAmount = lo.ToPtr(c.MaximumAmount.String())
 	}
 
 	return result
