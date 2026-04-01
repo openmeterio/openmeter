@@ -426,7 +426,7 @@ func TestFromRateCard(t *testing.T) {
 		result, err := fromRateCard(rc)
 		require.NoError(t, err)
 		require.NotNil(t, result.Feature)
-		assert.Equal(t, api.ULID(featureID), result.Feature.Id)
+		assert.Equal(t, featureID, result.Feature.Id)
 	})
 
 	t.Run("usage based — no feature ID, no feature reference", func(t *testing.T) {
@@ -434,7 +434,7 @@ func TestFromRateCard(t *testing.T) {
 		require.NoError(t, err)
 
 		rc := &productcatalog.UsageBasedRateCard{
-			RateCardMeta: productcatalog.RateCardMeta{Key: "rc", Name: "RC"},
+			RateCardMeta:   productcatalog.RateCardMeta{Key: "rc", Name: "RC"},
 			BillingCadence: cadence,
 		}
 
