@@ -11,7 +11,6 @@ import (
 	kafka2 "github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/cost"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -306,7 +305,16 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	billingFeatureSwitchesConfiguration := billingConfiguration.FeatureSwitches
-	billingService, err := common.BillingService(logger, appService, billingAdapter, ratingService, customerService, featureConnector, service, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, tracer, taxcodeService)
+	creditsConfiguration := conf.Credits
+	repo := common.NewLedgerHistoricalRepo(client)
+	accountRepo := common.NewLedgerAccountRepo(client)
+	accountLiveServices := common.NewLedgerAccountLiveServices(locker)
+	accountService := common.NewLedgerAccountService(accountRepo, accountLiveServices)
+	routingValidator := common.NewLedgerRoutingValidator()
+	ledger := common.NewLedgerHistoricalLedger(repo, accountService, locker, routingValidator)
+	customerAccountRepo := common.NewLedgerResolversRepo(client)
+	accountResolver := common.NewLedgerResolversService(accountService, customerAccountRepo)
+	billingRegistry, err := common.NewBillingRegistry(logger, appService, billingAdapter, ratingService, customerService, featureConnector, service, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, accountResolver, accountService)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -317,6 +325,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	billingService := billingRegistry.Billing
 	factory, err := common.NewAppSandboxFactory(appsConfiguration, appService, billingService)
 	if err != nil {
 		cleanup7()
@@ -686,7 +695,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Customer:                         customerService,
 		CustomerSubjectHook:              customerSubjectHook,
 		CustomerEntitlementValidatorHook: customerEntitlementValidatorHook,
-		Billing:                          billingService,
+		BillingRegistry:                  billingRegistry,
 		CurrencyService:                  currencyService,
 		CostService:                      costService,
 		EntClient:                        client,
@@ -749,7 +758,7 @@ type Application struct {
 	Customer                         customer.Service
 	CustomerSubjectHook              common.CustomerSubjectHook
 	CustomerEntitlementValidatorHook common.CustomerEntitlementValidatorHook
-	Billing                          billing.Service
+	BillingRegistry                  common.BillingRegistry
 	CurrencyService                  currencies.CurrencyService
 	CostService                      cost.Service
 	EntClient                        *db.Client

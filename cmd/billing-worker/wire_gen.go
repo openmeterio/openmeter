@@ -302,7 +302,16 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	billingFeatureSwitchesConfiguration := billingConfiguration.FeatureSwitches
-	billingService, err := common.BillingService(logger, service, adapter, ratingService, customerService, featureConnector, meterService, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, tracer, taxcodeService)
+	creditsConfiguration := conf.Credits
+	repo := common.NewLedgerHistoricalRepo(client)
+	accountRepo := common.NewLedgerAccountRepo(client)
+	accountLiveServices := common.NewLedgerAccountLiveServices(locker)
+	accountService := common.NewLedgerAccountService(accountRepo, accountLiveServices)
+	routingValidator := common.NewLedgerRoutingValidator()
+	ledger := common.NewLedgerHistoricalLedger(repo, accountService, locker, routingValidator)
+	customerAccountRepo := common.NewLedgerResolversRepo(client)
+	accountResolver := common.NewLedgerResolversService(accountService, customerAccountRepo)
+	billingRegistry, err := common.NewBillingRegistry(logger, service, adapter, ratingService, customerService, featureConnector, meterService, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, accountResolver, accountService)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -313,6 +322,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	billingService := billingRegistry.Billing
 	subscriptionsyncAdapter, err := common.NewBillingSubscriptionSyncAdapter(client)
 	if err != nil {
 		cleanup7()

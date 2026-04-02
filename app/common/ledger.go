@@ -12,6 +12,7 @@ import (
 	historicaladapter "github.com/openmeterio/openmeter/openmeter/ledger/historical/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
 	resolversadapter "github.com/openmeterio/openmeter/openmeter/ledger/resolvers/adapter"
+	"github.com/openmeterio/openmeter/openmeter/ledger/routingrules"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
 
@@ -25,6 +26,7 @@ var LedgerStack = wire.NewSet(
 	NewLedgerAccountService,
 	NewLedgerHistoricalLedger,
 	NewLedgerResolversService,
+	NewLedgerRoutingValidator,
 	wire.Bind(new(ledger.Ledger), new(*historical.Ledger)),
 	wire.Bind(new(ledger.AccountResolver), new(*resolvers.AccountResolver)),
 )
@@ -64,6 +66,10 @@ func NewLedgerHistoricalLedger(
 	routingValidator ledger.RoutingValidator,
 ) *historical.Ledger {
 	return historical.NewLedger(repo, accountSvc, locker, routingValidator)
+}
+
+func NewLedgerRoutingValidator() ledger.RoutingValidator {
+	return routingrules.DefaultValidator
 }
 
 func NewLedgerResolversService(

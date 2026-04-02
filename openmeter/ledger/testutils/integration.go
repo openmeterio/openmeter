@@ -10,18 +10,21 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
+	accountadapter "github.com/openmeterio/openmeter/openmeter/ledger/account/adapter"
 	accountservice "github.com/openmeterio/openmeter/openmeter/ledger/account/service"
 	"github.com/openmeterio/openmeter/openmeter/ledger/historical"
+	historicaladapter "github.com/openmeterio/openmeter/openmeter/ledger/historical/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
+	resolversadapter "github.com/openmeterio/openmeter/openmeter/ledger/resolvers/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ledger/routingrules"
 	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
@@ -72,22 +75,24 @@ func NewIntegrationEnv(t *testing.T, namespacePrefix string) *IntegrationEnv {
 	namespace := fmt.Sprintf("%s-%d", namespacePrefix, clock.Now().UnixNano())
 	lq := &lazyQuerier{}
 
-	locker, err := common.NewLocker(slog.Default())
+	locker, err := lockr.NewLocker(&lockr.LockerConfig{
+		Logger: slog.Default(),
+	})
 	require.NoError(t, err)
 
 	db := testDB.EntDriver.Client()
-	accountRepo := common.NewLedgerAccountRepo(db)
+	accountRepo := accountadapter.NewRepo(db)
 	live := ledgeraccount.AccountLiveServices{
 		Locker:  locker,
 		Querier: lq,
 	}
 	accountSvc := accountservice.New(accountRepo, live)
 
-	historicalRepo := common.NewLedgerHistoricalRepo(db)
+	historicalRepo := historicaladapter.NewRepo(db)
 	historicalLedger := historical.NewLedger(historicalRepo, accountSvc, locker, routingrules.DefaultValidator)
 	lq.querier = historicalLedger
 
-	resolversRepo := common.NewLedgerResolversRepo(db)
+	resolversRepo := resolversadapter.NewRepo(db)
 	resolversService := resolvers.NewAccountResolver(resolvers.AccountResolverConfig{
 		AccountService: accountSvc,
 		Repo:           resolversRepo,

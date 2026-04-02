@@ -35,6 +35,7 @@ var BillingWorker = wire.NewSet(
 	ProductCatalog,
 	Entitlement,
 	Billing,
+	LedgerStack,
 
 	NewBillingWorkerOptions,
 	NewBillingWorker,
