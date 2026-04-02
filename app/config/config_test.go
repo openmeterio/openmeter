@@ -148,6 +148,7 @@ func TestComplete(t *testing.T) {
 					Enabled:           true,
 					MaxTries:          3,
 					RetryWaitDuration: 20 * time.Millisecond,
+					MaxDelay:          5 * time.Second,
 				},
 				PoolMetrics: ClickhousePoolMetricsConfig{
 					Enabled:      true,
