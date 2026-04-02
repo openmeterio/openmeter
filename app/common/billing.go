@@ -44,6 +44,14 @@ type BillingRegistry struct {
 	Charges *ChargesRegistry
 }
 
+func (r BillingRegistry) ChargesServiceOrNil() charges.Service {
+	if r.Charges == nil {
+		return nil
+	}
+
+	return r.Charges.Service
+}
+
 // ChargesRegistry groups all charge-type services.
 type ChargesRegistry struct {
 	Service               charges.Service
@@ -107,32 +115,6 @@ func newBillingService(
 		MaxParallelQuantitySnapshots: billingConfig.MaxParallelQuantitySnapshots,
 	})
 	if err != nil {
-		return nil, err
-	}
-
-	// To prevent circular dependencies, we create the validator here
-	subscriptionSyncAdapter, err := NewBillingSubscriptionSyncAdapter(db)
-	if err != nil {
-		return nil, err
-	}
-	subscriptionSyncService, err := NewBillingSubscriptionSyncService(logger, subscriptionServices, service, subscriptionSyncAdapter, tracer)
-	if err != nil {
-		return nil, err
-	}
-
-	validator, err := billingcustomer.NewValidator(service, subscriptionSyncService, subscriptionServices.Service)
-	if err != nil {
-		return nil, err
-	}
-
-	customerService.RegisterRequestValidator(validator)
-
-	subscriptionValidator, err := billingsubscription.NewValidator(service)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = subscriptionServices.Service.RegisterHook(subscriptionValidator); err != nil {
 		return nil, err
 	}
 
@@ -203,26 +185,59 @@ func NewBillingRegistry(
 		}
 	}
 
-	return BillingRegistry{
+	billingRegistry := BillingRegistry{
 		Billing: billingService,
 		Charges: chargesRegistry,
-	}, nil
+	}
+
+	// Hook registration
+
+	// Customer validate (and sync subscription on delete)
+	// To prevent circular dependencies, we create the validator here
+	subscriptionSyncAdapter, err := NewBillingSubscriptionSyncAdapter(db)
+	if err != nil {
+		return BillingRegistry{}, err
+	}
+	subscriptionSyncService, err := NewBillingSubscriptionSyncService(logger, subscriptionServices, billingRegistry, subscriptionSyncAdapter, tracer)
+	if err != nil {
+		return BillingRegistry{}, err
+	}
+
+	validator, err := billingcustomer.NewValidator(billingRegistry.Billing, subscriptionSyncService, subscriptionServices.Service)
+	if err != nil {
+		return BillingRegistry{}, err
+	}
+
+	customerService.RegisterRequestValidator(validator)
+
+	// Subscription validate
+
+	subscriptionValidator, err := billingsubscription.NewValidator(billingRegistry.Billing)
+	if err != nil {
+		return BillingRegistry{}, err
+	}
+
+	if err = subscriptionServices.Service.RegisterHook(subscriptionValidator); err != nil {
+		return BillingRegistry{}, err
+	}
+
+	return billingRegistry, nil
 }
 
 func NewBillingRatingService() rating.Service {
 	return billingratingservice.New()
 }
 
-func NewBillingAutoAdvancer(logger *slog.Logger, service billing.Service) (*billingworkerautoadvance.AutoAdvancer, error) {
+func NewBillingAutoAdvancer(logger *slog.Logger, billingRegistry BillingRegistry) (*billingworkerautoadvance.AutoAdvancer, error) {
 	return billingworkerautoadvance.NewAdvancer(billingworkerautoadvance.Config{
-		BillingService: service,
+		BillingService: billingRegistry.Billing,
 		Logger:         logger,
 	})
 }
 
-func NewBillingCollector(logger *slog.Logger, service billing.Service, fs config.BillingFeatureSwitchesConfiguration) (*billingworkercollect.InvoiceCollector, error) {
+func NewBillingCollector(logger *slog.Logger, billingRegistry BillingRegistry, fs config.BillingFeatureSwitchesConfiguration) (*billingworkercollect.InvoiceCollector, error) {
 	return billingworkercollect.NewInvoiceCollector(billingworkercollect.Config{
-		BillingService:   service,
+		BillingService:   billingRegistry.Billing,
 		Logger:           logger,
 		LockedNamespaces: fs.NamespaceLockdown,
 	})
@@ -243,10 +258,11 @@ func NewBillingSubscriptionSyncAdapter(db *entdb.Client) (subscriptionsync.Adapt
 	})
 }
 
-func NewBillingSubscriptionSyncService(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, billingService billing.Service, subscriptionSyncAdapter subscriptionsync.Adapter, tracer trace.Tracer) (subscriptionsync.Service, error) {
+func NewBillingSubscriptionSyncService(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, billingRegistry BillingRegistry, subscriptionSyncAdapter subscriptionsync.Adapter, tracer trace.Tracer) (subscriptionsync.Service, error) {
 	return subscriptionsyncservice.New(subscriptionsyncservice.Config{
 		SubscriptionService:     subsServices.Service,
-		BillingService:          billingService,
+		BillingService:          billingRegistry.Billing,
+		ChargesService:          billingRegistry.ChargesServiceOrNil(),
 		SubscriptionSyncAdapter: subscriptionSyncAdapter,
 		Logger:                  logger,
 		Tracer:                  tracer,

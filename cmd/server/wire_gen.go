@@ -325,8 +325,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	billingService := billingRegistry.Billing
-	factory, err := common.NewAppSandboxFactory(appsConfiguration, appService, billingService)
+	factory, err := common.NewAppSandboxFactory(appsConfiguration, appService, billingRegistry)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -337,7 +336,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	appSandboxProvisioner, err := common.NewAppSandboxProvisioner(ctx, logger, appsConfiguration, appService, manager, billingService, factory)
+	appSandboxProvisioner, err := common.NewAppSandboxProvisioner(ctx, logger, appsConfiguration, appService, manager, billingRegistry, factory)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -359,7 +358,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, appService, customerService, secretserviceService, billingService, eventbusPublisher)
+	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, appService, customerService, secretserviceService, billingRegistry, eventbusPublisher)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -370,7 +369,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	appcustominvoicingService, err := common.NewAppCustomInvoicingService(logger, client, appsConfiguration, appService, customerService, secretserviceService, billingService, eventbusPublisher)
+	appcustominvoicingService, err := common.NewAppCustomInvoicingService(logger, client, appsConfiguration, appService, customerService, secretserviceService, billingRegistry, eventbusPublisher)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -405,6 +404,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	billingService := billingRegistry.Billing
 	customerSubjectHook, err := common.NewCustomerSubjectServiceHook(customerConfiguration, logger, tracer, subjectService, customerService, billingService)
 	if err != nil {
 		cleanup7()

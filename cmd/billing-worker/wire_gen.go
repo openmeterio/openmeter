@@ -322,7 +322,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	billingService := billingRegistry.Billing
 	subscriptionsyncAdapter, err := common.NewBillingSubscriptionSyncAdapter(client)
 	if err != nil {
 		cleanup7()
@@ -334,7 +333,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	subscriptionsyncService, err := common.NewBillingSubscriptionSyncService(logger, subscriptionServiceWithWorkflow, billingService, subscriptionsyncAdapter, tracer)
+	subscriptionsyncService, err := common.NewBillingSubscriptionSyncService(logger, subscriptionServiceWithWorkflow, billingRegistry, subscriptionsyncAdapter, tracer)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -345,7 +344,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	workerOptions := common.NewBillingWorkerOptions(eventsConfiguration, options, eventbusPublisher, billingService, adapter, subscriptionServiceWithWorkflow, subscriptionsyncService, billingFeatureSwitchesConfiguration, logger)
+	workerOptions := common.NewBillingWorkerOptions(eventsConfiguration, options, eventbusPublisher, billingRegistry, subscriptionServiceWithWorkflow, subscriptionsyncService, billingFeatureSwitchesConfiguration, logger)
 	worker, err := common.NewBillingWorker(workerOptions)
 	if err != nil {
 		cleanup7()
@@ -366,7 +365,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Logger: logger,
 	}
 	appsConfiguration := conf.Apps
-	factory, err := common.NewAppSandboxFactory(appsConfiguration, service, billingService)
+	factory, err := common.NewAppSandboxFactory(appsConfiguration, service, billingRegistry)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -378,7 +377,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	appSandboxProvisioner, err := common.NewAppSandboxProvisioner(ctx, logger, appsConfiguration, service, manager, billingService, factory)
+	appSandboxProvisioner, err := common.NewAppSandboxProvisioner(ctx, logger, appsConfiguration, service, manager, billingRegistry, factory)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -402,7 +401,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, service, customerService, secretserviceService, billingService, eventbusPublisher)
+	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, service, customerService, secretserviceService, billingRegistry, eventbusPublisher)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -414,7 +413,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	appcustominvoicingService, err := common.NewAppCustomInvoicingService(logger, client, appsConfiguration, service, customerService, secretserviceService, billingService, eventbusPublisher)
+	appcustominvoicingService, err := common.NewAppCustomInvoicingService(logger, client, appsConfiguration, service, customerService, secretserviceService, billingRegistry, eventbusPublisher)
 	if err != nil {
 		cleanup8()
 		cleanup7()
