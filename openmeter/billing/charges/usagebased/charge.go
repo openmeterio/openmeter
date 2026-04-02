@@ -40,7 +40,7 @@ func (c ChargeBase) Validate() error {
 		errs = append(errs, fmt.Errorf("state: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (c ChargeBase) GetChargeID() meta.ChargeID {
@@ -73,7 +73,7 @@ func (c Charge) Validate() error {
 		errs = append(errs, fmt.Errorf("charge base: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (c Charge) GetCurrentRealizationRun() (RealizationRun, error) {
@@ -131,7 +131,7 @@ func (i Intent) Validate() error {
 		errs = append(errs, fmt.Errorf("feature key is required"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type State struct {
@@ -152,5 +152,5 @@ func (s State) Validate() error {
 		errs = append(errs, fmt.Errorf("current realization run ID must be non-empty"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

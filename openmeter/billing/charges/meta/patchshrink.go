@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/qmuntal/stateless"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var (
@@ -27,15 +29,15 @@ type NewPatchShrinkInput struct {
 
 func (i NewPatchShrinkInput) Validate() error {
 	if i.NewServicePeriodTo.IsZero() {
-		return fmt.Errorf("new service period to is required")
+		return models.NewGenericValidationError(fmt.Errorf("new service period to is required"))
 	}
 
 	if i.NewFullServicePeriodTo.IsZero() {
-		return fmt.Errorf("new full service period to is required")
+		return models.NewGenericValidationError(fmt.Errorf("new full service period to is required"))
 	}
 
 	if i.NewBillingPeriodTo.IsZero() {
-		return fmt.Errorf("new billing period to is required")
+		return models.NewGenericValidationError(fmt.Errorf("new billing period to is required"))
 	}
 
 	return nil
@@ -87,15 +89,15 @@ func (p PatchShrink) TriggerParams() any {
 
 func (p PatchShrink) Validate() error {
 	if p.GetNewServicePeriodTo().IsZero() {
-		return fmt.Errorf("new service period to is required")
+		return models.NewGenericValidationError(fmt.Errorf("new service period to is required"))
 	}
 
 	if p.GetNewFullServicePeriodTo().IsZero() {
-		return fmt.Errorf("new full service period to is required")
+		return models.NewGenericValidationError(fmt.Errorf("new full service period to is required"))
 	}
 
 	if p.GetNewBillingPeriodTo().IsZero() {
-		return fmt.Errorf("new billing period to is required")
+		return models.NewGenericValidationError(fmt.Errorf("new billing period to is required"))
 	}
 
 	return nil
@@ -120,5 +122,5 @@ func (p PatchShrink) ValidateWith(intent Intent) error {
 		errs = append(errs, fmt.Errorf("new billing period to must be less than or equal to existing billing period to"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

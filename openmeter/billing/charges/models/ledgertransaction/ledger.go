@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // LedgerTransactionGroupReference is a reference to a ledger transaction group.
@@ -19,7 +21,7 @@ func (r GroupReference) Validate() error {
 		errs = append(errs, fmt.Errorf("transaction group ID is required"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (r *GroupReference) GetIDOrNull() *string {
@@ -46,7 +48,7 @@ func (r TimedGroupReference) Validate() error {
 		errs = append(errs, fmt.Errorf("time is required"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (r *TimedGroupReference) GetIDOrNull() *string {

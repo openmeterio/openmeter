@@ -9,6 +9,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type CreditsOnlyUsageAccruedInput struct {
@@ -37,7 +38,7 @@ func (i CreditsOnlyUsageAccruedInput) Validate() error {
 		errs = append(errs, fmt.Errorf("amount to allocate must be positive"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type CreditsOnlyUsageAccruedCorrectionInput struct {

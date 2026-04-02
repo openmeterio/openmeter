@@ -3,6 +3,8 @@ package meta
 import (
 	"errors"
 	"fmt"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type SubscriptionReference struct {
@@ -26,5 +28,5 @@ func (r SubscriptionReference) Validate() error {
 		errs = append(errs, fmt.Errorf("item ID is required"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

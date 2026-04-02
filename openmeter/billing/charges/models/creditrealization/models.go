@@ -47,7 +47,7 @@ func (t Type) Values() []string {
 
 func (t Type) Validate() error {
 	if !slices.Contains(t.Values(), string(t)) {
-		return fmt.Errorf("invalid credit realization type: %s", t)
+		return models.NewGenericValidationError(fmt.Errorf("invalid credit realization type: %s", t))
 	}
 	return nil
 }
@@ -86,7 +86,7 @@ func (i CreateInput) Validate() error {
 		errs = append(errs, fmt.Errorf("line ID must be non-empty"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type CreateInputs []CreateInput
@@ -100,7 +100,7 @@ func (i CreateInputs) Validate() error {
 		}
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (i CreateInputs) Sum() alpacadecimal.Decimal {
@@ -128,5 +128,5 @@ func (r Realization) Validate() error {
 		errs = append(errs, fmt.Errorf("credit realization input: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

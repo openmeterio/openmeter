@@ -1,11 +1,13 @@
 package usagebased
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Status string
@@ -40,7 +42,7 @@ func (Status) Values() []string {
 
 func (s Status) Validate() error {
 	if !slices.Contains(s.Values(), string(s)) {
-		return fmt.Errorf("invalid status: %s", s)
+		return models.NewGenericValidationError(fmt.Errorf("invalid status: %s", s))
 	}
 	return nil
 }
@@ -69,13 +71,15 @@ type UpdateStatusInput struct {
 }
 
 func (i UpdateStatusInput) Validate() error {
+	var errs []error
+
 	if err := i.Charge.Validate(); err != nil {
-		return fmt.Errorf("charge ID: %w", err)
+		errs = append(errs, fmt.Errorf("charge ID: %w", err))
 	}
 
 	if err := i.Status.Validate(); err != nil {
-		return fmt.Errorf("new status: %w", err)
+		errs = append(errs, fmt.Errorf("new status: %w", err))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

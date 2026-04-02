@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -42,7 +43,7 @@ func (c *ChargeSearchItem) Validate() error {
 	if c.CustomerID == "" {
 		errs = append(errs, errors.New("customer ID is required"))
 	}
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type ChargeSearchItems []ChargeSearchItem
@@ -54,5 +55,5 @@ func (c ChargeSearchItems) Validate() error {
 			errs = append(errs, fmt.Errorf("item[%d]: %w", idx, err))
 		}
 	}
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

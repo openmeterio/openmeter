@@ -28,7 +28,7 @@ func (i ChargeIDs) Validate() error {
 		}
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (i ChargeIDs) ToNamespacedIDs() []models.NamespacedID {
@@ -58,7 +58,7 @@ func (t ChargeType) Values() []string {
 
 func (t ChargeType) Validate() error {
 	if !slices.Contains(t.Values(), string(t)) {
-		return fmt.Errorf("invalid charge type: %s", t)
+		return models.NewGenericValidationError(fmt.Errorf("invalid charge type: %s", t))
 	}
 
 	return nil
@@ -114,7 +114,7 @@ func (s ChargeStatus) Values() []string {
 
 func (s ChargeStatus) Validate() error {
 	if !slices.Contains(s.Values(), string(s)) {
-		return fmt.Errorf("invalid charge status: %s", s)
+		return models.NewGenericValidationError(fmt.Errorf("invalid charge status: %s", s))
 	}
 
 	return nil
@@ -143,7 +143,7 @@ func (c Charge) Validate() error {
 		errs = append(errs, fmt.Errorf("managed resource: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type Charges []Charge
@@ -157,5 +157,5 @@ func (c Charges) Validate() error {
 		}
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

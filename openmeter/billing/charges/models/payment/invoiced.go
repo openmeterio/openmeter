@@ -66,7 +66,7 @@ func (i InvoicedCreate) Validate() error {
 		errs = append(errs, fmt.Errorf("invoice ID is required"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type InvoicedCreator[T any] interface {
@@ -113,7 +113,7 @@ func (r Invoiced) Validate() error {
 		errs = append(errs, fmt.Errorf("invoice ID is required"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (r Invoiced) ErrorAttributes() models.Attributes {

@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -36,7 +37,7 @@ func (i OnAssignedToInvoiceInput) Validate() error {
 		errs = append(errs, fmt.Errorf("pre tax total amount cannot be negative"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type OnInvoiceUsageAccruedInput struct {
@@ -60,7 +61,7 @@ func (i OnInvoiceUsageAccruedInput) Validate() error {
 		errs = append(errs, fmt.Errorf("totals: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type OnCreditsOnlyUsageAccruedInput struct {
@@ -79,7 +80,7 @@ func (i OnCreditsOnlyUsageAccruedInput) Validate() error {
 		errs = append(errs, fmt.Errorf("amount to allocate cannot be negative"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type CreditsOnlyUsageAccruedCorrectionInput struct {
@@ -100,7 +101,7 @@ func (i CreditsOnlyUsageAccruedCorrectionInput) Validate() error {
 		errs = append(errs, fmt.Errorf("allocate at is required"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (i CreditsOnlyUsageAccruedCorrectionInput) ValidateWith(currencyCalculator currencyx.Calculator) error {
@@ -114,7 +115,7 @@ func (i CreditsOnlyUsageAccruedCorrectionInput) ValidateWith(currencyCalculator 
 		errs = append(errs, fmt.Errorf("corrections: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type Handler interface {

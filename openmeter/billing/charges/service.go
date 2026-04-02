@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -61,7 +62,7 @@ func (i CreateInput) Validate() error {
 		errs = append(errs, fmt.Errorf("intents: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type GetByIDInput struct {
@@ -80,7 +81,7 @@ func (i GetByIDInput) Validate() error {
 		errs = append(errs, fmt.Errorf("expands: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type GetByIDsInput struct {
@@ -106,7 +107,7 @@ func (i GetByIDsInput) Validate() error {
 		errs = append(errs, fmt.Errorf("expands: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type HandleCreditPurchaseExternalPaymentStateTransitionInput struct {
@@ -126,7 +127,7 @@ func (i HandleCreditPurchaseExternalPaymentStateTransitionInput) Validate() erro
 		errs = append(errs, fmt.Errorf("target payment state: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type AdvanceChargesInput struct {
@@ -139,7 +140,7 @@ func (i AdvanceChargesInput) Validate() error {
 		errs = append(errs, fmt.Errorf("customer ID: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type ListChargesInput struct {
@@ -190,7 +191,7 @@ func (i ListChargesInput) Validate() error {
 		errs = append(errs, fmt.Errorf("expands: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type ListCustomersToAdvanceInput struct {
@@ -202,12 +203,12 @@ type ListCustomersToAdvanceInput struct {
 
 func (i ListCustomersToAdvanceInput) Validate() error {
 	if i.AdvanceAfterLTE.IsZero() {
-		return errors.New("advance_after_lte is required")
+		return models.NewGenericValidationError(errors.New("advance_after_lte is required"))
 	}
 
 	if !i.Page.IsZero() {
 		if err := i.Page.Validate(); err != nil {
-			return fmt.Errorf("page: %w", err)
+			return models.NewGenericValidationError(fmt.Errorf("page: %w", err))
 		}
 	}
 

@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Service interface {
@@ -51,7 +52,7 @@ func (i CreateInput) Validate() error {
 		}
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type ChargeWithGatheringLine struct {
@@ -76,7 +77,7 @@ func (i GetByIDsInput) Validate() error {
 		errs = append(errs, fmt.Errorf("expands: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type AdvanceChargeInput struct {
@@ -103,7 +104,7 @@ func (i AdvanceChargeInput) Validate() error {
 		errs = append(errs, errors.New("feature meter is required"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type GetByIDInput struct {
@@ -121,7 +122,7 @@ func (i GetByIDInput) Validate() error {
 		errs = append(errs, fmt.Errorf("expands: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type GetCurrentTotalsInput struct {
@@ -130,7 +131,7 @@ type GetCurrentTotalsInput struct {
 
 func (i GetCurrentTotalsInput) Validate() error {
 	if err := i.ChargeID.Validate(); err != nil {
-		return fmt.Errorf("charge ID: %w", err)
+		return models.NewGenericValidationError(fmt.Errorf("charge ID: %w", err))
 	}
 
 	return nil

@@ -46,7 +46,7 @@ func (c Charge) Validate() error {
 		errs = append(errs, fmt.Errorf("state: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (c Charge) GetChargeID() meta.ChargeID {
@@ -115,7 +115,7 @@ func (i Intent) Validate() error {
 		errs = append(errs, fmt.Errorf("pro rating: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // CalculateAmountAfterProration computes the prorated amount from AmountBeforeProration,
@@ -199,5 +199,5 @@ func (s State) Validate() error {
 		}
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

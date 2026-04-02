@@ -65,7 +65,7 @@ func (p CreditRefundPolicy) Values() []CreditRefundPolicy {
 
 func (p CreditRefundPolicy) Validate() error {
 	if !slices.Contains(p.Values(), p) {
-		return fmt.Errorf("invalid credit refund policy: %s", p)
+		return models.NewGenericValidationError(fmt.Errorf("invalid credit refund policy: %s", p))
 	}
 
 	return nil
@@ -95,7 +95,7 @@ func (p InvoiceRefundPolicy) Values() []InvoiceRefundPolicy {
 
 func (p InvoiceRefundPolicy) Validate() error {
 	if !slices.Contains(p.Values(), p) {
-		return fmt.Errorf("invalid invoice refund policy: %s", p)
+		return models.NewGenericValidationError(fmt.Errorf("invalid invoice refund policy: %s", p))
 	}
 
 	return nil
@@ -119,7 +119,7 @@ func (p PatchDeletePolicy) Validate() error {
 		errs = append(errs, fmt.Errorf("invoice refund policy: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // RefundAsCreditsDeletePolicy is a policy that will refund the usage as credits to the customer. For now this can

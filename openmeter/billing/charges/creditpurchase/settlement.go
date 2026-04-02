@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type SettlementType string
@@ -22,7 +23,7 @@ const (
 
 func (s SettlementType) Validate() error {
 	if !slices.Contains(s.Values(), string(s)) {
-		return fmt.Errorf("invalid credit purchase settlement type: %s", s)
+		return models.NewGenericValidationError(fmt.Errorf("invalid credit purchase settlement type: %s", s))
 	}
 	return nil
 }
@@ -58,7 +59,7 @@ func (s GenericSettlement) Validate() error {
 		}
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type InvoiceSettlement struct {
@@ -72,7 +73,7 @@ func (s InvoiceSettlement) Validate() error {
 		errs = append(errs, fmt.Errorf("generic settlement: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type InitialPaymentSettlementStatus string
@@ -85,7 +86,7 @@ const (
 
 func (s InitialPaymentSettlementStatus) Validate() error {
 	if !slices.Contains(s.Values(), string(s)) {
-		return fmt.Errorf("invalid payment settlement status: %s", s)
+		return models.NewGenericValidationError(fmt.Errorf("invalid payment settlement status: %s", s))
 	}
 	return nil
 }
@@ -119,7 +120,7 @@ func (s ExternalSettlement) Validate() error {
 		errs = append(errs, err)
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type PromotionalSettlement struct{}
@@ -248,30 +249,30 @@ func (s Settlement) Validate() error {
 	switch s.t {
 	case SettlementTypeInvoice:
 		if s.invoice == nil {
-			return fmt.Errorf("invoice is required")
+			return models.NewGenericValidationError(fmt.Errorf("invoice is required"))
 		}
 
 		if err := s.invoice.Validate(); err != nil {
-			return fmt.Errorf("invoice: %w", err)
+			return models.NewGenericValidationError(fmt.Errorf("invoice: %w", err))
 		}
 	case SettlementTypeExternal:
 		if s.external == nil {
-			return fmt.Errorf("external is required")
+			return models.NewGenericValidationError(fmt.Errorf("external is required"))
 		}
 
 		if err := s.external.Validate(); err != nil {
-			return fmt.Errorf("external: %w", err)
+			return models.NewGenericValidationError(fmt.Errorf("external: %w", err))
 		}
 	case SettlementTypePromotional:
 		if s.promotional == nil {
-			return fmt.Errorf("promotional is required")
+			return models.NewGenericValidationError(fmt.Errorf("promotional is required"))
 		}
 
 		if err := s.promotional.Validate(); err != nil {
-			return fmt.Errorf("promotional: %w", err)
+			return models.NewGenericValidationError(fmt.Errorf("promotional: %w", err))
 		}
 	default:
-		return fmt.Errorf("invalid credit purchase settlement type: %s", s.t)
+		return models.NewGenericValidationError(fmt.Errorf("invalid credit purchase settlement type: %s", s.t))
 	}
 	return nil
 }

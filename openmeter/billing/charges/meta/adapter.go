@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Adapter interface {
@@ -37,7 +38,7 @@ func (i RegisterChargesInput) Validate() error {
 			errs = append(errs, fmt.Errorf("charge [%d]: ID is required", idx))
 		}
 	}
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type IDWithUniqueReferenceID struct {
