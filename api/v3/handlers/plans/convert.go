@@ -210,10 +210,10 @@ func fromBillingPrice(p *productcatalog.Price) (api.BillingPrice, error) {
 		}
 
 	case productcatalog.DynamicPriceType:
-		return result, fmt.Errorf("dynamic price is not supported in v3 API")
+		return result, models.NewGenericConflictError(fmt.Errorf("dynamic price is not supported in v3 API"))
 
 	case productcatalog.PackagePriceType:
-		return result, fmt.Errorf("package price is not supported in v3 API")
+		return result, models.NewGenericConflictError(fmt.Errorf("package price is not supported in v3 API"))
 
 	default:
 		return result, fmt.Errorf("unknown price type: %s", p.Type())
