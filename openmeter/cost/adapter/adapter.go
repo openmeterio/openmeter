@@ -318,7 +318,9 @@ func (a *adapter) resolveLLMUnitCost(ctx context.Context, feat *feature.Feature,
 	// Resolve token type cost
 	amount, err := costPerTokenForType(cached.price.Pricing, feature.LLMTokenType(tokenTypeStr))
 	if err != nil {
-		return nil, fmt.Errorf("resolving token type cost for provider=%s model=%s type=%s: %w", provider, modelID, tokenTypeStr, err)
+		return nil, models.NewGenericNotFoundError(
+			fmt.Errorf("resolving token type cost for provider=%s model=%s type=%s: %w", provider, modelID, tokenTypeStr, err),
+		)
 	}
 
 	return &cost.ResolvedUnitCost{

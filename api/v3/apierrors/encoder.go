@@ -6,6 +6,8 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport/encoder"
 )
@@ -18,6 +20,8 @@ func GenericErrorEncoder() encoder.ErrorEncoder {
 			return true
 		}
 
-		return commonhttp.HandleIssueIfHTTPStatusKnown(ctx, err, w)
+		return commonhttp.HandleErrorIfTypeMatches[*feature.FeatureNotFoundError](ctx, http.StatusNotFound, err, w) ||
+			commonhttp.HandleErrorIfTypeMatches[*meter.MeterNotFoundError](ctx, http.StatusNotFound, err, w) ||
+			commonhttp.HandleIssueIfHTTPStatusKnown(ctx, err, w)
 	}
 }
