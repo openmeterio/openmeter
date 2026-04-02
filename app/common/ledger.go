@@ -27,7 +27,6 @@ var LedgerStack = wire.NewSet(
 	NewLedgerAccountService,
 	NewLedgerHistoricalLedger,
 	NewLedgerResolversService,
-	NewLedgerRoutingValidator,
 	wire.Bind(new(ledger.Ledger), new(*historical.Ledger)),
 	wire.Bind(new(ledger.AccountResolver), new(*resolvers.AccountResolver)),
 )
@@ -71,10 +70,6 @@ func NewLedgerHistoricalLedger(
 	routingValidator ledger.RoutingValidator,
 ) *historical.Ledger {
 	return historical.NewLedger(repo, accountSvc, locker, routingValidator)
-}
-
-func NewLedgerRoutingValidator() ledger.RoutingValidator {
-	return routingrules.DefaultValidator
 }
 
 func NewLedgerResolversService(

@@ -131,7 +131,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Server,
 		common.TaxCode,
 		common.Subscription,
-		common.LedgerStack,
 		common.Lockr,
 		common.Secret,
 		common.ServerProvisionTopics,

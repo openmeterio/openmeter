@@ -461,15 +461,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	repo := common.NewLedgerHistoricalRepo(client)
-	accountRepo := common.NewLedgerAccountRepo(client)
-	accountLiveServices := common.NewLedgerAccountLiveServices(locker)
-	accountService := common.NewLedgerAccountService(accountRepo, accountLiveServices)
-	routingValidator := common.NewLedgerRoutingValidator()
-	ledger := common.NewLedgerHistoricalLedger(repo, accountService, locker, routingValidator)
-	customerAccountRepo := common.NewLedgerResolversRepo(client)
-	accountResolver := common.NewLedgerResolversService(accountService, customerAccountRepo)
-	customerbalanceService, err := common.NewCustomerBalanceService(logger, client, locker, ledger, accountResolver, accountService, billingService, featureConnector, ratingService, connector)
+	customerbalanceService, err := common.NewCustomerBalanceService(logger, client, locker, ledger, accountResolver, accountService, billingRegistry, featureConnector, ratingService, connector)
 	if err != nil {
 		cleanup7()
 		cleanup6()

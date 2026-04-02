@@ -6,7 +6,6 @@ import (
 
 	"github.com/google/wire"
 
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	chargeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
@@ -41,7 +40,7 @@ func NewCustomerBalanceService(
 	historicalLedger ledger.Ledger,
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
-	billingService billing.Service,
+	billingRegistry BillingRegistry,
 	featureConnector feature.FeatureConnector,
 	ratingService rating.Service,
 	streamingConnector streaming.Connector,
@@ -95,7 +94,7 @@ func NewCustomerBalanceService(
 		Handler:                 usagebased.UnimplementedHandler{},
 		Locker:                  locker,
 		MetaAdapter:             metaAdapter,
-		CustomerOverrideService: billingService,
+		CustomerOverrideService: billingRegistry.Billing,
 		FeatureService:          featureConnector,
 		RatingService:           ratingService,
 		StreamingConnector:      streamingConnector,
