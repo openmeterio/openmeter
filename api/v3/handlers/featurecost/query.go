@@ -91,7 +91,6 @@ func (h *handler) QueryFeatureCost() QueryFeatureCostHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("query-feature-cost"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
