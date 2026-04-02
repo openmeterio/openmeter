@@ -22,6 +22,8 @@ type service struct {
 	flatFeeService        flatfee.Service
 	creditPurchaseService creditpurchase.Service
 	usageBasedService     usagebased.Service
+
+	fsNamespaceLockdown []string
 }
 
 type Config struct {
@@ -34,6 +36,8 @@ type Config struct {
 	UsageBasedService     usagebased.Service
 
 	BillingService billing.Service
+
+	FSNamespaceLockdown []string
 }
 
 func (c Config) Validate() error {
@@ -83,6 +87,7 @@ func New(config Config) (*service, error) {
 		flatFeeService:        config.FlatFeeService,
 		creditPurchaseService: config.CreditPurchaseService,
 		usageBasedService:     config.UsageBasedService,
+		fsNamespaceLockdown:   config.FSNamespaceLockdown,
 	}
 
 	standardInvoiceEventHandler := &standardInvoiceEventHandler{

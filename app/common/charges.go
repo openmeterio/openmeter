@@ -201,6 +201,7 @@ func NewChargesService(
 	creditPurchaseSvc creditpurchase.Service,
 	usageBasedSvc usagebased.Service,
 	billingService billing.Service,
+	fsNamespaceLockdown []string,
 ) (charges.Service, error) {
 	chargesSvc, err := chargesservice.New(chargesservice.Config{
 		Adapter:               rootAdapter,
@@ -210,6 +211,7 @@ func NewChargesService(
 		CreditPurchaseService: creditPurchaseSvc,
 		UsageBasedService:     usageBasedSvc,
 		BillingService:        billingService,
+		FSNamespaceLockdown:   fsNamespaceLockdown,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create charges service: %w", err)
@@ -231,6 +233,7 @@ func newChargesRegistry(
 	ledgerService ledger.Ledger,
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
+	fsNamespaceLockdown []string,
 ) (*ChargesRegistry, error) {
 	metaAdapter, err := NewChargesMetaAdapter(db, logger)
 	if err != nil {
@@ -293,6 +296,7 @@ func newChargesRegistry(
 		creditPurchaseSvc,
 		usageBasedSvc,
 		billingService,
+		fsNamespaceLockdown,
 	)
 	if err != nil {
 		return nil, err

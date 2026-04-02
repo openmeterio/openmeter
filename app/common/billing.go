@@ -186,6 +186,7 @@ func NewBillingRegistry(
 			ledgerService,
 			accountResolver,
 			accountService,
+			fsConfig.NamespaceLockdown,
 		)
 		if err != nil {
 			return BillingRegistry{}, err

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/samber/lo"
 
@@ -17,7 +18,11 @@ func (s *service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 		return nil, err
 	}
 
-	// TODO: we need to handle the namespace lockdowns as an argument to this service too
+	if slices.Contains(s.fsNamespaceLockdown, input.Customer.Namespace) {
+		return nil, billing.ValidationError{
+			Err: fmt.Errorf("%w: %s", billing.ErrNamespaceLocked, input.Customer.Namespace),
+		}
+	}
 
 	return withBillingTransactionForInvoiceManipulation(ctx, s, input.Customer, func(ctx context.Context) ([]billing.StandardInvoice, error) {
 		// Step 1: Let's have all the lines that are billable prepared on the gathering invoice (including line splitting)
