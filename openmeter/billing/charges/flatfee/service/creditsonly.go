@@ -143,7 +143,6 @@ func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("on credits only usage accrued: %w", err)
 		}
-		creditAllocations = creditAllocations.NormalizeWith(currencyCalculator)
 
 		if !creditAllocations.Sum().Equal(amount) {
 			return models.NewGenericValidationError(

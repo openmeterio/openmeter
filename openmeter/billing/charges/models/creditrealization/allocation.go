@@ -8,7 +8,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -51,11 +50,6 @@ func (i CreateAllocationInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (i CreateAllocationInput) NormalizeWith(currency currencyx.Calculator) CreateAllocationInput {
-	i.Amount = currency.RoundToPrecision(i.Amount)
-	return i
-}
-
 type CreateAllocationInputs []CreateAllocationInput
 
 func (i CreateAllocationInputs) Validate() error {
@@ -68,12 +62,6 @@ func (i CreateAllocationInputs) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
-}
-
-func (i CreateAllocationInputs) NormalizeWith(currency currencyx.Calculator) CreateAllocationInputs {
-	return lo.Map(i, func(input CreateAllocationInput, _ int) CreateAllocationInput {
-		return input.NormalizeWith(currency)
-	})
 }
 
 func (i CreateAllocationInputs) AsCreateInputs() CreateInputs {

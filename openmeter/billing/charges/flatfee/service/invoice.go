@@ -38,7 +38,6 @@ func (s *service) PostLineAssignedToInvoice(ctx context.Context, charge flatfee.
 		if err != nil {
 			return nil, fmt.Errorf("on flat fee assigned to invoice: %w", err)
 		}
-		creditAllocations = creditAllocations.NormalizeWith(currencyCalculator)
 
 		if len(creditAllocations) == 0 {
 			return nil, nil

@@ -161,7 +161,6 @@ func (s *CreditsOnlyStateMachine) allocateCredits(ctx context.Context, in usageb
 	if err != nil {
 		return nil, fmt.Errorf("on credits only usage accrued: %w", err)
 	}
-	creditAllocations = creditAllocations.NormalizeWith(s.CurrencyCalculator)
 
 	if !creditAllocations.Sum().Equal(in.AmountToAllocate) {
 		return nil, usagebased.ErrCreditAllocationsDoNotMatchTotal.

@@ -328,6 +328,19 @@ func TestCreateCorrectionRequest(t *testing.T) {
 		assert.Equal(t, -1.01, cr[0].Amount.InexactFloat64())
 	})
 
+	t.Run("tiny negative that rounds to zero is a no-op", func(t *testing.T) {
+		b := newAllocationBuilder()
+		alloc := b.build(10)
+
+		cr, err := Realizations{alloc}.CreateCorrectionRequest(
+			alpacadecimal.NewFromFloat(-0.004),
+			testCurrency(t),
+		)
+
+		require.NoError(t, err)
+		assert.Len(t, cr, 0)
+	})
+
 	t.Run("error: all allocations fully corrected", func(t *testing.T) {
 		b := newAllocationBuilder()
 		a1 := b.build(5)
