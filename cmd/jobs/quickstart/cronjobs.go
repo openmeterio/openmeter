@@ -82,6 +82,24 @@ var Cron = &cobra.Command{
 			return err
 		}
 
+		// Advance charges every minute (if charges are enabled)
+		if internal.App.ChargesAutoAdvancer != nil {
+			_, err = s.NewJob(
+				gocron.DurationJob(time.Minute),
+				gocron.NewTask(func() {
+					slog.Info("Advancing charges")
+
+					err := internal.App.ChargesAutoAdvancer.All(cmd.Context(), namespaces)
+					if err != nil {
+						slog.Error("Error advancing charges", "error", err)
+					}
+				}),
+			)
+			if err != nil {
+				return err
+			}
+		}
+
 		s.Start()
 
 		<-cmd.Context().Done()

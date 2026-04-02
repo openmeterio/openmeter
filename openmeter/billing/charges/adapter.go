@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -19,6 +20,7 @@ type Adapter interface {
 type ChargesSearchAdapter interface {
 	GetByIDs(ctx context.Context, input GetByIDsInput) (ChargeSearchItems, error)
 	ListCharges(ctx context.Context, input ListChargesInput) (pagination.Result[ChargeSearchItem], error)
+	ListCustomersToAdvance(ctx context.Context, input ListCustomersToAdvanceInput) (pagination.Result[customer.CustomerID], error)
 }
 
 type ChargeSearchItem struct {

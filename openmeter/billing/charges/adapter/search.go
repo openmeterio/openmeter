@@ -2,11 +2,13 @@ package adapter
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargessearchv1 "github.com/openmeterio/openmeter/openmeter/ent/db/chargessearchv1"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -81,6 +83,72 @@ func (a *adapter) ListCharges(ctx context.Context, input charges.ListChargesInpu
 			Items: lo.Map(dbEntities.Items, func(item *db.ChargesSearchV1, _ int) charges.ChargeSearchItem {
 				return mapChargeSearchToChargeWithType(item)
 			}),
+		}, nil
+	})
+}
+
+func (a *adapter) ListCustomersToAdvance(ctx context.Context, input charges.ListCustomersToAdvanceInput) (pagination.Result[customer.CustomerID], error) {
+	if err := input.Validate(); err != nil {
+		return pagination.Result[customer.CustomerID]{}, err
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (pagination.Result[customer.CustomerID], error) {
+		query := tx.db.ChargesSearchV1.Query().
+			Where(
+				dbchargessearchv1.DeletedAtIsNil(),
+				dbchargessearchv1.StatusNotIn(meta.ChargeStatusFinal, meta.ChargeStatusDeleted),
+				dbchargessearchv1.AdvanceAfterLTE(input.AdvanceAfterLTE),
+			)
+
+		if len(input.Namespaces) > 0 {
+			query = query.Where(dbchargessearchv1.NamespaceIn(input.Namespaces...))
+		}
+
+		var results []struct {
+			Namespace  string `json:"namespace"`
+			CustomerID string `json:"customer_id"`
+		}
+
+		err := query.
+			GroupBy(dbchargessearchv1.FieldNamespace, dbchargessearchv1.FieldCustomerID).
+			Scan(ctx, &results)
+		if err != nil {
+			return pagination.Result[customer.CustomerID]{}, fmt.Errorf("list customers to advance: %w", err)
+		}
+
+		// Apply pagination manually since GroupBy doesn't support Paginate directly
+		totalCount := len(results)
+
+		page := input.Page
+		if page.IsZero() {
+			page = pagination.Page{
+				PageSize:   totalCount,
+				PageNumber: 1,
+			}
+		}
+
+		start := page.Offset()
+		if start > totalCount {
+			start = totalCount
+		}
+		end := start + page.Limit()
+		if end > totalCount {
+			end = totalCount
+		}
+
+		pageResults := results[start:end]
+		customers := make([]customer.CustomerID, 0, len(pageResults))
+		for _, r := range pageResults {
+			customers = append(customers, customer.CustomerID{
+				Namespace: r.Namespace,
+				ID:        r.CustomerID,
+			})
+		}
+
+		return pagination.Result[customer.CustomerID]{
+			Page:       page,
+			TotalCount: totalCount,
+			Items:      customers,
 		}, nil
 	})
 }

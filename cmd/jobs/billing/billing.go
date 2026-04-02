@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openmeterio/openmeter/cmd/jobs/billing/advance"
+	"github.com/openmeterio/openmeter/cmd/jobs/billing/advancecharges"
 	"github.com/openmeterio/openmeter/cmd/jobs/billing/collect"
 	"github.com/openmeterio/openmeter/cmd/jobs/billing/subscriptionsync"
 )
@@ -15,6 +16,7 @@ var Cmd = &cobra.Command{
 
 func init() {
 	Cmd.AddCommand(advance.Cmd)
+	Cmd.AddCommand(advancecharges.Cmd)
 	Cmd.AddCommand(collect.Cmd)
 	Cmd.AddCommand(subscriptionsync.Cmd)
 }
