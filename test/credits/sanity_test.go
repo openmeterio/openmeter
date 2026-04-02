@@ -405,24 +405,22 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 	})
 }
 
-func (s *CreditsTestSuite) TestCreditPurchasePersistsEffectiveAtAndPriority() {
+func (s *CreditsTestSuite) TestCreditPurchasePersistsPriority() {
 	ctx := context.Background()
-	ns := s.GetUniqueNamespace("charges-creditpurchase-effective-priority")
+	ns := s.GetUniqueNamespace("charges-creditpurchase-persists-priority")
 
 	cust := s.createLedgerBackedCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
 
-	effectiveAtRaw := datetime.MustParseTimeInLocation(s.T(), "2026-01-01T12:34:56.789Z", time.UTC).AsTime()
-	effectiveAt := effectiveAtRaw.Truncate(time.Second)
 	priority := 7
+	at := datetime.MustParseTimeInLocation(s.T(), "2026-01-01T12:34:56Z", time.UTC).AsTime()
 
 	intent := s.createCreditPurchaseIntent(createCreditPurchaseIntentInput{
 		customer:      cust.GetID(),
 		currency:      USD,
 		amount:        alpacadecimal.NewFromInt(25),
-		effectiveAt:   &effectiveAtRaw,
 		priority:      &priority,
-		servicePeriod: timeutil.ClosedPeriod{From: effectiveAt, To: effectiveAt},
+		servicePeriod: timeutil.ClosedPeriod{From: at, To: at},
 		settlement:    creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
 	})
 
@@ -441,8 +439,6 @@ func (s *CreditsTestSuite) TestCreditPurchasePersistsEffectiveAtAndPriority() {
 
 	fetchedCharge, err := s.mustGetChargeByID(cpCharge.GetChargeID()).AsCreditPurchaseCharge()
 	s.NoError(err)
-	s.NotNil(fetchedCharge.Intent.EffectiveAt)
-	s.Equal(effectiveAt, *fetchedCharge.Intent.EffectiveAt)
 	s.Equal(&priority, fetchedCharge.Intent.Priority)
 
 	zeroCostBasis := alpacadecimal.Zero
