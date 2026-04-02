@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/wire"
 
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	chargeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
@@ -34,6 +35,7 @@ var CustomerBalance = wire.NewSet(
 )
 
 func NewCustomerBalanceService(
+	creditsConfig config.CreditsConfiguration,
 	logger *slog.Logger,
 	db *entdb.Client,
 	locker *lockr.Locker,
@@ -44,7 +46,11 @@ func NewCustomerBalanceService(
 	featureConnector feature.FeatureConnector,
 	ratingService rating.Service,
 	streamingConnector streaming.Connector,
-) (*customerbalance.Service, error) {
+) (customerbalance.FacadeService, error) {
+	if !creditsConfig.Enabled {
+		return customerbalance.NewNoopService(), nil
+	}
+
 	metaAdapter, err := metaadapter.New(metaadapter.Config{
 		Client: db,
 		Logger: logger,
@@ -111,7 +117,7 @@ func NewCustomerBalanceService(
 	})
 }
 
-func NewCustomerBalanceFacade(service *customerbalance.Service) (*customerbalance.Facade, error) {
+func NewCustomerBalanceFacade(service customerbalance.FacadeService) (*customerbalance.Facade, error) {
 	return customerbalance.NewFacade(service)
 }
 

@@ -48,11 +48,16 @@ type BalanceByCurrency struct {
 	Balance  ledger.Balance
 }
 
-type Facade struct {
-	service *Service
+type FacadeService interface {
+	GetBalance(ctx context.Context, customerID customer.CustomerID, filters ledger.RouteFilter) (ledger.Balance, error)
+	getFBOCurrencies(ctx context.Context, customerID customer.CustomerID) ([]currencyx.Code, error)
 }
 
-func NewFacade(service *Service) (*Facade, error) {
+type Facade struct {
+	service FacadeService
+}
+
+func NewFacade(service FacadeService) (*Facade, error) {
 	if service == nil {
 		return nil, errors.New("service is required")
 	}

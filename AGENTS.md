@@ -173,6 +173,7 @@ All builds use `GO_BUILD_FLAGS=-tags=dynamic`.
 - Copy `config.example.yaml` to `config.yaml` (done automatically by Make targets)
 - Load the repository environment with `direnv`, or run commands with `direnv exec . <command>`, so project-specific environment variables and tool configuration are applied consistently
 - Key settings: `postgres.url`, `postgres.autoMigrate`, `billing`, `notification`, meter definitions
+- `credits.enabled` needs explicit guarding at multiple layers: ledger-backed customer credit handlers in `api/v3/server`, customer ledger hooks, and namespace/default-account provisioning are wired separately and must each stay disabled when credits are off.
 - Make targets for running services will warn if `config.yaml` is outdated vs `config.example.yaml`
 
 ## Coding Conventions
