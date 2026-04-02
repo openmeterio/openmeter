@@ -44,7 +44,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.Charge) error
 		update := tx.db.ChargeFlatFee.UpdateOneID(charge.ID).
 			Where(dbchargeflatfee.NamespaceEQ(charge.Namespace)).
 			SetPaymentTerm(intent.PaymentTerm).
-			SetInvoiceAt(intent.InvoiceAt.In(time.UTC)).
+			SetInvoiceAt(meta.NormalizeTimestamp(intent.InvoiceAt).In(time.UTC)).
 			SetDiscounts(discounts).
 			SetProRating(proRating).
 			SetAmountBeforeProration(intent.AmountBeforeProration).
@@ -52,9 +52,9 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.Charge) error
 
 		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
 			ManagedResource: charge.ManagedResource,
-			Intent:          charge.Intent.Intent,
+			Intent:          intent.Intent,
 			Status:          charge.Status,
-			AdvanceAfter:    charge.State.AdvanceAfter,
+			AdvanceAfter:    meta.NormalizeOptionalTimestamp(charge.State.AdvanceAfter),
 		})
 		if err != nil {
 			return err
@@ -224,7 +224,7 @@ func (a *adapter) buildCreateFlatFeeCharge(ns string, intent flatfee.IntentWithI
 	create := a.db.ChargeFlatFee.Create().
 		SetNamespace(ns).
 		SetPaymentTerm(intent.PaymentTerm).
-		SetInvoiceAt(intent.InvoiceAt.In(time.UTC)).
+		SetInvoiceAt(meta.NormalizeTimestamp(intent.InvoiceAt).In(time.UTC)).
 		SetSettlementMode(intent.SettlementMode).
 		SetNillableFeatureKey(lo.EmptyableToPtr(intent.FeatureKey)).
 		SetProRating(proRating).

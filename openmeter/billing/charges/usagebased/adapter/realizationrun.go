@@ -26,8 +26,8 @@ func (a *adapter) CreateRealizationRun(ctx context.Context, chargeID meta.Charge
 			SetNamespace(chargeID.Namespace).
 			SetChargeID(chargeID.ID).
 			SetType(input.Type).
-			SetAsof(input.AsOf.UTC()).
-			SetCollectionEnd(input.CollectionEnd.UTC()).
+			SetAsof(meta.NormalizeTimestamp(input.AsOf)).
+			SetCollectionEnd(meta.NormalizeTimestamp(input.CollectionEnd)).
 			SetMeterValue(input.MeterValue)
 
 		create = totals.Set(create, input.Totals)
@@ -49,7 +49,7 @@ func (a *adapter) UpdateRealizationRun(ctx context.Context, input usagebased.Upd
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (usagebased.RealizationRunBase, error) {
 		update := tx.db.ChargeUsageBasedRuns.UpdateOneID(input.ID.ID).
 			Where(dbchargeusagebasedruns.NamespaceEQ(input.ID.Namespace)).
-			SetAsof(input.AsOf.UTC()).
+			SetAsof(meta.NormalizeTimestamp(input.AsOf)).
 			SetMeterValue(input.MeterValue)
 
 		update = totals.Set(update, input.Totals)

@@ -155,6 +155,9 @@ type Updater[T any] interface {
 }
 
 func Create[T Creator[T]](creator Creator[T], in CreateInput) (T, error) {
+	in.Intent = in.Intent.Normalized()
+	in.AdvanceAfter = meta.NormalizeOptionalTimestamp(in.AdvanceAfter)
+
 	if err := in.Intent.Validate(); err != nil {
 		var empty T
 		return empty, err
@@ -205,6 +208,9 @@ type UpdateInput struct {
 }
 
 func Update[T Updater[T]](updater Updater[T], in UpdateInput) (T, error) {
+	in.Intent = in.Intent.Normalized()
+	in.AdvanceAfter = meta.NormalizeOptionalTimestamp(in.AdvanceAfter)
+
 	return updater.
 		SetName(in.Intent.Name).
 		SetOrClearDeletedAt(convert.TimePtrIn(in.DeletedAt, time.UTC)).

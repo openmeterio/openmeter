@@ -66,7 +66,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 			ManagedResource: charge.ManagedResource,
 			Intent:          charge.Intent.Intent,
 			Status:          metaStatus,
-			AdvanceAfter:    charge.State.AdvanceAfter,
+			AdvanceAfter:    meta.NormalizeOptionalTimestamp(charge.State.AdvanceAfter),
 		})
 		if err != nil {
 			return usagebased.ChargeBase{}, err
@@ -220,7 +220,7 @@ func (a *adapter) buildCreateUsageBasedCharge(ctx context.Context, ns string, in
 		SetPrice(&intent.Price).
 		SetStatusDetailed(usagebased.Status(meta.ChargeStatusCreated)).
 		SetFeatureKey(intent.FeatureKey).
-		SetInvoiceAt(intent.InvoiceAt.In(time.UTC)).
+		SetInvoiceAt(meta.NormalizeTimestamp(intent.InvoiceAt).In(time.UTC)).
 		SetSettlementMode(intent.SettlementMode)
 
 	create, err := chargemeta.Create[*db.ChargeUsageBasedCreate](create, chargemeta.CreateInput{

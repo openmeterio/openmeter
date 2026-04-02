@@ -135,6 +135,7 @@ func tmpApplyPatchToCreateIntent(existing charges.Charge, newServicePeriodTo, ne
 		intent.ServicePeriod.To = newServicePeriodTo
 		intent.FullServicePeriod.To = newFullServicePeriodTo
 		intent.BillingPeriod.To = newBillingPeriodTo
+		intent = intent.Normalized()
 
 		return charges.NewChargeIntent(intent), nil
 	case meta.ChargeTypeUsageBased:
@@ -147,6 +148,7 @@ func tmpApplyPatchToCreateIntent(existing charges.Charge, newServicePeriodTo, ne
 		intent.ServicePeriod.To = newServicePeriodTo
 		intent.FullServicePeriod.To = newFullServicePeriodTo
 		intent.BillingPeriod.To = newBillingPeriodTo
+		intent = intent.Normalized()
 
 		return charges.NewChargeIntent(intent), nil
 	default:

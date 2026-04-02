@@ -70,6 +70,39 @@ Important types:
   - `MeterValue`
   - `Totals`
 
+## Timestamp Normalization
+
+Charge persistence assumes timestamp precision is bounded by streaming aggregation precision.
+
+Rules:
+
+- persisted charge timestamps must be truncated to `streaming.MinimumWindowSizeDuration`
+- `meta.NormalizeTimestamp(...)` is the shared primitive; it also converts to UTC
+- `meta.NormalizeClosedPeriod(...)` and `Intent.Normalized()` helpers are the domain-level normalization entrypoints
+- normalize intent timestamps before validation and before any derived calculation that depends on durations or boundaries
+- flat-fee proration must use normalized periods, otherwise sub-second inputs can change `AmountAfterProration`
+- for usage-based lifecycle timestamps (`AdvanceAfter`, `AsOf`, `CollectionEnd`, `storedAtOffset`), normalize the computed timestamp before persisting it or handing it to downstream persistence callbacks
+
+Important timestamp surfaces:
+
+- `meta.Intent.ServicePeriod`
+- `meta.Intent.FullServicePeriod`
+- `meta.Intent.BillingPeriod`
+- `flatfee.Intent.InvoiceAt`
+- `usagebased.Intent.InvoiceAt`
+- `flatfee.State.AdvanceAfter`
+- `usagebased.State.AdvanceAfter`
+- `usagebased.CreateRealizationRunInput.AsOf`
+- `usagebased.CreateRealizationRunInput.CollectionEnd`
+- `usagebased.UpdateRealizationRunInput.AsOf`
+
+Placement guidance:
+
+- prefer domain-side normalization when constructing or mutating intents and state (`Intent.Normalized()`, state-machine transition logic, temporary patch remap)
+- keep a persistence backstop in shared write helpers such as `charges/models/chargemeta`
+- in adapters, normalize at the actual write setter (`SetInvoiceAt(...)`, `SetAsof(...)`, `SetCollectionEnd(...)`, `SetOrClearAdvanceAfter(...)`) rather than rewriting the whole input object at the top of the adapter method
+- do not add redundant `.UTC()` calls after `meta.NormalizeTimestamp(...)`; the helper already returns UTC
+
 ## Supported Behavior
 
 - `charges.AdvanceCharges(...)` advances both usage-based and flat-fee credit-only charges
@@ -290,6 +323,8 @@ Use these conventions for lifecycle tests:
 - for credit-only charges (usage-based or flat fee), `Create(...)` itself may return an already-advanced charge — assert the returned charge's status, do not assume it will be `created`
 - for flat fee credit-only tests, use `mustAdvanceFlatFeeCharges(...)` helper — it filters the advance result to flat fee charges only
 - flat fee credit-only handler callbacks (`onCreditsOnlyUsageAccrued`) must return credit allocations that sum to the input `AmountToAllocate`
+- when testing timestamp truncation, use sub-second fixtures and assert the persisted charge/run fields are second-aligned after create/advance
+- cover the temporary shrink/extend remap path as well; it synthesizes new intents and must normalize the replacement period ends before re-create
 
 Test suite teardown:
 
