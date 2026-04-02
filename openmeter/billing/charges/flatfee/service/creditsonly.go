@@ -106,7 +106,7 @@ func (s *CreditsOnlyStateMachine) IsAfterInvoiceAt() bool {
 }
 
 func (s *CreditsOnlyStateMachine) SetAdvanceAfterInvoiceAt(ctx context.Context) error {
-	s.Charge.State.AdvanceAfter = lo.ToPtr(s.Charge.Intent.InvoiceAt)
+	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.InvoiceAt))
 	return nil
 }
 

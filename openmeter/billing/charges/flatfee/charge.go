@@ -70,6 +70,13 @@ type Intent struct {
 	AmountBeforeProration alpacadecimal.Decimal          `json:"amountBeforeProration"`
 }
 
+func (i Intent) Normalized() Intent {
+	i.Intent = i.Intent.Normalized()
+	i.InvoiceAt = meta.NormalizeTimestamp(i.InvoiceAt)
+
+	return i
+}
+
 func (i Intent) Validate() error {
 	var errs []error
 
@@ -152,6 +159,12 @@ type State struct {
 	CreditRealizations   creditrealization.Realizations `json:"creditRealizations"`
 	AccruedUsage         *invoicedusage.AccruedUsage    `json:"accruedUsage"`
 	Payment              *payment.Invoiced              `json:"payment"`
+}
+
+func (s State) Normalized() State {
+	s.AdvanceAfter = meta.NormalizeOptionalTimestamp(s.AdvanceAfter)
+
+	return s
 }
 
 func (s State) Validate() error {

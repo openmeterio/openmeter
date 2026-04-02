@@ -8,6 +8,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -48,6 +49,13 @@ type CreateRealizationRunInput struct {
 	Totals        totals.Totals         `json:"totals"`
 }
 
+func (r CreateRealizationRunInput) Normalized() CreateRealizationRunInput {
+	r.AsOf = meta.NormalizeTimestamp(r.AsOf)
+	r.CollectionEnd = meta.NormalizeTimestamp(r.CollectionEnd)
+
+	return r
+}
+
 func (r CreateRealizationRunInput) Validate() error {
 	var errs []error
 
@@ -82,6 +90,12 @@ type UpdateRealizationRunInput struct {
 	Totals     totals.Totals         `json:"totals"`
 }
 
+func (r UpdateRealizationRunInput) Normalized() UpdateRealizationRunInput {
+	r.AsOf = meta.NormalizeTimestamp(r.AsOf)
+
+	return r
+}
+
 func (r UpdateRealizationRunInput) Validate() error {
 	var errs []error
 
@@ -113,6 +127,13 @@ type RealizationRunBase struct {
 	CollectionEnd time.Time             `json:"collectionEnd,omitempty"`
 	MeterValue    alpacadecimal.Decimal `json:"meterValue"`
 	Totals        totals.Totals         `json:"totals"`
+}
+
+func (r RealizationRunBase) Normalized() RealizationRunBase {
+	r.AsOf = meta.NormalizeTimestamp(r.AsOf)
+	r.CollectionEnd = meta.NormalizeTimestamp(r.CollectionEnd)
+
+	return r
 }
 
 func (r RealizationRunBase) Validate() error {

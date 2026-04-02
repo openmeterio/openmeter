@@ -137,12 +137,12 @@ func (s *StateMachine) IsAfterServicePeriod() bool {
 }
 
 func (s *StateMachine) AdvanceAfterServicePeriodTo(ctx context.Context) error {
-	s.Charge.State.AdvanceAfter = lo.ToPtr(s.Charge.Intent.ServicePeriod.To)
+	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.To))
 	return nil
 }
 
 func (s *StateMachine) AdvanceAfterServicePeriodFrom(ctx context.Context) error {
-	s.Charge.State.AdvanceAfter = lo.ToPtr(s.Charge.Intent.ServicePeriod.From)
+	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.From))
 	return nil
 }
 
@@ -152,7 +152,7 @@ func (s *StateMachine) AdvanceAfterCollectionPeriodEnd(ctx context.Context) erro
 		return err
 	}
 
-	s.Charge.State.AdvanceAfter = lo.ToPtr(collectionPeriodEnd.Add(usagebased.InternalCollectionPeriod))
+	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(collectionPeriodEnd.Add(usagebased.InternalCollectionPeriod)))
 
 	return nil
 }
@@ -170,7 +170,7 @@ func (s *StateMachine) IsAfterCollectionPeriod(ctx context.Context, _ ...any) bo
 func (s *StateMachine) GetCollectionPeriodEnd(_ context.Context) (time.Time, error) {
 	collectionPeriod := s.CustomerOverride.MergedProfile.WorkflowConfig.Collection.Interval
 	collectionPeriodEnd, _ := collectionPeriod.AddTo(s.Charge.Intent.ServicePeriod.To)
-	return collectionPeriodEnd, nil
+	return meta.NormalizeTimestamp(collectionPeriodEnd), nil
 }
 
 func (s *StateMachine) getCurrentRunCollectionEnd() (time.Time, error) {
@@ -183,7 +183,7 @@ func (s *StateMachine) getCurrentRunCollectionEnd() (time.Time, error) {
 		return time.Time{}, fmt.Errorf("get current realization run: %w", err)
 	}
 
-	return currentRun.CollectionEnd.UTC(), nil
+	return meta.NormalizeTimestamp(currentRun.CollectionEnd), nil
 }
 
 func (s *CreditsOnlyStateMachine) FireAndActivate(ctx context.Context, trigger meta.Trigger, args ...any) error {

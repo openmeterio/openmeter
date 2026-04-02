@@ -28,6 +28,8 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]flatfee.ChargeWithGatheringLine, error) {
 		// Let's create all the flat fee charges in bulk
 		intentsWithStatus, err := slicesx.MapWithErr(input.Intents, func(intent flatfee.Intent) (flatfee.IntentWithInitialStatus, error) {
+			intent = intent.Normalized()
+
 			initialStatus := meta.ChargeStatusActive
 			if intent.SettlementMode == productcatalog.CreditOnlySettlementMode {
 				initialStatus = meta.ChargeStatusCreated

@@ -172,7 +172,7 @@ func (s *CreditsOnlyStateMachine) allocateCredits(ctx context.Context, in usageb
 }
 
 func (s *CreditsOnlyStateMachine) StartFinalRealizationRun(ctx context.Context) error {
-	storedAtOffset := clock.Now().Add(-usagebased.InternalCollectionPeriod)
+	storedAtOffset := meta.NormalizeTimestamp(clock.Now().Add(-usagebased.InternalCollectionPeriod))
 	collectionEnd, err := s.GetCollectionPeriodEnd(ctx)
 	if err != nil {
 		return fmt.Errorf("get collection period end: %w", err)
@@ -273,7 +273,7 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 		return fmt.Errorf("get current realization run: %w", err)
 	}
 
-	storedAtOffset := clock.Now().Add(-usagebased.InternalCollectionPeriod)
+	storedAtOffset := meta.NormalizeTimestamp(clock.Now().Add(-usagebased.InternalCollectionPeriod))
 
 	ratingResult, err := s.Service.getRatingForUsage(ctx, getRatingForUsageInput{
 		Charge:         s.Charge,

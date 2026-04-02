@@ -27,7 +27,7 @@ func (s *service) tmpMapShrinkExtendToCreateDelete(ctx context.Context, input ch
 	for chargeID, patch := range input.PatchesByChargeID {
 		switch patch.(type) {
 		case meta.PatchShrink, meta.PatchExtend:
-			out.PatchesByChargeID[chargeID] = meta.PatchDelete{Policy: meta.RefundAsCreditsDeletePolicy}
+			out.PatchesByChargeID[chargeID] = meta.NewPatchDelete(meta.RefundAsCreditsDeletePolicy)
 			chargeIDsToReplace = append(chargeIDsToReplace, chargeID)
 		default:
 			out.PatchesByChargeID[chargeID] = patch
@@ -85,7 +85,12 @@ func tmpRemapShrinkExtendToCreateIntent(existing charges.Charge, patch charges.P
 			return charges.ChargeIntent{}, fmt.Errorf("validating shrink patch: %w", err)
 		}
 
-		return tmpApplyPatchToCreateIntent(existing, typedPatch.NewServicePeriodTo, typedPatch.NewFullServicePeriodTo, typedPatch.NewBillingPeriodTo)
+		return tmpApplyPatchToCreateIntent(
+			existing,
+			typedPatch.GetNewServicePeriodTo(),
+			typedPatch.GetNewFullServicePeriodTo(),
+			typedPatch.GetNewBillingPeriodTo(),
+		)
 	case meta.PatchExtend:
 		existingIntent, err := tmpChargeMetaIntent(existing)
 		if err != nil {
@@ -96,7 +101,12 @@ func tmpRemapShrinkExtendToCreateIntent(existing charges.Charge, patch charges.P
 			return charges.ChargeIntent{}, fmt.Errorf("validating extend patch: %w", err)
 		}
 
-		return tmpApplyPatchToCreateIntent(existing, typedPatch.NewServicePeriodTo, typedPatch.NewFullServicePeriodTo, typedPatch.NewBillingPeriodTo)
+		return tmpApplyPatchToCreateIntent(
+			existing,
+			typedPatch.GetNewServicePeriodTo(),
+			typedPatch.GetNewFullServicePeriodTo(),
+			typedPatch.GetNewBillingPeriodTo(),
+		)
 	default:
 		return charges.ChargeIntent{}, fmt.Errorf("unsupported patch type for shrink/extend remap: %T", patch)
 	}
@@ -135,6 +145,7 @@ func tmpApplyPatchToCreateIntent(existing charges.Charge, newServicePeriodTo, ne
 		intent.ServicePeriod.To = newServicePeriodTo
 		intent.FullServicePeriod.To = newFullServicePeriodTo
 		intent.BillingPeriod.To = newBillingPeriodTo
+		intent = intent.Normalized()
 
 		return charges.NewChargeIntent(intent), nil
 	case meta.ChargeTypeUsageBased:
@@ -147,6 +158,7 @@ func tmpApplyPatchToCreateIntent(existing charges.Charge, newServicePeriodTo, ne
 		intent.ServicePeriod.To = newServicePeriodTo
 		intent.FullServicePeriod.To = newFullServicePeriodTo
 		intent.BillingPeriod.To = newBillingPeriodTo
+		intent = intent.Normalized()
 
 		return charges.NewChargeIntent(intent), nil
 	default:

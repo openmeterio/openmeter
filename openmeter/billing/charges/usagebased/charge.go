@@ -97,6 +97,13 @@ type Intent struct {
 	Discounts productcatalog.Discounts `json:"discounts"`
 }
 
+func (i Intent) Normalized() Intent {
+	i.Intent = i.Intent.Normalized()
+	i.InvoiceAt = meta.NormalizeTimestamp(i.InvoiceAt)
+
+	return i
+}
+
 func (i Intent) Validate() error {
 	var errs []error
 
@@ -130,6 +137,12 @@ func (i Intent) Validate() error {
 type State struct {
 	CurrentRealizationRunID *string    `json:"currentRealizationRunId"`
 	AdvanceAfter            *time.Time `json:"advanceAfter"`
+}
+
+func (s State) Normalized() State {
+	s.AdvanceAfter = meta.NormalizeOptionalTimestamp(s.AdvanceAfter)
+
+	return s
 }
 
 func (s State) Validate() error {

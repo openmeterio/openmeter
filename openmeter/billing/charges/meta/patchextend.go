@@ -14,9 +14,67 @@ var (
 )
 
 type PatchExtend struct {
+	newServicePeriodTo     time.Time
+	newFullServicePeriodTo time.Time
+	newBillingPeriodTo     time.Time
+}
+
+type NewPatchExtendInput struct {
 	NewServicePeriodTo     time.Time
 	NewFullServicePeriodTo time.Time
 	NewBillingPeriodTo     time.Time
+}
+
+func (i NewPatchExtendInput) Validate() error {
+	if i.NewServicePeriodTo.IsZero() {
+		return fmt.Errorf("new service period to is required")
+	}
+
+	if i.NewFullServicePeriodTo.IsZero() {
+		return fmt.Errorf("new full service period to is required")
+	}
+
+	if i.NewBillingPeriodTo.IsZero() {
+		return fmt.Errorf("new billing period to is required")
+	}
+
+	return nil
+}
+
+func NewPatchExtend(input NewPatchExtendInput) (PatchExtend, error) {
+	if err := input.Validate(); err != nil {
+		return PatchExtend{}, err
+	}
+
+	var patch PatchExtend
+	patch.SetNewServicePeriodTo(input.NewServicePeriodTo)
+	patch.SetNewFullServicePeriodTo(input.NewFullServicePeriodTo)
+	patch.SetNewBillingPeriodTo(input.NewBillingPeriodTo)
+	return patch, nil
+}
+
+func (p *PatchExtend) SetNewServicePeriodTo(v time.Time) {
+	p.newServicePeriodTo = NormalizeTimestamp(v)
+}
+
+func (p PatchExtend) GetNewServicePeriodTo() time.Time {
+	return p.newServicePeriodTo
+}
+
+func (p *PatchExtend) SetNewFullServicePeriodTo(v time.Time) {
+	p.newFullServicePeriodTo = NormalizeTimestamp(v)
+}
+
+func (p PatchExtend) GetNewFullServicePeriodTo() time.Time {
+	return p.newFullServicePeriodTo
+}
+
+func (p *PatchExtend) SetNewBillingPeriodTo(v time.Time) {
+	p.newBillingPeriodTo = NormalizeTimestamp(v)
+}
+
+func (p PatchExtend) GetNewBillingPeriodTo() time.Time {
+	return p.newBillingPeriodTo
 }
 
 func (p PatchExtend) Trigger() stateless.Trigger {
@@ -28,15 +86,15 @@ func (p PatchExtend) TriggerParams() any {
 }
 
 func (p PatchExtend) Validate() error {
-	if p.NewServicePeriodTo.IsZero() {
+	if p.GetNewServicePeriodTo().IsZero() {
 		return fmt.Errorf("new service period to is required")
 	}
 
-	if p.NewFullServicePeriodTo.IsZero() {
+	if p.GetNewFullServicePeriodTo().IsZero() {
 		return fmt.Errorf("new full service period to is required")
 	}
 
-	if p.NewBillingPeriodTo.IsZero() {
+	if p.GetNewBillingPeriodTo().IsZero() {
 		return fmt.Errorf("new billing period to is required")
 	}
 
@@ -50,15 +108,15 @@ func (p PatchExtend) ValidateWith(intent Intent) error {
 		errs = append(errs, err)
 	}
 
-	if p.NewServicePeriodTo.Before(intent.ServicePeriod.To) {
+	if p.GetNewServicePeriodTo().Before(intent.ServicePeriod.To) {
 		errs = append(errs, fmt.Errorf("new service period to must be greater than or equal to existing service period to"))
 	}
 
-	if p.NewFullServicePeriodTo.Before(intent.FullServicePeriod.To) {
+	if p.GetNewFullServicePeriodTo().Before(intent.FullServicePeriod.To) {
 		errs = append(errs, fmt.Errorf("new full service period to must be greater than or equal to existing full service period to"))
 	}
 
-	if p.NewBillingPeriodTo.Before(intent.BillingPeriod.To) {
+	if p.GetNewBillingPeriodTo().Before(intent.BillingPeriod.To) {
 		errs = append(errs, fmt.Errorf("new billing period to must be greater than or equal to existing billing period to"))
 	}
 

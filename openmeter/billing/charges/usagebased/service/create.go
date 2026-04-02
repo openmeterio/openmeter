@@ -26,6 +26,10 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]usagebased.ChargeWithGatheringLine, error) {
+		input.Intents = lo.Map(input.Intents, func(intent usagebased.Intent, _ int) usagebased.Intent {
+			return intent.Normalized()
+		})
+
 		// Let's create all the flat fee charges in bulk
 		charges, err := s.adapter.CreateCharges(ctx, input)
 		if err != nil {
