@@ -312,3 +312,26 @@ func (s Settlement) AsPromotionalSettlement() (PromotionalSettlement, error) {
 
 	return *s.promotional, nil
 }
+
+// Common getters
+
+func (s Settlement) GetCostBasis() (alpacadecimal.Decimal, error) {
+	switch s.t {
+	case SettlementTypeInvoice:
+		if s.invoice == nil {
+			return alpacadecimal.Zero, fmt.Errorf("invoice is nil")
+		}
+
+		return s.invoice.CostBasis, nil
+	case SettlementTypeExternal:
+		if s.external == nil {
+			return alpacadecimal.Zero, fmt.Errorf("external is nil")
+		}
+
+		return s.external.CostBasis, nil
+	case SettlementTypePromotional:
+		return alpacadecimal.Zero, nil
+	default:
+		return alpacadecimal.Zero, fmt.Errorf("invalid settlement type: %s", s.t)
+	}
+}
