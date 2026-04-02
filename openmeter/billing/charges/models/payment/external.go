@@ -26,7 +26,7 @@ func (i ExternalCreateInput) Validate() error {
 		errs = append(errs, fmt.Errorf("payment settlement base: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type External struct {

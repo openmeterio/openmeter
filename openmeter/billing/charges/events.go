@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const (
@@ -32,11 +33,11 @@ func (e AdvanceChargesEvent) EventMetadata() metadata.EventMetadata {
 
 func (e AdvanceChargesEvent) Validate() error {
 	if e.Namespace == "" {
-		return fmt.Errorf("namespace cannot be empty")
+		return models.NewGenericValidationError(fmt.Errorf("namespace cannot be empty"))
 	}
 
 	if e.CustomerID == "" {
-		return fmt.Errorf("customer_id cannot be empty")
+		return models.NewGenericValidationError(fmt.Errorf("customer_id cannot be empty"))
 	}
 
 	return nil

@@ -38,7 +38,7 @@ func (o Status) Values() []string {
 
 func (o Status) Validate() error {
 	if !slices.Contains(o.Values(), string(o)) {
-		return fmt.Errorf("invalid payment settlement status: %s", o)
+		return models.NewGenericValidationError(fmt.Errorf("invalid payment settlement status: %s", o))
 	}
 	return nil
 }
@@ -97,7 +97,7 @@ func (r Base) Validate() error {
 		}
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type Payment struct {
@@ -124,5 +124,5 @@ func (r Payment) Validate() error {
 		errs = append(errs, fmt.Errorf("managed model: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

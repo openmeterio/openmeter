@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Service interface {
@@ -53,5 +54,5 @@ func (i CreateInput) Validate() error {
 		errs = append(errs, fmt.Errorf("intent: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

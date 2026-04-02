@@ -80,5 +80,5 @@ func (i Intent) Validate() error {
 		errs = append(errs, fmt.Errorf("unique reference ID cannot be empty"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Adapter interface {
@@ -48,7 +49,7 @@ func (i GetByIDsInput) Validate() error {
 		errs = append(errs, fmt.Errorf("expands: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type CreateChargeInput struct {
@@ -66,5 +67,5 @@ func (i CreateChargeInput) Validate() error {
 		errs = append(errs, fmt.Errorf("intent: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

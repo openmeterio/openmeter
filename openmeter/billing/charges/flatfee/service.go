@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Service interface {
@@ -47,7 +48,7 @@ func (i CreateInput) Validate() error {
 		}
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type ChargeWithGatheringLine struct {
@@ -76,7 +77,7 @@ func (i GetByMetasInput) Validate() error {
 		errs = append(errs, fmt.Errorf("expands: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type AdvanceChargeInput struct {

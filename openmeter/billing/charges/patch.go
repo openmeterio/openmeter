@@ -50,7 +50,7 @@ func (i ApplyPatchesInput) Validate() error {
 		}
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // ConcatenateApplyPatchesInputs concatenates the given inputs into a single input, while enforcing uniqueness constraints.

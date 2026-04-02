@@ -45,7 +45,7 @@ func (c Charge) Validate() error {
 		errs = append(errs, fmt.Errorf("state: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (c Charge) GetChargeID() meta.ChargeID {
@@ -142,7 +142,7 @@ func (s State) Validate() error {
 		}
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type UpdateExternalPaymentStateInput struct {
@@ -161,5 +161,5 @@ func (i UpdateExternalPaymentStateInput) Validate() error {
 		errs = append(errs, fmt.Errorf("target payment state: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

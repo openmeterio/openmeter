@@ -28,7 +28,7 @@ func (r ManagedResource) Validate() error {
 		errs = append(errs, fmt.Errorf("id is required"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (r ManagedResource) GetChargeID() ChargeID {

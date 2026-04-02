@@ -30,7 +30,7 @@ func (t RealizationRunType) Values() []string {
 
 func (t RealizationRunType) Validate() error {
 	if !slices.Contains(t.Values(), string(t)) {
-		return fmt.Errorf("invalid realization run type: %s", t)
+		return models.NewGenericValidationError(fmt.Errorf("invalid realization run type: %s", t))
 	}
 	return nil
 }
@@ -79,7 +79,7 @@ func (r CreateRealizationRunInput) Validate() error {
 		errs = append(errs, fmt.Errorf("collection end must be set"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type UpdateRealizationRunInput struct {
@@ -115,7 +115,7 @@ func (r UpdateRealizationRunInput) Validate() error {
 		errs = append(errs, fmt.Errorf("totals: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type RealizationRunBase struct {
@@ -167,7 +167,7 @@ func (r RealizationRunBase) Validate() error {
 		errs = append(errs, fmt.Errorf("collection end must be set"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type RealizationRun struct {
@@ -202,7 +202,7 @@ func (r RealizationRun) Validate() error {
 		}
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type RealizationRuns []RealizationRun
@@ -214,7 +214,7 @@ func (r RealizationRuns) Validate() error {
 			errs = append(errs, fmt.Errorf("realization run[%d]: %w", idx, err))
 		}
 	}
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (r RealizationRuns) GetByID(id string) (RealizationRun, error) {

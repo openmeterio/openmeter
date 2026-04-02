@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Charge struct {
@@ -50,25 +51,25 @@ func (c Charge) Validate() error {
 	switch c.t {
 	case meta.ChargeTypeFlatFee:
 		if c.flatFee == nil {
-			return fmt.Errorf("flat fee charge is nil")
+			return models.NewGenericValidationError(fmt.Errorf("flat fee charge is nil"))
 		}
 
 		return c.flatFee.Validate()
 	case meta.ChargeTypeCreditPurchase:
 		if c.creditPurchase == nil {
-			return fmt.Errorf("credit purchase charge is nil")
+			return models.NewGenericValidationError(fmt.Errorf("credit purchase charge is nil"))
 		}
 
 		return c.creditPurchase.Validate()
 	case meta.ChargeTypeUsageBased:
 		if c.usageBased == nil {
-			return fmt.Errorf("usage based charge is nil")
+			return models.NewGenericValidationError(fmt.Errorf("usage based charge is nil"))
 		}
 
 		return c.usageBased.Validate()
 	}
 
-	return fmt.Errorf("invalid charge type: %s", c.t)
+	return models.NewGenericValidationError(fmt.Errorf("invalid charge type: %s", c.t))
 }
 
 func (c Charge) AsFlatFeeCharge() (flatfee.Charge, error) {
@@ -182,7 +183,7 @@ func (c Charges) Validate() error {
 		}
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type ChargeIntent struct {
@@ -223,25 +224,25 @@ func (i ChargeIntent) Validate() error {
 	switch i.t {
 	case meta.ChargeTypeFlatFee:
 		if i.flatFee == nil {
-			return fmt.Errorf("flat fee is nil")
+			return models.NewGenericValidationError(fmt.Errorf("flat fee is nil"))
 		}
 
 		return i.flatFee.Validate()
 	case meta.ChargeTypeCreditPurchase:
 		if i.creditPurchase == nil {
-			return fmt.Errorf("credit purchase is nil")
+			return models.NewGenericValidationError(fmt.Errorf("credit purchase is nil"))
 		}
 
 		return i.creditPurchase.Validate()
 	case meta.ChargeTypeUsageBased:
 		if i.usageBased == nil {
-			return fmt.Errorf("usage based is nil")
+			return models.NewGenericValidationError(fmt.Errorf("usage based is nil"))
 		}
 
 		return i.usageBased.Validate()
 	}
 
-	return fmt.Errorf("invalid charge type: %s", i.t)
+	return models.NewGenericValidationError(fmt.Errorf("invalid charge type: %s", i.t))
 }
 
 func (i ChargeIntent) AsFlatFeeIntent() (flatfee.Intent, error) {
@@ -316,7 +317,7 @@ func (i ChargeIntents) Validate() error {
 		}
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type ChargeIntentsByType struct {
