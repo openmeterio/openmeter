@@ -74,6 +74,9 @@ billing:
   # for production deployments it's recommended to use queued for server only
   # advancementStrategy: foreground
 
+credits:
+  enabled: true
+
 apps:
   baseURL: https://example.com
   # stripe:

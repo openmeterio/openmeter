@@ -144,6 +144,10 @@ func (c Configuration) Validate() error {
 		errs = append(errs, errorsx.WithPrefix(err, "billing"))
 	}
 
+	if err := c.Credits.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "credits"))
+	}
+
 	if err := c.Apps.Validate(); err != nil {
 		errs = append(errs, errorsx.WithPrefix(err, "apps"))
 	}
@@ -209,6 +213,7 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureEvents(v)
 	ConfigureBalanceWorker(v)
 	ConfigureNotification(v)
+	ConfigureCredits(v)
 	ConfigureBilling(v, flags)
 	ConfigureProductCatalog(v)
 	ConfigureApps(v, flags)

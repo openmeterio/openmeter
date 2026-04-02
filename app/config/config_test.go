@@ -186,6 +186,9 @@ func TestComplete(t *testing.T) {
 				},
 			},
 		},
+		Credits: CreditsConfiguration{
+			Enabled: false,
+		},
 		Sink: SinkConfiguration{
 			GroupId:                 "openmeter-sink-worker",
 			MinCommitCount:          500,
@@ -431,9 +434,6 @@ func TestComplete(t *testing.T) {
 			`^reserved\..*$`,
 			`^_\..*$`,
 			`^openmeter\..*$`,
-		},
-		Credits: CreditsConfiguration{
-			Enabled: false,
 		},
 	}
 

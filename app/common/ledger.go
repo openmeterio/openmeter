@@ -19,6 +19,7 @@ import (
 // LedgerStack is the full provider set for the ledger stack.
 // Callers must provide *entdb.Client and *lockr.Locker (e.g. via common.Lockr).
 var LedgerStack = wire.NewSet(
+	NewLedgerRoutingValidator,
 	NewLedgerAccountRepo,
 	NewLedgerHistoricalRepo,
 	NewLedgerResolversRepo,
@@ -26,10 +27,13 @@ var LedgerStack = wire.NewSet(
 	NewLedgerAccountService,
 	NewLedgerHistoricalLedger,
 	NewLedgerResolversService,
-	NewLedgerRoutingValidator,
 	wire.Bind(new(ledger.Ledger), new(*historical.Ledger)),
 	wire.Bind(new(ledger.AccountResolver), new(*resolvers.AccountResolver)),
 )
+
+func NewLedgerRoutingValidator() ledger.RoutingValidator {
+	return routingrules.DefaultValidator
+}
 
 func NewLedgerAccountRepo(db *entdb.Client) ledgeraccount.Repo {
 	return accountadapter.NewRepo(db)
@@ -66,10 +70,6 @@ func NewLedgerHistoricalLedger(
 	routingValidator ledger.RoutingValidator,
 ) *historical.Ledger {
 	return historical.NewLedger(repo, accountSvc, locker, routingValidator)
-}
-
-func NewLedgerRoutingValidator() ledger.RoutingValidator {
-	return routingrules.DefaultValidator
 }
 
 func NewLedgerResolversService(

@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
+	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
@@ -55,6 +56,7 @@ type Application struct {
 	BillingRegistry                  common.BillingRegistry
 	CurrencyService                  currencies.CurrencyService
 	CostService                      cost.Service
+	CustomerBalanceFacade            *customerbalance.Facade
 	EntClient                        *db.Client
 	EventPublisher                   eventbus.Publisher
 	EntitlementRegistry              *registry.Entitlement
@@ -100,6 +102,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Config,
 		common.Currency,
 		common.Customer,
+		common.CustomerBalance,
 		common.NewCustomerSubjectServiceHook,
 		common.NewCustomerEntitlementValidatorServiceHook,
 		common.Database,
@@ -109,6 +112,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Kafka,
 		common.KafkaIngest,
 		common.LLMCost,
+		common.LedgerStack,
 		common.KafkaNamespaceResolver,
 		common.MeterManageWithConfigMeters,
 		common.MeterEvent,
@@ -127,7 +131,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Server,
 		common.TaxCode,
 		common.Subscription,
-		common.LedgerStack,
 		common.Lockr,
 		common.Secret,
 		common.ServerProvisionTopics,

@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
+	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
@@ -460,6 +461,28 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	customerbalanceService, err := common.NewCustomerBalanceService(logger, client, locker, ledger, accountResolver, accountService, billingRegistry, featureConnector, ratingService, connector)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	facade, err := common.NewCustomerBalanceFacade(customerbalanceService)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	dedupeConfiguration := conf.Dedupe
 	producer, err := common.NewKafkaProducer(kafkaIngestConfiguration, logger, commonMetadata)
 	if err != nil {
@@ -698,6 +721,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		BillingRegistry:                  billingRegistry,
 		CurrencyService:                  currencyService,
 		CostService:                      costService,
+		CustomerBalanceFacade:            facade,
 		EntClient:                        client,
 		EventPublisher:                   eventbusPublisher,
 		EntitlementRegistry:              entitlement,
@@ -761,6 +785,7 @@ type Application struct {
 	BillingRegistry                  common.BillingRegistry
 	CurrencyService                  currencies.CurrencyService
 	CostService                      cost.Service
+	CustomerBalanceFacade            *customerbalance.Facade
 	EntClient                        *db.Client
 	EventPublisher                   eventbus.Publisher
 	EntitlementRegistry              *registry.Entitlement

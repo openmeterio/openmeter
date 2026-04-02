@@ -19,6 +19,7 @@ import (
 	currencieshandler "github.com/openmeterio/openmeter/api/v3/handlers/currencies"
 	customershandler "github.com/openmeterio/openmeter/api/v3/handlers/customers"
 	customersbillinghandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/billing"
+	customerscreditshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/credits"
 	customersentitlementhandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/entitlementaccess"
 	eventshandler "github.com/openmeterio/openmeter/api/v3/handlers/events"
 	featurecosthandler "github.com/openmeterio/openmeter/api/v3/handlers/featurecost"
@@ -29,6 +30,7 @@ import (
 	taxcodeshandler "github.com/openmeterio/openmeter/api/v3/handlers/taxcodes"
 	"github.com/openmeterio/openmeter/api/v3/oasmiddleware"
 	"github.com/openmeterio/openmeter/api/v3/render"
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -37,6 +39,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
+	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
@@ -57,6 +60,7 @@ type Config struct {
 	ErrorHandler        errorsx.Handler
 	Middlewares         []server.MiddlewareFunc
 	PostAuthMiddlewares []server.MiddlewareFunc
+	Credits             config.CreditsConfiguration
 
 	// services
 	AppService              app.Service
@@ -66,6 +70,7 @@ type Config struct {
 	StreamingConnector      streaming.Connector
 	IngestService           ingest.Service
 	CustomerService         customer.Service
+	CustomerBalanceFacade   *customerbalance.Facade
 	EntitlementService      entitlement.Service
 	PlanService             plan.Service
 	PlanSubscriptionService plansubscription.PlanSubscriptionService
@@ -162,6 +167,7 @@ type Server struct {
 	llmcostHandler              llmcosthandler.Handler
 	customersHandler            customershandler.Handler
 	customersBillingHandler     customersbillinghandler.Handler
+	customersCreditsHandler     customerscreditshandler.Handler
 	customersEntitlementHandler customersentitlementhandler.Handler
 	metersHandler               metershandler.Handler
 	subscriptionsHandler        subscriptionshandler.Handler
@@ -207,6 +213,10 @@ func NewServer(config *Config) (*Server, error) {
 	eventsHandler := eventshandler.New(resolveNamespace, config.IngestService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersHandler := customershandler.New(resolveNamespace, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersBillingHandler := customersbillinghandler.New(resolveNamespace, config.BillingService, config.CustomerService, config.StripeService, httptransport.WithErrorHandler(config.ErrorHandler))
+	var customersCreditsHandler customerscreditshandler.Handler
+	if config.CustomerBalanceFacade != nil && config.Credits.Enabled {
+		customersCreditsHandler = customerscreditshandler.New(resolveNamespace, config.CustomerService, config.CustomerBalanceFacade, httptransport.WithErrorHandler(config.ErrorHandler))
+	}
 	customersEntitlementHandler := customersentitlementhandler.New(resolveNamespace, config.CustomerService, config.EntitlementService, httptransport.WithErrorHandler(config.ErrorHandler))
 	metersHandler := metershandler.New(resolveNamespace, config.MeterService, config.StreamingConnector, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
 	subscriptionsHandler := subscriptionshandler.New(resolveNamespace, config.CustomerService, config.PlanService, config.PlanSubscriptionService, config.SubscriptionService, httptransport.WithErrorHandler(config.ErrorHandler))
@@ -234,6 +244,7 @@ func NewServer(config *Config) (*Server, error) {
 		llmcostHandler:              llmcostH,
 		customersHandler:            customersHandler,
 		customersBillingHandler:     customersBillingHandler,
+		customersCreditsHandler:     customersCreditsHandler,
 		customersEntitlementHandler: customersEntitlementHandler,
 		metersHandler:               metersHandler,
 		subscriptionsHandler:        subscriptionsHandler,
