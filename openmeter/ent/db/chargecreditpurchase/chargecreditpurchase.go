@@ -67,6 +67,10 @@ const (
 	FieldDescription = "description"
 	// FieldCreditAmount holds the string denoting the credit_amount field in the database.
 	FieldCreditAmount = "credit_amount"
+	// FieldEffectiveAt holds the string denoting the effective_at field in the database.
+	FieldEffectiveAt = "effective_at"
+	// FieldPriority holds the string denoting the priority field in the database.
+	FieldPriority = "priority"
 	// FieldSettlement holds the string denoting the settlement field in the database.
 	FieldSettlement = "settlement"
 	// FieldCreditGrantTransactionGroupID holds the string denoting the credit_grant_transaction_group_id field in the database.
@@ -167,6 +171,8 @@ var Columns = []string{
 	FieldName,
 	FieldDescription,
 	FieldCreditAmount,
+	FieldEffectiveAt,
+	FieldPriority,
 	FieldSettlement,
 	FieldCreditGrantTransactionGroupID,
 	FieldCreditGrantedAt,
@@ -341,6 +347,16 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // ByCreditAmount orders the results by the credit_amount field.
 func ByCreditAmount(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCreditAmount, opts...).ToFunc()
+}
+
+// ByEffectiveAt orders the results by the effective_at field.
+func ByEffectiveAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEffectiveAt, opts...).ToFunc()
+}
+
+// ByPriority orders the results by the priority field.
+func ByPriority(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPriority, opts...).ToFunc()
 }
 
 // BySettlement orders the results by the settlement field.

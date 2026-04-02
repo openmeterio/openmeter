@@ -79,6 +79,10 @@ type ChargeCreditPurchase struct {
 	Description *string `json:"description,omitempty"`
 	// CreditAmount holds the value of the "credit_amount" field.
 	CreditAmount alpacadecimal.Decimal `json:"credit_amount,omitempty"`
+	// EffectiveAt holds the value of the "effective_at" field.
+	EffectiveAt *time.Time `json:"effective_at,omitempty"`
+	// Priority holds the value of the "priority" field.
+	Priority *int `json:"priority,omitempty"`
 	// Settlement holds the value of the "settlement" field.
 	Settlement creditpurchase.Settlement `json:"settlement,omitempty"`
 	// CreditGrantTransactionGroupID holds the value of the "credit_grant_transaction_group_id" field.
@@ -198,9 +202,11 @@ func (*ChargeCreditPurchase) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case chargecreditpurchase.FieldCreditAmount:
 			values[i] = new(alpacadecimal.Decimal)
+		case chargecreditpurchase.FieldPriority:
+			values[i] = new(sql.NullInt64)
 		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldCustomerID, chargecreditpurchase.FieldStatus, chargecreditpurchase.FieldUniqueReferenceID, chargecreditpurchase.FieldCurrency, chargecreditpurchase.FieldManagedBy, chargecreditpurchase.FieldSubscriptionID, chargecreditpurchase.FieldSubscriptionPhaseID, chargecreditpurchase.FieldSubscriptionItemID, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldName, chargecreditpurchase.FieldDescription, chargecreditpurchase.FieldCreditGrantTransactionGroupID:
 			values[i] = new(sql.NullString)
-		case chargecreditpurchase.FieldServicePeriodFrom, chargecreditpurchase.FieldServicePeriodTo, chargecreditpurchase.FieldBillingPeriodFrom, chargecreditpurchase.FieldBillingPeriodTo, chargecreditpurchase.FieldFullServicePeriodFrom, chargecreditpurchase.FieldFullServicePeriodTo, chargecreditpurchase.FieldAdvanceAfter, chargecreditpurchase.FieldCreatedAt, chargecreditpurchase.FieldUpdatedAt, chargecreditpurchase.FieldDeletedAt, chargecreditpurchase.FieldCreditGrantedAt:
+		case chargecreditpurchase.FieldServicePeriodFrom, chargecreditpurchase.FieldServicePeriodTo, chargecreditpurchase.FieldBillingPeriodFrom, chargecreditpurchase.FieldBillingPeriodTo, chargecreditpurchase.FieldFullServicePeriodFrom, chargecreditpurchase.FieldFullServicePeriodTo, chargecreditpurchase.FieldAdvanceAfter, chargecreditpurchase.FieldCreatedAt, chargecreditpurchase.FieldUpdatedAt, chargecreditpurchase.FieldDeletedAt, chargecreditpurchase.FieldEffectiveAt, chargecreditpurchase.FieldCreditGrantedAt:
 			values[i] = new(sql.NullTime)
 		case chargecreditpurchase.FieldSettlement:
 			values[i] = chargecreditpurchase.ValueScanner.Settlement.ScanValue()
@@ -380,6 +386,20 @@ func (_m *ChargeCreditPurchase) assignValues(columns []string, values []any) err
 			} else if value != nil {
 				_m.CreditAmount = *value
 			}
+		case chargecreditpurchase.FieldEffectiveAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field effective_at", values[i])
+			} else if value.Valid {
+				_m.EffectiveAt = new(time.Time)
+				*_m.EffectiveAt = value.Time
+			}
+		case chargecreditpurchase.FieldPriority:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field priority", values[i])
+			} else if value.Valid {
+				_m.Priority = new(int)
+				*_m.Priority = int(value.Int64)
+			}
 		case chargecreditpurchase.FieldSettlement:
 			if value, err := chargecreditpurchase.ValueScanner.Settlement.FromValue(values[i]); err != nil {
 				return err
@@ -556,6 +576,16 @@ func (_m *ChargeCreditPurchase) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("credit_amount=")
 	builder.WriteString(fmt.Sprintf("%v", _m.CreditAmount))
+	builder.WriteString(", ")
+	if v := _m.EffectiveAt; v != nil {
+		builder.WriteString("effective_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.Priority; v != nil {
+		builder.WriteString("priority=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("settlement=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Settlement))

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	chargecreditpurchase "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
@@ -77,10 +78,11 @@ func (h *creditPurchaseHandler) OnPromotionalCreditPurchase(ctx context.Context,
 			Namespace:  charge.Namespace,
 		},
 		transactions.IssueCustomerReceivableTemplate{
-			At:        charge.CreatedAt,
-			Amount:    charge.Intent.CreditAmount,
-			Currency:  charge.Intent.Currency,
-			CostBasis: &costBasis,
+			At:             charge.CreatedAt,
+			Amount:         charge.Intent.CreditAmount,
+			Currency:       charge.Intent.Currency,
+			CostBasis:      &costBasis,
+			CreditPriority: lo.ToPtr(h.creditPurchasePriority(charge)),
 		},
 	)
 	if err != nil {
@@ -172,10 +174,11 @@ func (h *creditPurchaseHandler) OnCreditPurchaseInitiated(ctx context.Context, c
 
 	if issuableAmount.IsPositive() {
 		templates = append(templates, transactions.IssueCustomerReceivableTemplate{
-			At:        charge.CreatedAt,
-			Amount:    issuableAmount,
-			Currency:  charge.Intent.Currency,
-			CostBasis: &externalSettlement.CostBasis,
+			At:             charge.CreatedAt,
+			Amount:         issuableAmount,
+			Currency:       charge.Intent.Currency,
+			CostBasis:      &externalSettlement.CostBasis,
+			CreditPriority: lo.ToPtr(h.creditPurchasePriority(charge)),
 		})
 	}
 
@@ -310,6 +313,14 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 	return ledgertransaction.GroupReference{
 		TransactionGroupID: transactionGroup.ID().ID,
 	}, nil
+}
+
+func (h *creditPurchaseHandler) creditPurchasePriority(charge chargecreditpurchase.Charge) int {
+	if charge.Intent.Priority != nil {
+		return *charge.Intent.Priority
+	}
+
+	return ledger.DefaultCustomerFBOPriority
 }
 
 func (h *creditPurchaseHandler) resolverDependencies() transactions.ResolverDependencies {

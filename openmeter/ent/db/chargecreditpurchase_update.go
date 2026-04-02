@@ -516,6 +516,12 @@ func (_u *ChargeCreditPurchaseUpdate) sqlSave(ctx context.Context) (_node int, e
 	if value, ok := _u.mutation.CreditAmount(); ok {
 		_spec.SetField(chargecreditpurchase.FieldCreditAmount, field.TypeOther, value)
 	}
+	if _u.mutation.EffectiveAtCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldEffectiveAt, field.TypeTime)
+	}
+	if _u.mutation.PriorityCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldPriority, field.TypeInt)
+	}
 	if value, ok := _u.mutation.Settlement(); ok {
 		vv, err := chargecreditpurchase.ValueScanner.Settlement.Value(value)
 		if err != nil {
@@ -1123,6 +1129,12 @@ func (_u *ChargeCreditPurchaseUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 	}
 	if value, ok := _u.mutation.CreditAmount(); ok {
 		_spec.SetField(chargecreditpurchase.FieldCreditAmount, field.TypeOther, value)
+	}
+	if _u.mutation.EffectiveAtCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldEffectiveAt, field.TypeTime)
+	}
+	if _u.mutation.PriorityCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldPriority, field.TypeInt)
 	}
 	if value, ok := _u.mutation.Settlement(); ok {
 		vv, err := chargecreditpurchase.ValueScanner.Settlement.Value(value)

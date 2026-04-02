@@ -3,12 +3,15 @@ package creditpurchase
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -64,6 +67,11 @@ type Intent struct {
 	meta.Intent
 
 	CreditAmount alpacadecimal.Decimal `json:"amount"`
+	// EffectiveAt is the time at which the credit purchase is effective.
+	// Warning/TODO[later]: Currently this is not supported in credit purchase handler and the charge will be created
+	// with booked_at set to CreatedAt.
+	EffectiveAt *time.Time `json:"effectiveAt"`
+	Priority    *int       `json:"priority"`
 
 	// Settlement intent
 	Settlement Settlement `json:"settlement"`
@@ -71,6 +79,7 @@ type Intent struct {
 
 func (i Intent) Normalized() Intent {
 	i.Intent = i.Intent.Normalized()
+	i.EffectiveAt = meta.NormalizeOptionalTimestamp(i.EffectiveAt)
 
 	calc, err := i.Currency.Calculator()
 	if err == nil {
@@ -78,6 +87,10 @@ func (i Intent) Normalized() Intent {
 	}
 
 	return i
+}
+
+func (i Intent) CalculateEffectiveAt() time.Time {
+	return lo.FromPtrOr(i.EffectiveAt, clock.Now().UTC())
 }
 
 func (i Intent) Validate() error {
@@ -95,7 +108,11 @@ func (i Intent) Validate() error {
 		errs = append(errs, fmt.Errorf("settlement: %w", err))
 	}
 
-	return errors.Join(errs...)
+	if i.EffectiveAt != nil {
+		return errors.New("effective at is not yet supported")
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type State struct {

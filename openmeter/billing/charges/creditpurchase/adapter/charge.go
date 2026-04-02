@@ -67,6 +67,8 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChar
 		create := tx.db.ChargeCreditPurchase.Create().
 			SetNamespace(in.Namespace).
 			SetCreditAmount(in.Intent.CreditAmount).
+			SetNillableEffectiveAt(meta.NormalizeOptionalTimestamp(in.Intent.EffectiveAt)).
+			SetNillablePriority(in.Intent.Priority).
 			SetSettlement(in.Intent.Settlement)
 
 		create, err := chargemeta.Create(create, chargemeta.CreateInput{

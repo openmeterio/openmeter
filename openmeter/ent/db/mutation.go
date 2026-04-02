@@ -36506,6 +36506,9 @@ type ChargeCreditPurchaseMutation struct {
 	name                              *string
 	description                       *string
 	credit_amount                     *alpacadecimal.Decimal
+	effective_at                      *time.Time
+	priority                          *int
+	addpriority                       *int
 	settlement                        *creditpurchase.Settlement
 	credit_grant_transaction_group_id *string
 	credit_granted_at                 *time.Time
@@ -37614,6 +37617,125 @@ func (m *ChargeCreditPurchaseMutation) ResetCreditAmount() {
 	m.credit_amount = nil
 }
 
+// SetEffectiveAt sets the "effective_at" field.
+func (m *ChargeCreditPurchaseMutation) SetEffectiveAt(t time.Time) {
+	m.effective_at = &t
+}
+
+// EffectiveAt returns the value of the "effective_at" field in the mutation.
+func (m *ChargeCreditPurchaseMutation) EffectiveAt() (r time.Time, exists bool) {
+	v := m.effective_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEffectiveAt returns the old "effective_at" field's value of the ChargeCreditPurchase entity.
+// If the ChargeCreditPurchase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditPurchaseMutation) OldEffectiveAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEffectiveAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEffectiveAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEffectiveAt: %w", err)
+	}
+	return oldValue.EffectiveAt, nil
+}
+
+// ClearEffectiveAt clears the value of the "effective_at" field.
+func (m *ChargeCreditPurchaseMutation) ClearEffectiveAt() {
+	m.effective_at = nil
+	m.clearedFields[chargecreditpurchase.FieldEffectiveAt] = struct{}{}
+}
+
+// EffectiveAtCleared returns if the "effective_at" field was cleared in this mutation.
+func (m *ChargeCreditPurchaseMutation) EffectiveAtCleared() bool {
+	_, ok := m.clearedFields[chargecreditpurchase.FieldEffectiveAt]
+	return ok
+}
+
+// ResetEffectiveAt resets all changes to the "effective_at" field.
+func (m *ChargeCreditPurchaseMutation) ResetEffectiveAt() {
+	m.effective_at = nil
+	delete(m.clearedFields, chargecreditpurchase.FieldEffectiveAt)
+}
+
+// SetPriority sets the "priority" field.
+func (m *ChargeCreditPurchaseMutation) SetPriority(i int) {
+	m.priority = &i
+	m.addpriority = nil
+}
+
+// Priority returns the value of the "priority" field in the mutation.
+func (m *ChargeCreditPurchaseMutation) Priority() (r int, exists bool) {
+	v := m.priority
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPriority returns the old "priority" field's value of the ChargeCreditPurchase entity.
+// If the ChargeCreditPurchase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditPurchaseMutation) OldPriority(ctx context.Context) (v *int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPriority is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPriority requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPriority: %w", err)
+	}
+	return oldValue.Priority, nil
+}
+
+// AddPriority adds i to the "priority" field.
+func (m *ChargeCreditPurchaseMutation) AddPriority(i int) {
+	if m.addpriority != nil {
+		*m.addpriority += i
+	} else {
+		m.addpriority = &i
+	}
+}
+
+// AddedPriority returns the value that was added to the "priority" field in this mutation.
+func (m *ChargeCreditPurchaseMutation) AddedPriority() (r int, exists bool) {
+	v := m.addpriority
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearPriority clears the value of the "priority" field.
+func (m *ChargeCreditPurchaseMutation) ClearPriority() {
+	m.priority = nil
+	m.addpriority = nil
+	m.clearedFields[chargecreditpurchase.FieldPriority] = struct{}{}
+}
+
+// PriorityCleared returns if the "priority" field was cleared in this mutation.
+func (m *ChargeCreditPurchaseMutation) PriorityCleared() bool {
+	_, ok := m.clearedFields[chargecreditpurchase.FieldPriority]
+	return ok
+}
+
+// ResetPriority resets all changes to the "priority" field.
+func (m *ChargeCreditPurchaseMutation) ResetPriority() {
+	m.priority = nil
+	m.addpriority = nil
+	delete(m.clearedFields, chargecreditpurchase.FieldPriority)
+}
+
 // SetSettlement sets the "settlement" field.
 func (m *ChargeCreditPurchaseMutation) SetSettlement(c creditpurchase.Settlement) {
 	m.settlement = &c
@@ -38007,7 +38129,7 @@ func (m *ChargeCreditPurchaseMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeCreditPurchaseMutation) Fields() []string {
-	fields := make([]string, 0, 27)
+	fields := make([]string, 0, 29)
 	if m.customer != nil {
 		fields = append(fields, chargecreditpurchase.FieldCustomerID)
 	}
@@ -38080,6 +38202,12 @@ func (m *ChargeCreditPurchaseMutation) Fields() []string {
 	if m.credit_amount != nil {
 		fields = append(fields, chargecreditpurchase.FieldCreditAmount)
 	}
+	if m.effective_at != nil {
+		fields = append(fields, chargecreditpurchase.FieldEffectiveAt)
+	}
+	if m.priority != nil {
+		fields = append(fields, chargecreditpurchase.FieldPriority)
+	}
 	if m.settlement != nil {
 		fields = append(fields, chargecreditpurchase.FieldSettlement)
 	}
@@ -38145,6 +38273,10 @@ func (m *ChargeCreditPurchaseMutation) Field(name string) (ent.Value, bool) {
 		return m.Description()
 	case chargecreditpurchase.FieldCreditAmount:
 		return m.CreditAmount()
+	case chargecreditpurchase.FieldEffectiveAt:
+		return m.EffectiveAt()
+	case chargecreditpurchase.FieldPriority:
+		return m.Priority()
 	case chargecreditpurchase.FieldSettlement:
 		return m.Settlement()
 	case chargecreditpurchase.FieldCreditGrantTransactionGroupID:
@@ -38208,6 +38340,10 @@ func (m *ChargeCreditPurchaseMutation) OldField(ctx context.Context, name string
 		return m.OldDescription(ctx)
 	case chargecreditpurchase.FieldCreditAmount:
 		return m.OldCreditAmount(ctx)
+	case chargecreditpurchase.FieldEffectiveAt:
+		return m.OldEffectiveAt(ctx)
+	case chargecreditpurchase.FieldPriority:
+		return m.OldPriority(ctx)
 	case chargecreditpurchase.FieldSettlement:
 		return m.OldSettlement(ctx)
 	case chargecreditpurchase.FieldCreditGrantTransactionGroupID:
@@ -38391,6 +38527,20 @@ func (m *ChargeCreditPurchaseMutation) SetField(name string, value ent.Value) er
 		}
 		m.SetCreditAmount(v)
 		return nil
+	case chargecreditpurchase.FieldEffectiveAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEffectiveAt(v)
+		return nil
+	case chargecreditpurchase.FieldPriority:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPriority(v)
+		return nil
 	case chargecreditpurchase.FieldSettlement:
 		v, ok := value.(creditpurchase.Settlement)
 		if !ok {
@@ -38419,13 +38569,21 @@ func (m *ChargeCreditPurchaseMutation) SetField(name string, value ent.Value) er
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *ChargeCreditPurchaseMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.addpriority != nil {
+		fields = append(fields, chargecreditpurchase.FieldPriority)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *ChargeCreditPurchaseMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case chargecreditpurchase.FieldPriority:
+		return m.AddedPriority()
+	}
 	return nil, false
 }
 
@@ -38434,6 +38592,13 @@ func (m *ChargeCreditPurchaseMutation) AddedField(name string) (ent.Value, bool)
 // type.
 func (m *ChargeCreditPurchaseMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case chargecreditpurchase.FieldPriority:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddPriority(v)
+		return nil
 	}
 	return fmt.Errorf("unknown ChargeCreditPurchase numeric field %s", name)
 }
@@ -38468,6 +38633,12 @@ func (m *ChargeCreditPurchaseMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(chargecreditpurchase.FieldDescription) {
 		fields = append(fields, chargecreditpurchase.FieldDescription)
+	}
+	if m.FieldCleared(chargecreditpurchase.FieldEffectiveAt) {
+		fields = append(fields, chargecreditpurchase.FieldEffectiveAt)
+	}
+	if m.FieldCleared(chargecreditpurchase.FieldPriority) {
+		fields = append(fields, chargecreditpurchase.FieldPriority)
 	}
 	if m.FieldCleared(chargecreditpurchase.FieldCreditGrantTransactionGroupID) {
 		fields = append(fields, chargecreditpurchase.FieldCreditGrantTransactionGroupID)
@@ -38515,6 +38686,12 @@ func (m *ChargeCreditPurchaseMutation) ClearField(name string) error {
 		return nil
 	case chargecreditpurchase.FieldDescription:
 		m.ClearDescription()
+		return nil
+	case chargecreditpurchase.FieldEffectiveAt:
+		m.ClearEffectiveAt()
+		return nil
+	case chargecreditpurchase.FieldPriority:
+		m.ClearPriority()
 		return nil
 	case chargecreditpurchase.FieldCreditGrantTransactionGroupID:
 		m.ClearCreditGrantTransactionGroupID()
@@ -38601,6 +38778,12 @@ func (m *ChargeCreditPurchaseMutation) ResetField(name string) error {
 		return nil
 	case chargecreditpurchase.FieldCreditAmount:
 		m.ResetCreditAmount()
+		return nil
+	case chargecreditpurchase.FieldEffectiveAt:
+		m.ResetEffectiveAt()
+		return nil
+	case chargecreditpurchase.FieldPriority:
+		m.ResetPriority()
 		return nil
 	case chargecreditpurchase.FieldSettlement:
 		m.ResetSettlement()
