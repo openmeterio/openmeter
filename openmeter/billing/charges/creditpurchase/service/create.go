@@ -14,6 +14,8 @@ import (
 )
 
 func (s *service) Create(ctx context.Context, input creditpurchase.CreateInput) (creditpurchase.ChargeWithGatheringLine, error) {
+	input.Intent = input.Intent.Normalized()
+
 	if err := input.Validate(); err != nil {
 		return creditpurchase.ChargeWithGatheringLine{}, err
 	}
@@ -71,6 +73,11 @@ func (s *service) buildInvoiceCreditPurchaseGatheringLine(charge creditpurchase.
 
 	// Total cost = credit amount * cost basis (e.g., 100 credits * $0.5 = $50)
 	totalCost := intent.CreditAmount.Mul(invoiceSettlement.CostBasis)
+	calc, err := invoiceSettlement.Currency.Calculator()
+	if err != nil {
+		return billing.GatheringLine{}, fmt.Errorf("creating currency calculator: %w", err)
+	}
+	totalCost = calc.RoundToPrecision(totalCost)
 
 	// Clone metadata and add credit-purchase specific annotations
 	annotations, err := intent.Annotations.Clone()

@@ -50,12 +50,13 @@ func (r Realizations) AllocationsByID() map[string]Realization {
 var ErrInsufficientFunds = models.NewGenericValidationError(errors.New("insufficient funds"))
 
 func (r Realizations) CreateCorrectionRequest(amount alpacadecimal.Decimal, currency currencyx.Calculator) (CorrectionRequest, error) {
-	if !amount.IsNegative() {
-		return CorrectionRequest{}, models.NewGenericValidationError(errors.New("amount must be negative"))
+	if amount.IsPositive() {
+		return CorrectionRequest{}, models.NewGenericValidationError(errors.New("amount must not be positive"))
 	}
 
-	if !currency.IsRoundedToPrecision(amount) {
-		return CorrectionRequest{}, models.NewGenericValidationError(errors.New("amount must be rounded to currency precision"))
+	amount = currency.RoundToPrecision(amount)
+	if amount.IsZero() {
+		return nil, nil
 	}
 
 	allocationsWithCorrections, err := r.allocationsWithCorrections()
@@ -103,6 +104,10 @@ func (r Realizations) Correct(amount alpacadecimal.Decimal, currency currencyx.C
 		return nil, err
 	}
 
+	if len(req) == 0 {
+		return nil, nil
+	}
+
 	if err := req.ValidateWith(currency); err != nil {
 		return nil, err
 	}
@@ -111,6 +116,7 @@ func (r Realizations) Correct(amount alpacadecimal.Decimal, currency currencyx.C
 	if err != nil {
 		return nil, err
 	}
+	corrections = corrections.NormalizeWith(currency)
 
 	if err := corrections.ValidateWith(r, amount.Abs(), currency); err != nil {
 		return nil, err

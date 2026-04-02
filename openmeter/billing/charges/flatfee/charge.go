@@ -74,6 +74,11 @@ func (i Intent) Normalized() Intent {
 	i.Intent = i.Intent.Normalized()
 	i.InvoiceAt = meta.NormalizeTimestamp(i.InvoiceAt)
 
+	calc, err := i.Currency.Calculator()
+	if err == nil {
+		i.AmountBeforeProration = calc.RoundToPrecision(i.AmountBeforeProration)
+	}
+
 	return i
 }
 

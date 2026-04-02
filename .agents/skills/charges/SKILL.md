@@ -103,6 +103,39 @@ Placement guidance:
 - in adapters, normalize at the actual write setter (`SetInvoiceAt(...)`, `SetAsof(...)`, `SetCollectionEnd(...)`, `SetOrClearAdvanceAfter(...)`) rather than rewriting the whole input object at the top of the adapter method
 - do not add redundant `.UTC()` calls after `meta.NormalizeTimestamp(...)`; the helper already returns UTC
 
+## Currency Normalization
+
+Charge lifecycle code owns currency rounding.
+
+Rules:
+
+- all currency amounts that enter or leave the charge lifecycle must be rounded with the charge currency calculator
+- normalize charge-domain totals and inputs in charge code where charges own the amount
+- ledger-backed allocation realizations may be stored exactly as returned by ledger-owned handlers for credits-only flows
+- correction request and correction creation outputs are normalized in the shared `creditrealization.Realizations.Correct(...)` / `CorrectAll(...)` path
+- zero-valued corrections are allowed after rounding; treat them as a no-op instead of an error
+
+Important money surfaces:
+
+- `creditpurchase.Intent.CreditAmount`
+- `flatfee.Intent.AmountBeforeProration`
+- `flatfee.State.AmountAfterProration`
+- usage-based realization `Totals`
+- `flatfee.OnAssignedToInvoiceInput.PreTaxTotalAmount`
+- `flatfee.OnCreditsOnlyUsageAccruedInput.AmountToAllocate`
+- `usagebased.CreditsOnlyUsageAccruedInput.AmountToAllocate`
+- `creditrealization.CreateAllocationInputs`
+- `creditrealization.CreateCorrectionInputs`
+
+Placement guidance:
+
+- normalize durable charge inputs in domain helpers such as `Intent.Normalized()`
+- for flat fees, make sure `AmountAfterProration` is already rounded when calculated; adapters should persist it as-is
+- when calling charge handlers that feed ledger-backed allocations/corrections, decide explicitly whether charges or ledger owns the returned amount; for current credits-only allocation flows, store ledger-returned allocation amounts as-is
+- prefer shared normalization in `creditrealization` helpers for correction flows instead of repeating callback-local normalization at each callsite
+- do not mutate whole intents inside adapters just to normalize currency; if an adapter needs a persistence backstop, keep it local to the `Set*` write
+- when ledger logic derives monetary values from balances, entries, or its own calculations, round those values in ledger code as well; do not rely only on upstream callers
+
 ## Supported Behavior
 
 - `charges.AdvanceCharges(...)` advances both usage-based and flat-fee credit-only charges

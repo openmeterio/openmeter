@@ -73,8 +73,8 @@ func (i CreateInput) Validate() error {
 			errs = append(errs, fmt.Errorf("corrects realization ID is required"))
 		}
 
-		if !i.Amount.IsNegative() {
-			errs = append(errs, fmt.Errorf("amount must be negative"))
+		if i.Amount.IsPositive() {
+			errs = append(errs, fmt.Errorf("amount must not be positive"))
 		}
 	}
 
