@@ -310,10 +310,13 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	repo := common.NewLedgerHistoricalRepo(client)
 	accountRepo := common.NewLedgerAccountRepo(client)
 	routingValidator := common.NewLedgerRoutingValidator()
-	ledger := common.NewLedgerHistoricalLedger(repo, accountRepo, locker, routingValidator)
-	accountService := common.NewLedgerAccountService(accountRepo, locker, ledger)
+	ledgerReadWriter := common.NewLedgerHistoricalLedger(creditsConfiguration, repo, accountRepo, locker, routingValidator)
+	ledger := common.NewLedgerService(ledgerReadWriter)
+	querier := common.NewLedgerQuerier(ledgerReadWriter)
+	accountService := common.NewLedgerAccountService(creditsConfiguration, accountRepo, locker, querier)
 	customerAccountRepo := common.NewLedgerResolversRepo(client)
-	accountResolver := common.NewLedgerResolversService(accountService, customerAccountRepo, locker)
+	customerLedgerProvisioner := common.NewLedgerResolversService(creditsConfiguration, accountService, customerAccountRepo, locker)
+	accountResolver := common.NewLedgerAccountResolver(customerLedgerProvisioner)
 	billingRegistry, err := common.NewBillingRegistry(logger, appService, billingAdapter, ratingService, customerService, featureConnector, service, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, accountResolver, accountService)
 	if err != nil {
 		cleanup7()
@@ -381,7 +384,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	appRegistry := common.NewAppRegistry(appService, appSandboxProvisioner, appstripeService, appcustominvoicingService)
-	customerLedgerHook, err := common.NewCustomerLedgerServiceHook(tracer, accountResolver, customerService)
+	customerLedgerHook, err := common.NewCustomerLedgerServiceHook(creditsConfiguration, tracer, customerLedgerProvisioner, customerService)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -471,7 +474,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	customerbalanceService, err := common.NewCustomerBalanceService(logger, client, locker, ledger, accountResolver, accountService, billingRegistry, featureConnector, ratingService, connector)
+	facadeService, err := common.NewCustomerBalanceService(creditsConfiguration, logger, client, locker, ledger, accountResolver, accountService, billingRegistry, featureConnector, ratingService, connector)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -482,7 +485,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	facade, err := common.NewCustomerBalanceFacade(customerbalanceService)
+	facade, err := common.NewCustomerBalanceFacade(facadeService)
 	if err != nil {
 		cleanup7()
 		cleanup6()

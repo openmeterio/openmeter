@@ -53,10 +53,15 @@ type CustomerSubjectHook customerservicehooks.SubjectCustomerHook
 type CustomerLedgerHook ledgerresolvers.CustomerLedgerHook
 
 func NewCustomerLedgerServiceHook(
+	creditsConfig config.CreditsConfiguration,
 	tracer trace.Tracer,
-	accountResolver *ledgerresolvers.AccountResolver,
+	accountResolver customerLedgerProvisioner,
 	customerService customer.Service,
 ) (CustomerLedgerHook, error) {
+	if !creditsConfig.Enabled {
+		return ledgerresolvers.NoopCustomerLedgerHook{}, nil
+	}
+
 	h, err := ledgerresolvers.NewCustomerLedgerHook(ledgerresolvers.CustomerLedgerHookConfig{
 		Service: accountResolver,
 		Tracer:  tracer,
