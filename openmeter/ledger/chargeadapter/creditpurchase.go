@@ -78,7 +78,7 @@ func (h *creditPurchaseHandler) OnPromotionalCreditPurchase(ctx context.Context,
 			Namespace:  charge.Namespace,
 		},
 		transactions.IssueCustomerReceivableTemplate{
-			At:             charge.Intent.CalculateEffectiveAt(),
+			At:             charge.CreatedAt,
 			Amount:         charge.Intent.CreditAmount,
 			Currency:       charge.Intent.Currency,
 			CostBasis:      &costBasis,
@@ -136,12 +136,6 @@ func (h *creditPurchaseHandler) OnCreditPurchaseInitiated(ctx context.Context, c
 		return ledgertransaction.GroupReference{}, fmt.Errorf("get unattributed accrued balance: %w", err)
 	}
 
-	bookedAt := charge.Intent.CalculateEffectiveAt()
-
-	// TODO: Right now this aggregates all the outstanding balances without time filtering.
-	// If bookedAt is in the future, we are still settling the receivables with the future balances
-	// even if there could be any other new grant happening in the meantime.
-
 	advanceAttributionAmount := charge.Intent.CreditAmount
 	if advanceAttributionAmount.GreaterThan(advanceOutstanding) {
 		advanceAttributionAmount = advanceOutstanding
@@ -161,7 +155,7 @@ func (h *creditPurchaseHandler) OnCreditPurchaseInitiated(ctx context.Context, c
 
 	if advanceAttributionAmount.IsPositive() {
 		templates = append(templates, transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{
-			At:        bookedAt,
+			At:        charge.CreatedAt,
 			Amount:    advanceAttributionAmount,
 			Currency:  charge.Intent.Currency,
 			CostBasis: &externalSettlement.CostBasis,
@@ -170,7 +164,7 @@ func (h *creditPurchaseHandler) OnCreditPurchaseInitiated(ctx context.Context, c
 
 	if accruedAttributionAmount.IsPositive() {
 		templates = append(templates, transactions.TranslateCustomerAccruedCostBasisTemplate{
-			At:            bookedAt,
+			At:            charge.CreatedAt,
 			Amount:        accruedAttributionAmount,
 			Currency:      charge.Intent.Currency,
 			FromCostBasis: nil,
@@ -180,7 +174,7 @@ func (h *creditPurchaseHandler) OnCreditPurchaseInitiated(ctx context.Context, c
 
 	if issuableAmount.IsPositive() {
 		templates = append(templates, transactions.IssueCustomerReceivableTemplate{
-			At:             bookedAt,
+			At:             charge.CreatedAt,
 			Amount:         issuableAmount,
 			Currency:       charge.Intent.Currency,
 			CostBasis:      &externalSettlement.CostBasis,

@@ -67,8 +67,11 @@ type Intent struct {
 	meta.Intent
 
 	CreditAmount alpacadecimal.Decimal `json:"amount"`
-	EffectiveAt  *time.Time            `json:"effectiveAt"`
-	Priority     *int                  `json:"priority"`
+	// EffectiveAt is the time at which the credit purchase is effective.
+	// Warning/TODO[later]: Currently this is not supported in credit purchase handler and the charge will be created
+	// with booked_at set to CreatedAt.
+	EffectiveAt *time.Time `json:"effectiveAt"`
+	Priority    *int       `json:"priority"`
 
 	// Settlement intent
 	Settlement Settlement `json:"settlement"`
