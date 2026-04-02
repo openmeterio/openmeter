@@ -177,7 +177,7 @@ All builds use `GO_BUILD_FLAGS=-tags=dynamic`.
 
 ## Coding Conventions
 
-See the `/service` skill for service/adapter patterns, constructors, input types, errors, transactions, hooks, logging, multi-tenancy, and DI wiring. See the `/api` skill for HTTP handler patterns and ValidationIssue. See the `/ent` skill for Ent ORM patterns and Postgres type gotchas. See the `/ledger` skill for ledger package architecture, wiring, and testing. See the `/subscription` skill for subscription domain model, sync algorithm, patch system, workflow layer, and addon sub-system.
+See the `/service` skill for service/adapter patterns, constructors, input types, errors, transactions, hooks, logging, multi-tenancy, and DI wiring. See the `/api` skill for HTTP handler patterns and ValidationIssue. See the `/ent` skill for Ent ORM patterns and Postgres type gotchas. See the `/ledger` skill for ledger package architecture, wiring, and testing. See the `/subscription` skill for subscription domain model, sync algorithm, patch system, workflow layer, and addon sub-system. See the `/notification` skill for notification event pipeline, Kafka consumers, Svix webhook delivery, reconciliation loop, and payload versioning.
 
 ## Key Dependencies
 
