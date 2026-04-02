@@ -404,8 +404,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	billingService := billingRegistry.Billing
-	customerSubjectHook, err := common.NewCustomerSubjectServiceHook(customerConfiguration, logger, tracer, subjectService, customerService, billingService)
+	customerOverrideService := common.NewBillingCustomerOverrideService(billingRegistry)
+	customerSubjectHook, err := common.NewCustomerSubjectServiceHook(customerConfiguration, logger, tracer, subjectService, customerService, customerOverrideService)
 	if err != nil {
 		cleanup7()
 		cleanup6()

@@ -61,13 +61,12 @@ type ChargesRegistry struct {
 }
 
 // Billing is the Wire provider set for the billing and charges stack.
-// Downstream consumers should depend on BillingRegistry or the extracted Billing field.
+// Downstream consumers should depend on BillingRegistry.
 var Billing = wire.NewSet(
 	BillingAdapter,
 	NewBillingRatingService,
 	NewBillingRegistry,
-	wire.FieldsOf(new(BillingRegistry), "Billing"),
-	wire.Bind(new(billing.CustomerOverrideService), new(billing.Service)),
+	NewBillingCustomerOverrideService,
 )
 
 func BillingAdapter(
@@ -222,6 +221,10 @@ func NewBillingRegistry(
 	}
 
 	return billingRegistry, nil
+}
+
+func NewBillingCustomerOverrideService(billingRegistry BillingRegistry) billing.CustomerOverrideService {
+	return billingRegistry.Billing
 }
 
 func NewBillingRatingService() rating.Service {
