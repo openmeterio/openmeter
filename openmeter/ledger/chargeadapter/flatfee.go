@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
@@ -115,7 +116,7 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 			At:        input.Charge.Intent.InvoiceAt,
 			Amount:    amount,
 			Currency:  input.Charge.Intent.Currency,
-			CostBasis: invoiceCostBasis(),
+			CostBasis: invoiceCostBasis,
 		},
 	)
 	if err != nil {
@@ -170,29 +171,19 @@ func (h *flatFeeHandler) OnCreditsOnlyUsageAccruedCorrection(ctx context.Context
 	return nil, fmt.Errorf("credits only usage accrued correction is not implemented")
 }
 
-// OnFlatFeePaymentAuthorized is the current revenue recognition point.
-// It replenishes receivable from wash for the directly-invoiced portion, and
-// recognizes revenue by moving from customer_accrued to earnings.
+// OnFlatFeePaymentAuthorized currently only stages receivable funding from wash
+// for the directly-invoiced portion. Revenue recognition is handled elsewhere.
 func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error) {
 	if err := charge.Validate(); err != nil {
 		return ledgertransaction.GroupReference{}, err
 	}
 
-	// Compute the total amount to recognize from accrued into earnings.
-	// This includes both credit-backed (FBO) and receivable-backed portions.
-	totalRecognition := alpacadecimal.NewFromInt(0)
-	for _, cr := range charge.State.CreditRealizations {
-		totalRecognition = totalRecognition.Add(cr.Amount)
-	}
-
-	// The receivable portion needs wash -> receivable replenishment.
 	receivableReplenishment := alpacadecimal.NewFromInt(0)
 	if charge.State.AccruedUsage != nil {
 		receivableReplenishment = charge.State.AccruedUsage.Totals.Total
-		totalRecognition = totalRecognition.Add(charge.State.AccruedUsage.Totals.Total)
 	}
 
-	if totalRecognition.IsZero() {
+	if receivableReplenishment.IsZero() {
 		return ledgertransaction.GroupReference{}, nil
 	}
 
@@ -205,27 +196,6 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, charge flatfee
 		ID:        charge.ID,
 	})
 
-	var templates []transactions.TransactionTemplate
-	if receivableReplenishment.IsPositive() {
-		templates = append(templates, transactions.FundCustomerReceivableTemplate{
-			At:        charge.Intent.InvoiceAt,
-			Amount:    receivableReplenishment,
-			Currency:  charge.Intent.Currency,
-			CostBasis: invoiceCostBasis(),
-		})
-	}
-	if totalRecognition.IsPositive() {
-		templates = append(templates, transactions.RecognizeEarningsFromAttributableAccruedTemplate{
-			At:       charge.Intent.InvoiceAt,
-			Amount:   totalRecognition,
-			Currency: charge.Intent.Currency,
-		})
-	}
-
-	if len(templates) == 0 {
-		return ledgertransaction.GroupReference{}, nil
-	}
-
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
 		h.resolverDependencies(),
@@ -233,7 +203,12 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, charge flatfee
 			CustomerID: customerID,
 			Namespace:  charge.Namespace,
 		},
-		templates...,
+		transactions.FundCustomerReceivableTemplate{
+			At:        charge.Intent.InvoiceAt,
+			Amount:    receivableReplenishment,
+			Currency:  charge.Intent.Currency,
+			CostBasis: invoiceCostBasis,
+		},
 	)
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("resolve transactions: %w", err)
@@ -282,7 +257,7 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, charge flatfee.Ch
 			At:        charge.Intent.InvoiceAt,
 			Amount:    charge.State.AccruedUsage.Totals.Total,
 			Currency:  charge.Intent.Currency,
-			CostBasis: invoiceCostBasis(),
+			CostBasis: invoiceCostBasis,
 		},
 	)
 	if err != nil {
@@ -419,10 +394,7 @@ func creditRealizationsFromCollectedInputs(servicePeriod timeutil.ClosedPeriod, 
 	return out
 }
 
-func invoiceCostBasis() *alpacadecimal.Decimal {
-	value := alpacadecimal.NewFromInt(1)
-	return &value
-}
+var invoiceCostBasis = lo.ToPtr(alpacadecimal.NewFromInt(1))
 
 func sumCollectedFBOAmount(inputs ...ledger.TransactionInput) alpacadecimal.Decimal {
 	total := alpacadecimal.Zero
