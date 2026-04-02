@@ -30,7 +30,7 @@ func (c CorrectionRequest) ValidateWith(currency currencyx.Calculator) error {
 type CorrectionRequestItem struct {
 	Allocation Realization `json:"allocation"`
 	// Amount is the amount of the correction request.
-	// It is negative and rounded to the smallest denomination.
+	// It is non-positive and rounded to the smallest denomination.
 	Amount alpacadecimal.Decimal `json:"amount"`
 }
 
@@ -41,8 +41,8 @@ func (i CorrectionRequestItem) ValidateWith(currency currencyx.Calculator) error
 		errs = append(errs, fmt.Errorf("allocation: %w", err))
 	}
 
-	if !i.Amount.IsNegative() {
-		errs = append(errs, fmt.Errorf("amount must be negative"))
+	if i.Amount.IsPositive() {
+		errs = append(errs, fmt.Errorf("amount must not be positive"))
 	}
 
 	if !currency.IsRoundedToPrecision(i.Amount) {
@@ -50,6 +50,11 @@ func (i CorrectionRequestItem) ValidateWith(currency currencyx.Calculator) error
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (i CorrectionRequestItem) NormalizeWith(currency currencyx.Calculator) CorrectionRequestItem {
+	i.Amount = currency.RoundToPrecision(i.Amount)
+	return i
 }
 
 type CreateCorrectionInput struct {
@@ -61,7 +66,7 @@ type CreateCorrectionInput struct {
 
 	// Amount is the amount of the correction.
 	// Expectations:
-	// - It must be negative
+	// - It must be non-positive
 	// - It must be rounded to the smallest denomination
 	Amount alpacadecimal.Decimal `json:"amount"`
 
@@ -69,11 +74,16 @@ type CreateCorrectionInput struct {
 	CorrectsRealizationID string `json:"correctsRealizationID"`
 }
 
+func (i CreateCorrectionInput) NormalizeWith(currency currencyx.Calculator) CreateCorrectionInput {
+	i.Amount = currency.RoundToPrecision(i.Amount)
+	return i
+}
+
 func (i CreateCorrectionInput) ValidateWith(currency currencyx.Calculator) error {
 	var errs []error
 
-	if !i.Amount.IsNegative() {
-		errs = append(errs, fmt.Errorf("amount must be negative"))
+	if i.Amount.IsPositive() {
+		errs = append(errs, fmt.Errorf("amount must not be positive"))
 	}
 
 	if !currency.IsRoundedToPrecision(i.Amount) {
@@ -93,11 +103,17 @@ func (i CreateCorrectionInput) ValidateWith(currency currencyx.Calculator) error
 
 type CreateCorrectionInputs []CreateCorrectionInput
 
+func (i CreateCorrectionInputs) NormalizeWith(currency currencyx.Calculator) CreateCorrectionInputs {
+	return lo.Map(i, func(input CreateCorrectionInput, _ int) CreateCorrectionInput {
+		return input.NormalizeWith(currency)
+	})
+}
+
 func (i CreateCorrectionInputs) ValidateWith(existingRealizations Realizations, totalAmountToCorrect alpacadecimal.Decimal, currency currencyx.Calculator) error {
 	var errs []error
 
-	if !totalAmountToCorrect.IsPositive() {
-		errs = append(errs, fmt.Errorf("total amount to correct must be positive"))
+	if totalAmountToCorrect.IsNegative() {
+		errs = append(errs, fmt.Errorf("total amount to correct must not be negative"))
 	}
 
 	if !currency.IsRoundedToPrecision(totalAmountToCorrect) {

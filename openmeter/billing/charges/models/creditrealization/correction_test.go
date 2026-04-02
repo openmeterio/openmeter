@@ -263,17 +263,17 @@ func TestCreateCorrectionRequest(t *testing.T) {
 		assert.Equal(t, []string{a3.ID, a2.ID, a1.ID}, correctionRequestAllocationIDs(cr))
 	})
 
-	t.Run("error: zero amount", func(t *testing.T) {
+	t.Run("zero amount returns no correction request", func(t *testing.T) {
 		b := newAllocationBuilder()
 		alloc := b.build(10)
 
-		_, err := Realizations{alloc}.CreateCorrectionRequest(
+		cr, err := Realizations{alloc}.CreateCorrectionRequest(
 			alpacadecimal.Zero,
 			testCurrency(t),
 		)
 
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "amount must be negative")
+		require.NoError(t, err)
+		assert.Nil(t, cr)
 	})
 
 	t.Run("error: positive amount", func(t *testing.T) {
@@ -286,7 +286,7 @@ func TestCreateCorrectionRequest(t *testing.T) {
 		)
 
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "amount must be negative")
+		assert.Contains(t, err.Error(), "amount must not be positive")
 	})
 
 	t.Run("error: insufficient funds", func(t *testing.T) {
@@ -314,17 +314,18 @@ func TestCreateCorrectionRequest(t *testing.T) {
 		require.ErrorIs(t, err, ErrInsufficientFunds)
 	})
 
-	t.Run("error: amount not rounded to currency precision", func(t *testing.T) {
+	t.Run("amount is rounded to currency precision before planning", func(t *testing.T) {
 		b := newAllocationBuilder()
 		alloc := b.build(10)
 
-		_, err := Realizations{alloc}.CreateCorrectionRequest(
+		cr, err := Realizations{alloc}.CreateCorrectionRequest(
 			alpacadecimal.NewFromFloat(-1.005),
 			testCurrency(t),
 		)
 
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "rounded to currency precision")
+		require.NoError(t, err)
+		require.Len(t, cr, 1)
+		assert.Equal(t, -1.01, cr[0].Amount.InexactFloat64())
 	})
 
 	t.Run("error: all allocations fully corrected", func(t *testing.T) {
@@ -615,14 +616,14 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 		assert.Contains(t, err.Error(), "not found")
 	})
 
-	t.Run("error: total amount to correct not positive", func(t *testing.T) {
+	t.Run("zero total amount to correct is allowed when corrections are zero", func(t *testing.T) {
 		b := newAllocationBuilder()
 		alloc := b.build(10)
 		currency := testCurrency(t)
 
 		inputs := CreateCorrectionInputs{
 			{
-				Amount:                alpacadecimal.NewFromFloat(-3),
+				Amount:                alpacadecimal.Zero,
 				CorrectsRealizationID: alloc.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
@@ -631,8 +632,7 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 		}
 
 		err := inputs.ValidateWith(Realizations{alloc}, alpacadecimal.Zero, currency)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "total amount to correct must be positive")
+		require.NoError(t, err)
 	})
 
 	t.Run("error: total amount to correct not rounded", func(t *testing.T) {
@@ -1007,20 +1007,20 @@ func TestCorrect(t *testing.T) {
 		require.ErrorIs(t, err, ErrInsufficientFunds)
 	})
 
-	t.Run("error: zero amount propagated", func(t *testing.T) {
+	t.Run("zero amount is a no-op", func(t *testing.T) {
 		b := newAllocationBuilder()
 		alloc := b.build(10)
 		currency := testCurrency(t)
 		realizations := Realizations{alloc}
 
-		_, err := realizations.Correct(
+		out, err := realizations.Correct(
 			alpacadecimal.Zero,
 			currency,
 			correctionCallback(uuid.New().String()),
 		)
 
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "amount must be negative")
+		require.NoError(t, err)
+		assert.Nil(t, out)
 	})
 
 	t.Run("error: callback error propagated", func(t *testing.T) {

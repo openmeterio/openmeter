@@ -69,6 +69,17 @@ type Intent struct {
 	Settlement Settlement `json:"settlement"`
 }
 
+func (i Intent) Normalized() Intent {
+	i.Intent = i.Intent.Normalized()
+
+	calc, err := i.Currency.Calculator()
+	if err == nil {
+		i.CreditAmount = calc.RoundToPrecision(i.CreditAmount)
+	}
+
+	return i
+}
+
 func (i Intent) Validate() error {
 	var errs []error
 

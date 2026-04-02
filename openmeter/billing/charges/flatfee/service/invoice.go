@@ -20,10 +20,15 @@ func (s *service) PostLineAssignedToInvoice(ctx context.Context, charge flatfee.
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (creditrealization.Realizations, error) {
+		currencyCalculator, err := charge.Intent.Currency.Calculator()
+		if err != nil {
+			return nil, fmt.Errorf("get currency calculator: %w", err)
+		}
+
 		input := flatfee.OnAssignedToInvoiceInput{
 			Charge:            charge,
 			ServicePeriod:     line.ServicePeriod,
-			PreTaxTotalAmount: charge.State.AmountAfterProration,
+			PreTaxTotalAmount: currencyCalculator.RoundToPrecision(charge.State.AmountAfterProration),
 		}
 		if err := input.Validate(); err != nil {
 			return nil, fmt.Errorf("validating on assigned to invoice input: %w", err)
@@ -33,6 +38,7 @@ func (s *service) PostLineAssignedToInvoice(ctx context.Context, charge flatfee.
 		if err != nil {
 			return nil, fmt.Errorf("on flat fee assigned to invoice: %w", err)
 		}
+		creditAllocations = creditAllocations.NormalizeWith(currencyCalculator)
 
 		if len(creditAllocations) == 0 {
 			return nil, nil

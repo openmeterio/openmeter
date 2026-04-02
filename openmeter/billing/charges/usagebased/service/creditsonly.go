@@ -151,6 +151,8 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, policy meta.
 }
 
 func (s *CreditsOnlyStateMachine) allocateCredits(ctx context.Context, in usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateInputs, error) {
+	in.AmountToAllocate = s.CurrencyCalculator.RoundToPrecision(in.AmountToAllocate)
+
 	if err := in.Validate(); err != nil {
 		return nil, err
 	}
@@ -159,6 +161,7 @@ func (s *CreditsOnlyStateMachine) allocateCredits(ctx context.Context, in usageb
 	if err != nil {
 		return nil, fmt.Errorf("on credits only usage accrued: %w", err)
 	}
+	creditAllocations = creditAllocations.NormalizeWith(s.CurrencyCalculator)
 
 	if !creditAllocations.Sum().Equal(in.AmountToAllocate) {
 		return nil, usagebased.ErrCreditAllocationsDoNotMatchTotal.
@@ -188,7 +191,7 @@ func (s *CreditsOnlyStateMachine) StartFinalRealizationRun(ctx context.Context) 
 		return fmt.Errorf("get rating for usage: %w", err)
 	}
 
-	totals := ratingResult.Totals
+	totals := ratingResult.Totals.RoundToPrecision(s.CurrencyCalculator)
 
 	if totals.Total.IsNegative() {
 		return usagebased.ErrChargeTotalIsNegative.
@@ -285,11 +288,11 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 		return fmt.Errorf("get rating for usage: %w", err)
 	}
 
-	currentTotals := ratingResult.Totals
+	currentTotals := ratingResult.Totals.RoundToPrecision(s.CurrencyCalculator)
 	currentTotals.CreditsTotal = currentTotals.CreditsTotal.Add(currentTotals.Total)
 	currentTotals.Total = alpacadecimal.Zero
 
-	additionalAmount := currentTotals.CreditsTotal.Sub(currentRun.Totals.CreditsTotal)
+	additionalAmount := s.CurrencyCalculator.RoundToPrecision(currentTotals.CreditsTotal.Sub(currentRun.Totals.CreditsTotal))
 
 	switch {
 	case additionalAmount.IsPositive():

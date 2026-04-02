@@ -116,7 +116,12 @@ func (s *CreditsOnlyStateMachine) ClearAdvanceAfter(ctx context.Context) error {
 }
 
 func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
-	amount := s.Charge.State.AmountAfterProration
+	currencyCalculator, err := s.Charge.Intent.Currency.Calculator()
+	if err != nil {
+		return fmt.Errorf("get currency calculator: %w", err)
+	}
+
+	amount := currencyCalculator.RoundToPrecision(s.Charge.State.AmountAfterProration)
 
 	if amount.IsNegative() {
 		return fmt.Errorf("charge total is negative [charge_id=%s, amount=%s]", s.Charge.ID, amount.String())
@@ -138,6 +143,7 @@ func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("on credits only usage accrued: %w", err)
 		}
+		creditAllocations = creditAllocations.NormalizeWith(currencyCalculator)
 
 		if !creditAllocations.Sum().Equal(amount) {
 			return models.NewGenericValidationError(
