@@ -133,7 +133,7 @@ func (s *service) DeleteTaxCode(ctx context.Context, input taxcode.DeleteTaxCode
 	}
 
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
-		existing, err := s.adapter.GetTaxCode(ctx, taxcode.GetTaxCodeInput{NamespacedID: input.NamespacedID})
+		existing, err := s.adapter.GetTaxCode(ctx, taxcode.GetTaxCodeInput(input))
 		if err != nil {
 			return err
 		}
