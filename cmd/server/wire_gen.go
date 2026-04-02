@@ -309,10 +309,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	creditsConfiguration := conf.Credits
 	repo := common.NewLedgerHistoricalRepo(client)
 	accountRepo := common.NewLedgerAccountRepo(client)
-	accountLiveServices := common.NewLedgerAccountLiveServices(locker)
-	accountService := common.NewLedgerAccountService(accountRepo, accountLiveServices)
 	routingValidator := common.NewLedgerRoutingValidator()
-	ledger := common.NewLedgerHistoricalLedger(repo, accountService, locker, routingValidator)
+	ledger := common.NewLedgerHistoricalLedger(repo, accountRepo, locker, routingValidator)
+	accountService := common.NewLedgerAccountService(accountRepo, locker, ledger)
 	customerAccountRepo := common.NewLedgerResolversRepo(client)
 	accountResolver := common.NewLedgerResolversService(accountService, customerAccountRepo, locker)
 	billingRegistry, err := common.NewBillingRegistry(logger, appService, billingAdapter, ratingService, customerService, featureConnector, service, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, accountResolver, accountService)

@@ -30,21 +30,22 @@ func InitDeps(db *entdb.Client, logger *slog.Logger) (Deps, error) {
 		return Deps{}, err
 	}
 
-	lq := &lazyQuerier{}
-	accountLiveServices := ledgeraccount.AccountLiveServices{
+	historicalRepo := historicaladapter.NewRepo(db)
+	internalAccountService := accountservice.New(repo, ledgeraccount.AccountLiveServices{
+		Locker: locker,
+	})
+	historicalLedger := historical.NewLedger(historicalRepo, internalAccountService, locker, routingrules.DefaultValidator)
+
+	accountService := accountservice.New(repo, ledgeraccount.AccountLiveServices{
 		Locker:  locker,
-		Querier: lq,
-	}
-	accountService := accountservice.New(repo, accountLiveServices)
+		Querier: historicalLedger,
+	})
 	customerAccountRepo := resolversadapter.NewRepo(db)
 	accountResolver := resolvers.NewAccountResolver(resolvers.AccountResolverConfig{
 		AccountService: accountService,
 		Repo:           customerAccountRepo,
 		Locker:         locker,
 	})
-	historicalRepo := historicaladapter.NewRepo(db)
-	historicalLedger := historical.NewLedger(historicalRepo, accountService, locker, routingrules.DefaultValidator)
-	lq.querier = historicalLedger
 
 	return Deps{
 		AccountService:   accountService,
