@@ -531,15 +531,16 @@ func TestFromBillingPrice(t *testing.T) {
 		assert.Equal(t, "volume", disc)
 	})
 
-	t.Run("dynamic price returns error", func(t *testing.T) {
+	t.Run("dynamic price returns conflict error", func(t *testing.T) {
 		p := productcatalog.NewPriceFrom(productcatalog.DynamicPrice{})
 
 		_, err := fromBillingPrice(p)
 		require.Error(t, err)
+		assert.True(t, models.IsGenericConflictError(err))
 		assert.Contains(t, err.Error(), "dynamic price is not supported in v3 API")
 	})
 
-	t.Run("package price returns error", func(t *testing.T) {
+	t.Run("package price returns conflict error", func(t *testing.T) {
 		p := productcatalog.NewPriceFrom(productcatalog.PackagePrice{
 			Amount:             decimal.NewFromFloat(10),
 			QuantityPerPackage: decimal.NewFromInt(100),
@@ -547,6 +548,7 @@ func TestFromBillingPrice(t *testing.T) {
 
 		_, err := fromBillingPrice(p)
 		require.Error(t, err)
+		assert.True(t, models.IsGenericConflictError(err))
 		assert.Contains(t, err.Error(), "package price is not supported in v3 API")
 	})
 }
