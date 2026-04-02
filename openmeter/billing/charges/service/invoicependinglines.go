@@ -17,7 +17,9 @@ func (s *service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 		return nil, err
 	}
 
-	// TODO: we need to handle the namespace lockdowns as an argument to this service too
+	if err := s.validateNamespaceLockdown(input.Customer.Namespace); err != nil {
+		return nil, err
+	}
 
 	return withBillingTransactionForInvoiceManipulation(ctx, s, input.Customer, func(ctx context.Context) ([]billing.StandardInvoice, error) {
 		// Step 1: Let's have all the lines that are billable prepared on the gathering invoice (including line splitting)

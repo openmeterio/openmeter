@@ -30,6 +30,10 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 		return nil, err
 	}
 
+	if err := s.validateNamespaceLockdown(input.Namespace); err != nil {
+		return nil, err
+	}
+
 	result, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (*chargesWithInvoiceNowActions, error) {
 		intentsByType, err := input.Intents.ByType()
 		if err != nil {

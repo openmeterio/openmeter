@@ -21,6 +21,10 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 		return nil, err
 	}
 
+	if err := s.validateNamespaceLockdown(input.Customer.Namespace); err != nil {
+		return nil, err
+	}
+
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (charges.Charges, error) {
 		inScopeCharges, err := s.ListCharges(ctx, charges.ListChargesInput{
 			Namespace:   input.Customer.Namespace,

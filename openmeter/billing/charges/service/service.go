@@ -2,6 +2,8 @@ package service
 
 import (
 	"errors"
+	"fmt"
+	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
@@ -22,6 +24,8 @@ type service struct {
 	flatFeeService        flatfee.Service
 	creditPurchaseService creditpurchase.Service
 	usageBasedService     usagebased.Service
+
+	fsNamespaceLockdown []string
 }
 
 type Config struct {
@@ -34,6 +38,8 @@ type Config struct {
 	UsageBasedService     usagebased.Service
 
 	BillingService billing.Service
+
+	FSNamespaceLockdown []string
 }
 
 func (c Config) Validate() error {
@@ -83,6 +89,7 @@ func New(config Config) (*service, error) {
 		flatFeeService:        config.FlatFeeService,
 		creditPurchaseService: config.CreditPurchaseService,
 		usageBasedService:     config.UsageBasedService,
+		fsNamespaceLockdown:   config.FSNamespaceLockdown,
 	}
 
 	standardInvoiceEventHandler := &standardInvoiceEventHandler{
@@ -92,6 +99,16 @@ func New(config Config) (*service, error) {
 	config.BillingService.RegisterStandardInvoiceHooks(standardInvoiceEventHandler)
 
 	return svc, nil
+}
+
+func (s *service) validateNamespaceLockdown(namespace string) error {
+	if slices.Contains(s.fsNamespaceLockdown, namespace) {
+		return billing.ValidationError{
+			Err: fmt.Errorf("%w: %s", billing.ErrNamespaceLocked, namespace),
+		}
+	}
+
+	return nil
 }
 
 var _ charges.Service = (*service)(nil)
