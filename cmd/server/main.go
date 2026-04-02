@@ -96,26 +96,33 @@ func main() {
 		"ingest.kafka.broker": conf.Ingest.Kafka.Broker,
 	})
 
-	// Initialize Namespace
-	err = initNamespace(app.NamespaceManager, logger)
-	if err != nil {
-		logger.Error("failed to initialize namespace", "error", err)
-		os.Exit(1)
-	}
-
-	// Register Kafka Ingest Namespace Handler
-	err = app.NamespaceManager.RegisterHandler(app.KafkaIngestNamespaceHandler)
-	if err != nil {
-		logger.Error("failed to register kafka ingest namespace handler", "error", err)
-		os.Exit(1)
-	}
-
 	// Initialize debug connector
 	debugConnector := debug.NewDebugConnector(app.StreamingConnector)
 
 	// Migrate database
 	if err := app.Migrate(ctx); err != nil {
 		logger.Error("failed to initialize database", "error", err)
+		os.Exit(1)
+	}
+
+	// Register Kafka Ingest Namespace Handler before creating the default namespace so
+	// the namespace is provisioned across the full handler set in one pass.
+	err = app.NamespaceManager.RegisterHandler(app.LedgerNamespaceHandler)
+	if err != nil {
+		logger.Error("failed to register ledger namespace handler", "error", err)
+		os.Exit(1)
+	}
+
+	err = app.NamespaceManager.RegisterHandler(app.KafkaIngestNamespaceHandler)
+	if err != nil {
+		logger.Error("failed to register kafka ingest namespace handler", "error", err)
+		os.Exit(1)
+	}
+
+	// Initialize Namespace
+	err = initNamespace(app.NamespaceManager, logger)
+	if err != nil {
+		logger.Error("failed to initialize namespace", "error", err)
 		os.Exit(1)
 	}
 

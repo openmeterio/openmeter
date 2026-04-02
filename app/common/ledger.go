@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
 	resolversadapter "github.com/openmeterio/openmeter/openmeter/ledger/resolvers/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ledger/routingrules"
+	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
 
@@ -23,11 +24,12 @@ var LedgerStack = wire.NewSet(
 	NewLedgerAccountRepo,
 	NewLedgerHistoricalRepo,
 	NewLedgerResolversRepo,
-	NewLedgerAccountLiveServices,
 	NewLedgerAccountService,
 	NewLedgerHistoricalLedger,
+	NewLedgerNamespaceHandler,
 	NewLedgerResolversService,
 	wire.Bind(new(ledger.Ledger), new(*historical.Ledger)),
+	wire.Bind(new(ledger.Querier), new(*historical.Ledger)),
 	wire.Bind(new(ledger.AccountResolver), new(*resolvers.AccountResolver)),
 )
 
@@ -47,37 +49,45 @@ func NewLedgerResolversRepo(db *entdb.Client) resolvers.CustomerAccountRepo {
 	return resolversadapter.NewRepo(db)
 }
 
-// NewLedgerAccountLiveServices builds AccountLiveServices with the given locker.
-// SubAccountService is always self-wired by NewLedgerAccountService; Querier is
-// intentionally left nil (only required for GetBalance, not the commit path).
-func NewLedgerAccountLiveServices(locker *lockr.Locker) ledgeraccount.AccountLiveServices {
-	return ledgeraccount.AccountLiveServices{
-		Locker: locker,
-	}
-}
-
 func NewLedgerAccountService(
 	repo ledgeraccount.Repo,
-	live ledgeraccount.AccountLiveServices,
+	locker *lockr.Locker,
+	querier ledger.Querier,
 ) ledgeraccount.Service {
-	return accountservice.New(repo, live)
+	return accountservice.New(repo, ledgeraccount.AccountLiveServices{
+		Locker:  locker,
+		Querier: querier,
+	})
 }
 
 func NewLedgerHistoricalLedger(
 	repo historical.Repo,
-	accountSvc ledgeraccount.Service,
+	accountRepo ledgeraccount.Repo,
 	locker *lockr.Locker,
 	routingValidator ledger.RoutingValidator,
 ) *historical.Ledger {
+	// TODO: this is a hack
+	// package boundary between account and historical ledger is incorrect, dependency resolution is broken
+	accountSvc := accountservice.New(accountRepo, ledgeraccount.AccountLiveServices{
+		Locker: locker,
+		// Querier: nil, // This is the hack
+	})
+
 	return historical.NewLedger(repo, accountSvc, locker, routingValidator)
 }
 
 func NewLedgerResolversService(
 	accountSvc ledgeraccount.Service,
 	repo resolvers.CustomerAccountRepo,
+	locker *lockr.Locker,
 ) *resolvers.AccountResolver {
 	return resolvers.NewAccountResolver(resolvers.AccountResolverConfig{
 		AccountService: accountSvc,
 		Repo:           repo,
+		Locker:         locker,
 	})
+}
+
+func NewLedgerNamespaceHandler(accountResolver *resolvers.AccountResolver) namespace.Handler {
+	return resolvers.NewNamespaceHandler(accountResolver)
 }

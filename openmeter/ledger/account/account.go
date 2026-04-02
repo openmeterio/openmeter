@@ -72,6 +72,12 @@ type Account struct {
 var _ ledger.Account = (*Account)(nil)
 
 func (a *Account) GetBalance(ctx context.Context, query ledger.RouteFilter) (ledger.Balance, error) {
+	// TODO: this is a hack
+	// package boundary between account and historical ledger is incorrect, dependency resolution is broken
+	if a.services.Querier == nil {
+		return nil, fmt.Errorf("account %s in namespace %s cannot query balances: querier is not configured", a.data.ID.ID, a.data.ID.Namespace)
+	}
+
 	// We can store the last cursor and balance, this will be added later
 	lastClosingCursor := (*pagination.Cursor)(nil)
 	periodSinceListClosing := (*timeutil.OpenPeriod)(nil)

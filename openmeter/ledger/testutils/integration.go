@@ -1,9 +1,7 @@
 package testutils
 
 import (
-	"context"
 	"fmt"
-	"log/slog"
 	"testing"
 	"time"
 
@@ -13,18 +11,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
-	accountadapter "github.com/openmeterio/openmeter/openmeter/ledger/account/adapter"
-	accountservice "github.com/openmeterio/openmeter/openmeter/ledger/account/service"
-	"github.com/openmeterio/openmeter/openmeter/ledger/historical"
-	historicaladapter "github.com/openmeterio/openmeter/openmeter/ledger/historical/adapter"
-	"github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
-	resolversadapter "github.com/openmeterio/openmeter/openmeter/ledger/resolvers/adapter"
-	"github.com/openmeterio/openmeter/openmeter/ledger/routingrules"
 	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
@@ -36,14 +25,6 @@ type IntegrationEnv struct {
 	CustomerAccounts ledger.CustomerAccounts
 	BusinessAccounts ledger.BusinessAccounts
 	Deps             Deps
-}
-
-type lazyQuerier struct {
-	querier ledger.Querier
-}
-
-func (l *lazyQuerier) SumEntries(ctx context.Context, query ledger.Query) (ledger.QuerySummedResult, error) {
-	return l.querier.SumEntries(ctx, query)
 }
 
 func NewIntegrationEnv(t *testing.T, namespacePrefix string) *IntegrationEnv {
@@ -73,36 +54,10 @@ func NewIntegrationEnv(t *testing.T, namespacePrefix string) *IntegrationEnv {
 	require.NoError(t, migrator.Up())
 
 	namespace := fmt.Sprintf("%s-%d", namespacePrefix, clock.Now().UnixNano())
-	lq := &lazyQuerier{}
-
-	locker, err := lockr.NewLocker(&lockr.LockerConfig{
-		Logger: slog.Default(),
-	})
-	require.NoError(t, err)
 
 	db := testDB.EntDriver.Client()
-	accountRepo := accountadapter.NewRepo(db)
-	live := ledgeraccount.AccountLiveServices{
-		Locker:  locker,
-		Querier: lq,
-	}
-	accountSvc := accountservice.New(accountRepo, live)
-
-	historicalRepo := historicaladapter.NewRepo(db)
-	historicalLedger := historical.NewLedger(historicalRepo, accountSvc, locker, routingrules.DefaultValidator)
-	lq.querier = historicalLedger
-
-	resolversRepo := resolversadapter.NewRepo(db)
-	resolversService := resolvers.NewAccountResolver(resolvers.AccountResolverConfig{
-		AccountService: accountSvc,
-		Repo:           resolversRepo,
-	})
-
-	deps := Deps{
-		AccountService:   accountSvc,
-		ResolversService: resolversService,
-		HistoricalLedger: historicalLedger,
-	}
+	deps, err := InitDeps(db, omtestutils.NewDiscardLogger(t))
+	require.NoError(t, err)
 
 	customerID := customer.CustomerID{
 		Namespace: namespace,
@@ -111,7 +66,7 @@ func NewIntegrationEnv(t *testing.T, namespacePrefix string) *IntegrationEnv {
 	customerAccounts, err := deps.ResolversService.CreateCustomerAccounts(t.Context(), customerID)
 	require.NoError(t, err)
 
-	businessAccounts, err := deps.ResolversService.GetBusinessAccounts(t.Context(), namespace)
+	businessAccounts, err := deps.ResolversService.EnsureBusinessAccounts(t.Context(), namespace)
 	require.NoError(t, err)
 
 	return &IntegrationEnv{

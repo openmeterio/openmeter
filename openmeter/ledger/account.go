@@ -32,6 +32,18 @@ const (
 	AccountTypeBrokerage AccountType = "brokerage"
 )
 
+var CustomerAccountTypes = []AccountType{
+	AccountTypeCustomerFBO,
+	AccountTypeCustomerReceivable,
+	AccountTypeCustomerAccrued,
+}
+
+var BusinessAccountTypes = []AccountType{
+	AccountTypeWash,
+	AccountTypeEarnings,
+	AccountTypeBrokerage,
+}
+
 type BusinessAccounts struct {
 	WashAccount      BusinessAccount
 	EarningsAccount  BusinessAccount
@@ -51,5 +63,6 @@ func (t AccountType) Validate() error {
 
 type AccountResolver interface {
 	GetCustomerAccounts(ctx context.Context, customerID customer.CustomerID) (CustomerAccounts, error)
+	EnsureBusinessAccounts(ctx context.Context, namespace string) (BusinessAccounts, error)
 	GetBusinessAccounts(ctx context.Context, namespace string) (BusinessAccounts, error)
 }

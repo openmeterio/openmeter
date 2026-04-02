@@ -88,6 +88,13 @@ var ErrCustomerAccountMissing = models.NewValidationIssue(
 	"required customer ledger account is missing",
 )
 
+const ErrCodeBusinessAccountMissing models.ErrorCode = "ledger_business_account_missing"
+
+var ErrBusinessAccountMissing = models.NewValidationIssue(
+	ErrCodeBusinessAccountMissing,
+	"required business ledger account is missing",
+)
+
 const ErrCodeTransactionInputRequired models.ErrorCode = "ledger_transaction_input_required"
 
 var ErrTransactionInputRequired = models.NewValidationIssue(

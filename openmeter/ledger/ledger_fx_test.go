@@ -80,6 +80,8 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 	require.NoError(t, err)
 	customerAccounts2, err := resolversSvc.CreateCustomerAccounts(ctx, customerID)
 	require.NoError(t, err)
+	_, err = resolversSvc.EnsureBusinessAccounts(ctx, namespace)
+	require.NoError(t, err)
 
 	fboSub1, err := customerAccounts1.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
 		Currency:       currencyx.Code("USD"),

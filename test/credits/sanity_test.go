@@ -903,8 +903,11 @@ func (s *CreditsTestSuite) createMockChargeIntent(input createMockChargeIntentIn
 func (s *CreditsTestSuite) createLedgerBackedCustomer(ns string, subjectKey string) *customer.Customer {
 	s.T().Helper()
 
+	_, err := s.LedgerResolver.EnsureBusinessAccounts(context.Background(), ns)
+	s.NoError(err)
+
 	cust := s.CreateTestCustomer(ns, subjectKey)
-	_, err := s.LedgerResolver.CreateCustomerAccounts(context.Background(), cust.GetID())
+	_, err = s.LedgerResolver.CreateCustomerAccounts(context.Background(), cust.GetID())
 	s.NoError(err)
 
 	return cust
