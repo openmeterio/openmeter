@@ -28,6 +28,10 @@ func (*spyCustomerTemplate) resolve(context.Context, customer.CustomerID, Resolv
 	return nil, nil
 }
 
+func (*spyCustomerTemplate) correct(context.Context, CorrectionScope, ResolverDependencies) ([]ledger.TransactionInput, error) {
+	return nil, nil
+}
+
 var _ CustomerTransactionTemplate = (*spyCustomerTemplate)(nil)
 
 func TestResolveTransactions_callsResolverValidate(t *testing.T) {
@@ -46,7 +50,7 @@ func TestResolveTransactions_callsResolverValidate(t *testing.T) {
 		spy,
 	)
 	require.NoError(t, err)
-	require.Equal(t, 1, spy.validateCalls, "Resolver.Validate must be invoked for each template")
+	require.Equal(t, 1, spy.validateCalls, "TransactionTemplate.Validate must be invoked for each template")
 }
 
 type annotatedCustomerTemplate struct{}
@@ -61,6 +65,10 @@ func (annotatedCustomerTemplate) typeGuard() guard {
 
 func (annotatedCustomerTemplate) resolve(_ context.Context, _ customer.CustomerID, _ ResolverDependencies) (ledger.TransactionInput, error) {
 	return &TransactionInput{}, nil
+}
+
+func (annotatedCustomerTemplate) correct(context.Context, CorrectionScope, ResolverDependencies) ([]ledger.TransactionInput, error) {
+	return nil, nil
 }
 
 func TestResolveTransactions_addsTemplateAnnotations(t *testing.T) {

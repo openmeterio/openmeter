@@ -1,6 +1,10 @@
 package ledger
 
-import "github.com/openmeterio/openmeter/pkg/models"
+import (
+	"fmt"
+
+	"github.com/openmeterio/openmeter/pkg/models"
+)
 
 const (
 	AnnotationChargeNamespace = "ledger.charge.namespace"
@@ -28,5 +32,39 @@ func TransactionAnnotations(templateName string, direction TransactionDirection)
 	return models.Annotations{
 		AnnotationTransactionTemplateName: templateName,
 		AnnotationTransactionDirection:    string(direction),
+	}
+}
+
+func TransactionTemplateNameFromAnnotations(annotations models.Annotations) (string, error) {
+	raw, ok := annotations[AnnotationTransactionTemplateName]
+	if !ok {
+		return "", fmt.Errorf("transaction template name annotation is required")
+	}
+
+	name, ok := raw.(string)
+	if !ok || name == "" {
+		return "", fmt.Errorf("transaction template name annotation is invalid")
+	}
+
+	return name, nil
+}
+
+func TransactionDirectionFromAnnotations(annotations models.Annotations) (TransactionDirection, error) {
+	raw, ok := annotations[AnnotationTransactionDirection]
+	if !ok {
+		return "", fmt.Errorf("transaction direction annotation is required")
+	}
+
+	value, ok := raw.(string)
+	if !ok || value == "" {
+		return "", fmt.Errorf("transaction direction annotation is invalid")
+	}
+
+	direction := TransactionDirection(value)
+	switch direction {
+	case TransactionDirectionForward, TransactionDirectionCorrection:
+		return direction, nil
+	default:
+		return "", fmt.Errorf("invalid transaction direction annotation %q", value)
 	}
 }

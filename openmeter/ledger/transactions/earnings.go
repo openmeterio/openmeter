@@ -42,6 +42,10 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) typeGuard() guard {
 
 var _ CustomerTransactionTemplate = (RecognizeEarningsFromAttributableAccruedTemplate{})
 
+func (t RecognizeEarningsFromAttributableAccruedTemplate) correct(context.Context, CorrectionInput, ResolverDependencies) ([]ledger.TransactionInput, error) {
+	return nil, templateCorrectionNotImplemented(templateName(t))
+}
+
 func (t RecognizeEarningsFromAttributableAccruedTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
 	collections, err := collectFromAttributableCustomerAccrued(ctx, customerID, t.Currency, t.Amount, resolvers)
 	if err != nil {

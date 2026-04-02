@@ -27,7 +27,7 @@ func (e *transactionsTestEnv) resolverDeps() ResolverDependencies {
 	}
 }
 
-func (e *transactionsTestEnv) resolve(t *testing.T, templates ...Resolver) []ledger.TransactionInput {
+func (e *transactionsTestEnv) resolve(t *testing.T, templates ...TransactionTemplate) []ledger.TransactionInput {
 	t.Helper()
 
 	inputs, err := ResolveTransactions(
@@ -51,7 +51,7 @@ func (e *transactionsTestEnv) commit(t *testing.T, inputs ...ledger.TransactionI
 	require.NoError(t, err)
 }
 
-func (e *transactionsTestEnv) resolveAndCommit(t *testing.T, templates ...Resolver) []ledger.TransactionInput {
+func (e *transactionsTestEnv) resolveAndCommit(t *testing.T, templates ...TransactionTemplate) []ledger.TransactionInput {
 	t.Helper()
 
 	inputs := e.resolve(t, templates...)

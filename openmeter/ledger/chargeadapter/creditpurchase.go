@@ -198,7 +198,7 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, charge 
 		issuableAmount = alpacadecimal.Zero
 	}
 
-	var templates []transactions.Resolver
+	var templates []transactions.TransactionTemplate
 
 	if advanceAttributionAmount.IsPositive() {
 		templates = append(templates, transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{

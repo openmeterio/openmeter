@@ -42,6 +42,10 @@ func (t TransferCustomerFBOToAccruedTemplate) typeGuard() guard {
 
 var _ CustomerTransactionTemplate = (TransferCustomerFBOToAccruedTemplate{})
 
+func (t TransferCustomerFBOToAccruedTemplate) correct(context.Context, CorrectionInput, ResolverDependencies) ([]ledger.TransactionInput, error) {
+	return nil, templateCorrectionNotImplemented(templateName(t))
+}
+
 func (t TransferCustomerFBOToAccruedTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
 	collections, err := collectFromPrioritizedCustomerFBO(ctx, customerID, t.Currency, t.Amount, resolvers)
 	if err != nil {
@@ -179,6 +183,10 @@ func (t TransferCustomerFBOBucketToAccruedTemplate) typeGuard() guard {
 
 var _ CustomerTransactionTemplate = (TransferCustomerFBOBucketToAccruedTemplate{})
 
+func (t TransferCustomerFBOBucketToAccruedTemplate) correct(context.Context, CorrectionInput, ResolverDependencies) ([]ledger.TransactionInput, error) {
+	return nil, templateCorrectionNotImplemented(templateName(t))
+}
+
 func (t TransferCustomerFBOBucketToAccruedTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
 	priority := resolveCustomerFBOCreditPriority(t.CreditPriority)
 
@@ -257,6 +265,10 @@ func (t TransferCustomerReceivableToAccruedTemplate) typeGuard() guard {
 }
 
 var _ CustomerTransactionTemplate = (TransferCustomerReceivableToAccruedTemplate{})
+
+func (t TransferCustomerReceivableToAccruedTemplate) correct(context.Context, CorrectionInput, ResolverDependencies) ([]ledger.TransactionInput, error) {
+	return nil, templateCorrectionNotImplemented(templateName(t))
+}
 
 func (t TransferCustomerReceivableToAccruedTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
 	customerAccounts, err := resolvers.AccountService.GetCustomerAccounts(ctx, customerID)
@@ -345,6 +357,10 @@ func (t TranslateCustomerAccruedCostBasisTemplate) typeGuard() guard {
 }
 
 var _ CustomerTransactionTemplate = (TranslateCustomerAccruedCostBasisTemplate{})
+
+func (t TranslateCustomerAccruedCostBasisTemplate) correct(context.Context, CorrectionInput, ResolverDependencies) ([]ledger.TransactionInput, error) {
+	return nil, templateCorrectionNotImplemented(templateName(t))
+}
 
 func (t TranslateCustomerAccruedCostBasisTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
 	customerAccounts, err := resolvers.AccountService.GetCustomerAccounts(ctx, customerID)

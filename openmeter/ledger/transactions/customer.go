@@ -60,6 +60,10 @@ func (t IssueCustomerReceivableTemplate) typeGuard() guard {
 
 var _ CustomerTransactionTemplate = (IssueCustomerReceivableTemplate{})
 
+func (t IssueCustomerReceivableTemplate) correct(context.Context, CorrectionInput, ResolverDependencies) ([]ledger.TransactionInput, error) {
+	return nil, templateCorrectionNotImplemented(templateName(t))
+}
+
 func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
 	priority := resolveCustomerFBOCreditPriority(t.CreditPriority)
 
@@ -132,6 +136,10 @@ func (t FundCustomerReceivableTemplate) Validate() error {
 }
 
 var _ CustomerTransactionTemplate = (FundCustomerReceivableTemplate{})
+
+func (t FundCustomerReceivableTemplate) correct(context.Context, CorrectionInput, ResolverDependencies) ([]ledger.TransactionInput, error) {
+	return nil, templateCorrectionNotImplemented(templateName(t))
+}
 
 func (t FundCustomerReceivableTemplate) typeGuard() guard {
 	return true
@@ -216,6 +224,10 @@ func (t SettleCustomerReceivablePaymentTemplate) typeGuard() guard {
 
 var _ CustomerTransactionTemplate = (SettleCustomerReceivablePaymentTemplate{})
 
+func (t SettleCustomerReceivablePaymentTemplate) correct(context.Context, CorrectionInput, ResolverDependencies) ([]ledger.TransactionInput, error) {
+	return nil, templateCorrectionNotImplemented(templateName(t))
+}
+
 func (t SettleCustomerReceivablePaymentTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
 	customerAccounts, err := resolvers.AccountService.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
@@ -293,6 +305,10 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) typeGuard() guard {
 }
 
 var _ CustomerTransactionTemplate = (AttributeCustomerAdvanceReceivableCostBasisTemplate{})
+
+func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) correct(context.Context, CorrectionInput, ResolverDependencies) ([]ledger.TransactionInput, error) {
+	return nil, templateCorrectionNotImplemented(templateName(t))
+}
 
 func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
 	customerAccounts, err := resolvers.AccountService.GetCustomerAccounts(ctx, customerID)
@@ -376,6 +392,10 @@ func (t CoverCustomerReceivableTemplate) typeGuard() guard {
 }
 
 var _ CustomerTransactionTemplate = (CoverCustomerReceivableTemplate{})
+
+func (t CoverCustomerReceivableTemplate) correct(context.Context, CorrectionInput, ResolverDependencies) ([]ledger.TransactionInput, error) {
+	return nil, templateCorrectionNotImplemented(templateName(t))
+}
 
 func (t CoverCustomerReceivableTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
 	priority := resolveCustomerFBOCreditPriority(t.CreditPriority)

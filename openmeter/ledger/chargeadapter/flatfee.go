@@ -205,7 +205,7 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, charge flatfee
 		ID:        charge.ID,
 	})
 
-	var templates []transactions.Resolver
+	var templates []transactions.TransactionTemplate
 	if receivableReplenishment.IsPositive() {
 		templates = append(templates, transactions.FundCustomerReceivableTemplate{
 			At:        charge.Intent.InvoiceAt,
