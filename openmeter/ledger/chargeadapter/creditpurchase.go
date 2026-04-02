@@ -38,12 +38,21 @@ func NewCreditPurchaseHandler(
 }
 
 func (h *creditPurchaseHandler) OnPromotionalCreditPurchase(ctx context.Context, charge chargecreditpurchase.Charge) (ledgertransaction.GroupReference, error) {
+	return h.issueCreditPurchase(ctx, charge)
+}
+
+func (h *creditPurchaseHandler) OnCreditPurchaseInitiated(ctx context.Context, charge chargecreditpurchase.Charge) (ledgertransaction.GroupReference, error) {
+	return h.issueCreditPurchase(ctx, charge)
+}
+
+func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Context, charge chargecreditpurchase.Charge) (ledgertransaction.GroupReference, error) {
 	if err := charge.Validate(); err != nil {
 		return ledgertransaction.GroupReference{}, err
 	}
 
-	if charge.Intent.CreditAmount.IsZero() {
-		return ledgertransaction.GroupReference{}, nil
+	costBasis, err := charge.Intent.Settlement.GetCostBasis()
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("get cost basis: %w", err)
 	}
 
 	customerID := customer.CustomerID{
@@ -55,20 +64,6 @@ func (h *creditPurchaseHandler) OnPromotionalCreditPurchase(ctx context.Context,
 		ID:        charge.ID,
 	})
 
-	costBasis := alpacadecimal.Zero
-	advanceOutstanding, err := h.outstandingAdvanceBalance(ctx, customerID, charge.Intent.Currency)
-	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("get outstanding advance balance: %w", err)
-	}
-
-	issuableAmount := charge.Intent.CreditAmount.Sub(advanceOutstanding)
-	if issuableAmount.IsNegative() {
-		issuableAmount = alpacadecimal.Zero
-	}
-	if issuableAmount.IsZero() {
-		return ledgertransaction.GroupReference{}, nil
-	}
-
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
 		h.resolverDependencies(),
@@ -76,12 +71,11 @@ func (h *creditPurchaseHandler) OnPromotionalCreditPurchase(ctx context.Context,
 			CustomerID: customerID,
 			Namespace:  charge.Namespace,
 		},
-		transactions.IssueCustomerReceivableTemplate{
-			At:             charge.CreatedAt,
-			Amount:         charge.Intent.CreditAmount,
-			Currency:       charge.Intent.Currency,
-			CostBasis:      &costBasis,
-			CreditPriority: charge.Intent.Priority,
+		transactions.FundCustomerReceivableTemplate{
+			At:        charge.CreatedAt,
+			Amount:    charge.Intent.CreditAmount,
+			Currency:  charge.Intent.Currency,
+			CostBasis: &costBasis,
 		},
 	)
 	if err != nil {
@@ -102,7 +96,61 @@ func (h *creditPurchaseHandler) OnPromotionalCreditPurchase(ctx context.Context,
 	}, nil
 }
 
-func (h *creditPurchaseHandler) OnCreditPurchaseInitiated(ctx context.Context, charge chargecreditpurchase.Charge) (ledgertransaction.GroupReference, error) {
+func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Context, charge chargecreditpurchase.Charge) (ledgertransaction.GroupReference, error) {
+	if err := charge.Validate(); err != nil {
+		return ledgertransaction.GroupReference{}, err
+	}
+
+	costBasis, err := charge.Intent.Settlement.GetCostBasis()
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("get cost basis: %w", err)
+	}
+
+	customerID := customer.CustomerID{
+		Namespace: charge.Namespace,
+		ID:        charge.Intent.CustomerID,
+	}
+	annotations := ledger.ChargeAnnotations(models.NamespacedID{
+		Namespace: charge.Namespace,
+		ID:        charge.ID,
+	})
+
+	inputs, err := transactions.ResolveTransactions(
+		ctx,
+		h.resolverDependencies(),
+		transactions.ResolutionScope{
+			CustomerID: customerID,
+			Namespace:  charge.Namespace,
+		},
+		transactions.SettleCustomerReceivablePaymentTemplate{
+			At:        charge.CreatedAt,
+			Amount:    charge.Intent.CreditAmount,
+			Currency:  charge.Intent.Currency,
+			CostBasis: &costBasis,
+		},
+	)
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("resolve transactions: %w", err)
+	}
+
+	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
+		charge.Namespace,
+		annotations,
+		inputs...,
+	))
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("commit ledger transaction group: %w", err)
+	}
+
+	return ledgertransaction.GroupReference{
+		TransactionGroupID: transactionGroup.ID().ID,
+	}, nil
+}
+
+// issueCreditPurchase is the shared logic for issuing credits (both promotional and externally settled).
+// It attributes outstanding advance receivables and unattributed accrued balances to the given cost basis,
+// then issues new receivables for any remaining amount.
+func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, charge chargecreditpurchase.Charge) (ledgertransaction.GroupReference, error) {
 	if err := charge.Validate(); err != nil {
 		return ledgertransaction.GroupReference{}, err
 	}
@@ -111,9 +159,9 @@ func (h *creditPurchaseHandler) OnCreditPurchaseInitiated(ctx context.Context, c
 		return ledgertransaction.GroupReference{}, nil
 	}
 
-	externalSettlement, err := charge.Intent.Settlement.AsExternalSettlement()
+	costBasis, err := charge.Intent.Settlement.GetCostBasis()
 	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("external settlement: %w", err)
+		return ledgertransaction.GroupReference{}, fmt.Errorf("get cost basis: %w", err)
 	}
 
 	customerID := customer.CustomerID{
@@ -157,7 +205,7 @@ func (h *creditPurchaseHandler) OnCreditPurchaseInitiated(ctx context.Context, c
 			At:        charge.CreatedAt,
 			Amount:    advanceAttributionAmount,
 			Currency:  charge.Intent.Currency,
-			CostBasis: &externalSettlement.CostBasis,
+			CostBasis: &costBasis,
 		})
 	}
 
@@ -167,7 +215,7 @@ func (h *creditPurchaseHandler) OnCreditPurchaseInitiated(ctx context.Context, c
 			Amount:        accruedAttributionAmount,
 			Currency:      charge.Intent.Currency,
 			FromCostBasis: nil,
-			ToCostBasis:   &externalSettlement.CostBasis,
+			ToCostBasis:   &costBasis,
 		})
 	}
 
@@ -176,7 +224,7 @@ func (h *creditPurchaseHandler) OnCreditPurchaseInitiated(ctx context.Context, c
 			At:             charge.CreatedAt,
 			Amount:         issuableAmount,
 			Currency:       charge.Intent.Currency,
-			CostBasis:      &externalSettlement.CostBasis,
+			CostBasis:      &costBasis,
 			CreditPriority: charge.Intent.Priority,
 		})
 	}
@@ -193,108 +241,6 @@ func (h *creditPurchaseHandler) OnCreditPurchaseInitiated(ctx context.Context, c
 			Namespace:  charge.Namespace,
 		},
 		templates...,
-	)
-	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("resolve transactions: %w", err)
-	}
-
-	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
-		charge.Namespace,
-		annotations,
-		inputs...,
-	))
-	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("commit ledger transaction group: %w", err)
-	}
-
-	return ledgertransaction.GroupReference{
-		TransactionGroupID: transactionGroup.ID().ID,
-	}, nil
-}
-
-func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Context, charge chargecreditpurchase.Charge) (ledgertransaction.GroupReference, error) {
-	if err := charge.Validate(); err != nil {
-		return ledgertransaction.GroupReference{}, err
-	}
-
-	externalSettlement, err := charge.Intent.Settlement.AsExternalSettlement()
-	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("external settlement: %w", err)
-	}
-
-	customerID := customer.CustomerID{
-		Namespace: charge.Namespace,
-		ID:        charge.Intent.CustomerID,
-	}
-	annotations := ledger.ChargeAnnotations(models.NamespacedID{
-		Namespace: charge.Namespace,
-		ID:        charge.ID,
-	})
-
-	inputs, err := transactions.ResolveTransactions(
-		ctx,
-		h.resolverDependencies(),
-		transactions.ResolutionScope{
-			CustomerID: customerID,
-			Namespace:  charge.Namespace,
-		},
-		transactions.FundCustomerReceivableTemplate{
-			At:        charge.CreatedAt,
-			Amount:    charge.Intent.CreditAmount,
-			Currency:  charge.Intent.Currency,
-			CostBasis: &externalSettlement.CostBasis,
-		},
-	)
-	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("resolve transactions: %w", err)
-	}
-
-	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
-		charge.Namespace,
-		annotations,
-		inputs...,
-	))
-	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("commit ledger transaction group: %w", err)
-	}
-
-	return ledgertransaction.GroupReference{
-		TransactionGroupID: transactionGroup.ID().ID,
-	}, nil
-}
-
-func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Context, charge chargecreditpurchase.Charge) (ledgertransaction.GroupReference, error) {
-	if err := charge.Validate(); err != nil {
-		return ledgertransaction.GroupReference{}, err
-	}
-
-	externalSettlement, err := charge.Intent.Settlement.AsExternalSettlement()
-	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("external settlement: %w", err)
-	}
-
-	customerID := customer.CustomerID{
-		Namespace: charge.Namespace,
-		ID:        charge.Intent.CustomerID,
-	}
-	annotations := ledger.ChargeAnnotations(models.NamespacedID{
-		Namespace: charge.Namespace,
-		ID:        charge.ID,
-	})
-
-	inputs, err := transactions.ResolveTransactions(
-		ctx,
-		h.resolverDependencies(),
-		transactions.ResolutionScope{
-			CustomerID: customerID,
-			Namespace:  charge.Namespace,
-		},
-		transactions.SettleCustomerReceivablePaymentTemplate{
-			At:        charge.CreatedAt,
-			Amount:    charge.Intent.CreditAmount,
-			Currency:  charge.Intent.Currency,
-			CostBasis: &externalSettlement.CostBasis,
-		},
 	)
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("resolve transactions: %w", err)
