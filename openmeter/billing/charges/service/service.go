@@ -2,6 +2,8 @@ package service
 
 import (
 	"errors"
+	"fmt"
+	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
@@ -97,6 +99,16 @@ func New(config Config) (*service, error) {
 	config.BillingService.RegisterStandardInvoiceHooks(standardInvoiceEventHandler)
 
 	return svc, nil
+}
+
+func (s *service) validateNamespaceLockdown(namespace string) error {
+	if slices.Contains(s.fsNamespaceLockdown, namespace) {
+		return billing.ValidationError{
+			Err: fmt.Errorf("%w: %s", billing.ErrNamespaceLocked, namespace),
+		}
+	}
+
+	return nil
 }
 
 var _ charges.Service = (*service)(nil)
