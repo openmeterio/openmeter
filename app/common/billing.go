@@ -44,6 +44,14 @@ type BillingRegistry struct {
 	Charges *ChargesRegistry
 }
 
+func (r BillingRegistry) InvoicePendingLinesService() billing.InvoicePendingLinesService {
+	if r.Charges != nil {
+		return r.Charges.Service
+	}
+
+	return r.Billing
+}
+
 func (r BillingRegistry) ChargesServiceOrNil() charges.Service {
 	if r.Charges == nil {
 		return nil
@@ -240,9 +248,10 @@ func NewBillingAutoAdvancer(logger *slog.Logger, billingRegistry BillingRegistry
 
 func NewBillingCollector(logger *slog.Logger, billingRegistry BillingRegistry, fs config.BillingFeatureSwitchesConfiguration) (*billingworkercollect.InvoiceCollector, error) {
 	return billingworkercollect.NewInvoiceCollector(billingworkercollect.Config{
-		BillingService:   billingRegistry.Billing,
-		Logger:           logger,
-		LockedNamespaces: fs.NamespaceLockdown,
+		GatheringInvoiceService:    billingRegistry.Billing,
+		InvoicePendingLinesService: billingRegistry.InvoicePendingLinesService(),
+		Logger:                     logger,
+		LockedNamespaces:           fs.NamespaceLockdown,
 	})
 }
 
@@ -263,11 +272,12 @@ func NewBillingSubscriptionSyncAdapter(db *entdb.Client) (subscriptionsync.Adapt
 
 func NewBillingSubscriptionSyncService(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, billingRegistry BillingRegistry, subscriptionSyncAdapter subscriptionsync.Adapter, tracer trace.Tracer) (subscriptionsync.Service, error) {
 	return subscriptionsyncservice.New(subscriptionsyncservice.Config{
-		SubscriptionService:     subsServices.Service,
-		BillingService:          billingRegistry.Billing,
-		ChargesService:          billingRegistry.ChargesServiceOrNil(),
-		SubscriptionSyncAdapter: subscriptionSyncAdapter,
-		Logger:                  logger,
-		Tracer:                  tracer,
+		SubscriptionService:        subsServices.Service,
+		BillingService:             billingRegistry.Billing,
+		InvoicePendingLinesService: billingRegistry.InvoicePendingLinesService(),
+		ChargesService:             billingRegistry.ChargesServiceOrNil(),
+		SubscriptionSyncAdapter:    subscriptionSyncAdapter,
+		Logger:                     logger,
+		Tracer:                     tracer,
 	})
 }

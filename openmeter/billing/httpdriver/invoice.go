@@ -155,7 +155,7 @@ func (h *handler) InvoicePendingLinesAction() InvoicePendingLinesActionHandler {
 			}, nil
 		},
 		func(ctx context.Context, request InvoicePendingLinesActionRequest) (InvoicePendingLinesActionResponse, error) {
-			invoices, err := h.service.InvoicePendingLines(ctx, request)
+			invoices, err := h.invoicePendingLinesService.InvoicePendingLines(ctx, request)
 			if err != nil {
 				return nil, err
 			}

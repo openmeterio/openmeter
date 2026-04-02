@@ -723,6 +723,7 @@ func getTestServer(t *testing.T) (*Server, *MockStreamingConnector) {
 			AppStripe:                   appStripeService,
 			AppCustomInvoicing:          appCustomInvoicingService,
 			Billing:                     billingService,
+			BillingInvoicePendingLines:  billingService,
 			CostService:                 &NoopCostService{},
 			Customer:                    customerService,
 			CurrencyService:             &NoopCurrencyService{},

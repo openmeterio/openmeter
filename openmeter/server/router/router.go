@@ -97,6 +97,7 @@ type Config struct {
 	AppStripe                   appstripe.Service
 	AppCustomInvoicing          appcustominvoicing.SyncService
 	Billing                     billing.Service
+	BillingInvoicePendingLines  billing.InvoicePendingLinesService
 	BillingFeatureSwitches      config.BillingFeatureSwitchesConfiguration
 	CurrencyService             currencies.CurrencyService
 	CostService                 cost.Service
@@ -170,6 +171,10 @@ func (c Config) Validate() error {
 
 	if c.Billing == nil {
 		return errors.New("billing service is required")
+	}
+
+	if c.BillingInvoicePendingLines == nil {
+		return errors.New("billing invoice pending lines service is required")
 	}
 
 	if c.DebugConnector == nil {
@@ -411,6 +416,7 @@ func NewRouter(config Config) (*Router, error) {
 		staticNamespaceDecoder,
 		config.BillingFeatureSwitches,
 		config.Billing,
+		config.BillingInvoicePendingLines,
 		config.App,
 		config.AppStripe,
 		httptransport.WithErrorHandler(config.ErrorHandler),
