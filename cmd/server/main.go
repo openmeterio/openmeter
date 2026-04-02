@@ -126,7 +126,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = app.Billing.ProvisionDefaultBillingProfile(ctx, app.NamespaceManager.GetDefaultNamespace())
+	err = app.BillingRegistry.Billing.ProvisionDefaultBillingProfile(ctx, app.NamespaceManager.GetDefaultNamespace())
 	if err != nil {
 		logger.Error("failed to provision default billing profile", "error", err)
 		os.Exit(1)
@@ -145,7 +145,7 @@ func main() {
 			App:                         app.AppRegistry.Service,
 			AppStripe:                   app.AppRegistry.Stripe,
 			AppCustomInvoicing:          app.AppRegistry.CustomInvoicing,
-			Billing:                     app.Billing,
+			Billing:                     app.BillingRegistry.Billing,
 			BillingFeatureSwitches:      conf.Billing.FeatureSwitches,
 			CurrencyService:             app.CurrencyService,
 			CostService:                 app.CostService,

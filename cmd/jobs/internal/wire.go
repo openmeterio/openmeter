@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingworkerautoadvance "github.com/openmeterio/openmeter/openmeter/billing/worker/advance"
 	billingworkercollect "github.com/openmeterio/openmeter/openmeter/billing/worker/collect"
 	billingworkersubscriptionreconciler "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/reconciler"
@@ -43,7 +42,7 @@ type Application struct {
 	AppStripe                     appstripe.Service
 	AppSandboxProvisioner         common.AppSandboxProvisioner
 	Customer                      customer.Service
-	Billing                       billing.Service
+	BillingRegistry               common.BillingRegistry
 	BillingAutoAdvancer           *billingworkerautoadvance.AutoAdvancer
 	BillingCollector              *billingworkercollect.InvoiceCollector
 	BillingSubscriptionReconciler *billingworkersubscriptionreconciler.Reconciler
@@ -96,6 +95,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.ProductCatalog,
 		common.ProgressManager,
 		common.Subscription,
+		common.LedgerStack,
 		common.Lockr,
 		common.Secret,
 		common.ServerProvisionTopics,

@@ -26,7 +26,6 @@ type WorkerOptions struct {
 
 	Logger *slog.Logger
 
-	BillingAdapter          billing.Adapter
 	BillingService          billing.Service
 	BillingSubscriptionSync subscriptionsync.Service
 	// External connectors
@@ -54,10 +53,6 @@ func (w WorkerOptions) Validate() error {
 
 	if w.BillingService == nil {
 		return fmt.Errorf("billing service is required")
-	}
-
-	if w.BillingAdapter == nil {
-		return fmt.Errorf("billing adapter is required")
 	}
 
 	if w.SubscriptionService == nil {

@@ -11,7 +11,6 @@ import (
 	"github.com/oklog/run"
 
 	"github.com/openmeterio/openmeter/app/config"
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingworker "github.com/openmeterio/openmeter/openmeter/billing/worker"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
@@ -35,6 +34,7 @@ var BillingWorker = wire.NewSet(
 	ProductCatalog,
 	Entitlement,
 	Billing,
+	LedgerStack,
 
 	NewBillingWorkerOptions,
 	NewBillingWorker,
@@ -74,8 +74,7 @@ func NewBillingWorkerOptions(
 	eventConfig config.EventsConfiguration,
 	routerOptions router.Options,
 	eventBus eventbus.Publisher,
-	billingService billing.Service,
-	billingAdapter billing.Adapter,
+	billingRegistry BillingRegistry,
 	subscriptionServices SubscriptionServiceWithWorkflow,
 	subscriptionSyncService subscriptionsync.Service,
 	billingFsConfig config.BillingFeatureSwitchesConfiguration,
@@ -86,8 +85,7 @@ func NewBillingWorkerOptions(
 
 		Router:                  routerOptions,
 		EventBus:                eventBus,
-		BillingService:          billingService,
-		BillingAdapter:          billingAdapter,
+		BillingService:          billingRegistry.Billing,
 		SubscriptionService:     subscriptionServices.Service,
 		BillingSubscriptionSync: subscriptionSyncService,
 		Logger:                  logger,

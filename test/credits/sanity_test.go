@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"testing"
 	"time"
 
@@ -14,7 +13,6 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/openmeterio/openmeter/app/common"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
@@ -29,8 +27,9 @@ import (
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgerresolvers "github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
-	"github.com/openmeterio/openmeter/openmeter/ledger/routingrules"
+	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -53,51 +52,26 @@ func TestCreditsTestSuite(t *testing.T) {
 	suite.Run(t, new(CreditsTestSuite))
 }
 
-type lazyQuerier struct {
-	querier ledger.Querier
-}
-
-func (l *lazyQuerier) SumEntries(ctx context.Context, query ledger.Query) (ledger.QuerySummedResult, error) {
-	return l.querier.SumEntries(ctx, query)
-}
-
 func (s *CreditsTestSuite) SetupSuite() {
 	s.BaseSuite.SetupSuite()
 
-	ledgerLocker, err := common.NewLocker(slog.Default())
+	logger := omtestutils.NewLogger(s.T())
+
+	deps, err := ledgertestutils.InitDeps(s.DBClient, logger)
 	s.NoError(err)
 
-	lq := &lazyQuerier{}
-	accountRepo := common.NewLedgerAccountRepo(s.DBClient)
-	accountLiveServices := ledgeraccount.AccountLiveServices{
-		Locker:  ledgerLocker,
-		Querier: lq,
-	}
-	accountService := common.NewLedgerAccountService(accountRepo, accountLiveServices)
-	historicalRepo := common.NewLedgerHistoricalRepo(s.DBClient)
-	historicalLedger := common.NewLedgerHistoricalLedger(
-		historicalRepo,
-		accountService,
-		ledgerLocker,
-		routingrules.DefaultValidator,
-	)
-	lq.querier = historicalLedger
-
-	resolversRepo := common.NewLedgerResolversRepo(s.DBClient)
-	accountResolver := common.NewLedgerResolversService(accountService, resolversRepo)
-
-	s.Ledger = historicalLedger
-	s.LedgerAccountService = accountService
-	s.LedgerResolver = accountResolver
+	s.Ledger = deps.HistoricalLedger
+	s.LedgerAccountService = deps.AccountService
+	s.LedgerResolver = deps.ResolversService
 
 	stack, err := chargestestutils.NewServices(s.T(), chargestestutils.Config{
 		Client:                s.DBClient,
-		Logger:                slog.Default(),
+		Logger:                logger,
 		BillingService:        s.BillingService,
 		FeatureService:        s.FeatureService,
 		StreamingConnector:    s.MockStreamingConnector,
-		FlatFeeHandler:        ledgerchargeadapter.NewFlatFeeHandler(historicalLedger, accountResolver, accountService),
-		CreditPurchaseHandler: ledgerchargeadapter.NewCreditPurchaseHandler(historicalLedger, accountResolver, accountService),
+		FlatFeeHandler:        ledgerchargeadapter.NewFlatFeeHandler(deps.HistoricalLedger, deps.ResolversService, deps.AccountService),
+		CreditPurchaseHandler: ledgerchargeadapter.NewCreditPurchaseHandler(deps.HistoricalLedger, deps.ResolversService, deps.AccountService),
 		UsageBasedHandler:     usagebased.UnimplementedHandler{},
 	})
 	s.NoError(err)

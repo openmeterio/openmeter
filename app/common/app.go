@@ -18,7 +18,6 @@ import (
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripeadapter "github.com/openmeterio/openmeter/openmeter/app/stripe/adapter"
 	appstripeservice "github.com/openmeterio/openmeter/openmeter/app/stripe/service"
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
@@ -55,7 +54,7 @@ func NewAppService(
 	})
 }
 
-func NewAppStripeService(logger *slog.Logger, db *entdb.Client, appsConfig config.AppsConfiguration, appService app.Service, customerService customer.Service, secretService secret.Service, billingService billing.Service, publisher eventbus.Publisher) (appstripe.Service, error) {
+func NewAppStripeService(logger *slog.Logger, db *entdb.Client, appsConfig config.AppsConfiguration, appService app.Service, customerService customer.Service, secretService secret.Service, billingRegistry BillingRegistry, publisher eventbus.Publisher) (appstripe.Service, error) {
 	appStripeAdapter, err := appstripeadapter.New(appstripeadapter.Config{
 		Client:          db,
 		AppService:      appService,
@@ -83,7 +82,7 @@ func NewAppStripeService(logger *slog.Logger, db *entdb.Client, appsConfig confi
 		Adapter:                    appStripeAdapter,
 		AppService:                 appService,
 		SecretService:              secretService,
-		BillingService:             billingService,
+		BillingService:             billingRegistry.Billing,
 		Logger:                     logger,
 		DisableWebhookRegistration: appsConfig.Stripe.DisableWebhookRegistration,
 		Publisher:                  publisher,
@@ -94,11 +93,11 @@ func NewAppStripeService(logger *slog.Logger, db *entdb.Client, appsConfig confi
 func NewAppSandboxFactory(
 	appsConfig config.AppsConfiguration,
 	appService app.Service,
-	billingService billing.Service,
+	billing BillingRegistry,
 ) (*appsandbox.Factory, error) {
 	factory, err := appsandbox.NewFactory(appsandbox.Config{
 		AppService:     appService,
-		BillingService: billingService,
+		BillingService: billing.Billing,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize app sandbox factory: %w", err)
@@ -107,7 +106,7 @@ func NewAppSandboxFactory(
 	return factory, nil
 }
 
-func NewAppSandboxProvisioner(ctx context.Context, logger *slog.Logger, appsConfig config.AppsConfiguration, appService app.Service, namespaceManager *namespace.Manager, billingService billing.Service, _ *appsandbox.Factory,
+func NewAppSandboxProvisioner(ctx context.Context, logger *slog.Logger, appsConfig config.AppsConfiguration, appService app.Service, namespaceManager *namespace.Manager, billingRegistry BillingRegistry, _ *appsandbox.Factory,
 ) (AppSandboxProvisioner, error) {
 	return func(ctx context.Context, orgID string) error {
 		app, err := appsandbox.AutoProvision(ctx, appsandbox.AutoProvisionInput{
@@ -124,7 +123,7 @@ func NewAppSandboxProvisioner(ctx context.Context, logger *slog.Logger, appsConf
 	}, nil
 }
 
-func NewAppCustomInvoicingService(logger *slog.Logger, db *entdb.Client, appsConfig config.AppsConfiguration, appService app.Service, customerService customer.Service, secretService secret.Service, billingService billing.Service, publisher eventbus.Publisher) (appcustominvoicing.Service, error) {
+func NewAppCustomInvoicingService(logger *slog.Logger, db *entdb.Client, appsConfig config.AppsConfiguration, appService app.Service, customerService customer.Service, secretService secret.Service, billingRegistry BillingRegistry, publisher eventbus.Publisher) (appcustominvoicing.Service, error) {
 	appCustomInvoicingAdapter, err := appcustominvoicingadapter.New(appcustominvoicingadapter.Config{
 		Client: db,
 		Logger: logger,
@@ -137,7 +136,7 @@ func NewAppCustomInvoicingService(logger *slog.Logger, db *entdb.Client, appsCon
 		Adapter:        appCustomInvoicingAdapter,
 		Logger:         logger,
 		AppService:     appService,
-		BillingService: billingService,
+		BillingService: billingRegistry.Billing,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create appcustominvoicing service: %w", err)
@@ -147,7 +146,7 @@ func NewAppCustomInvoicingService(logger *slog.Logger, db *entdb.Client, appsCon
 	_, err = appcustominvoicing.NewFactory(appcustominvoicing.FactoryConfig{
 		AppService:             appService,
 		CustomInvoicingService: service,
-		BillingService:         billingService,
+		BillingService:         billingRegistry.Billing,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create appcustominvoicing factory: %w", err)

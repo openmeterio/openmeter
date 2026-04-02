@@ -3,12 +3,16 @@ package testutils
 import (
 	"log/slog"
 
-	"github.com/openmeterio/openmeter/app/common"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
+	accountadapter "github.com/openmeterio/openmeter/openmeter/ledger/account/adapter"
+	accountservice "github.com/openmeterio/openmeter/openmeter/ledger/account/service"
 	"github.com/openmeterio/openmeter/openmeter/ledger/historical"
+	historicaladapter "github.com/openmeterio/openmeter/openmeter/ledger/historical/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
+	resolversadapter "github.com/openmeterio/openmeter/openmeter/ledger/resolvers/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ledger/routingrules"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
 
 type Deps struct {
@@ -18,18 +22,28 @@ type Deps struct {
 }
 
 func InitDeps(db *entdb.Client, logger *slog.Logger) (Deps, error) {
-	repo := common.NewLedgerAccountRepo(db)
-	locker, err := common.NewLocker(logger)
+	repo := accountadapter.NewRepo(db)
+	locker, err := lockr.NewLocker(&lockr.LockerConfig{
+		Logger: logger,
+	})
 	if err != nil {
 		return Deps{}, err
 	}
 
-	accountLiveServices := common.NewLedgerAccountLiveServices(locker)
-	accountService := common.NewLedgerAccountService(repo, accountLiveServices)
-	customerAccountRepo := common.NewLedgerResolversRepo(db)
-	accountResolver := common.NewLedgerResolversService(accountService, customerAccountRepo)
-	historicalRepo := common.NewLedgerHistoricalRepo(db)
-	historicalLedger := common.NewLedgerHistoricalLedger(historicalRepo, accountService, locker, routingrules.DefaultValidator)
+	lq := &lazyQuerier{}
+	accountLiveServices := ledgeraccount.AccountLiveServices{
+		Locker:  locker,
+		Querier: lq,
+	}
+	accountService := accountservice.New(repo, accountLiveServices)
+	customerAccountRepo := resolversadapter.NewRepo(db)
+	accountResolver := resolvers.NewAccountResolver(resolvers.AccountResolverConfig{
+		AccountService: accountService,
+		Repo:           customerAccountRepo,
+	})
+	historicalRepo := historicaladapter.NewRepo(db)
+	historicalLedger := historical.NewLedger(historicalRepo, accountService, locker, routingrules.DefaultValidator)
+	lq.querier = historicalLedger
 
 	return Deps{
 		AccountService:   accountService,
