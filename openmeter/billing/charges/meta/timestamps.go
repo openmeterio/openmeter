@@ -16,7 +16,7 @@ func NormalizeTimestamp(t time.Time) time.Time {
 }
 
 func NormalizeOptionalTimestamp(t *time.Time) *time.Time {
-	if t == nil {
+	if t == nil || t.IsZero() {
 		return nil
 	}
 
