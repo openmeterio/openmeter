@@ -43,7 +43,8 @@ func (s *ChargeTimestampTruncationTestSuite) TestCreateTruncatesFlatFeeIntentAnd
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 
-	clock.SetTime(datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime())
+	clock.FreezeTime(datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime())
+	defer clock.UnFreeze()
 
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
@@ -107,7 +108,8 @@ func (s *ChargeTimestampTruncationTestSuite) TestUsageBasedAdvanceTruncatesPersi
 		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:01:00.750Z", time.UTC).AsTime(),
 	}
 
-	clock.SetTime(datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00.900Z", time.UTC).AsTime())
+	clock.FreezeTime(datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00.900Z", time.UTC).AsTime())
+	defer clock.UnFreeze()
 
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
@@ -148,7 +150,7 @@ func (s *ChargeTimestampTruncationTestSuite) TestUsageBasedAdvanceTruncatesPersi
 	)
 	s.True(datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:01:00Z", time.UTC).AsTime().Equal(createdUsageBased.Intent.InvoiceAt))
 
-	clock.SetTime(datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:02:00.900Z", time.UTC).AsTime())
+	clock.FreezeTime(datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:02:00.900Z", time.UTC).AsTime())
 
 	advanced, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
 		Customer: cust.GetID(),
