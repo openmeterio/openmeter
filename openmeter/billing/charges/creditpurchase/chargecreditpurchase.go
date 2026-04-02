@@ -108,7 +108,11 @@ func (i Intent) Validate() error {
 		errs = append(errs, fmt.Errorf("settlement: %w", err))
 	}
 
-	return errors.Join(errs...)
+	if i.EffectiveAt != nil {
+		return errors.New("effective at is not yet supported")
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type State struct {
