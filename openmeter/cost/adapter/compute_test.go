@@ -789,6 +789,98 @@ func TestGetLLMPricesEmptyProvider(t *testing.T) {
 	})
 }
 
+func TestUnknownTokenTypeSurfacesAsDetail(t *testing.T) {
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	windowEnd := now.Add(time.Hour)
+
+	feat := &feature.Feature{
+		Key:       "test-feature",
+		Namespace: "test-ns",
+		UnitCost: &feature.UnitCost{
+			Type: feature.UnitCostTypeLLM,
+			LLM: &feature.LLMUnitCost{
+				ProviderProperty:  "provider",
+				ModelProperty:     "model",
+				TokenTypeProperty: "type",
+			},
+		},
+	}
+
+	t.Run("unknown token type surfaces as detail not fatal error", func(t *testing.T) {
+		rows := []meter.MeterQueryRow{
+			{
+				Value:       100,
+				WindowStart: now,
+				WindowEnd:   windowEnd,
+				GroupBy: map[string]*string{
+					"provider": strPtr("openai"),
+					"model":    strPtr("gpt-4"),
+					"type":     strPtr("total"),
+				},
+			},
+		}
+
+		a := &adapter{llmcostService: &mockLLMCostServiceWithPrices{}}
+		ctx := context.Background()
+		priceCache := a.getLLMPrices(ctx, feat, rows)
+
+		internalKeys := []string{"provider", "model", "type"}
+		costRows, _, err := computeCostRows(rows, internalKeys, a.makeCostResolver(ctx, feat, priceCache))
+
+		require.NoError(t, err)
+		require.Len(t, costRows, 1)
+
+		assert.Nil(t, costRows[0].Cost)
+		assert.Contains(t, costRows[0].Detail, "unknown LLM token type: total")
+	})
+
+	t.Run("known token types still resolve cost when unknown types are present", func(t *testing.T) {
+		rows := []meter.MeterQueryRow{
+			{
+				Value:       50,
+				WindowStart: now,
+				WindowEnd:   windowEnd,
+				GroupBy: map[string]*string{
+					"provider": strPtr("openai"),
+					"model":    strPtr("gpt-4"),
+					"type":     strPtr("input"),
+				},
+			},
+			{
+				Value:       100,
+				WindowStart: now,
+				WindowEnd:   windowEnd,
+				GroupBy: map[string]*string{
+					"provider": strPtr("openai"),
+					"model":    strPtr("gpt-4"),
+					"type":     strPtr("total"),
+				},
+			},
+		}
+
+		a := &adapter{llmcostService: &mockLLMCostServiceWithPrices{}}
+		ctx := context.Background()
+		priceCache := a.getLLMPrices(ctx, feat, rows)
+
+		internalKeys := []string{"provider", "model", "type"}
+		costRows, cur, err := computeCostRows(rows, internalKeys, a.makeCostResolver(ctx, feat, priceCache))
+
+		require.NoError(t, err)
+		require.Len(t, costRows, 1)
+
+		// Cost should include only the "input" portion: 50 * 0.00003 = 0.0015
+		require.NotNil(t, costRows[0].Cost)
+		assert.True(t, costRows[0].Cost.Equal(mustDecimal(50*0.00003)))
+		assert.Equal(t, currencyx.Code(currency.USD), cur)
+
+		// Detail should mention the unknown token type.
+		assert.Contains(t, costRows[0].Detail, "unknown LLM token type: total")
+
+		// Usage should be the sum of both rows.
+		assert.True(t, costRows[0].Usage.Equal(mustDecimal(150)))
+	})
+}
+
 // mockLLMCostService is a minimal mock for llmcost.Service used in tests
 // that exercise the adapter's error handling paths.
 type mockLLMCostService struct {
@@ -796,6 +888,24 @@ type mockLLMCostService struct {
 }
 
 func (m *mockLLMCostService) ResolvePrice(_ context.Context, input llmcost.ResolvePriceInput) (llmcost.Price, error) {
+	return llmcost.Price{}, llmcost.NewPriceNotFoundError(string(input.Provider), input.ModelID)
+}
+
+// mockLLMCostServiceWithPrices returns a valid price for openai/gpt-4.
+type mockLLMCostServiceWithPrices struct {
+	llmcost.Service
+}
+
+func (m *mockLLMCostServiceWithPrices) ResolvePrice(_ context.Context, input llmcost.ResolvePriceInput) (llmcost.Price, error) {
+	if string(input.Provider) == "openai" && input.ModelID == "gpt-4" {
+		return llmcost.Price{
+			Currency: "USD",
+			Pricing: llmcost.ModelPricing{
+				InputPerToken:  mustDecimal(0.00003),
+				OutputPerToken: mustDecimal(0.00006),
+			},
+		}, nil
+	}
 	return llmcost.Price{}, llmcost.NewPriceNotFoundError(string(input.Provider), input.ModelID)
 }
 
