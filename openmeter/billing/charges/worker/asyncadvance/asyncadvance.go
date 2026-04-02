@@ -49,7 +49,6 @@ func (h *Handler) Handle(ctx context.Context, event *charges.AdvanceChargesEvent
 			ID:        event.CustomerID,
 		},
 	})
-
 	if err != nil {
 		h.logger.WarnContext(ctx, "failed to advance charges",
 			slog.String("namespace", event.Namespace),
