@@ -15,7 +15,6 @@ import (
 // goverter:useZeroValueOnPointerInconsistency
 // goverter:useUnderlyingTypeMethods
 // goverter:matchIgnoreCase
-// goverter:extend ConvertMetadataToLabels
 // goverter:extend ConvertAPIAppTypeToDomainAppType
 // goverter:extend ConvertDomainAppTypeToAPIAppType
 // goverter:extend ConvertAppMappingsToAPIAppMappings
@@ -23,6 +22,7 @@ var (
 	// goverter:context namespace
 	// goverter:map Namespace | NamespaceFromContext
 	// goverter:map Labels Metadata
+	// goverter:ignore Annotations
 	ConvertFromCreateTaxCodeRequestToCreateTaxCodeInput func(namespace string, createTaxCodeRequest api.CreateTaxCodeRequest) (taxcode.CreateTaxCodeInput, error)
 
 	// goverter:context namespacedID
@@ -30,7 +30,7 @@ var (
 	// goverter:map Labels Metadata
 	ConvertFromUpsertTaxCodeRequestToUpdateTaxCodeInput func(namespacedID models.NamespacedID, upsertTaxCodeRequest api.UpsertTaxCodeRequest) (taxcode.UpdateTaxCodeInput, error)
 
-	// goverter:map Metadata Labels
+	// goverter:map . Labels | ConvertTaxCodeToLabels
 	// goverter:map NamespacedID.ID Id
 	// goverter:map ManagedModel.CreatedAt CreatedAt
 	// goverter:map ManagedModel.UpdatedAt UpdatedAt

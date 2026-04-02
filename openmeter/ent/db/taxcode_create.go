@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // TaxCodeCreate is the builder for creating a TaxCode entity.
@@ -109,6 +110,12 @@ func (_c *TaxCodeCreate) SetNillableDescription(v *string) *TaxCodeCreate {
 // SetKey sets the "key" field.
 func (_c *TaxCodeCreate) SetKey(v string) *TaxCodeCreate {
 	_c.mutation.SetKey(v)
+	return _c
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_c *TaxCodeCreate) SetAnnotations(v models.Annotations) *TaxCodeCreate {
+	_c.mutation.SetAnnotations(v)
 	return _c
 }
 
@@ -404,6 +411,10 @@ func (_c *TaxCodeCreate) createSpec() (*TaxCode, *sqlgraph.CreateSpec, error) {
 		_spec.SetField(dbtaxcode.FieldKey, field.TypeString, value)
 		_node.Key = value
 	}
+	if value, ok := _c.mutation.Annotations(); ok {
+		_spec.SetField(dbtaxcode.FieldAnnotations, field.TypeJSON, value)
+		_node.Annotations = value
+	}
 	if value, ok := _c.mutation.AppMappings(); ok {
 		vv, err := dbtaxcode.ValueScanner.AppMappings.Value(value)
 		if err != nil {
@@ -670,6 +681,24 @@ func (u *TaxCodeUpsert) ClearDescription() *TaxCodeUpsert {
 	return u
 }
 
+// SetAnnotations sets the "annotations" field.
+func (u *TaxCodeUpsert) SetAnnotations(v models.Annotations) *TaxCodeUpsert {
+	u.Set(dbtaxcode.FieldAnnotations, v)
+	return u
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *TaxCodeUpsert) UpdateAnnotations() *TaxCodeUpsert {
+	u.SetExcluded(dbtaxcode.FieldAnnotations)
+	return u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *TaxCodeUpsert) ClearAnnotations() *TaxCodeUpsert {
+	u.SetNull(dbtaxcode.FieldAnnotations)
+	return u
+}
+
 // SetAppMappings sets the "app_mappings" field.
 func (u *TaxCodeUpsert) SetAppMappings(v *taxcode.TaxCodeAppMappings) *TaxCodeUpsert {
 	u.Set(dbtaxcode.FieldAppMappings, v)
@@ -833,6 +862,27 @@ func (u *TaxCodeUpsertOne) UpdateDescription() *TaxCodeUpsertOne {
 func (u *TaxCodeUpsertOne) ClearDescription() *TaxCodeUpsertOne {
 	return u.Update(func(s *TaxCodeUpsert) {
 		s.ClearDescription()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *TaxCodeUpsertOne) SetAnnotations(v models.Annotations) *TaxCodeUpsertOne {
+	return u.Update(func(s *TaxCodeUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *TaxCodeUpsertOne) UpdateAnnotations() *TaxCodeUpsertOne {
+	return u.Update(func(s *TaxCodeUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *TaxCodeUpsertOne) ClearAnnotations() *TaxCodeUpsertOne {
+	return u.Update(func(s *TaxCodeUpsert) {
+		s.ClearAnnotations()
 	})
 }
 
@@ -1172,6 +1222,27 @@ func (u *TaxCodeUpsertBulk) UpdateDescription() *TaxCodeUpsertBulk {
 func (u *TaxCodeUpsertBulk) ClearDescription() *TaxCodeUpsertBulk {
 	return u.Update(func(s *TaxCodeUpsert) {
 		s.ClearDescription()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *TaxCodeUpsertBulk) SetAnnotations(v models.Annotations) *TaxCodeUpsertBulk {
+	return u.Update(func(s *TaxCodeUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *TaxCodeUpsertBulk) UpdateAnnotations() *TaxCodeUpsertBulk {
+	return u.Update(func(s *TaxCodeUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *TaxCodeUpsertBulk) ClearAnnotations() *TaxCodeUpsertBulk {
+	return u.Update(func(s *TaxCodeUpsert) {
+		s.ClearAnnotations()
 	})
 }
 

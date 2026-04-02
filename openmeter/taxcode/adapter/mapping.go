@@ -30,5 +30,6 @@ func MapTaxCodeFromEntity(entity *db.TaxCode) (taxcode.TaxCode, error) {
 		Description: entity.Description,
 		AppMappings: lo.FromPtr(entity.AppMappings),
 		Metadata:    models.NewMetadata(entity.Metadata),
+		Annotations: entity.Annotations,
 	}, nil
 }

@@ -39,6 +39,15 @@ func (s *service) UpdateTaxCode(ctx context.Context, input taxcode.UpdateTaxCode
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (taxcode.TaxCode, error) {
+		existing, err := s.adapter.GetTaxCode(ctx, taxcode.GetTaxCodeInput{NamespacedID: input.NamespacedID})
+		if err != nil {
+			return taxcode.TaxCode{}, err
+		}
+
+		if existing.IsManagedBySystem() {
+			return taxcode.TaxCode{}, taxcode.ErrTaxCodeManagedBySystem
+		}
+
 		return s.adapter.UpdateTaxCode(ctx, input)
 	})
 }
@@ -101,6 +110,9 @@ func (s *service) GetOrCreateByAppMapping(ctx context.Context, input taxcode.Get
 			AppMappings: taxcode.TaxCodeAppMappings{
 				{AppType: input.AppType, TaxCode: input.TaxCode},
 			},
+			Annotations: models.Annotations{
+				taxcode.AnnotationKeyManagedBy: taxcode.AnnotationValueManagedBySystem,
+			},
 		})
 		if err != nil {
 			// Another request may have created it concurrently.
@@ -121,6 +133,15 @@ func (s *service) DeleteTaxCode(ctx context.Context, input taxcode.DeleteTaxCode
 	}
 
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
+		existing, err := s.adapter.GetTaxCode(ctx, taxcode.GetTaxCodeInput{NamespacedID: input.NamespacedID})
+		if err != nil {
+			return err
+		}
+
+		if existing.IsManagedBySystem() {
+			return taxcode.ErrTaxCodeManagedBySystem
+		}
+
 		return s.adapter.DeleteTaxCode(ctx, input)
 	})
 }

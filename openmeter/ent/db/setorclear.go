@@ -5183,6 +5183,20 @@ func (u *TaxCodeUpdateOne) SetOrClearDescription(value *string) *TaxCodeUpdateOn
 	return u.SetDescription(*value)
 }
 
+func (u *TaxCodeUpdate) SetOrClearAnnotations(value *models.Annotations) *TaxCodeUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *TaxCodeUpdateOne) SetOrClearAnnotations(value *models.Annotations) *TaxCodeUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
 func (u *TaxCodeUpdate) SetOrClearAppMappings(value **taxcode.TaxCodeAppMappings) *TaxCodeUpdate {
 	if value == nil {
 		return u.ClearAppMappings()

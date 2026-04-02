@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // TaxCode is the model entity for the TaxCode schema.
@@ -35,6 +36,8 @@ type TaxCode struct {
 	Description *string `json:"description,omitempty"`
 	// Key holds the value of the "key" field.
 	Key string `json:"key,omitempty"`
+	// Annotations holds the value of the "annotations" field.
+	Annotations models.Annotations `json:"annotations,omitempty"`
 	// AppMappings holds the value of the "app_mappings" field.
 	AppMappings *taxcode.TaxCodeAppMappings `json:"app_mappings,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -143,7 +146,7 @@ func (*TaxCode) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case dbtaxcode.FieldMetadata:
+		case dbtaxcode.FieldMetadata, dbtaxcode.FieldAnnotations:
 			values[i] = new([]byte)
 		case dbtaxcode.FieldID, dbtaxcode.FieldNamespace, dbtaxcode.FieldName, dbtaxcode.FieldDescription, dbtaxcode.FieldKey:
 			values[i] = new(sql.NullString)
@@ -223,6 +226,14 @@ func (_m *TaxCode) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field key", values[i])
 			} else if value.Valid {
 				_m.Key = value.String
+			}
+		case dbtaxcode.FieldAnnotations:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field annotations", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Annotations); err != nil {
+					return fmt.Errorf("unmarshal field annotations: %w", err)
+				}
 			}
 		case dbtaxcode.FieldAppMappings:
 			if value, err := dbtaxcode.ValueScanner.AppMappings.FromValue(values[i]); err != nil {
@@ -333,6 +344,9 @@ func (_m *TaxCode) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("key=")
 	builder.WriteString(_m.Key)
+	builder.WriteString(", ")
+	builder.WriteString("annotations=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Annotations))
 	builder.WriteString(", ")
 	if v := _m.AppMappings; v != nil {
 		builder.WriteString("app_mappings=")

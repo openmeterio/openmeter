@@ -27,7 +27,8 @@ func (a *adapter) CreateTaxCode(ctx context.Context, input taxcode.CreateTaxCode
 			SetKey(input.Key).
 			SetName(input.Name).
 			SetNillableDescription(input.Description).
-			SetMetadata(input.Metadata)
+			SetMetadata(input.Metadata).
+			SetAnnotations(input.Annotations)
 
 		if len(input.AppMappings) > 0 {
 			query = query.SetAppMappings(&input.AppMappings)

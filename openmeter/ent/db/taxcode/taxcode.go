@@ -32,6 +32,8 @@ const (
 	FieldDescription = "description"
 	// FieldKey holds the string denoting the key field in the database.
 	FieldKey = "key"
+	// FieldAnnotations holds the string denoting the annotations field in the database.
+	FieldAnnotations = "annotations"
 	// FieldAppMappings holds the string denoting the app_mappings field in the database.
 	FieldAppMappings = "app_mappings"
 	// EdgeBillingWorkflowConfigs holds the string denoting the billing_workflow_configs edge name in mutations.
@@ -121,6 +123,7 @@ var Columns = []string{
 	FieldName,
 	FieldDescription,
 	FieldKey,
+	FieldAnnotations,
 	FieldAppMappings,
 }
 

@@ -22,6 +22,7 @@ type TaxCode struct {
 func (TaxCode) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.UniqueResourceMixin{},
+		entutils.AnnotationsMixin{},
 	}
 }
 
