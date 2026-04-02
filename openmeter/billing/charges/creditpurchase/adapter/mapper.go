@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/pkg/convert"
 )
 
 func MapCreditPurchaseChargeFromDB(dbEntity *entdb.ChargeCreditPurchase, expands meta.Expands) (creditpurchase.Charge, error) {
@@ -55,6 +56,8 @@ func MapCreditPurchaseChargeFromDB(dbEntity *entdb.ChargeCreditPurchase, expands
 		Intent: creditpurchase.Intent{
 			Intent:       mappedMeta.Intent,
 			CreditAmount: dbEntity.CreditAmount,
+			EffectiveAt:  convert.SafeToUTC(dbEntity.EffectiveAt),
+			Priority:     dbEntity.Priority,
 			Settlement:   dbEntity.Settlement,
 		},
 		State: creditpurchase.State{

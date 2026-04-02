@@ -252,6 +252,34 @@ func (_c *ChargeCreditPurchaseCreate) SetCreditAmount(v alpacadecimal.Decimal) *
 	return _c
 }
 
+// SetEffectiveAt sets the "effective_at" field.
+func (_c *ChargeCreditPurchaseCreate) SetEffectiveAt(v time.Time) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetEffectiveAt(v)
+	return _c
+}
+
+// SetNillableEffectiveAt sets the "effective_at" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableEffectiveAt(v *time.Time) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetEffectiveAt(*v)
+	}
+	return _c
+}
+
+// SetPriority sets the "priority" field.
+func (_c *ChargeCreditPurchaseCreate) SetPriority(v int) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetPriority(v)
+	return _c
+}
+
+// SetNillablePriority sets the "priority" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillablePriority(v *int) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetPriority(*v)
+	}
+	return _c
+}
+
 // SetSettlement sets the "settlement" field.
 func (_c *ChargeCreditPurchaseCreate) SetSettlement(v creditpurchase.Settlement) *ChargeCreditPurchaseCreate {
 	_c.mutation.SetSettlement(v)
@@ -632,6 +660,14 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 	if value, ok := _c.mutation.CreditAmount(); ok {
 		_spec.SetField(chargecreditpurchase.FieldCreditAmount, field.TypeOther, value)
 		_node.CreditAmount = value
+	}
+	if value, ok := _c.mutation.EffectiveAt(); ok {
+		_spec.SetField(chargecreditpurchase.FieldEffectiveAt, field.TypeTime, value)
+		_node.EffectiveAt = &value
+	}
+	if value, ok := _c.mutation.Priority(); ok {
+		_spec.SetField(chargecreditpurchase.FieldPriority, field.TypeInt, value)
+		_node.Priority = &value
 	}
 	if value, ok := _c.mutation.Settlement(); ok {
 		vv, err := chargecreditpurchase.ValueScanner.Settlement.Value(value)
@@ -1127,6 +1163,12 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateNewValues() *ChargeCreditPurchaseU
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldCreatedAt)
+		}
+		if _, exists := u.create.mutation.EffectiveAt(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldEffectiveAt)
+		}
+		if _, exists := u.create.mutation.Priority(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldPriority)
 		}
 	}))
 	return u
@@ -1683,6 +1725,12 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateNewValues() *ChargeCreditPurchase
 			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldCreatedAt)
+			}
+			if _, exists := b.mutation.EffectiveAt(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldEffectiveAt)
+			}
+			if _, exists := b.mutation.Priority(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldPriority)
 			}
 		}
 	}))

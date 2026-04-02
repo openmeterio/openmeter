@@ -961,10 +961,10 @@ func init() {
 	// chargecreditpurchase.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	chargecreditpurchase.UpdateDefaultUpdatedAt = chargecreditpurchaseDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// chargecreditpurchaseDescSettlement is the schema descriptor for settlement field.
-	chargecreditpurchaseDescSettlement := chargecreditpurchaseFields[1].Descriptor()
+	chargecreditpurchaseDescSettlement := chargecreditpurchaseFields[3].Descriptor()
 	chargecreditpurchase.ValueScanner.Settlement = chargecreditpurchaseDescSettlement.ValueScanner.(field.TypeValueScanner[creditpurchase.Settlement])
 	// chargecreditpurchaseDescCreditGrantTransactionGroupID is the schema descriptor for credit_grant_transaction_group_id field.
-	chargecreditpurchaseDescCreditGrantTransactionGroupID := chargecreditpurchaseFields[2].Descriptor()
+	chargecreditpurchaseDescCreditGrantTransactionGroupID := chargecreditpurchaseFields[4].Descriptor()
 	// chargecreditpurchase.CreditGrantTransactionGroupIDValidator is a validator for the "credit_grant_transaction_group_id" field. It is called by the builders before save.
 	chargecreditpurchase.CreditGrantTransactionGroupIDValidator = chargecreditpurchaseDescCreditGrantTransactionGroupID.Validators[0].(func(string) error)
 	// chargecreditpurchaseDescID is the schema descriptor for id field.

@@ -170,6 +170,16 @@ func CreditAmount(v alpacadecimal.Decimal) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldCreditAmount, v))
 }
 
+// EffectiveAt applies equality check predicate on the "effective_at" field. It's identical to EffectiveAtEQ.
+func EffectiveAt(v time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldEffectiveAt, v))
+}
+
+// Priority applies equality check predicate on the "priority" field. It's identical to PriorityEQ.
+func Priority(v int) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldPriority, v))
+}
+
 // CreditGrantTransactionGroupID applies equality check predicate on the "credit_grant_transaction_group_id" field. It's identical to CreditGrantTransactionGroupIDEQ.
 func CreditGrantTransactionGroupID(v string) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldCreditGrantTransactionGroupID, v))
@@ -1372,6 +1382,106 @@ func CreditAmountLT(v alpacadecimal.Decimal) predicate.ChargeCreditPurchase {
 // CreditAmountLTE applies the LTE predicate on the "credit_amount" field.
 func CreditAmountLTE(v alpacadecimal.Decimal) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldLTE(FieldCreditAmount, v))
+}
+
+// EffectiveAtEQ applies the EQ predicate on the "effective_at" field.
+func EffectiveAtEQ(v time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldEffectiveAt, v))
+}
+
+// EffectiveAtNEQ applies the NEQ predicate on the "effective_at" field.
+func EffectiveAtNEQ(v time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNEQ(FieldEffectiveAt, v))
+}
+
+// EffectiveAtIn applies the In predicate on the "effective_at" field.
+func EffectiveAtIn(vs ...time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldIn(FieldEffectiveAt, vs...))
+}
+
+// EffectiveAtNotIn applies the NotIn predicate on the "effective_at" field.
+func EffectiveAtNotIn(vs ...time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNotIn(FieldEffectiveAt, vs...))
+}
+
+// EffectiveAtGT applies the GT predicate on the "effective_at" field.
+func EffectiveAtGT(v time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldGT(FieldEffectiveAt, v))
+}
+
+// EffectiveAtGTE applies the GTE predicate on the "effective_at" field.
+func EffectiveAtGTE(v time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldGTE(FieldEffectiveAt, v))
+}
+
+// EffectiveAtLT applies the LT predicate on the "effective_at" field.
+func EffectiveAtLT(v time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldLT(FieldEffectiveAt, v))
+}
+
+// EffectiveAtLTE applies the LTE predicate on the "effective_at" field.
+func EffectiveAtLTE(v time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldLTE(FieldEffectiveAt, v))
+}
+
+// EffectiveAtIsNil applies the IsNil predicate on the "effective_at" field.
+func EffectiveAtIsNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldIsNull(FieldEffectiveAt))
+}
+
+// EffectiveAtNotNil applies the NotNil predicate on the "effective_at" field.
+func EffectiveAtNotNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNotNull(FieldEffectiveAt))
+}
+
+// PriorityEQ applies the EQ predicate on the "priority" field.
+func PriorityEQ(v int) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldPriority, v))
+}
+
+// PriorityNEQ applies the NEQ predicate on the "priority" field.
+func PriorityNEQ(v int) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNEQ(FieldPriority, v))
+}
+
+// PriorityIn applies the In predicate on the "priority" field.
+func PriorityIn(vs ...int) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldIn(FieldPriority, vs...))
+}
+
+// PriorityNotIn applies the NotIn predicate on the "priority" field.
+func PriorityNotIn(vs ...int) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNotIn(FieldPriority, vs...))
+}
+
+// PriorityGT applies the GT predicate on the "priority" field.
+func PriorityGT(v int) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldGT(FieldPriority, v))
+}
+
+// PriorityGTE applies the GTE predicate on the "priority" field.
+func PriorityGTE(v int) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldGTE(FieldPriority, v))
+}
+
+// PriorityLT applies the LT predicate on the "priority" field.
+func PriorityLT(v int) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldLT(FieldPriority, v))
+}
+
+// PriorityLTE applies the LTE predicate on the "priority" field.
+func PriorityLTE(v int) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldLTE(FieldPriority, v))
+}
+
+// PriorityIsNil applies the IsNil predicate on the "priority" field.
+func PriorityIsNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldIsNull(FieldPriority))
+}
+
+// PriorityNotNil applies the NotNil predicate on the "priority" field.
+func PriorityNotNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNotNull(FieldPriority))
 }
 
 // CreditGrantTransactionGroupIDEQ applies the EQ predicate on the "credit_grant_transaction_group_id" field.

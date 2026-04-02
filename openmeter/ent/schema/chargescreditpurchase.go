@@ -34,6 +34,14 @@ func (ChargeCreditPurchase) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "numeric",
 			}),
+		field.Time("effective_at").
+			Optional().
+			Nillable().
+			Immutable(),
+		field.Int("priority").
+			Optional().
+			Nillable().
+			Immutable(),
 
 		field.String("settlement").
 			GoType(creditpurchase.Settlement{}).

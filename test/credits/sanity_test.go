@@ -405,6 +405,51 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 	})
 }
 
+func (s *CreditsTestSuite) TestCreditPurchasePersistsEffectiveAtAndPriority() {
+	ctx := context.Background()
+	ns := s.GetUniqueNamespace("charges-creditpurchase-effective-priority")
+
+	cust := s.createLedgerBackedCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	effectiveAtRaw := datetime.MustParseTimeInLocation(s.T(), "2026-01-01T12:34:56.789Z", time.UTC).AsTime()
+	effectiveAt := effectiveAtRaw.Truncate(time.Second)
+	priority := 7
+
+	intent := s.createCreditPurchaseIntent(createCreditPurchaseIntentInput{
+		customer:      cust.GetID(),
+		currency:      USD,
+		amount:        alpacadecimal.NewFromInt(25),
+		effectiveAt:   &effectiveAtRaw,
+		priority:      &priority,
+		servicePeriod: timeutil.ClosedPeriod{From: effectiveAt, To: effectiveAt},
+		settlement:    creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+	})
+
+	res, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			intent,
+		},
+	})
+	s.NoError(err)
+	s.Len(res, 1)
+
+	cpCharge, err := res[0].AsCreditPurchaseCharge()
+	s.NoError(err)
+	s.NotNil(cpCharge.State.CreditGrantRealization)
+
+	fetchedCharge, err := s.mustGetChargeByID(cpCharge.GetChargeID()).AsCreditPurchaseCharge()
+	s.NoError(err)
+	s.NotNil(fetchedCharge.Intent.EffectiveAt)
+	s.Equal(effectiveAt, *fetchedCharge.Intent.EffectiveAt)
+	s.Equal(&priority, fetchedCharge.Intent.Priority)
+
+	zeroCostBasis := alpacadecimal.Zero
+	s.True(s.mustCustomerFBOBalanceWithPriority(cust.GetID(), USD, &zeroCostBasis, priority).Equal(alpacadecimal.NewFromInt(25)))
+	s.True(s.mustCustomerFBOBalance(cust.GetID(), USD, &zeroCostBasis).Equal(alpacadecimal.Zero))
+}
+
 func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-sanity-test-credit-only")
@@ -914,6 +959,10 @@ func (s *CreditsTestSuite) createLedgerBackedCustomer(ns string, subjectKey stri
 }
 
 func (s *CreditsTestSuite) mustCustomerFBOBalance(customerID customer.CustomerID, code currencyx.Code, costBasis *alpacadecimal.Decimal) alpacadecimal.Decimal {
+	return s.mustCustomerFBOBalanceWithPriority(customerID, code, costBasis, ledger.DefaultCustomerFBOPriority)
+}
+
+func (s *CreditsTestSuite) mustCustomerFBOBalanceWithPriority(customerID customer.CustomerID, code currencyx.Code, costBasis *alpacadecimal.Decimal, priority int) alpacadecimal.Decimal {
 	s.T().Helper()
 
 	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
@@ -922,7 +971,7 @@ func (s *CreditsTestSuite) mustCustomerFBOBalance(customerID customer.CustomerID
 	subAccount, err := customerAccounts.FBOAccount.GetSubAccountForRoute(s.T().Context(), ledger.CustomerFBORouteParams{
 		Currency:       code,
 		CostBasis:      costBasis,
-		CreditPriority: ledger.DefaultCustomerFBOPriority,
+		CreditPriority: priority,
 	})
 	s.NoError(err)
 
@@ -1066,6 +1115,8 @@ type createCreditPurchaseIntentInput struct {
 	customer      customer.CustomerID
 	currency      currencyx.Code
 	amount        alpacadecimal.Decimal
+	effectiveAt   *time.Time
+	priority      *int
 	servicePeriod timeutil.ClosedPeriod
 	settlement    creditpurchase.Settlement
 }
@@ -1109,6 +1160,8 @@ func (s *CreditsTestSuite) createCreditPurchaseIntent(input createCreditPurchase
 			FullServicePeriod: input.servicePeriod,
 		},
 		CreditAmount: input.amount,
+		EffectiveAt:  input.effectiveAt,
+		Priority:     input.priority,
 		Settlement:   input.settlement,
 	})
 }

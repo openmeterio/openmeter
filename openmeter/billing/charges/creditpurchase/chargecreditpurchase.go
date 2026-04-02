@@ -3,12 +3,15 @@ package creditpurchase
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -64,6 +67,8 @@ type Intent struct {
 	meta.Intent
 
 	CreditAmount alpacadecimal.Decimal `json:"amount"`
+	EffectiveAt  *time.Time            `json:"effectiveAt"`
+	Priority     *int                  `json:"priority"`
 
 	// Settlement intent
 	Settlement Settlement `json:"settlement"`
@@ -71,6 +76,7 @@ type Intent struct {
 
 func (i Intent) Normalized() Intent {
 	i.Intent = i.Intent.Normalized()
+	i.EffectiveAt = meta.NormalizeOptionalTimestamp(i.EffectiveAt)
 
 	calc, err := i.Currency.Calculator()
 	if err == nil {
@@ -78,6 +84,10 @@ func (i Intent) Normalized() Intent {
 	}
 
 	return i
+}
+
+func (i Intent) CalculateEffectiveAt() time.Time {
+	return lo.FromPtrOr(i.EffectiveAt, clock.Now().UTC())
 }
 
 func (i Intent) Validate() error {
