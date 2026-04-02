@@ -314,7 +314,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	routingValidator := common.NewLedgerRoutingValidator()
 	ledger := common.NewLedgerHistoricalLedger(repo, accountService, locker, routingValidator)
 	customerAccountRepo := common.NewLedgerResolversRepo(client)
-	accountResolver := common.NewLedgerResolversService(accountService, customerAccountRepo)
+	accountResolver := common.NewLedgerResolversService(accountService, customerAccountRepo, locker)
 	billingRegistry, err := common.NewBillingRegistry(logger, appService, billingAdapter, ratingService, customerService, featureConnector, service, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, accountResolver, accountService)
 	if err != nil {
 		cleanup7()
@@ -382,11 +382,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	appRegistry := common.NewAppRegistry(appService, appSandboxProvisioner, appstripeService, appcustominvoicingService)
-	repo := common.NewLedgerAccountRepo(client)
-	accountLiveServices := common.NewLedgerAccountLiveServices(locker)
-	accountService := common.NewLedgerAccountService(repo, accountLiveServices)
-	customerAccountRepo := common.NewLedgerResolversRepo(client)
-	accountResolver := common.NewLedgerResolversService(accountService, customerAccountRepo, locker)
 	customerLedgerHook, err := common.NewCustomerLedgerServiceHook(tracer, accountResolver, customerService)
 	if err != nil {
 		cleanup7()

@@ -319,7 +319,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	routingValidator := common.NewLedgerRoutingValidator()
 	ledger := common.NewLedgerHistoricalLedger(repo, accountService, locker, routingValidator)
 	customerAccountRepo := common.NewLedgerResolversRepo(client)
-	accountResolver := common.NewLedgerResolversService(accountService, customerAccountRepo)
+	accountResolver := common.NewLedgerResolversService(accountService, customerAccountRepo, locker)
 	billingRegistry, err := common.NewBillingRegistry(logger, service, adapter, ratingService, customerService, featureConnector, meterService, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, accountResolver, accountService)
 	if err != nil {
 		cleanup7()

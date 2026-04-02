@@ -42,7 +42,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Config,
 		common.Database,
 		common.Framework,
-		common.LedgerStack,
 		common.Meter,
 		common.Namespace,
 		common.NewDefaultTextMapPropagator,
