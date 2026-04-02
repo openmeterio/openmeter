@@ -36,7 +36,7 @@ type ChargeService interface {
 
 // InvoiceService contains methods that are over time deprecate the current billing methods.
 type InvoiceService interface {
-	InvoicePendingLines(ctx context.Context, input billing.InvoicePendingLinesInput) ([]billing.StandardInvoice, error)
+	billing.InvoicePendingLinesService
 }
 
 type CreditPurchaseFacadeService interface {

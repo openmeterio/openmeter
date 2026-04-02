@@ -146,6 +146,7 @@ func main() {
 			AppStripe:                   app.AppRegistry.Stripe,
 			AppCustomInvoicing:          app.AppRegistry.CustomInvoicing,
 			Billing:                     app.BillingRegistry.Billing,
+			BillingInvoicePendingLines:  app.BillingRegistry.InvoicePendingLinesService(),
 			BillingFeatureSwitches:      conf.Billing.FeatureSwitches,
 			CurrencyService:             app.CurrencyService,
 			CostService:                 app.CostService,

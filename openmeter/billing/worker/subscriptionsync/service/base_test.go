@@ -59,11 +59,12 @@ func (s *SuiteBase) SetupSuite() {
 	s.Adapter = adapter
 
 	service, err := New(Config{
-		BillingService:          s.BillingService,
-		Logger:                  slog.Default(),
-		Tracer:                  noop.NewTracerProvider().Tracer("test"),
-		SubscriptionSyncAdapter: adapter,
-		SubscriptionService:     s.SubscriptionService,
+		BillingService:             s.BillingService,
+		InvoicePendingLinesService: s.BillingService,
+		Logger:                     slog.Default(),
+		Tracer:                     noop.NewTracerProvider().Tracer("test"),
+		SubscriptionSyncAdapter:    adapter,
+		SubscriptionService:        s.SubscriptionService,
 	})
 	s.NoError(err)
 
@@ -79,12 +80,13 @@ func (s *SuiteBase) setupChargesService(config chargestestutils.Config) {
 	s.Charges = stack.ChargesService
 
 	service, err := New(Config{
-		BillingService:          s.BillingService,
-		ChargesService:          s.Charges,
-		Logger:                  slog.Default(),
-		Tracer:                  noop.NewTracerProvider().Tracer("test"),
-		SubscriptionSyncAdapter: s.Adapter,
-		SubscriptionService:     s.SubscriptionService,
+		BillingService:             s.BillingService,
+		InvoicePendingLinesService: s.Charges,
+		ChargesService:             s.Charges,
+		Logger:                     slog.Default(),
+		Tracer:                     noop.NewTracerProvider().Tracer("test"),
+		SubscriptionSyncAdapter:    s.Adapter,
+		SubscriptionService:        s.SubscriptionService,
 	})
 	s.NoError(err)
 

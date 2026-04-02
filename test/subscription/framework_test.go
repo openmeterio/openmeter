@@ -117,11 +117,12 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 	require.NoError(t, err)
 
 	subscriptionSyncService, err := subscriptionsyncservice.New(subscriptionsyncservice.Config{
-		BillingService:          billingService,
-		Logger:                  slog.Default(),
-		Tracer:                  noop.NewTracerProvider().Tracer("test"),
-		SubscriptionSyncAdapter: subscriptionSyncAdapter,
-		SubscriptionService:     deps.SubscriptionService,
+		BillingService:             billingService,
+		InvoicePendingLinesService: billingService,
+		Logger:                     slog.Default(),
+		Tracer:                     noop.NewTracerProvider().Tracer("test"),
+		SubscriptionSyncAdapter:    subscriptionSyncAdapter,
+		SubscriptionService:        deps.SubscriptionService,
 	})
 	require.NoError(t, err)
 

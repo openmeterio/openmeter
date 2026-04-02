@@ -16,8 +16,9 @@ import (
 )
 
 type InvoiceCollector struct {
-	billing          billing.Service
-	lockedNamespaces []string
+	gatheringInvoices   billing.GatheringInvoiceService
+	invoicePendingLines billing.InvoicePendingLinesService
+	lockedNamespaces    []string
 
 	logger *slog.Logger
 }
@@ -44,7 +45,7 @@ func (a *InvoiceCollector) ListCollectableInvoices(ctx context.Context, params L
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
 
-	resp, err := a.billing.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
+	resp, err := a.gatheringInvoices.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces:      params.Namespaces,
 		IDs:             params.InvoiceIDs,
 		Customers:       params.Customers,
@@ -83,7 +84,7 @@ func (a *InvoiceCollector) CollectCustomerInvoice(ctx context.Context, params Co
 
 	a.logger.DebugContext(ctx, "collecting customer invoices", "customer", params.CustomerID)
 
-	invoices, err := a.billing.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+	invoices, err := a.invoicePendingLines.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 		Customer: params.CustomerID,
 		// We want to make sure that system collection does not use progressive billing.
 		ProgressiveBillingOverride: lo.ToPtr(false),
@@ -98,7 +99,7 @@ func (a *InvoiceCollector) CollectCustomerInvoice(ctx context.Context, params Co
 		if errors.Is(err, billing.ErrInvoiceCreateNoLines) {
 			a.logger.WarnContext(ctx, "no invoices generated for customer during collection (possible data inconsistency), recalculating gathering invoices", "customer", params.CustomerID)
 
-			if err := a.billing.RecalculateGatheringInvoices(ctx, params.CustomerID); err != nil {
+			if err := a.gatheringInvoices.RecalculateGatheringInvoices(ctx, params.CustomerID); err != nil {
 				return nil, err
 			}
 
@@ -190,14 +191,19 @@ func (a *InvoiceCollector) All(ctx context.Context, namespaces []string, custome
 }
 
 type Config struct {
-	BillingService   billing.Service
-	Logger           *slog.Logger
-	LockedNamespaces []string
+	GatheringInvoiceService    billing.GatheringInvoiceService
+	InvoicePendingLinesService billing.InvoicePendingLinesService
+	Logger                     *slog.Logger
+	LockedNamespaces           []string
 }
 
 func NewInvoiceCollector(config Config) (*InvoiceCollector, error) {
-	if config.BillingService == nil {
-		return nil, fmt.Errorf("billing service is required")
+	if config.GatheringInvoiceService == nil {
+		return nil, fmt.Errorf("gathering invoice service is required")
+	}
+
+	if config.InvoicePendingLinesService == nil {
+		return nil, fmt.Errorf("invoice pending lines service is required")
 	}
 
 	if config.Logger == nil {
@@ -205,8 +211,9 @@ func NewInvoiceCollector(config Config) (*InvoiceCollector, error) {
 	}
 
 	return &InvoiceCollector{
-		billing:          config.BillingService,
-		logger:           config.Logger,
-		lockedNamespaces: config.LockedNamespaces,
+		gatheringInvoices:   config.GatheringInvoiceService,
+		invoicePendingLines: config.InvoicePendingLinesService,
+		logger:              config.Logger,
+		lockedNamespaces:    config.LockedNamespaces,
 	}, nil
 }

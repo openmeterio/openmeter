@@ -24,6 +24,10 @@ type Service interface {
 	ConfigService
 }
 
+type InvoicePendingLinesService interface {
+	InvoicePendingLines(ctx context.Context, input InvoicePendingLinesInput) ([]StandardInvoice, error)
+}
+
 type ProfileService interface {
 	CreateProfile(ctx context.Context, param CreateProfileInput) (*Profile, error)
 	GetDefaultProfile(ctx context.Context, input GetDefaultProfileInput) (*Profile, error)
@@ -65,11 +69,14 @@ type SplitLineGroupService interface {
 }
 
 type InvoiceService interface {
+	// InvoicePendingLinesService is the service for invoicing pending lines, temporary extracted until charges
+	// provides the same interface. Later we should rely on invoicing hooks instead.
+	InvoicePendingLinesService
+
 	ListInvoices(ctx context.Context, input ListInvoicesInput) (ListInvoicesResponse, error)
 	// GetInvoiceById returns the invoice by its ID using the Invoice union type.
 	// Please use GetStandardInvoiceById or GetGatheringInvoiceById instead if you know exactly the type of the invoice.
 	GetInvoiceById(ctx context.Context, input GetInvoiceByIdInput) (Invoice, error)
-	InvoicePendingLines(ctx context.Context, input InvoicePendingLinesInput) ([]StandardInvoice, error)
 	// AdvanceInvoice advances the invoice to the next stage, the advancement is stopped until:
 	// - an error is occurred
 	// - the invoice is in a state that cannot be advanced (e.g. waiting for draft period to expire)
@@ -116,6 +123,7 @@ type GatheringInvoiceService interface {
 	ListGatheringInvoices(ctx context.Context, input ListGatheringInvoicesInput) (pagination.Result[GatheringInvoice], error)
 	GetGatheringInvoiceById(ctx context.Context, input GetGatheringInvoiceByIdInput) (GatheringInvoice, error)
 	UpdateGatheringInvoice(ctx context.Context, input UpdateGatheringInvoiceInput) error
+	RecalculateGatheringInvoices(ctx context.Context, input RecalculateGatheringInvoicesInput) error
 }
 
 type SequenceService interface {
