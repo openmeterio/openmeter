@@ -205,5 +205,11 @@ func (i ListCustomersToAdvanceInput) Validate() error {
 		return errors.New("advance_after_lte is required")
 	}
 
+	if !i.Page.IsZero() {
+		if err := i.Page.Validate(); err != nil {
+			return fmt.Errorf("page: %w", err)
+		}
+	}
+
 	return nil
 }

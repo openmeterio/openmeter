@@ -197,6 +197,10 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 				return nil
 			}
 
+			if event != nil && slices.Contains(w.lockdownNamespaces, event.Namespace) {
+				return nil
+			}
+
 			return w.asyncAdvanceChargesHandler.Handle(ctx, event)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.StandardInvoiceCreatedEvent) error {

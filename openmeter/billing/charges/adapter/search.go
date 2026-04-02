@@ -110,6 +110,7 @@ func (a *adapter) ListCustomersToAdvance(ctx context.Context, input charges.List
 		}
 
 		err := query.
+			Order(dbchargessearchv1.ByNamespace(), dbchargessearchv1.ByCustomerID()).
 			GroupBy(dbchargessearchv1.FieldNamespace, dbchargessearchv1.FieldCustomerID).
 			Scan(ctx, &results)
 		if err != nil {
