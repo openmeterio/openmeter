@@ -91,29 +91,37 @@ func (c *chargePatchCollection) addPatch(chargeID string, patch charges.Patch) e
 }
 
 func (c *chargePatchCollection) AddDelete(_ string, existing persistedstate.Item) error {
-	return c.addPatch(existing.ID().ID, chargesmeta.PatchDelete{
-		Policy: chargesmeta.RefundAsCreditsDeletePolicy,
-	})
+	return c.addPatch(existing.ID().ID, chargesmeta.NewPatchDelete(chargesmeta.RefundAsCreditsDeletePolicy))
 }
 
 func (c *chargePatchCollection) AddShrink(uniqueID string, existing persistedstate.Item, target targetstate.StateItem) error {
 	targetServicePeriod := target.GetServicePeriod()
 
-	return c.addPatch(existing.ID().ID, chargesmeta.PatchShrink{
+	patch, err := chargesmeta.NewPatchShrink(chargesmeta.NewPatchShrinkInput{
 		NewServicePeriodTo:     targetServicePeriod.To,
 		NewFullServicePeriodTo: target.FullServicePeriod.End,
 		NewBillingPeriodTo:     target.BillingPeriod.End,
 	})
+	if err != nil {
+		return err
+	}
+
+	return c.addPatch(existing.ID().ID, patch)
 }
 
 func (c *chargePatchCollection) AddExtend(existing persistedstate.Item, target targetstate.StateItem) error {
 	targetServicePeriod := target.GetServicePeriod()
 
-	return c.addPatch(existing.ID().ID, chargesmeta.PatchExtend{
+	patch, err := chargesmeta.NewPatchExtend(chargesmeta.NewPatchExtendInput{
 		NewServicePeriodTo:     targetServicePeriod.To,
 		NewFullServicePeriodTo: target.FullServicePeriod.End,
 		NewBillingPeriodTo:     target.BillingPeriod.End,
 	})
+	if err != nil {
+		return err
+	}
+
+	return c.addPatch(existing.ID().ID, patch)
 }
 
 func (c *chargePatchCollection) AddProrate(existing persistedstate.Item, target targetstate.StateItem, originalPeriod, targetPeriod timeutil.ClosedPeriod, originalAmount, targetAmount alpacadecimal.Decimal) error {

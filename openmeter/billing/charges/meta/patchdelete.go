@@ -16,7 +16,21 @@ var (
 )
 
 type PatchDelete struct {
-	Policy PatchDeletePolicy
+	policy PatchDeletePolicy
+}
+
+func NewPatchDelete(policy PatchDeletePolicy) PatchDelete {
+	var patch PatchDelete
+	patch.SetPolicy(policy)
+	return patch
+}
+
+func (p *PatchDelete) SetPolicy(policy PatchDeletePolicy) {
+	p.policy = policy
+}
+
+func (p PatchDelete) GetPolicy() PatchDeletePolicy {
+	return p.policy
 }
 
 func (p PatchDelete) Trigger() stateless.Trigger {
@@ -24,11 +38,11 @@ func (p PatchDelete) Trigger() stateless.Trigger {
 }
 
 func (p PatchDelete) TriggerParams() any {
-	return p.Policy
+	return p.GetPolicy()
 }
 
 func (p PatchDelete) Validate() error {
-	return p.Policy.Validate()
+	return p.GetPolicy().Validate()
 }
 
 type CreditRefundPolicy string
