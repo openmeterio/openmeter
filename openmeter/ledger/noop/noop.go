@@ -66,8 +66,10 @@ func (postingAddress) Route() ledger.SubAccountRoute {
 
 type Ledger struct{}
 
-var _ ledger.Ledger = Ledger{}
-var _ ledger.Querier = Ledger{}
+var (
+	_ ledger.Ledger  = Ledger{}
+	_ ledger.Querier = Ledger{}
+)
 
 func (Ledger) CommitGroup(context.Context, ledger.TransactionGroupInput) (ledger.TransactionGroup, error) {
 	return nil, nil
