@@ -10,6 +10,8 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	chargesasyncadvance "github.com/openmeterio/openmeter/openmeter/billing/charges/worker/asyncadvance"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/asyncadvance"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -28,6 +30,8 @@ type WorkerOptions struct {
 
 	BillingService          billing.Service
 	BillingSubscriptionSync subscriptionsync.Service
+	// ChargesService is optional; when non-nil the worker handles AdvanceChargesEvent.
+	ChargesService charges.ChargeService
 	// External connectors
 
 	SubscriptionService subscription.Service
@@ -69,12 +73,12 @@ func (w WorkerOptions) Validate() error {
 type Worker struct {
 	router *message.Router
 
-	billingService      billing.Service
-	subscriptionSync    subscriptionsync.Service
-	asyncAdvanceHandler *asyncadvance.Handler
-
-	nonPublishingHandler *grouphandler.NoPublishingHandler
-	lockdownNamespaces   []string
+	billingService             billing.Service
+	subscriptionSync           subscriptionsync.Service
+	asyncAdvanceHandler        *asyncadvance.Handler
+	asyncAdvanceChargesHandler *chargesasyncadvance.Handler
+	nonPublishingHandler       *grouphandler.NoPublishingHandler
+	lockdownNamespaces         []string
 }
 
 func New(opts WorkerOptions) (*Worker, error) {
@@ -91,11 +95,23 @@ func New(opts WorkerOptions) (*Worker, error) {
 		return nil, err
 	}
 
+	var asyncAdvanceChargesHandler *chargesasyncadvance.Handler
+	if opts.ChargesService != nil {
+		asyncAdvanceChargesHandler, err = chargesasyncadvance.New(chargesasyncadvance.Config{
+			Logger:         opts.Logger,
+			ChargesService: opts.ChargesService,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	worker := &Worker{
-		billingService:      opts.BillingService,
-		subscriptionSync:    opts.BillingSubscriptionSync,
-		asyncAdvanceHandler: asyncAdvancer,
-		lockdownNamespaces:  opts.LockdownNamespaces,
+		billingService:             opts.BillingService,
+		subscriptionSync:           opts.BillingSubscriptionSync,
+		asyncAdvanceHandler:        asyncAdvancer,
+		asyncAdvanceChargesHandler: asyncAdvanceChargesHandler,
+		lockdownNamespaces:         opts.LockdownNamespaces,
 	}
 
 	router, err := router.NewDefaultRouter(opts.Router)
@@ -175,6 +191,17 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 			}
 
 			return w.asyncAdvanceHandler.Handle(ctx, event)
+		}),
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *charges.AdvanceChargesEvent) error {
+			if w.asyncAdvanceChargesHandler == nil {
+				return nil
+			}
+
+			if event != nil && slices.Contains(w.lockdownNamespaces, event.Namespace) {
+				return nil
+			}
+
+			return w.asyncAdvanceChargesHandler.Handle(ctx, event)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.StandardInvoiceCreatedEvent) error {
 			if event != nil && slices.Contains(w.lockdownNamespaces, event.Invoice.Namespace) {

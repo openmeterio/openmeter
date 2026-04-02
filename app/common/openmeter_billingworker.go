@@ -86,6 +86,7 @@ func NewBillingWorkerOptions(
 		Router:                  routerOptions,
 		EventBus:                eventBus,
 		BillingService:          billingRegistry.Billing,
+		ChargesService:          billingRegistry.ChargesServiceOrNil(),
 		SubscriptionService:     subscriptionServices.Service,
 		BillingSubscriptionSync: subscriptionSyncService,
 		Logger:                  logger,

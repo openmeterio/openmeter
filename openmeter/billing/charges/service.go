@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
@@ -27,6 +28,7 @@ type ChargeService interface {
 	Create(ctx context.Context, input CreateInput) (Charges, error)
 
 	AdvanceCharges(ctx context.Context, input AdvanceChargesInput) (Charges, error)
+	ListCustomersToAdvance(ctx context.Context, input ListCustomersToAdvanceInput) (pagination.Result[customer.CustomerID], error)
 	// ApplyPatches currently returns no affected-charge payload. If exact post-apply
 	// results are needed, shrink/extend must first be implemented properly instead of
 	// going through the temporary delete+create remap.
@@ -189,4 +191,25 @@ func (i ListChargesInput) Validate() error {
 	}
 
 	return errors.Join(errs...)
+}
+
+type ListCustomersToAdvanceInput struct {
+	pagination.Page
+
+	Namespaces      []string
+	AdvanceAfterLTE time.Time
+}
+
+func (i ListCustomersToAdvanceInput) Validate() error {
+	if i.AdvanceAfterLTE.IsZero() {
+		return errors.New("advance_after_lte is required")
+	}
+
+	if !i.Page.IsZero() {
+		if err := i.Page.Validate(); err != nil {
+			return fmt.Errorf("page: %w", err)
+		}
+	}
+
+	return nil
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	chargesworkeradvance "github.com/openmeterio/openmeter/openmeter/billing/charges/worker/advance"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
@@ -243,6 +244,18 @@ func NewBillingRatingService() rating.Service {
 func NewBillingAutoAdvancer(logger *slog.Logger, billingRegistry BillingRegistry) (*billingworkerautoadvance.AutoAdvancer, error) {
 	return billingworkerautoadvance.NewAdvancer(billingworkerautoadvance.Config{
 		BillingService: billingRegistry.Billing,
+		Logger:         logger,
+	})
+}
+
+func NewChargesAutoAdvancer(logger *slog.Logger, billingRegistry BillingRegistry) (*chargesworkeradvance.AutoAdvancer, error) {
+	chargesService := billingRegistry.ChargesServiceOrNil()
+	if chargesService == nil {
+		return nil, nil
+	}
+
+	return chargesworkeradvance.NewAdvancer(chargesworkeradvance.Config{
+		ChargesService: chargesService,
 		Logger:         logger,
 	})
 }

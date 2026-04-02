@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/app/stripe"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/worker/advance"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/advance"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/collect"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/reconciler"
@@ -374,6 +375,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	chargesworkeradvanceAutoAdvancer, err := common.NewChargesAutoAdvancer(logger, billingRegistry)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	invoiceCollector, err := common.NewBillingCollector(logger, billingRegistry, billingFeatureSwitchesConfiguration)
 	if err != nil {
 		cleanup7()
@@ -544,6 +556,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Customer:                      customerService,
 		BillingRegistry:               billingRegistry,
 		BillingAutoAdvancer:           autoAdvancer,
+		ChargesAutoAdvancer:           chargesworkeradvanceAutoAdvancer,
 		BillingCollector:              invoiceCollector,
 		BillingSubscriptionReconciler: reconciler,
 		EntClient:                     client,
@@ -588,6 +601,7 @@ type Application struct {
 	Customer                      customer.Service
 	BillingRegistry               common.BillingRegistry
 	BillingAutoAdvancer           *billingworkeradvance.AutoAdvancer
+	ChargesAutoAdvancer           *chargesworkeradvance.AutoAdvancer
 	BillingCollector              *billingworkercollect.InvoiceCollector
 	BillingSubscriptionReconciler *reconciler.Reconciler
 	EntClient                     *db.Client
