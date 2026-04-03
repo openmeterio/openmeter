@@ -25,6 +25,7 @@ func (a *adapter) CreateRealizationRun(ctx context.Context, chargeID meta.Charge
 		create := tx.db.ChargeUsageBasedRuns.Create().
 			SetNamespace(chargeID.Namespace).
 			SetChargeID(chargeID.ID).
+			SetFeatureID(input.FeatureID).
 			SetType(input.Type).
 			SetAsof(meta.NormalizeTimestamp(input.AsOf)).
 			SetCollectionEnd(meta.NormalizeTimestamp(input.CollectionEnd)).

@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -29,6 +30,7 @@ type ChargeUsageBasedRunsQuery struct {
 	inters                []Interceptor
 	predicates            []predicate.ChargeUsageBasedRuns
 	withUsageBased        *ChargeUsageBasedQuery
+	withFeature           *FeatureQuery
 	withCreditAllocations *ChargeUsageBasedRunCreditAllocationsQuery
 	withInvoicedUsage     *ChargeUsageBasedRunInvoicedUsageQuery
 	withPayment           *ChargeUsageBasedRunPaymentQuery
@@ -84,6 +86,28 @@ func (_q *ChargeUsageBasedRunsQuery) QueryUsageBased() *ChargeUsageBasedQuery {
 			sqlgraph.From(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID, selector),
 			sqlgraph.To(chargeusagebased.Table, chargeusagebased.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedruns.UsageBasedTable, chargeusagebasedruns.UsageBasedColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryFeature chains the current query on the "feature" edge.
+func (_q *ChargeUsageBasedRunsQuery) QueryFeature() *FeatureQuery {
+	query := (&FeatureClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID, selector),
+			sqlgraph.To(dbfeature.Table, dbfeature.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedruns.FeatureTable, chargeusagebasedruns.FeatureColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -350,6 +374,7 @@ func (_q *ChargeUsageBasedRunsQuery) Clone() *ChargeUsageBasedRunsQuery {
 		inters:                append([]Interceptor{}, _q.inters...),
 		predicates:            append([]predicate.ChargeUsageBasedRuns{}, _q.predicates...),
 		withUsageBased:        _q.withUsageBased.Clone(),
+		withFeature:           _q.withFeature.Clone(),
 		withCreditAllocations: _q.withCreditAllocations.Clone(),
 		withInvoicedUsage:     _q.withInvoicedUsage.Clone(),
 		withPayment:           _q.withPayment.Clone(),
@@ -367,6 +392,17 @@ func (_q *ChargeUsageBasedRunsQuery) WithUsageBased(opts ...func(*ChargeUsageBas
 		opt(query)
 	}
 	_q.withUsageBased = query
+	return _q
+}
+
+// WithFeature tells the query-builder to eager-load the nodes that are connected to
+// the "feature" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeUsageBasedRunsQuery) WithFeature(opts ...func(*FeatureQuery)) *ChargeUsageBasedRunsQuery {
+	query := (&FeatureClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withFeature = query
 	return _q
 }
 
@@ -481,8 +517,9 @@ func (_q *ChargeUsageBasedRunsQuery) sqlAll(ctx context.Context, hooks ...queryH
 	var (
 		nodes       = []*ChargeUsageBasedRuns{}
 		_spec       = _q.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [5]bool{
 			_q.withUsageBased != nil,
+			_q.withFeature != nil,
 			_q.withCreditAllocations != nil,
 			_q.withInvoicedUsage != nil,
 			_q.withPayment != nil,
@@ -512,6 +549,12 @@ func (_q *ChargeUsageBasedRunsQuery) sqlAll(ctx context.Context, hooks ...queryH
 	if query := _q.withUsageBased; query != nil {
 		if err := _q.loadUsageBased(ctx, query, nodes, nil,
 			func(n *ChargeUsageBasedRuns, e *ChargeUsageBased) { n.Edges.UsageBased = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withFeature; query != nil {
+		if err := _q.loadFeature(ctx, query, nodes, nil,
+			func(n *ChargeUsageBasedRuns, e *Feature) { n.Edges.Feature = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -561,6 +604,35 @@ func (_q *ChargeUsageBasedRunsQuery) loadUsageBased(ctx context.Context, query *
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "charge_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (_q *ChargeUsageBasedRunsQuery) loadFeature(ctx context.Context, query *FeatureQuery, nodes []*ChargeUsageBasedRuns, init func(*ChargeUsageBasedRuns), assign func(*ChargeUsageBasedRuns, *Feature)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*ChargeUsageBasedRuns)
+	for i := range nodes {
+		fk := nodes[i].FeatureID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(dbfeature.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "feature_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -683,6 +755,9 @@ func (_q *ChargeUsageBasedRunsQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if _q.withUsageBased != nil {
 			_spec.Node.AddColumnOnce(chargeusagebasedruns.FieldChargeID)
+		}
+		if _q.withFeature != nil {
+			_spec.Node.AddColumnOnce(chargeusagebasedruns.FieldFeatureID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

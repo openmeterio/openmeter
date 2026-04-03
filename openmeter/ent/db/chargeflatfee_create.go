@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeinvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
@@ -292,6 +293,20 @@ func (_c *ChargeFlatFeeCreate) SetNillableFeatureKey(v *string) *ChargeFlatFeeCr
 	return _c
 }
 
+// SetFeatureID sets the "feature_id" field.
+func (_c *ChargeFlatFeeCreate) SetFeatureID(v string) *ChargeFlatFeeCreate {
+	_c.mutation.SetFeatureID(v)
+	return _c
+}
+
+// SetNillableFeatureID sets the "feature_id" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableFeatureID(v *string) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetFeatureID(*v)
+	}
+	return _c
+}
+
 // SetAmountBeforeProration sets the "amount_before_proration" field.
 func (_c *ChargeFlatFeeCreate) SetAmountBeforeProration(v alpacadecimal.Decimal) *ChargeFlatFeeCreate {
 	_c.mutation.SetAmountBeforeProration(v)
@@ -408,6 +423,11 @@ func (_c *ChargeFlatFeeCreate) SetSubscriptionItem(v *SubscriptionItem) *ChargeF
 // SetCustomer sets the "customer" edge to the Customer entity.
 func (_c *ChargeFlatFeeCreate) SetCustomer(v *Customer) *ChargeFlatFeeCreate {
 	return _c.SetCustomerID(v.ID)
+}
+
+// SetFeature sets the "feature" edge to the Feature entity.
+func (_c *ChargeFlatFeeCreate) SetFeature(v *Feature) *ChargeFlatFeeCreate {
+	return _c.SetFeatureID(v.ID)
 }
 
 // Mutation returns the ChargeFlatFeeMutation object of the builder.
@@ -857,6 +877,23 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 		_node.CustomerID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := _c.mutation.FeatureIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeflatfee.FeatureTable,
+			Columns: []string{chargeflatfee.FeatureColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.FeatureID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec, nil
 }
 
@@ -1188,6 +1225,24 @@ func (u *ChargeFlatFeeUpsert) UpdateFeatureKey() *ChargeFlatFeeUpsert {
 // ClearFeatureKey clears the value of the "feature_key" field.
 func (u *ChargeFlatFeeUpsert) ClearFeatureKey() *ChargeFlatFeeUpsert {
 	u.SetNull(chargeflatfee.FieldFeatureKey)
+	return u
+}
+
+// SetFeatureID sets the "feature_id" field.
+func (u *ChargeFlatFeeUpsert) SetFeatureID(v string) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldFeatureID, v)
+	return u
+}
+
+// UpdateFeatureID sets the "feature_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateFeatureID() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldFeatureID)
+	return u
+}
+
+// ClearFeatureID clears the value of the "feature_id" field.
+func (u *ChargeFlatFeeUpsert) ClearFeatureID() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldFeatureID)
 	return u
 }
 
@@ -1616,6 +1671,27 @@ func (u *ChargeFlatFeeUpsertOne) UpdateFeatureKey() *ChargeFlatFeeUpsertOne {
 func (u *ChargeFlatFeeUpsertOne) ClearFeatureKey() *ChargeFlatFeeUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.ClearFeatureKey()
+	})
+}
+
+// SetFeatureID sets the "feature_id" field.
+func (u *ChargeFlatFeeUpsertOne) SetFeatureID(v string) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetFeatureID(v)
+	})
+}
+
+// UpdateFeatureID sets the "feature_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateFeatureID() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateFeatureID()
+	})
+}
+
+// ClearFeatureID clears the value of the "feature_id" field.
+func (u *ChargeFlatFeeUpsertOne) ClearFeatureID() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearFeatureID()
 	})
 }
 
@@ -2218,6 +2294,27 @@ func (u *ChargeFlatFeeUpsertBulk) UpdateFeatureKey() *ChargeFlatFeeUpsertBulk {
 func (u *ChargeFlatFeeUpsertBulk) ClearFeatureKey() *ChargeFlatFeeUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.ClearFeatureKey()
+	})
+}
+
+// SetFeatureID sets the "feature_id" field.
+func (u *ChargeFlatFeeUpsertBulk) SetFeatureID(v string) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetFeatureID(v)
+	})
+}
+
+// UpdateFeatureID sets the "feature_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateFeatureID() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateFeatureID()
+	})
+}
+
+// ClearFeatureID clears the value of the "feature_id" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearFeatureID() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearFeatureID()
 	})
 }
 

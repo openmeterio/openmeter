@@ -77,11 +77,17 @@ type FeatureEdges struct {
 	Ratecard []*PlanRateCard `json:"ratecard,omitempty"`
 	// AddonRatecard holds the value of the addon_ratecard edge.
 	AddonRatecard []*AddonRateCard `json:"addon_ratecard,omitempty"`
+	// UsageBasedCharges holds the value of the usage_based_charges edge.
+	UsageBasedCharges []*ChargeUsageBased `json:"usage_based_charges,omitempty"`
+	// UsageBasedRuns holds the value of the usage_based_runs edge.
+	UsageBasedRuns []*ChargeUsageBasedRuns `json:"usage_based_runs,omitempty"`
+	// FlatFeeCharges holds the value of the flat_fee_charges edge.
+	FlatFeeCharges []*ChargeFlatFee `json:"flat_fee_charges,omitempty"`
 	// Meter holds the value of the meter edge.
 	Meter *Meter `json:"meter,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [7]bool
 }
 
 // EntitlementOrErr returns the Entitlement value or an error if the edge
@@ -111,12 +117,39 @@ func (e FeatureEdges) AddonRatecardOrErr() ([]*AddonRateCard, error) {
 	return nil, &NotLoadedError{edge: "addon_ratecard"}
 }
 
+// UsageBasedChargesOrErr returns the UsageBasedCharges value or an error if the edge
+// was not loaded in eager-loading.
+func (e FeatureEdges) UsageBasedChargesOrErr() ([]*ChargeUsageBased, error) {
+	if e.loadedTypes[3] {
+		return e.UsageBasedCharges, nil
+	}
+	return nil, &NotLoadedError{edge: "usage_based_charges"}
+}
+
+// UsageBasedRunsOrErr returns the UsageBasedRuns value or an error if the edge
+// was not loaded in eager-loading.
+func (e FeatureEdges) UsageBasedRunsOrErr() ([]*ChargeUsageBasedRuns, error) {
+	if e.loadedTypes[4] {
+		return e.UsageBasedRuns, nil
+	}
+	return nil, &NotLoadedError{edge: "usage_based_runs"}
+}
+
+// FlatFeeChargesOrErr returns the FlatFeeCharges value or an error if the edge
+// was not loaded in eager-loading.
+func (e FeatureEdges) FlatFeeChargesOrErr() ([]*ChargeFlatFee, error) {
+	if e.loadedTypes[5] {
+		return e.FlatFeeCharges, nil
+	}
+	return nil, &NotLoadedError{edge: "flat_fee_charges"}
+}
+
 // MeterOrErr returns the Meter value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e FeatureEdges) MeterOrErr() (*Meter, error) {
 	if e.Meter != nil {
 		return e.Meter, nil
-	} else if e.loadedTypes[3] {
+	} else if e.loadedTypes[6] {
 		return nil, &NotFoundError{label: dbmeter.Label}
 	}
 	return nil, &NotLoadedError{edge: "meter"}
@@ -327,6 +360,21 @@ func (_m *Feature) QueryRatecard() *PlanRateCardQuery {
 // QueryAddonRatecard queries the "addon_ratecard" edge of the Feature entity.
 func (_m *Feature) QueryAddonRatecard() *AddonRateCardQuery {
 	return NewFeatureClient(_m.config).QueryAddonRatecard(_m)
+}
+
+// QueryUsageBasedCharges queries the "usage_based_charges" edge of the Feature entity.
+func (_m *Feature) QueryUsageBasedCharges() *ChargeUsageBasedQuery {
+	return NewFeatureClient(_m.config).QueryUsageBasedCharges(_m)
+}
+
+// QueryUsageBasedRuns queries the "usage_based_runs" edge of the Feature entity.
+func (_m *Feature) QueryUsageBasedRuns() *ChargeUsageBasedRunsQuery {
+	return NewFeatureClient(_m.config).QueryUsageBasedRuns(_m)
+}
+
+// QueryFlatFeeCharges queries the "flat_fee_charges" edge of the Feature entity.
+func (_m *Feature) QueryFlatFeeCharges() *ChargeFlatFeeQuery {
+	return NewFeatureClient(_m.config).QueryFlatFeeCharges(_m)
 }
 
 // QueryMeter queries the "meter" edge of the Feature entity.

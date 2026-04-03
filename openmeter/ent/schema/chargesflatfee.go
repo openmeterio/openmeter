@@ -56,6 +56,13 @@ func (ChargeFlatFee) Fields() []ent.Field {
 			NotEmpty().
 			Nillable(),
 
+		field.String("feature_id").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+
 		field.Other("amount_before_proration", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
 				dialect.Postgres: "numeric",
@@ -104,6 +111,10 @@ func (ChargeFlatFee) Edges() []ent.Edge {
 			Unique().
 			Required().
 			Immutable(),
+		edge.From("feature", Feature.Type).
+			Ref("flat_fee_charges").
+			Field("feature_id").
+			Unique(),
 	}
 }
 

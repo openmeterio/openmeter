@@ -28,14 +28,20 @@ import (
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
+	meterservice "github.com/openmeterio/openmeter/openmeter/meter/service"
+	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	pcadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/ref"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -50,6 +56,7 @@ type testEnv struct {
 	Service           *Service
 	flatFeeService    flatfee.Service
 	usageBasedService usagebased.Service
+	featureMeters     feature.FeatureMeters
 	streaming         *streamingtestutils.MockStreamingConnector
 }
 
@@ -76,33 +83,59 @@ func newTestEnv(t *testing.T) *testEnv {
 		},
 	}
 
-	featureService := mockFeatureConnector{
-		meters: feature.FeatureMeterCollection{
-			testFeatureKey: {
-				Feature: feature.Feature{
-					Namespace: base.Namespace,
-					ID:        "feature-1",
-					Name:      "API Requests",
-					Key:       testFeatureKey,
-					MeterID:   lo.ToPtr("meter-1"),
-					CreatedAt: base.Now(),
-					UpdatedAt: base.Now(),
-				},
-				Meter: &meter.Meter{
-					ManagedResource: models.ManagedResource{
-						NamespacedModel: models.NamespacedModel{
-							Namespace: base.Namespace,
-						},
-						ID:   "meter-1",
-						Name: "API Requests Meter",
-					},
-					Key:         testMeterKey,
-					Aggregation: meter.MeterAggregationSum,
-					EventType:   "api_request",
-				},
-			},
-		},
-	}
+	publisher := eventbus.NewMock(t)
+
+	namespaceManager, err := namespace.NewManager(namespace.ManagerConfig{
+		DefaultNamespace: base.Namespace,
+	})
+	require.NoError(t, err)
+
+	meterRepo, err := meteradapter.New(meteradapter.Config{
+		Client: base.DB,
+		Logger: logger,
+	})
+	require.NoError(t, err)
+
+	meterQueryService := meterservice.New(meterRepo)
+	meterManageService := meterservice.NewManage(
+		meterRepo,
+		publisher,
+		namespaceManager,
+		nil,
+	)
+
+	featureRepo := pcadapter.NewPostgresFeatureRepo(base.DB, logger)
+	featureService := feature.NewFeatureConnector(
+		featureRepo,
+		meterQueryService,
+		publisher,
+	)
+
+	meterEntity, err := meterManageService.CreateMeter(t.Context(), meter.CreateMeterInput{
+		Namespace:     base.Namespace,
+		Name:          "API Requests Meter",
+		Key:           testMeterKey,
+		EventType:     "api_request",
+		Aggregation:   meter.MeterAggregationSum,
+		ValueProperty: lo.ToPtr("$.data.value"),
+	})
+	require.NoError(t, err)
+
+	featureEntity, err := featureService.CreateFeature(t.Context(), feature.CreateFeatureInputs{
+		Namespace: base.Namespace,
+		Name:      "API Requests",
+		Key:       testFeatureKey,
+		MeterID:   lo.ToPtr(meterEntity.ID),
+	})
+	require.NoError(t, err)
+
+	featureMeters, err := featureService.ResolveFeatureMeters(
+		t.Context(),
+		base.Namespace,
+		ref.IDOrKey{Key: testFeatureKey},
+		ref.IDOrKey{ID: featureEntity.ID},
+	)
+	require.NoError(t, err)
 
 	metaAdapter, err := metaadapter.New(metaadapter.Config{
 		Client: base.DB,
@@ -172,6 +205,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		Service:           service,
 		flatFeeService:    flatFeeService,
 		usageBasedService: usageService,
+		featureMeters:     featureMeters,
 		streaming:         streaming,
 	}
 
@@ -229,7 +263,8 @@ func (e *testEnv) createUsageBasedChargeInCurrency(t *testing.T, unitPrice alpac
 	t.Helper()
 
 	createdCharges, err := e.usageBasedService.Create(t.Context(), usagebased.CreateInput{
-		Namespace: e.Namespace,
+		Namespace:     e.Namespace,
+		FeatureMeters: e.featureMeters,
 		Intents: []usagebased.Intent{
 			{
 				Intent: chargemeta.Intent{
@@ -400,32 +435,4 @@ func (s mockCustomerOverrideService) GetCustomerApp(context.Context, billing.Get
 
 func (s mockCustomerOverrideService) ListCustomerOverrides(context.Context, billing.ListCustomerOverridesInput) (billing.ListCustomerOverridesResult, error) {
 	return billing.ListCustomerOverridesResult{}, nil
-}
-
-type mockFeatureConnector struct {
-	meters feature.FeatureMeterCollection
-}
-
-func (c mockFeatureConnector) CreateFeature(context.Context, feature.CreateFeatureInputs) (feature.Feature, error) {
-	return feature.Feature{}, nil
-}
-
-func (c mockFeatureConnector) UpdateFeature(context.Context, feature.UpdateFeatureInputs) (feature.Feature, error) {
-	return feature.Feature{}, nil
-}
-
-func (c mockFeatureConnector) ArchiveFeature(context.Context, models.NamespacedID) error {
-	return nil
-}
-
-func (c mockFeatureConnector) ListFeatures(context.Context, feature.ListFeaturesParams) (pagination.Result[feature.Feature], error) {
-	return pagination.Result[feature.Feature]{}, nil
-}
-
-func (c mockFeatureConnector) GetFeature(context.Context, string, string, feature.IncludeArchivedFeature) (*feature.Feature, error) {
-	return nil, nil
-}
-
-func (c mockFeatureConnector) ResolveFeatureMeters(context.Context, string, []string) (feature.FeatureMeters, error) {
-	return c.meters, nil
 }

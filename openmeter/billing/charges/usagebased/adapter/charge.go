@@ -58,6 +58,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 		update := tx.db.ChargeUsageBased.UpdateOneID(charge.ID).
 			Where(dbchargeusagebased.NamespaceEQ(charge.Namespace)).
 			SetDiscounts(&charge.Intent.Discounts).
+			SetFeatureID(charge.State.FeatureID).
 			SetStatus(metaStatus).
 			SetStatusDetailed(charge.Status).
 			SetOrClearCurrentRealizationRunID(charge.State.CurrentRealizationRunID)
@@ -122,13 +123,13 @@ func (a *adapter) DeleteCharge(ctx context.Context, charge usagebased.Charge) er
 	})
 }
 
-func (a *adapter) CreateCharges(ctx context.Context, in usagebased.CreateInput) ([]usagebased.Charge, error) {
+func (a *adapter) CreateCharges(ctx context.Context, in usagebased.CreateChargesInput) ([]usagebased.Charge, error) {
 	if err := in.Validate(); err != nil {
 		return nil, err
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]usagebased.Charge, error) {
-		creates, err := slicesx.MapWithErr(in.Intents, func(intent usagebased.Intent) (*db.ChargeUsageBasedCreate, error) {
+		creates, err := slicesx.MapWithErr(in.Intents, func(intent usagebased.CreateIntent) (*db.ChargeUsageBasedCreate, error) {
 			return tx.buildCreateUsageBasedCharge(ctx, in.Namespace, intent)
 		})
 		if err != nil {
@@ -214,9 +215,10 @@ func expandRealizations(query *db.ChargeUsageBasedQuery) *db.ChargeUsageBasedQue
 	)
 }
 
-func (a *adapter) buildCreateUsageBasedCharge(ctx context.Context, ns string, intent usagebased.Intent) (*db.ChargeUsageBasedCreate, error) {
+func (a *adapter) buildCreateUsageBasedCharge(ctx context.Context, ns string, intent usagebased.CreateIntent) (*db.ChargeUsageBasedCreate, error) {
 	create := a.db.ChargeUsageBased.Create().
 		SetDiscounts(&intent.Discounts).
+		SetFeatureID(intent.FeatureID).
 		SetPrice(&intent.Price).
 		SetStatusDetailed(usagebased.Status(meta.ChargeStatusCreated)).
 		SetFeatureKey(intent.FeatureKey).
@@ -225,7 +227,7 @@ func (a *adapter) buildCreateUsageBasedCharge(ctx context.Context, ns string, in
 
 	create, err := chargemeta.Create[*db.ChargeUsageBasedCreate](create, chargemeta.CreateInput{
 		Namespace: ns,
-		Intent:    intent.Intent,
+		Intent:    intent.Intent.Intent,
 		Status:    meta.ChargeStatusCreated,
 	})
 	if err != nil {

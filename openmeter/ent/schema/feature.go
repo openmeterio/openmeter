@@ -84,6 +84,9 @@ func (Feature) Edges() []ent.Edge {
 		edge.To("entitlement", Entitlement.Type),
 		edge.To("ratecard", PlanRateCard.Type),
 		edge.To("addon_ratecard", AddonRateCard.Type),
+		edge.To("usage_based_charges", ChargeUsageBased.Type),
+		edge.To("usage_based_runs", ChargeUsageBasedRuns.Type),
+		edge.To("flat_fee_charges", ChargeFlatFee.Type),
 		edge.From("meter", Meter.Type).
 			Ref("feature").
 			Field("meter_id").

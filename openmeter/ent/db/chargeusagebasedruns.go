@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 )
 
 // ChargeUsageBasedRuns is the model entity for the ChargeUsageBasedRuns schema.
@@ -48,6 +49,8 @@ type ChargeUsageBasedRuns struct {
 	Total alpacadecimal.Decimal `json:"total,omitempty"`
 	// ChargeID holds the value of the "charge_id" field.
 	ChargeID string `json:"charge_id,omitempty"`
+	// For future-proofing runs may diverge from the charge feature later, but today this matches the parent charge feature_id.
+	FeatureID string `json:"feature_id,omitempty"`
 	// Type holds the value of the "type" field.
 	Type usagebased.RealizationRunType `json:"type,omitempty"`
 	// Asof holds the value of the "asof" field.
@@ -66,6 +69,8 @@ type ChargeUsageBasedRuns struct {
 type ChargeUsageBasedRunsEdges struct {
 	// UsageBased holds the value of the usage_based edge.
 	UsageBased *ChargeUsageBased `json:"usage_based,omitempty"`
+	// Feature holds the value of the feature edge.
+	Feature *Feature `json:"feature,omitempty"`
 	// CreditAllocations holds the value of the credit_allocations edge.
 	CreditAllocations []*ChargeUsageBasedRunCreditAllocations `json:"credit_allocations,omitempty"`
 	// InvoicedUsage holds the value of the invoiced_usage edge.
@@ -74,7 +79,7 @@ type ChargeUsageBasedRunsEdges struct {
 	Payment *ChargeUsageBasedRunPayment `json:"payment,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [5]bool
 }
 
 // UsageBasedOrErr returns the UsageBased value or an error if the edge
@@ -88,10 +93,21 @@ func (e ChargeUsageBasedRunsEdges) UsageBasedOrErr() (*ChargeUsageBased, error) 
 	return nil, &NotLoadedError{edge: "usage_based"}
 }
 
+// FeatureOrErr returns the Feature value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeUsageBasedRunsEdges) FeatureOrErr() (*Feature, error) {
+	if e.Feature != nil {
+		return e.Feature, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: dbfeature.Label}
+	}
+	return nil, &NotLoadedError{edge: "feature"}
+}
+
 // CreditAllocationsOrErr returns the CreditAllocations value or an error if the edge
 // was not loaded in eager-loading.
 func (e ChargeUsageBasedRunsEdges) CreditAllocationsOrErr() ([]*ChargeUsageBasedRunCreditAllocations, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[2] {
 		return e.CreditAllocations, nil
 	}
 	return nil, &NotLoadedError{edge: "credit_allocations"}
@@ -102,7 +118,7 @@ func (e ChargeUsageBasedRunsEdges) CreditAllocationsOrErr() ([]*ChargeUsageBased
 func (e ChargeUsageBasedRunsEdges) InvoicedUsageOrErr() (*ChargeUsageBasedRunInvoicedUsage, error) {
 	if e.InvoicedUsage != nil {
 		return e.InvoicedUsage, nil
-	} else if e.loadedTypes[2] {
+	} else if e.loadedTypes[3] {
 		return nil, &NotFoundError{label: chargeusagebasedruninvoicedusage.Label}
 	}
 	return nil, &NotLoadedError{edge: "invoiced_usage"}
@@ -113,7 +129,7 @@ func (e ChargeUsageBasedRunsEdges) InvoicedUsageOrErr() (*ChargeUsageBasedRunInv
 func (e ChargeUsageBasedRunsEdges) PaymentOrErr() (*ChargeUsageBasedRunPayment, error) {
 	if e.Payment != nil {
 		return e.Payment, nil
-	} else if e.loadedTypes[3] {
+	} else if e.loadedTypes[4] {
 		return nil, &NotFoundError{label: chargeusagebasedrunpayment.Label}
 	}
 	return nil, &NotLoadedError{edge: "payment"}
@@ -126,7 +142,7 @@ func (*ChargeUsageBasedRuns) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargeusagebasedruns.FieldAmount, chargeusagebasedruns.FieldTaxesTotal, chargeusagebasedruns.FieldTaxesInclusiveTotal, chargeusagebasedruns.FieldTaxesExclusiveTotal, chargeusagebasedruns.FieldChargesTotal, chargeusagebasedruns.FieldDiscountsTotal, chargeusagebasedruns.FieldCreditsTotal, chargeusagebasedruns.FieldTotal, chargeusagebasedruns.FieldMeterValue:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargeusagebasedruns.FieldID, chargeusagebasedruns.FieldNamespace, chargeusagebasedruns.FieldChargeID, chargeusagebasedruns.FieldType:
+		case chargeusagebasedruns.FieldID, chargeusagebasedruns.FieldNamespace, chargeusagebasedruns.FieldChargeID, chargeusagebasedruns.FieldFeatureID, chargeusagebasedruns.FieldType:
 			values[i] = new(sql.NullString)
 		case chargeusagebasedruns.FieldCreatedAt, chargeusagebasedruns.FieldUpdatedAt, chargeusagebasedruns.FieldDeletedAt, chargeusagebasedruns.FieldAsof, chargeusagebasedruns.FieldCollectionEnd:
 			values[i] = new(sql.NullTime)
@@ -230,6 +246,12 @@ func (_m *ChargeUsageBasedRuns) assignValues(columns []string, values []any) err
 			} else if value.Valid {
 				_m.ChargeID = value.String
 			}
+		case chargeusagebasedruns.FieldFeatureID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field feature_id", values[i])
+			} else if value.Valid {
+				_m.FeatureID = value.String
+			}
 		case chargeusagebasedruns.FieldType:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
@@ -270,6 +292,11 @@ func (_m *ChargeUsageBasedRuns) Value(name string) (ent.Value, error) {
 // QueryUsageBased queries the "usage_based" edge of the ChargeUsageBasedRuns entity.
 func (_m *ChargeUsageBasedRuns) QueryUsageBased() *ChargeUsageBasedQuery {
 	return NewChargeUsageBasedRunsClient(_m.config).QueryUsageBased(_m)
+}
+
+// QueryFeature queries the "feature" edge of the ChargeUsageBasedRuns entity.
+func (_m *ChargeUsageBasedRuns) QueryFeature() *FeatureQuery {
+	return NewChargeUsageBasedRunsClient(_m.config).QueryFeature(_m)
 }
 
 // QueryCreditAllocations queries the "credit_allocations" edge of the ChargeUsageBasedRuns entity.
@@ -350,6 +377,9 @@ func (_m *ChargeUsageBasedRuns) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("charge_id=")
 	builder.WriteString(_m.ChargeID)
+	builder.WriteString(", ")
+	builder.WriteString("feature_id=")
+	builder.WriteString(_m.FeatureID)
 	builder.WriteString(", ")
 	builder.WriteString("type=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Type))

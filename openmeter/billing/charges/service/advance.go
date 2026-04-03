@@ -4,15 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
@@ -79,21 +76,16 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 				return nil, fmt.Errorf("get customer override: %w", err)
 			}
 
-			featureMeters, err := s.resolveFeatureMeters(ctx, input.Customer.Namespace, chargesByType.usageBased)
+			featureMeters, err := s.featureService.ResolveFeatureMeters(ctx, input.Customer.Namespace, chargesByType.usageBased.GetFeatureKeysOrIDs()...)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("resolve feature meters: %w", err)
 			}
 
 			for _, charge := range chargesByType.usageBased {
-				featureMeter, err := featureMeters.Get(charge.Intent.FeatureKey, true)
-				if err != nil {
-					return nil, fmt.Errorf("get feature meter for charge %s: %w", charge.ID, err)
-				}
-
 				advancedCharge, err := s.usageBasedService.AdvanceCharge(ctx, usagebased.AdvanceChargeInput{
 					ChargeID:         charge.GetChargeID(),
 					CustomerOverride: customerOverride,
-					FeatureMeter:     featureMeter,
+					FeatureMeters:    featureMeters,
 				})
 				if err != nil {
 					return nil, fmt.Errorf("advance usage based charge %s: %w", charge.ID, err)
@@ -109,17 +101,4 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 
 		return advancedCharges, nil
 	})
-}
-
-func (s *service) resolveFeatureMeters(ctx context.Context, namespace string, charges []usagebased.Charge) (feature.FeatureMeters, error) {
-	featureKeys := lo.Uniq(lo.Map(charges, func(charge usagebased.Charge, _ int) string {
-		return charge.Intent.FeatureKey
-	}))
-
-	featureMeters, err := s.featureService.ResolveFeatureMeters(ctx, namespace, featureKeys)
-	if err != nil {
-		return nil, fmt.Errorf("resolve feature meters: %w", err)
-	}
-
-	return featureMeters, nil
 }

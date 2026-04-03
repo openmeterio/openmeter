@@ -330,6 +330,9 @@ func (_u *ChargeUsageBasedRunsUpdate) check() error {
 	if _u.mutation.UsageBasedCleared() && len(_u.mutation.UsageBasedIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeUsageBasedRuns.usage_based"`)
 	}
+	if _u.mutation.FeatureCleared() && len(_u.mutation.FeatureIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "ChargeUsageBasedRuns.feature"`)
+	}
 	return nil
 }
 
@@ -817,6 +820,9 @@ func (_u *ChargeUsageBasedRunsUpdateOne) defaults() {
 func (_u *ChargeUsageBasedRunsUpdateOne) check() error {
 	if _u.mutation.UsageBasedCleared() && len(_u.mutation.UsageBasedIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeUsageBasedRuns.usage_based"`)
+	}
+	if _u.mutation.FeatureCleared() && len(_u.mutation.FeatureIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "ChargeUsageBasedRuns.feature"`)
 	}
 	return nil
 }

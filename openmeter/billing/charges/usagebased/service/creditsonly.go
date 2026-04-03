@@ -62,7 +62,10 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 		).
 		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
 		OnActive(
-			s.AdvanceAfterServicePeriodTo,
+			statelessx.AllOf(
+				s.SyncFeatureIDFromFeatureMeter,
+				s.AdvanceAfterServicePeriodTo,
+			),
 		)
 
 	s.Configure(usagebased.StatusActiveFinalRealizationStarted).
@@ -201,6 +204,7 @@ func (s *CreditsOnlyStateMachine) StartFinalRealizationRun(ctx context.Context) 
 	}
 
 	updatedCharge, err := s.Service.createNewRealizationRun(ctx, s.Charge, usagebased.CreateRealizationRunInput{
+		FeatureID:     s.Charge.State.FeatureID,
 		Type:          usagebased.RealizationRunTypeFinalRealization,
 		AsOf:          storedAtOffset,
 		CollectionEnd: collectionEnd,

@@ -29,6 +29,7 @@ func MapChargeFlatFeeFromDB(entity *entdb.ChargeFlatFee, expands meta.Expands) (
 		Status:          mappedMeta.Status,
 		State: flatfee.State{
 			AdvanceAfter:         mappedMeta.AdvanceAfter,
+			FeatureID:            entity.FeatureID,
 			AmountAfterProration: entity.AmountAfterProration,
 		},
 		Intent: flatfee.Intent{

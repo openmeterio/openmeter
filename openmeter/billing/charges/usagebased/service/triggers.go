@@ -20,6 +20,11 @@ func (s *service) AdvanceCharge(ctx context.Context, input usagebased.AdvanceCha
 	}
 
 	return s.withLockedCharge(ctx, input.ChargeID, func(ctx context.Context, charge usagebased.Charge) (*usagebased.Charge, error) {
+		featureMeter, err := charge.ResolveFeatureMeter(input.FeatureMeters)
+		if err != nil {
+			return nil, fmt.Errorf("get feature meter: %w", err)
+		}
+
 		currencyCalculator, err := charge.Intent.Currency.Calculator()
 		if err != nil {
 			return nil, fmt.Errorf("get currency calculator: %w", err)
@@ -29,7 +34,7 @@ func (s *service) AdvanceCharge(ctx context.Context, input usagebased.AdvanceCha
 			Charge:             charge,
 			Service:            s,
 			CustomerOverride:   input.CustomerOverride,
-			FeatureMeter:       input.FeatureMeter,
+			FeatureMeter:       featureMeter,
 			CurrencyCalculator: currencyCalculator,
 		})
 		if err != nil {
@@ -85,14 +90,15 @@ func (s *service) getStateMachineConfigForPatch(ctx context.Context, charge usag
 		return StateMachineConfig{}, fmt.Errorf("get customer override: %w", err)
 	}
 
-	featureMeters, err := s.featureService.ResolveFeatureMeters(ctx, charge.Namespace, []string{charge.Intent.FeatureKey})
+	featureRef := charge.GetFeatureKeyOrID()
+	featureMeters, err := s.featureService.ResolveFeatureMeters(ctx, charge.Namespace, featureRef)
 	if err != nil {
 		return StateMachineConfig{}, fmt.Errorf("resolve feature meters: %w", err)
 	}
 
-	featureMeter, err := featureMeters.Get(charge.Intent.FeatureKey, true)
+	featureMeter, err := charge.ResolveFeatureMeter(featureMeters)
 	if err != nil {
-		return StateMachineConfig{}, fmt.Errorf("get feature meter: %w", err)
+		return StateMachineConfig{}, err
 	}
 
 	currencyCalculator, err := charge.Intent.Currency.Calculator()

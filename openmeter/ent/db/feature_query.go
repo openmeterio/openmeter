@@ -14,6 +14,9 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
@@ -24,15 +27,18 @@ import (
 // FeatureQuery is the builder for querying Feature entities.
 type FeatureQuery struct {
 	config
-	ctx               *QueryContext
-	order             []dbfeature.OrderOption
-	inters            []Interceptor
-	predicates        []predicate.Feature
-	withEntitlement   *EntitlementQuery
-	withRatecard      *PlanRateCardQuery
-	withAddonRatecard *AddonRateCardQuery
-	withMeter         *MeterQuery
-	modifiers         []func(*sql.Selector)
+	ctx                   *QueryContext
+	order                 []dbfeature.OrderOption
+	inters                []Interceptor
+	predicates            []predicate.Feature
+	withEntitlement       *EntitlementQuery
+	withRatecard          *PlanRateCardQuery
+	withAddonRatecard     *AddonRateCardQuery
+	withUsageBasedCharges *ChargeUsageBasedQuery
+	withUsageBasedRuns    *ChargeUsageBasedRunsQuery
+	withFlatFeeCharges    *ChargeFlatFeeQuery
+	withMeter             *MeterQuery
+	modifiers             []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -128,6 +134,72 @@ func (_q *FeatureQuery) QueryAddonRatecard() *AddonRateCardQuery {
 			sqlgraph.From(dbfeature.Table, dbfeature.FieldID, selector),
 			sqlgraph.To(addonratecard.Table, addonratecard.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, dbfeature.AddonRatecardTable, dbfeature.AddonRatecardColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryUsageBasedCharges chains the current query on the "usage_based_charges" edge.
+func (_q *FeatureQuery) QueryUsageBasedCharges() *ChargeUsageBasedQuery {
+	query := (&ChargeUsageBasedClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbfeature.Table, dbfeature.FieldID, selector),
+			sqlgraph.To(chargeusagebased.Table, chargeusagebased.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbfeature.UsageBasedChargesTable, dbfeature.UsageBasedChargesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryUsageBasedRuns chains the current query on the "usage_based_runs" edge.
+func (_q *FeatureQuery) QueryUsageBasedRuns() *ChargeUsageBasedRunsQuery {
+	query := (&ChargeUsageBasedRunsClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbfeature.Table, dbfeature.FieldID, selector),
+			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbfeature.UsageBasedRunsTable, dbfeature.UsageBasedRunsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryFlatFeeCharges chains the current query on the "flat_fee_charges" edge.
+func (_q *FeatureQuery) QueryFlatFeeCharges() *ChargeFlatFeeQuery {
+	query := (&ChargeFlatFeeClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbfeature.Table, dbfeature.FieldID, selector),
+			sqlgraph.To(chargeflatfee.Table, chargeflatfee.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbfeature.FlatFeeChargesTable, dbfeature.FlatFeeChargesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -344,15 +416,18 @@ func (_q *FeatureQuery) Clone() *FeatureQuery {
 		return nil
 	}
 	return &FeatureQuery{
-		config:            _q.config,
-		ctx:               _q.ctx.Clone(),
-		order:             append([]dbfeature.OrderOption{}, _q.order...),
-		inters:            append([]Interceptor{}, _q.inters...),
-		predicates:        append([]predicate.Feature{}, _q.predicates...),
-		withEntitlement:   _q.withEntitlement.Clone(),
-		withRatecard:      _q.withRatecard.Clone(),
-		withAddonRatecard: _q.withAddonRatecard.Clone(),
-		withMeter:         _q.withMeter.Clone(),
+		config:                _q.config,
+		ctx:                   _q.ctx.Clone(),
+		order:                 append([]dbfeature.OrderOption{}, _q.order...),
+		inters:                append([]Interceptor{}, _q.inters...),
+		predicates:            append([]predicate.Feature{}, _q.predicates...),
+		withEntitlement:       _q.withEntitlement.Clone(),
+		withRatecard:          _q.withRatecard.Clone(),
+		withAddonRatecard:     _q.withAddonRatecard.Clone(),
+		withUsageBasedCharges: _q.withUsageBasedCharges.Clone(),
+		withUsageBasedRuns:    _q.withUsageBasedRuns.Clone(),
+		withFlatFeeCharges:    _q.withFlatFeeCharges.Clone(),
+		withMeter:             _q.withMeter.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -389,6 +464,39 @@ func (_q *FeatureQuery) WithAddonRatecard(opts ...func(*AddonRateCardQuery)) *Fe
 		opt(query)
 	}
 	_q.withAddonRatecard = query
+	return _q
+}
+
+// WithUsageBasedCharges tells the query-builder to eager-load the nodes that are connected to
+// the "usage_based_charges" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *FeatureQuery) WithUsageBasedCharges(opts ...func(*ChargeUsageBasedQuery)) *FeatureQuery {
+	query := (&ChargeUsageBasedClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withUsageBasedCharges = query
+	return _q
+}
+
+// WithUsageBasedRuns tells the query-builder to eager-load the nodes that are connected to
+// the "usage_based_runs" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *FeatureQuery) WithUsageBasedRuns(opts ...func(*ChargeUsageBasedRunsQuery)) *FeatureQuery {
+	query := (&ChargeUsageBasedRunsClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withUsageBasedRuns = query
+	return _q
+}
+
+// WithFlatFeeCharges tells the query-builder to eager-load the nodes that are connected to
+// the "flat_fee_charges" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *FeatureQuery) WithFlatFeeCharges(opts ...func(*ChargeFlatFeeQuery)) *FeatureQuery {
+	query := (&ChargeFlatFeeClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withFlatFeeCharges = query
 	return _q
 }
 
@@ -481,10 +589,13 @@ func (_q *FeatureQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Feat
 	var (
 		nodes       = []*Feature{}
 		_spec       = _q.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [7]bool{
 			_q.withEntitlement != nil,
 			_q.withRatecard != nil,
 			_q.withAddonRatecard != nil,
+			_q.withUsageBasedCharges != nil,
+			_q.withUsageBasedRuns != nil,
+			_q.withFlatFeeCharges != nil,
 			_q.withMeter != nil,
 		}
 	)
@@ -527,6 +638,29 @@ func (_q *FeatureQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Feat
 		if err := _q.loadAddonRatecard(ctx, query, nodes,
 			func(n *Feature) { n.Edges.AddonRatecard = []*AddonRateCard{} },
 			func(n *Feature, e *AddonRateCard) { n.Edges.AddonRatecard = append(n.Edges.AddonRatecard, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withUsageBasedCharges; query != nil {
+		if err := _q.loadUsageBasedCharges(ctx, query, nodes,
+			func(n *Feature) { n.Edges.UsageBasedCharges = []*ChargeUsageBased{} },
+			func(n *Feature, e *ChargeUsageBased) {
+				n.Edges.UsageBasedCharges = append(n.Edges.UsageBasedCharges, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withUsageBasedRuns; query != nil {
+		if err := _q.loadUsageBasedRuns(ctx, query, nodes,
+			func(n *Feature) { n.Edges.UsageBasedRuns = []*ChargeUsageBasedRuns{} },
+			func(n *Feature, e *ChargeUsageBasedRuns) { n.Edges.UsageBasedRuns = append(n.Edges.UsageBasedRuns, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withFlatFeeCharges; query != nil {
+		if err := _q.loadFlatFeeCharges(ctx, query, nodes,
+			func(n *Feature) { n.Edges.FlatFeeCharges = []*ChargeFlatFee{} },
+			func(n *Feature, e *ChargeFlatFee) { n.Edges.FlatFeeCharges = append(n.Edges.FlatFeeCharges, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -617,6 +751,99 @@ func (_q *FeatureQuery) loadAddonRatecard(ctx context.Context, query *AddonRateC
 	}
 	query.Where(predicate.AddonRateCard(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(dbfeature.AddonRatecardColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.FeatureID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "feature_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "feature_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *FeatureQuery) loadUsageBasedCharges(ctx context.Context, query *ChargeUsageBasedQuery, nodes []*Feature, init func(*Feature), assign func(*Feature, *ChargeUsageBased)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Feature)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargeusagebased.FieldFeatureID)
+	}
+	query.Where(predicate.ChargeUsageBased(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(dbfeature.UsageBasedChargesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.FeatureID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "feature_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *FeatureQuery) loadUsageBasedRuns(ctx context.Context, query *ChargeUsageBasedRunsQuery, nodes []*Feature, init func(*Feature), assign func(*Feature, *ChargeUsageBasedRuns)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Feature)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargeusagebasedruns.FieldFeatureID)
+	}
+	query.Where(predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(dbfeature.UsageBasedRunsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.FeatureID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "feature_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *FeatureQuery) loadFlatFeeCharges(ctx context.Context, query *ChargeFlatFeeQuery, nodes []*Feature, init func(*Feature), assign func(*Feature, *ChargeFlatFee)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Feature)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargeflatfee.FieldFeatureID)
+	}
+	query.Where(predicate.ChargeFlatFee(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(dbfeature.FlatFeeChargesColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

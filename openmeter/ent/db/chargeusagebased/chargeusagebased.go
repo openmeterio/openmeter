@@ -74,6 +74,8 @@ const (
 	FieldDiscounts = "discounts"
 	// FieldFeatureKey holds the string denoting the feature_key field in the database.
 	FieldFeatureKey = "feature_key"
+	// FieldFeatureID holds the string denoting the feature_id field in the database.
+	FieldFeatureID = "feature_id"
 	// FieldPrice holds the string denoting the price field in the database.
 	FieldPrice = "price"
 	// FieldCurrentRealizationRunID holds the string denoting the current_realization_run_id field in the database.
@@ -94,6 +96,8 @@ const (
 	EdgeSubscriptionItem = "subscription_item"
 	// EdgeCustomer holds the string denoting the customer edge name in mutations.
 	EdgeCustomer = "customer"
+	// EdgeFeature holds the string denoting the feature edge name in mutations.
+	EdgeFeature = "feature"
 	// Table holds the table name of the chargeusagebased in the database.
 	Table = "charge_usage_based"
 	// RunsTable is the table that holds the runs relation/edge.
@@ -145,6 +149,13 @@ const (
 	CustomerInverseTable = "customers"
 	// CustomerColumn is the table column denoting the customer relation/edge.
 	CustomerColumn = "customer_id"
+	// FeatureTable is the table that holds the feature relation/edge.
+	FeatureTable = "charge_usage_based"
+	// FeatureInverseTable is the table name for the Feature entity.
+	// It exists in this package in order to avoid circular dependency with the "dbfeature" package.
+	FeatureInverseTable = "features"
+	// FeatureColumn is the table column denoting the feature relation/edge.
+	FeatureColumn = "feature_id"
 )
 
 // Columns holds all SQL columns for chargeusagebased fields.
@@ -177,6 +188,7 @@ var Columns = []string{
 	FieldSettlementMode,
 	FieldDiscounts,
 	FieldFeatureKey,
+	FieldFeatureID,
 	FieldPrice,
 	FieldCurrentRealizationRunID,
 	FieldStatusDetailed,
@@ -207,6 +219,8 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
 	FeatureKeyValidator func(string) error
+	// FeatureIDValidator is a validator for the "feature_id" field. It is called by the builders before save.
+	FeatureIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// ValueScanner of all ChargeUsageBased fields.
@@ -389,6 +403,11 @@ func ByFeatureKey(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldFeatureKey, opts...).ToFunc()
 }
 
+// ByFeatureID orders the results by the feature_id field.
+func ByFeatureID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFeatureID, opts...).ToFunc()
+}
+
 // ByPrice orders the results by the price field.
 func ByPrice(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPrice, opts...).ToFunc()
@@ -459,6 +478,13 @@ func ByCustomerField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newCustomerStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByFeatureField orders the results by feature field.
+func ByFeatureField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newFeatureStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newRunsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -506,5 +532,12 @@ func newCustomerStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CustomerInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, CustomerTable, CustomerColumn),
+	)
+}
+func newFeatureStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(FeatureInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, FeatureTable, FeatureColumn),
 	)
 }

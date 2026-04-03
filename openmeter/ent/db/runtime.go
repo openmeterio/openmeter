@@ -1206,8 +1206,12 @@ func init() {
 	chargeusagebasedDescFeatureKey := chargeusagebasedFields[3].Descriptor()
 	// chargeusagebased.FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
 	chargeusagebased.FeatureKeyValidator = chargeusagebasedDescFeatureKey.Validators[0].(func(string) error)
+	// chargeusagebasedDescFeatureID is the schema descriptor for feature_id field.
+	chargeusagebasedDescFeatureID := chargeusagebasedFields[4].Descriptor()
+	// chargeusagebased.FeatureIDValidator is a validator for the "feature_id" field. It is called by the builders before save.
+	chargeusagebased.FeatureIDValidator = chargeusagebasedDescFeatureID.Validators[0].(func(string) error)
 	// chargeusagebasedDescPrice is the schema descriptor for price field.
-	chargeusagebasedDescPrice := chargeusagebasedFields[4].Descriptor()
+	chargeusagebasedDescPrice := chargeusagebasedFields[5].Descriptor()
 	chargeusagebased.ValueScanner.Price = chargeusagebasedDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
 	// chargeusagebasedDescID is the schema descriptor for id field.
 	chargeusagebasedDescID := chargeusagebasedMixinFields0[16].Descriptor()
@@ -1333,6 +1337,10 @@ func init() {
 	chargeusagebasedruns.DefaultUpdatedAt = chargeusagebasedrunsDescUpdatedAt.Default.(func() time.Time)
 	// chargeusagebasedruns.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	chargeusagebasedruns.UpdateDefaultUpdatedAt = chargeusagebasedrunsDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// chargeusagebasedrunsDescFeatureID is the schema descriptor for feature_id field.
+	chargeusagebasedrunsDescFeatureID := chargeusagebasedrunsFields[1].Descriptor()
+	// chargeusagebasedruns.FeatureIDValidator is a validator for the "feature_id" field. It is called by the builders before save.
+	chargeusagebasedruns.FeatureIDValidator = chargeusagebasedrunsDescFeatureID.Validators[0].(func(string) error)
 	// chargeusagebasedrunsDescID is the schema descriptor for id field.
 	chargeusagebasedrunsDescID := chargeusagebasedrunsMixinFields1[0].Descriptor()
 	// chargeusagebasedruns.DefaultID holds the default value on creation for the id field.

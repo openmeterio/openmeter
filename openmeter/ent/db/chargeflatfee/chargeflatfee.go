@@ -78,6 +78,8 @@ const (
 	FieldProRating = "pro_rating"
 	// FieldFeatureKey holds the string denoting the feature_key field in the database.
 	FieldFeatureKey = "feature_key"
+	// FieldFeatureID holds the string denoting the feature_id field in the database.
+	FieldFeatureID = "feature_id"
 	// FieldAmountBeforeProration holds the string denoting the amount_before_proration field in the database.
 	FieldAmountBeforeProration = "amount_before_proration"
 	// FieldAmountAfterProration holds the string denoting the amount_after_proration field in the database.
@@ -98,6 +100,8 @@ const (
 	EdgeSubscriptionItem = "subscription_item"
 	// EdgeCustomer holds the string denoting the customer edge name in mutations.
 	EdgeCustomer = "customer"
+	// EdgeFeature holds the string denoting the feature edge name in mutations.
+	EdgeFeature = "feature"
 	// Table holds the table name of the chargeflatfee in the database.
 	Table = "charge_flat_fees"
 	// CreditAllocationsTable is the table that holds the credit_allocations relation/edge.
@@ -156,6 +160,13 @@ const (
 	CustomerInverseTable = "customers"
 	// CustomerColumn is the table column denoting the customer relation/edge.
 	CustomerColumn = "customer_id"
+	// FeatureTable is the table that holds the feature relation/edge.
+	FeatureTable = "charge_flat_fees"
+	// FeatureInverseTable is the table name for the Feature entity.
+	// It exists in this package in order to avoid circular dependency with the "dbfeature" package.
+	FeatureInverseTable = "features"
+	// FeatureColumn is the table column denoting the feature relation/edge.
+	FeatureColumn = "feature_id"
 )
 
 // Columns holds all SQL columns for chargeflatfee fields.
@@ -190,6 +201,7 @@ var Columns = []string{
 	FieldDiscounts,
 	FieldProRating,
 	FieldFeatureKey,
+	FieldFeatureID,
 	FieldAmountBeforeProration,
 	FieldAmountAfterProration,
 }
@@ -412,6 +424,11 @@ func ByFeatureKey(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldFeatureKey, opts...).ToFunc()
 }
 
+// ByFeatureID orders the results by the feature_id field.
+func ByFeatureID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFeatureID, opts...).ToFunc()
+}
+
 // ByAmountBeforeProration orders the results by the amount_before_proration field.
 func ByAmountBeforeProration(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAmountBeforeProration, opts...).ToFunc()
@@ -484,6 +501,13 @@ func ByCustomerField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newCustomerStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByFeatureField orders the results by feature field.
+func ByFeatureField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newFeatureStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newCreditAllocationsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -538,5 +562,12 @@ func newCustomerStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CustomerInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, CustomerTable, CustomerColumn),
+	)
+}
+func newFeatureStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(FeatureInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, FeatureTable, FeatureColumn),
 	)
 }

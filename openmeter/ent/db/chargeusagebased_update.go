@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -262,6 +263,20 @@ func (_u *ChargeUsageBasedUpdate) ClearDiscounts() *ChargeUsageBasedUpdate {
 	return _u
 }
 
+// SetFeatureID sets the "feature_id" field.
+func (_u *ChargeUsageBasedUpdate) SetFeatureID(v string) *ChargeUsageBasedUpdate {
+	_u.mutation.SetFeatureID(v)
+	return _u
+}
+
+// SetNillableFeatureID sets the "feature_id" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableFeatureID(v *string) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetFeatureID(*v)
+	}
+	return _u
+}
+
 // SetCurrentRealizationRunID sets the "current_realization_run_id" field.
 func (_u *ChargeUsageBasedUpdate) SetCurrentRealizationRunID(v string) *ChargeUsageBasedUpdate {
 	_u.mutation.SetCurrentRealizationRunID(v)
@@ -330,6 +345,11 @@ func (_u *ChargeUsageBasedUpdate) SetCurrentRun(v *ChargeUsageBasedRuns) *Charge
 	return _u.SetCurrentRunID(v.ID)
 }
 
+// SetFeature sets the "feature" edge to the Feature entity.
+func (_u *ChargeUsageBasedUpdate) SetFeature(v *Feature) *ChargeUsageBasedUpdate {
+	return _u.SetFeatureID(v.ID)
+}
+
 // Mutation returns the ChargeUsageBasedMutation object of the builder.
 func (_u *ChargeUsageBasedUpdate) Mutation() *ChargeUsageBasedMutation {
 	return _u.mutation
@@ -359,6 +379,12 @@ func (_u *ChargeUsageBasedUpdate) RemoveRuns(v ...*ChargeUsageBasedRuns) *Charge
 // ClearCurrentRun clears the "current_run" edge to the ChargeUsageBasedRuns entity.
 func (_u *ChargeUsageBasedUpdate) ClearCurrentRun() *ChargeUsageBasedUpdate {
 	_u.mutation.ClearCurrentRun()
+	return _u
+}
+
+// ClearFeature clears the "feature" edge to the Feature entity.
+func (_u *ChargeUsageBasedUpdate) ClearFeature() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearFeature()
 	return _u
 }
 
@@ -415,6 +441,11 @@ func (_u *ChargeUsageBasedUpdate) check() error {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.discounts": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.FeatureID(); ok {
+		if err := chargeusagebased.FeatureIDValidator(v); err != nil {
+			return &ValidationError{Name: "feature_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.feature_id": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.StatusDetailed(); ok {
 		if err := chargeusagebased.StatusDetailedValidator(v); err != nil {
 			return &ValidationError{Name: "status_detailed", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.status_detailed": %w`, err)}
@@ -422,6 +453,9 @@ func (_u *ChargeUsageBasedUpdate) check() error {
 	}
 	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeUsageBased.customer"`)
+	}
+	if _u.mutation.FeatureCleared() && len(_u.mutation.FeatureIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "ChargeUsageBased.feature"`)
 	}
 	return nil
 }
@@ -581,6 +615,35 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.FeatureCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.FeatureTable,
+			Columns: []string{chargeusagebased.FeatureColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.FeatureIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.FeatureTable,
+			Columns: []string{chargeusagebased.FeatureColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -836,6 +899,20 @@ func (_u *ChargeUsageBasedUpdateOne) ClearDiscounts() *ChargeUsageBasedUpdateOne
 	return _u
 }
 
+// SetFeatureID sets the "feature_id" field.
+func (_u *ChargeUsageBasedUpdateOne) SetFeatureID(v string) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetFeatureID(v)
+	return _u
+}
+
+// SetNillableFeatureID sets the "feature_id" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableFeatureID(v *string) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetFeatureID(*v)
+	}
+	return _u
+}
+
 // SetCurrentRealizationRunID sets the "current_realization_run_id" field.
 func (_u *ChargeUsageBasedUpdateOne) SetCurrentRealizationRunID(v string) *ChargeUsageBasedUpdateOne {
 	_u.mutation.SetCurrentRealizationRunID(v)
@@ -904,6 +981,11 @@ func (_u *ChargeUsageBasedUpdateOne) SetCurrentRun(v *ChargeUsageBasedRuns) *Cha
 	return _u.SetCurrentRunID(v.ID)
 }
 
+// SetFeature sets the "feature" edge to the Feature entity.
+func (_u *ChargeUsageBasedUpdateOne) SetFeature(v *Feature) *ChargeUsageBasedUpdateOne {
+	return _u.SetFeatureID(v.ID)
+}
+
 // Mutation returns the ChargeUsageBasedMutation object of the builder.
 func (_u *ChargeUsageBasedUpdateOne) Mutation() *ChargeUsageBasedMutation {
 	return _u.mutation
@@ -933,6 +1015,12 @@ func (_u *ChargeUsageBasedUpdateOne) RemoveRuns(v ...*ChargeUsageBasedRuns) *Cha
 // ClearCurrentRun clears the "current_run" edge to the ChargeUsageBasedRuns entity.
 func (_u *ChargeUsageBasedUpdateOne) ClearCurrentRun() *ChargeUsageBasedUpdateOne {
 	_u.mutation.ClearCurrentRun()
+	return _u
+}
+
+// ClearFeature clears the "feature" edge to the Feature entity.
+func (_u *ChargeUsageBasedUpdateOne) ClearFeature() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearFeature()
 	return _u
 }
 
@@ -1002,6 +1090,11 @@ func (_u *ChargeUsageBasedUpdateOne) check() error {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.discounts": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.FeatureID(); ok {
+		if err := chargeusagebased.FeatureIDValidator(v); err != nil {
+			return &ValidationError{Name: "feature_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.feature_id": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.StatusDetailed(); ok {
 		if err := chargeusagebased.StatusDetailedValidator(v); err != nil {
 			return &ValidationError{Name: "status_detailed", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.status_detailed": %w`, err)}
@@ -1009,6 +1102,9 @@ func (_u *ChargeUsageBasedUpdateOne) check() error {
 	}
 	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeUsageBased.customer"`)
+	}
+	if _u.mutation.FeatureCleared() && len(_u.mutation.FeatureIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "ChargeUsageBased.feature"`)
 	}
 	return nil
 }
@@ -1185,6 +1281,35 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.FeatureCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.FeatureTable,
+			Columns: []string{chargeusagebased.FeatureColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.FeatureIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.FeatureTable,
+			Columns: []string{chargeusagebased.FeatureColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

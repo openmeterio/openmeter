@@ -11,6 +11,22 @@ type IDOrKey struct {
 	Key string `json:"key"`
 }
 
+func (i IDOrKey) GetIDs() []string {
+	if i.ID == "" {
+		return nil
+	}
+
+	return []string{i.ID}
+}
+
+func (i IDOrKey) GetKeys() []string {
+	if i.Key == "" {
+		return nil
+	}
+
+	return []string{i.Key}
+}
+
 func (i IDOrKey) Validate() error {
 	if i.ID == "" && i.Key == "" {
 		return fmt.Errorf("either id or key is required")

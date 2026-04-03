@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeinvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -327,6 +328,26 @@ func (_u *ChargeFlatFeeUpdate) ClearFeatureKey() *ChargeFlatFeeUpdate {
 	return _u
 }
 
+// SetFeatureID sets the "feature_id" field.
+func (_u *ChargeFlatFeeUpdate) SetFeatureID(v string) *ChargeFlatFeeUpdate {
+	_u.mutation.SetFeatureID(v)
+	return _u
+}
+
+// SetNillableFeatureID sets the "feature_id" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdate) SetNillableFeatureID(v *string) *ChargeFlatFeeUpdate {
+	if v != nil {
+		_u.SetFeatureID(*v)
+	}
+	return _u
+}
+
+// ClearFeatureID clears the value of the "feature_id" field.
+func (_u *ChargeFlatFeeUpdate) ClearFeatureID() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearFeatureID()
+	return _u
+}
+
 // SetAmountBeforeProration sets the "amount_before_proration" field.
 func (_u *ChargeFlatFeeUpdate) SetAmountBeforeProration(v alpacadecimal.Decimal) *ChargeFlatFeeUpdate {
 	_u.mutation.SetAmountBeforeProration(v)
@@ -408,6 +429,11 @@ func (_u *ChargeFlatFeeUpdate) SetPayment(v *ChargeFlatFeePayment) *ChargeFlatFe
 	return _u.SetPaymentID(v.ID)
 }
 
+// SetFeature sets the "feature" edge to the Feature entity.
+func (_u *ChargeFlatFeeUpdate) SetFeature(v *Feature) *ChargeFlatFeeUpdate {
+	return _u.SetFeatureID(v.ID)
+}
+
 // Mutation returns the ChargeFlatFeeMutation object of the builder.
 func (_u *ChargeFlatFeeUpdate) Mutation() *ChargeFlatFeeMutation {
 	return _u.mutation
@@ -443,6 +469,12 @@ func (_u *ChargeFlatFeeUpdate) ClearInvoicedUsage() *ChargeFlatFeeUpdate {
 // ClearPayment clears the "payment" edge to the ChargeFlatFeePayment entity.
 func (_u *ChargeFlatFeeUpdate) ClearPayment() *ChargeFlatFeeUpdate {
 	_u.mutation.ClearPayment()
+	return _u
+}
+
+// ClearFeature clears the "feature" edge to the Feature entity.
+func (_u *ChargeFlatFeeUpdate) ClearFeature() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearFeature()
 	return _u
 }
 
@@ -722,6 +754,35 @@ func (_u *ChargeFlatFeeUpdate) sqlSave(ctx context.Context) (_node int, err erro
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeepayment.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.FeatureCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeflatfee.FeatureTable,
+			Columns: []string{chargeflatfee.FeatureColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.FeatureIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeflatfee.FeatureTable,
+			Columns: []string{chargeflatfee.FeatureColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1039,6 +1100,26 @@ func (_u *ChargeFlatFeeUpdateOne) ClearFeatureKey() *ChargeFlatFeeUpdateOne {
 	return _u
 }
 
+// SetFeatureID sets the "feature_id" field.
+func (_u *ChargeFlatFeeUpdateOne) SetFeatureID(v string) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetFeatureID(v)
+	return _u
+}
+
+// SetNillableFeatureID sets the "feature_id" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdateOne) SetNillableFeatureID(v *string) *ChargeFlatFeeUpdateOne {
+	if v != nil {
+		_u.SetFeatureID(*v)
+	}
+	return _u
+}
+
+// ClearFeatureID clears the value of the "feature_id" field.
+func (_u *ChargeFlatFeeUpdateOne) ClearFeatureID() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearFeatureID()
+	return _u
+}
+
 // SetAmountBeforeProration sets the "amount_before_proration" field.
 func (_u *ChargeFlatFeeUpdateOne) SetAmountBeforeProration(v alpacadecimal.Decimal) *ChargeFlatFeeUpdateOne {
 	_u.mutation.SetAmountBeforeProration(v)
@@ -1120,6 +1201,11 @@ func (_u *ChargeFlatFeeUpdateOne) SetPayment(v *ChargeFlatFeePayment) *ChargeFla
 	return _u.SetPaymentID(v.ID)
 }
 
+// SetFeature sets the "feature" edge to the Feature entity.
+func (_u *ChargeFlatFeeUpdateOne) SetFeature(v *Feature) *ChargeFlatFeeUpdateOne {
+	return _u.SetFeatureID(v.ID)
+}
+
 // Mutation returns the ChargeFlatFeeMutation object of the builder.
 func (_u *ChargeFlatFeeUpdateOne) Mutation() *ChargeFlatFeeMutation {
 	return _u.mutation
@@ -1155,6 +1241,12 @@ func (_u *ChargeFlatFeeUpdateOne) ClearInvoicedUsage() *ChargeFlatFeeUpdateOne {
 // ClearPayment clears the "payment" edge to the ChargeFlatFeePayment entity.
 func (_u *ChargeFlatFeeUpdateOne) ClearPayment() *ChargeFlatFeeUpdateOne {
 	_u.mutation.ClearPayment()
+	return _u
+}
+
+// ClearFeature clears the "feature" edge to the Feature entity.
+func (_u *ChargeFlatFeeUpdateOne) ClearFeature() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearFeature()
 	return _u
 }
 
@@ -1464,6 +1556,35 @@ func (_u *ChargeFlatFeeUpdateOne) sqlSave(ctx context.Context) (_node *ChargeFla
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeepayment.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.FeatureCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeflatfee.FeatureTable,
+			Columns: []string{chargeflatfee.FeatureColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.FeatureIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeflatfee.FeatureTable,
+			Columns: []string{chargeflatfee.FeatureColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

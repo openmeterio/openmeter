@@ -5,9 +5,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/ref"
 )
 
 var _ meta.ChargeAccessor = (*ChargeBase)(nil)
@@ -66,6 +70,8 @@ type Charge struct {
 	Realizations RealizationRuns `json:"realizations"`
 }
 
+type Charges []Charge
+
 func (c Charge) Validate() error {
 	var errs []error
 
@@ -82,6 +88,54 @@ func (c Charge) GetCurrentRealizationRun() (RealizationRun, error) {
 	}
 
 	return c.Realizations.GetByID(*c.State.CurrentRealizationRunID)
+}
+
+func (c Charge) GetFeatureKeyOrID() ref.IDOrKey {
+	switch c.Status {
+	case StatusCreated:
+		return ref.IDOrKey{
+			Key: c.Intent.FeatureKey,
+		}
+	case StatusDeleted:
+		if c.State.FeatureID != "" {
+			return ref.IDOrKey{
+				ID: c.State.FeatureID,
+			}
+		}
+
+		return ref.IDOrKey{
+			Key: c.Intent.FeatureKey,
+		}
+	default:
+		return ref.IDOrKey{
+			ID: c.State.FeatureID,
+		}
+	}
+}
+
+func (c Charge) ResolveFeatureMeter(featureMeters feature.FeatureMeters) (feature.FeatureMeter, error) {
+	const requireMeter = true
+
+	featureRef := c.GetFeatureKeyOrID()
+	if featureRef.ID != "" {
+		return featureMeters.GetByID(featureRef.ID, requireMeter)
+	}
+
+	featureMeter, err := featureMeters.Get(featureRef.Key, requireMeter)
+	if err != nil {
+		return feature.FeatureMeter{}, fmt.Errorf("get feature meter: %w", err)
+	}
+
+	return featureMeter, nil
+}
+
+// GetFeatureKeysOrIDs returns the unique state-aware feature references for the charges.
+// Each charge contributes the ref returned by GetFeatureKeyOrID, so created charges use keys,
+// deleted charges prefer IDs and fall back to keys, and all other states use IDs.
+func (c Charges) GetFeatureKeysOrIDs() []ref.IDOrKey {
+	return lo.Uniq(lo.Map(c, func(charge Charge, _ int) ref.IDOrKey {
+		return charge.GetFeatureKeyOrID()
+	}))
 }
 
 type Intent struct {
@@ -137,6 +191,7 @@ func (i Intent) Validate() error {
 type State struct {
 	CurrentRealizationRunID *string    `json:"currentRealizationRunId"`
 	AdvanceAfter            *time.Time `json:"advanceAfter"`
+	FeatureID               string     `json:"featureId"`
 }
 
 func (s State) Normalized() State {
@@ -150,6 +205,10 @@ func (s State) Validate() error {
 
 	if s.CurrentRealizationRunID != nil && *s.CurrentRealizationRunID == "" {
 		errs = append(errs, fmt.Errorf("current realization run ID must be non-empty"))
+	}
+
+	if s.FeatureID == "" {
+		errs = append(errs, fmt.Errorf("feature id must be set"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

@@ -141,6 +141,11 @@ func (s *StateMachine) AdvanceAfterServicePeriodTo(ctx context.Context) error {
 	return nil
 }
 
+func (s *StateMachine) SyncFeatureIDFromFeatureMeter(ctx context.Context) error {
+	s.Charge.State.FeatureID = s.FeatureMeter.Feature.ID
+	return nil
+}
+
 func (s *StateMachine) AdvanceAfterServicePeriodFrom(ctx context.Context) error {
 	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.From))
 	return nil

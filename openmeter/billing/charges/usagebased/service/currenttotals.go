@@ -37,14 +37,14 @@ func (s *service) GetCurrentTotals(ctx context.Context, input usagebased.GetCurr
 		return usagebased.GetCurrentTotalsResult{}, fmt.Errorf("get customer override: %w", err)
 	}
 
-	featureMeters, err := s.featureService.ResolveFeatureMeters(ctx, charge.Namespace, []string{charge.Intent.FeatureKey})
+	featureMeters, err := s.featureService.ResolveFeatureMeters(ctx, charge.Namespace, charge.GetFeatureKeyOrID())
 	if err != nil {
 		return usagebased.GetCurrentTotalsResult{}, fmt.Errorf("resolve feature meters: %w", err)
 	}
 
-	featureMeter, err := featureMeters.Get(charge.Intent.FeatureKey, true)
+	featureMeter, err := charge.ResolveFeatureMeter(featureMeters)
 	if err != nil {
-		return usagebased.GetCurrentTotalsResult{}, fmt.Errorf("get feature meter: %w", err)
+		return usagebased.GetCurrentTotalsResult{}, err
 	}
 
 	ratingResult, err := s.getRatingForUsage(ctx, getRatingForUsageInput{
