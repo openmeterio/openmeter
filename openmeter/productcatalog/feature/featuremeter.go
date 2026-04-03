@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/ref"
 )
 
@@ -29,11 +30,11 @@ type FeatureMeterCollection struct {
 func (f FeatureMeterCollection) Get(featureKey string, requireMeter bool) (FeatureMeter, error) {
 	featureMeter, exists := f.ByKey[featureKey]
 	if !exists {
-		return FeatureMeter{}, fmt.Errorf("feature[%s] not found", featureKey)
+		return FeatureMeter{}, models.NewGenericNotFoundError(fmt.Errorf("feature[%s] not found", featureKey))
 	}
 
 	if requireMeter && featureMeter.Meter == nil {
-		return FeatureMeter{}, fmt.Errorf("feature[%s] has no meter associated, but caller requires a meter", featureMeter.Feature.Key)
+		return FeatureMeter{}, models.NewGenericValidationError(fmt.Errorf("feature[%s] has no meter associated", featureMeter.Feature.Key))
 	}
 
 	return featureMeter, nil
@@ -42,11 +43,11 @@ func (f FeatureMeterCollection) Get(featureKey string, requireMeter bool) (Featu
 func (f FeatureMeterCollection) GetByID(featureID string, requireMeter bool) (FeatureMeter, error) {
 	featureMeter, exists := f.ByID[featureID]
 	if !exists {
-		return FeatureMeter{}, fmt.Errorf("feature[%s] not found", featureID)
+		return FeatureMeter{}, models.NewGenericNotFoundError(fmt.Errorf("feature[%s] not found", featureID))
 	}
 
 	if requireMeter && featureMeter.Meter == nil {
-		return FeatureMeter{}, fmt.Errorf("feature[%s] has no meter associated, but caller requires a meter", featureMeter.Feature.Key)
+		return FeatureMeter{}, models.NewGenericValidationError(fmt.Errorf("feature[%s] has no meter associated", featureMeter.Feature.Key))
 	}
 
 	return featureMeter, nil

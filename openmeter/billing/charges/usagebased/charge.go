@@ -118,10 +118,7 @@ func (c Charge) ResolveFeatureMeter(featureMeters feature.FeatureMeters) (featur
 
 	featureRef := c.GetFeatureKeyOrID()
 	if featureRef.ID != "" {
-		featureMeter, err := featureMeters.GetByID(featureRef.ID, requireMeter)
-		if err == nil {
-			return featureMeter, nil
-		}
+		return featureMeters.GetByID(featureRef.ID, requireMeter)
 	}
 
 	featureMeter, err := featureMeters.Get(featureRef.Key, requireMeter)
