@@ -61,7 +61,12 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			statelessx.BoolFn(s.IsAfterServicePeriod),
 		).
 		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
-		OnActive(s.SyncFeatureAndAdvanceAfterServicePeriodTo)
+		OnActive(
+			statelessx.AllOf(
+				s.SyncFeatureIDFromFeatureMeter,
+				s.AdvanceAfterServicePeriodTo,
+			),
+		)
 
 	s.Configure(usagebased.StatusActiveFinalRealizationStarted).
 		Permit(
@@ -111,14 +116,6 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 func (s *CreditsOnlyStateMachine) ClearAdvanceAfter(ctx context.Context) error {
 	s.Charge.State.AdvanceAfter = nil
 	return nil
-}
-
-func (s *CreditsOnlyStateMachine) SyncFeatureAndAdvanceAfterServicePeriodTo(ctx context.Context) error {
-	if err := s.SyncFeatureIDFromFeatureMeter(ctx); err != nil {
-		return err
-	}
-
-	return s.AdvanceAfterServicePeriodTo(ctx)
 }
 
 func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, policy meta.PatchDeletePolicy) error {
