@@ -47,6 +47,10 @@ func (i CreateInput) Validate() error {
 		errs = append(errs, errors.New("namespace is required"))
 	}
 
+	if len(i.Intents) > 0 && i.FeatureMeters == nil {
+		errs = append(errs, errors.New("feature meters are required"))
+	}
+
 	for idx, intent := range i.Intents {
 		if err := intent.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("intent [%d]: %w", idx, err))
