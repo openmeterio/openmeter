@@ -7,6 +7,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/ref"
 )
 
@@ -100,6 +101,8 @@ func TestResolveFeatureMeters(t *testing.T) {
 			{ID: "feature-old"},
 			{ID: "missing-feature"},
 		}, out)
-		require.EqualError(t, err, "feature[missing-feature] not found")
+		require.Error(t, err)
+		require.True(t, models.IsGenericNotFoundError(err))
+		require.ErrorContains(t, err, "missing-feature")
 	})
 }
