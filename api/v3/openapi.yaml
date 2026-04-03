@@ -4236,6 +4236,7 @@ components:
           type: string
           enum:
             - llm
+          description: The type discriminator for LLM unit cost.
         provider_property:
           type: string
           description: |-
@@ -4335,6 +4336,7 @@ components:
           type: string
           enum:
             - manual
+          description: The type discriminator for manual unit cost.
         amount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
