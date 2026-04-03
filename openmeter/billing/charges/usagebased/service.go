@@ -36,8 +36,9 @@ type InvoiceLifecycleHooks interface {
 }
 
 type CreateInput struct {
-	Namespace string
-	Intents   []Intent
+	Namespace     string
+	Intents       []Intent
+	FeatureMeters feature.FeatureMeters
 }
 
 func (i CreateInput) Validate() error {
@@ -58,6 +59,46 @@ func (i CreateInput) Validate() error {
 type ChargeWithGatheringLine struct {
 	Charge                Charge
 	GatheringLineToCreate *billing.GatheringLine
+}
+
+type CreateIntent struct {
+	Intent
+	FeatureID string
+}
+
+func (i CreateIntent) Validate() error {
+	var errs []error
+
+	if err := i.Intent.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if i.FeatureID == "" {
+		errs = append(errs, errors.New("feature id is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type CreateChargesInput struct {
+	Namespace string
+	Intents   []CreateIntent
+}
+
+func (i CreateChargesInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	for idx, intent := range i.Intents {
+		if err := intent.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("intent [%d]: %w", idx, err))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type GetByIDsInput struct {
@@ -83,7 +124,7 @@ func (i GetByIDsInput) Validate() error {
 type AdvanceChargeInput struct {
 	ChargeID         meta.ChargeID
 	CustomerOverride billing.CustomerOverrideWithDetails
-	FeatureMeter     feature.FeatureMeter
+	FeatureMeters    feature.FeatureMeters
 }
 
 func (i AdvanceChargeInput) Validate() error {
@@ -100,8 +141,8 @@ func (i AdvanceChargeInput) Validate() error {
 		errs = append(errs, fmt.Errorf("merged profile is required: %w", err))
 	}
 
-	if i.FeatureMeter.Meter == nil {
-		errs = append(errs, errors.New("feature meter is required"))
+	if i.FeatureMeters == nil {
+		errs = append(errs, errors.New("feature meters are required"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

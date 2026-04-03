@@ -26,12 +26,28 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]usagebased.ChargeWithGatheringLine, error) {
-		input.Intents = lo.Map(input.Intents, func(intent usagebased.Intent, _ int) usagebased.Intent {
-			return intent.Normalized()
+		createIntents, err := slicesx.MapWithErr(input.Intents, func(intent usagebased.Intent) (usagebased.CreateIntent, error) {
+			intent = intent.Normalized()
+
+			featureMeter, err := input.FeatureMeters.Get(intent.FeatureKey, false)
+			if err != nil {
+				return usagebased.CreateIntent{}, fmt.Errorf("resolve usage based feature for key %s: %w", intent.FeatureKey, err)
+			}
+
+			return usagebased.CreateIntent{
+				Intent:    intent,
+				FeatureID: featureMeter.Feature.ID,
+			}, nil
 		})
+		if err != nil {
+			return nil, err
+		}
 
 		// Let's create all the flat fee charges in bulk
-		charges, err := s.adapter.CreateCharges(ctx, input)
+		charges, err := s.adapter.CreateCharges(ctx, usagebased.CreateChargesInput{
+			Namespace: input.Namespace,
+			Intents:   createIntents,
+		})
 		if err != nil {
 			return nil, err
 		}

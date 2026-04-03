@@ -40,8 +40,18 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 				return flatfee.IntentWithInitialStatus{}, fmt.Errorf("calculating amount after proration: %w", err)
 			}
 
+			var featureID *string
+			if intent.FeatureKey != "" {
+				featureMeter, err := input.FeatureMeters.Get(intent.FeatureKey, false)
+				if err != nil {
+					return flatfee.IntentWithInitialStatus{}, fmt.Errorf("resolve flat fee feature for key %s: %w", intent.FeatureKey, err)
+				}
+				featureID = lo.ToPtr(featureMeter.Feature.ID)
+			}
+
 			return flatfee.IntentWithInitialStatus{
 				Intent:               intent,
+				FeatureID:            featureID,
 				InitialStatus:        initialStatus,
 				AmountAfterProration: amountAfterProration,
 			}, nil

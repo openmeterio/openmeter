@@ -15,14 +15,14 @@ import (
 
 type chargesByTypeResult struct {
 	flatFees       []flatfee.Charge
-	usageBased     []usagebased.Charge
+	usageBased     usagebased.Charges
 	creditPurchase []creditpurchase.Charge
 }
 
 func chargesByType(in charges.Charges) (chargesByTypeResult, error) {
 	result := chargesByTypeResult{
 		flatFees:       make([]flatfee.Charge, 0, len(in)),
-		usageBased:     make([]usagebased.Charge, 0, len(in)),
+		usageBased:     make(usagebased.Charges, 0, len(in)),
 		creditPurchase: make([]creditpurchase.Charge, 0, len(in)),
 	}
 

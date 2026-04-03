@@ -36,6 +36,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/ref"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -78,27 +79,54 @@ func newTestEnv(t *testing.T) *testEnv {
 
 	featureService := mockFeatureConnector{
 		meters: feature.FeatureMeterCollection{
-			testFeatureKey: {
-				Feature: feature.Feature{
-					Namespace: base.Namespace,
-					ID:        "feature-1",
-					Name:      "API Requests",
-					Key:       testFeatureKey,
-					MeterID:   lo.ToPtr("meter-1"),
-					CreatedAt: base.Now(),
-					UpdatedAt: base.Now(),
-				},
-				Meter: &meter.Meter{
-					ManagedResource: models.ManagedResource{
-						NamespacedModel: models.NamespacedModel{
-							Namespace: base.Namespace,
-						},
-						ID:   "meter-1",
-						Name: "API Requests Meter",
+			ByKey: map[string]feature.FeatureMeter{
+				testFeatureKey: {
+					Feature: feature.Feature{
+						Namespace: base.Namespace,
+						ID:        "feature-1",
+						Name:      "API Requests",
+						Key:       testFeatureKey,
+						MeterID:   lo.ToPtr("meter-1"),
+						CreatedAt: base.Now(),
+						UpdatedAt: base.Now(),
 					},
-					Key:         testMeterKey,
-					Aggregation: meter.MeterAggregationSum,
-					EventType:   "api_request",
+					Meter: &meter.Meter{
+						ManagedResource: models.ManagedResource{
+							NamespacedModel: models.NamespacedModel{
+								Namespace: base.Namespace,
+							},
+							ID:   "meter-1",
+							Name: "API Requests Meter",
+						},
+						Key:         testMeterKey,
+						Aggregation: meter.MeterAggregationSum,
+						EventType:   "api_request",
+					},
+				},
+			},
+			ByID: map[string]feature.FeatureMeter{
+				"feature-1": {
+					Feature: feature.Feature{
+						Namespace: base.Namespace,
+						ID:        "feature-1",
+						Name:      "API Requests",
+						Key:       testFeatureKey,
+						MeterID:   lo.ToPtr("meter-1"),
+						CreatedAt: base.Now(),
+						UpdatedAt: base.Now(),
+					},
+					Meter: &meter.Meter{
+						ManagedResource: models.ManagedResource{
+							NamespacedModel: models.NamespacedModel{
+								Namespace: base.Namespace,
+							},
+							ID:   "meter-1",
+							Name: "API Requests Meter",
+						},
+						Key:         testMeterKey,
+						Aggregation: meter.MeterAggregationSum,
+						EventType:   "api_request",
+					},
 				},
 			},
 		},
@@ -426,6 +454,6 @@ func (c mockFeatureConnector) GetFeature(context.Context, string, string, featur
 	return nil, nil
 }
 
-func (c mockFeatureConnector) ResolveFeatureMeters(context.Context, string, []string) (feature.FeatureMeters, error) {
+func (c mockFeatureConnector) ResolveFeatureMeters(context.Context, string, ...ref.IDOrKey) (feature.FeatureMeters, error) {
 	return c.meters, nil
 }

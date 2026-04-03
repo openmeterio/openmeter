@@ -55,6 +55,7 @@ func MapChargeBaseFromDB(entity *entdb.ChargeUsageBased) usagebased.ChargeBase {
 		State: usagebased.State{
 			CurrentRealizationRunID: entity.CurrentRealizationRunID,
 			AdvanceAfter:            entity.AdvanceAfter,
+			FeatureID:               entity.FeatureID,
 		},
 	}
 }
@@ -94,6 +95,7 @@ func MapRealizationRunBaseFromDB(dbRun *entdb.ChargeUsageBasedRuns) usagebased.R
 		},
 		ManagedModel: entutils.MapTimeMixinFromDB(dbRun),
 
+		FeatureID:     dbRun.FeatureID,
 		Type:          dbRun.Type,
 		AsOf:          dbRun.Asof.UTC(),
 		CollectionEnd: dbRun.CollectionEnd,

@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -318,6 +320,37 @@ func (i ChargeIntents) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (i ChargeIntents) CollectFeatureKeys() ([]string, error) {
+	keys := make([]string, 0, len(i))
+
+	for idx, ch := range i {
+		switch ch.Type() {
+		case meta.ChargeTypeFlatFee:
+			flatFee, err := ch.AsFlatFeeIntent()
+			if err != nil {
+				return nil, fmt.Errorf("converting flat fee intent[%d]: %w", idx, err)
+			}
+			if flatFee.FeatureKey != "" {
+				keys = append(keys, flatFee.FeatureKey)
+			}
+		case meta.ChargeTypeUsageBased:
+			usageBased, err := ch.AsUsageBasedIntent()
+			if err != nil {
+				return nil, fmt.Errorf("converting usage based intent[%d]: %w", idx, err)
+			}
+			if usageBased.FeatureKey != "" {
+				keys = append(keys, usageBased.FeatureKey)
+			}
+		case meta.ChargeTypeCreditPurchase:
+			continue
+		default:
+			return nil, fmt.Errorf("unsupported charge type[%d]: %s", idx, ch.Type())
+		}
+	}
+
+	return lo.Uniq(keys), nil
 }
 
 type ChargeIntentsByType struct {

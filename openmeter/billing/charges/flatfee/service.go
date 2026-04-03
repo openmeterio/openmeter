@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -32,8 +33,9 @@ type InvoiceLifecycleHooks interface {
 }
 
 type CreateInput struct {
-	Namespace string
-	Intents   []Intent
+	Namespace     string
+	Intents       []Intent
+	FeatureMeters feature.FeatureMeters
 }
 
 func (i CreateInput) Validate() error {

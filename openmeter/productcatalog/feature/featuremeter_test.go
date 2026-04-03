@@ -6,6 +6,8 @@ import (
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
+
+	"github.com/openmeterio/openmeter/pkg/ref"
 )
 
 func TestGetLastFeatures(t *testing.T) {
@@ -58,4 +60,46 @@ func TestGetLastFeatures(t *testing.T) {
 			require.Equal(t, tc.expected, featureKeyToID)
 		})
 	}
+}
+
+func TestResolveFeatureMeters(t *testing.T) {
+	archivedAt := time.Now()
+
+	features := []Feature{
+		{ID: "feature-old", Key: "tokens", ArchivedAt: &archivedAt},
+		{ID: "feature-new", Key: "tokens", ArchivedAt: nil},
+		{ID: "feature-other", Key: "requests", ArchivedAt: nil},
+	}
+
+	t.Run("key resolves latest while explicit ids remain addressable", func(t *testing.T) {
+		out := resolveFeatureMeters(features)
+
+		byKey, err := out.Get("tokens", false)
+		require.NoError(t, err)
+		require.Equal(t, "feature-new", byKey.Feature.ID)
+
+		byLatestID, err := out.GetByID("feature-new", false)
+		require.NoError(t, err)
+		require.Equal(t, "feature-new", byLatestID.Feature.ID)
+
+		byArchivedID, err := out.GetByID("feature-old", false)
+		require.NoError(t, err)
+		require.Equal(t, "feature-old", byArchivedID.Feature.ID)
+		require.Equal(t, "tokens", byArchivedID.Feature.Key)
+	})
+
+	t.Run("requested ids must all resolve", func(t *testing.T) {
+		out := resolveFeatureMeters(features)
+
+		require.NoError(t, ensureFeatureIDsResolved([]ref.IDOrKey{
+			{ID: "feature-old"},
+			{ID: "feature-new"},
+		}, out))
+
+		err := ensureFeatureIDsResolved([]ref.IDOrKey{
+			{ID: "feature-old"},
+			{ID: "missing-feature"},
+		}, out)
+		require.EqualError(t, err, "feature[missing-feature] not found")
+	})
 }

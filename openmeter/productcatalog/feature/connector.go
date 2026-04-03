@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/ref"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
@@ -63,9 +64,10 @@ type FeatureConnector interface {
 	ListFeatures(ctx context.Context, params ListFeaturesParams) (pagination.Result[Feature], error)
 	GetFeature(ctx context.Context, namespace string, idOrKey string, includeArchived IncludeArchivedFeature) (*Feature, error)
 
-	// ResolveFeatureMeters resolves the feature meters for a given namespace and feature keys, returning a map of feature key to feature meter.
-	// The list contains either the active feature or the most recently archived feature.
-	ResolveFeatureMeters(ctx context.Context, namespace string, featureKeys []string) (FeatureMeters, error)
+	// ResolveFeatureMeters resolves the feature meters for a given namespace and feature refs.
+	// Keys always resolve to the latest available feature for that key.
+	// Explicit IDs are returned in the ID index, and also in the key index when they are the latest feature for that key.
+	ResolveFeatureMeters(ctx context.Context, namespace string, featureRefs ...ref.IDOrKey) (FeatureMeters, error)
 }
 
 type IncludeArchivedFeature bool

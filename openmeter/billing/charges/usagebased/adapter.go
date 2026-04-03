@@ -17,7 +17,7 @@ type Adapter interface {
 }
 
 type ChargeAdapter interface {
-	CreateCharges(ctx context.Context, charges CreateInput) ([]Charge, error)
+	CreateCharges(ctx context.Context, charges CreateChargesInput) ([]Charge, error)
 	UpdateCharge(ctx context.Context, charge ChargeBase) (ChargeBase, error)
 	DeleteCharge(ctx context.Context, charge Charge) error
 	GetByIDs(ctx context.Context, input GetByIDsInput) ([]Charge, error)

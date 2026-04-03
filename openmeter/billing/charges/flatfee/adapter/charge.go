@@ -46,6 +46,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.Charge) error
 			SetPaymentTerm(intent.PaymentTerm).
 			SetInvoiceAt(meta.NormalizeTimestamp(intent.InvoiceAt).In(time.UTC)).
 			SetDiscounts(discounts).
+			SetOrClearFeatureID(charge.State.FeatureID).
 			SetProRating(proRating).
 			SetAmountBeforeProration(intent.AmountBeforeProration).
 			SetAmountAfterProration(charge.State.AmountAfterProration)
@@ -226,6 +227,7 @@ func (a *adapter) buildCreateFlatFeeCharge(ns string, intent flatfee.IntentWithI
 		SetPaymentTerm(intent.PaymentTerm).
 		SetInvoiceAt(meta.NormalizeTimestamp(intent.InvoiceAt).In(time.UTC)).
 		SetSettlementMode(intent.SettlementMode).
+		SetNillableFeatureID(intent.FeatureID).
 		SetNillableFeatureKey(lo.EmptyableToPtr(intent.FeatureKey)).
 		SetProRating(proRating).
 		SetAmountBeforeProration(intent.AmountBeforeProration).

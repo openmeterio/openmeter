@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/ref"
 )
 
 type chargesWithInvoiceNowActions struct {
@@ -40,15 +41,26 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 			return nil, err
 		}
 
+		featureKeys, err := input.Intents.CollectFeatureKeys()
+		if err != nil {
+			return nil, err
+		}
+
+		createFeatureMeters, err := s.featureService.ResolveFeatureMeters(ctx, input.Namespace, lo.Map(featureKeys, func(featureKey string, _ int) ref.IDOrKey {
+			return ref.IDOrKey{Key: featureKey}
+		})...)
+		if err != nil {
+			return nil, fmt.Errorf("resolve create feature meters: %w", err)
+		}
+
 		createdCharges := make([]charges.WithIndex[charges.Charge], 0, len(input.Intents))
 		gatheringLinesToCreate := make([]gatheringLineWithCustomerID, 0, len(input.Intents))
 
 		// Let's create all the flat fee charges in bulk and record any gathering lines to create
 		flatFees, err := s.flatFeeService.Create(ctx, flatfee.CreateInput{
-			Namespace: input.Namespace,
-			Intents: lo.Map(intentsByType.FlatFee, func(intent charges.WithIndex[flatfee.Intent], _ int) flatfee.Intent {
-				return intent.Value
-			}),
+			Namespace:     input.Namespace,
+			Intents:       lo.Map(intentsByType.FlatFee, func(intent charges.WithIndex[flatfee.Intent], _ int) flatfee.Intent { return intent.Value }),
+			FeatureMeters: createFeatureMeters,
 		})
 		if err != nil {
 			return nil, err
@@ -78,10 +90,9 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 
 		// Let's create all the usage based charges in bulk
 		usageBasedCharges, err := s.usageBasedService.Create(ctx, usagebased.CreateInput{
-			Namespace: input.Namespace,
-			Intents: lo.Map(intentsByType.UsageBased, func(intent charges.WithIndex[usagebased.Intent], _ int) usagebased.Intent {
-				return intent.Value
-			}),
+			Namespace:     input.Namespace,
+			Intents:       lo.Map(intentsByType.UsageBased, func(intent charges.WithIndex[usagebased.Intent], _ int) usagebased.Intent { return intent.Value }),
+			FeatureMeters: createFeatureMeters,
 		})
 		if err != nil {
 			return nil, err
