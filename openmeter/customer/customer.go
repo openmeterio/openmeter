@@ -3,8 +3,9 @@ package customer
 import (
 	"errors"
 	"fmt"
-	"slices"
+	"time"
 
+	"github.com/samber/lo"
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -13,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type (
@@ -40,19 +42,19 @@ var _ streaming.Customer = &Customer{}
 type Customer struct {
 	models.ManagedResource
 
-	Key              *string                   `json:"key,omitempty"`
-	UsageAttribution *CustomerUsageAttribution `json:"usageAttribution,omitempty"`
-	PrimaryEmail     *string                   `json:"primaryEmail,omitempty"`
-	Currency         *currencyx.Code           `json:"currency,omitempty"`
-	BillingAddress   *models.Address           `json:"billingAddress,omitempty"`
-	Metadata         *models.Metadata          `json:"metadata,omitempty"`
-	Annotation       *models.Annotations       `json:"annotations,omitempty"`
+	Key              *string                         `json:"key,omitempty"`
+	UsageAttribution *TimedCustomerUsageAttributions `json:"usageAttribution,omitempty"`
+	PrimaryEmail     *string                         `json:"primaryEmail,omitempty"`
+	Currency         *currencyx.Code                 `json:"currency,omitempty"`
+	BillingAddress   *models.Address                 `json:"billingAddress,omitempty"`
+	Metadata         *models.Metadata                `json:"metadata,omitempty"`
+	Annotation       *models.Annotations             `json:"annotations,omitempty"`
 
 	ActiveSubscriptionIDs mo.Option[[]string]
 }
 
 // AsCustomerMutate returns a CustomerMutate from the Customer
-func (c Customer) AsCustomerMutate() CustomerMutate {
+func (c Customer) AsCustomerMutate(asOf time.Time) CustomerMutate {
 	mut := CustomerMutate{
 		Key:            c.Key,
 		Name:           c.Name,
@@ -66,7 +68,7 @@ func (c Customer) AsCustomerMutate() CustomerMutate {
 
 	if c.UsageAttribution != nil {
 		mut.UsageAttribution = &CustomerUsageAttribution{
-			SubjectKeys: c.UsageAttribution.SubjectKeys,
+			SubjectKeys: c.UsageAttribution.GetActiveAt(asOf),
 		}
 	}
 
@@ -75,11 +77,11 @@ func (c Customer) AsCustomerMutate() CustomerMutate {
 
 // GetUsageAttribution returns the customer usage attribution
 // implementing the streaming.CustomerUsageAttribution interface
-func (c Customer) GetUsageAttribution() streaming.CustomerUsageAttribution {
+func (c Customer) GetUsageAttribution(asOf time.Time) streaming.CustomerUsageAttribution {
 	subjectKeys := []string{}
 
 	if c.UsageAttribution != nil {
-		subjectKeys = c.UsageAttribution.SubjectKeys
+		subjectKeys = c.UsageAttribution.GetActiveAt(asOf)
 	}
 
 	return streaming.NewCustomerUsageAttribution(c.ID, c.Key, subjectKeys)
@@ -117,9 +119,9 @@ func (c Customer) Validate() error {
 
 	// Either key or usageAttribution.subjectKeys must be provided
 	hasKey := c.Key != nil && *c.Key != ""
-	hasSubjectKeys := c.UsageAttribution != nil && len(c.UsageAttribution.SubjectKeys) > 0
+	hasActiveSubjectKeys := c.UsageAttribution != nil && len(c.UsageAttribution.GetActiveAt(clock.Now())) > 0
 
-	if !hasKey && !hasSubjectKeys {
+	if !hasKey && !hasActiveSubjectKeys {
 		return models.NewGenericValidationError(errors.New("either key or usageAttribution.subjectKeys must be provided"))
 	}
 
@@ -227,31 +229,72 @@ func (i CustomerIDOrKey) Validate() error {
 	return nil
 }
 
-var _ models.Validator = (*CustomerUsageAttribution)(nil)
-
-// CustomerUsageAttribution represents the additional fields for a customer usage attribution
-// Do not use this struct directly, use the GetUsageAttribution method instead that implements the streaming.CustomerUsageAttribution interface
-// The customer usage attribution is more than just the subject keys, it also includes key for example.
 type CustomerUsageAttribution struct {
 	SubjectKeys []string `json:"subjectKeys"`
 }
 
-const MinSubjectKeyLength = 1
-
 func (c CustomerUsageAttribution) Validate() error {
 	var errs []error
-
 	for _, subjectKey := range c.SubjectKeys {
 		if len(subjectKey) < MinSubjectKeyLength {
-			errs = append(errs, models.NewGenericValidationError(
-				fmt.Errorf("subject key must be at least %d character: %q", MinSubjectKeyLength, subjectKey),
-			))
+			errs = append(errs, fmt.Errorf("subject key must be at least %d character: %q", MinSubjectKeyLength, subjectKey))
 		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+var _ models.Validator = (*TimedCustomerUsageAttribution)(nil)
+
+type TimedCustomerUsageAttribution struct {
+	SubjectKey   string              `json:"subjectKey"`
+	ActivePeriod timeutil.OpenPeriod `json:"active"`
+}
+
+const MinSubjectKeyLength = 1
+
+func (c TimedCustomerUsageAttribution) Validate() error {
+	var errs []error
+	if len(c.SubjectKey) < MinSubjectKeyLength {
+		errs = append(errs, fmt.Errorf("subject key must be at least %d character: %q", MinSubjectKeyLength, c.SubjectKey))
+	}
+
+	if c.ActivePeriod.From == nil || c.ActivePeriod.From.IsZero() {
+		errs = append(errs, fmt.Errorf("active period from is required"))
+	}
+
+	if err := c.ActivePeriod.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type TimedCustomerUsageAttributions []TimedCustomerUsageAttribution
+
+func (c TimedCustomerUsageAttributions) Validate() error {
+	var errs []error
+	for i, attr := range c {
+		if err := attr.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("attribution[%d]: %w", i, err))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (c TimedCustomerUsageAttributions) GetActiveAt(asOf time.Time) []string {
+	return lo.FilterMap(c, func(attr TimedCustomerUsageAttribution, _ int) (string, bool) {
+		if attr.ActivePeriod.Contains(asOf) {
+			return attr.SubjectKey, true
+		}
+
+		return "", false
+	})
+}
+
+/*
+// TODO: remove
 // Deprecated: This functionality is only present for backwards compatibility
 func (c CustomerUsageAttribution) GetFirstSubjectKey() (string, error) {
 	if len(c.SubjectKeys) == 0 {
@@ -263,6 +306,7 @@ func (c CustomerUsageAttribution) GetFirstSubjectKey() (string, error) {
 
 	return sortedKeys[0], nil
 }
+*/
 
 // GetCustomerByUsageAttributionInput represents the input for the GetCustomerByUsageAttribution method
 type GetCustomerByUsageAttributionInput struct {

@@ -10,6 +10,7 @@ import (
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	subscriptionhttp "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/http"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -156,7 +157,7 @@ func CustomerToAPI(c customer.Customer, subscriptions []subscription.Subscriptio
 	}
 
 	if c.UsageAttribution != nil {
-		apiCustomer.UsageAttribution = &api.CustomerUsageAttribution{SubjectKeys: c.UsageAttribution.SubjectKeys}
+		apiCustomer.UsageAttribution = &api.CustomerUsageAttribution{SubjectKeys: c.UsageAttribution.GetActiveAt(clock.Now())}
 	}
 
 	if c.BillingAddress != nil {

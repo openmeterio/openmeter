@@ -3,6 +3,7 @@ package adapter
 import (
 	"errors"
 	"slices"
+	"strings"
 
 	"github.com/samber/lo"
 	"github.com/samber/mo"
@@ -10,10 +11,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func CustomerFromDBEntity(e db.Customer, expands customer.Expands) (*customer.Customer, error) {
-	subjectKeys, err := subjectKeysFromDBEntity(e)
+	attributions, err := timedCustomerUsageAttributionsFromDBEntity(e)
 	if err != nil {
 		return nil, err
 	}
@@ -47,10 +49,8 @@ func CustomerFromDBEntity(e db.Customer, expands customer.Expands) (*customer.Cu
 	}
 
 	// Only set UsageAttribution if there are subject keys
-	if len(subjectKeys) > 0 {
-		result.UsageAttribution = &customer.CustomerUsageAttribution{
-			SubjectKeys: subjectKeys,
-		}
+	if len(attributions) > 0 {
+		result.UsageAttribution = &attributions
 	}
 
 	if slices.Contains(expands, customer.ExpandSubscriptions) {
@@ -102,7 +102,7 @@ func resolveActiveSubscriptionIDs(e db.Customer) ([]string, error) {
 	return subscriptionIDs, nil
 }
 
-func subjectKeysFromDBEntity(customerEntity db.Customer) ([]string, error) {
+func timedCustomerUsageAttributionsFromDBEntity(customerEntity db.Customer) (customer.TimedCustomerUsageAttributions, error) {
 	subjectEntities, err := customerEntity.Edges.SubjectsOrErr()
 	if err != nil {
 		if db.IsNotLoaded(err) {
@@ -112,16 +112,20 @@ func subjectKeysFromDBEntity(customerEntity db.Customer) ([]string, error) {
 		return nil, err
 	}
 
-	subjectKeys := lo.FilterMap(subjectEntities, func(item *db.CustomerSubjects, _ int) (string, bool) {
-		if item == nil {
-			return "", false
-		}
-
-		return item.SubjectKey, true
+	timedCustomerUsageAttributions := lo.FilterMap(subjectEntities, func(item *db.CustomerSubjects, _ int) (customer.TimedCustomerUsageAttribution, bool) {
+		return customer.TimedCustomerUsageAttribution{
+			SubjectKey: item.SubjectKey,
+			ActivePeriod: timeutil.OpenPeriod{
+				From: lo.ToPtr(item.CreatedAt),
+				To:   item.DeletedAt,
+			},
+		}, true
 	})
 
 	// Sort the subject keys to make sure the order is consistent
-	slices.Sort(subjectKeys)
+	slices.SortStableFunc(timedCustomerUsageAttributions, func(a, b customer.TimedCustomerUsageAttribution) int {
+		return strings.Compare(a.SubjectKey, b.SubjectKey)
+	})
 
-	return subjectKeys, nil
+	return timedCustomerUsageAttributions, nil
 }

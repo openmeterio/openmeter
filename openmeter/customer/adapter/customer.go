@@ -390,7 +390,7 @@ func (a *adapter) GetCustomer(ctx context.Context, input customer.GetCustomerInp
 		now := clock.Now().UTC()
 
 		query := repo.db.Customer.Query()
-		query = WithSubjects(query, now)
+		query = WithSubjects(query)
 		if slices.Contains(input.Expands, customer.ExpandSubscriptions) {
 			query = WithActiveSubscriptions(query, now)
 		}
@@ -475,7 +475,7 @@ func (a *adapter) GetCustomerByUsageAttribution(ctx context.Context, input custo
 				),
 			).
 			Where(customerdb.DeletedAtIsNil())
-		query = WithSubjects(query, now)
+		query = WithSubjects(query)
 		if slices.Contains(input.Expands, customer.ExpandSubscriptions) {
 			query = WithActiveSubscriptions(query, now)
 		}
@@ -696,30 +696,8 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 }
 
 // WithSubjects returns a query with the subjects
-func WithSubjects(q *entdb.CustomerQuery, at time.Time) *entdb.CustomerQuery {
-	return q.WithSubjects(func(query *entdb.CustomerSubjectsQuery) {
-		query.Where(func(s *sql.Selector) {
-			ct := sql.Table(customerdb.Table)
-
-			s.Join(ct).On(ct.C(customerdb.FieldID), s.C(customersubjectsdb.FieldCustomerID))
-
-			s.Where(
-				sql.Or(
-					sql.And(
-						sql.NotNull(ct.C(customerdb.FieldDeletedAt)),
-						sql.ColumnsEQ(s.C(customersubjectsdb.FieldDeletedAt), ct.C(customerdb.FieldDeletedAt)),
-					),
-					sql.And(
-						sql.IsNull(ct.C(customerdb.FieldDeletedAt)),
-						sql.Or(
-							sql.IsNull(s.C(customersubjectsdb.FieldDeletedAt)),
-							sql.GTE(s.C(customersubjectsdb.FieldDeletedAt), at),
-						),
-					),
-				),
-			)
-		})
-	})
+func WithSubjects(q *entdb.CustomerQuery) *entdb.CustomerQuery {
+	return q.WithSubjects()
 }
 
 // WithActiveSubscriptions returns a query with the subscription
