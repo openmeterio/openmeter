@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
@@ -84,6 +85,8 @@ type ChargeUsageBased struct {
 	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
 	// FeatureKey holds the value of the "feature_key" field.
 	FeatureKey string `json:"feature_key,omitempty"`
+	// FeatureID holds the value of the "feature_id" field.
+	FeatureID string `json:"feature_id,omitempty"`
 	// Price holds the value of the "price" field.
 	Price *productcatalog.Price `json:"price,omitempty"`
 	// CurrentRealizationRunID holds the value of the "current_realization_run_id" field.
@@ -112,9 +115,11 @@ type ChargeUsageBasedEdges struct {
 	SubscriptionItem *SubscriptionItem `json:"subscription_item,omitempty"`
 	// Customer holds the value of the customer edge.
 	Customer *Customer `json:"customer,omitempty"`
+	// Feature holds the value of the feature edge.
+	Feature *Feature `json:"feature,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [7]bool
+	loadedTypes [8]bool
 }
 
 // RunsOrErr returns the Runs value or an error if the edge
@@ -192,6 +197,17 @@ func (e ChargeUsageBasedEdges) CustomerOrErr() (*Customer, error) {
 	return nil, &NotLoadedError{edge: "customer"}
 }
 
+// FeatureOrErr returns the Feature value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeUsageBasedEdges) FeatureOrErr() (*Feature, error) {
+	if e.Feature != nil {
+		return e.Feature, nil
+	} else if e.loadedTypes[7] {
+		return nil, &NotFoundError{label: dbfeature.Label}
+	}
+	return nil, &NotLoadedError{edge: "feature"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*ChargeUsageBased) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -199,7 +215,7 @@ func (*ChargeUsageBased) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargeusagebased.FieldAnnotations, chargeusagebased.FieldMetadata:
 			values[i] = new([]byte)
-		case chargeusagebased.FieldID, chargeusagebased.FieldCustomerID, chargeusagebased.FieldStatus, chargeusagebased.FieldUniqueReferenceID, chargeusagebased.FieldCurrency, chargeusagebased.FieldManagedBy, chargeusagebased.FieldSubscriptionID, chargeusagebased.FieldSubscriptionPhaseID, chargeusagebased.FieldSubscriptionItemID, chargeusagebased.FieldNamespace, chargeusagebased.FieldName, chargeusagebased.FieldDescription, chargeusagebased.FieldSettlementMode, chargeusagebased.FieldFeatureKey, chargeusagebased.FieldCurrentRealizationRunID, chargeusagebased.FieldStatusDetailed:
+		case chargeusagebased.FieldID, chargeusagebased.FieldCustomerID, chargeusagebased.FieldStatus, chargeusagebased.FieldUniqueReferenceID, chargeusagebased.FieldCurrency, chargeusagebased.FieldManagedBy, chargeusagebased.FieldSubscriptionID, chargeusagebased.FieldSubscriptionPhaseID, chargeusagebased.FieldSubscriptionItemID, chargeusagebased.FieldNamespace, chargeusagebased.FieldName, chargeusagebased.FieldDescription, chargeusagebased.FieldSettlementMode, chargeusagebased.FieldFeatureKey, chargeusagebased.FieldFeatureID, chargeusagebased.FieldCurrentRealizationRunID, chargeusagebased.FieldStatusDetailed:
 			values[i] = new(sql.NullString)
 		case chargeusagebased.FieldServicePeriodFrom, chargeusagebased.FieldServicePeriodTo, chargeusagebased.FieldBillingPeriodFrom, chargeusagebased.FieldBillingPeriodTo, chargeusagebased.FieldFullServicePeriodFrom, chargeusagebased.FieldFullServicePeriodTo, chargeusagebased.FieldAdvanceAfter, chargeusagebased.FieldCreatedAt, chargeusagebased.FieldUpdatedAt, chargeusagebased.FieldDeletedAt, chargeusagebased.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
@@ -401,6 +417,12 @@ func (_m *ChargeUsageBased) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.FeatureKey = value.String
 			}
+		case chargeusagebased.FieldFeatureID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field feature_id", values[i])
+			} else if value.Valid {
+				_m.FeatureID = value.String
+			}
 		case chargeusagebased.FieldPrice:
 			if value, err := chargeusagebased.ValueScanner.Price.FromValue(values[i]); err != nil {
 				return err
@@ -466,6 +488,11 @@ func (_m *ChargeUsageBased) QuerySubscriptionItem() *SubscriptionItemQuery {
 // QueryCustomer queries the "customer" edge of the ChargeUsageBased entity.
 func (_m *ChargeUsageBased) QueryCustomer() *CustomerQuery {
 	return NewChargeUsageBasedClient(_m.config).QueryCustomer(_m)
+}
+
+// QueryFeature queries the "feature" edge of the ChargeUsageBased entity.
+func (_m *ChargeUsageBased) QueryFeature() *FeatureQuery {
+	return NewChargeUsageBasedClient(_m.config).QueryFeature(_m)
 }
 
 // Update returns a builder for updating this ChargeUsageBased.
@@ -587,6 +614,9 @@ func (_m *ChargeUsageBased) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("feature_key=")
 	builder.WriteString(_m.FeatureKey)
+	builder.WriteString(", ")
+	builder.WriteString("feature_id=")
+	builder.WriteString(_m.FeatureID)
 	builder.WriteString(", ")
 	builder.WriteString("price=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Price))

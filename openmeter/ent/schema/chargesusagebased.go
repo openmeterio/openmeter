@@ -52,6 +52,12 @@ func (ChargeUsageBased) Fields() []ent.Field {
 			NotEmpty().
 			Immutable(),
 
+		field.String("feature_id").
+			NotEmpty().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+
 		field.String("price").
 			GoType(&productcatalog.Price{}).
 			ValueScanner(PriceValueScanner).
@@ -104,6 +110,11 @@ func (ChargeUsageBased) Edges() []ent.Edge {
 			Unique().
 			Required().
 			Immutable(),
+		edge.From("feature", Feature.Type).
+			Field("feature_id").
+			Ref("usage_based_charges").
+			Unique().
+			Required(),
 	}
 }
 
@@ -138,6 +149,14 @@ func (ChargeUsageBasedRuns) Fields() []ent.Field {
 			}).
 			Immutable(),
 
+		field.String("feature_id").
+			NotEmpty().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Immutable().
+			Comment("For future-proofing runs may diverge from the charge feature later, but today this matches the parent charge feature_id."),
+
 		field.Enum("type").
 			GoType(usagebased.RealizationRunType("")).
 			Immutable(),
@@ -159,6 +178,12 @@ func (ChargeUsageBasedRuns) Edges() []ent.Edge {
 		edge.From("usage_based", ChargeUsageBased.Type).
 			Ref("runs").
 			Field("charge_id").
+			Unique().
+			Required().
+			Immutable(),
+		edge.From("feature", Feature.Type).
+			Field("feature_id").
+			Ref("usage_based_runs").
 			Unique().
 			Required().
 			Immutable(),

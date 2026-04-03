@@ -42,6 +42,8 @@ const (
 	FieldTotal = "total"
 	// FieldChargeID holds the string denoting the charge_id field in the database.
 	FieldChargeID = "charge_id"
+	// FieldFeatureID holds the string denoting the feature_id field in the database.
+	FieldFeatureID = "feature_id"
 	// FieldType holds the string denoting the type field in the database.
 	FieldType = "type"
 	// FieldAsof holds the string denoting the asof field in the database.
@@ -52,6 +54,8 @@ const (
 	FieldMeterValue = "meter_value"
 	// EdgeUsageBased holds the string denoting the usage_based edge name in mutations.
 	EdgeUsageBased = "usage_based"
+	// EdgeFeature holds the string denoting the feature edge name in mutations.
+	EdgeFeature = "feature"
 	// EdgeCreditAllocations holds the string denoting the credit_allocations edge name in mutations.
 	EdgeCreditAllocations = "credit_allocations"
 	// EdgeInvoicedUsage holds the string denoting the invoiced_usage edge name in mutations.
@@ -67,6 +71,13 @@ const (
 	UsageBasedInverseTable = "charge_usage_based"
 	// UsageBasedColumn is the table column denoting the usage_based relation/edge.
 	UsageBasedColumn = "charge_id"
+	// FeatureTable is the table that holds the feature relation/edge.
+	FeatureTable = "charge_usage_based_runs"
+	// FeatureInverseTable is the table name for the Feature entity.
+	// It exists in this package in order to avoid circular dependency with the "dbfeature" package.
+	FeatureInverseTable = "features"
+	// FeatureColumn is the table column denoting the feature relation/edge.
+	FeatureColumn = "feature_id"
 	// CreditAllocationsTable is the table that holds the credit_allocations relation/edge.
 	CreditAllocationsTable = "charge_usage_based_run_credit_allocations"
 	// CreditAllocationsInverseTable is the table name for the ChargeUsageBasedRunCreditAllocations entity.
@@ -106,6 +117,7 @@ var Columns = []string{
 	FieldCreditsTotal,
 	FieldTotal,
 	FieldChargeID,
+	FieldFeatureID,
 	FieldType,
 	FieldAsof,
 	FieldCollectionEnd,
@@ -131,6 +143,8 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// FeatureIDValidator is a validator for the "feature_id" field. It is called by the builders before save.
+	FeatureIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -218,6 +232,11 @@ func ByChargeID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldChargeID, opts...).ToFunc()
 }
 
+// ByFeatureID orders the results by the feature_id field.
+func ByFeatureID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFeatureID, opts...).ToFunc()
+}
+
 // ByType orders the results by the type field.
 func ByType(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldType, opts...).ToFunc()
@@ -242,6 +261,13 @@ func ByMeterValue(opts ...sql.OrderTermOption) OrderOption {
 func ByUsageBasedField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newUsageBasedStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByFeatureField orders the results by feature field.
+func ByFeatureField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newFeatureStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -277,6 +303,13 @@ func newUsageBasedStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(UsageBasedInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, UsageBasedTable, UsageBasedColumn),
+	)
+}
+func newFeatureStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(FeatureInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, FeatureTable, FeatureColumn),
 	)
 }
 func newCreditAllocationsStep() *sqlgraph.Step {

@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 )
 
 // ChargeUsageBasedRunsCreate is the builder for creating a ChargeUsageBasedRuns entity.
@@ -131,6 +132,12 @@ func (_c *ChargeUsageBasedRunsCreate) SetChargeID(v string) *ChargeUsageBasedRun
 	return _c
 }
 
+// SetFeatureID sets the "feature_id" field.
+func (_c *ChargeUsageBasedRunsCreate) SetFeatureID(v string) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetFeatureID(v)
+	return _c
+}
+
 // SetType sets the "type" field.
 func (_c *ChargeUsageBasedRunsCreate) SetType(v usagebased.RealizationRunType) *ChargeUsageBasedRunsCreate {
 	_c.mutation.SetType(v)
@@ -178,6 +185,11 @@ func (_c *ChargeUsageBasedRunsCreate) SetUsageBasedID(id string) *ChargeUsageBas
 // SetUsageBased sets the "usage_based" edge to the ChargeUsageBased entity.
 func (_c *ChargeUsageBasedRunsCreate) SetUsageBased(v *ChargeUsageBased) *ChargeUsageBasedRunsCreate {
 	return _c.SetUsageBasedID(v.ID)
+}
+
+// SetFeature sets the "feature" edge to the Feature entity.
+func (_c *ChargeUsageBasedRunsCreate) SetFeature(v *Feature) *ChargeUsageBasedRunsCreate {
+	return _c.SetFeatureID(v.ID)
 }
 
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeUsageBasedRunCreditAllocations entity by IDs.
@@ -325,6 +337,14 @@ func (_c *ChargeUsageBasedRunsCreate) check() error {
 	if _, ok := _c.mutation.ChargeID(); !ok {
 		return &ValidationError{Name: "charge_id", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.charge_id"`)}
 	}
+	if _, ok := _c.mutation.FeatureID(); !ok {
+		return &ValidationError{Name: "feature_id", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.feature_id"`)}
+	}
+	if v, ok := _c.mutation.FeatureID(); ok {
+		if err := chargeusagebasedruns.FeatureIDValidator(v); err != nil {
+			return &ValidationError{Name: "feature_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRuns.feature_id": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.GetType(); !ok {
 		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.type"`)}
 	}
@@ -344,6 +364,9 @@ func (_c *ChargeUsageBasedRunsCreate) check() error {
 	}
 	if len(_c.mutation.UsageBasedIDs()) == 0 {
 		return &ValidationError{Name: "usage_based", err: errors.New(`db: missing required edge "ChargeUsageBasedRuns.usage_based"`)}
+	}
+	if len(_c.mutation.FeatureIDs()) == 0 {
+		return &ValidationError{Name: "feature", err: errors.New(`db: missing required edge "ChargeUsageBasedRuns.feature"`)}
 	}
 	return nil
 }
@@ -460,6 +483,23 @@ func (_c *ChargeUsageBasedRunsCreate) createSpec() (*ChargeUsageBasedRuns, *sqlg
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.ChargeID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.FeatureIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebasedruns.FeatureTable,
+			Columns: []string{chargeusagebasedruns.FeatureColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.FeatureID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.CreditAllocationsIDs(); len(nodes) > 0 {
@@ -737,6 +777,9 @@ func (u *ChargeUsageBasedRunsUpsertOne) UpdateNewValues() *ChargeUsageBasedRunsU
 		}
 		if _, exists := u.create.mutation.ChargeID(); exists {
 			s.SetIgnore(chargeusagebasedruns.FieldChargeID)
+		}
+		if _, exists := u.create.mutation.FeatureID(); exists {
+			s.SetIgnore(chargeusagebasedruns.FieldFeatureID)
 		}
 		if _, exists := u.create.mutation.GetType(); exists {
 			s.SetIgnore(chargeusagebasedruns.FieldType)
@@ -1141,6 +1184,9 @@ func (u *ChargeUsageBasedRunsUpsertBulk) UpdateNewValues() *ChargeUsageBasedRuns
 			}
 			if _, exists := b.mutation.ChargeID(); exists {
 				s.SetIgnore(chargeusagebasedruns.FieldChargeID)
+			}
+			if _, exists := b.mutation.FeatureID(); exists {
+				s.SetIgnore(chargeusagebasedruns.FieldFeatureID)
 			}
 			if _, exists := b.mutation.GetType(); exists {
 				s.SetIgnore(chargeusagebasedruns.FieldType)

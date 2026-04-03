@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeinvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
@@ -90,6 +91,8 @@ type ChargeFlatFee struct {
 	ProRating flatfee.ProRatingModeAdapterEnum `json:"pro_rating,omitempty"`
 	// FeatureKey holds the value of the "feature_key" field.
 	FeatureKey *string `json:"feature_key,omitempty"`
+	// FeatureID holds the value of the "feature_id" field.
+	FeatureID *string `json:"feature_id,omitempty"`
 	// AmountBeforeProration holds the value of the "amount_before_proration" field.
 	AmountBeforeProration alpacadecimal.Decimal `json:"amount_before_proration,omitempty"`
 	// AmountAfterProration holds the value of the "amount_after_proration" field.
@@ -118,9 +121,11 @@ type ChargeFlatFeeEdges struct {
 	SubscriptionItem *SubscriptionItem `json:"subscription_item,omitempty"`
 	// Customer holds the value of the customer edge.
 	Customer *Customer `json:"customer,omitempty"`
+	// Feature holds the value of the feature edge.
+	Feature *Feature `json:"feature,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [8]bool
+	loadedTypes [9]bool
 }
 
 // CreditAllocationsOrErr returns the CreditAllocations value or an error if the edge
@@ -209,6 +214,17 @@ func (e ChargeFlatFeeEdges) CustomerOrErr() (*Customer, error) {
 	return nil, &NotLoadedError{edge: "customer"}
 }
 
+// FeatureOrErr returns the Feature value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeFlatFeeEdges) FeatureOrErr() (*Feature, error) {
+	if e.Feature != nil {
+		return e.Feature, nil
+	} else if e.loadedTypes[8] {
+		return nil, &NotFoundError{label: dbfeature.Label}
+	}
+	return nil, &NotLoadedError{edge: "feature"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*ChargeFlatFee) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -218,7 +234,7 @@ func (*ChargeFlatFee) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case chargeflatfee.FieldAmountBeforeProration, chargeflatfee.FieldAmountAfterProration:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargeflatfee.FieldID, chargeflatfee.FieldCustomerID, chargeflatfee.FieldStatus, chargeflatfee.FieldUniqueReferenceID, chargeflatfee.FieldCurrency, chargeflatfee.FieldManagedBy, chargeflatfee.FieldSubscriptionID, chargeflatfee.FieldSubscriptionPhaseID, chargeflatfee.FieldSubscriptionItemID, chargeflatfee.FieldNamespace, chargeflatfee.FieldName, chargeflatfee.FieldDescription, chargeflatfee.FieldPaymentTerm, chargeflatfee.FieldSettlementMode, chargeflatfee.FieldProRating, chargeflatfee.FieldFeatureKey:
+		case chargeflatfee.FieldID, chargeflatfee.FieldCustomerID, chargeflatfee.FieldStatus, chargeflatfee.FieldUniqueReferenceID, chargeflatfee.FieldCurrency, chargeflatfee.FieldManagedBy, chargeflatfee.FieldSubscriptionID, chargeflatfee.FieldSubscriptionPhaseID, chargeflatfee.FieldSubscriptionItemID, chargeflatfee.FieldNamespace, chargeflatfee.FieldName, chargeflatfee.FieldDescription, chargeflatfee.FieldPaymentTerm, chargeflatfee.FieldSettlementMode, chargeflatfee.FieldProRating, chargeflatfee.FieldFeatureKey, chargeflatfee.FieldFeatureID:
 			values[i] = new(sql.NullString)
 		case chargeflatfee.FieldServicePeriodFrom, chargeflatfee.FieldServicePeriodTo, chargeflatfee.FieldBillingPeriodFrom, chargeflatfee.FieldBillingPeriodTo, chargeflatfee.FieldFullServicePeriodFrom, chargeflatfee.FieldFullServicePeriodTo, chargeflatfee.FieldAdvanceAfter, chargeflatfee.FieldCreatedAt, chargeflatfee.FieldUpdatedAt, chargeflatfee.FieldDeletedAt, chargeflatfee.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
@@ -431,6 +447,13 @@ func (_m *ChargeFlatFee) assignValues(columns []string, values []any) error {
 				_m.FeatureKey = new(string)
 				*_m.FeatureKey = value.String
 			}
+		case chargeflatfee.FieldFeatureID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field feature_id", values[i])
+			} else if value.Valid {
+				_m.FeatureID = new(string)
+				*_m.FeatureID = value.String
+			}
 		case chargeflatfee.FieldAmountBeforeProration:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field amount_before_proration", values[i])
@@ -494,6 +517,11 @@ func (_m *ChargeFlatFee) QuerySubscriptionItem() *SubscriptionItemQuery {
 // QueryCustomer queries the "customer" edge of the ChargeFlatFee entity.
 func (_m *ChargeFlatFee) QueryCustomer() *CustomerQuery {
 	return NewChargeFlatFeeClient(_m.config).QueryCustomer(_m)
+}
+
+// QueryFeature queries the "feature" edge of the ChargeFlatFee entity.
+func (_m *ChargeFlatFee) QueryFeature() *FeatureQuery {
+	return NewChargeFlatFeeClient(_m.config).QueryFeature(_m)
 }
 
 // Update returns a builder for updating this ChargeFlatFee.
@@ -621,6 +649,11 @@ func (_m *ChargeFlatFee) String() string {
 	builder.WriteString(", ")
 	if v := _m.FeatureKey; v != nil {
 		builder.WriteString("feature_key=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.FeatureID; v != nil {
+		builder.WriteString("feature_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

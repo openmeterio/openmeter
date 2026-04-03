@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
@@ -269,6 +270,12 @@ func (_c *ChargeUsageBasedCreate) SetFeatureKey(v string) *ChargeUsageBasedCreat
 	return _c
 }
 
+// SetFeatureID sets the "feature_id" field.
+func (_c *ChargeUsageBasedCreate) SetFeatureID(v string) *ChargeUsageBasedCreate {
+	_c.mutation.SetFeatureID(v)
+	return _c
+}
+
 // SetPrice sets the "price" field.
 func (_c *ChargeUsageBasedCreate) SetPrice(v *productcatalog.Price) *ChargeUsageBasedCreate {
 	_c.mutation.SetPrice(v)
@@ -380,6 +387,11 @@ func (_c *ChargeUsageBasedCreate) SetSubscriptionItem(v *SubscriptionItem) *Char
 // SetCustomer sets the "customer" edge to the Customer entity.
 func (_c *ChargeUsageBasedCreate) SetCustomer(v *Customer) *ChargeUsageBasedCreate {
 	return _c.SetCustomerID(v.ID)
+}
+
+// SetFeature sets the "feature" edge to the Feature entity.
+func (_c *ChargeUsageBasedCreate) SetFeature(v *Feature) *ChargeUsageBasedCreate {
+	return _c.SetFeatureID(v.ID)
 }
 
 // Mutation returns the ChargeUsageBasedMutation object of the builder.
@@ -524,6 +536,14 @@ func (_c *ChargeUsageBasedCreate) check() error {
 			return &ValidationError{Name: "feature_key", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.feature_key": %w`, err)}
 		}
 	}
+	if _, ok := _c.mutation.FeatureID(); !ok {
+		return &ValidationError{Name: "feature_id", err: errors.New(`db: missing required field "ChargeUsageBased.feature_id"`)}
+	}
+	if v, ok := _c.mutation.FeatureID(); ok {
+		if err := chargeusagebased.FeatureIDValidator(v); err != nil {
+			return &ValidationError{Name: "feature_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.feature_id": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Price(); !ok {
 		return &ValidationError{Name: "price", err: errors.New(`db: missing required field "ChargeUsageBased.price"`)}
 	}
@@ -542,6 +562,9 @@ func (_c *ChargeUsageBasedCreate) check() error {
 	}
 	if len(_c.mutation.CustomerIDs()) == 0 {
 		return &ValidationError{Name: "customer", err: errors.New(`db: missing required edge "ChargeUsageBased.customer"`)}
+	}
+	if len(_c.mutation.FeatureIDs()) == 0 {
+		return &ValidationError{Name: "feature", err: errors.New(`db: missing required edge "ChargeUsageBased.feature"`)}
 	}
 	return nil
 }
@@ -805,6 +828,23 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.CustomerID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.FeatureIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.FeatureTable,
+			Columns: []string{chargeusagebased.FeatureColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.FeatureID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil
@@ -1084,6 +1124,18 @@ func (u *ChargeUsageBasedUpsert) UpdateDiscounts() *ChargeUsageBasedUpsert {
 // ClearDiscounts clears the value of the "discounts" field.
 func (u *ChargeUsageBasedUpsert) ClearDiscounts() *ChargeUsageBasedUpsert {
 	u.SetNull(chargeusagebased.FieldDiscounts)
+	return u
+}
+
+// SetFeatureID sets the "feature_id" field.
+func (u *ChargeUsageBasedUpsert) SetFeatureID(v string) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldFeatureID, v)
+	return u
+}
+
+// UpdateFeatureID sets the "feature_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateFeatureID() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldFeatureID)
 	return u
 }
 
@@ -1464,6 +1516,20 @@ func (u *ChargeUsageBasedUpsertOne) UpdateDiscounts() *ChargeUsageBasedUpsertOne
 func (u *ChargeUsageBasedUpsertOne) ClearDiscounts() *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.ClearDiscounts()
+	})
+}
+
+// SetFeatureID sets the "feature_id" field.
+func (u *ChargeUsageBasedUpsertOne) SetFeatureID(v string) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetFeatureID(v)
+	})
+}
+
+// UpdateFeatureID sets the "feature_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateFeatureID() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateFeatureID()
 	})
 }
 
@@ -2019,6 +2085,20 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateDiscounts() *ChargeUsageBasedUpsertBu
 func (u *ChargeUsageBasedUpsertBulk) ClearDiscounts() *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.ClearDiscounts()
+	})
+}
+
+// SetFeatureID sets the "feature_id" field.
+func (u *ChargeUsageBasedUpsertBulk) SetFeatureID(v string) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetFeatureID(v)
+	})
+}
+
+// UpdateFeatureID sets the "feature_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateFeatureID() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateFeatureID()
 	})
 }
 

@@ -132,6 +132,11 @@ func ChargeID(v string) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldChargeID, v))
 }
 
+// FeatureID applies equality check predicate on the "feature_id" field. It's identical to FeatureIDEQ.
+func FeatureID(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldFeatureID, v))
+}
+
 // Asof applies equality check predicate on the "asof" field. It's identical to AsofEQ.
 func Asof(v time.Time) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldAsof, v))
@@ -727,6 +732,71 @@ func ChargeIDContainsFold(v string) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldContainsFold(FieldChargeID, v))
 }
 
+// FeatureIDEQ applies the EQ predicate on the "feature_id" field.
+func FeatureIDEQ(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldFeatureID, v))
+}
+
+// FeatureIDNEQ applies the NEQ predicate on the "feature_id" field.
+func FeatureIDNEQ(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldFeatureID, v))
+}
+
+// FeatureIDIn applies the In predicate on the "feature_id" field.
+func FeatureIDIn(vs ...string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldIn(FieldFeatureID, vs...))
+}
+
+// FeatureIDNotIn applies the NotIn predicate on the "feature_id" field.
+func FeatureIDNotIn(vs ...string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNotIn(FieldFeatureID, vs...))
+}
+
+// FeatureIDGT applies the GT predicate on the "feature_id" field.
+func FeatureIDGT(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGT(FieldFeatureID, v))
+}
+
+// FeatureIDGTE applies the GTE predicate on the "feature_id" field.
+func FeatureIDGTE(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGTE(FieldFeatureID, v))
+}
+
+// FeatureIDLT applies the LT predicate on the "feature_id" field.
+func FeatureIDLT(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLT(FieldFeatureID, v))
+}
+
+// FeatureIDLTE applies the LTE predicate on the "feature_id" field.
+func FeatureIDLTE(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldFeatureID, v))
+}
+
+// FeatureIDContains applies the Contains predicate on the "feature_id" field.
+func FeatureIDContains(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldContains(FieldFeatureID, v))
+}
+
+// FeatureIDHasPrefix applies the HasPrefix predicate on the "feature_id" field.
+func FeatureIDHasPrefix(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldHasPrefix(FieldFeatureID, v))
+}
+
+// FeatureIDHasSuffix applies the HasSuffix predicate on the "feature_id" field.
+func FeatureIDHasSuffix(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldHasSuffix(FieldFeatureID, v))
+}
+
+// FeatureIDEqualFold applies the EqualFold predicate on the "feature_id" field.
+func FeatureIDEqualFold(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEqualFold(FieldFeatureID, v))
+}
+
+// FeatureIDContainsFold applies the ContainsFold predicate on the "feature_id" field.
+func FeatureIDContainsFold(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldContainsFold(FieldFeatureID, v))
+}
+
 // TypeEQ applies the EQ predicate on the "type" field.
 func TypeEQ(v usagebased.RealizationRunType) predicate.ChargeUsageBasedRuns {
 	vc := v
@@ -892,6 +962,29 @@ func HasUsageBased() predicate.ChargeUsageBasedRuns {
 func HasUsageBasedWith(preds ...predicate.ChargeUsageBased) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {
 		step := newUsageBasedStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasFeature applies the HasEdge predicate on the "feature" edge.
+func HasFeature() predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, FeatureTable, FeatureColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasFeatureWith applies the HasEdge predicate on the "feature" edge with a given conditions (other predicates).
+func HasFeatureWith(preds ...predicate.Feature) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {
+		step := newFeatureStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

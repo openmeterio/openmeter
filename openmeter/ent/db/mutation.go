@@ -41634,6 +41634,8 @@ type ChargeFlatFeeMutation struct {
 	clearedsubscription_item  bool
 	customer                  *string
 	clearedcustomer           bool
+	feature                   *string
+	clearedfeature            bool
 	done                      bool
 	oldValue                  func(context.Context) (*ChargeFlatFee, error)
 	predicates                []predicate.ChargeFlatFee
@@ -42930,6 +42932,55 @@ func (m *ChargeFlatFeeMutation) ResetFeatureKey() {
 	delete(m.clearedFields, chargeflatfee.FieldFeatureKey)
 }
 
+// SetFeatureID sets the "feature_id" field.
+func (m *ChargeFlatFeeMutation) SetFeatureID(s string) {
+	m.feature = &s
+}
+
+// FeatureID returns the value of the "feature_id" field in the mutation.
+func (m *ChargeFlatFeeMutation) FeatureID() (r string, exists bool) {
+	v := m.feature
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFeatureID returns the old "feature_id" field's value of the ChargeFlatFee entity.
+// If the ChargeFlatFee object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeMutation) OldFeatureID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFeatureID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFeatureID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFeatureID: %w", err)
+	}
+	return oldValue.FeatureID, nil
+}
+
+// ClearFeatureID clears the value of the "feature_id" field.
+func (m *ChargeFlatFeeMutation) ClearFeatureID() {
+	m.feature = nil
+	m.clearedFields[chargeflatfee.FieldFeatureID] = struct{}{}
+}
+
+// FeatureIDCleared returns if the "feature_id" field was cleared in this mutation.
+func (m *ChargeFlatFeeMutation) FeatureIDCleared() bool {
+	_, ok := m.clearedFields[chargeflatfee.FieldFeatureID]
+	return ok
+}
+
+// ResetFeatureID resets all changes to the "feature_id" field.
+func (m *ChargeFlatFeeMutation) ResetFeatureID() {
+	m.feature = nil
+	delete(m.clearedFields, chargeflatfee.FieldFeatureID)
+}
+
 // SetAmountBeforeProration sets the "amount_before_proration" field.
 func (m *ChargeFlatFeeMutation) SetAmountBeforeProration(a alpacadecimal.Decimal) {
 	m.amount_before_proration = &a
@@ -43281,6 +43332,33 @@ func (m *ChargeFlatFeeMutation) ResetCustomer() {
 	m.clearedcustomer = false
 }
 
+// ClearFeature clears the "feature" edge to the Feature entity.
+func (m *ChargeFlatFeeMutation) ClearFeature() {
+	m.clearedfeature = true
+	m.clearedFields[chargeflatfee.FieldFeatureID] = struct{}{}
+}
+
+// FeatureCleared reports if the "feature" edge to the Feature entity was cleared.
+func (m *ChargeFlatFeeMutation) FeatureCleared() bool {
+	return m.FeatureIDCleared() || m.clearedfeature
+}
+
+// FeatureIDs returns the "feature" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// FeatureID instead. It exists only for internal usage by the builders.
+func (m *ChargeFlatFeeMutation) FeatureIDs() (ids []string) {
+	if id := m.feature; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetFeature resets all changes to the "feature" edge.
+func (m *ChargeFlatFeeMutation) ResetFeature() {
+	m.feature = nil
+	m.clearedfeature = false
+}
+
 // Where appends a list predicates to the ChargeFlatFeeMutation builder.
 func (m *ChargeFlatFeeMutation) Where(ps ...predicate.ChargeFlatFee) {
 	m.predicates = append(m.predicates, ps...)
@@ -43315,7 +43393,7 @@ func (m *ChargeFlatFeeMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeFlatFeeMutation) Fields() []string {
-	fields := make([]string, 0, 31)
+	fields := make([]string, 0, 32)
 	if m.customer != nil {
 		fields = append(fields, chargeflatfee.FieldCustomerID)
 	}
@@ -43403,6 +43481,9 @@ func (m *ChargeFlatFeeMutation) Fields() []string {
 	if m.feature_key != nil {
 		fields = append(fields, chargeflatfee.FieldFeatureKey)
 	}
+	if m.feature != nil {
+		fields = append(fields, chargeflatfee.FieldFeatureID)
+	}
 	if m.amount_before_proration != nil {
 		fields = append(fields, chargeflatfee.FieldAmountBeforeProration)
 	}
@@ -43475,6 +43556,8 @@ func (m *ChargeFlatFeeMutation) Field(name string) (ent.Value, bool) {
 		return m.ProRating()
 	case chargeflatfee.FieldFeatureKey:
 		return m.FeatureKey()
+	case chargeflatfee.FieldFeatureID:
+		return m.FeatureID()
 	case chargeflatfee.FieldAmountBeforeProration:
 		return m.AmountBeforeProration()
 	case chargeflatfee.FieldAmountAfterProration:
@@ -43546,6 +43629,8 @@ func (m *ChargeFlatFeeMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldProRating(ctx)
 	case chargeflatfee.FieldFeatureKey:
 		return m.OldFeatureKey(ctx)
+	case chargeflatfee.FieldFeatureID:
+		return m.OldFeatureID(ctx)
 	case chargeflatfee.FieldAmountBeforeProration:
 		return m.OldAmountBeforeProration(ctx)
 	case chargeflatfee.FieldAmountAfterProration:
@@ -43762,6 +43847,13 @@ func (m *ChargeFlatFeeMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetFeatureKey(v)
 		return nil
+	case chargeflatfee.FieldFeatureID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFeatureID(v)
+		return nil
 	case chargeflatfee.FieldAmountBeforeProration:
 		v, ok := value.(alpacadecimal.Decimal)
 		if !ok {
@@ -43839,6 +43931,9 @@ func (m *ChargeFlatFeeMutation) ClearedFields() []string {
 	if m.FieldCleared(chargeflatfee.FieldFeatureKey) {
 		fields = append(fields, chargeflatfee.FieldFeatureKey)
 	}
+	if m.FieldCleared(chargeflatfee.FieldFeatureID) {
+		fields = append(fields, chargeflatfee.FieldFeatureID)
+	}
 	return fields
 }
 
@@ -43885,6 +43980,9 @@ func (m *ChargeFlatFeeMutation) ClearField(name string) error {
 		return nil
 	case chargeflatfee.FieldFeatureKey:
 		m.ClearFeatureKey()
+		return nil
+	case chargeflatfee.FieldFeatureID:
+		m.ClearFeatureID()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeFlatFee nullable field %s", name)
@@ -43981,6 +44079,9 @@ func (m *ChargeFlatFeeMutation) ResetField(name string) error {
 	case chargeflatfee.FieldFeatureKey:
 		m.ResetFeatureKey()
 		return nil
+	case chargeflatfee.FieldFeatureID:
+		m.ResetFeatureID()
+		return nil
 	case chargeflatfee.FieldAmountBeforeProration:
 		m.ResetAmountBeforeProration()
 		return nil
@@ -43993,7 +44094,7 @@ func (m *ChargeFlatFeeMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeFlatFeeMutation) AddedEdges() []string {
-	edges := make([]string, 0, 8)
+	edges := make([]string, 0, 9)
 	if m.credit_allocations != nil {
 		edges = append(edges, chargeflatfee.EdgeCreditAllocations)
 	}
@@ -44017,6 +44118,9 @@ func (m *ChargeFlatFeeMutation) AddedEdges() []string {
 	}
 	if m.customer != nil {
 		edges = append(edges, chargeflatfee.EdgeCustomer)
+	}
+	if m.feature != nil {
+		edges = append(edges, chargeflatfee.EdgeFeature)
 	}
 	return edges
 }
@@ -44059,13 +44163,17 @@ func (m *ChargeFlatFeeMutation) AddedIDs(name string) []ent.Value {
 		if id := m.customer; id != nil {
 			return []ent.Value{*id}
 		}
+	case chargeflatfee.EdgeFeature:
+		if id := m.feature; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ChargeFlatFeeMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 8)
+	edges := make([]string, 0, 9)
 	if m.removedcredit_allocations != nil {
 		edges = append(edges, chargeflatfee.EdgeCreditAllocations)
 	}
@@ -44088,7 +44196,7 @@ func (m *ChargeFlatFeeMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeFlatFeeMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 8)
+	edges := make([]string, 0, 9)
 	if m.clearedcredit_allocations {
 		edges = append(edges, chargeflatfee.EdgeCreditAllocations)
 	}
@@ -44113,6 +44221,9 @@ func (m *ChargeFlatFeeMutation) ClearedEdges() []string {
 	if m.clearedcustomer {
 		edges = append(edges, chargeflatfee.EdgeCustomer)
 	}
+	if m.clearedfeature {
+		edges = append(edges, chargeflatfee.EdgeFeature)
+	}
 	return edges
 }
 
@@ -44136,6 +44247,8 @@ func (m *ChargeFlatFeeMutation) EdgeCleared(name string) bool {
 		return m.clearedsubscription_item
 	case chargeflatfee.EdgeCustomer:
 		return m.clearedcustomer
+	case chargeflatfee.EdgeFeature:
+		return m.clearedfeature
 	}
 	return false
 }
@@ -44164,6 +44277,9 @@ func (m *ChargeFlatFeeMutation) ClearEdge(name string) error {
 		return nil
 	case chargeflatfee.EdgeCustomer:
 		m.ClearCustomer()
+		return nil
+	case chargeflatfee.EdgeFeature:
+		m.ClearFeature()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeFlatFee unique edge %s", name)
@@ -44196,6 +44312,9 @@ func (m *ChargeFlatFeeMutation) ResetEdge(name string) error {
 		return nil
 	case chargeflatfee.EdgeCustomer:
 		m.ResetCustomer()
+		return nil
+	case chargeflatfee.EdgeFeature:
+		m.ResetFeature()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeFlatFee edge %s", name)
@@ -48561,6 +48680,8 @@ type ChargeUsageBasedMutation struct {
 	clearedsubscription_item  bool
 	customer                  *string
 	clearedcustomer           bool
+	feature                   *string
+	clearedfeature            bool
 	done                      bool
 	oldValue                  func(context.Context) (*ChargeUsageBased, error)
 	predicates                []predicate.ChargeUsageBased
@@ -49772,6 +49893,42 @@ func (m *ChargeUsageBasedMutation) ResetFeatureKey() {
 	m.feature_key = nil
 }
 
+// SetFeatureID sets the "feature_id" field.
+func (m *ChargeUsageBasedMutation) SetFeatureID(s string) {
+	m.feature = &s
+}
+
+// FeatureID returns the value of the "feature_id" field in the mutation.
+func (m *ChargeUsageBasedMutation) FeatureID() (r string, exists bool) {
+	v := m.feature
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFeatureID returns the old "feature_id" field's value of the ChargeUsageBased entity.
+// If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedMutation) OldFeatureID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFeatureID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFeatureID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFeatureID: %w", err)
+	}
+	return oldValue.FeatureID, nil
+}
+
+// ResetFeatureID resets all changes to the "feature_id" field.
+func (m *ChargeUsageBasedMutation) ResetFeatureID() {
+	m.feature = nil
+}
+
 // SetPrice sets the "price" field.
 func (m *ChargeUsageBasedMutation) SetPrice(pr *productcatalog.Price) {
 	m.price = &pr
@@ -50134,6 +50291,33 @@ func (m *ChargeUsageBasedMutation) ResetCustomer() {
 	m.clearedcustomer = false
 }
 
+// ClearFeature clears the "feature" edge to the Feature entity.
+func (m *ChargeUsageBasedMutation) ClearFeature() {
+	m.clearedfeature = true
+	m.clearedFields[chargeusagebased.FieldFeatureID] = struct{}{}
+}
+
+// FeatureCleared reports if the "feature" edge to the Feature entity was cleared.
+func (m *ChargeUsageBasedMutation) FeatureCleared() bool {
+	return m.clearedfeature
+}
+
+// FeatureIDs returns the "feature" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// FeatureID instead. It exists only for internal usage by the builders.
+func (m *ChargeUsageBasedMutation) FeatureIDs() (ids []string) {
+	if id := m.feature; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetFeature resets all changes to the "feature" edge.
+func (m *ChargeUsageBasedMutation) ResetFeature() {
+	m.feature = nil
+	m.clearedfeature = false
+}
+
 // Where appends a list predicates to the ChargeUsageBasedMutation builder.
 func (m *ChargeUsageBasedMutation) Where(ps ...predicate.ChargeUsageBased) {
 	m.predicates = append(m.predicates, ps...)
@@ -50168,7 +50352,7 @@ func (m *ChargeUsageBasedMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeUsageBasedMutation) Fields() []string {
-	fields := make([]string, 0, 30)
+	fields := make([]string, 0, 31)
 	if m.customer != nil {
 		fields = append(fields, chargeusagebased.FieldCustomerID)
 	}
@@ -50250,6 +50434,9 @@ func (m *ChargeUsageBasedMutation) Fields() []string {
 	if m.feature_key != nil {
 		fields = append(fields, chargeusagebased.FieldFeatureKey)
 	}
+	if m.feature != nil {
+		fields = append(fields, chargeusagebased.FieldFeatureID)
+	}
 	if m.price != nil {
 		fields = append(fields, chargeusagebased.FieldPrice)
 	}
@@ -50321,6 +50508,8 @@ func (m *ChargeUsageBasedMutation) Field(name string) (ent.Value, bool) {
 		return m.Discounts()
 	case chargeusagebased.FieldFeatureKey:
 		return m.FeatureKey()
+	case chargeusagebased.FieldFeatureID:
+		return m.FeatureID()
 	case chargeusagebased.FieldPrice:
 		return m.Price()
 	case chargeusagebased.FieldCurrentRealizationRunID:
@@ -50390,6 +50579,8 @@ func (m *ChargeUsageBasedMutation) OldField(ctx context.Context, name string) (e
 		return m.OldDiscounts(ctx)
 	case chargeusagebased.FieldFeatureKey:
 		return m.OldFeatureKey(ctx)
+	case chargeusagebased.FieldFeatureID:
+		return m.OldFeatureID(ctx)
 	case chargeusagebased.FieldPrice:
 		return m.OldPrice(ctx)
 	case chargeusagebased.FieldCurrentRealizationRunID:
@@ -50593,6 +50784,13 @@ func (m *ChargeUsageBasedMutation) SetField(name string, value ent.Value) error 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetFeatureKey(v)
+		return nil
+	case chargeusagebased.FieldFeatureID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFeatureID(v)
 		return nil
 	case chargeusagebased.FieldPrice:
 		v, ok := value.(*productcatalog.Price)
@@ -50814,6 +51012,9 @@ func (m *ChargeUsageBasedMutation) ResetField(name string) error {
 	case chargeusagebased.FieldFeatureKey:
 		m.ResetFeatureKey()
 		return nil
+	case chargeusagebased.FieldFeatureID:
+		m.ResetFeatureID()
+		return nil
 	case chargeusagebased.FieldPrice:
 		m.ResetPrice()
 		return nil
@@ -50829,7 +51030,7 @@ func (m *ChargeUsageBasedMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeUsageBasedMutation) AddedEdges() []string {
-	edges := make([]string, 0, 7)
+	edges := make([]string, 0, 8)
 	if m.runs != nil {
 		edges = append(edges, chargeusagebased.EdgeRuns)
 	}
@@ -50850,6 +51051,9 @@ func (m *ChargeUsageBasedMutation) AddedEdges() []string {
 	}
 	if m.customer != nil {
 		edges = append(edges, chargeusagebased.EdgeCustomer)
+	}
+	if m.feature != nil {
+		edges = append(edges, chargeusagebased.EdgeFeature)
 	}
 	return edges
 }
@@ -50888,13 +51092,17 @@ func (m *ChargeUsageBasedMutation) AddedIDs(name string) []ent.Value {
 		if id := m.customer; id != nil {
 			return []ent.Value{*id}
 		}
+	case chargeusagebased.EdgeFeature:
+		if id := m.feature; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ChargeUsageBasedMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 7)
+	edges := make([]string, 0, 8)
 	if m.removedruns != nil {
 		edges = append(edges, chargeusagebased.EdgeRuns)
 	}
@@ -50917,7 +51125,7 @@ func (m *ChargeUsageBasedMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeUsageBasedMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 7)
+	edges := make([]string, 0, 8)
 	if m.clearedruns {
 		edges = append(edges, chargeusagebased.EdgeRuns)
 	}
@@ -50938,6 +51146,9 @@ func (m *ChargeUsageBasedMutation) ClearedEdges() []string {
 	}
 	if m.clearedcustomer {
 		edges = append(edges, chargeusagebased.EdgeCustomer)
+	}
+	if m.clearedfeature {
+		edges = append(edges, chargeusagebased.EdgeFeature)
 	}
 	return edges
 }
@@ -50960,6 +51171,8 @@ func (m *ChargeUsageBasedMutation) EdgeCleared(name string) bool {
 		return m.clearedsubscription_item
 	case chargeusagebased.EdgeCustomer:
 		return m.clearedcustomer
+	case chargeusagebased.EdgeFeature:
+		return m.clearedfeature
 	}
 	return false
 }
@@ -50985,6 +51198,9 @@ func (m *ChargeUsageBasedMutation) ClearEdge(name string) error {
 		return nil
 	case chargeusagebased.EdgeCustomer:
 		m.ClearCustomer()
+		return nil
+	case chargeusagebased.EdgeFeature:
+		m.ClearFeature()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeUsageBased unique edge %s", name)
@@ -51014,6 +51230,9 @@ func (m *ChargeUsageBasedMutation) ResetEdge(name string) error {
 		return nil
 	case chargeusagebased.EdgeCustomer:
 		m.ResetCustomer()
+		return nil
+	case chargeusagebased.EdgeFeature:
+		m.ResetFeature()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeUsageBased edge %s", name)
@@ -55141,6 +55360,8 @@ type ChargeUsageBasedRunsMutation struct {
 	clearedFields             map[string]struct{}
 	usage_based               *string
 	clearedusage_based        bool
+	feature                   *string
+	clearedfeature            bool
 	credit_allocations        map[string]struct{}
 	removedcredit_allocations map[string]struct{}
 	clearedcredit_allocations bool
@@ -55738,6 +55959,42 @@ func (m *ChargeUsageBasedRunsMutation) ResetChargeID() {
 	m.usage_based = nil
 }
 
+// SetFeatureID sets the "feature_id" field.
+func (m *ChargeUsageBasedRunsMutation) SetFeatureID(s string) {
+	m.feature = &s
+}
+
+// FeatureID returns the value of the "feature_id" field in the mutation.
+func (m *ChargeUsageBasedRunsMutation) FeatureID() (r string, exists bool) {
+	v := m.feature
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFeatureID returns the old "feature_id" field's value of the ChargeUsageBasedRuns entity.
+// If the ChargeUsageBasedRuns object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunsMutation) OldFeatureID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFeatureID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFeatureID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFeatureID: %w", err)
+	}
+	return oldValue.FeatureID, nil
+}
+
+// ResetFeatureID resets all changes to the "feature_id" field.
+func (m *ChargeUsageBasedRunsMutation) ResetFeatureID() {
+	m.feature = nil
+}
+
 // SetType sets the "type" field.
 func (m *ChargeUsageBasedRunsMutation) SetType(urt usagebased.RealizationRunType) {
 	m._type = &urt
@@ -55922,6 +56179,33 @@ func (m *ChargeUsageBasedRunsMutation) ResetUsageBased() {
 	m.clearedusage_based = false
 }
 
+// ClearFeature clears the "feature" edge to the Feature entity.
+func (m *ChargeUsageBasedRunsMutation) ClearFeature() {
+	m.clearedfeature = true
+	m.clearedFields[chargeusagebasedruns.FieldFeatureID] = struct{}{}
+}
+
+// FeatureCleared reports if the "feature" edge to the Feature entity was cleared.
+func (m *ChargeUsageBasedRunsMutation) FeatureCleared() bool {
+	return m.clearedfeature
+}
+
+// FeatureIDs returns the "feature" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// FeatureID instead. It exists only for internal usage by the builders.
+func (m *ChargeUsageBasedRunsMutation) FeatureIDs() (ids []string) {
+	if id := m.feature; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetFeature resets all changes to the "feature" edge.
+func (m *ChargeUsageBasedRunsMutation) ResetFeature() {
+	m.feature = nil
+	m.clearedfeature = false
+}
+
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeUsageBasedRunCreditAllocations entity by ids.
 func (m *ChargeUsageBasedRunsMutation) AddCreditAllocationIDs(ids ...string) {
 	if m.credit_allocations == nil {
@@ -56088,7 +56372,7 @@ func (m *ChargeUsageBasedRunsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeUsageBasedRunsMutation) Fields() []string {
-	fields := make([]string, 0, 17)
+	fields := make([]string, 0, 18)
 	if m.namespace != nil {
 		fields = append(fields, chargeusagebasedruns.FieldNamespace)
 	}
@@ -56127,6 +56411,9 @@ func (m *ChargeUsageBasedRunsMutation) Fields() []string {
 	}
 	if m.usage_based != nil {
 		fields = append(fields, chargeusagebasedruns.FieldChargeID)
+	}
+	if m.feature != nil {
+		fields = append(fields, chargeusagebasedruns.FieldFeatureID)
 	}
 	if m._type != nil {
 		fields = append(fields, chargeusagebasedruns.FieldType)
@@ -56174,6 +56461,8 @@ func (m *ChargeUsageBasedRunsMutation) Field(name string) (ent.Value, bool) {
 		return m.Total()
 	case chargeusagebasedruns.FieldChargeID:
 		return m.ChargeID()
+	case chargeusagebasedruns.FieldFeatureID:
+		return m.FeatureID()
 	case chargeusagebasedruns.FieldType:
 		return m.GetType()
 	case chargeusagebasedruns.FieldAsof:
@@ -56217,6 +56506,8 @@ func (m *ChargeUsageBasedRunsMutation) OldField(ctx context.Context, name string
 		return m.OldTotal(ctx)
 	case chargeusagebasedruns.FieldChargeID:
 		return m.OldChargeID(ctx)
+	case chargeusagebasedruns.FieldFeatureID:
+		return m.OldFeatureID(ctx)
 	case chargeusagebasedruns.FieldType:
 		return m.OldType(ctx)
 	case chargeusagebasedruns.FieldAsof:
@@ -56324,6 +56615,13 @@ func (m *ChargeUsageBasedRunsMutation) SetField(name string, value ent.Value) er
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetChargeID(v)
+		return nil
+	case chargeusagebasedruns.FieldFeatureID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFeatureID(v)
 		return nil
 	case chargeusagebasedruns.FieldType:
 		v, ok := value.(usagebased.RealizationRunType)
@@ -56450,6 +56748,9 @@ func (m *ChargeUsageBasedRunsMutation) ResetField(name string) error {
 	case chargeusagebasedruns.FieldChargeID:
 		m.ResetChargeID()
 		return nil
+	case chargeusagebasedruns.FieldFeatureID:
+		m.ResetFeatureID()
+		return nil
 	case chargeusagebasedruns.FieldType:
 		m.ResetType()
 		return nil
@@ -56468,9 +56769,12 @@ func (m *ChargeUsageBasedRunsMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeUsageBasedRunsMutation) AddedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.usage_based != nil {
 		edges = append(edges, chargeusagebasedruns.EdgeUsageBased)
+	}
+	if m.feature != nil {
+		edges = append(edges, chargeusagebasedruns.EdgeFeature)
 	}
 	if m.credit_allocations != nil {
 		edges = append(edges, chargeusagebasedruns.EdgeCreditAllocations)
@@ -56490,6 +56794,10 @@ func (m *ChargeUsageBasedRunsMutation) AddedIDs(name string) []ent.Value {
 	switch name {
 	case chargeusagebasedruns.EdgeUsageBased:
 		if id := m.usage_based; id != nil {
+			return []ent.Value{*id}
+		}
+	case chargeusagebasedruns.EdgeFeature:
+		if id := m.feature; id != nil {
 			return []ent.Value{*id}
 		}
 	case chargeusagebasedruns.EdgeCreditAllocations:
@@ -56512,7 +56820,7 @@ func (m *ChargeUsageBasedRunsMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ChargeUsageBasedRunsMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.removedcredit_allocations != nil {
 		edges = append(edges, chargeusagebasedruns.EdgeCreditAllocations)
 	}
@@ -56535,9 +56843,12 @@ func (m *ChargeUsageBasedRunsMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeUsageBasedRunsMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.clearedusage_based {
 		edges = append(edges, chargeusagebasedruns.EdgeUsageBased)
+	}
+	if m.clearedfeature {
+		edges = append(edges, chargeusagebasedruns.EdgeFeature)
 	}
 	if m.clearedcredit_allocations {
 		edges = append(edges, chargeusagebasedruns.EdgeCreditAllocations)
@@ -56557,6 +56868,8 @@ func (m *ChargeUsageBasedRunsMutation) EdgeCleared(name string) bool {
 	switch name {
 	case chargeusagebasedruns.EdgeUsageBased:
 		return m.clearedusage_based
+	case chargeusagebasedruns.EdgeFeature:
+		return m.clearedfeature
 	case chargeusagebasedruns.EdgeCreditAllocations:
 		return m.clearedcredit_allocations
 	case chargeusagebasedruns.EdgeInvoicedUsage:
@@ -56574,6 +56887,9 @@ func (m *ChargeUsageBasedRunsMutation) ClearEdge(name string) error {
 	case chargeusagebasedruns.EdgeUsageBased:
 		m.ClearUsageBased()
 		return nil
+	case chargeusagebasedruns.EdgeFeature:
+		m.ClearFeature()
+		return nil
 	case chargeusagebasedruns.EdgeInvoicedUsage:
 		m.ClearInvoicedUsage()
 		return nil
@@ -56590,6 +56906,9 @@ func (m *ChargeUsageBasedRunsMutation) ResetEdge(name string) error {
 	switch name {
 	case chargeusagebasedruns.EdgeUsageBased:
 		m.ResetUsageBased()
+		return nil
+	case chargeusagebasedruns.EdgeFeature:
+		m.ResetFeature()
 		return nil
 	case chargeusagebasedruns.EdgeCreditAllocations:
 		m.ResetCreditAllocations()
@@ -63339,6 +63658,15 @@ type FeatureMutation struct {
 	addon_ratecard                    map[string]struct{}
 	removedaddon_ratecard             map[string]struct{}
 	clearedaddon_ratecard             bool
+	usage_based_charges               map[string]struct{}
+	removedusage_based_charges        map[string]struct{}
+	clearedusage_based_charges        bool
+	usage_based_runs                  map[string]struct{}
+	removedusage_based_runs           map[string]struct{}
+	clearedusage_based_runs           bool
+	flat_fee_charges                  map[string]struct{}
+	removedflat_fee_charges           map[string]struct{}
+	clearedflat_fee_charges           bool
 	meter                             *string
 	clearedmeter                      bool
 	done                              bool
@@ -64576,6 +64904,168 @@ func (m *FeatureMutation) ResetAddonRatecard() {
 	m.removedaddon_ratecard = nil
 }
 
+// AddUsageBasedChargeIDs adds the "usage_based_charges" edge to the ChargeUsageBased entity by ids.
+func (m *FeatureMutation) AddUsageBasedChargeIDs(ids ...string) {
+	if m.usage_based_charges == nil {
+		m.usage_based_charges = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.usage_based_charges[ids[i]] = struct{}{}
+	}
+}
+
+// ClearUsageBasedCharges clears the "usage_based_charges" edge to the ChargeUsageBased entity.
+func (m *FeatureMutation) ClearUsageBasedCharges() {
+	m.clearedusage_based_charges = true
+}
+
+// UsageBasedChargesCleared reports if the "usage_based_charges" edge to the ChargeUsageBased entity was cleared.
+func (m *FeatureMutation) UsageBasedChargesCleared() bool {
+	return m.clearedusage_based_charges
+}
+
+// RemoveUsageBasedChargeIDs removes the "usage_based_charges" edge to the ChargeUsageBased entity by IDs.
+func (m *FeatureMutation) RemoveUsageBasedChargeIDs(ids ...string) {
+	if m.removedusage_based_charges == nil {
+		m.removedusage_based_charges = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.usage_based_charges, ids[i])
+		m.removedusage_based_charges[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedUsageBasedCharges returns the removed IDs of the "usage_based_charges" edge to the ChargeUsageBased entity.
+func (m *FeatureMutation) RemovedUsageBasedChargesIDs() (ids []string) {
+	for id := range m.removedusage_based_charges {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// UsageBasedChargesIDs returns the "usage_based_charges" edge IDs in the mutation.
+func (m *FeatureMutation) UsageBasedChargesIDs() (ids []string) {
+	for id := range m.usage_based_charges {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetUsageBasedCharges resets all changes to the "usage_based_charges" edge.
+func (m *FeatureMutation) ResetUsageBasedCharges() {
+	m.usage_based_charges = nil
+	m.clearedusage_based_charges = false
+	m.removedusage_based_charges = nil
+}
+
+// AddUsageBasedRunIDs adds the "usage_based_runs" edge to the ChargeUsageBasedRuns entity by ids.
+func (m *FeatureMutation) AddUsageBasedRunIDs(ids ...string) {
+	if m.usage_based_runs == nil {
+		m.usage_based_runs = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.usage_based_runs[ids[i]] = struct{}{}
+	}
+}
+
+// ClearUsageBasedRuns clears the "usage_based_runs" edge to the ChargeUsageBasedRuns entity.
+func (m *FeatureMutation) ClearUsageBasedRuns() {
+	m.clearedusage_based_runs = true
+}
+
+// UsageBasedRunsCleared reports if the "usage_based_runs" edge to the ChargeUsageBasedRuns entity was cleared.
+func (m *FeatureMutation) UsageBasedRunsCleared() bool {
+	return m.clearedusage_based_runs
+}
+
+// RemoveUsageBasedRunIDs removes the "usage_based_runs" edge to the ChargeUsageBasedRuns entity by IDs.
+func (m *FeatureMutation) RemoveUsageBasedRunIDs(ids ...string) {
+	if m.removedusage_based_runs == nil {
+		m.removedusage_based_runs = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.usage_based_runs, ids[i])
+		m.removedusage_based_runs[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedUsageBasedRuns returns the removed IDs of the "usage_based_runs" edge to the ChargeUsageBasedRuns entity.
+func (m *FeatureMutation) RemovedUsageBasedRunsIDs() (ids []string) {
+	for id := range m.removedusage_based_runs {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// UsageBasedRunsIDs returns the "usage_based_runs" edge IDs in the mutation.
+func (m *FeatureMutation) UsageBasedRunsIDs() (ids []string) {
+	for id := range m.usage_based_runs {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetUsageBasedRuns resets all changes to the "usage_based_runs" edge.
+func (m *FeatureMutation) ResetUsageBasedRuns() {
+	m.usage_based_runs = nil
+	m.clearedusage_based_runs = false
+	m.removedusage_based_runs = nil
+}
+
+// AddFlatFeeChargeIDs adds the "flat_fee_charges" edge to the ChargeFlatFee entity by ids.
+func (m *FeatureMutation) AddFlatFeeChargeIDs(ids ...string) {
+	if m.flat_fee_charges == nil {
+		m.flat_fee_charges = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.flat_fee_charges[ids[i]] = struct{}{}
+	}
+}
+
+// ClearFlatFeeCharges clears the "flat_fee_charges" edge to the ChargeFlatFee entity.
+func (m *FeatureMutation) ClearFlatFeeCharges() {
+	m.clearedflat_fee_charges = true
+}
+
+// FlatFeeChargesCleared reports if the "flat_fee_charges" edge to the ChargeFlatFee entity was cleared.
+func (m *FeatureMutation) FlatFeeChargesCleared() bool {
+	return m.clearedflat_fee_charges
+}
+
+// RemoveFlatFeeChargeIDs removes the "flat_fee_charges" edge to the ChargeFlatFee entity by IDs.
+func (m *FeatureMutation) RemoveFlatFeeChargeIDs(ids ...string) {
+	if m.removedflat_fee_charges == nil {
+		m.removedflat_fee_charges = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.flat_fee_charges, ids[i])
+		m.removedflat_fee_charges[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedFlatFeeCharges returns the removed IDs of the "flat_fee_charges" edge to the ChargeFlatFee entity.
+func (m *FeatureMutation) RemovedFlatFeeChargesIDs() (ids []string) {
+	for id := range m.removedflat_fee_charges {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// FlatFeeChargesIDs returns the "flat_fee_charges" edge IDs in the mutation.
+func (m *FeatureMutation) FlatFeeChargesIDs() (ids []string) {
+	for id := range m.flat_fee_charges {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetFlatFeeCharges resets all changes to the "flat_fee_charges" edge.
+func (m *FeatureMutation) ResetFlatFeeCharges() {
+	m.flat_fee_charges = nil
+	m.clearedflat_fee_charges = false
+	m.removedflat_fee_charges = nil
+}
+
 // ClearMeter clears the "meter" edge to the Meter entity.
 func (m *FeatureMutation) ClearMeter() {
 	m.clearedmeter = true
@@ -65175,7 +65665,7 @@ func (m *FeatureMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *FeatureMutation) AddedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 7)
 	if m.entitlement != nil {
 		edges = append(edges, dbfeature.EdgeEntitlement)
 	}
@@ -65184,6 +65674,15 @@ func (m *FeatureMutation) AddedEdges() []string {
 	}
 	if m.addon_ratecard != nil {
 		edges = append(edges, dbfeature.EdgeAddonRatecard)
+	}
+	if m.usage_based_charges != nil {
+		edges = append(edges, dbfeature.EdgeUsageBasedCharges)
+	}
+	if m.usage_based_runs != nil {
+		edges = append(edges, dbfeature.EdgeUsageBasedRuns)
+	}
+	if m.flat_fee_charges != nil {
+		edges = append(edges, dbfeature.EdgeFlatFeeCharges)
 	}
 	if m.meter != nil {
 		edges = append(edges, dbfeature.EdgeMeter)
@@ -65213,6 +65712,24 @@ func (m *FeatureMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case dbfeature.EdgeUsageBasedCharges:
+		ids := make([]ent.Value, 0, len(m.usage_based_charges))
+		for id := range m.usage_based_charges {
+			ids = append(ids, id)
+		}
+		return ids
+	case dbfeature.EdgeUsageBasedRuns:
+		ids := make([]ent.Value, 0, len(m.usage_based_runs))
+		for id := range m.usage_based_runs {
+			ids = append(ids, id)
+		}
+		return ids
+	case dbfeature.EdgeFlatFeeCharges:
+		ids := make([]ent.Value, 0, len(m.flat_fee_charges))
+		for id := range m.flat_fee_charges {
+			ids = append(ids, id)
+		}
+		return ids
 	case dbfeature.EdgeMeter:
 		if id := m.meter; id != nil {
 			return []ent.Value{*id}
@@ -65223,7 +65740,7 @@ func (m *FeatureMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *FeatureMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 7)
 	if m.removedentitlement != nil {
 		edges = append(edges, dbfeature.EdgeEntitlement)
 	}
@@ -65232,6 +65749,15 @@ func (m *FeatureMutation) RemovedEdges() []string {
 	}
 	if m.removedaddon_ratecard != nil {
 		edges = append(edges, dbfeature.EdgeAddonRatecard)
+	}
+	if m.removedusage_based_charges != nil {
+		edges = append(edges, dbfeature.EdgeUsageBasedCharges)
+	}
+	if m.removedusage_based_runs != nil {
+		edges = append(edges, dbfeature.EdgeUsageBasedRuns)
+	}
+	if m.removedflat_fee_charges != nil {
+		edges = append(edges, dbfeature.EdgeFlatFeeCharges)
 	}
 	return edges
 }
@@ -65258,13 +65784,31 @@ func (m *FeatureMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case dbfeature.EdgeUsageBasedCharges:
+		ids := make([]ent.Value, 0, len(m.removedusage_based_charges))
+		for id := range m.removedusage_based_charges {
+			ids = append(ids, id)
+		}
+		return ids
+	case dbfeature.EdgeUsageBasedRuns:
+		ids := make([]ent.Value, 0, len(m.removedusage_based_runs))
+		for id := range m.removedusage_based_runs {
+			ids = append(ids, id)
+		}
+		return ids
+	case dbfeature.EdgeFlatFeeCharges:
+		ids := make([]ent.Value, 0, len(m.removedflat_fee_charges))
+		for id := range m.removedflat_fee_charges {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *FeatureMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 7)
 	if m.clearedentitlement {
 		edges = append(edges, dbfeature.EdgeEntitlement)
 	}
@@ -65273,6 +65817,15 @@ func (m *FeatureMutation) ClearedEdges() []string {
 	}
 	if m.clearedaddon_ratecard {
 		edges = append(edges, dbfeature.EdgeAddonRatecard)
+	}
+	if m.clearedusage_based_charges {
+		edges = append(edges, dbfeature.EdgeUsageBasedCharges)
+	}
+	if m.clearedusage_based_runs {
+		edges = append(edges, dbfeature.EdgeUsageBasedRuns)
+	}
+	if m.clearedflat_fee_charges {
+		edges = append(edges, dbfeature.EdgeFlatFeeCharges)
 	}
 	if m.clearedmeter {
 		edges = append(edges, dbfeature.EdgeMeter)
@@ -65290,6 +65843,12 @@ func (m *FeatureMutation) EdgeCleared(name string) bool {
 		return m.clearedratecard
 	case dbfeature.EdgeAddonRatecard:
 		return m.clearedaddon_ratecard
+	case dbfeature.EdgeUsageBasedCharges:
+		return m.clearedusage_based_charges
+	case dbfeature.EdgeUsageBasedRuns:
+		return m.clearedusage_based_runs
+	case dbfeature.EdgeFlatFeeCharges:
+		return m.clearedflat_fee_charges
 	case dbfeature.EdgeMeter:
 		return m.clearedmeter
 	}
@@ -65319,6 +65878,15 @@ func (m *FeatureMutation) ResetEdge(name string) error {
 		return nil
 	case dbfeature.EdgeAddonRatecard:
 		m.ResetAddonRatecard()
+		return nil
+	case dbfeature.EdgeUsageBasedCharges:
+		m.ResetUsageBasedCharges()
+		return nil
+	case dbfeature.EdgeUsageBasedRuns:
+		m.ResetUsageBasedRuns()
+		return nil
+	case dbfeature.EdgeFlatFeeCharges:
+		m.ResetFlatFeeCharges()
 		return nil
 	case dbfeature.EdgeMeter:
 		m.ResetMeter()

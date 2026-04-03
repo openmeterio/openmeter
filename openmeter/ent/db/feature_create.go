@@ -14,6 +14,9 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
@@ -334,6 +337,51 @@ func (_c *FeatureCreate) AddAddonRatecard(v ...*AddonRateCard) *FeatureCreate {
 	return _c.AddAddonRatecardIDs(ids...)
 }
 
+// AddUsageBasedChargeIDs adds the "usage_based_charges" edge to the ChargeUsageBased entity by IDs.
+func (_c *FeatureCreate) AddUsageBasedChargeIDs(ids ...string) *FeatureCreate {
+	_c.mutation.AddUsageBasedChargeIDs(ids...)
+	return _c
+}
+
+// AddUsageBasedCharges adds the "usage_based_charges" edges to the ChargeUsageBased entity.
+func (_c *FeatureCreate) AddUsageBasedCharges(v ...*ChargeUsageBased) *FeatureCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddUsageBasedChargeIDs(ids...)
+}
+
+// AddUsageBasedRunIDs adds the "usage_based_runs" edge to the ChargeUsageBasedRuns entity by IDs.
+func (_c *FeatureCreate) AddUsageBasedRunIDs(ids ...string) *FeatureCreate {
+	_c.mutation.AddUsageBasedRunIDs(ids...)
+	return _c
+}
+
+// AddUsageBasedRuns adds the "usage_based_runs" edges to the ChargeUsageBasedRuns entity.
+func (_c *FeatureCreate) AddUsageBasedRuns(v ...*ChargeUsageBasedRuns) *FeatureCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddUsageBasedRunIDs(ids...)
+}
+
+// AddFlatFeeChargeIDs adds the "flat_fee_charges" edge to the ChargeFlatFee entity by IDs.
+func (_c *FeatureCreate) AddFlatFeeChargeIDs(ids ...string) *FeatureCreate {
+	_c.mutation.AddFlatFeeChargeIDs(ids...)
+	return _c
+}
+
+// AddFlatFeeCharges adds the "flat_fee_charges" edges to the ChargeFlatFee entity.
+func (_c *FeatureCreate) AddFlatFeeCharges(v ...*ChargeFlatFee) *FeatureCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddFlatFeeChargeIDs(ids...)
+}
+
 // SetMeter sets the "meter" edge to the Meter entity.
 func (_c *FeatureCreate) SetMeter(v *Meter) *FeatureCreate {
 	return _c.SetMeterID(v.ID)
@@ -582,6 +630,54 @@ func (_c *FeatureCreate) createSpec() (*Feature, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.UsageBasedChargesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.UsageBasedChargesTable,
+			Columns: []string{dbfeature.UsageBasedChargesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.UsageBasedRunsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.UsageBasedRunsTable,
+			Columns: []string{dbfeature.UsageBasedRunsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.FlatFeeChargesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.FlatFeeChargesTable,
+			Columns: []string{dbfeature.FlatFeeChargesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

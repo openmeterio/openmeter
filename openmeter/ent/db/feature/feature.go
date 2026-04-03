@@ -62,6 +62,12 @@ const (
 	EdgeRatecard = "ratecard"
 	// EdgeAddonRatecard holds the string denoting the addon_ratecard edge name in mutations.
 	EdgeAddonRatecard = "addon_ratecard"
+	// EdgeUsageBasedCharges holds the string denoting the usage_based_charges edge name in mutations.
+	EdgeUsageBasedCharges = "usage_based_charges"
+	// EdgeUsageBasedRuns holds the string denoting the usage_based_runs edge name in mutations.
+	EdgeUsageBasedRuns = "usage_based_runs"
+	// EdgeFlatFeeCharges holds the string denoting the flat_fee_charges edge name in mutations.
+	EdgeFlatFeeCharges = "flat_fee_charges"
 	// EdgeMeter holds the string denoting the meter edge name in mutations.
 	EdgeMeter = "meter"
 	// Table holds the table name of the feature in the database.
@@ -87,6 +93,27 @@ const (
 	AddonRatecardInverseTable = "addon_rate_cards"
 	// AddonRatecardColumn is the table column denoting the addon_ratecard relation/edge.
 	AddonRatecardColumn = "feature_id"
+	// UsageBasedChargesTable is the table that holds the usage_based_charges relation/edge.
+	UsageBasedChargesTable = "charge_usage_based"
+	// UsageBasedChargesInverseTable is the table name for the ChargeUsageBased entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeusagebased" package.
+	UsageBasedChargesInverseTable = "charge_usage_based"
+	// UsageBasedChargesColumn is the table column denoting the usage_based_charges relation/edge.
+	UsageBasedChargesColumn = "feature_id"
+	// UsageBasedRunsTable is the table that holds the usage_based_runs relation/edge.
+	UsageBasedRunsTable = "charge_usage_based_runs"
+	// UsageBasedRunsInverseTable is the table name for the ChargeUsageBasedRuns entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeusagebasedruns" package.
+	UsageBasedRunsInverseTable = "charge_usage_based_runs"
+	// UsageBasedRunsColumn is the table column denoting the usage_based_runs relation/edge.
+	UsageBasedRunsColumn = "feature_id"
+	// FlatFeeChargesTable is the table that holds the flat_fee_charges relation/edge.
+	FlatFeeChargesTable = "charge_flat_fees"
+	// FlatFeeChargesInverseTable is the table name for the ChargeFlatFee entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeflatfee" package.
+	FlatFeeChargesInverseTable = "charge_flat_fees"
+	// FlatFeeChargesColumn is the table column denoting the flat_fee_charges relation/edge.
+	FlatFeeChargesColumn = "feature_id"
 	// MeterTable is the table that holds the meter relation/edge.
 	MeterTable = "features"
 	// MeterInverseTable is the table name for the Meter entity.
@@ -291,6 +318,48 @@ func ByAddonRatecard(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
+// ByUsageBasedChargesCount orders the results by usage_based_charges count.
+func ByUsageBasedChargesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newUsageBasedChargesStep(), opts...)
+	}
+}
+
+// ByUsageBasedCharges orders the results by usage_based_charges terms.
+func ByUsageBasedCharges(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newUsageBasedChargesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByUsageBasedRunsCount orders the results by usage_based_runs count.
+func ByUsageBasedRunsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newUsageBasedRunsStep(), opts...)
+	}
+}
+
+// ByUsageBasedRuns orders the results by usage_based_runs terms.
+func ByUsageBasedRuns(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newUsageBasedRunsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByFlatFeeChargesCount orders the results by flat_fee_charges count.
+func ByFlatFeeChargesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newFlatFeeChargesStep(), opts...)
+	}
+}
+
+// ByFlatFeeCharges orders the results by flat_fee_charges terms.
+func ByFlatFeeCharges(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newFlatFeeChargesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByMeterField orders the results by meter field.
 func ByMeterField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -316,6 +385,27 @@ func newAddonRatecardStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(AddonRatecardInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, AddonRatecardTable, AddonRatecardColumn),
+	)
+}
+func newUsageBasedChargesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(UsageBasedChargesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, UsageBasedChargesTable, UsageBasedChargesColumn),
+	)
+}
+func newUsageBasedRunsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(UsageBasedRunsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, UsageBasedRunsTable, UsageBasedRunsColumn),
+	)
+}
+func newFlatFeeChargesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(FlatFeeChargesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, FlatFeeChargesTable, FlatFeeChargesColumn),
 	)
 }
 func newMeterStep() *sqlgraph.Step {

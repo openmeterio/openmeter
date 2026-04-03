@@ -6385,6 +6385,22 @@ func (c *ChargeFlatFeeClient) QueryCustomer(_m *ChargeFlatFee) *CustomerQuery {
 	return query
 }
 
+// QueryFeature queries the feature edge of a ChargeFlatFee.
+func (c *ChargeFlatFeeClient) QueryFeature(_m *ChargeFlatFee) *FeatureQuery {
+	query := (&FeatureClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, id),
+			sqlgraph.To(dbfeature.Table, dbfeature.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeflatfee.FeatureTable, chargeflatfee.FeatureColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *ChargeFlatFeeClient) Hooks() []Hook {
 	return c.hooks.ChargeFlatFee
@@ -7157,6 +7173,22 @@ func (c *ChargeUsageBasedClient) QueryCustomer(_m *ChargeUsageBased) *CustomerQu
 	return query
 }
 
+// QueryFeature queries the feature edge of a ChargeUsageBased.
+func (c *ChargeUsageBasedClient) QueryFeature(_m *ChargeUsageBased) *FeatureQuery {
+	query := (&FeatureClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, id),
+			sqlgraph.To(dbfeature.Table, dbfeature.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebased.FeatureTable, chargeusagebased.FeatureColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *ChargeUsageBasedClient) Hooks() []Hook {
 	return c.hooks.ChargeUsageBased
@@ -7778,6 +7810,22 @@ func (c *ChargeUsageBasedRunsClient) QueryUsageBased(_m *ChargeUsageBasedRuns) *
 			sqlgraph.From(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID, id),
 			sqlgraph.To(chargeusagebased.Table, chargeusagebased.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedruns.UsageBasedTable, chargeusagebasedruns.UsageBasedColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryFeature queries the feature edge of a ChargeUsageBasedRuns.
+func (c *ChargeUsageBasedRunsClient) QueryFeature(_m *ChargeUsageBasedRuns) *FeatureQuery {
+	query := (&FeatureClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID, id),
+			sqlgraph.To(dbfeature.Table, dbfeature.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedruns.FeatureTable, chargeusagebasedruns.FeatureColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -8990,6 +9038,54 @@ func (c *FeatureClient) QueryAddonRatecard(_m *Feature) *AddonRateCardQuery {
 			sqlgraph.From(dbfeature.Table, dbfeature.FieldID, id),
 			sqlgraph.To(addonratecard.Table, addonratecard.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, dbfeature.AddonRatecardTable, dbfeature.AddonRatecardColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUsageBasedCharges queries the usage_based_charges edge of a Feature.
+func (c *FeatureClient) QueryUsageBasedCharges(_m *Feature) *ChargeUsageBasedQuery {
+	query := (&ChargeUsageBasedClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbfeature.Table, dbfeature.FieldID, id),
+			sqlgraph.To(chargeusagebased.Table, chargeusagebased.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbfeature.UsageBasedChargesTable, dbfeature.UsageBasedChargesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUsageBasedRuns queries the usage_based_runs edge of a Feature.
+func (c *FeatureClient) QueryUsageBasedRuns(_m *Feature) *ChargeUsageBasedRunsQuery {
+	query := (&ChargeUsageBasedRunsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbfeature.Table, dbfeature.FieldID, id),
+			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbfeature.UsageBasedRunsTable, dbfeature.UsageBasedRunsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryFlatFeeCharges queries the flat_fee_charges edge of a Feature.
+func (c *FeatureClient) QueryFlatFeeCharges(_m *Feature) *ChargeFlatFeeQuery {
+	query := (&ChargeFlatFeeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbfeature.Table, dbfeature.FieldID, id),
+			sqlgraph.To(chargeflatfee.Table, chargeflatfee.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbfeature.FlatFeeChargesTable, dbfeature.FlatFeeChargesColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil

@@ -42,6 +42,7 @@ func (i RealizationRunID) Validate() error {
 }
 
 type CreateRealizationRunInput struct {
+	FeatureID     string                `json:"featureId"`
 	Type          RealizationRunType    `json:"type"`
 	AsOf          time.Time             `json:"asOf"`
 	CollectionEnd time.Time             `json:"collectionEnd,omitempty"`
@@ -61,6 +62,10 @@ func (r CreateRealizationRunInput) Validate() error {
 
 	if err := r.Type.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("type: %w", err))
+	}
+
+	if r.FeatureID == "" {
+		errs = append(errs, fmt.Errorf("feature id must be set"))
 	}
 
 	if r.AsOf.IsZero() {
@@ -122,6 +127,8 @@ type RealizationRunBase struct {
 	ID RealizationRunID
 	models.ManagedModel
 
+	FeatureID string `json:"featureId"`
+
 	Type          RealizationRunType    `json:"type"`
 	AsOf          time.Time             `json:"asOf"`
 	CollectionEnd time.Time             `json:"collectionEnd,omitempty"`
@@ -145,6 +152,10 @@ func (r RealizationRunBase) Validate() error {
 
 	if err := r.ManagedModel.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("managed model: %w", err))
+	}
+
+	if r.FeatureID == "" {
+		errs = append(errs, fmt.Errorf("feature id must be set"))
 	}
 
 	if err := r.Type.Validate(); err != nil {

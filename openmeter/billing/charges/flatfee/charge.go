@@ -160,6 +160,7 @@ func (c Charge) ErrorAttributes() models.Attributes {
 
 type State struct {
 	AdvanceAfter         *time.Time                     `json:"advanceAfter,omitempty"`
+	FeatureID            *string                        `json:"featureId,omitempty"`
 	AmountAfterProration alpacadecimal.Decimal          `json:"amountAfterProration"`
 	CreditRealizations   creditrealization.Realizations `json:"creditRealizations"`
 	AccruedUsage         *invoicedusage.AccruedUsage    `json:"accruedUsage"`

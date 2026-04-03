@@ -2663,6 +2663,20 @@ func (u *ChargeFlatFeeUpdateOne) SetOrClearFeatureKey(value *string) *ChargeFlat
 	return u.SetFeatureKey(*value)
 }
 
+func (u *ChargeFlatFeeUpdate) SetOrClearFeatureID(value *string) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearFeatureID()
+	}
+	return u.SetFeatureID(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearFeatureID(value *string) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearFeatureID()
+	}
+	return u.SetFeatureID(*value)
+}
+
 func (u *ChargeFlatFeeCreditAllocationsUpdate) SetOrClearLineID(value *string) *ChargeFlatFeeCreditAllocationsUpdate {
 	if value == nil {
 		return u.ClearLineID()

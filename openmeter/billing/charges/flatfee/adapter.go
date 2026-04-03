@@ -34,6 +34,7 @@ type Adapter interface {
 
 type IntentWithInitialStatus struct {
 	Intent
+	FeatureID            *string
 	InitialStatus        meta.ChargeStatus
 	AmountAfterProration alpacadecimal.Decimal
 }

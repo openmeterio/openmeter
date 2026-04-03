@@ -183,6 +183,11 @@ func FeatureKey(v string) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldEQ(FieldFeatureKey, v))
 }
 
+// FeatureID applies equality check predicate on the "feature_id" field. It's identical to FeatureIDEQ.
+func FeatureID(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldFeatureID, v))
+}
+
 // AmountBeforeProration applies equality check predicate on the "amount_before_proration" field. It's identical to AmountBeforeProrationEQ.
 func AmountBeforeProration(v alpacadecimal.Decimal) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldEQ(FieldAmountBeforeProration, v))
@@ -1616,6 +1621,81 @@ func FeatureKeyContainsFold(v string) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldContainsFold(FieldFeatureKey, v))
 }
 
+// FeatureIDEQ applies the EQ predicate on the "feature_id" field.
+func FeatureIDEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldFeatureID, v))
+}
+
+// FeatureIDNEQ applies the NEQ predicate on the "feature_id" field.
+func FeatureIDNEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldFeatureID, v))
+}
+
+// FeatureIDIn applies the In predicate on the "feature_id" field.
+func FeatureIDIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldFeatureID, vs...))
+}
+
+// FeatureIDNotIn applies the NotIn predicate on the "feature_id" field.
+func FeatureIDNotIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldFeatureID, vs...))
+}
+
+// FeatureIDGT applies the GT predicate on the "feature_id" field.
+func FeatureIDGT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGT(FieldFeatureID, v))
+}
+
+// FeatureIDGTE applies the GTE predicate on the "feature_id" field.
+func FeatureIDGTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGTE(FieldFeatureID, v))
+}
+
+// FeatureIDLT applies the LT predicate on the "feature_id" field.
+func FeatureIDLT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLT(FieldFeatureID, v))
+}
+
+// FeatureIDLTE applies the LTE predicate on the "feature_id" field.
+func FeatureIDLTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLTE(FieldFeatureID, v))
+}
+
+// FeatureIDContains applies the Contains predicate on the "feature_id" field.
+func FeatureIDContains(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContains(FieldFeatureID, v))
+}
+
+// FeatureIDHasPrefix applies the HasPrefix predicate on the "feature_id" field.
+func FeatureIDHasPrefix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasPrefix(FieldFeatureID, v))
+}
+
+// FeatureIDHasSuffix applies the HasSuffix predicate on the "feature_id" field.
+func FeatureIDHasSuffix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasSuffix(FieldFeatureID, v))
+}
+
+// FeatureIDIsNil applies the IsNil predicate on the "feature_id" field.
+func FeatureIDIsNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIsNull(FieldFeatureID))
+}
+
+// FeatureIDNotNil applies the NotNil predicate on the "feature_id" field.
+func FeatureIDNotNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotNull(FieldFeatureID))
+}
+
+// FeatureIDEqualFold applies the EqualFold predicate on the "feature_id" field.
+func FeatureIDEqualFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEqualFold(FieldFeatureID, v))
+}
+
+// FeatureIDContainsFold applies the ContainsFold predicate on the "feature_id" field.
+func FeatureIDContainsFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContainsFold(FieldFeatureID, v))
+}
+
 // AmountBeforeProrationEQ applies the EQ predicate on the "amount_before_proration" field.
 func AmountBeforeProrationEQ(v alpacadecimal.Decimal) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldEQ(FieldAmountBeforeProration, v))
@@ -1872,6 +1952,29 @@ func HasCustomer() predicate.ChargeFlatFee {
 func HasCustomerWith(preds ...predicate.Customer) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(func(s *sql.Selector) {
 		step := newCustomerStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasFeature applies the HasEdge predicate on the "feature" edge.
+func HasFeature() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, FeatureTable, FeatureColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasFeatureWith applies the HasEdge predicate on the "feature" edge with a given conditions (other predicates).
+func HasFeatureWith(preds ...predicate.Feature) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(func(s *sql.Selector) {
+		step := newFeatureStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

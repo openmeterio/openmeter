@@ -1885,6 +1885,7 @@ var (
 		{Name: "amount_before_proration", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "amount_after_proration", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "feature_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_item_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_phase_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -1902,20 +1903,26 @@ var (
 				OnDelete:   schema.NoAction,
 			},
 			{
-				Symbol:     "charge_flat_fees_subscriptions_charges_flat_fee",
+				Symbol:     "charge_flat_fees_features_flat_fee_charges",
 				Columns:    []*schema.Column{ChargeFlatFeesColumns[29]},
+				RefColumns: []*schema.Column{FeaturesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "charge_flat_fees_subscriptions_charges_flat_fee",
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[30]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_flat_fees_subscription_items_charges_flat_fee",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[30]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[31]},
 				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_flat_fees_subscription_phases_charges_flat_fee",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[31]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[32]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -2184,6 +2191,7 @@ var (
 		{Name: "status_detailed", Type: field.TypeEnum, Enums: []string{"created", "active", "active.final_realization.started", "active.final_realization.waiting_for_collection", "active.final_realization.processing", "active.final_realization.completed", "final", "deleted"}},
 		{Name: "current_realization_run_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "feature_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_item_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_phase_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -2207,20 +2215,26 @@ var (
 				OnDelete:   schema.NoAction,
 			},
 			{
-				Symbol:     "charge_usage_based_subscriptions_charges_usage_based",
+				Symbol:     "charge_usage_based_features_usage_based_charges",
 				Columns:    []*schema.Column{ChargeUsageBasedColumns[28]},
+				RefColumns: []*schema.Column{FeaturesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "charge_usage_based_subscriptions_charges_usage_based",
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[29]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_usage_based_subscription_items_charges_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[29]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[30]},
 				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_usage_based_subscription_phases_charges_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[30]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[31]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -2456,6 +2470,7 @@ var (
 		{Name: "collection_end", Type: field.TypeTime},
 		{Name: "meter_value", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "charge_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "feature_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// ChargeUsageBasedRunsTable holds the schema information for the "charge_usage_based_runs" table.
 	ChargeUsageBasedRunsTable = &schema.Table{
@@ -2468,6 +2483,12 @@ var (
 				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[17]},
 				RefColumns: []*schema.Column{ChargeUsageBasedColumns[0]},
 				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "charge_usage_based_runs_features_usage_based_runs",
+				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[18]},
+				RefColumns: []*schema.Column{FeaturesColumns[0]},
+				OnDelete:   schema.NoAction,
 			},
 		},
 		Indexes: []*schema.Index{
@@ -4656,9 +4677,10 @@ func init() {
 	ChargeCreditPurchaseInvoicedPaymentsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
 	ChargeCreditPurchaseInvoicedPaymentsTable.ForeignKeys[1].RefTable = ChargeCreditPurchasesTable
 	ChargeFlatFeesTable.ForeignKeys[0].RefTable = CustomersTable
-	ChargeFlatFeesTable.ForeignKeys[1].RefTable = SubscriptionsTable
-	ChargeFlatFeesTable.ForeignKeys[2].RefTable = SubscriptionItemsTable
-	ChargeFlatFeesTable.ForeignKeys[3].RefTable = SubscriptionPhasesTable
+	ChargeFlatFeesTable.ForeignKeys[1].RefTable = FeaturesTable
+	ChargeFlatFeesTable.ForeignKeys[2].RefTable = SubscriptionsTable
+	ChargeFlatFeesTable.ForeignKeys[3].RefTable = SubscriptionItemsTable
+	ChargeFlatFeesTable.ForeignKeys[4].RefTable = SubscriptionPhasesTable
 	ChargeFlatFeeCreditAllocationsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
 	ChargeFlatFeeCreditAllocationsTable.ForeignKeys[1].RefTable = ChargeFlatFeesTable
 	ChargeFlatFeeCreditAllocationsTable.ForeignKeys[2].RefTable = ChargeFlatFeeCreditAllocationsTable
@@ -4668,9 +4690,10 @@ func init() {
 	ChargeFlatFeePaymentsTable.ForeignKeys[1].RefTable = ChargeFlatFeesTable
 	ChargeUsageBasedTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunsTable
 	ChargeUsageBasedTable.ForeignKeys[1].RefTable = CustomersTable
-	ChargeUsageBasedTable.ForeignKeys[2].RefTable = SubscriptionsTable
-	ChargeUsageBasedTable.ForeignKeys[3].RefTable = SubscriptionItemsTable
-	ChargeUsageBasedTable.ForeignKeys[4].RefTable = SubscriptionPhasesTable
+	ChargeUsageBasedTable.ForeignKeys[2].RefTable = FeaturesTable
+	ChargeUsageBasedTable.ForeignKeys[3].RefTable = SubscriptionsTable
+	ChargeUsageBasedTable.ForeignKeys[4].RefTable = SubscriptionItemsTable
+	ChargeUsageBasedTable.ForeignKeys[5].RefTable = SubscriptionPhasesTable
 	ChargeUsageBasedTable.Annotation = &entsql.Annotation{
 		Table: "charge_usage_based",
 	}
@@ -4679,6 +4702,7 @@ func init() {
 	ChargeUsageBasedRunInvoicedUsagesTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunsTable
 	ChargeUsageBasedRunPaymentsTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunsTable
 	ChargeUsageBasedRunsTable.ForeignKeys[0].RefTable = ChargeUsageBasedTable
+	ChargeUsageBasedRunsTable.ForeignKeys[1].RefTable = FeaturesTable
 	CurrencyCostBasesTable.ForeignKeys[0].RefTable = CustomCurrenciesTable
 	CustomerSubjectsTable.ForeignKeys[0].RefTable = CustomersTable
 	EntitlementsTable.ForeignKeys[0].RefTable = CustomersTable

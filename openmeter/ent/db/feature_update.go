@@ -13,6 +13,9 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
@@ -354,6 +357,51 @@ func (_u *FeatureUpdate) AddAddonRatecard(v ...*AddonRateCard) *FeatureUpdate {
 	return _u.AddAddonRatecardIDs(ids...)
 }
 
+// AddUsageBasedChargeIDs adds the "usage_based_charges" edge to the ChargeUsageBased entity by IDs.
+func (_u *FeatureUpdate) AddUsageBasedChargeIDs(ids ...string) *FeatureUpdate {
+	_u.mutation.AddUsageBasedChargeIDs(ids...)
+	return _u
+}
+
+// AddUsageBasedCharges adds the "usage_based_charges" edges to the ChargeUsageBased entity.
+func (_u *FeatureUpdate) AddUsageBasedCharges(v ...*ChargeUsageBased) *FeatureUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddUsageBasedChargeIDs(ids...)
+}
+
+// AddUsageBasedRunIDs adds the "usage_based_runs" edge to the ChargeUsageBasedRuns entity by IDs.
+func (_u *FeatureUpdate) AddUsageBasedRunIDs(ids ...string) *FeatureUpdate {
+	_u.mutation.AddUsageBasedRunIDs(ids...)
+	return _u
+}
+
+// AddUsageBasedRuns adds the "usage_based_runs" edges to the ChargeUsageBasedRuns entity.
+func (_u *FeatureUpdate) AddUsageBasedRuns(v ...*ChargeUsageBasedRuns) *FeatureUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddUsageBasedRunIDs(ids...)
+}
+
+// AddFlatFeeChargeIDs adds the "flat_fee_charges" edge to the ChargeFlatFee entity by IDs.
+func (_u *FeatureUpdate) AddFlatFeeChargeIDs(ids ...string) *FeatureUpdate {
+	_u.mutation.AddFlatFeeChargeIDs(ids...)
+	return _u
+}
+
+// AddFlatFeeCharges adds the "flat_fee_charges" edges to the ChargeFlatFee entity.
+func (_u *FeatureUpdate) AddFlatFeeCharges(v ...*ChargeFlatFee) *FeatureUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddFlatFeeChargeIDs(ids...)
+}
+
 // Mutation returns the FeatureMutation object of the builder.
 func (_u *FeatureUpdate) Mutation() *FeatureMutation {
 	return _u.mutation
@@ -420,6 +468,69 @@ func (_u *FeatureUpdate) RemoveAddonRatecard(v ...*AddonRateCard) *FeatureUpdate
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveAddonRatecardIDs(ids...)
+}
+
+// ClearUsageBasedCharges clears all "usage_based_charges" edges to the ChargeUsageBased entity.
+func (_u *FeatureUpdate) ClearUsageBasedCharges() *FeatureUpdate {
+	_u.mutation.ClearUsageBasedCharges()
+	return _u
+}
+
+// RemoveUsageBasedChargeIDs removes the "usage_based_charges" edge to ChargeUsageBased entities by IDs.
+func (_u *FeatureUpdate) RemoveUsageBasedChargeIDs(ids ...string) *FeatureUpdate {
+	_u.mutation.RemoveUsageBasedChargeIDs(ids...)
+	return _u
+}
+
+// RemoveUsageBasedCharges removes "usage_based_charges" edges to ChargeUsageBased entities.
+func (_u *FeatureUpdate) RemoveUsageBasedCharges(v ...*ChargeUsageBased) *FeatureUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveUsageBasedChargeIDs(ids...)
+}
+
+// ClearUsageBasedRuns clears all "usage_based_runs" edges to the ChargeUsageBasedRuns entity.
+func (_u *FeatureUpdate) ClearUsageBasedRuns() *FeatureUpdate {
+	_u.mutation.ClearUsageBasedRuns()
+	return _u
+}
+
+// RemoveUsageBasedRunIDs removes the "usage_based_runs" edge to ChargeUsageBasedRuns entities by IDs.
+func (_u *FeatureUpdate) RemoveUsageBasedRunIDs(ids ...string) *FeatureUpdate {
+	_u.mutation.RemoveUsageBasedRunIDs(ids...)
+	return _u
+}
+
+// RemoveUsageBasedRuns removes "usage_based_runs" edges to ChargeUsageBasedRuns entities.
+func (_u *FeatureUpdate) RemoveUsageBasedRuns(v ...*ChargeUsageBasedRuns) *FeatureUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveUsageBasedRunIDs(ids...)
+}
+
+// ClearFlatFeeCharges clears all "flat_fee_charges" edges to the ChargeFlatFee entity.
+func (_u *FeatureUpdate) ClearFlatFeeCharges() *FeatureUpdate {
+	_u.mutation.ClearFlatFeeCharges()
+	return _u
+}
+
+// RemoveFlatFeeChargeIDs removes the "flat_fee_charges" edge to ChargeFlatFee entities by IDs.
+func (_u *FeatureUpdate) RemoveFlatFeeChargeIDs(ids ...string) *FeatureUpdate {
+	_u.mutation.RemoveFlatFeeChargeIDs(ids...)
+	return _u
+}
+
+// RemoveFlatFeeCharges removes "flat_fee_charges" edges to ChargeFlatFee entities.
+func (_u *FeatureUpdate) RemoveFlatFeeCharges(v ...*ChargeFlatFee) *FeatureUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveFlatFeeChargeIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -706,6 +817,141 @@ func (_u *FeatureUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.UsageBasedChargesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.UsageBasedChargesTable,
+			Columns: []string{dbfeature.UsageBasedChargesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedUsageBasedChargesIDs(); len(nodes) > 0 && !_u.mutation.UsageBasedChargesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.UsageBasedChargesTable,
+			Columns: []string{dbfeature.UsageBasedChargesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.UsageBasedChargesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.UsageBasedChargesTable,
+			Columns: []string{dbfeature.UsageBasedChargesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.UsageBasedRunsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.UsageBasedRunsTable,
+			Columns: []string{dbfeature.UsageBasedRunsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedUsageBasedRunsIDs(); len(nodes) > 0 && !_u.mutation.UsageBasedRunsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.UsageBasedRunsTable,
+			Columns: []string{dbfeature.UsageBasedRunsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.UsageBasedRunsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.UsageBasedRunsTable,
+			Columns: []string{dbfeature.UsageBasedRunsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.FlatFeeChargesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.FlatFeeChargesTable,
+			Columns: []string{dbfeature.FlatFeeChargesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedFlatFeeChargesIDs(); len(nodes) > 0 && !_u.mutation.FlatFeeChargesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.FlatFeeChargesTable,
+			Columns: []string{dbfeature.FlatFeeChargesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.FlatFeeChargesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.FlatFeeChargesTable,
+			Columns: []string{dbfeature.FlatFeeChargesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1054,6 +1300,51 @@ func (_u *FeatureUpdateOne) AddAddonRatecard(v ...*AddonRateCard) *FeatureUpdate
 	return _u.AddAddonRatecardIDs(ids...)
 }
 
+// AddUsageBasedChargeIDs adds the "usage_based_charges" edge to the ChargeUsageBased entity by IDs.
+func (_u *FeatureUpdateOne) AddUsageBasedChargeIDs(ids ...string) *FeatureUpdateOne {
+	_u.mutation.AddUsageBasedChargeIDs(ids...)
+	return _u
+}
+
+// AddUsageBasedCharges adds the "usage_based_charges" edges to the ChargeUsageBased entity.
+func (_u *FeatureUpdateOne) AddUsageBasedCharges(v ...*ChargeUsageBased) *FeatureUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddUsageBasedChargeIDs(ids...)
+}
+
+// AddUsageBasedRunIDs adds the "usage_based_runs" edge to the ChargeUsageBasedRuns entity by IDs.
+func (_u *FeatureUpdateOne) AddUsageBasedRunIDs(ids ...string) *FeatureUpdateOne {
+	_u.mutation.AddUsageBasedRunIDs(ids...)
+	return _u
+}
+
+// AddUsageBasedRuns adds the "usage_based_runs" edges to the ChargeUsageBasedRuns entity.
+func (_u *FeatureUpdateOne) AddUsageBasedRuns(v ...*ChargeUsageBasedRuns) *FeatureUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddUsageBasedRunIDs(ids...)
+}
+
+// AddFlatFeeChargeIDs adds the "flat_fee_charges" edge to the ChargeFlatFee entity by IDs.
+func (_u *FeatureUpdateOne) AddFlatFeeChargeIDs(ids ...string) *FeatureUpdateOne {
+	_u.mutation.AddFlatFeeChargeIDs(ids...)
+	return _u
+}
+
+// AddFlatFeeCharges adds the "flat_fee_charges" edges to the ChargeFlatFee entity.
+func (_u *FeatureUpdateOne) AddFlatFeeCharges(v ...*ChargeFlatFee) *FeatureUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddFlatFeeChargeIDs(ids...)
+}
+
 // Mutation returns the FeatureMutation object of the builder.
 func (_u *FeatureUpdateOne) Mutation() *FeatureMutation {
 	return _u.mutation
@@ -1120,6 +1411,69 @@ func (_u *FeatureUpdateOne) RemoveAddonRatecard(v ...*AddonRateCard) *FeatureUpd
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveAddonRatecardIDs(ids...)
+}
+
+// ClearUsageBasedCharges clears all "usage_based_charges" edges to the ChargeUsageBased entity.
+func (_u *FeatureUpdateOne) ClearUsageBasedCharges() *FeatureUpdateOne {
+	_u.mutation.ClearUsageBasedCharges()
+	return _u
+}
+
+// RemoveUsageBasedChargeIDs removes the "usage_based_charges" edge to ChargeUsageBased entities by IDs.
+func (_u *FeatureUpdateOne) RemoveUsageBasedChargeIDs(ids ...string) *FeatureUpdateOne {
+	_u.mutation.RemoveUsageBasedChargeIDs(ids...)
+	return _u
+}
+
+// RemoveUsageBasedCharges removes "usage_based_charges" edges to ChargeUsageBased entities.
+func (_u *FeatureUpdateOne) RemoveUsageBasedCharges(v ...*ChargeUsageBased) *FeatureUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveUsageBasedChargeIDs(ids...)
+}
+
+// ClearUsageBasedRuns clears all "usage_based_runs" edges to the ChargeUsageBasedRuns entity.
+func (_u *FeatureUpdateOne) ClearUsageBasedRuns() *FeatureUpdateOne {
+	_u.mutation.ClearUsageBasedRuns()
+	return _u
+}
+
+// RemoveUsageBasedRunIDs removes the "usage_based_runs" edge to ChargeUsageBasedRuns entities by IDs.
+func (_u *FeatureUpdateOne) RemoveUsageBasedRunIDs(ids ...string) *FeatureUpdateOne {
+	_u.mutation.RemoveUsageBasedRunIDs(ids...)
+	return _u
+}
+
+// RemoveUsageBasedRuns removes "usage_based_runs" edges to ChargeUsageBasedRuns entities.
+func (_u *FeatureUpdateOne) RemoveUsageBasedRuns(v ...*ChargeUsageBasedRuns) *FeatureUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveUsageBasedRunIDs(ids...)
+}
+
+// ClearFlatFeeCharges clears all "flat_fee_charges" edges to the ChargeFlatFee entity.
+func (_u *FeatureUpdateOne) ClearFlatFeeCharges() *FeatureUpdateOne {
+	_u.mutation.ClearFlatFeeCharges()
+	return _u
+}
+
+// RemoveFlatFeeChargeIDs removes the "flat_fee_charges" edge to ChargeFlatFee entities by IDs.
+func (_u *FeatureUpdateOne) RemoveFlatFeeChargeIDs(ids ...string) *FeatureUpdateOne {
+	_u.mutation.RemoveFlatFeeChargeIDs(ids...)
+	return _u
+}
+
+// RemoveFlatFeeCharges removes "flat_fee_charges" edges to ChargeFlatFee entities.
+func (_u *FeatureUpdateOne) RemoveFlatFeeCharges(v ...*ChargeFlatFee) *FeatureUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveFlatFeeChargeIDs(ids...)
 }
 
 // Where appends a list predicates to the FeatureUpdate builder.
@@ -1436,6 +1790,141 @@ func (_u *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.UsageBasedChargesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.UsageBasedChargesTable,
+			Columns: []string{dbfeature.UsageBasedChargesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedUsageBasedChargesIDs(); len(nodes) > 0 && !_u.mutation.UsageBasedChargesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.UsageBasedChargesTable,
+			Columns: []string{dbfeature.UsageBasedChargesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.UsageBasedChargesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.UsageBasedChargesTable,
+			Columns: []string{dbfeature.UsageBasedChargesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.UsageBasedRunsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.UsageBasedRunsTable,
+			Columns: []string{dbfeature.UsageBasedRunsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedUsageBasedRunsIDs(); len(nodes) > 0 && !_u.mutation.UsageBasedRunsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.UsageBasedRunsTable,
+			Columns: []string{dbfeature.UsageBasedRunsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.UsageBasedRunsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.UsageBasedRunsTable,
+			Columns: []string{dbfeature.UsageBasedRunsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.FlatFeeChargesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.FlatFeeChargesTable,
+			Columns: []string{dbfeature.FlatFeeChargesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedFlatFeeChargesIDs(); len(nodes) > 0 && !_u.mutation.FlatFeeChargesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.FlatFeeChargesTable,
+			Columns: []string{dbfeature.FlatFeeChargesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.FlatFeeChargesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.FlatFeeChargesTable,
+			Columns: []string{dbfeature.FlatFeeChargesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
