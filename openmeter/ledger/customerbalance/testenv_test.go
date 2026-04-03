@@ -51,6 +51,7 @@ type testEnv struct {
 	Service           *Service
 	flatFeeService    flatfee.Service
 	usageBasedService usagebased.Service
+	featureMeters     feature.FeatureMeters
 	streaming         *streamingtestutils.MockStreamingConnector
 }
 
@@ -200,6 +201,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		Service:           service,
 		flatFeeService:    flatFeeService,
 		usageBasedService: usageService,
+		featureMeters:     featureService.meters,
 		streaming:         streaming,
 	}
 
@@ -257,7 +259,8 @@ func (e *testEnv) createUsageBasedChargeInCurrency(t *testing.T, unitPrice alpac
 	t.Helper()
 
 	createdCharges, err := e.usageBasedService.Create(t.Context(), usagebased.CreateInput{
-		Namespace: e.Namespace,
+		Namespace:     e.Namespace,
+		FeatureMeters: e.featureMeters,
 		Intents: []usagebased.Intent{
 			{
 				Intent: chargemeta.Intent{

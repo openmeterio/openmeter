@@ -161,7 +161,7 @@ func ensureFeatureIDsResolved(featureRefs []ref.IDOrKey, resolved FeatureMeterCo
 		return featureRef.GetIDs()
 	})) {
 		if _, ok := resolved.ByID[featureID]; !ok {
-			return fmt.Errorf("feature[%s] not found", featureID)
+			return models.NewGenericNotFoundError(fmt.Errorf("feature[%s] not found", featureID))
 		}
 	}
 
