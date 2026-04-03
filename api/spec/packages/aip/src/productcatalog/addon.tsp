@@ -31,6 +31,7 @@ enum AddonInstanceType {
 /**
  * Add-on allows extending subscriptions with compatible plans with additional ratecards.
  */
+#suppress "@openmeter/api-spec-aip/repeated-prefix-grouping" "effective_from and effective_to are standard AIP temporal fields"
 @friendlyName("Addon")
 model Addon {
   ...Shared.Resource;

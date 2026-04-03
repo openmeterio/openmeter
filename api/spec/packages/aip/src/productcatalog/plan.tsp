@@ -21,6 +21,7 @@ enum PlanStatus {
 /**
  * Plans provide a template for subscriptions.
  */
+#suppress "@openmeter/api-spec-aip/repeated-prefix-grouping" "effective_from and effective_to are standard AIP temporal fields"
 @friendlyName("BillingPlan")
 model Plan {
   ...Shared.Resource;
