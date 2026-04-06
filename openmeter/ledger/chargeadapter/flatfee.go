@@ -166,11 +166,24 @@ func (h *flatFeeHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input fl
 }
 
 func (h *flatFeeHandler) OnCreditsOnlyUsageAccruedCorrection(ctx context.Context, input flatfee.CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error) {
-	if err := input.Validate(); err != nil {
+	currencyCalculator, err := input.Charge.Intent.Currency.Calculator()
+	if err != nil {
+		return nil, fmt.Errorf("get currency calculator: %w", err)
+	}
+
+	if err := input.ValidateWith(currencyCalculator); err != nil {
 		return nil, err
 	}
 
-	return nil, fmt.Errorf("credits only usage accrued correction is not implemented")
+	return correctCreditsOnlyAccrued(ctx, h.ledger, transactions.ResolverDependencies{
+		AccountService:    h.accountResolver,
+		SubAccountService: h.accountService,
+	}, CreditsOnlyUsageAccruedCorrectionInput{
+		Namespace:   input.Charge.Namespace,
+		ChargeID:    input.Charge.ID,
+		AllocateAt:  input.AllocateAt,
+		Corrections: input.Corrections,
+	})
 }
 
 // OnFlatFeePaymentAuthorized currently only stages receivable funding from wash

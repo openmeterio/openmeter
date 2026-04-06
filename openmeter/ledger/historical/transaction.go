@@ -65,6 +65,13 @@ type TransactionGroup struct {
 	transactions []*Transaction
 }
 
+func NewTransactionGroupFromData(data TransactionGroupData, transactions []*Transaction) *TransactionGroup {
+	return &TransactionGroup{
+		data:         data,
+		transactions: transactions,
+	}
+}
+
 var _ ledger.TransactionGroup = (*TransactionGroup)(nil)
 
 func (t *TransactionGroup) ID() models.NamespacedID {

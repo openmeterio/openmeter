@@ -91,8 +91,8 @@ func transactionTemplateByName(name string) (TransactionTemplate, error) {
 		return CoverCustomerReceivableTemplate{}, nil
 	case templateName(TransferCustomerFBOToAccruedTemplate{}):
 		return TransferCustomerFBOToAccruedTemplate{}, nil
-	case templateName(TransferCustomerFBOBucketToAccruedTemplate{}):
-		return TransferCustomerFBOBucketToAccruedTemplate{}, nil
+	case templateName(TransferCustomerFBOAdvanceToAccruedTemplate{}):
+		return TransferCustomerFBOAdvanceToAccruedTemplate{}, nil
 	case templateName(TransferCustomerReceivableToAccruedTemplate{}):
 		return TransferCustomerReceivableToAccruedTemplate{}, nil
 	case templateName(TranslateCustomerAccruedCostBasisTemplate{}):

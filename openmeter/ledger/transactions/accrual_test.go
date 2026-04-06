@@ -75,7 +75,7 @@ func TestTransferCustomerReceivableToAccruedTemplate(t *testing.T) {
 	require.True(t, env.SumBalance(t, env.AccruedSubAccountWithCostBasis(t, &costBasis)).Equal(alpacadecimal.NewFromInt(50)))
 }
 
-func TestTransferCustomerFBOBucketToAccruedTemplate_UnknownCostBasisAdvanceNetEffect(t *testing.T) {
+func TestTransferCustomerFBOAdvanceToAccruedTemplate_UnknownCostBasisAdvanceNetEffect(t *testing.T) {
 	env := newTransactionsTestEnv(t)
 
 	inputs := env.resolveAndCommit(
@@ -85,7 +85,7 @@ func TestTransferCustomerFBOBucketToAccruedTemplate_UnknownCostBasisAdvanceNetEf
 			Amount:   alpacadecimal.NewFromInt(30),
 			Currency: env.Currency,
 		},
-		TransferCustomerFBOBucketToAccruedTemplate{
+		TransferCustomerFBOAdvanceToAccruedTemplate{
 			At:       env.Now(),
 			Amount:   alpacadecimal.NewFromInt(30),
 			Currency: env.Currency,
@@ -109,7 +109,7 @@ func TestTranslateCustomerAccruedCostBasisTemplate(t *testing.T) {
 			Amount:   alpacadecimal.NewFromInt(30),
 			Currency: env.Currency,
 		},
-		TransferCustomerFBOBucketToAccruedTemplate{
+		TransferCustomerFBOAdvanceToAccruedTemplate{
 			At:       env.Now(),
 			Amount:   alpacadecimal.NewFromInt(30),
 			Currency: env.Currency,

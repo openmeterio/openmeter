@@ -336,7 +336,7 @@ func (e *creditPurchaseHandlerTestEnv) createAdvanceExposure(t *testing.T, amoun
 			Amount:   amount,
 			Currency: e.Currency,
 		},
-		transactions.TransferCustomerFBOBucketToAccruedTemplate{
+		transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
 			At:       e.Now(),
 			Amount:   amount,
 			Currency: e.Currency,

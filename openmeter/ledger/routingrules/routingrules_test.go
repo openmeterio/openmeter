@@ -35,6 +35,50 @@ func TestDefaultValidator_AllowsFBOToAccrued(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestDefaultValidator_AllowsAccruedToFBO(t *testing.T) {
+	validator := routingrules.DefaultValidator
+
+	err := validator.ValidateEntries([]ledger.EntryInput{
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued", ledger.Route{
+				Currency: currencyx.Code("USD"),
+			}),
+			AmountValue: alpacadecimal.NewFromInt(-50),
+		},
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerFBO, "sub-fbo", ledger.Route{
+				Currency: currencyx.Code("USD"),
+			}),
+			AmountValue: alpacadecimal.NewFromInt(50),
+		},
+	})
+
+	require.NoError(t, err)
+}
+
+func TestDefaultValidator_AllowsFBOToReceivableReverse(t *testing.T) {
+	validator := routingrules.DefaultValidator
+	openStatus := ledger.TransactionAuthorizationStatusOpen
+
+	err := validator.ValidateEntries([]ledger.EntryInput{
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerFBO, "sub-fbo", ledger.Route{
+				Currency: currencyx.Code("USD"),
+			}),
+			AmountValue: alpacadecimal.NewFromInt(-50),
+		},
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec-open", ledger.Route{
+				Currency:                       currencyx.Code("USD"),
+				TransactionAuthorizationStatus: &openStatus,
+			}),
+			AmountValue: alpacadecimal.NewFromInt(50),
+		},
+	})
+
+	require.NoError(t, err)
+}
+
 func TestDefaultValidator_RejectsForbiddenAccountCombination(t *testing.T) {
 	validator := routingrules.DefaultValidator
 

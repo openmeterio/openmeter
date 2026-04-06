@@ -125,6 +125,10 @@ func templateName(template TransactionTemplate) string {
 	return typ.Name()
 }
 
+func TemplateName(template TransactionTemplate) string {
+	return templateName(template)
+}
+
 func annotateTemplateTransaction(input ledger.TransactionInput, template TransactionTemplate, direction ledger.TransactionDirection) ledger.TransactionInput {
 	return WithAnnotations(input, ledger.TransactionAnnotations(templateName(template), direction))
 }

@@ -67,7 +67,7 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input
 	return creditRealizationsFromCollectedInputs(input.Charge.Intent.ServicePeriod, groupID, inputs...), nil
 }
 
-func (h *usageBasedHandler) OnCreditsOnlyUsageAccruedCorrection(_ context.Context, input usagebased.CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error) {
+func (h *usageBasedHandler) OnCreditsOnlyUsageAccruedCorrection(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error) {
 	if err := input.Charge.Validate(); err != nil {
 		return nil, fmt.Errorf("charge: %w", err)
 	}
@@ -84,5 +84,22 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccruedCorrection(_ context.Contex
 		return nil, fmt.Errorf("credits only usage accrued correction: %w", err)
 	}
 
-	return nil, fmt.Errorf("credits only usage accrued correction is not implemented")
+	currencyCalculator, err := input.Charge.Intent.Currency.Calculator()
+	if err != nil {
+		return nil, fmt.Errorf("get currency calculator: %w", err)
+	}
+
+	if err := input.Corrections.ValidateWith(currencyCalculator); err != nil {
+		return nil, fmt.Errorf("corrections: %w", err)
+	}
+
+	return correctCreditsOnlyAccrued(ctx, h.ledger, transactions.ResolverDependencies{
+		AccountService:    h.accountResolver,
+		SubAccountService: h.accountService,
+	}, CreditsOnlyUsageAccruedCorrectionInput{
+		Namespace:   input.Charge.Namespace,
+		ChargeID:    input.Charge.ID,
+		AllocateAt:  input.AllocateAt,
+		Corrections: input.Corrections,
+	})
 }

@@ -60,8 +60,46 @@ func (t IssueCustomerReceivableTemplate) typeGuard() guard {
 
 var _ CustomerTransactionTemplate = (IssueCustomerReceivableTemplate{})
 
-func (t IssueCustomerReceivableTemplate) correct(context.Context, CorrectionInput, ResolverDependencies) ([]ledger.TransactionInput, error) {
-	return nil, templateCorrectionNotImplemented(templateName(t))
+func (t IssueCustomerReceivableTemplate) correct(_ context.Context, scope CorrectionInput, _ ResolverDependencies) ([]ledger.TransactionInput, error) {
+	var fboAddress ledger.PostingAddress
+	var receivableAddress ledger.PostingAddress
+	var fboAmount alpacadecimal.Decimal
+	var receivableAmount alpacadecimal.Decimal
+
+	for _, entry := range scope.OriginalTransaction.Entries() {
+		switch {
+		case entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO && entry.Amount().IsPositive():
+			fboAddress = entry.PostingAddress()
+			fboAmount = fboAmount.Add(entry.Amount())
+		case entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerReceivable && entry.Amount().IsNegative():
+			receivableAddress = entry.PostingAddress()
+			receivableAmount = receivableAmount.Add(entry.Amount().Abs())
+		}
+	}
+
+	if fboAddress == nil || receivableAddress == nil {
+		return nil, fmt.Errorf("issue receivable correction requires original FBO and receivable entries")
+	}
+
+	if scope.Amount.GreaterThan(fboAmount) || scope.Amount.GreaterThan(receivableAmount) {
+		return nil, fmt.Errorf("issue receivable correction amount %s exceeds original transaction amount", scope.Amount.String())
+	}
+
+	return []ledger.TransactionInput{
+		&TransactionInput{
+			bookedAt: scope.At,
+			entryInputs: []*EntryInput{
+				{
+					address: fboAddress,
+					amount:  scope.Amount.Neg(),
+				},
+				{
+					address: receivableAddress,
+					amount:  scope.Amount,
+				},
+			},
+		},
+	}, nil
 }
 
 func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {

@@ -42,8 +42,85 @@ func (t TransferCustomerFBOToAccruedTemplate) typeGuard() guard {
 
 var _ CustomerTransactionTemplate = (TransferCustomerFBOToAccruedTemplate{})
 
-func (t TransferCustomerFBOToAccruedTemplate) correct(context.Context, CorrectionInput, ResolverDependencies) ([]ledger.TransactionInput, error) {
-	return nil, templateCorrectionNotImplemented(templateName(t))
+func (t TransferCustomerFBOToAccruedTemplate) correct(_ context.Context, scope CorrectionInput, _ ResolverDependencies) ([]ledger.TransactionInput, error) {
+	type selectedDebit struct {
+		fboAddress     ledger.PostingAddress
+		accruedAddress ledger.PostingAddress
+		amount         alpacadecimal.Decimal
+	}
+
+	negativeFBOEntries := make([]ledger.Entry, 0)
+	accruedAddressByCostBasis := make(map[string]ledger.PostingAddress)
+	totalAvailable := alpacadecimal.Zero
+
+	for _, entry := range scope.OriginalTransaction.Entries() {
+		switch {
+		case entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO && entry.Amount().IsNegative():
+			negativeFBOEntries = append(negativeFBOEntries, entry)
+			totalAvailable = totalAvailable.Add(entry.Amount().Abs())
+		case entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerAccrued && entry.Amount().IsPositive():
+			accruedAddressByCostBasis[costBasisKey(entry.PostingAddress().Route().Route().CostBasis)] = entry.PostingAddress()
+		}
+	}
+
+	if scope.Amount.GreaterThan(totalAvailable) {
+		return nil, fmt.Errorf("accrual correction amount %s exceeds original collected amount %s", scope.Amount.String(), totalAvailable.String())
+	}
+
+	selected := make([]selectedDebit, 0, len(negativeFBOEntries))
+	remaining := scope.Amount
+	for idx := len(negativeFBOEntries) - 1; idx >= 0 && remaining.IsPositive(); idx-- {
+		entry := negativeFBOEntries[idx]
+		amount := entry.Amount().Abs()
+		if amount.GreaterThan(remaining) {
+			amount = remaining
+		}
+
+		accruedAddress, ok := accruedAddressByCostBasis[costBasisKey(entry.PostingAddress().Route().Route().CostBasis)]
+		if !ok {
+			return nil, fmt.Errorf("missing accrued entry for FBO cost basis %s", costBasisKey(entry.PostingAddress().Route().Route().CostBasis))
+		}
+
+		selected = append(selected, selectedDebit{
+			fboAddress:     entry.PostingAddress(),
+			accruedAddress: accruedAddress,
+			amount:         amount,
+		})
+		remaining = remaining.Sub(amount)
+	}
+
+	if remaining.IsPositive() {
+		return nil, fmt.Errorf("accrual correction amount %s could not be fully allocated", scope.Amount.String())
+	}
+
+	accruedAmountsByAddress := make(map[string]selectedDebit)
+	entryInputs := make([]*EntryInput, 0, len(selected)*2)
+	for _, item := range selected {
+		entryInputs = append(entryInputs, &EntryInput{
+			address: item.fboAddress,
+			amount:  item.amount,
+		})
+
+		key := item.accruedAddress.SubAccountID()
+		current := accruedAmountsByAddress[key]
+		current.accruedAddress = item.accruedAddress
+		current.amount = current.amount.Add(item.amount)
+		accruedAmountsByAddress[key] = current
+	}
+
+	for _, item := range accruedAmountsByAddress {
+		entryInputs = append(entryInputs, &EntryInput{
+			address: item.accruedAddress,
+			amount:  item.amount.Neg(),
+		})
+	}
+
+	return []ledger.TransactionInput{
+		&TransactionInput{
+			bookedAt:    scope.At,
+			entryInputs: entryInputs,
+		},
+	}, nil
 }
 
 func (t TransferCustomerFBOToAccruedTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
@@ -139,9 +216,9 @@ func costBasisKey(costBasis *alpacadecimal.Decimal) string {
 	return costBasis.String()
 }
 
-// TransferCustomerFBOBucketToAccruedTemplate moves value from a specific customer FBO route
-// into the matching accrued route. This is used for explicit advance-backed collection flows.
-type TransferCustomerFBOBucketToAccruedTemplate struct {
+// TransferCustomerFBOAdvanceToAccruedTemplate moves value from the synthetic advance-backed
+// customer FBO route into the matching accrued route.
+type TransferCustomerFBOAdvanceToAccruedTemplate struct {
 	At             time.Time
 	Amount         alpacadecimal.Decimal
 	Currency       currencyx.Code
@@ -149,7 +226,7 @@ type TransferCustomerFBOBucketToAccruedTemplate struct {
 	CreditPriority *int
 }
 
-func (t TransferCustomerFBOBucketToAccruedTemplate) Validate() error {
+func (t TransferCustomerFBOAdvanceToAccruedTemplate) Validate() error {
 	if t.At.IsZero() {
 		return fmt.Errorf("at is required")
 	}
@@ -177,17 +254,55 @@ func (t TransferCustomerFBOBucketToAccruedTemplate) Validate() error {
 	return nil
 }
 
-func (t TransferCustomerFBOBucketToAccruedTemplate) typeGuard() guard {
+func (t TransferCustomerFBOAdvanceToAccruedTemplate) typeGuard() guard {
 	return true
 }
 
-var _ CustomerTransactionTemplate = (TransferCustomerFBOBucketToAccruedTemplate{})
+var _ CustomerTransactionTemplate = (TransferCustomerFBOAdvanceToAccruedTemplate{})
 
-func (t TransferCustomerFBOBucketToAccruedTemplate) correct(context.Context, CorrectionInput, ResolverDependencies) ([]ledger.TransactionInput, error) {
-	return nil, templateCorrectionNotImplemented(templateName(t))
+func (t TransferCustomerFBOAdvanceToAccruedTemplate) correct(_ context.Context, scope CorrectionInput, _ ResolverDependencies) ([]ledger.TransactionInput, error) {
+	var fboAddress ledger.PostingAddress
+	var accruedAddress ledger.PostingAddress
+	var fboAmount alpacadecimal.Decimal
+	var accruedAmount alpacadecimal.Decimal
+
+	for _, entry := range scope.OriginalTransaction.Entries() {
+		switch {
+		case entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO && entry.Amount().IsNegative():
+			fboAddress = entry.PostingAddress()
+			fboAmount = fboAmount.Add(entry.Amount().Abs())
+		case entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerAccrued && entry.Amount().IsPositive():
+			accruedAddress = entry.PostingAddress()
+			accruedAmount = accruedAmount.Add(entry.Amount())
+		}
+	}
+
+	if fboAddress == nil || accruedAddress == nil {
+		return nil, fmt.Errorf("bucket accrual correction requires original FBO and accrued entries")
+	}
+
+	if scope.Amount.GreaterThan(fboAmount) || scope.Amount.GreaterThan(accruedAmount) {
+		return nil, fmt.Errorf("bucket accrual correction amount %s exceeds original transaction amount", scope.Amount.String())
+	}
+
+	return []ledger.TransactionInput{
+		&TransactionInput{
+			bookedAt: scope.At,
+			entryInputs: []*EntryInput{
+				{
+					address: fboAddress,
+					amount:  scope.Amount,
+				},
+				{
+					address: accruedAddress,
+					amount:  scope.Amount.Neg(),
+				},
+			},
+		},
+	}, nil
 }
 
-func (t TransferCustomerFBOBucketToAccruedTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
+func (t TransferCustomerFBOAdvanceToAccruedTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
 	priority := resolveCustomerFBOCreditPriority(t.CreditPriority)
 
 	customerAccounts, err := resolvers.AccountService.GetCustomerAccounts(ctx, customerID)

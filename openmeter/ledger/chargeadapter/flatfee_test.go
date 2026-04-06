@@ -162,6 +162,115 @@ func TestOnFlatFeeCreditsOnlyUsageAccrued(t *testing.T) {
 	})
 }
 
+func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
+	t.Run("credit_only reverses advance-backed accrual", func(t *testing.T) {
+		env := newFlatFeeHandlerTestEnv(t)
+
+		charge := env.newCreditsOnlyCharge(alpacadecimal.NewFromInt(30))
+		allocations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeflatfee.OnCreditsOnlyUsageAccruedInput{
+			Charge:           charge,
+			AmountToAllocate: alpacadecimal.NewFromInt(30),
+		})
+		require.NoError(t, err)
+		require.Len(t, allocations, 1)
+
+		chargeWithRealizations := env.newChargeWithCreditRealizationsAndAccruedUsage(allocations, alpacadecimal.Zero)
+		chargeWithRealizations.Intent.SettlementMode = productcatalog.CreditOnlySettlementMode
+
+		currencyCalculator, err := chargeWithRealizations.Intent.Currency.Calculator()
+		require.NoError(t, err)
+
+		correctionsRequest, err := chargeWithRealizations.State.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
+		require.NoError(t, err)
+
+		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeflatfee.CreditsOnlyUsageAccruedCorrectionInput{
+			Charge:      chargeWithRealizations,
+			AllocateAt:  env.Now(),
+			Corrections: correctionsRequest,
+		})
+		require.NoError(t, err)
+		require.Len(t, corrections, 1)
+		require.True(t, corrections[0].Amount.Equal(alpacadecimal.NewFromInt(-30)))
+
+		require.True(t, env.sumBalance(t, env.unknownReceivableSubAccount(t)).Equal(alpacadecimal.Zero))
+		require.True(t, env.sumBalance(t, env.unknownFboSubAccount(t)).Equal(alpacadecimal.Zero))
+		require.True(t, env.sumBalance(t, env.unknownAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
+	})
+
+	t.Run("credit_only reverses partial funded accrual in reverse priority order", func(t *testing.T) {
+		env := newFlatFeeHandlerTestEnv(t)
+
+		priorityTwo := env.fundPriority(t, 2, 20)
+		priorityOne := env.fundPriority(t, 1, 30)
+
+		charge := env.newCreditsOnlyCharge(alpacadecimal.NewFromInt(50))
+		allocations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeflatfee.OnCreditsOnlyUsageAccruedInput{
+			Charge:           charge,
+			AmountToAllocate: alpacadecimal.NewFromInt(50),
+		})
+		require.NoError(t, err)
+		require.Len(t, allocations, 2)
+
+		chargeWithRealizations := env.newChargeWithCreditRealizationsAndAccruedUsage(allocations, alpacadecimal.Zero)
+		chargeWithRealizations.Intent.SettlementMode = productcatalog.CreditOnlySettlementMode
+
+		currencyCalculator, err := chargeWithRealizations.Intent.Currency.Calculator()
+		require.NoError(t, err)
+
+		correctionsRequest, err := chargeWithRealizations.State.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-35), currencyCalculator)
+		require.NoError(t, err)
+
+		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeflatfee.CreditsOnlyUsageAccruedCorrectionInput{
+			Charge:      chargeWithRealizations,
+			AllocateAt:  env.Now(),
+			Corrections: correctionsRequest,
+		})
+		require.NoError(t, err)
+		require.Len(t, corrections, 2)
+
+		require.True(t, env.sumBalance(t, priorityOne).Equal(alpacadecimal.NewFromInt(15)))
+		require.True(t, env.sumBalance(t, priorityTwo).Equal(alpacadecimal.NewFromInt(20)))
+		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(15)))
+	})
+
+	t.Run("credit_only mixed funded and advance correction only unwinds the advance companion once", func(t *testing.T) {
+		env := newFlatFeeHandlerTestEnv(t)
+
+		priorityOne := env.fundPriority(t, 1, 20)
+
+		charge := env.newCreditsOnlyCharge(alpacadecimal.NewFromInt(30))
+		allocations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeflatfee.OnCreditsOnlyUsageAccruedInput{
+			Charge:           charge,
+			AmountToAllocate: alpacadecimal.NewFromInt(30),
+		})
+		require.NoError(t, err)
+		require.Len(t, allocations, 2)
+
+		chargeWithRealizations := env.newChargeWithCreditRealizationsAndAccruedUsage(allocations, alpacadecimal.Zero)
+		chargeWithRealizations.Intent.SettlementMode = productcatalog.CreditOnlySettlementMode
+
+		currencyCalculator, err := chargeWithRealizations.Intent.Currency.Calculator()
+		require.NoError(t, err)
+
+		correctionsRequest, err := chargeWithRealizations.State.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
+		require.NoError(t, err)
+
+		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeflatfee.CreditsOnlyUsageAccruedCorrectionInput{
+			Charge:      chargeWithRealizations,
+			AllocateAt:  env.Now(),
+			Corrections: correctionsRequest,
+		})
+		require.NoError(t, err)
+		require.Len(t, corrections, 2)
+
+		require.True(t, env.sumBalance(t, priorityOne).Equal(alpacadecimal.NewFromInt(20)))
+		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
+		require.True(t, env.sumBalance(t, env.unknownAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
+		require.True(t, env.sumBalance(t, env.unknownReceivableSubAccount(t)).Equal(alpacadecimal.Zero))
+		require.True(t, env.sumBalance(t, env.unknownFboSubAccount(t)).Equal(alpacadecimal.Zero))
+	})
+}
+
 func TestOnFlatFeeStandardInvoiceUsageAccrued(t *testing.T) {
 	t.Run("credit_then_invoice books receivable-backed usage into accrued", func(t *testing.T) {
 		env := newFlatFeeHandlerTestEnv(t)
@@ -590,7 +699,12 @@ func (e *flatFeeHandlerTestEnv) newChargeWithCreditRealizationsAndAccruedUsage(r
 			NamespacedModel: models.NamespacedModel{
 				Namespace: e.Namespace,
 			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
 			CreateInput: r,
+			SortHint:    i,
 		})
 	}
 

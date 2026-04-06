@@ -62,11 +62,11 @@ func TestCorrectTransactionDispatchesTemplateStub(t *testing.T) {
 		OriginalTransaction: &correctionTestTransaction{
 			id: models.NamespacedID{Namespace: "ns", ID: "tx"},
 			annotations: ledger.TransactionAnnotations(
-				templateName(TransferCustomerFBOToAccruedTemplate{}),
+				templateName(FundCustomerReceivableTemplate{}),
 				ledger.TransactionDirectionForward,
 			),
 		},
 	})
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "TransferCustomerFBOToAccruedTemplate correction is not implemented")
+	require.Contains(t, err.Error(), "FundCustomerReceivableTemplate correction is not implemented")
 }

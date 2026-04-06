@@ -46,7 +46,7 @@ func TestRecognizeEarningsFromAttributableAccruedTemplate_IgnoresUnknownCostBasi
 			Amount:   alpacadecimal.NewFromInt(30),
 			Currency: env.Currency,
 		},
-		TransferCustomerFBOBucketToAccruedTemplate{
+		TransferCustomerFBOAdvanceToAccruedTemplate{
 			At:       env.Now(),
 			Amount:   alpacadecimal.NewFromInt(30),
 			Currency: env.Currency,

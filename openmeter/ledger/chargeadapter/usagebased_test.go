@@ -1,6 +1,7 @@
 package chargeadapter_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -79,18 +80,40 @@ func TestOnUsageBasedCreditsOnlyUsageAccrued(t *testing.T) {
 }
 
 func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
-	t.Run("returns not implemented for now", func(t *testing.T) {
+	t.Run("credit_only reverses advance-backed accrual", func(t *testing.T) {
 		env := newUsageBasedHandlerTestEnv(t)
+
+		run := env.newRun()
+		allocations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedInput{
+			Charge:           env.newCreditsOnlyCharge(),
+			Run:              run,
+			AllocateAt:       env.Now(),
+			AmountToAllocate: alpacadecimal.NewFromInt(30),
+		})
+		require.NoError(t, err)
+		require.Len(t, allocations, 1)
+
+		run.CreditsAllocated = env.realizationsFromAllocations(allocations)
+
+		currencyCalculator, err := env.Currency.Calculator()
+		require.NoError(t, err)
+
+		correctionsRequest, err := run.CreditsAllocated.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
+		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedCorrectionInput{
 			Charge:      env.newCreditsOnlyCharge(),
-			Run:         env.newRun(),
+			Run:         run,
 			AllocateAt:  env.Now(),
-			Corrections: creditrealization.CorrectionRequest{},
+			Corrections: correctionsRequest,
 		})
-		require.Error(t, err)
-		require.Nil(t, corrections)
-		require.Contains(t, err.Error(), "not implemented")
+		require.NoError(t, err)
+		require.Len(t, corrections, 1)
+		require.True(t, corrections[0].Amount.Equal(alpacadecimal.NewFromInt(-30)))
+
+		require.True(t, env.sumBalance(t, env.unknownReceivableSubAccount(t)).Equal(alpacadecimal.Zero))
+		require.True(t, env.sumBalance(t, env.unknownFboSubAccount(t)).Equal(alpacadecimal.Zero))
+		require.True(t, env.sumBalance(t, env.unknownAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
 	})
 }
 
@@ -255,4 +278,26 @@ func (e *usageBasedHandlerTestEnv) unknownFboSubAccount(t *testing.T) ledger.Sub
 
 func (e *usageBasedHandlerTestEnv) sumBalance(t *testing.T, subAccount ledger.SubAccount) alpacadecimal.Decimal {
 	return e.SumBalance(t, subAccount)
+}
+
+func (e *usageBasedHandlerTestEnv) realizationsFromAllocations(allocations creditrealization.CreateAllocationInputs) creditrealization.Realizations {
+	now := time.Now().UTC()
+
+	out := make(creditrealization.Realizations, 0, len(allocations))
+	for i, allocation := range allocations.AsCreateInputs() {
+		allocation.ID = fmt.Sprintf("cr-%d", i)
+		out = append(out, creditrealization.Realization{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: e.Namespace,
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
+			CreateInput: allocation,
+			SortHint:    i,
+		})
+	}
+
+	return out
 }

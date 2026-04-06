@@ -118,6 +118,9 @@ type Ledger interface {
 	// CommitGroup commits a list of transactions on the Ledger atomically
 	CommitGroup(ctx context.Context, group TransactionGroupInput) (TransactionGroup, error)
 
+	// GetTransactionGroup loads a previously committed transaction group including its transactions.
+	GetTransactionGroup(ctx context.Context, id models.NamespacedID) (TransactionGroup, error)
+
 	// ListTransactions lists transactions on the Ledger according to some filters
 	//
 	// TODO: Cursoring gets problematic due to diff between wall_clock and booked_at. It would be convenient to return in order of booked_at as that simplifies parsing. This API will likely change.
