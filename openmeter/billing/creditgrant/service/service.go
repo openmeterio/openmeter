@@ -135,6 +135,11 @@ func (s *service) List(ctx context.Context, input creditgrant.ListInput) (pagina
 	}
 
 	// TODO: apply FundingMethod, Status, Currency filters once the charges list supports them
+	if input.FundingMethod != nil || input.Status != nil || input.Currency != nil {
+		return pagination.Result[creditpurchase.Charge]{}, models.NewGenericValidationError(
+			errors.New("filtering by funding_method, status, or currency is not yet supported"),
+		)
+	}
 
 	result, err := s.chargesService.ListCharges(ctx, listInput)
 	if err != nil {
