@@ -7,50 +7,33 @@ namespace Customers;
 
 /**
  * Type of a charge.
+ *
+ * Values:
+ * - `flat_fee`: A fixed-amount charge.
+ * - `usage_based`: A usage-priced charge.
  */
 @friendlyName("BillingChargeType")
 @summary("Charge type")
 enum ChargeType {
-  /**
-   * A fixed-amount charge.
-   */
   FlatFee: "flat_fee",
-
-  /**
-   * A usage-priced charge.
-   */
   UsageBased: "usage_based",
 }
 
 /**
  * Lifecycle status of a charge.
+ *
+ * Values:
+ * - `created`: The charge has been created but is not active yet.
+ * - `active`: The charge is active.
+ * - `final`: The charge is fully finalized and no further changes are expected.
+ * - `deleted`: The charge has been deleted.
  */
 @friendlyName("BillingChargeStatus")
 @summary("Charge status")
 enum ChargeStatus {
-  /**
-   * The charge has been created but is not active yet.
-   */
   Created: "created",
-
-  /**
-   * The charge is active.
-   */
   Active: "active",
-
-  /**
-   * The charge is settled for the service period, but late events may still arrive.
-   */
-  Settled: "settled",
-
-  /**
-   * The charge is fully finalized and no further changes are expected.
-   */
   Final: "final",
-
-  /**
-   * The charge has been deleted.
-   */
   Deleted: "deleted",
 }
 
@@ -217,7 +200,7 @@ model ChargeTotals {
    */
   @visibility(Lifecycle.Read)
   @summary("Booked")
-  booked: Shared.Totals;
+  booked: Billing.BillingTotals;
 
   /**
    * The realtime amount of the charge.
@@ -226,7 +209,7 @@ model ChargeTotals {
    */
   @visibility(Lifecycle.Read)
   @summary("Realtime totals")
-  realtime?: Shared.Totals;
+  realtime?: Billing.BillingTotals;
 }
 
 /**
@@ -279,12 +262,12 @@ union Charge {
 
 /**
  * Expands for customer charges.
+ *
+ * Values:
+ * - `real_time_usage`: The charge's real-time usage.
  */
 @friendlyName("BillingChargesExpand")
 @summary("Customer charge expands")
 enum ChargesExpand {
-  /**
-   * The charge's realizations.
-   */
-  RealtimeUsage: "realtime_usage",
+  RealTimeUsage: "real_time_usage",
 }

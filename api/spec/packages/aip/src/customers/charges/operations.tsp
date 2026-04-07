@@ -12,6 +12,28 @@ using TypeSpec.OpenAPI;
 
 namespace Customers;
 
+/**
+ * Filter options for listing charges.
+ */
+@friendlyName("ListChargesParamsFilter")
+model ListCustomerChargesParamsFilter {
+  /**
+   * Filter charges by status.
+   *
+   * Supported statuses are:
+   * - `created`
+   * - `active`
+   * - `settled`
+   * - `final`
+   * - `deleted`
+   *
+   * If omitted, all statuses are returned except for `deleted`.
+   */
+  status?: {
+    oeq: string;
+  };
+}
+
 interface CustomerChargesOperations {
   /**
    * List customer charges.
@@ -38,19 +60,12 @@ interface CustomerChargesOperations {
     sort?: Common.SortQuery,
 
     /**
-     * Filter charges by status.
+     * Filter charges.
      *
-     * Supported statuses are:
-     * - `created`
-     * - `active`
-     * - `settled`
-     * - `final`
-     * - `deleted`
-     *
-     * If omitted, all statuses are returned except for `deleted`.
+     * To filter charges by status add the following query param: `filter[status][oeq]=created,active`
      */
-    @query(#{ name: "status", explode: true })
-    status?: ChargeStatus[],
+    @query(#{ style: "deepObject", explode: true })
+    filter?: ListCustomerChargesParamsFilter,
 
     /**
      * Expands

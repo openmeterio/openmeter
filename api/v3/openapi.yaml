@@ -814,25 +814,16 @@ paths:
             $ref: '#/components/schemas/SortQuery'
           explode: false
           style: form
-        - name: status
+        - name: filter
           in: query
           required: false
           description: |-
-            Filter charges by status.
+            Filter charges.
 
-            Supported statuses are:
-            - `created`
-            - `active`
-            - `settled`
-            - `final`
-            - `deleted`
-
-            If omitted, all statuses are returned except for `deleted`.
+            To filter charges by status add the following query param: `filter[status][oeq]=created,active`
           schema:
-            type: array
-            items:
-              $ref: '#/components/schemas/BillingChargeStatus'
-          style: form
+            $ref: '#/components/schemas/ListChargesParamsFilter'
+          style: deepObject
         - name: expand
           in: query
           required: false
@@ -3610,10 +3601,16 @@ components:
       enum:
         - created
         - active
-        - settled
         - final
         - deleted
-      description: Lifecycle status of a charge.
+      description: |-
+        Lifecycle status of a charge.
+
+        Values:
+        - `created`: The charge has been created but is not active yet.
+        - `active`: The charge is active.
+        - `final`: The charge is fully finalized and no further changes are expected.
+        - `deleted`: The charge has been deleted.
       title: Charge status
     BillingChargeTotals:
       type: object
@@ -3622,13 +3619,13 @@ components:
       properties:
         booked:
           allOf:
-            - $ref: '#/components/schemas/Totals'
+            - $ref: '#/components/schemas/BillingTotals'
           description: The amount of the charge already booked to the internal accounting system.
           title: Booked
           readOnly: true
         realtime:
           allOf:
-            - $ref: '#/components/schemas/Totals'
+            - $ref: '#/components/schemas/BillingTotals'
           description: |-
             The realtime amount of the charge.
 
@@ -3639,8 +3636,12 @@ components:
     BillingChargesExpand:
       type: string
       enum:
-        - realtime_usage
-      description: Expands for customer charges.
+        - real_time_usage
+      description: |-
+        Expands for customer charges.
+
+        Values:
+        - `real_time_usage`: The charge's real-time usage.
       title: Customer charge expands
     BillingCostBasis:
       type: object
@@ -5256,7 +5257,12 @@ components:
       enum:
         - no_proration
         - prorate_prices
-      description: The proration mode of the rate card.
+      description: |-
+        The proration mode of the rate card.
+
+        Values:
+        - `no_proration`: No proration.
+        - `prorate_prices`: Prorate the price based on the time remaining in the billing period.
     BillingRateCardTaxConfig:
       type: object
       required:
@@ -5272,7 +5278,12 @@ components:
       enum:
         - credit_then_invoice
         - credit_only
-      description: Settlement mode for billing.
+      description: |-
+        Settlement mode for billing.
+
+        Values:
+        - `credit_then_invoice`: Credits are applied first, then any remainder is invoiced.
+        - `credit_only`: Usage is settled exclusively against credits.
       title: Settlement mode
     BillingSpendCommitments:
       type: object
@@ -5729,6 +5740,67 @@ components:
       minLength: 1
       maxLength: 32
       description: Tax identifier code is a normalized tax code shown on the original identity document.
+    BillingTotals:
+      type: object
+      required:
+        - amount
+        - taxes_total
+        - taxes_inclusive_total
+        - taxes_exclusive_total
+        - charges_total
+        - discounts_total
+        - credits_total
+        - total
+      properties:
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The total value of the resource before taxes, discounts and commitments.
+          title: Amount
+          readOnly: true
+        taxes_total:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The total tax amount applied to the resource.
+          title: Taxes total
+          readOnly: true
+        taxes_inclusive_total:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The total tax amount already included in the resource amount.
+          title: Inclusive taxes total
+          readOnly: true
+        taxes_exclusive_total:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The total tax amount added on top of the resource amount.
+          title: Exclusive taxes total
+          readOnly: true
+        charges_total:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The total amount contributed by additional charges.
+          title: Charges total
+          readOnly: true
+        discounts_total:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The total amount deducted through discounts.
+          title: Discounts total
+          readOnly: true
+        credits_total:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The total amount deducted through credits before taxes are applied.
+          title: Credits total
+          readOnly: true
+        total:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The final total value of the resource after taxes, discounts and commitments.
+          title: Total
+          readOnly: true
+      description: Totals contains the summaries of all calculations for a billing resource.
     BillingUsageBasedCharge:
       type: object
       required:
@@ -7166,6 +7238,28 @@ components:
           type: string
           description: Name of the provider, e.g., "OpenAI", "Anthropic".
       description: LLM Provider
+    ListChargesParamsFilter:
+      type: object
+      properties:
+        status:
+          type: object
+          properties:
+            oeq:
+              type: string
+          required:
+            - oeq
+          description: |-
+            Filter charges by status.
+
+            Supported statuses are:
+            - `created`
+            - `active`
+            - `settled`
+            - `final`
+            - `deleted`
+
+            If omitted, all statuses are returned except for `deleted`.
+      description: Filter options for listing charges.
     ListCostBasesParamsFilter:
       type: object
       properties:
@@ -7867,7 +7961,13 @@ components:
         - manual
         - system
         - subscription
-      description: Identifies which system manages a resource.
+      description: |-
+        Identifies which system manages a resource.
+
+        Values:
+        - `manual`: The resource is managed manually (overridden by our API users).
+        - `system`: The resource is managed by the system.
+        - `subscription`: The resource is managed by the subscription.
       title: Resource managed by
     SubscriptionPagePaginatedResponse:
       type: object
@@ -7903,67 +8003,6 @@ components:
         id:
           $ref: '#/components/schemas/ULID'
       description: TaxCode reference.
-    Totals:
-      type: object
-      required:
-        - amount
-        - taxes_total
-        - taxes_inclusive_total
-        - taxes_exclusive_total
-        - charges_total
-        - discounts_total
-        - credits_total
-        - total
-      properties:
-        amount:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyAmount'
-          description: The total value of the resource before taxes, discounts and commitments.
-          title: Amount
-          readOnly: true
-        taxes_total:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyAmount'
-          description: The total tax amount applied to the resource.
-          title: Taxes total
-          readOnly: true
-        taxes_inclusive_total:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyAmount'
-          description: The total tax amount already included in the resource amount.
-          title: Inclusive taxes total
-          readOnly: true
-        taxes_exclusive_total:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyAmount'
-          description: The total tax amount added on top of the resource amount.
-          title: Exclusive taxes total
-          readOnly: true
-        charges_total:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyAmount'
-          description: The total amount contributed by additional charges.
-          title: Charges total
-          readOnly: true
-        discounts_total:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyAmount'
-          description: The total amount deducted through discounts.
-          title: Discounts total
-          readOnly: true
-        credits_total:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyAmount'
-          description: The total amount deducted through credits before taxes are applied.
-          title: Credits total
-          readOnly: true
-        total:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyAmount'
-          description: The final total value of the resource after taxes, discounts and commitments.
-          title: Total
-          readOnly: true
-      description: Totals contains the summaries of all calculations for a billing resource.
     ULID:
       type: string
       pattern: ^[0-7][0-9A-HJKMNP-TV-Z]{25}$

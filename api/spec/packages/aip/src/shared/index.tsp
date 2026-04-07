@@ -7,4 +7,3 @@ import "./properties.tsp";
 import "./request.tsp";
 import "./resource.tsp";
 import "./responses.tsp";
-import "./totals.tsp";

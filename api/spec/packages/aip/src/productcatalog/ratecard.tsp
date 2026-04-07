@@ -8,18 +8,15 @@ namespace ProductCatalog;
 
 /**
  * Settlement mode for billing.
+ *
+ * Values:
+ * - `credit_then_invoice`: Credits are applied first, then any remainder is invoiced.
+ * - `credit_only`: Usage is settled exclusively against credits.
  */
 @friendlyName("BillingSettlementMode")
 @summary("Settlement mode")
 enum SettlementMode {
-  /**
-   * Credits are applied first, then any remainder is invoiced.
-   */
   CreditThenInvoice: "credit_then_invoice",
-
-  /**
-   * Usage is settled exclusively against credits.
-   */
   CreditOnly: "credit_only",
 }
 
@@ -134,16 +131,13 @@ model ProrationConfiguration {
 
 /**
  * The proration mode of the rate card.
+ *
+ * Values:
+ * - `no_proration`: No proration.
+ * - `prorate_prices`: Prorate the price based on the time remaining in the billing period.
  */
 @friendlyName("BillingRateCardProrationMode")
 enum ProrationMode {
-  /**
-   * No proration.
-   */
   NoProration: "no_proration",
-
-  /**
-   * Prorate the price based on the time remaining in the billing period.
-   */
   ProratePrices: "prorate_prices",
 }
