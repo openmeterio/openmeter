@@ -36,11 +36,11 @@ enum CreditAvailabilityPolicy {
   // Credits become eligible when the grant is created
   OnCreation: "on_creation",
 
-  // Credits become eligible when payment is authorized
-  OnAuthorization: "on_authorization",
+  // // Credits become eligible when payment is authorized
+  // OnAuthorization: "on_authorization",
 
-  // Credits become eligible when payment is settled
-  OnSettlement: "on_settlement",
+  // // Credits become eligible when payment is settled
+  // OnSettlement: "on_settlement",
 }
 
 /**
@@ -255,28 +255,28 @@ model CreditGrant {
   @maxValue(1000)
   priority?: int16 = 10;
 
-  /**
-   * The timestamp when the credit grant becomes effective.
-   *
-   * Defaults to the current date and time.
-   */
-  @visibility(Lifecycle.Create, Lifecycle.Read)
-  effective_at?: Shared.DateTime;
+  // /**
+  //  * The timestamp when the credit grant becomes effective.
+  //  *
+  //  * Defaults to the current date and time.
+  //  */
+  // @visibility(Lifecycle.Create, Lifecycle.Read)
+  // effective_at?: Shared.DateTime;
 
-  /**
-   * The duration after which the credit grant expires.
-   *
-   * Defaults to never expiring.
-   */
-  @visibility(Lifecycle.Create, Lifecycle.Read)
-  expires_after?: Shared.ISO8601Duration;
+  // /**
+  //  * The duration after which the credit grant expires.
+  //  *
+  //  * Defaults to never expiring.
+  //  */
+  // @visibility(Lifecycle.Create, Lifecycle.Read)
+  // expires_after?: Shared.ISO8601Duration;
 
-  /**
-   * The timestamp when the credit grant expires.
-   * Calculated from `effective_at` and `expires_after` if provided.
-   */
-  @visibility(Lifecycle.Read)
-  expires_at?: Shared.DateTime;
+  // /**
+  //  * The timestamp when the credit grant expires.
+  //  * Calculated from `effective_at` and `expires_after` if provided.
+  //  */
+  // @visibility(Lifecycle.Read)
+  // expires_at?: Shared.DateTime;
 
   /**
    * Timestamp when the grant was voided.

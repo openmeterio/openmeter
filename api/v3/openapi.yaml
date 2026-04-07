@@ -784,6 +784,44 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingCustomerStripeCreateCustomerPortalSessionRequest'
+  /openmeter/customers/{customerId}/credits/adjustments:
+    post:
+      operationId: create-credit-adjustment
+      summary: Create a credit adjustment
+      description: |-
+        A credit adjustment can be used to make manual adjustments to a customer's credit balance.
+
+        Supported use-cases:
+        - Usage correction
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '201':
+          description: CreditAdjustment created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCreditAdjustment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Customers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCreditAdjustmentRequest'
   /openmeter/customers/{customerId}/credits/balance:
     get:
       operationId: get-customer-credit-balance
@@ -965,46 +1003,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateCreditGrantExternalSettlementRequest'
-  /openmeter/customers/{customerId}/credits/grants/{creditGrantId}/void:
-    post:
-      operationId: void-credit-grant
-      summary: Void credit grant
-      description: |-
-        Void a credit grant, forfeiting the remaining unused balance.
-
-        Voiding is a forward-looking, irreversible operation. Credits already
-        consumed by usage remain unaffected — only the remaining balance is
-        forfeited. The grant transitions to `voided` status and a breakage
-        ledger entry is recorded for the forfeited amount. Only `pending`
-        and `active` grants can be voided.
-      parameters:
-        - name: customerId
-          in: path
-          required: true
-          schema:
-            $ref: '#/components/schemas/ULID'
-        - name: creditGrantId
-          in: path
-          required: true
-          schema:
-            $ref: '#/components/schemas/ULID'
-      responses:
-        '200':
-          description: CreditGrant updated response.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BillingCreditGrant'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-      tags:
-        - OpenMeter Customers
   /openmeter/customers/{customerId}/credits/transactions:
     get:
       operationId: list-credit-transactions
@@ -3551,12 +3549,38 @@ components:
           description: An ISO-8601 timestamp representation of entity creation date.
           readOnly: true
       description: Describes currency basis supported by billing system.
+    BillingCreditAdjustment:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+      description: |-
+        A credit adjustment can be used to make manual adjustments to a customer's credit balance.
+
+        Supported use-cases:
+        - Usage correction
+      title: Credit adjustment
     BillingCreditAvailabilityPolicy:
       type: string
       enum:
         - on_creation
-        - on_authorization
-        - on_settlement
       description: |-
         When credits become available for consumption.
 
@@ -3753,27 +3777,6 @@ components:
             Draw-down priority of the grant.
             Lower values have higher priority.
           default: 10
-        effective_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: |-
-            The timestamp when the credit grant becomes effective.
-
-            Defaults to the current date and time.
-        expires_after:
-          allOf:
-            - $ref: '#/components/schemas/ISO8601Duration'
-          description: |-
-            The duration after which the credit grant expires.
-
-            Defaults to never expiring.
-        expires_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: |-
-            The timestamp when the credit grant expires.
-            Calculated from `effective_at` and `expires_after` if provided.
-          readOnly: true
         voided_at:
           allOf:
             - $ref: '#/components/schemas/DateTime'
@@ -5657,6 +5660,39 @@ components:
             An ISO-8601 timestamp representation of the date from which the cost basis is effective.
             If not provided, it will be effective immediately and will set to `now` by the system.
       description: CostBasis create request.
+    CreateCreditAdjustmentRequest:
+      type: object
+      required:
+        - name
+        - currency
+        - amount
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/BillingCurrencyCode'
+          description: The currency of the granted credits.
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Granted credit amount.
+      description: CreditAdjustment create request.
     CreateCreditGrantRequest:
       type: object
       required:
@@ -5759,20 +5795,6 @@ components:
             Draw-down priority of the grant.
             Lower values have higher priority.
           default: 10
-        effective_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: |-
-            The timestamp when the credit grant becomes effective.
-
-            Defaults to the current date and time.
-        expires_after:
-          allOf:
-            - $ref: '#/components/schemas/ISO8601Duration'
-          description: |-
-            The duration after which the credit grant expires.
-
-            Defaults to never expiring.
       description: CreditGrant create request.
     CreateCurrencyCustomRequest:
       type: object

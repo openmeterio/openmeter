@@ -8,7 +8,6 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -95,7 +94,7 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 					continue
 				}
 
-				balances = append(balances, mapBalance(item.Currency, item.Balance))
+				balances = append(balances, convertBalance(item.Currency, item.Balance))
 			}
 
 			return GetCustomerCreditBalanceResponse{
@@ -110,14 +109,4 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
-}
-
-func mapBalance(currency currencyx.Code, balance ledger.Balance) api.CreditBalance {
-	// Temporary mapping while the v3 credit-balance schema still predates the
-	// customerbalance service's settled/live-pending semantics.
-	return api.CreditBalance{
-		Currency:  api.BillingCurrencyCode(currency),
-		Available: balance.Settled().String(),
-		Pending:   balance.Pending().String(),
-	}
 }

@@ -11,6 +11,7 @@ import (
 	kafka2 "github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	"github.com/openmeterio/openmeter/openmeter/cost"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -474,6 +475,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	creditgrantService, err := common.NewCreditGrantService(billingRegistry, customerService)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	facadeService, err := common.NewCustomerBalanceService(creditsConfiguration, logger, client, locker, ledger, accountResolver, accountService, billingRegistry, featureConnector, ratingService, connector)
 	if err != nil {
 		cleanup7()
@@ -736,6 +748,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		BillingRegistry:                  billingRegistry,
 		CurrencyService:                  currencyService,
 		CostService:                      costService,
+		CreditGrantService:               creditgrantService,
 		CustomerBalanceFacade:            facade,
 		EntClient:                        client,
 		EventPublisher:                   eventbusPublisher,
@@ -802,6 +815,7 @@ type Application struct {
 	BillingRegistry                  common.BillingRegistry
 	CurrencyService                  currencies.CurrencyService
 	CostService                      cost.Service
+	CreditGrantService               creditgrant.Service
 	CustomerBalanceFacade            *customerbalance.Facade
 	EntClient                        *db.Client
 	EventPublisher                   eventbus.Publisher

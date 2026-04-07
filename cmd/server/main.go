@@ -158,6 +158,7 @@ func main() {
 			Credits:                     conf.Credits,
 			CurrencyService:             app.CurrencyService,
 			CostService:                 app.CostService,
+			CreditGrantService:          app.CreditGrantService,
 			Customer:                    app.Customer,
 			CustomerBalanceFacade:       app.CustomerBalanceFacade,
 			DebugConnector:              debugConnector,

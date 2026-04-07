@@ -21,6 +21,7 @@ import (
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripehttpdriver "github.com/openmeterio/openmeter/openmeter/app/stripe/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	billinghttpdriver "github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/cost"
 	"github.com/openmeterio/openmeter/openmeter/credit"
@@ -103,6 +104,7 @@ type Config struct {
 	Credits                     config.CreditsConfiguration
 	CurrencyService             currencies.CurrencyService
 	CostService                 cost.Service
+	CreditGrantService          creditgrant.Service
 	Customer                    customer.Service
 	CustomerBalanceFacade       *customerbalance.Facade
 	DebugConnector              debug.DebugConnector
