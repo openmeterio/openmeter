@@ -132,6 +132,7 @@ func (s *service) List(ctx context.Context, input creditgrant.ListInput) (pagina
 		Page:        input.Page,
 		Namespace:   input.Namespace,
 		CustomerIDs: []string{input.CustomerID},
+		Expands:     meta.Expands{meta.ExpandRealizations},
 	}
 
 	if input.Status != nil {
