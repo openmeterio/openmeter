@@ -60,7 +60,7 @@ func convertFundingMethod(settlement creditpurchase.Settlement) api.BillingCredi
 
 func convertGrantStatus(charge creditpurchase.Charge) api.BillingCreditGrantStatus {
 	switch charge.Status {
-	case meta.ChargeStatusActive, meta.ChargeStatusSettled, meta.ChargeStatusFinal:
+	case meta.ChargeStatusActive, meta.ChargeStatusFinal:
 		return api.BillingCreditGrantStatusActive
 	case meta.ChargeStatusCreated:
 		return api.BillingCreditGrantStatusPending

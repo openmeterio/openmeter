@@ -153,3 +153,29 @@ model RecurringPeriod {
   @example("P1M")
   interval: ISO8601Duration;
 }
+
+/**
+ * A period with defined start and end dates.
+ *
+ * The period is always inclusive at the start and exclusive at the end.
+ */
+@friendlyName("ClosedPeriod")
+model ClosedPeriod {
+  /**
+   * The start of the period.
+   *
+   * The period is inclusive at the start.
+   */
+  @summary("Start")
+  @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
+  from: DateTime;
+
+  /**
+   * The end of the period.
+   *
+   * The period is exclusive at the end.
+   */
+  @summary("End")
+  @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
+  to: DateTime;
+}

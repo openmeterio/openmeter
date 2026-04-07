@@ -7,6 +7,20 @@ import "./price.tsp";
 namespace ProductCatalog;
 
 /**
+ * Settlement mode for billing.
+ *
+ * Values:
+ * - `credit_then_invoice`: Credits are applied first, then any remainder is invoiced.
+ * - `credit_only`: Usage is settled exclusively against credits.
+ */
+@friendlyName("BillingSettlementMode")
+@summary("Settlement mode")
+enum SettlementMode {
+  CreditThenInvoice: "credit_then_invoice",
+  CreditOnly: "credit_only",
+}
+
+/**
  * A rate card defines the pricing and entitlement of a feature or service.
  */
 @friendlyName("BillingRateCard")
@@ -100,4 +114,30 @@ model Discounts {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   usage?: Shared.Numeric;
+}
+
+/**
+ * The proration configuration of the rate card.
+ */
+@friendlyName("BillingRateCardProrationConfiguration")
+model ProrationConfiguration {
+  /**
+   * The proration mode of the rate card.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Proration mode")
+  mode: ProrationMode;
+}
+
+/**
+ * The proration mode of the rate card.
+ *
+ * Values:
+ * - `no_proration`: No proration.
+ * - `prorate_prices`: Prorate the price based on the time remaining in the billing period.
+ */
+@friendlyName("BillingRateCardProrationMode")
+enum ProrationMode {
+  NoProration: "no_proration",
+  ProratePrices: "prorate_prices",
 }

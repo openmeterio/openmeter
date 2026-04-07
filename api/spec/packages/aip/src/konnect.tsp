@@ -103,6 +103,11 @@ interface CustomerCreditGrantEndpoints {
 interface CustomerCreditTransactionEndpoints
   extends Customers.CustomerCreditTransactionOperations {}
 
+@route("/openmeter/customers/{customerId}/charges")
+@tag(Shared.BillingTag)
+interface CustomerChargesEndpoints
+  extends Customers.CustomerChargesOperations {}
+
 @route("/openmeter/subscriptions")
 @tag(Shared.SubscriptionsTag)
 interface SubscriptionsEndpoints

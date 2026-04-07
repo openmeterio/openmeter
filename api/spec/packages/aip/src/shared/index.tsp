@@ -1,5 +1,6 @@
 import "./address.tsp";
 import "./consts.tsp";
+import "./enums.tsp";
 import "./filters.tsp";
 import "./parameters.tsp";
 import "./properties.tsp";
