@@ -23,7 +23,6 @@ model ListCustomerChargesParamsFilter {
    * Supported statuses are:
    * - `created`
    * - `active`
-   * - `settled`
    * - `final`
    * - `deleted`
    *

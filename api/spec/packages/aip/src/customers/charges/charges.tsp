@@ -191,7 +191,9 @@ model FlatFeeCharge {
 }
 
 /**
- * A usage-based charge for a customer.
+ * The totals of a change.
+ *
+ * RealTime is only expanded when the `real_time_usage` expand is used.
  */
 @friendlyName("BillingChargeTotals")
 model ChargeTotals {
