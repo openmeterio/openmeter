@@ -12,22 +12,22 @@ import * as zod from 'zod'
  * List all add-ons.
  * @summary List add-ons
  */
-export const listAddonsQueryIncludeDeletedDefault = false
+export const listAddonsQueryIncludeDeletedDefault = false as const
 export const listAddonsQueryIdItemRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const listAddonsQueryKeyItemMax = 64
+export const listAddonsQueryKeyItemMax = 64 as const
 
 export const listAddonsQueryKeyItemRegExp = /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const listAddonsQueryCurrencyItemMin = 3
-export const listAddonsQueryCurrencyItemMax = 3
+export const listAddonsQueryCurrencyItemMin = 3 as const
+export const listAddonsQueryCurrencyItemMax = 3 as const
 
 export const listAddonsQueryCurrencyItemRegExp = /^[A-Z]{3}$/
-export const listAddonsQueryPageDefault = 1
+export const listAddonsQueryPageDefault = 1 as const
 
-export const listAddonsQueryPageSizeDefault = 100
-export const listAddonsQueryPageSizeMax = 1000
+export const listAddonsQueryPageSizeDefault = 100 as const
+export const listAddonsQueryPageSizeMax = 1000 as const
 
-export const listAddonsQueryOrderDefault = 'ASC'
+export const listAddonsQueryOrderDefault = 'ASC' as const
 
 export const ListAddonsQueryParams = zod.object({
   currency: zod
@@ -115,70 +115,80 @@ export const ListAddonsQueryParams = zod.object({
  * Create a new add-on.
  * @summary Create an add-on
  */
-export const createAddonBodyNameMax = 256
+export const createAddonBodyNameMax = 256 as const
 
-export const createAddonBodyDescriptionMax = 1024
+export const createAddonBodyDescriptionMax = 1024 as const
 
-export const createAddonBodyKeyMax = 64
+export const createAddonBodyKeyMax = 64 as const
 
 export const createAddonBodyKeyRegExp = /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const createAddonBodyCurrencyOneMin = 3
-export const createAddonBodyCurrencyOneMax = 3
+export const createAddonBodyCurrencyOneMin = 3 as const
+export const createAddonBodyCurrencyOneMax = 3 as const
 
 export const createAddonBodyCurrencyOneRegExp = /^[A-Z]{3}$/
-export const createAddonBodyCurrencyDefault = 'USD'
-export const createAddonBodyRateCardsItemOneKeyMax = 64
+export const createAddonBodyCurrencyDefault = 'USD' as const
+export const createAddonBodyRateCardsItemOneKeyMax = 64 as const
 
 export const createAddonBodyRateCardsItemOneKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const createAddonBodyRateCardsItemOneNameMax = 256
+export const createAddonBodyRateCardsItemOneNameMax = 256 as const
 
-export const createAddonBodyRateCardsItemOneDescriptionMax = 1024
+export const createAddonBodyRateCardsItemOneDescriptionMax = 1024 as const
 
-export const createAddonBodyRateCardsItemOneFeatureKeyMax = 64
+export const createAddonBodyRateCardsItemOneFeatureKeyMax = 64 as const
 
 export const createAddonBodyRateCardsItemOneFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const createAddonBodyRateCardsItemOneEntitlementTemplateOneOneIsSoftLimitDefault = false
-export const createAddonBodyRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetMin = 0
+export const createAddonBodyRateCardsItemOneEntitlementTemplateOneOneIsSoftLimitDefault =
+  false as const
+export const createAddonBodyRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetMin =
+  0 as const
 
-export const createAddonBodyRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetPriorityDefault = 1
-export const createAddonBodyRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetPriorityMax = 255
+export const createAddonBodyRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetPriorityDefault =
+  1 as const
+export const createAddonBodyRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetPriorityMax =
+  255 as const
 
-export const createAddonBodyRateCardsItemOneEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
+export const createAddonBodyRateCardsItemOneEntitlementTemplateOneOnePreserveOverageAtResetDefault =
+  false as const
 export const createAddonBodyRateCardsItemOneTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
 export const createAddonBodyRateCardsItemOnePriceOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createAddonBodyRateCardsItemOnePriceOnePaymentTermDefault =
-  'in_advance'
+  'in_advance' as const
 export const createAddonBodyRateCardsItemOneDiscountsOneUsageOneQuantityOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
-export const createAddonBodyRateCardsItemTwoKeyMax = 64
+export const createAddonBodyRateCardsItemTwoKeyMax = 64 as const
 
 export const createAddonBodyRateCardsItemTwoKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const createAddonBodyRateCardsItemTwoNameMax = 256
+export const createAddonBodyRateCardsItemTwoNameMax = 256 as const
 
-export const createAddonBodyRateCardsItemTwoDescriptionMax = 1024
+export const createAddonBodyRateCardsItemTwoDescriptionMax = 1024 as const
 
-export const createAddonBodyRateCardsItemTwoFeatureKeyMax = 64
+export const createAddonBodyRateCardsItemTwoFeatureKeyMax = 64 as const
 
 export const createAddonBodyRateCardsItemTwoFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const createAddonBodyRateCardsItemTwoEntitlementTemplateOneOneIsSoftLimitDefault = false
-export const createAddonBodyRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetMin = 0
+export const createAddonBodyRateCardsItemTwoEntitlementTemplateOneOneIsSoftLimitDefault =
+  false as const
+export const createAddonBodyRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetMin =
+  0 as const
 
-export const createAddonBodyRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetPriorityDefault = 1
-export const createAddonBodyRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetPriorityMax = 255
+export const createAddonBodyRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetPriorityDefault =
+  1 as const
+export const createAddonBodyRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetPriorityMax =
+  255 as const
 
-export const createAddonBodyRateCardsItemTwoEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
+export const createAddonBodyRateCardsItemTwoEntitlementTemplateOneOnePreserveOverageAtResetDefault =
+  false as const
 export const createAddonBodyRateCardsItemTwoTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
 export const createAddonBodyRateCardsItemTwoPriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createAddonBodyRateCardsItemTwoPriceOneOnePaymentTermDefault =
-  'in_advance'
+  'in_advance' as const
 export const createAddonBodyRateCardsItemTwoPriceOneTwoAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createAddonBodyRateCardsItemTwoPriceOneTwoMinimumAmountOneRegExp =
@@ -198,7 +208,8 @@ export const createAddonBodyRateCardsItemTwoPriceOneThreeMaximumAmountOneRegExp 
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createAddonBodyRateCardsItemTwoPriceOneFourMultiplierOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
-export const createAddonBodyRateCardsItemTwoPriceOneFourMultiplierDefault = '1'
+export const createAddonBodyRateCardsItemTwoPriceOneFourMultiplierDefault =
+  '1' as const
 export const createAddonBodyRateCardsItemTwoPriceOneFourMinimumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createAddonBodyRateCardsItemTwoPriceOneFourMaximumAmountOneRegExp =
@@ -1048,62 +1059,72 @@ export const UpdateAddonParams = zod.object({
   addonId: zod.coerce.string().regex(updateAddonPathAddonIdRegExp),
 })
 
-export const updateAddonBodyNameMax = 256
+export const updateAddonBodyNameMax = 256 as const
 
-export const updateAddonBodyDescriptionMax = 1024
+export const updateAddonBodyDescriptionMax = 1024 as const
 
-export const updateAddonBodyRateCardsItemOneKeyMax = 64
+export const updateAddonBodyRateCardsItemOneKeyMax = 64 as const
 
 export const updateAddonBodyRateCardsItemOneKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const updateAddonBodyRateCardsItemOneNameMax = 256
+export const updateAddonBodyRateCardsItemOneNameMax = 256 as const
 
-export const updateAddonBodyRateCardsItemOneDescriptionMax = 1024
+export const updateAddonBodyRateCardsItemOneDescriptionMax = 1024 as const
 
-export const updateAddonBodyRateCardsItemOneFeatureKeyMax = 64
+export const updateAddonBodyRateCardsItemOneFeatureKeyMax = 64 as const
 
 export const updateAddonBodyRateCardsItemOneFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const updateAddonBodyRateCardsItemOneEntitlementTemplateOneOneIsSoftLimitDefault = false
-export const updateAddonBodyRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetMin = 0
+export const updateAddonBodyRateCardsItemOneEntitlementTemplateOneOneIsSoftLimitDefault =
+  false as const
+export const updateAddonBodyRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetMin =
+  0 as const
 
-export const updateAddonBodyRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetPriorityDefault = 1
-export const updateAddonBodyRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetPriorityMax = 255
+export const updateAddonBodyRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetPriorityDefault =
+  1 as const
+export const updateAddonBodyRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetPriorityMax =
+  255 as const
 
-export const updateAddonBodyRateCardsItemOneEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
+export const updateAddonBodyRateCardsItemOneEntitlementTemplateOneOnePreserveOverageAtResetDefault =
+  false as const
 export const updateAddonBodyRateCardsItemOneTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
 export const updateAddonBodyRateCardsItemOnePriceOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updateAddonBodyRateCardsItemOnePriceOnePaymentTermDefault =
-  'in_advance'
+  'in_advance' as const
 export const updateAddonBodyRateCardsItemOneDiscountsOneUsageOneQuantityOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
-export const updateAddonBodyRateCardsItemTwoKeyMax = 64
+export const updateAddonBodyRateCardsItemTwoKeyMax = 64 as const
 
 export const updateAddonBodyRateCardsItemTwoKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const updateAddonBodyRateCardsItemTwoNameMax = 256
+export const updateAddonBodyRateCardsItemTwoNameMax = 256 as const
 
-export const updateAddonBodyRateCardsItemTwoDescriptionMax = 1024
+export const updateAddonBodyRateCardsItemTwoDescriptionMax = 1024 as const
 
-export const updateAddonBodyRateCardsItemTwoFeatureKeyMax = 64
+export const updateAddonBodyRateCardsItemTwoFeatureKeyMax = 64 as const
 
 export const updateAddonBodyRateCardsItemTwoFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const updateAddonBodyRateCardsItemTwoEntitlementTemplateOneOneIsSoftLimitDefault = false
-export const updateAddonBodyRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetMin = 0
+export const updateAddonBodyRateCardsItemTwoEntitlementTemplateOneOneIsSoftLimitDefault =
+  false as const
+export const updateAddonBodyRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetMin =
+  0 as const
 
-export const updateAddonBodyRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetPriorityDefault = 1
-export const updateAddonBodyRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetPriorityMax = 255
+export const updateAddonBodyRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetPriorityDefault =
+  1 as const
+export const updateAddonBodyRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetPriorityMax =
+  255 as const
 
-export const updateAddonBodyRateCardsItemTwoEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
+export const updateAddonBodyRateCardsItemTwoEntitlementTemplateOneOnePreserveOverageAtResetDefault =
+  false as const
 export const updateAddonBodyRateCardsItemTwoTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
 export const updateAddonBodyRateCardsItemTwoPriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updateAddonBodyRateCardsItemTwoPriceOneOnePaymentTermDefault =
-  'in_advance'
+  'in_advance' as const
 export const updateAddonBodyRateCardsItemTwoPriceOneTwoAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updateAddonBodyRateCardsItemTwoPriceOneTwoMinimumAmountOneRegExp =
@@ -1123,7 +1144,8 @@ export const updateAddonBodyRateCardsItemTwoPriceOneThreeMaximumAmountOneRegExp 
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updateAddonBodyRateCardsItemTwoPriceOneFourMultiplierOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
-export const updateAddonBodyRateCardsItemTwoPriceOneFourMultiplierDefault = '1'
+export const updateAddonBodyRateCardsItemTwoPriceOneFourMultiplierDefault =
+  '1' as const
 export const updateAddonBodyRateCardsItemTwoPriceOneFourMinimumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updateAddonBodyRateCardsItemTwoPriceOneFourMaximumAmountOneRegExp =
@@ -1950,7 +1972,7 @@ export const UpdateAddonBody = zod
  * Get add-on by id or key. The latest published version is returned if latter is used.
  * @summary Get add-on
  */
-export const getAddonPathAddonIdMax = 64
+export const getAddonPathAddonIdMax = 64 as const
 
 export const getAddonPathAddonIdRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -1963,7 +1985,7 @@ export const GetAddonParams = zod.object({
     .regex(getAddonPathAddonIdRegExp),
 })
 
-export const getAddonQueryIncludeLatestDefault = false
+export const getAddonQueryIncludeLatestDefault = false as const
 
 export const GetAddonQueryParams = zod.object({
   includeLatest: zod.coerce
@@ -2013,10 +2035,10 @@ export const PublishAddonParams = zod.object({
  * List apps.
  * @summary List apps
  */
-export const listAppsQueryPageDefault = 1
+export const listAppsQueryPageDefault = 1 as const
 
-export const listAppsQueryPageSizeDefault = 100
-export const listAppsQueryPageSizeMax = 1000
+export const listAppsQueryPageSizeDefault = 100 as const
+export const listAppsQueryPageSizeMax = 1000 as const
 
 export const ListAppsQueryParams = zod.object({
   page: zod.coerce
@@ -2044,7 +2066,8 @@ export const AppCustomInvoicingDraftSynchronizedParams = zod.object({
     .regex(appCustomInvoicingDraftSynchronizedPathInvoiceIdRegExp),
 })
 
-export const appCustomInvoicingDraftSynchronizedBodyInvoicingOneInvoiceNumberOneMax = 256
+export const appCustomInvoicingDraftSynchronizedBodyInvoicingOneInvoiceNumberOneMax =
+  256 as const
 
 export const appCustomInvoicingDraftSynchronizedBodyInvoicingOneLineExternalIdsItemLineIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -2137,7 +2160,8 @@ export const AppCustomInvoicingIssuingSynchronizedParams = zod.object({
     .regex(appCustomInvoicingIssuingSynchronizedPathInvoiceIdRegExp),
 })
 
-export const appCustomInvoicingIssuingSynchronizedBodyInvoicingOneInvoiceNumberOneMax = 256
+export const appCustomInvoicingIssuingSynchronizedBodyInvoicingOneInvoiceNumberOneMax =
+  256 as const
 
 export const AppCustomInvoicingIssuingSynchronizedBody = zod
   .object({
@@ -2232,17 +2256,17 @@ export const UpdateAppParams = zod.object({
   id: zod.coerce.string().regex(updateAppPathIdRegExp),
 })
 
-export const updateAppBodyOneNameMax = 256
+export const updateAppBodyOneNameMax = 256 as const
 
-export const updateAppBodyOneDescriptionMax = 1024
+export const updateAppBodyOneDescriptionMax = 1024 as const
 
-export const updateAppBodyTwoNameMax = 256
+export const updateAppBodyTwoNameMax = 256 as const
 
-export const updateAppBodyTwoDescriptionMax = 1024
+export const updateAppBodyTwoDescriptionMax = 1024 as const
 
-export const updateAppBodyThreeNameMax = 256
+export const updateAppBodyThreeNameMax = 256 as const
 
-export const updateAppBodyThreeDescriptionMax = 1024
+export const updateAppBodyThreeDescriptionMax = 1024 as const
 
 export const UpdateAppBody = zod
   .union([
@@ -2413,14 +2437,17 @@ if they have customer orverrides or not.
  */
 export const listBillingProfileCustomerOverridesQueryBillingProfileItemRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const listBillingProfileCustomerOverridesQueryIncludeAllCustomersDefault = true
+export const listBillingProfileCustomerOverridesQueryIncludeAllCustomersDefault =
+  true as const
 export const listBillingProfileCustomerOverridesQueryCustomerIdItemRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const listBillingProfileCustomerOverridesQueryOrderDefault = 'ASC'
-export const listBillingProfileCustomerOverridesQueryPageDefault = 1
+export const listBillingProfileCustomerOverridesQueryOrderDefault =
+  'ASC' as const
+export const listBillingProfileCustomerOverridesQueryPageDefault = 1 as const
 
-export const listBillingProfileCustomerOverridesQueryPageSizeDefault = 100
-export const listBillingProfileCustomerOverridesQueryPageSizeMax = 1000
+export const listBillingProfileCustomerOverridesQueryPageSizeDefault =
+  100 as const
+export const listBillingProfileCustomerOverridesQueryPageSizeMax = 1000 as const
 
 export const ListBillingProfileCustomerOverridesQueryParams = zod.object({
   billingProfile: zod
@@ -2607,20 +2634,20 @@ export const CreatePendingInvoiceLineParams = zod.object({
     .regex(createPendingInvoiceLinePathCustomerIdRegExp),
 })
 
-export const createPendingInvoiceLineBodyCurrencyOneMin = 3
-export const createPendingInvoiceLineBodyCurrencyOneMax = 3
+export const createPendingInvoiceLineBodyCurrencyOneMin = 3 as const
+export const createPendingInvoiceLineBodyCurrencyOneMax = 3 as const
 
 export const createPendingInvoiceLineBodyCurrencyOneRegExp = /^[A-Z]{3}$/
-export const createPendingInvoiceLineBodyLinesItemNameMax = 256
+export const createPendingInvoiceLineBodyLinesItemNameMax = 256 as const
 
-export const createPendingInvoiceLineBodyLinesItemDescriptionMax = 1024
+export const createPendingInvoiceLineBodyLinesItemDescriptionMax = 1024 as const
 
 export const createPendingInvoiceLineBodyLinesItemTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
 export const createPendingInvoiceLineBodyLinesItemPriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createPendingInvoiceLineBodyLinesItemPriceOneOnePaymentTermDefault =
-  'in_advance'
+  'in_advance' as const
 export const createPendingInvoiceLineBodyLinesItemPriceOneTwoAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createPendingInvoiceLineBodyLinesItemPriceOneTwoMinimumAmountOneRegExp =
@@ -2641,7 +2668,7 @@ export const createPendingInvoiceLineBodyLinesItemPriceOneThreeMaximumAmountOneR
 export const createPendingInvoiceLineBodyLinesItemPriceOneFourMultiplierOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createPendingInvoiceLineBodyLinesItemPriceOneFourMultiplierDefault =
-  '1'
+  '1' as const
 export const createPendingInvoiceLineBodyLinesItemPriceOneFourMinimumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createPendingInvoiceLineBodyLinesItemPriceOneFourMaximumAmountOneRegExp =
@@ -2654,11 +2681,12 @@ export const createPendingInvoiceLineBodyLinesItemPriceOneFiveMinimumAmountOneRe
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createPendingInvoiceLineBodyLinesItemPriceOneFiveMaximumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
-export const createPendingInvoiceLineBodyLinesItemFeatureKeyMax = 64
+export const createPendingInvoiceLineBodyLinesItemFeatureKeyMax = 64 as const
 
 export const createPendingInvoiceLineBodyLinesItemFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const createPendingInvoiceLineBodyLinesItemRateCardOneFeatureKeyMax = 64
+export const createPendingInvoiceLineBodyLinesItemRateCardOneFeatureKeyMax =
+  64 as const
 
 export const createPendingInvoiceLineBodyLinesItemRateCardOneFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
@@ -2667,7 +2695,7 @@ export const createPendingInvoiceLineBodyLinesItemRateCardOneTaxConfigOneStripeO
 export const createPendingInvoiceLineBodyLinesItemRateCardOnePriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createPendingInvoiceLineBodyLinesItemRateCardOnePriceOneOnePaymentTermDefault =
-  'in_advance'
+  'in_advance' as const
 export const createPendingInvoiceLineBodyLinesItemRateCardOnePriceOneTwoAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createPendingInvoiceLineBodyLinesItemRateCardOnePriceOneTwoMinimumAmountOneRegExp =
@@ -2688,7 +2716,7 @@ export const createPendingInvoiceLineBodyLinesItemRateCardOnePriceOneThreeMaximu
 export const createPendingInvoiceLineBodyLinesItemRateCardOnePriceOneFourMultiplierOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createPendingInvoiceLineBodyLinesItemRateCardOnePriceOneFourMultiplierDefault =
-  '1'
+  '1' as const
 export const createPendingInvoiceLineBodyLinesItemRateCardOnePriceOneFourMinimumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createPendingInvoiceLineBodyLinesItemRateCardOnePriceOneFourMaximumAmountOneRegExp =
@@ -3492,22 +3520,22 @@ export const SimulateInvoiceParams = zod.object({
   customerId: zod.coerce.string().regex(simulateInvoicePathCustomerIdRegExp),
 })
 
-export const simulateInvoiceBodyNumberOneMax = 256
+export const simulateInvoiceBodyNumberOneMax = 256 as const
 
-export const simulateInvoiceBodyCurrencyOneMin = 3
-export const simulateInvoiceBodyCurrencyOneMax = 3
+export const simulateInvoiceBodyCurrencyOneMin = 3 as const
+export const simulateInvoiceBodyCurrencyOneMax = 3 as const
 
 export const simulateInvoiceBodyCurrencyOneRegExp = /^[A-Z]{3}$/
-export const simulateInvoiceBodyLinesItemNameMax = 256
+export const simulateInvoiceBodyLinesItemNameMax = 256 as const
 
-export const simulateInvoiceBodyLinesItemDescriptionMax = 1024
+export const simulateInvoiceBodyLinesItemDescriptionMax = 1024 as const
 
 export const simulateInvoiceBodyLinesItemTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
 export const simulateInvoiceBodyLinesItemPriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const simulateInvoiceBodyLinesItemPriceOneOnePaymentTermDefault =
-  'in_advance'
+  'in_advance' as const
 export const simulateInvoiceBodyLinesItemPriceOneTwoAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const simulateInvoiceBodyLinesItemPriceOneTwoMinimumAmountOneRegExp =
@@ -3527,7 +3555,8 @@ export const simulateInvoiceBodyLinesItemPriceOneThreeMaximumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const simulateInvoiceBodyLinesItemPriceOneFourMultiplierOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
-export const simulateInvoiceBodyLinesItemPriceOneFourMultiplierDefault = '1'
+export const simulateInvoiceBodyLinesItemPriceOneFourMultiplierDefault =
+  '1' as const
 export const simulateInvoiceBodyLinesItemPriceOneFourMinimumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const simulateInvoiceBodyLinesItemPriceOneFourMaximumAmountOneRegExp =
@@ -3540,11 +3569,11 @@ export const simulateInvoiceBodyLinesItemPriceOneFiveMinimumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const simulateInvoiceBodyLinesItemPriceOneFiveMaximumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
-export const simulateInvoiceBodyLinesItemFeatureKeyMax = 64
+export const simulateInvoiceBodyLinesItemFeatureKeyMax = 64 as const
 
 export const simulateInvoiceBodyLinesItemFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const simulateInvoiceBodyLinesItemRateCardOneFeatureKeyMax = 64
+export const simulateInvoiceBodyLinesItemRateCardOneFeatureKeyMax = 64 as const
 
 export const simulateInvoiceBodyLinesItemRateCardOneFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
@@ -3553,7 +3582,7 @@ export const simulateInvoiceBodyLinesItemRateCardOneTaxConfigOneStripeOneCodeReg
 export const simulateInvoiceBodyLinesItemRateCardOnePriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const simulateInvoiceBodyLinesItemRateCardOnePriceOneOnePaymentTermDefault =
-  'in_advance'
+  'in_advance' as const
 export const simulateInvoiceBodyLinesItemRateCardOnePriceOneTwoAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const simulateInvoiceBodyLinesItemRateCardOnePriceOneTwoMinimumAmountOneRegExp =
@@ -3574,7 +3603,7 @@ export const simulateInvoiceBodyLinesItemRateCardOnePriceOneThreeMaximumAmountOn
 export const simulateInvoiceBodyLinesItemRateCardOnePriceOneFourMultiplierOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const simulateInvoiceBodyLinesItemRateCardOnePriceOneFourMultiplierDefault =
-  '1'
+  '1' as const
 export const simulateInvoiceBodyLinesItemRateCardOnePriceOneFourMinimumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const simulateInvoiceBodyLinesItemRateCardOnePriceOneFourMaximumAmountOneRegExp =
@@ -4406,12 +4435,12 @@ Gathering invoices will always show the current usage calculated on the fly.
  */
 export const listInvoicesQueryCustomersItemRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const listInvoicesQueryPageDefault = 1
+export const listInvoicesQueryPageDefault = 1 as const
 
-export const listInvoicesQueryPageSizeDefault = 100
-export const listInvoicesQueryPageSizeMax = 1000
+export const listInvoicesQueryPageSizeDefault = 100 as const
+export const listInvoicesQueryPageSizeMax = 1000 as const
 
-export const listInvoicesQueryOrderDefault = 'ASC'
+export const listInvoicesQueryOrderDefault = 'ASC' as const
 
 export const ListInvoicesQueryParams = zod.object({
   createdAfter: zod.coerce
@@ -4588,7 +4617,7 @@ export const GetInvoiceParams = zod.object({
   invoiceId: zod.coerce.string().regex(getInvoicePathInvoiceIdRegExp),
 })
 
-export const getInvoiceQueryIncludeDeletedLinesDefault = false
+export const getInvoiceQueryIncludeDeletedLinesDefault = false as const
 
 export const GetInvoiceQueryParams = zod.object({
   expand: zod
@@ -4633,40 +4662,40 @@ export const UpdateInvoiceParams = zod.object({
   invoiceId: zod.coerce.string().regex(updateInvoicePathInvoiceIdRegExp),
 })
 
-export const updateInvoiceBodyDescriptionMax = 1024
+export const updateInvoiceBodyDescriptionMax = 1024 as const
 
-export const updateInvoiceBodySupplierOneKeyMax = 256
+export const updateInvoiceBodySupplierOneKeyMax = 256 as const
 
-export const updateInvoiceBodySupplierOneTaxIdOneCodeOneMax = 32
+export const updateInvoiceBodySupplierOneTaxIdOneCodeOneMax = 32 as const
 
-export const updateInvoiceBodySupplierOneAddressesItemCountryOneMin = 2
-export const updateInvoiceBodySupplierOneAddressesItemCountryOneMax = 2
+export const updateInvoiceBodySupplierOneAddressesItemCountryOneMin = 2 as const
+export const updateInvoiceBodySupplierOneAddressesItemCountryOneMax = 2 as const
 
 export const updateInvoiceBodySupplierOneAddressesItemCountryOneRegExp =
   /^[A-Z]{2}$/
-export const updateInvoiceBodySupplierOneAddressesMax = 1
+export const updateInvoiceBodySupplierOneAddressesMax = 1 as const
 
-export const updateInvoiceBodyCustomerOneKeyMax = 256
+export const updateInvoiceBodyCustomerOneKeyMax = 256 as const
 
-export const updateInvoiceBodyCustomerOneTaxIdOneCodeOneMax = 32
+export const updateInvoiceBodyCustomerOneTaxIdOneCodeOneMax = 32 as const
 
-export const updateInvoiceBodyCustomerOneAddressesItemCountryOneMin = 2
-export const updateInvoiceBodyCustomerOneAddressesItemCountryOneMax = 2
+export const updateInvoiceBodyCustomerOneAddressesItemCountryOneMin = 2 as const
+export const updateInvoiceBodyCustomerOneAddressesItemCountryOneMax = 2 as const
 
 export const updateInvoiceBodyCustomerOneAddressesItemCountryOneRegExp =
   /^[A-Z]{2}$/
-export const updateInvoiceBodyCustomerOneAddressesMax = 1
+export const updateInvoiceBodyCustomerOneAddressesMax = 1 as const
 
-export const updateInvoiceBodyLinesItemNameMax = 256
+export const updateInvoiceBodyLinesItemNameMax = 256 as const
 
-export const updateInvoiceBodyLinesItemDescriptionMax = 1024
+export const updateInvoiceBodyLinesItemDescriptionMax = 1024 as const
 
 export const updateInvoiceBodyLinesItemTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
 export const updateInvoiceBodyLinesItemPriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updateInvoiceBodyLinesItemPriceOneOnePaymentTermDefault =
-  'in_advance'
+  'in_advance' as const
 export const updateInvoiceBodyLinesItemPriceOneTwoAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updateInvoiceBodyLinesItemPriceOneTwoMinimumAmountOneRegExp =
@@ -4686,7 +4715,8 @@ export const updateInvoiceBodyLinesItemPriceOneThreeMaximumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updateInvoiceBodyLinesItemPriceOneFourMultiplierOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
-export const updateInvoiceBodyLinesItemPriceOneFourMultiplierDefault = '1'
+export const updateInvoiceBodyLinesItemPriceOneFourMultiplierDefault =
+  '1' as const
 export const updateInvoiceBodyLinesItemPriceOneFourMinimumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updateInvoiceBodyLinesItemPriceOneFourMaximumAmountOneRegExp =
@@ -4699,11 +4729,11 @@ export const updateInvoiceBodyLinesItemPriceOneFiveMinimumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updateInvoiceBodyLinesItemPriceOneFiveMaximumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
-export const updateInvoiceBodyLinesItemFeatureKeyMax = 64
+export const updateInvoiceBodyLinesItemFeatureKeyMax = 64 as const
 
 export const updateInvoiceBodyLinesItemFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const updateInvoiceBodyLinesItemRateCardOneFeatureKeyMax = 64
+export const updateInvoiceBodyLinesItemRateCardOneFeatureKeyMax = 64 as const
 
 export const updateInvoiceBodyLinesItemRateCardOneFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
@@ -4712,7 +4742,7 @@ export const updateInvoiceBodyLinesItemRateCardOneTaxConfigOneStripeOneCodeRegEx
 export const updateInvoiceBodyLinesItemRateCardOnePriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updateInvoiceBodyLinesItemRateCardOnePriceOneOnePaymentTermDefault =
-  'in_advance'
+  'in_advance' as const
 export const updateInvoiceBodyLinesItemRateCardOnePriceOneTwoAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updateInvoiceBodyLinesItemRateCardOnePriceOneTwoMinimumAmountOneRegExp =
@@ -4733,7 +4763,7 @@ export const updateInvoiceBodyLinesItemRateCardOnePriceOneThreeMaximumAmountOneR
 export const updateInvoiceBodyLinesItemRateCardOnePriceOneFourMultiplierOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updateInvoiceBodyLinesItemRateCardOnePriceOneFourMultiplierDefault =
-  '1'
+  '1' as const
 export const updateInvoiceBodyLinesItemRateCardOnePriceOneFourMinimumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updateInvoiceBodyLinesItemRateCardOnePriceOneFourMaximumAmountOneRegExp =
@@ -4754,15 +4784,16 @@ export const updateInvoiceBodyLinesItemRateCardOneDiscountsOneUsageOneCorrelatio
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const updateInvoiceBodyLinesItemIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const updateInvoiceBodyWorkflowOneWorkflowOneInvoicingOneAutoAdvanceDefault = true
+export const updateInvoiceBodyWorkflowOneWorkflowOneInvoicingOneAutoAdvanceDefault =
+  true as const
 export const updateInvoiceBodyWorkflowOneWorkflowOneInvoicingOneDraftPeriodDefault =
-  'P0D'
+  'P0D' as const
 export const updateInvoiceBodyWorkflowOneWorkflowOneInvoicingOneDueAfterDefault =
-  'P30D'
+  'P30D' as const
 export const updateInvoiceBodyWorkflowOneWorkflowOneInvoicingOneDefaultTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
 export const updateInvoiceBodyWorkflowOneWorkflowOnePaymentOneCollectionMethodDefault =
-  'charge_automatically'
+  'charge_automatically' as const
 
 export const UpdateInvoiceBody = zod
   .object({
@@ -6024,13 +6055,13 @@ in the response. For example by adding the expand=apps option the apps used by t
 will be included in the response.
  * @summary List billing profiles
  */
-export const listBillingProfilesQueryIncludeArchivedDefault = false
-export const listBillingProfilesQueryPageDefault = 1
+export const listBillingProfilesQueryIncludeArchivedDefault = false as const
+export const listBillingProfilesQueryPageDefault = 1 as const
 
-export const listBillingProfilesQueryPageSizeDefault = 100
-export const listBillingProfilesQueryPageSizeMax = 1000
+export const listBillingProfilesQueryPageSizeDefault = 100 as const
+export const listBillingProfilesQueryPageSizeMax = 1000 as const
 
-export const listBillingProfilesQueryOrderDefault = 'ASC'
+export const listBillingProfilesQueryOrderDefault = 'ASC' as const
 
 export const ListBillingProfilesQueryParams = zod.object({
   expand: zod
@@ -6072,39 +6103,45 @@ Billing profiles are representations of a customer's billing information. Custom
 can be applied to a billing profile to customize the billing behavior for a specific customer.
  * @summary Create a new billing profile
  */
-export const createBillingProfileBodyNameMax = 256
+export const createBillingProfileBodyNameMax = 256 as const
 
-export const createBillingProfileBodyDescriptionMax = 1024
+export const createBillingProfileBodyDescriptionMax = 1024 as const
 
-export const createBillingProfileBodySupplierOneKeyMax = 256
+export const createBillingProfileBodySupplierOneKeyMax = 256 as const
 
-export const createBillingProfileBodySupplierOneTaxIdOneCodeOneMax = 32
+export const createBillingProfileBodySupplierOneTaxIdOneCodeOneMax = 32 as const
 
-export const createBillingProfileBodySupplierOneAddressesItemCountryOneMin = 2
-export const createBillingProfileBodySupplierOneAddressesItemCountryOneMax = 2
+export const createBillingProfileBodySupplierOneAddressesItemCountryOneMin =
+  2 as const
+export const createBillingProfileBodySupplierOneAddressesItemCountryOneMax =
+  2 as const
 
 export const createBillingProfileBodySupplierOneAddressesItemCountryOneRegExp =
   /^[A-Z]{2}$/
-export const createBillingProfileBodySupplierOneAddressesMax = 1
+export const createBillingProfileBodySupplierOneAddressesMax = 1 as const
 
 export const createBillingProfileBodyWorkflowOneCollectionOneAlignmentOneTwoRecurringPeriodOneIntervalOneOneRegExp =
   /^P(?:\d+(?:\.\d+)?Y)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?W)?(?:\d+(?:\.\d+)?D)?(?:T(?:\d+(?:\.\d+)?H)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?S)?)?$/
 export const createBillingProfileBodyWorkflowOneCollectionOneAlignmentDefault =
-  { type: 'subscription' }
+  { type: 'subscription' } as const
 export const createBillingProfileBodyWorkflowOneCollectionOneIntervalDefault =
-  'PT1H'
-export const createBillingProfileBodyWorkflowOneInvoicingOneAutoAdvanceDefault = true
+  'PT1H' as const
+export const createBillingProfileBodyWorkflowOneInvoicingOneAutoAdvanceDefault =
+  true as const
 export const createBillingProfileBodyWorkflowOneInvoicingOneDraftPeriodDefault =
-  'P0D'
+  'P0D' as const
 export const createBillingProfileBodyWorkflowOneInvoicingOneDueAfterDefault =
-  'P30D'
-export const createBillingProfileBodyWorkflowOneInvoicingOneProgressiveBillingDefault = true
+  'P30D' as const
+export const createBillingProfileBodyWorkflowOneInvoicingOneProgressiveBillingDefault =
+  true as const
 export const createBillingProfileBodyWorkflowOneInvoicingOneDefaultTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
 export const createBillingProfileBodyWorkflowOnePaymentOneCollectionMethodDefault =
-  'charge_automatically'
-export const createBillingProfileBodyWorkflowOneTaxOneEnabledDefault = true
-export const createBillingProfileBodyWorkflowOneTaxOneEnforcedDefault = false
+  'charge_automatically' as const
+export const createBillingProfileBodyWorkflowOneTaxOneEnabledDefault =
+  true as const
+export const createBillingProfileBodyWorkflowOneTaxOneEnforcedDefault =
+  false as const
 export const createBillingProfileBodyAppsOneTaxRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const createBillingProfileBodyAppsOneInvoicingRegExp =
@@ -6505,39 +6542,45 @@ export const UpdateBillingProfileParams = zod.object({
   id: zod.coerce.string().regex(updateBillingProfilePathIdRegExp),
 })
 
-export const updateBillingProfileBodyNameMax = 256
+export const updateBillingProfileBodyNameMax = 256 as const
 
-export const updateBillingProfileBodyDescriptionMax = 1024
+export const updateBillingProfileBodyDescriptionMax = 1024 as const
 
-export const updateBillingProfileBodySupplierOneKeyMax = 256
+export const updateBillingProfileBodySupplierOneKeyMax = 256 as const
 
-export const updateBillingProfileBodySupplierOneTaxIdOneCodeOneMax = 32
+export const updateBillingProfileBodySupplierOneTaxIdOneCodeOneMax = 32 as const
 
-export const updateBillingProfileBodySupplierOneAddressesItemCountryOneMin = 2
-export const updateBillingProfileBodySupplierOneAddressesItemCountryOneMax = 2
+export const updateBillingProfileBodySupplierOneAddressesItemCountryOneMin =
+  2 as const
+export const updateBillingProfileBodySupplierOneAddressesItemCountryOneMax =
+  2 as const
 
 export const updateBillingProfileBodySupplierOneAddressesItemCountryOneRegExp =
   /^[A-Z]{2}$/
-export const updateBillingProfileBodySupplierOneAddressesMax = 1
+export const updateBillingProfileBodySupplierOneAddressesMax = 1 as const
 
 export const updateBillingProfileBodyWorkflowOneCollectionOneAlignmentOneTwoRecurringPeriodOneIntervalOneOneRegExp =
   /^P(?:\d+(?:\.\d+)?Y)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?W)?(?:\d+(?:\.\d+)?D)?(?:T(?:\d+(?:\.\d+)?H)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?S)?)?$/
 export const updateBillingProfileBodyWorkflowOneCollectionOneAlignmentDefault =
-  { type: 'subscription' }
+  { type: 'subscription' } as const
 export const updateBillingProfileBodyWorkflowOneCollectionOneIntervalDefault =
-  'PT1H'
-export const updateBillingProfileBodyWorkflowOneInvoicingOneAutoAdvanceDefault = true
+  'PT1H' as const
+export const updateBillingProfileBodyWorkflowOneInvoicingOneAutoAdvanceDefault =
+  true as const
 export const updateBillingProfileBodyWorkflowOneInvoicingOneDraftPeriodDefault =
-  'P0D'
+  'P0D' as const
 export const updateBillingProfileBodyWorkflowOneInvoicingOneDueAfterDefault =
-  'P30D'
-export const updateBillingProfileBodyWorkflowOneInvoicingOneProgressiveBillingDefault = true
+  'P30D' as const
+export const updateBillingProfileBodyWorkflowOneInvoicingOneProgressiveBillingDefault =
+  true as const
 export const updateBillingProfileBodyWorkflowOneInvoicingOneDefaultTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
 export const updateBillingProfileBodyWorkflowOnePaymentOneCollectionMethodDefault =
-  'charge_automatically'
-export const updateBillingProfileBodyWorkflowOneTaxOneEnabledDefault = true
-export const updateBillingProfileBodyWorkflowOneTaxOneEnforcedDefault = false
+  'charge_automatically' as const
+export const updateBillingProfileBodyWorkflowOneTaxOneEnabledDefault =
+  true as const
+export const updateBillingProfileBodyWorkflowOneTaxOneEnforcedDefault =
+  false as const
 
 export const UpdateBillingProfileBody = zod
   .object({
@@ -6864,20 +6907,20 @@ export const UpdateBillingProfileBody = zod
  * Create a new customer.
  * @summary Create customer
  */
-export const createCustomerBodyNameMax = 256
+export const createCustomerBodyNameMax = 256 as const
 
-export const createCustomerBodyDescriptionMax = 1024
+export const createCustomerBodyDescriptionMax = 1024 as const
 
-export const createCustomerBodyKeyMax = 256
+export const createCustomerBodyKeyMax = 256 as const
 
-export const createCustomerBodyUsageAttributionOneSubjectKeysMin = 0
+export const createCustomerBodyUsageAttributionOneSubjectKeysMin = 0 as const
 
-export const createCustomerBodyCurrencyOneMin = 3
-export const createCustomerBodyCurrencyOneMax = 3
+export const createCustomerBodyCurrencyOneMin = 3 as const
+export const createCustomerBodyCurrencyOneMax = 3 as const
 
 export const createCustomerBodyCurrencyOneRegExp = /^[A-Z]{3}$/
-export const createCustomerBodyBillingAddressOneCountryOneMin = 2
-export const createCustomerBodyBillingAddressOneCountryOneMax = 2
+export const createCustomerBodyBillingAddressOneCountryOneMin = 2 as const
+export const createCustomerBodyBillingAddressOneCountryOneMax = 2 as const
 
 export const createCustomerBodyBillingAddressOneCountryOneRegExp = /^[A-Z]{2}$/
 
@@ -6990,13 +7033,13 @@ export const CreateCustomerBody = zod
  * List customers.
  * @summary List customers
  */
-export const listCustomersQueryPageDefault = 1
+export const listCustomersQueryPageDefault = 1 as const
 
-export const listCustomersQueryPageSizeDefault = 100
-export const listCustomersQueryPageSizeMax = 1000
+export const listCustomersQueryPageSizeDefault = 100 as const
+export const listCustomersQueryPageSizeMax = 1000 as const
 
-export const listCustomersQueryOrderDefault = 'ASC'
-export const listCustomersQueryIncludeDeletedDefault = false
+export const listCustomersQueryOrderDefault = 'ASC' as const
+export const listCustomersQueryIncludeDeletedDefault = false as const
 
 export const ListCustomersQueryParams = zod.object({
   expand: zod
@@ -7065,7 +7108,7 @@ export const ListCustomersQueryParams = zod.object({
  */
 export const getCustomerPathCustomerIdOrKeyOneRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const getCustomerPathCustomerIdOrKeyTwoMax = 256
+export const getCustomerPathCustomerIdOrKeyTwoMax = 256 as const
 
 export const GetCustomerParams = zod.object({
   customerIdOrKey: zod.union([
@@ -7102,7 +7145,7 @@ export const GetCustomerQueryParams = zod.object({
  */
 export const updateCustomerPathCustomerIdOrKeyOneRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const updateCustomerPathCustomerIdOrKeyTwoMax = 256
+export const updateCustomerPathCustomerIdOrKeyTwoMax = 256 as const
 
 export const UpdateCustomerParams = zod.object({
   customerIdOrKey: zod.union([
@@ -7120,20 +7163,20 @@ export const UpdateCustomerParams = zod.object({
   ]),
 })
 
-export const updateCustomerBodyNameMax = 256
+export const updateCustomerBodyNameMax = 256 as const
 
-export const updateCustomerBodyDescriptionMax = 1024
+export const updateCustomerBodyDescriptionMax = 1024 as const
 
-export const updateCustomerBodyKeyMax = 256
+export const updateCustomerBodyKeyMax = 256 as const
 
-export const updateCustomerBodyUsageAttributionOneSubjectKeysMin = 0
+export const updateCustomerBodyUsageAttributionOneSubjectKeysMin = 0 as const
 
-export const updateCustomerBodyCurrencyOneMin = 3
-export const updateCustomerBodyCurrencyOneMax = 3
+export const updateCustomerBodyCurrencyOneMin = 3 as const
+export const updateCustomerBodyCurrencyOneMax = 3 as const
 
 export const updateCustomerBodyCurrencyOneRegExp = /^[A-Z]{3}$/
-export const updateCustomerBodyBillingAddressOneCountryOneMin = 2
-export const updateCustomerBodyBillingAddressOneCountryOneMax = 2
+export const updateCustomerBodyBillingAddressOneCountryOneMin = 2 as const
+export const updateCustomerBodyBillingAddressOneCountryOneMax = 2 as const
 
 export const updateCustomerBodyBillingAddressOneCountryOneRegExp = /^[A-Z]{2}$/
 
@@ -7248,7 +7291,7 @@ export const UpdateCustomerBody = zod
  */
 export const deleteCustomerPathCustomerIdOrKeyOneRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const deleteCustomerPathCustomerIdOrKeyTwoMax = 256
+export const deleteCustomerPathCustomerIdOrKeyTwoMax = 256 as const
 
 export const DeleteCustomerParams = zod.object({
   customerIdOrKey: zod.union([
@@ -7272,7 +7315,7 @@ export const DeleteCustomerParams = zod.object({
  */
 export const getCustomerAccessPathCustomerIdOrKeyOneRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const getCustomerAccessPathCustomerIdOrKeyTwoMax = 256
+export const getCustomerAccessPathCustomerIdOrKeyTwoMax = 256 as const
 
 export const GetCustomerAccessParams = zod.object({
   customerIdOrKey: zod.union([
@@ -7296,7 +7339,7 @@ export const GetCustomerAccessParams = zod.object({
  */
 export const listCustomerAppDataPathCustomerIdOrKeyOneRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const listCustomerAppDataPathCustomerIdOrKeyTwoMax = 256
+export const listCustomerAppDataPathCustomerIdOrKeyTwoMax = 256 as const
 
 export const ListCustomerAppDataParams = zod.object({
   customerIdOrKey: zod.union([
@@ -7314,10 +7357,10 @@ export const ListCustomerAppDataParams = zod.object({
   ]),
 })
 
-export const listCustomerAppDataQueryPageDefault = 1
+export const listCustomerAppDataQueryPageDefault = 1 as const
 
-export const listCustomerAppDataQueryPageSizeDefault = 100
-export const listCustomerAppDataQueryPageSizeMax = 1000
+export const listCustomerAppDataQueryPageSizeDefault = 100 as const
+export const listCustomerAppDataQueryPageSizeMax = 1000 as const
 
 export const ListCustomerAppDataQueryParams = zod.object({
   page: zod.coerce
@@ -7343,7 +7386,7 @@ export const ListCustomerAppDataQueryParams = zod.object({
  */
 export const upsertCustomerAppDataPathCustomerIdOrKeyOneRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const upsertCustomerAppDataPathCustomerIdOrKeyTwoMax = 256
+export const upsertCustomerAppDataPathCustomerIdOrKeyTwoMax = 256 as const
 
 export const UpsertCustomerAppDataParams = zod.object({
   customerIdOrKey: zod.union([
@@ -7365,11 +7408,12 @@ export const upsertCustomerAppDataBodyOneIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const upsertCustomerAppDataBodyTwoAppOneIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const upsertCustomerAppDataBodyTwoAppOneNameMax = 256
+export const upsertCustomerAppDataBodyTwoAppOneNameMax = 256 as const
 
-export const upsertCustomerAppDataBodyTwoAppOneDescriptionMax = 1024
+export const upsertCustomerAppDataBodyTwoAppOneDescriptionMax = 1024 as const
 
-export const upsertCustomerAppDataBodyTwoAppOneListingOneCapabilitiesItemKeyMax = 64
+export const upsertCustomerAppDataBodyTwoAppOneListingOneCapabilitiesItemKeyMax =
+  64 as const
 
 export const upsertCustomerAppDataBodyTwoAppOneListingOneCapabilitiesItemKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
@@ -7377,11 +7421,12 @@ export const upsertCustomerAppDataBodyTwoIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const upsertCustomerAppDataBodyThreeAppOneIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const upsertCustomerAppDataBodyThreeAppOneNameMax = 256
+export const upsertCustomerAppDataBodyThreeAppOneNameMax = 256 as const
 
-export const upsertCustomerAppDataBodyThreeAppOneDescriptionMax = 1024
+export const upsertCustomerAppDataBodyThreeAppOneDescriptionMax = 1024 as const
 
-export const upsertCustomerAppDataBodyThreeAppOneListingOneCapabilitiesItemKeyMax = 64
+export const upsertCustomerAppDataBodyThreeAppOneListingOneCapabilitiesItemKeyMax =
+  64 as const
 
 export const upsertCustomerAppDataBodyThreeAppOneListingOneCapabilitiesItemKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
@@ -7698,7 +7743,7 @@ export const UpsertCustomerAppDataBody = zod.array(
  */
 export const deleteCustomerAppDataPathCustomerIdOrKeyOneRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const deleteCustomerAppDataPathCustomerIdOrKeyTwoMax = 256
+export const deleteCustomerAppDataPathCustomerIdOrKeyTwoMax = 256 as const
 
 export const deleteCustomerAppDataPathAppIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -7726,9 +7771,9 @@ export const DeleteCustomerAppDataParams = zod.object({
  */
 export const getCustomerEntitlementValuePathCustomerIdOrKeyOneRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const getCustomerEntitlementValuePathCustomerIdOrKeyTwoMax = 256
+export const getCustomerEntitlementValuePathCustomerIdOrKeyTwoMax = 256 as const
 
-export const getCustomerEntitlementValuePathFeatureKeyMax = 64
+export const getCustomerEntitlementValuePathFeatureKeyMax = 64 as const
 
 export const getCustomerEntitlementValuePathFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
@@ -7765,7 +7810,7 @@ Only returns data if the customer billing profile is linked to a stripe app.
  */
 export const getCustomerStripeAppDataPathCustomerIdOrKeyOneRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const getCustomerStripeAppDataPathCustomerIdOrKeyTwoMax = 256
+export const getCustomerStripeAppDataPathCustomerIdOrKeyTwoMax = 256 as const
 
 export const GetCustomerStripeAppDataParams = zod.object({
   customerIdOrKey: zod.union([
@@ -7790,7 +7835,7 @@ Only updates data if the customer billing profile is linked to a stripe app.
  */
 export const upsertCustomerStripeAppDataPathCustomerIdOrKeyOneRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const upsertCustomerStripeAppDataPathCustomerIdOrKeyTwoMax = 256
+export const upsertCustomerStripeAppDataPathCustomerIdOrKeyTwoMax = 256 as const
 
 export const UpsertCustomerStripeAppDataParams = zod.object({
   customerIdOrKey: zod.union([
@@ -7828,7 +7873,8 @@ change their billing address and access their invoice history.
  */
 export const createCustomerStripePortalSessionPathCustomerIdOrKeyOneRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const createCustomerStripePortalSessionPathCustomerIdOrKeyTwoMax = 256
+export const createCustomerStripePortalSessionPathCustomerIdOrKeyTwoMax =
+  256 as const
 
 export const CreateCustomerStripePortalSessionParams = zod.object({
   customerIdOrKey: zod.union([
@@ -7875,7 +7921,7 @@ export const CreateCustomerStripePortalSessionBody = zod
  */
 export const listCustomerSubscriptionsPathCustomerIdOrKeyOneRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const listCustomerSubscriptionsPathCustomerIdOrKeyTwoMax = 256
+export const listCustomerSubscriptionsPathCustomerIdOrKeyTwoMax = 256 as const
 
 export const ListCustomerSubscriptionsParams = zod.object({
   customerIdOrKey: zod.union([
@@ -7893,11 +7939,11 @@ export const ListCustomerSubscriptionsParams = zod.object({
   ]),
 })
 
-export const listCustomerSubscriptionsQueryOrderDefault = 'ASC'
-export const listCustomerSubscriptionsQueryPageDefault = 1
+export const listCustomerSubscriptionsQueryOrderDefault = 'ASC' as const
+export const listCustomerSubscriptionsQueryPageDefault = 1 as const
 
-export const listCustomerSubscriptionsQueryPageSizeDefault = 100
-export const listCustomerSubscriptionsQueryPageSizeMax = 1000
+export const listCustomerSubscriptionsQueryPageSizeDefault = 100 as const
+export const listCustomerSubscriptionsQueryPageSizeMax = 1000 as const
 
 export const ListCustomerSubscriptionsQueryParams = zod.object({
   order: zod
@@ -7938,19 +7984,19 @@ If page is provided that takes precedence and the paginated response is returned
  * @deprecated
  * @summary List all entitlements
  */
-export const listEntitlementsQueryExcludeInactiveDefault = false
-export const listEntitlementsQueryPageDefault = 1
+export const listEntitlementsQueryExcludeInactiveDefault = false as const
+export const listEntitlementsQueryPageDefault = 1 as const
 
-export const listEntitlementsQueryPageSizeDefault = 100
-export const listEntitlementsQueryPageSizeMax = 1000
+export const listEntitlementsQueryPageSizeDefault = 100 as const
+export const listEntitlementsQueryPageSizeMax = 1000 as const
 
-export const listEntitlementsQueryOffsetDefault = 0
-export const listEntitlementsQueryOffsetMin = 0
+export const listEntitlementsQueryOffsetDefault = 0 as const
+export const listEntitlementsQueryOffsetMin = 0 as const
 
-export const listEntitlementsQueryLimitDefault = 100
-export const listEntitlementsQueryLimitMax = 1000
+export const listEntitlementsQueryLimitDefault = 100 as const
+export const listEntitlementsQueryLimitMax = 1000 as const
 
-export const listEntitlementsQueryOrderDefault = 'ASC'
+export const listEntitlementsQueryOrderDefault = 'ASC' as const
 
 export const ListEntitlementsQueryParams = zod.object({
   entitlementType: zod
@@ -8036,12 +8082,12 @@ export const GetEntitlementByIdParams = zod.object({
 If the from query param is not provided it defaults to last 72 hours.
  * @summary List ingested events
  */
-export const listEventsQueryClientIdMax = 36
+export const listEventsQueryClientIdMax = 36 as const
 
 export const listEventsQueryCustomerIdItemRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const listEventsQueryLimitDefault = 100
-export const listEventsQueryLimitMax = 100
+export const listEventsQueryLimitDefault = 100 as const
+export const listEventsQueryLimitMax = 100 as const
 
 export const ListEventsQueryParams = zod.object({
   clientId: zod.coerce
@@ -8098,9 +8144,9 @@ export const ListEventsQueryParams = zod.object({
  * @summary Ingest events
  */
 
-export const ingestEventsBodyOneSpecversionDefault = '1.0'
+export const ingestEventsBodyOneSpecversionDefault = '1.0' as const
 
-export const ingestEventsBodyTwoItemSpecversionDefault = '1.0'
+export const ingestEventsBodyTwoItemSpecversionDefault = '1.0' as const
 
 export const IngestEventsBody = zod
   .union([
@@ -8221,19 +8267,19 @@ export const IngestEventsBody = zod
  * List features.
  * @summary List features
  */
-export const listFeaturesQueryIncludeArchivedDefault = false
-export const listFeaturesQueryPageDefault = 1
+export const listFeaturesQueryIncludeArchivedDefault = false as const
+export const listFeaturesQueryPageDefault = 1 as const
 
-export const listFeaturesQueryPageSizeDefault = 100
-export const listFeaturesQueryPageSizeMax = 1000
+export const listFeaturesQueryPageSizeDefault = 100 as const
+export const listFeaturesQueryPageSizeMax = 1000 as const
 
-export const listFeaturesQueryOffsetDefault = 0
-export const listFeaturesQueryOffsetMin = 0
+export const listFeaturesQueryOffsetDefault = 0 as const
+export const listFeaturesQueryOffsetMin = 0 as const
 
-export const listFeaturesQueryLimitDefault = 100
-export const listFeaturesQueryLimitMax = 1000
+export const listFeaturesQueryLimitDefault = 100 as const
+export const listFeaturesQueryLimitMax = 1000 as const
 
-export const listFeaturesQueryOrderDefault = 'ASC'
+export const listFeaturesQueryOrderDefault = 'ASC' as const
 
 export const ListFeaturesQueryParams = zod.object({
   includeArchived: zod.coerce
@@ -8283,10 +8329,10 @@ For metered features you can pass additional filters that will be applied when c
 Meters with SUM, COUNT, UNIQUE_COUNT and LATEST aggregations are supported for features.
  * @summary Create feature
  */
-export const createFeatureBodyKeyMax = 64
+export const createFeatureBodyKeyMax = 64 as const
 
 export const createFeatureBodyKeyRegExp = /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const createFeatureBodyMeterSlugMax = 64
+export const createFeatureBodyMeterSlugMax = 64 as const
 
 export const createFeatureBodyMeterSlugRegExp = /^[a-z0-9]+(?:_[a-z0-9]+)*$/
 export const createFeatureBodyUnitCostOneOneAmountOneRegExp =
@@ -8560,19 +8606,19 @@ If page is provided that takes precedence and the paginated response is returned
  * @deprecated
  * @summary List grants
  */
-export const listGrantsQueryIncludeDeletedDefault = false
-export const listGrantsQueryPageDefault = 1
+export const listGrantsQueryIncludeDeletedDefault = false as const
+export const listGrantsQueryPageDefault = 1 as const
 
-export const listGrantsQueryPageSizeDefault = 100
-export const listGrantsQueryPageSizeMax = 1000
+export const listGrantsQueryPageSizeDefault = 100 as const
+export const listGrantsQueryPageSizeMax = 1000 as const
 
-export const listGrantsQueryOffsetDefault = 0
-export const listGrantsQueryOffsetMin = 0
+export const listGrantsQueryOffsetDefault = 0 as const
+export const listGrantsQueryOffsetMin = 0 as const
 
-export const listGrantsQueryLimitDefault = 100
-export const listGrantsQueryLimitMax = 1000
+export const listGrantsQueryLimitDefault = 100 as const
+export const listGrantsQueryLimitMax = 1000 as const
 
-export const listGrantsQueryOrderDefault = 'ASC'
+export const listGrantsQueryOrderDefault = 'ASC' as const
 
 export const ListGrantsQueryParams = zod.object({
   feature: zod
@@ -8654,10 +8700,10 @@ export const GetProgressParams = zod.object({
  * List available apps of the app marketplace.
  * @summary List available apps
  */
-export const listMarketplaceListingsQueryPageDefault = 1
+export const listMarketplaceListingsQueryPageDefault = 1 as const
 
-export const listMarketplaceListingsQueryPageSizeDefault = 100
-export const listMarketplaceListingsQueryPageSizeMax = 1000
+export const listMarketplaceListingsQueryPageSizeDefault = 100 as const
+export const listMarketplaceListingsQueryPageSizeMax = 1000 as const
 
 export const ListMarketplaceListingsQueryParams = zod.object({
   page: zod.coerce
@@ -8691,7 +8737,8 @@ export const MarketplaceAppInstallParams = zod.object({
     .describe('The type of the app to install.'),
 })
 
-export const marketplaceAppInstallBodyCreateBillingProfileDefault = true
+export const marketplaceAppInstallBodyCreateBillingProfileDefault =
+  true as const
 
 export const MarketplaceAppInstallBody = zod
   .object({
@@ -8720,7 +8767,8 @@ export const MarketplaceAppAPIKeyInstallParams = zod.object({
     .describe('The type of the app to install.'),
 })
 
-export const marketplaceAppAPIKeyInstallBodyCreateBillingProfileDefault = true
+export const marketplaceAppAPIKeyInstallBodyCreateBillingProfileDefault =
+  true as const
 
 export const MarketplaceAppAPIKeyInstallBody = zod.object({
   apiKey: zod.coerce
@@ -8805,13 +8853,13 @@ export const MarketplaceOAuth2InstallAuthorizeQueryParams = zod.object({
  * List meters.
  * @summary List meters
  */
-export const listMetersQueryPageDefault = 1
+export const listMetersQueryPageDefault = 1 as const
 
-export const listMetersQueryPageSizeDefault = 100
-export const listMetersQueryPageSizeMax = 1000
+export const listMetersQueryPageSizeDefault = 100 as const
+export const listMetersQueryPageSizeMax = 1000 as const
 
-export const listMetersQueryOrderDefault = 'ASC'
-export const listMetersQueryIncludeDeletedDefault = false
+export const listMetersQueryOrderDefault = 'ASC' as const
+export const listMetersQueryIncludeDeletedDefault = false as const
 
 export const ListMetersQueryParams = zod.object({
   includeDeleted: zod.coerce
@@ -8844,11 +8892,11 @@ export const ListMetersQueryParams = zod.object({
  * Create a meter.
  * @summary Create meter
  */
-export const createMeterBodyDescriptionMax = 1024
+export const createMeterBodyDescriptionMax = 1024 as const
 
-export const createMeterBodyNameMax = 256
+export const createMeterBodyNameMax = 256 as const
 
-export const createMeterBodySlugMax = 64
+export const createMeterBodySlugMax = 64 as const
 
 export const createMeterBodySlugRegExp = /^[a-z0-9]+(?:_[a-z0-9]+)*$/
 
@@ -8918,7 +8966,7 @@ export const CreateMeterBody = zod
  * Get a meter by ID or slug.
  * @summary Get meter
  */
-export const getMeterPathMeterIdOrSlugMax = 64
+export const getMeterPathMeterIdOrSlugMax = 64 as const
 
 export const getMeterPathMeterIdOrSlugRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -8935,7 +8983,7 @@ export const GetMeterParams = zod.object({
  * Update a meter.
  * @summary Update meter
  */
-export const updateMeterPathMeterIdOrSlugMax = 64
+export const updateMeterPathMeterIdOrSlugMax = 64 as const
 
 export const updateMeterPathMeterIdOrSlugRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -8948,9 +8996,9 @@ export const UpdateMeterParams = zod.object({
     .regex(updateMeterPathMeterIdOrSlugRegExp),
 })
 
-export const updateMeterBodyDescriptionMax = 1024
+export const updateMeterBodyDescriptionMax = 1024 as const
 
-export const updateMeterBodyNameMax = 256
+export const updateMeterBodyNameMax = 256 as const
 
 export const UpdateMeterBody = zod
   .object({
@@ -8991,7 +9039,7 @@ export const UpdateMeterBody = zod
  * Delete a meter.
  * @summary Delete meter
  */
-export const deleteMeterPathMeterIdOrSlugMax = 64
+export const deleteMeterPathMeterIdOrSlugMax = 64 as const
 
 export const deleteMeterPathMeterIdOrSlugRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -9008,7 +9056,7 @@ export const DeleteMeterParams = zod.object({
  * List meter group by values.
  * @summary List meter group by values
  */
-export const listMeterGroupByValuesPathMeterIdOrSlugMax = 64
+export const listMeterGroupByValuesPathMeterIdOrSlugMax = 64 as const
 
 export const listMeterGroupByValuesPathMeterIdOrSlugRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -9041,7 +9089,7 @@ export const ListMeterGroupByValuesQueryParams = zod.object({
  * Query meter for usage.
  * @summary Query meter
  */
-export const queryMeterPathMeterIdOrSlugMax = 64
+export const queryMeterPathMeterIdOrSlugMax = 64 as const
 
 export const queryMeterPathMeterIdOrSlugRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -9054,10 +9102,10 @@ export const QueryMeterParams = zod.object({
     .regex(queryMeterPathMeterIdOrSlugRegExp),
 })
 
-export const queryMeterQueryClientIdMax = 36
+export const queryMeterQueryClientIdMax = 36 as const
 
-export const queryMeterQueryWindowTimeZoneDefault = 'UTC'
-export const queryMeterQueryFilterCustomerIdMax = 100
+export const queryMeterQueryWindowTimeZoneDefault = 'UTC' as const
+export const queryMeterQueryFilterCustomerIdMax = 100 as const
 
 export const QueryMeterQueryParams = zod.object({
   clientId: zod.coerce
@@ -9120,7 +9168,7 @@ export const QueryMeterQueryParams = zod.object({
 /**
  * @summary Query meter
  */
-export const queryMeterPostPathMeterIdOrSlugMax = 64
+export const queryMeterPostPathMeterIdOrSlugMax = 64 as const
 
 export const queryMeterPostPathMeterIdOrSlugRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -9133,14 +9181,14 @@ export const QueryMeterPostParams = zod.object({
     .regex(queryMeterPostPathMeterIdOrSlugRegExp),
 })
 
-export const queryMeterPostBodyClientIdMax = 36
+export const queryMeterPostBodyClientIdMax = 36 as const
 
-export const queryMeterPostBodyWindowTimeZoneDefault = 'UTC'
-export const queryMeterPostBodySubjectMax = 100
+export const queryMeterPostBodyWindowTimeZoneDefault = 'UTC' as const
+export const queryMeterPostBodySubjectMax = 100 as const
 
-export const queryMeterPostBodyFilterCustomerIdMax = 100
+export const queryMeterPostBodyFilterCustomerIdMax = 100 as const
 
-export const queryMeterPostBodyGroupByMax = 100
+export const queryMeterPostBodyGroupByMax = 100 as const
 
 export const QueryMeterPostBody = zod
   .object({
@@ -9281,7 +9329,7 @@ export const QueryMeterPostBody = zod
  * List subjects for a meter.
  * @summary List meter subjects
  */
-export const listMeterSubjectsPathMeterIdOrSlugMax = 64
+export const listMeterSubjectsPathMeterIdOrSlugMax = 64 as const
 
 export const listMeterSubjectsPathMeterIdOrSlugRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -9313,14 +9361,15 @@ export const ListMeterSubjectsQueryParams = zod.object({
  * List all notification channels.
  * @summary List notification channels
  */
-export const listNotificationChannelsQueryIncludeDeletedDefault = false
-export const listNotificationChannelsQueryIncludeDisabledDefault = false
-export const listNotificationChannelsQueryPageDefault = 1
+export const listNotificationChannelsQueryIncludeDeletedDefault = false as const
+export const listNotificationChannelsQueryIncludeDisabledDefault =
+  false as const
+export const listNotificationChannelsQueryPageDefault = 1 as const
 
-export const listNotificationChannelsQueryPageSizeDefault = 100
-export const listNotificationChannelsQueryPageSizeMax = 1000
+export const listNotificationChannelsQueryPageSizeDefault = 100 as const
+export const listNotificationChannelsQueryPageSizeMax = 1000 as const
 
-export const listNotificationChannelsQueryOrderDefault = 'ASC'
+export const listNotificationChannelsQueryOrderDefault = 'ASC' as const
 
 export const ListNotificationChannelsQueryParams = zod.object({
   includeDeleted: zod.coerce
@@ -9361,9 +9410,9 @@ export const ListNotificationChannelsQueryParams = zod.object({
  * Create a new notification channel.
  * @summary Create a notification channel
  */
-export const createNotificationChannelBodyOneNameMax = 256
+export const createNotificationChannelBodyOneNameMax = 256 as const
 
-export const createNotificationChannelBodyOneDisabledDefault = false
+export const createNotificationChannelBodyOneDisabledDefault = false as const
 export const createNotificationChannelBodyOneSigningSecretRegExp =
   /^(whsec_)?[a-zA-Z0-9+/=]{32,100}$/
 
@@ -9421,9 +9470,9 @@ export const UpdateNotificationChannelParams = zod.object({
     .regex(updateNotificationChannelPathChannelIdRegExp),
 })
 
-export const updateNotificationChannelBodyOneNameMax = 256
+export const updateNotificationChannelBodyOneNameMax = 256 as const
 
-export const updateNotificationChannelBodyOneDisabledDefault = false
+export const updateNotificationChannelBodyOneDisabledDefault = false as const
 export const updateNotificationChannelBodyOneSigningSecretRegExp =
   /^(whsec_)?[a-zA-Z0-9+/=]{32,100}$/
 
@@ -9504,12 +9553,12 @@ export const listNotificationEventsQueryRuleItemRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const listNotificationEventsQueryChannelItemRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const listNotificationEventsQueryPageDefault = 1
+export const listNotificationEventsQueryPageDefault = 1 as const
 
-export const listNotificationEventsQueryPageSizeDefault = 100
-export const listNotificationEventsQueryPageSizeMax = 1000
+export const listNotificationEventsQueryPageSizeDefault = 100 as const
+export const listNotificationEventsQueryPageSizeMax = 1000 as const
 
-export const listNotificationEventsQueryOrderDefault = 'ASC'
+export const listNotificationEventsQueryOrderDefault = 'ASC' as const
 
 export const ListNotificationEventsQueryParams = zod.object({
   channel: zod
@@ -9621,18 +9670,18 @@ export const ResendNotificationEventBody = zod
  * List all notification rules.
  * @summary List notification rules
  */
-export const listNotificationRulesQueryIncludeDeletedDefault = false
-export const listNotificationRulesQueryIncludeDisabledDefault = false
-export const listNotificationRulesQueryFeatureItemMax = 64
+export const listNotificationRulesQueryIncludeDeletedDefault = false as const
+export const listNotificationRulesQueryIncludeDisabledDefault = false as const
+export const listNotificationRulesQueryFeatureItemMax = 64 as const
 
 export const listNotificationRulesQueryFeatureItemRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const listNotificationRulesQueryPageDefault = 1
+export const listNotificationRulesQueryPageDefault = 1 as const
 
-export const listNotificationRulesQueryPageSizeDefault = 100
-export const listNotificationRulesQueryPageSizeMax = 1000
+export const listNotificationRulesQueryPageSizeDefault = 100 as const
+export const listNotificationRulesQueryPageSizeMax = 1000 as const
 
-export const listNotificationRulesQueryOrderDefault = 'ASC'
+export const listNotificationRulesQueryOrderDefault = 'ASC' as const
 
 export const ListNotificationRulesQueryParams = zod.object({
   channel: zod
@@ -9694,39 +9743,39 @@ export const ListNotificationRulesQueryParams = zod.object({
  * Create a new notification rule.
  * @summary Create a notification rule
  */
-export const createNotificationRuleBodyOneNameMax = 256
+export const createNotificationRuleBodyOneNameMax = 256 as const
 
-export const createNotificationRuleBodyOneDisabledDefault = false
-export const createNotificationRuleBodyOneThresholdsMax = 10
+export const createNotificationRuleBodyOneDisabledDefault = false as const
+export const createNotificationRuleBodyOneThresholdsMax = 10 as const
 
 export const createNotificationRuleBodyOneChannelsItemRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 
-export const createNotificationRuleBodyOneFeaturesItemMax = 64
+export const createNotificationRuleBodyOneFeaturesItemMax = 64 as const
 
 export const createNotificationRuleBodyOneFeaturesItemRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 
-export const createNotificationRuleBodyTwoNameMax = 256
+export const createNotificationRuleBodyTwoNameMax = 256 as const
 
-export const createNotificationRuleBodyTwoDisabledDefault = false
+export const createNotificationRuleBodyTwoDisabledDefault = false as const
 export const createNotificationRuleBodyTwoChannelsItemRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 
-export const createNotificationRuleBodyTwoFeaturesItemMax = 64
+export const createNotificationRuleBodyTwoFeaturesItemMax = 64 as const
 
 export const createNotificationRuleBodyTwoFeaturesItemRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 
-export const createNotificationRuleBodyThreeNameMax = 256
+export const createNotificationRuleBodyThreeNameMax = 256 as const
 
-export const createNotificationRuleBodyThreeDisabledDefault = false
+export const createNotificationRuleBodyThreeDisabledDefault = false as const
 export const createNotificationRuleBodyThreeChannelsItemRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 
-export const createNotificationRuleBodyFourNameMax = 256
+export const createNotificationRuleBodyFourNameMax = 256 as const
 
-export const createNotificationRuleBodyFourDisabledDefault = false
+export const createNotificationRuleBodyFourDisabledDefault = false as const
 export const createNotificationRuleBodyFourChannelsItemRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 
@@ -9943,39 +9992,39 @@ export const UpdateNotificationRuleParams = zod.object({
   ruleId: zod.coerce.string().regex(updateNotificationRulePathRuleIdRegExp),
 })
 
-export const updateNotificationRuleBodyOneNameMax = 256
+export const updateNotificationRuleBodyOneNameMax = 256 as const
 
-export const updateNotificationRuleBodyOneDisabledDefault = false
-export const updateNotificationRuleBodyOneThresholdsMax = 10
+export const updateNotificationRuleBodyOneDisabledDefault = false as const
+export const updateNotificationRuleBodyOneThresholdsMax = 10 as const
 
 export const updateNotificationRuleBodyOneChannelsItemRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 
-export const updateNotificationRuleBodyOneFeaturesItemMax = 64
+export const updateNotificationRuleBodyOneFeaturesItemMax = 64 as const
 
 export const updateNotificationRuleBodyOneFeaturesItemRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 
-export const updateNotificationRuleBodyTwoNameMax = 256
+export const updateNotificationRuleBodyTwoNameMax = 256 as const
 
-export const updateNotificationRuleBodyTwoDisabledDefault = false
+export const updateNotificationRuleBodyTwoDisabledDefault = false as const
 export const updateNotificationRuleBodyTwoChannelsItemRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 
-export const updateNotificationRuleBodyTwoFeaturesItemMax = 64
+export const updateNotificationRuleBodyTwoFeaturesItemMax = 64 as const
 
 export const updateNotificationRuleBodyTwoFeaturesItemRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 
-export const updateNotificationRuleBodyThreeNameMax = 256
+export const updateNotificationRuleBodyThreeNameMax = 256 as const
 
-export const updateNotificationRuleBodyThreeDisabledDefault = false
+export const updateNotificationRuleBodyThreeDisabledDefault = false as const
 export const updateNotificationRuleBodyThreeChannelsItemRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 
-export const updateNotificationRuleBodyFourNameMax = 256
+export const updateNotificationRuleBodyFourNameMax = 256 as const
 
-export const updateNotificationRuleBodyFourDisabledDefault = false
+export const updateNotificationRuleBodyFourDisabledDefault = false as const
 export const updateNotificationRuleBodyFourChannelsItemRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 
@@ -10220,22 +10269,22 @@ export const TestNotificationRuleParams = zod.object({
  * List all plans.
  * @summary List plans
  */
-export const listPlansQueryIncludeDeletedDefault = false
+export const listPlansQueryIncludeDeletedDefault = false as const
 export const listPlansQueryIdItemRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const listPlansQueryKeyItemMax = 64
+export const listPlansQueryKeyItemMax = 64 as const
 
 export const listPlansQueryKeyItemRegExp = /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const listPlansQueryCurrencyItemMin = 3
-export const listPlansQueryCurrencyItemMax = 3
+export const listPlansQueryCurrencyItemMin = 3 as const
+export const listPlansQueryCurrencyItemMax = 3 as const
 
 export const listPlansQueryCurrencyItemRegExp = /^[A-Z]{3}$/
-export const listPlansQueryPageDefault = 1
+export const listPlansQueryPageDefault = 1 as const
 
-export const listPlansQueryPageSizeDefault = 100
-export const listPlansQueryPageSizeMax = 1000
+export const listPlansQueryPageSizeDefault = 100 as const
+export const listPlansQueryPageSizeMax = 1000 as const
 
-export const listPlansQueryOrderDefault = 'ASC'
+export const listPlansQueryOrderDefault = 'ASC' as const
 
 export const ListPlansQueryParams = zod.object({
   currency: zod
@@ -10321,84 +10370,98 @@ export const ListPlansQueryParams = zod.object({
  * Create a new plan.
  * @summary Create a plan
  */
-export const createPlanBodyNameMax = 256
+export const createPlanBodyNameMax = 256 as const
 
-export const createPlanBodyDescriptionMax = 1024
+export const createPlanBodyDescriptionMax = 1024 as const
 
-export const createPlanBodyKeyMax = 64
+export const createPlanBodyKeyMax = 64 as const
 
 export const createPlanBodyKeyRegExp = /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const createPlanBodyCurrencyOneMin = 3
-export const createPlanBodyCurrencyOneMax = 3
+export const createPlanBodyCurrencyOneMin = 3 as const
+export const createPlanBodyCurrencyOneMax = 3 as const
 
 export const createPlanBodyCurrencyOneRegExp = /^[A-Z]{3}$/
-export const createPlanBodyCurrencyDefault = 'USD'
-export const createPlanBodyProRatingConfigOneEnabledDefault = true
-export const createPlanBodyProRatingConfigOneModeDefault = 'prorate_prices'
+export const createPlanBodyCurrencyDefault = 'USD' as const
+export const createPlanBodyProRatingConfigOneEnabledDefault = true as const
+export const createPlanBodyProRatingConfigOneModeDefault =
+  'prorate_prices' as const
 export const createPlanBodyProRatingConfigDefault = {
   enabled: true,
   mode: 'prorate_prices',
-}
-export const createPlanBodySettlementModeDefault = 'credit_then_invoice'
-export const createPlanBodyPhasesItemKeyMax = 64
+} as const
+export const createPlanBodySettlementModeDefault =
+  'credit_then_invoice' as const
+export const createPlanBodyPhasesItemKeyMax = 64 as const
 
 export const createPlanBodyPhasesItemKeyRegExp = /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const createPlanBodyPhasesItemNameMax = 256
+export const createPlanBodyPhasesItemNameMax = 256 as const
 
-export const createPlanBodyPhasesItemDescriptionMax = 1024
+export const createPlanBodyPhasesItemDescriptionMax = 1024 as const
 
-export const createPlanBodyPhasesItemRateCardsItemOneKeyMax = 64
+export const createPlanBodyPhasesItemRateCardsItemOneKeyMax = 64 as const
 
 export const createPlanBodyPhasesItemRateCardsItemOneKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const createPlanBodyPhasesItemRateCardsItemOneNameMax = 256
+export const createPlanBodyPhasesItemRateCardsItemOneNameMax = 256 as const
 
-export const createPlanBodyPhasesItemRateCardsItemOneDescriptionMax = 1024
+export const createPlanBodyPhasesItemRateCardsItemOneDescriptionMax =
+  1024 as const
 
-export const createPlanBodyPhasesItemRateCardsItemOneFeatureKeyMax = 64
+export const createPlanBodyPhasesItemRateCardsItemOneFeatureKeyMax = 64 as const
 
 export const createPlanBodyPhasesItemRateCardsItemOneFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const createPlanBodyPhasesItemRateCardsItemOneEntitlementTemplateOneOneIsSoftLimitDefault = false
-export const createPlanBodyPhasesItemRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetMin = 0
+export const createPlanBodyPhasesItemRateCardsItemOneEntitlementTemplateOneOneIsSoftLimitDefault =
+  false as const
+export const createPlanBodyPhasesItemRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetMin =
+  0 as const
 
-export const createPlanBodyPhasesItemRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetPriorityDefault = 1
-export const createPlanBodyPhasesItemRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetPriorityMax = 255
+export const createPlanBodyPhasesItemRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetPriorityDefault =
+  1 as const
+export const createPlanBodyPhasesItemRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetPriorityMax =
+  255 as const
 
-export const createPlanBodyPhasesItemRateCardsItemOneEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
+export const createPlanBodyPhasesItemRateCardsItemOneEntitlementTemplateOneOnePreserveOverageAtResetDefault =
+  false as const
 export const createPlanBodyPhasesItemRateCardsItemOneTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
 export const createPlanBodyPhasesItemRateCardsItemOnePriceOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createPlanBodyPhasesItemRateCardsItemOnePriceOnePaymentTermDefault =
-  'in_advance'
+  'in_advance' as const
 export const createPlanBodyPhasesItemRateCardsItemOneDiscountsOneUsageOneQuantityOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
-export const createPlanBodyPhasesItemRateCardsItemTwoKeyMax = 64
+export const createPlanBodyPhasesItemRateCardsItemTwoKeyMax = 64 as const
 
 export const createPlanBodyPhasesItemRateCardsItemTwoKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const createPlanBodyPhasesItemRateCardsItemTwoNameMax = 256
+export const createPlanBodyPhasesItemRateCardsItemTwoNameMax = 256 as const
 
-export const createPlanBodyPhasesItemRateCardsItemTwoDescriptionMax = 1024
+export const createPlanBodyPhasesItemRateCardsItemTwoDescriptionMax =
+  1024 as const
 
-export const createPlanBodyPhasesItemRateCardsItemTwoFeatureKeyMax = 64
+export const createPlanBodyPhasesItemRateCardsItemTwoFeatureKeyMax = 64 as const
 
 export const createPlanBodyPhasesItemRateCardsItemTwoFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const createPlanBodyPhasesItemRateCardsItemTwoEntitlementTemplateOneOneIsSoftLimitDefault = false
-export const createPlanBodyPhasesItemRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetMin = 0
+export const createPlanBodyPhasesItemRateCardsItemTwoEntitlementTemplateOneOneIsSoftLimitDefault =
+  false as const
+export const createPlanBodyPhasesItemRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetMin =
+  0 as const
 
-export const createPlanBodyPhasesItemRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetPriorityDefault = 1
-export const createPlanBodyPhasesItemRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetPriorityMax = 255
+export const createPlanBodyPhasesItemRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetPriorityDefault =
+  1 as const
+export const createPlanBodyPhasesItemRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetPriorityMax =
+  255 as const
 
-export const createPlanBodyPhasesItemRateCardsItemTwoEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
+export const createPlanBodyPhasesItemRateCardsItemTwoEntitlementTemplateOneOnePreserveOverageAtResetDefault =
+  false as const
 export const createPlanBodyPhasesItemRateCardsItemTwoTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
 export const createPlanBodyPhasesItemRateCardsItemTwoPriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createPlanBodyPhasesItemRateCardsItemTwoPriceOneOnePaymentTermDefault =
-  'in_advance'
+  'in_advance' as const
 export const createPlanBodyPhasesItemRateCardsItemTwoPriceOneTwoAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createPlanBodyPhasesItemRateCardsItemTwoPriceOneTwoMinimumAmountOneRegExp =
@@ -10419,7 +10482,7 @@ export const createPlanBodyPhasesItemRateCardsItemTwoPriceOneThreeMaximumAmountO
 export const createPlanBodyPhasesItemRateCardsItemTwoPriceOneFourMultiplierOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createPlanBodyPhasesItemRateCardsItemTwoPriceOneFourMultiplierDefault =
-  '1'
+  '1' as const
 export const createPlanBodyPhasesItemRateCardsItemTwoPriceOneFourMinimumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createPlanBodyPhasesItemRateCardsItemTwoPriceOneFourMaximumAmountOneRegExp =
@@ -11391,7 +11454,7 @@ It returns error if there is already a plan in draft or planId does not referenc
  * @deprecated
  * @summary New draft plan
  */
-export const nextPlanPathPlanIdOrKeyMax = 64
+export const nextPlanPathPlanIdOrKeyMax = 64 as const
 
 export const nextPlanPathPlanIdOrKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -11415,76 +11478,90 @@ export const UpdatePlanParams = zod.object({
   planId: zod.coerce.string().regex(updatePlanPathPlanIdRegExp),
 })
 
-export const updatePlanBodyNameMax = 256
+export const updatePlanBodyNameMax = 256 as const
 
-export const updatePlanBodyDescriptionMax = 1024
+export const updatePlanBodyDescriptionMax = 1024 as const
 
-export const updatePlanBodyProRatingConfigOneEnabledDefault = true
-export const updatePlanBodyProRatingConfigOneModeDefault = 'prorate_prices'
+export const updatePlanBodyProRatingConfigOneEnabledDefault = true as const
+export const updatePlanBodyProRatingConfigOneModeDefault =
+  'prorate_prices' as const
 export const updatePlanBodyProRatingConfigDefault = {
   enabled: true,
   mode: 'prorate_prices',
-}
-export const updatePlanBodySettlementModeDefault = 'credit_then_invoice'
-export const updatePlanBodyPhasesItemKeyMax = 64
+} as const
+export const updatePlanBodySettlementModeDefault =
+  'credit_then_invoice' as const
+export const updatePlanBodyPhasesItemKeyMax = 64 as const
 
 export const updatePlanBodyPhasesItemKeyRegExp = /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const updatePlanBodyPhasesItemNameMax = 256
+export const updatePlanBodyPhasesItemNameMax = 256 as const
 
-export const updatePlanBodyPhasesItemDescriptionMax = 1024
+export const updatePlanBodyPhasesItemDescriptionMax = 1024 as const
 
-export const updatePlanBodyPhasesItemRateCardsItemOneKeyMax = 64
+export const updatePlanBodyPhasesItemRateCardsItemOneKeyMax = 64 as const
 
 export const updatePlanBodyPhasesItemRateCardsItemOneKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const updatePlanBodyPhasesItemRateCardsItemOneNameMax = 256
+export const updatePlanBodyPhasesItemRateCardsItemOneNameMax = 256 as const
 
-export const updatePlanBodyPhasesItemRateCardsItemOneDescriptionMax = 1024
+export const updatePlanBodyPhasesItemRateCardsItemOneDescriptionMax =
+  1024 as const
 
-export const updatePlanBodyPhasesItemRateCardsItemOneFeatureKeyMax = 64
+export const updatePlanBodyPhasesItemRateCardsItemOneFeatureKeyMax = 64 as const
 
 export const updatePlanBodyPhasesItemRateCardsItemOneFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const updatePlanBodyPhasesItemRateCardsItemOneEntitlementTemplateOneOneIsSoftLimitDefault = false
-export const updatePlanBodyPhasesItemRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetMin = 0
+export const updatePlanBodyPhasesItemRateCardsItemOneEntitlementTemplateOneOneIsSoftLimitDefault =
+  false as const
+export const updatePlanBodyPhasesItemRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetMin =
+  0 as const
 
-export const updatePlanBodyPhasesItemRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetPriorityDefault = 1
-export const updatePlanBodyPhasesItemRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetPriorityMax = 255
+export const updatePlanBodyPhasesItemRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetPriorityDefault =
+  1 as const
+export const updatePlanBodyPhasesItemRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetPriorityMax =
+  255 as const
 
-export const updatePlanBodyPhasesItemRateCardsItemOneEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
+export const updatePlanBodyPhasesItemRateCardsItemOneEntitlementTemplateOneOnePreserveOverageAtResetDefault =
+  false as const
 export const updatePlanBodyPhasesItemRateCardsItemOneTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
 export const updatePlanBodyPhasesItemRateCardsItemOnePriceOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updatePlanBodyPhasesItemRateCardsItemOnePriceOnePaymentTermDefault =
-  'in_advance'
+  'in_advance' as const
 export const updatePlanBodyPhasesItemRateCardsItemOneDiscountsOneUsageOneQuantityOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
-export const updatePlanBodyPhasesItemRateCardsItemTwoKeyMax = 64
+export const updatePlanBodyPhasesItemRateCardsItemTwoKeyMax = 64 as const
 
 export const updatePlanBodyPhasesItemRateCardsItemTwoKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const updatePlanBodyPhasesItemRateCardsItemTwoNameMax = 256
+export const updatePlanBodyPhasesItemRateCardsItemTwoNameMax = 256 as const
 
-export const updatePlanBodyPhasesItemRateCardsItemTwoDescriptionMax = 1024
+export const updatePlanBodyPhasesItemRateCardsItemTwoDescriptionMax =
+  1024 as const
 
-export const updatePlanBodyPhasesItemRateCardsItemTwoFeatureKeyMax = 64
+export const updatePlanBodyPhasesItemRateCardsItemTwoFeatureKeyMax = 64 as const
 
 export const updatePlanBodyPhasesItemRateCardsItemTwoFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const updatePlanBodyPhasesItemRateCardsItemTwoEntitlementTemplateOneOneIsSoftLimitDefault = false
-export const updatePlanBodyPhasesItemRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetMin = 0
+export const updatePlanBodyPhasesItemRateCardsItemTwoEntitlementTemplateOneOneIsSoftLimitDefault =
+  false as const
+export const updatePlanBodyPhasesItemRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetMin =
+  0 as const
 
-export const updatePlanBodyPhasesItemRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetPriorityDefault = 1
-export const updatePlanBodyPhasesItemRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetPriorityMax = 255
+export const updatePlanBodyPhasesItemRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetPriorityDefault =
+  1 as const
+export const updatePlanBodyPhasesItemRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetPriorityMax =
+  255 as const
 
-export const updatePlanBodyPhasesItemRateCardsItemTwoEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
+export const updatePlanBodyPhasesItemRateCardsItemTwoEntitlementTemplateOneOnePreserveOverageAtResetDefault =
+  false as const
 export const updatePlanBodyPhasesItemRateCardsItemTwoTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
 export const updatePlanBodyPhasesItemRateCardsItemTwoPriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updatePlanBodyPhasesItemRateCardsItemTwoPriceOneOnePaymentTermDefault =
-  'in_advance'
+  'in_advance' as const
 export const updatePlanBodyPhasesItemRateCardsItemTwoPriceOneTwoAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updatePlanBodyPhasesItemRateCardsItemTwoPriceOneTwoMinimumAmountOneRegExp =
@@ -11505,7 +11582,7 @@ export const updatePlanBodyPhasesItemRateCardsItemTwoPriceOneThreeMaximumAmountO
 export const updatePlanBodyPhasesItemRateCardsItemTwoPriceOneFourMultiplierOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updatePlanBodyPhasesItemRateCardsItemTwoPriceOneFourMultiplierDefault =
-  '1'
+  '1' as const
 export const updatePlanBodyPhasesItemRateCardsItemTwoPriceOneFourMinimumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updatePlanBodyPhasesItemRateCardsItemTwoPriceOneFourMaximumAmountOneRegExp =
@@ -12459,7 +12536,7 @@ export const UpdatePlanBody = zod
  * Get a plan by id or key. The latest published version is returned if latter is used.
  * @summary Get plan
  */
-export const getPlanPathPlanIdMax = 64
+export const getPlanPathPlanIdMax = 64 as const
 
 export const getPlanPathPlanIdRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -12472,7 +12549,7 @@ export const GetPlanParams = zod.object({
     .regex(getPlanPathPlanIdRegExp),
 })
 
-export const getPlanQueryIncludeLatestDefault = false
+export const getPlanQueryIncludeLatestDefault = false as const
 
 export const GetPlanQueryParams = zod.object({
   includeLatest: zod.coerce
@@ -12500,7 +12577,7 @@ export const DeletePlanParams = zod.object({
  * List all available add-ons for plan.
  * @summary List all available add-ons for plan
  */
-export const listPlanAddonsPathPlanIdMax = 64
+export const listPlanAddonsPathPlanIdMax = 64 as const
 
 export const listPlanAddonsPathPlanIdRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -12513,18 +12590,18 @@ export const ListPlanAddonsParams = zod.object({
     .regex(listPlanAddonsPathPlanIdRegExp),
 })
 
-export const listPlanAddonsQueryIncludeDeletedDefault = false
+export const listPlanAddonsQueryIncludeDeletedDefault = false as const
 export const listPlanAddonsQueryIdItemRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const listPlanAddonsQueryKeyItemMax = 64
+export const listPlanAddonsQueryKeyItemMax = 64 as const
 
 export const listPlanAddonsQueryKeyItemRegExp = /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const listPlanAddonsQueryPageDefault = 1
+export const listPlanAddonsQueryPageDefault = 1 as const
 
-export const listPlanAddonsQueryPageSizeDefault = 100
-export const listPlanAddonsQueryPageSizeMax = 1000
+export const listPlanAddonsQueryPageSizeDefault = 100 as const
+export const listPlanAddonsQueryPageSizeMax = 1000 as const
 
-export const listPlanAddonsQueryOrderDefault = 'ASC'
+export const listPlanAddonsQueryOrderDefault = 'ASC' as const
 
 export const ListPlanAddonsQueryParams = zod.object({
   id: zod
@@ -12665,11 +12742,11 @@ export const UpdatePlanAddonBody = zod
  * Get add-on assignment for plan by id.
  * @summary Get add-on assignment for plan
  */
-export const getPlanAddonPathPlanIdMax = 64
+export const getPlanAddonPathPlanIdMax = 64 as const
 
 export const getPlanAddonPathPlanIdRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const getPlanAddonPathPlanAddonIdMax = 64
+export const getPlanAddonPathPlanAddonIdMax = 64 as const
 
 export const getPlanAddonPathPlanAddonIdRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -12729,7 +12806,7 @@ export const PublishPlanParams = zod.object({
  * Query meter for consumer portal. This endpoint is publicly exposable to consumers. Query meter for consumer portal. This endpoint is publicly exposable to consumers.
  * @summary Query meter Query meter
  */
-export const queryPortalMeterPathMeterSlugMax = 64
+export const queryPortalMeterPathMeterSlugMax = 64 as const
 
 export const queryPortalMeterPathMeterSlugRegExp = /^[a-z0-9]+(?:_[a-z0-9]+)*$/
 
@@ -12741,10 +12818,10 @@ export const QueryPortalMeterParams = zod.object({
     .regex(queryPortalMeterPathMeterSlugRegExp),
 })
 
-export const queryPortalMeterQueryClientIdMax = 36
+export const queryPortalMeterQueryClientIdMax = 36 as const
 
-export const queryPortalMeterQueryWindowTimeZoneDefault = 'UTC'
-export const queryPortalMeterQueryFilterCustomerIdMax = 100
+export const queryPortalMeterQueryWindowTimeZoneDefault = 'UTC' as const
+export const queryPortalMeterQueryFilterCustomerIdMax = 100 as const
 
 export const QueryPortalMeterQueryParams = zod.object({
   clientId: zod.coerce
@@ -12820,8 +12897,8 @@ export const CreatePortalTokenBody = zod
  * List tokens.
  * @summary List consumer portal tokens
  */
-export const listPortalTokensQueryLimitDefault = 25
-export const listPortalTokensQueryLimitMax = 100
+export const listPortalTokensQueryLimitDefault = 25 as const
+export const listPortalTokensQueryLimitMax = 100 as const
 
 export const ListPortalTokensQueryParams = zod.object({
   limit: zod.coerce
@@ -12854,36 +12931,48 @@ export const createStripeCheckoutSessionBodyAppIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const createStripeCheckoutSessionBodyCustomerOneIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const createStripeCheckoutSessionBodyCustomerThreeNameMax = 256
+export const createStripeCheckoutSessionBodyCustomerThreeNameMax = 256 as const
 
-export const createStripeCheckoutSessionBodyCustomerThreeDescriptionMax = 1024
+export const createStripeCheckoutSessionBodyCustomerThreeDescriptionMax =
+  1024 as const
 
-export const createStripeCheckoutSessionBodyCustomerThreeKeyMax = 256
+export const createStripeCheckoutSessionBodyCustomerThreeKeyMax = 256 as const
 
-export const createStripeCheckoutSessionBodyCustomerThreeUsageAttributionOneSubjectKeysMin = 0
+export const createStripeCheckoutSessionBodyCustomerThreeUsageAttributionOneSubjectKeysMin =
+  0 as const
 
-export const createStripeCheckoutSessionBodyCustomerThreeCurrencyOneMin = 3
-export const createStripeCheckoutSessionBodyCustomerThreeCurrencyOneMax = 3
+export const createStripeCheckoutSessionBodyCustomerThreeCurrencyOneMin =
+  3 as const
+export const createStripeCheckoutSessionBodyCustomerThreeCurrencyOneMax =
+  3 as const
 
 export const createStripeCheckoutSessionBodyCustomerThreeCurrencyOneRegExp =
   /^[A-Z]{3}$/
-export const createStripeCheckoutSessionBodyCustomerThreeBillingAddressOneCountryOneMin = 2
-export const createStripeCheckoutSessionBodyCustomerThreeBillingAddressOneCountryOneMax = 2
+export const createStripeCheckoutSessionBodyCustomerThreeBillingAddressOneCountryOneMin =
+  2 as const
+export const createStripeCheckoutSessionBodyCustomerThreeBillingAddressOneCountryOneMax =
+  2 as const
 
 export const createStripeCheckoutSessionBodyCustomerThreeBillingAddressOneCountryOneRegExp =
   /^[A-Z]{2}$/
-export const createStripeCheckoutSessionBodyOptionsOneCurrencyOneMin = 3
-export const createStripeCheckoutSessionBodyOptionsOneCurrencyOneMax = 3
+export const createStripeCheckoutSessionBodyOptionsOneCurrencyOneMin =
+  3 as const
+export const createStripeCheckoutSessionBodyOptionsOneCurrencyOneMax =
+  3 as const
 
 export const createStripeCheckoutSessionBodyOptionsOneCurrencyOneRegExp =
   /^[A-Z]{3}$/
-export const createStripeCheckoutSessionBodyOptionsOneCustomTextOneAfterSubmitMessageMax = 1200
+export const createStripeCheckoutSessionBodyOptionsOneCustomTextOneAfterSubmitMessageMax =
+  1200 as const
 
-export const createStripeCheckoutSessionBodyOptionsOneCustomTextOneShippingAddressMessageMax = 1200
+export const createStripeCheckoutSessionBodyOptionsOneCustomTextOneShippingAddressMessageMax =
+  1200 as const
 
-export const createStripeCheckoutSessionBodyOptionsOneCustomTextOneSubmitMessageMax = 1200
+export const createStripeCheckoutSessionBodyOptionsOneCustomTextOneSubmitMessageMax =
+  1200 as const
 
-export const createStripeCheckoutSessionBodyOptionsOneCustomTextOneTermsOfServiceAcceptanceMessageMax = 1200
+export const createStripeCheckoutSessionBodyOptionsOneCustomTextOneTermsOfServiceAcceptanceMessageMax =
+  1200 as const
 
 export const CreateStripeCheckoutSessionBody = zod
   .object({
@@ -13371,23 +13460,24 @@ export const CreateEntitlementParams = zod.object({
   subjectIdOrKey: zod.coerce.string(),
 })
 
-export const createEntitlementBodyOneFeatureKeyMax = 64
+export const createEntitlementBodyOneFeatureKeyMax = 64 as const
 
 export const createEntitlementBodyOneFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
 export const createEntitlementBodyOneFeatureIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const createEntitlementBodyOneIsSoftLimitDefault = false
-export const createEntitlementBodyOneIsUnlimitedDefault = false
+export const createEntitlementBodyOneIsSoftLimitDefault = false as const
+export const createEntitlementBodyOneIsUnlimitedDefault = false as const
 export const createEntitlementBodyOneUsagePeriodOneIntervalOneOneRegExp =
   /^P(?:\d+(?:\.\d+)?Y)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?W)?(?:\d+(?:\.\d+)?D)?(?:T(?:\d+(?:\.\d+)?H)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?S)?)?$/
-export const createEntitlementBodyOneIssueAfterResetMin = 0
+export const createEntitlementBodyOneIssueAfterResetMin = 0 as const
 
-export const createEntitlementBodyOneIssueAfterResetPriorityDefault = 1
-export const createEntitlementBodyOneIssueAfterResetPriorityMax = 255
+export const createEntitlementBodyOneIssueAfterResetPriorityDefault = 1 as const
+export const createEntitlementBodyOneIssueAfterResetPriorityMax = 255 as const
 
-export const createEntitlementBodyOnePreserveOverageAtResetDefault = false
-export const createEntitlementBodyTwoFeatureKeyMax = 64
+export const createEntitlementBodyOnePreserveOverageAtResetDefault =
+  false as const
+export const createEntitlementBodyTwoFeatureKeyMax = 64 as const
 
 export const createEntitlementBodyTwoFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
@@ -13395,7 +13485,7 @@ export const createEntitlementBodyTwoFeatureIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const createEntitlementBodyTwoUsagePeriodOneIntervalOneOneRegExp =
   /^P(?:\d+(?:\.\d+)?Y)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?W)?(?:\d+(?:\.\d+)?D)?(?:T(?:\d+(?:\.\d+)?H)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?S)?)?$/
-export const createEntitlementBodyThreeFeatureKeyMax = 64
+export const createEntitlementBodyThreeFeatureKeyMax = 64 as const
 
 export const createEntitlementBodyThreeFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
@@ -13630,7 +13720,7 @@ export const ListSubjectEntitlementsParams = zod.object({
   subjectIdOrKey: zod.coerce.string(),
 })
 
-export const listSubjectEntitlementsQueryIncludeDeletedDefault = false
+export const listSubjectEntitlementsQueryIncludeDeletedDefault = false as const
 
 export const ListSubjectEntitlementsQueryParams = zod.object({
   includeDeleted: zod.coerce
@@ -13650,8 +13740,8 @@ export const ListEntitlementGrantsParams = zod.object({
   subjectIdOrKey: zod.coerce.string(),
 })
 
-export const listEntitlementGrantsQueryIncludeDeletedDefault = false
-export const listEntitlementGrantsQueryOrderByDefault = 'updatedAt'
+export const listEntitlementGrantsQueryIncludeDeletedDefault = false as const
+export const listEntitlementGrantsQueryOrderByDefault = 'updatedAt' as const
 
 export const ListEntitlementGrantsQueryParams = zod.object({
   includeDeleted: zod.coerce
@@ -13685,14 +13775,14 @@ export const CreateGrantParams = zod.object({
   subjectIdOrKey: zod.coerce.string(),
 })
 
-export const createGrantBodyAmountMin = 0
+export const createGrantBodyAmountMin = 0 as const
 
-export const createGrantBodyPriorityMax = 255
+export const createGrantBodyPriorityMax = 255 as const
 
-export const createGrantBodyExpirationOneCountMax = 1000
+export const createGrantBodyExpirationOneCountMax = 1000 as const
 
-export const createGrantBodyMaxRolloverAmountDefault = 0
-export const createGrantBodyMinRolloverAmountDefault = 0
+export const createGrantBodyMaxRolloverAmountDefault = 0 as const
+export const createGrantBodyMinRolloverAmountDefault = 0 as const
 export const createGrantBodyRecurrenceOneIntervalOneOneRegExp =
   /^P(?:\d+(?:\.\d+)?Y)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?W)?(?:\d+(?:\.\d+)?D)?(?:T(?:\d+(?:\.\d+)?H)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?S)?)?$/
 
@@ -13788,23 +13878,25 @@ export const OverrideEntitlementParams = zod.object({
   subjectIdOrKey: zod.coerce.string(),
 })
 
-export const overrideEntitlementBodyOneFeatureKeyMax = 64
+export const overrideEntitlementBodyOneFeatureKeyMax = 64 as const
 
 export const overrideEntitlementBodyOneFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
 export const overrideEntitlementBodyOneFeatureIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const overrideEntitlementBodyOneIsSoftLimitDefault = false
-export const overrideEntitlementBodyOneIsUnlimitedDefault = false
+export const overrideEntitlementBodyOneIsSoftLimitDefault = false as const
+export const overrideEntitlementBodyOneIsUnlimitedDefault = false as const
 export const overrideEntitlementBodyOneUsagePeriodOneIntervalOneOneRegExp =
   /^P(?:\d+(?:\.\d+)?Y)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?W)?(?:\d+(?:\.\d+)?D)?(?:T(?:\d+(?:\.\d+)?H)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?S)?)?$/
-export const overrideEntitlementBodyOneIssueAfterResetMin = 0
+export const overrideEntitlementBodyOneIssueAfterResetMin = 0 as const
 
-export const overrideEntitlementBodyOneIssueAfterResetPriorityDefault = 1
-export const overrideEntitlementBodyOneIssueAfterResetPriorityMax = 255
+export const overrideEntitlementBodyOneIssueAfterResetPriorityDefault =
+  1 as const
+export const overrideEntitlementBodyOneIssueAfterResetPriorityMax = 255 as const
 
-export const overrideEntitlementBodyOnePreserveOverageAtResetDefault = false
-export const overrideEntitlementBodyTwoFeatureKeyMax = 64
+export const overrideEntitlementBodyOnePreserveOverageAtResetDefault =
+  false as const
+export const overrideEntitlementBodyTwoFeatureKeyMax = 64 as const
 
 export const overrideEntitlementBodyTwoFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
@@ -13812,7 +13904,7 @@ export const overrideEntitlementBodyTwoFeatureIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const overrideEntitlementBodyTwoUsagePeriodOneIntervalOneOneRegExp =
   /^P(?:\d+(?:\.\d+)?Y)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?W)?(?:\d+(?:\.\d+)?D)?(?:T(?:\d+(?:\.\d+)?H)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?S)?)?$/
-export const overrideEntitlementBodyThreeFeatureKeyMax = 64
+export const overrideEntitlementBodyThreeFeatureKeyMax = 64 as const
 
 export const overrideEntitlementBodyThreeFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
@@ -14095,7 +14187,7 @@ export const GetEntitlementHistoryParams = zod.object({
   subjectIdOrKey: zod.coerce.string(),
 })
 
-export const getEntitlementHistoryQueryWindowTimeZoneDefault = 'UTC'
+export const getEntitlementHistoryQueryWindowTimeZoneDefault = 'UTC' as const
 
 export const GetEntitlementHistoryQueryParams = zod.object({
   from: zod.coerce
@@ -14159,95 +14251,121 @@ export const ResetEntitlementUsageBody = zod
 /**
  * @summary Create subscription
  */
-export const createSubscriptionBodyOnePlanOneKeyMax = 64
+export const createSubscriptionBodyOnePlanOneKeyMax = 64 as const
 
 export const createSubscriptionBodyOnePlanOneKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
 
-export const createSubscriptionBodyOneTimingDefault = 'immediate'
+export const createSubscriptionBodyOneTimingDefault = 'immediate' as const
 export const createSubscriptionBodyOneCustomerIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const createSubscriptionBodyOneCustomerKeyMax = 256
+export const createSubscriptionBodyOneCustomerKeyMax = 256 as const
 
-export const createSubscriptionBodyTwoCustomPlanOneOneNameMax = 256
+export const createSubscriptionBodyTwoCustomPlanOneOneNameMax = 256 as const
 
-export const createSubscriptionBodyTwoCustomPlanOneOneDescriptionMax = 1024
+export const createSubscriptionBodyTwoCustomPlanOneOneDescriptionMax =
+  1024 as const
 
-export const createSubscriptionBodyTwoCustomPlanOneOneCurrencyOneMin = 3
-export const createSubscriptionBodyTwoCustomPlanOneOneCurrencyOneMax = 3
+export const createSubscriptionBodyTwoCustomPlanOneOneCurrencyOneMin =
+  3 as const
+export const createSubscriptionBodyTwoCustomPlanOneOneCurrencyOneMax =
+  3 as const
 
 export const createSubscriptionBodyTwoCustomPlanOneOneCurrencyOneRegExp =
   /^[A-Z]{3}$/
-export const createSubscriptionBodyTwoCustomPlanOneOneCurrencyDefault = 'USD'
-export const createSubscriptionBodyTwoCustomPlanOneOneProRatingConfigOneEnabledDefault = true
+export const createSubscriptionBodyTwoCustomPlanOneOneCurrencyDefault =
+  'USD' as const
+export const createSubscriptionBodyTwoCustomPlanOneOneProRatingConfigOneEnabledDefault =
+  true as const
 export const createSubscriptionBodyTwoCustomPlanOneOneProRatingConfigOneModeDefault =
-  'prorate_prices'
+  'prorate_prices' as const
 export const createSubscriptionBodyTwoCustomPlanOneOneProRatingConfigDefault = {
   enabled: true,
   mode: 'prorate_prices',
-}
+} as const
 export const createSubscriptionBodyTwoCustomPlanOneOneSettlementModeDefault =
-  'credit_then_invoice'
-export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemKeyMax = 64
+  'credit_then_invoice' as const
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemKeyMax =
+  64 as const
 
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemNameMax = 256
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemNameMax =
+  256 as const
 
-export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemDescriptionMax = 1024
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemDescriptionMax =
+  1024 as const
 
-export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneKeyMax = 64
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneKeyMax =
+  64 as const
 
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneNameMax = 256
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneNameMax =
+  256 as const
 
-export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneDescriptionMax = 1024
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneDescriptionMax =
+  1024 as const
 
-export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneFeatureKeyMax = 64
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneFeatureKeyMax =
+  64 as const
 
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneEntitlementTemplateOneOneIsSoftLimitDefault = false
-export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetMin = 0
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneEntitlementTemplateOneOneIsSoftLimitDefault =
+  false as const
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetMin =
+  0 as const
 
-export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetPriorityDefault = 1
-export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetPriorityMax = 255
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetPriorityDefault =
+  1 as const
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetPriorityMax =
+  255 as const
 
-export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneEntitlementTemplateOneOnePreserveOverageAtResetDefault =
+  false as const
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOnePriceOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOnePriceOnePaymentTermDefault =
-  'in_advance'
+  'in_advance' as const
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneDiscountsOneUsageOneQuantityOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
-export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoKeyMax = 64
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoKeyMax =
+  64 as const
 
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoNameMax = 256
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoNameMax =
+  256 as const
 
-export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoDescriptionMax = 1024
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoDescriptionMax =
+  1024 as const
 
-export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoFeatureKeyMax = 64
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoFeatureKeyMax =
+  64 as const
 
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoEntitlementTemplateOneOneIsSoftLimitDefault = false
-export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetMin = 0
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoEntitlementTemplateOneOneIsSoftLimitDefault =
+  false as const
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetMin =
+  0 as const
 
-export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetPriorityDefault = 1
-export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetPriorityMax = 255
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetPriorityDefault =
+  1 as const
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetPriorityMax =
+  255 as const
 
-export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoEntitlementTemplateOneOnePreserveOverageAtResetDefault =
+  false as const
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoPriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoPriceOneOnePaymentTermDefault =
-  'in_advance'
+  'in_advance' as const
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoPriceOneTwoAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoPriceOneTwoMinimumAmountOneRegExp =
@@ -14268,7 +14386,7 @@ export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwo
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoPriceOneFourMultiplierOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoPriceOneFourMultiplierDefault =
-  '1'
+  '1' as const
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoPriceOneFourMinimumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoPriceOneFourMaximumAmountOneRegExp =
@@ -14284,10 +14402,10 @@ export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwo
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoDiscountsOneUsageOneQuantityOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 
-export const createSubscriptionBodyTwoTimingDefault = 'immediate'
+export const createSubscriptionBodyTwoTimingDefault = 'immediate' as const
 export const createSubscriptionBodyTwoCustomerIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const createSubscriptionBodyTwoCustomerKeyMax = 256
+export const createSubscriptionBodyTwoCustomerKeyMax = 256 as const
 
 export const CreateSubscriptionBody = zod
   .union([
@@ -15502,58 +15620,76 @@ export const EditSubscriptionParams = zod.object({
     .regex(editSubscriptionPathSubscriptionIdRegExp),
 })
 
-export const editSubscriptionBodyCustomizationsItemOneRateCardOneKeyMax = 64
+export const editSubscriptionBodyCustomizationsItemOneRateCardOneKeyMax =
+  64 as const
 
 export const editSubscriptionBodyCustomizationsItemOneRateCardOneKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const editSubscriptionBodyCustomizationsItemOneRateCardOneNameMax = 256
+export const editSubscriptionBodyCustomizationsItemOneRateCardOneNameMax =
+  256 as const
 
-export const editSubscriptionBodyCustomizationsItemOneRateCardOneDescriptionMax = 1024
+export const editSubscriptionBodyCustomizationsItemOneRateCardOneDescriptionMax =
+  1024 as const
 
-export const editSubscriptionBodyCustomizationsItemOneRateCardOneFeatureKeyMax = 64
+export const editSubscriptionBodyCustomizationsItemOneRateCardOneFeatureKeyMax =
+  64 as const
 
 export const editSubscriptionBodyCustomizationsItemOneRateCardOneFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const editSubscriptionBodyCustomizationsItemOneRateCardOneEntitlementTemplateOneOneIsSoftLimitDefault = false
-export const editSubscriptionBodyCustomizationsItemOneRateCardOneEntitlementTemplateOneOneIssueAfterResetMin = 0
+export const editSubscriptionBodyCustomizationsItemOneRateCardOneEntitlementTemplateOneOneIsSoftLimitDefault =
+  false as const
+export const editSubscriptionBodyCustomizationsItemOneRateCardOneEntitlementTemplateOneOneIssueAfterResetMin =
+  0 as const
 
-export const editSubscriptionBodyCustomizationsItemOneRateCardOneEntitlementTemplateOneOneIssueAfterResetPriorityDefault = 1
-export const editSubscriptionBodyCustomizationsItemOneRateCardOneEntitlementTemplateOneOneIssueAfterResetPriorityMax = 255
+export const editSubscriptionBodyCustomizationsItemOneRateCardOneEntitlementTemplateOneOneIssueAfterResetPriorityDefault =
+  1 as const
+export const editSubscriptionBodyCustomizationsItemOneRateCardOneEntitlementTemplateOneOneIssueAfterResetPriorityMax =
+  255 as const
 
-export const editSubscriptionBodyCustomizationsItemOneRateCardOneEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
+export const editSubscriptionBodyCustomizationsItemOneRateCardOneEntitlementTemplateOneOnePreserveOverageAtResetDefault =
+  false as const
 export const editSubscriptionBodyCustomizationsItemOneRateCardOneTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
 export const editSubscriptionBodyCustomizationsItemOneRateCardOnePriceOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const editSubscriptionBodyCustomizationsItemOneRateCardOnePriceOnePaymentTermDefault =
-  'in_advance'
+  'in_advance' as const
 export const editSubscriptionBodyCustomizationsItemOneRateCardOneDiscountsOneUsageOneQuantityOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
-export const editSubscriptionBodyCustomizationsItemOneRateCardTwoKeyMax = 64
+export const editSubscriptionBodyCustomizationsItemOneRateCardTwoKeyMax =
+  64 as const
 
 export const editSubscriptionBodyCustomizationsItemOneRateCardTwoKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const editSubscriptionBodyCustomizationsItemOneRateCardTwoNameMax = 256
+export const editSubscriptionBodyCustomizationsItemOneRateCardTwoNameMax =
+  256 as const
 
-export const editSubscriptionBodyCustomizationsItemOneRateCardTwoDescriptionMax = 1024
+export const editSubscriptionBodyCustomizationsItemOneRateCardTwoDescriptionMax =
+  1024 as const
 
-export const editSubscriptionBodyCustomizationsItemOneRateCardTwoFeatureKeyMax = 64
+export const editSubscriptionBodyCustomizationsItemOneRateCardTwoFeatureKeyMax =
+  64 as const
 
 export const editSubscriptionBodyCustomizationsItemOneRateCardTwoFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const editSubscriptionBodyCustomizationsItemOneRateCardTwoEntitlementTemplateOneOneIsSoftLimitDefault = false
-export const editSubscriptionBodyCustomizationsItemOneRateCardTwoEntitlementTemplateOneOneIssueAfterResetMin = 0
+export const editSubscriptionBodyCustomizationsItemOneRateCardTwoEntitlementTemplateOneOneIsSoftLimitDefault =
+  false as const
+export const editSubscriptionBodyCustomizationsItemOneRateCardTwoEntitlementTemplateOneOneIssueAfterResetMin =
+  0 as const
 
-export const editSubscriptionBodyCustomizationsItemOneRateCardTwoEntitlementTemplateOneOneIssueAfterResetPriorityDefault = 1
-export const editSubscriptionBodyCustomizationsItemOneRateCardTwoEntitlementTemplateOneOneIssueAfterResetPriorityMax = 255
+export const editSubscriptionBodyCustomizationsItemOneRateCardTwoEntitlementTemplateOneOneIssueAfterResetPriorityDefault =
+  1 as const
+export const editSubscriptionBodyCustomizationsItemOneRateCardTwoEntitlementTemplateOneOneIssueAfterResetPriorityMax =
+  255 as const
 
-export const editSubscriptionBodyCustomizationsItemOneRateCardTwoEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
+export const editSubscriptionBodyCustomizationsItemOneRateCardTwoEntitlementTemplateOneOnePreserveOverageAtResetDefault =
+  false as const
 export const editSubscriptionBodyCustomizationsItemOneRateCardTwoTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
 export const editSubscriptionBodyCustomizationsItemOneRateCardTwoPriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const editSubscriptionBodyCustomizationsItemOneRateCardTwoPriceOneOnePaymentTermDefault =
-  'in_advance'
+  'in_advance' as const
 export const editSubscriptionBodyCustomizationsItemOneRateCardTwoPriceOneTwoAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const editSubscriptionBodyCustomizationsItemOneRateCardTwoPriceOneTwoMinimumAmountOneRegExp =
@@ -15574,7 +15710,7 @@ export const editSubscriptionBodyCustomizationsItemOneRateCardTwoPriceOneThreeMa
 export const editSubscriptionBodyCustomizationsItemOneRateCardTwoPriceOneFourMultiplierOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const editSubscriptionBodyCustomizationsItemOneRateCardTwoPriceOneFourMultiplierDefault =
-  '1'
+  '1' as const
 export const editSubscriptionBodyCustomizationsItemOneRateCardTwoPriceOneFourMinimumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const editSubscriptionBodyCustomizationsItemOneRateCardTwoPriceOneFourMaximumAmountOneRegExp =
@@ -15591,11 +15727,12 @@ export const editSubscriptionBodyCustomizationsItemOneRateCardTwoDiscountsOneUsa
   /^-?[0-9]+(\.[0-9]+)?$/
 export const editSubscriptionBodyCustomizationsItemThreePhaseDiscountsOneUsageOneQuantityOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
-export const editSubscriptionBodyCustomizationsItemThreePhaseKeyMax = 64
+export const editSubscriptionBodyCustomizationsItemThreePhaseKeyMax =
+  64 as const
 
 export const editSubscriptionBodyCustomizationsItemThreePhaseKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const editSubscriptionBodyCustomizationsMax = 100
+export const editSubscriptionBodyCustomizationsMax = 100 as const
 
 export const EditSubscriptionBody = zod
   .object({
@@ -16593,11 +16730,11 @@ export const CreateSubscriptionAddonParams = zod.object({
     .regex(createSubscriptionAddonPathSubscriptionIdRegExp),
 })
 
-export const createSubscriptionAddonBodyNameMax = 256
+export const createSubscriptionAddonBodyNameMax = 256 as const
 
-export const createSubscriptionAddonBodyDescriptionMax = 1024
+export const createSubscriptionAddonBodyDescriptionMax = 1024 as const
 
-export const createSubscriptionAddonBodyQuantityMin = 0
+export const createSubscriptionAddonBodyQuantityMin = 0 as const
 
 export const createSubscriptionAddonBodyAddonIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -16710,11 +16847,11 @@ export const UpdateSubscriptionAddonParams = zod.object({
     .regex(updateSubscriptionAddonPathSubscriptionIdRegExp),
 })
 
-export const updateSubscriptionAddonBodyNameMax = 256
+export const updateSubscriptionAddonBodyNameMax = 256 as const
 
-export const updateSubscriptionAddonBodyDescriptionMax = 1024
+export const updateSubscriptionAddonBodyDescriptionMax = 1024 as const
 
-export const updateSubscriptionAddonBodyQuantityMin = 0
+export const updateSubscriptionAddonBodyQuantityMin = 0 as const
 
 export const UpdateSubscriptionAddonBody = zod
   .object({
@@ -16819,90 +16956,116 @@ export const ChangeSubscriptionParams = zod.object({
     .regex(changeSubscriptionPathSubscriptionIdRegExp),
 })
 
-export const changeSubscriptionBodyOnePlanOneKeyMax = 64
+export const changeSubscriptionBodyOnePlanOneKeyMax = 64 as const
 
 export const changeSubscriptionBodyOnePlanOneKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
 
-export const changeSubscriptionBodyTwoCustomPlanOneOneNameMax = 256
+export const changeSubscriptionBodyTwoCustomPlanOneOneNameMax = 256 as const
 
-export const changeSubscriptionBodyTwoCustomPlanOneOneDescriptionMax = 1024
+export const changeSubscriptionBodyTwoCustomPlanOneOneDescriptionMax =
+  1024 as const
 
-export const changeSubscriptionBodyTwoCustomPlanOneOneCurrencyOneMin = 3
-export const changeSubscriptionBodyTwoCustomPlanOneOneCurrencyOneMax = 3
+export const changeSubscriptionBodyTwoCustomPlanOneOneCurrencyOneMin =
+  3 as const
+export const changeSubscriptionBodyTwoCustomPlanOneOneCurrencyOneMax =
+  3 as const
 
 export const changeSubscriptionBodyTwoCustomPlanOneOneCurrencyOneRegExp =
   /^[A-Z]{3}$/
-export const changeSubscriptionBodyTwoCustomPlanOneOneCurrencyDefault = 'USD'
-export const changeSubscriptionBodyTwoCustomPlanOneOneProRatingConfigOneEnabledDefault = true
+export const changeSubscriptionBodyTwoCustomPlanOneOneCurrencyDefault =
+  'USD' as const
+export const changeSubscriptionBodyTwoCustomPlanOneOneProRatingConfigOneEnabledDefault =
+  true as const
 export const changeSubscriptionBodyTwoCustomPlanOneOneProRatingConfigOneModeDefault =
-  'prorate_prices'
+  'prorate_prices' as const
 export const changeSubscriptionBodyTwoCustomPlanOneOneProRatingConfigDefault = {
   enabled: true,
   mode: 'prorate_prices',
-}
+} as const
 export const changeSubscriptionBodyTwoCustomPlanOneOneSettlementModeDefault =
-  'credit_then_invoice'
-export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemKeyMax = 64
+  'credit_then_invoice' as const
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemKeyMax =
+  64 as const
 
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemNameMax = 256
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemNameMax =
+  256 as const
 
-export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemDescriptionMax = 1024
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemDescriptionMax =
+  1024 as const
 
-export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneKeyMax = 64
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneKeyMax =
+  64 as const
 
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneNameMax = 256
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneNameMax =
+  256 as const
 
-export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneDescriptionMax = 1024
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneDescriptionMax =
+  1024 as const
 
-export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneFeatureKeyMax = 64
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneFeatureKeyMax =
+  64 as const
 
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneEntitlementTemplateOneOneIsSoftLimitDefault = false
-export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetMin = 0
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneEntitlementTemplateOneOneIsSoftLimitDefault =
+  false as const
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetMin =
+  0 as const
 
-export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetPriorityDefault = 1
-export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetPriorityMax = 255
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetPriorityDefault =
+  1 as const
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneEntitlementTemplateOneOneIssueAfterResetPriorityMax =
+  255 as const
 
-export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneEntitlementTemplateOneOnePreserveOverageAtResetDefault =
+  false as const
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOnePriceOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOnePriceOnePaymentTermDefault =
-  'in_advance'
+  'in_advance' as const
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneDiscountsOneUsageOneQuantityOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
-export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoKeyMax = 64
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoKeyMax =
+  64 as const
 
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoNameMax = 256
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoNameMax =
+  256 as const
 
-export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoDescriptionMax = 1024
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoDescriptionMax =
+  1024 as const
 
-export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoFeatureKeyMax = 64
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoFeatureKeyMax =
+  64 as const
 
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
-export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoEntitlementTemplateOneOneIsSoftLimitDefault = false
-export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetMin = 0
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoEntitlementTemplateOneOneIsSoftLimitDefault =
+  false as const
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetMin =
+  0 as const
 
-export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetPriorityDefault = 1
-export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetPriorityMax = 255
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetPriorityDefault =
+  1 as const
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoEntitlementTemplateOneOneIssueAfterResetPriorityMax =
+  255 as const
 
-export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoEntitlementTemplateOneOnePreserveOverageAtResetDefault =
+  false as const
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoPriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoPriceOneOnePaymentTermDefault =
-  'in_advance'
+  'in_advance' as const
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoPriceOneTwoAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoPriceOneTwoMinimumAmountOneRegExp =
@@ -16923,7 +17086,7 @@ export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwo
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoPriceOneFourMultiplierOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoPriceOneFourMultiplierDefault =
-  '1'
+  '1' as const
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoPriceOneFourMinimumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoPriceOneFourMaximumAmountOneRegExp =
@@ -18097,7 +18260,7 @@ export const MigrateSubscriptionParams = zod.object({
     .regex(migrateSubscriptionPathSubscriptionIdRegExp),
 })
 
-export const migrateSubscriptionBodyTimingDefault = 'immediate'
+export const migrateSubscriptionBodyTimingDefault = 'immediate' as const
 
 export const MigrateSubscriptionBody = zod.object({
   billingAnchor: zod.coerce
@@ -18184,7 +18347,7 @@ Once an entitlement is created you cannot modify it, only delete it.
  */
 export const createCustomerEntitlementV2PathCustomerIdOrKeyOneRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const createCustomerEntitlementV2PathCustomerIdOrKeyTwoMax = 256
+export const createCustomerEntitlementV2PathCustomerIdOrKeyTwoMax = 256 as const
 
 export const CreateCustomerEntitlementV2Params = zod.object({
   customerIdOrKey: zod.union([
@@ -18202,36 +18365,45 @@ export const CreateCustomerEntitlementV2Params = zod.object({
   ]),
 })
 
-export const createCustomerEntitlementV2BodyOneFeatureKeyMax = 64
+export const createCustomerEntitlementV2BodyOneFeatureKeyMax = 64 as const
 
 export const createCustomerEntitlementV2BodyOneFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
 export const createCustomerEntitlementV2BodyOneFeatureIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const createCustomerEntitlementV2BodyOneIsSoftLimitDefault = false
+export const createCustomerEntitlementV2BodyOneIsSoftLimitDefault =
+  false as const
 export const createCustomerEntitlementV2BodyOneUsagePeriodOneIntervalOneOneRegExp =
   /^P(?:\d+(?:\.\d+)?Y)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?W)?(?:\d+(?:\.\d+)?D)?(?:T(?:\d+(?:\.\d+)?H)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?S)?)?$/
-export const createCustomerEntitlementV2BodyOnePreserveOverageAtResetDefault = false
-export const createCustomerEntitlementV2BodyOneIssueAfterResetMin = 0
+export const createCustomerEntitlementV2BodyOnePreserveOverageAtResetDefault =
+  false as const
+export const createCustomerEntitlementV2BodyOneIssueAfterResetMin = 0 as const
 
-export const createCustomerEntitlementV2BodyOneIssueAfterResetPriorityDefault = 1
-export const createCustomerEntitlementV2BodyOneIssueAfterResetPriorityMax = 255
+export const createCustomerEntitlementV2BodyOneIssueAfterResetPriorityDefault =
+  1 as const
+export const createCustomerEntitlementV2BodyOneIssueAfterResetPriorityMax =
+  255 as const
 
-export const createCustomerEntitlementV2BodyOneIssueOneAmountMin = 0
+export const createCustomerEntitlementV2BodyOneIssueOneAmountMin = 0 as const
 
-export const createCustomerEntitlementV2BodyOneIssueOnePriorityDefault = 1
-export const createCustomerEntitlementV2BodyOneIssueOnePriorityMax = 255
+export const createCustomerEntitlementV2BodyOneIssueOnePriorityDefault =
+  1 as const
+export const createCustomerEntitlementV2BodyOneIssueOnePriorityMax =
+  255 as const
 
-export const createCustomerEntitlementV2BodyOneGrantsItemAmountMin = 0
+export const createCustomerEntitlementV2BodyOneGrantsItemAmountMin = 0 as const
 
-export const createCustomerEntitlementV2BodyOneGrantsItemPriorityMax = 255
+export const createCustomerEntitlementV2BodyOneGrantsItemPriorityMax =
+  255 as const
 
-export const createCustomerEntitlementV2BodyOneGrantsItemMinRolloverAmountDefault = 0
+export const createCustomerEntitlementV2BodyOneGrantsItemMinRolloverAmountDefault =
+  0 as const
 export const createCustomerEntitlementV2BodyOneGrantsItemRecurrenceOneIntervalOneOneRegExp =
   /^P(?:\d+(?:\.\d+)?Y)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?W)?(?:\d+(?:\.\d+)?D)?(?:T(?:\d+(?:\.\d+)?H)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?S)?)?$/
-export const createCustomerEntitlementV2BodyOneGrantsItemExpirationOneCountMax = 1000
+export const createCustomerEntitlementV2BodyOneGrantsItemExpirationOneCountMax =
+  1000 as const
 
-export const createCustomerEntitlementV2BodyTwoFeatureKeyMax = 64
+export const createCustomerEntitlementV2BodyTwoFeatureKeyMax = 64 as const
 
 export const createCustomerEntitlementV2BodyTwoFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
@@ -18239,7 +18411,7 @@ export const createCustomerEntitlementV2BodyTwoFeatureIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const createCustomerEntitlementV2BodyTwoUsagePeriodOneIntervalOneOneRegExp =
   /^P(?:\d+(?:\.\d+)?Y)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?W)?(?:\d+(?:\.\d+)?D)?(?:T(?:\d+(?:\.\d+)?H)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?S)?)?$/
-export const createCustomerEntitlementV2BodyThreeFeatureKeyMax = 64
+export const createCustomerEntitlementV2BodyThreeFeatureKeyMax = 64 as const
 
 export const createCustomerEntitlementV2BodyThreeFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
@@ -18589,7 +18761,7 @@ export const CreateCustomerEntitlementV2Body = zod
  */
 export const listCustomerEntitlementsV2PathCustomerIdOrKeyOneRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const listCustomerEntitlementsV2PathCustomerIdOrKeyTwoMax = 256
+export const listCustomerEntitlementsV2PathCustomerIdOrKeyTwoMax = 256 as const
 
 export const ListCustomerEntitlementsV2Params = zod.object({
   customerIdOrKey: zod.union([
@@ -18607,13 +18779,14 @@ export const ListCustomerEntitlementsV2Params = zod.object({
   ]),
 })
 
-export const listCustomerEntitlementsV2QueryIncludeDeletedDefault = false
-export const listCustomerEntitlementsV2QueryPageDefault = 1
+export const listCustomerEntitlementsV2QueryIncludeDeletedDefault =
+  false as const
+export const listCustomerEntitlementsV2QueryPageDefault = 1 as const
 
-export const listCustomerEntitlementsV2QueryPageSizeDefault = 100
-export const listCustomerEntitlementsV2QueryPageSizeMax = 1000
+export const listCustomerEntitlementsV2QueryPageSizeDefault = 100 as const
+export const listCustomerEntitlementsV2QueryPageSizeMax = 1000 as const
 
-export const listCustomerEntitlementsV2QueryOrderDefault = 'ASC'
+export const listCustomerEntitlementsV2QueryOrderDefault = 'ASC' as const
 
 export const ListCustomerEntitlementsV2QueryParams = zod.object({
   includeDeleted: zod.coerce
@@ -18648,9 +18821,10 @@ If featureKey is used, the entitlement is resolved for the current timestamp.
  */
 export const getCustomerEntitlementV2PathCustomerIdOrKeyOneRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const getCustomerEntitlementV2PathCustomerIdOrKeyTwoMax = 256
+export const getCustomerEntitlementV2PathCustomerIdOrKeyTwoMax = 256 as const
 
-export const getCustomerEntitlementV2PathEntitlementIdOrFeatureKeyMax = 64
+export const getCustomerEntitlementV2PathEntitlementIdOrFeatureKeyMax =
+  64 as const
 
 export const getCustomerEntitlementV2PathEntitlementIdOrFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -18683,9 +18857,10 @@ As access and status checks can be historical queries, deleting an entitlement p
  */
 export const deleteCustomerEntitlementV2PathCustomerIdOrKeyOneRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const deleteCustomerEntitlementV2PathCustomerIdOrKeyTwoMax = 256
+export const deleteCustomerEntitlementV2PathCustomerIdOrKeyTwoMax = 256 as const
 
-export const deleteCustomerEntitlementV2PathEntitlementIdOrFeatureKeyMax = 64
+export const deleteCustomerEntitlementV2PathEntitlementIdOrFeatureKeyMax =
+  64 as const
 
 export const deleteCustomerEntitlementV2PathEntitlementIdOrFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -18717,9 +18892,11 @@ export const DeleteCustomerEntitlementV2Params = zod.object({
  */
 export const listCustomerEntitlementGrantsV2PathCustomerIdOrKeyOneRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const listCustomerEntitlementGrantsV2PathCustomerIdOrKeyTwoMax = 256
+export const listCustomerEntitlementGrantsV2PathCustomerIdOrKeyTwoMax =
+  256 as const
 
-export const listCustomerEntitlementGrantsV2PathEntitlementIdOrFeatureKeyMax = 64
+export const listCustomerEntitlementGrantsV2PathEntitlementIdOrFeatureKeyMax =
+  64 as const
 
 export const listCustomerEntitlementGrantsV2PathEntitlementIdOrFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -18745,19 +18922,20 @@ export const ListCustomerEntitlementGrantsV2Params = zod.object({
     .regex(listCustomerEntitlementGrantsV2PathEntitlementIdOrFeatureKeyRegExp),
 })
 
-export const listCustomerEntitlementGrantsV2QueryIncludeDeletedDefault = false
-export const listCustomerEntitlementGrantsV2QueryPageDefault = 1
+export const listCustomerEntitlementGrantsV2QueryIncludeDeletedDefault =
+  false as const
+export const listCustomerEntitlementGrantsV2QueryPageDefault = 1 as const
 
-export const listCustomerEntitlementGrantsV2QueryPageSizeDefault = 100
-export const listCustomerEntitlementGrantsV2QueryPageSizeMax = 1000
+export const listCustomerEntitlementGrantsV2QueryPageSizeDefault = 100 as const
+export const listCustomerEntitlementGrantsV2QueryPageSizeMax = 1000 as const
 
-export const listCustomerEntitlementGrantsV2QueryOffsetDefault = 0
-export const listCustomerEntitlementGrantsV2QueryOffsetMin = 0
+export const listCustomerEntitlementGrantsV2QueryOffsetDefault = 0 as const
+export const listCustomerEntitlementGrantsV2QueryOffsetMin = 0 as const
 
-export const listCustomerEntitlementGrantsV2QueryLimitDefault = 100
-export const listCustomerEntitlementGrantsV2QueryLimitMax = 1000
+export const listCustomerEntitlementGrantsV2QueryLimitDefault = 100 as const
+export const listCustomerEntitlementGrantsV2QueryLimitMax = 1000 as const
 
-export const listCustomerEntitlementGrantsV2QueryOrderDefault = 'ASC'
+export const listCustomerEntitlementGrantsV2QueryOrderDefault = 'ASC' as const
 
 export const ListCustomerEntitlementGrantsV2QueryParams = zod.object({
   includeDeleted: zod.coerce
@@ -18812,9 +18990,11 @@ Grants cannot be changed once created, only deleted. This is to ensure that bala
  */
 export const createCustomerEntitlementGrantV2PathCustomerIdOrKeyOneRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const createCustomerEntitlementGrantV2PathCustomerIdOrKeyTwoMax = 256
+export const createCustomerEntitlementGrantV2PathCustomerIdOrKeyTwoMax =
+  256 as const
 
-export const createCustomerEntitlementGrantV2PathEntitlementIdOrFeatureKeyMax = 64
+export const createCustomerEntitlementGrantV2PathEntitlementIdOrFeatureKeyMax =
+  64 as const
 
 export const createCustomerEntitlementGrantV2PathEntitlementIdOrFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -18840,14 +19020,16 @@ export const CreateCustomerEntitlementGrantV2Params = zod.object({
     .regex(createCustomerEntitlementGrantV2PathEntitlementIdOrFeatureKeyRegExp),
 })
 
-export const createCustomerEntitlementGrantV2BodyAmountMin = 0
+export const createCustomerEntitlementGrantV2BodyAmountMin = 0 as const
 
-export const createCustomerEntitlementGrantV2BodyPriorityMax = 255
+export const createCustomerEntitlementGrantV2BodyPriorityMax = 255 as const
 
-export const createCustomerEntitlementGrantV2BodyMinRolloverAmountDefault = 0
+export const createCustomerEntitlementGrantV2BodyMinRolloverAmountDefault =
+  0 as const
 export const createCustomerEntitlementGrantV2BodyRecurrenceOneIntervalOneOneRegExp =
   /^P(?:\d+(?:\.\d+)?Y)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?W)?(?:\d+(?:\.\d+)?D)?(?:T(?:\d+(?:\.\d+)?H)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?S)?)?$/
-export const createCustomerEntitlementGrantV2BodyExpirationOneCountMax = 1000
+export const createCustomerEntitlementGrantV2BodyExpirationOneCountMax =
+  1000 as const
 
 export const CreateCustomerEntitlementGrantV2Body = zod
   .object({
@@ -18949,9 +19131,11 @@ WindowedHistory returns windowed usage data for the period enriched with balance
  */
 export const getCustomerEntitlementHistoryV2PathCustomerIdOrKeyOneRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const getCustomerEntitlementHistoryV2PathCustomerIdOrKeyTwoMax = 256
+export const getCustomerEntitlementHistoryV2PathCustomerIdOrKeyTwoMax =
+  256 as const
 
-export const getCustomerEntitlementHistoryV2PathEntitlementIdOrFeatureKeyMax = 64
+export const getCustomerEntitlementHistoryV2PathEntitlementIdOrFeatureKeyMax =
+  64 as const
 
 export const getCustomerEntitlementHistoryV2PathEntitlementIdOrFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -18977,7 +19161,8 @@ export const GetCustomerEntitlementHistoryV2Params = zod.object({
     .regex(getCustomerEntitlementHistoryV2PathEntitlementIdOrFeatureKeyRegExp),
 })
 
-export const getCustomerEntitlementHistoryV2QueryWindowTimeZoneDefault = 'UTC'
+export const getCustomerEntitlementHistoryV2QueryWindowTimeZoneDefault =
+  'UTC' as const
 
 export const GetCustomerEntitlementHistoryV2QueryParams = zod.object({
   from: zod.coerce
@@ -19009,11 +19194,13 @@ This endpoint is useful for upgrades, downgrades, or other changes to entitlemen
  */
 export const overrideCustomerEntitlementV2PathCustomerIdOrKeyOneRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const overrideCustomerEntitlementV2PathCustomerIdOrKeyTwoMax = 256
+export const overrideCustomerEntitlementV2PathCustomerIdOrKeyTwoMax =
+  256 as const
 
 export const overrideCustomerEntitlementV2PathEntitlementIdOrFeatureKeyOneRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const overrideCustomerEntitlementV2PathEntitlementIdOrFeatureKeyTwoMax = 256
+export const overrideCustomerEntitlementV2PathEntitlementIdOrFeatureKeyTwoMax =
+  256 as const
 
 export const OverrideCustomerEntitlementV2Params = zod.object({
   customerIdOrKey: zod.union([
@@ -19046,36 +19233,46 @@ export const OverrideCustomerEntitlementV2Params = zod.object({
   ]),
 })
 
-export const overrideCustomerEntitlementV2BodyOneFeatureKeyMax = 64
+export const overrideCustomerEntitlementV2BodyOneFeatureKeyMax = 64 as const
 
 export const overrideCustomerEntitlementV2BodyOneFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
 export const overrideCustomerEntitlementV2BodyOneFeatureIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const overrideCustomerEntitlementV2BodyOneIsSoftLimitDefault = false
+export const overrideCustomerEntitlementV2BodyOneIsSoftLimitDefault =
+  false as const
 export const overrideCustomerEntitlementV2BodyOneUsagePeriodOneIntervalOneOneRegExp =
   /^P(?:\d+(?:\.\d+)?Y)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?W)?(?:\d+(?:\.\d+)?D)?(?:T(?:\d+(?:\.\d+)?H)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?S)?)?$/
-export const overrideCustomerEntitlementV2BodyOnePreserveOverageAtResetDefault = false
-export const overrideCustomerEntitlementV2BodyOneIssueAfterResetMin = 0
+export const overrideCustomerEntitlementV2BodyOnePreserveOverageAtResetDefault =
+  false as const
+export const overrideCustomerEntitlementV2BodyOneIssueAfterResetMin = 0 as const
 
-export const overrideCustomerEntitlementV2BodyOneIssueAfterResetPriorityDefault = 1
-export const overrideCustomerEntitlementV2BodyOneIssueAfterResetPriorityMax = 255
+export const overrideCustomerEntitlementV2BodyOneIssueAfterResetPriorityDefault =
+  1 as const
+export const overrideCustomerEntitlementV2BodyOneIssueAfterResetPriorityMax =
+  255 as const
 
-export const overrideCustomerEntitlementV2BodyOneIssueOneAmountMin = 0
+export const overrideCustomerEntitlementV2BodyOneIssueOneAmountMin = 0 as const
 
-export const overrideCustomerEntitlementV2BodyOneIssueOnePriorityDefault = 1
-export const overrideCustomerEntitlementV2BodyOneIssueOnePriorityMax = 255
+export const overrideCustomerEntitlementV2BodyOneIssueOnePriorityDefault =
+  1 as const
+export const overrideCustomerEntitlementV2BodyOneIssueOnePriorityMax =
+  255 as const
 
-export const overrideCustomerEntitlementV2BodyOneGrantsItemAmountMin = 0
+export const overrideCustomerEntitlementV2BodyOneGrantsItemAmountMin =
+  0 as const
 
-export const overrideCustomerEntitlementV2BodyOneGrantsItemPriorityMax = 255
+export const overrideCustomerEntitlementV2BodyOneGrantsItemPriorityMax =
+  255 as const
 
-export const overrideCustomerEntitlementV2BodyOneGrantsItemMinRolloverAmountDefault = 0
+export const overrideCustomerEntitlementV2BodyOneGrantsItemMinRolloverAmountDefault =
+  0 as const
 export const overrideCustomerEntitlementV2BodyOneGrantsItemRecurrenceOneIntervalOneOneRegExp =
   /^P(?:\d+(?:\.\d+)?Y)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?W)?(?:\d+(?:\.\d+)?D)?(?:T(?:\d+(?:\.\d+)?H)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?S)?)?$/
-export const overrideCustomerEntitlementV2BodyOneGrantsItemExpirationOneCountMax = 1000
+export const overrideCustomerEntitlementV2BodyOneGrantsItemExpirationOneCountMax =
+  1000 as const
 
-export const overrideCustomerEntitlementV2BodyTwoFeatureKeyMax = 64
+export const overrideCustomerEntitlementV2BodyTwoFeatureKeyMax = 64 as const
 
 export const overrideCustomerEntitlementV2BodyTwoFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
@@ -19083,7 +19280,7 @@ export const overrideCustomerEntitlementV2BodyTwoFeatureIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const overrideCustomerEntitlementV2BodyTwoUsagePeriodOneIntervalOneOneRegExp =
   /^P(?:\d+(?:\.\d+)?Y)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?W)?(?:\d+(?:\.\d+)?D)?(?:T(?:\d+(?:\.\d+)?H)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?S)?)?$/
-export const overrideCustomerEntitlementV2BodyThreeFeatureKeyMax = 64
+export const overrideCustomerEntitlementV2BodyThreeFeatureKeyMax = 64 as const
 
 export const overrideCustomerEntitlementV2BodyThreeFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
@@ -19437,9 +19634,11 @@ Usage is automatically reset for metered entitlements based on their usage perio
  */
 export const resetCustomerEntitlementUsageV2PathCustomerIdOrKeyOneRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const resetCustomerEntitlementUsageV2PathCustomerIdOrKeyTwoMax = 256
+export const resetCustomerEntitlementUsageV2PathCustomerIdOrKeyTwoMax =
+  256 as const
 
-export const resetCustomerEntitlementUsageV2PathEntitlementIdOrFeatureKeyMax = 64
+export const resetCustomerEntitlementUsageV2PathEntitlementIdOrFeatureKeyMax =
+  64 as const
 
 export const resetCustomerEntitlementUsageV2PathEntitlementIdOrFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -19494,9 +19693,11 @@ export const ResetCustomerEntitlementUsageV2Body = zod
  */
 export const getCustomerEntitlementValueV2PathCustomerIdOrKeyOneRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const getCustomerEntitlementValueV2PathCustomerIdOrKeyTwoMax = 256
+export const getCustomerEntitlementValueV2PathCustomerIdOrKeyTwoMax =
+  256 as const
 
-export const getCustomerEntitlementValueV2PathEntitlementIdOrFeatureKeyMax = 64
+export const getCustomerEntitlementValueV2PathEntitlementIdOrFeatureKeyMax =
+  64 as const
 
 export const getCustomerEntitlementValueV2PathEntitlementIdOrFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -19531,19 +19732,19 @@ export const GetCustomerEntitlementValueV2QueryParams = zod.object({
 To fetch the entitlements of a specific subject please use the /api/v2/customers/{customerIdOrKey}/entitlements endpoint.
  * @summary List all entitlements
  */
-export const listEntitlementsV2QueryExcludeInactiveDefault = false
-export const listEntitlementsV2QueryPageDefault = 1
+export const listEntitlementsV2QueryExcludeInactiveDefault = false as const
+export const listEntitlementsV2QueryPageDefault = 1 as const
 
-export const listEntitlementsV2QueryPageSizeDefault = 100
-export const listEntitlementsV2QueryPageSizeMax = 1000
+export const listEntitlementsV2QueryPageSizeDefault = 100 as const
+export const listEntitlementsV2QueryPageSizeMax = 1000 as const
 
-export const listEntitlementsV2QueryOffsetDefault = 0
-export const listEntitlementsV2QueryOffsetMin = 0
+export const listEntitlementsV2QueryOffsetDefault = 0 as const
+export const listEntitlementsV2QueryOffsetMin = 0 as const
 
-export const listEntitlementsV2QueryLimitDefault = 100
-export const listEntitlementsV2QueryLimitMax = 1000
+export const listEntitlementsV2QueryLimitDefault = 100 as const
+export const listEntitlementsV2QueryLimitMax = 1000 as const
 
-export const listEntitlementsV2QueryOrderDefault = 'ASC'
+export const listEntitlementsV2QueryOrderDefault = 'ASC' as const
 
 export const ListEntitlementsV2QueryParams = zod.object({
   customerIds: zod
@@ -19630,10 +19831,10 @@ export const GetEntitlementByIdV2Params = zod.object({
  * List ingested events with advanced filtering and cursor pagination.
  * @summary List ingested events
  */
-export const listEventsV2QueryLimitDefault = 100
-export const listEventsV2QueryLimitMax = 100
+export const listEventsV2QueryLimitDefault = 100 as const
+export const listEventsV2QueryLimitMax = 100 as const
 
-export const listEventsV2QueryClientIdMax = 36
+export const listEventsV2QueryClientIdMax = 36 as const
 
 export const ListEventsV2QueryParams = zod.object({
   clientId: zod.coerce
@@ -19662,21 +19863,21 @@ If page is provided that takes precedence and the paginated response is returned
  */
 export const listGrantsV2QueryCustomerItemOneRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
-export const listGrantsV2QueryCustomerItemTwoMax = 256
+export const listGrantsV2QueryCustomerItemTwoMax = 256 as const
 
-export const listGrantsV2QueryIncludeDeletedDefault = false
-export const listGrantsV2QueryPageDefault = 1
+export const listGrantsV2QueryIncludeDeletedDefault = false as const
+export const listGrantsV2QueryPageDefault = 1 as const
 
-export const listGrantsV2QueryPageSizeDefault = 100
-export const listGrantsV2QueryPageSizeMax = 1000
+export const listGrantsV2QueryPageSizeDefault = 100 as const
+export const listGrantsV2QueryPageSizeMax = 1000 as const
 
-export const listGrantsV2QueryOffsetDefault = 0
-export const listGrantsV2QueryOffsetMin = 0
+export const listGrantsV2QueryOffsetDefault = 0 as const
+export const listGrantsV2QueryOffsetMin = 0 as const
 
-export const listGrantsV2QueryLimitDefault = 100
-export const listGrantsV2QueryLimitMax = 1000
+export const listGrantsV2QueryLimitDefault = 100 as const
+export const listGrantsV2QueryLimitMax = 1000 as const
 
-export const listGrantsV2QueryOrderDefault = 'ASC'
+export const listGrantsV2QueryOrderDefault = 'ASC' as const
 
 export const ListGrantsV2QueryParams = zod.object({
   customer: zod
