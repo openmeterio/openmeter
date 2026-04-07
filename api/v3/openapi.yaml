@@ -3632,7 +3632,10 @@ components:
             Requires the `realtime_usage` expand.
           title: Realtime totals
           readOnly: true
-      description: A usage-based charge for a customer.
+      description: |-
+        The totals of a change.
+
+        RealTime is only expanded when the `real_time_usage` expand is used.
     BillingChargesExpand:
       type: string
       enum:
@@ -7254,7 +7257,6 @@ components:
             Supported statuses are:
             - `created`
             - `active`
-            - `settled`
             - `final`
             - `deleted`
 
