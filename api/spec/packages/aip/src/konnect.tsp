@@ -83,11 +83,16 @@ interface CustomerCreditGrantsEndpoints
 interface CustomerCreditBalanceEndpoints
   extends Customers.CustomerCreditBalancesOperations {}
 
+@route("/openmeter/customers/{customerId}/credits/adjustments")
+@tag(Shared.CustomersTag)
+interface CustomerCreditAdjustmentsEndpoints
+  extends Customers.CustomerCreditAdjustmentsOperations {}
+
 @route("/openmeter/customers/{customerId}/credits/grants/{creditGrantId}")
 @tag(Shared.CustomersTag)
 interface CustomerCreditGrantEndpoints {
-  @route("/void")
-  voidGrant is Customers.CustomerCreditGrantVoidOperations.voidGrant;
+  // @route("/void")
+  // voidGrant is Customers.CustomerCreditGrantVoidOperations.voidGrant;
 
   @route("/settlement/external")
   updateExternalSettlement is Customers.CustomerCreditGrantExternalSettlementOperations.updateExternalSettlement;

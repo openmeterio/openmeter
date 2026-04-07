@@ -8,6 +8,7 @@ import "../../shared/index.tsp";
 import "./grant.tsp";
 import "./balance.tsp";
 import "./ledger.tsp";
+import "./adjustment.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -19,11 +20,6 @@ namespace Customers;
  */
 @friendlyName("ListCreditGrantsParamsFilter")
 model ListCreditGrantsParamsFilter {
-  /**
-   * Filter credit grants by funding method.
-   */
-  funding_method?: CreditFundingMethod;
-
   /**
    * Filter credit grants by status.
    */
@@ -77,24 +73,24 @@ interface CustomerCreditGrantsOperations {
   ): Shared.PagePaginatedResponse<CreditGrant> | Common.NotFound | Common.ErrorResponses;
 }
 
-interface CustomerCreditGrantVoidOperations {
-  /**
-   * Void a credit grant, forfeiting the remaining unused balance.
-   *
-   * Voiding is a forward-looking, irreversible operation. Credits already
-   * consumed by usage remain unaffected — only the remaining balance is
-   * forfeited. The grant transitions to `voided` status and a breakage
-   * ledger entry is recorded for the forfeited amount. Only `pending`
-   * and `active` grants can be voided.
-   */
-  @post
-  @operationId("void-credit-grant")
-  @summary("Void credit grant")
-  voidGrant(
-    @path customerId: Shared.ULID,
-    @path creditGrantId: Shared.ULID,
-  ): Shared.UpdateResponse<CreditGrant> | Common.NotFound | Common.ErrorResponses;
-}
+// interface CustomerCreditGrantVoidOperations {
+//   /**
+//    * Void a credit grant, forfeiting the remaining unused balance.
+//    *
+//    * Voiding is a forward-looking, irreversible operation. Credits already
+//    * consumed by usage remain unaffected — only the remaining balance is
+//    * forfeited. The grant transitions to `voided` status and a breakage
+//    * ledger entry is recorded for the forfeited amount. Only `pending`
+//    * and `active` grants can be voided.
+//    */
+//   @post
+//   @operationId("void-credit-grant")
+//   @summary("Void credit grant")
+//   voidGrant(
+//     @path customerId: Shared.ULID,
+//     @path creditGrantId: Shared.ULID,
+//   ): Shared.UpdateResponse<CreditGrant> | Common.NotFound | Common.ErrorResponses;
+// }
 
 /**
  * Request body for updating the external payment settlement status of a credit grant.
@@ -196,6 +192,18 @@ interface CustomerCreditTransactionOperations {
   ): Shared.PagePaginatedResponse<CreditTransaction> | Common.NotFound | Common.ErrorResponses;
 }
 
-interface CustomerCreditAdjustmentOperations {
-  // TODO: add operations for credit adjustments
+interface CustomerCreditAdjustmentsOperations {
+  /**
+   * A credit adjustment can be used to make manual adjustments to a customer's credit balance.
+   *
+   * Supported use-cases:
+   * - Usage correction
+   */
+  @post
+  @operationId("create-credit-adjustment")
+  @summary("Create a credit adjustment")
+  create(
+    @path customerId: Shared.ULID,
+    @body credit_adjustment: Shared.CreateRequest<CreditAdjustment>,
+  ): Shared.CreateResponse<CreditAdjustment> | Common.NotFound | Common.ErrorResponses;
 }

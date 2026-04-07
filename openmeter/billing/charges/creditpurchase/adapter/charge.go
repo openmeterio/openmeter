@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargecreditpurchase "github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -130,5 +131,54 @@ func (a *adapter) GetByIDs(ctx context.Context, input creditpurchase.GetByIDsInp
 		return slicesx.MapWithErr(entitiesInOrder, func(entity *db.ChargeCreditPurchase) (creditpurchase.Charge, error) {
 			return MapCreditPurchaseChargeFromDB(entity, input.Expands)
 		})
+	})
+}
+
+func (a *adapter) ListCharges(ctx context.Context, input creditpurchase.ListChargesInput) (pagination.Result[creditpurchase.Charge], error) {
+	if err := input.Validate(); err != nil {
+		return pagination.Result[creditpurchase.Charge]{}, err
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (pagination.Result[creditpurchase.Charge], error) {
+		query := tx.db.ChargeCreditPurchase.Query().
+			Where(dbchargecreditpurchase.Namespace(input.Namespace))
+
+		if !input.IncludeDeleted {
+			query = query.Where(dbchargecreditpurchase.DeletedAtIsNil())
+		}
+
+		if len(input.CustomerIDs) > 0 {
+			query = query.Where(dbchargecreditpurchase.CustomerIDIn(input.CustomerIDs...))
+		}
+
+		if len(input.Statuses) > 0 {
+			query = query.Where(dbchargecreditpurchase.StatusIn(input.Statuses...))
+		}
+
+		if len(input.Currencies) > 0 {
+			query = query.Where(dbchargecreditpurchase.CurrencyIn(input.Currencies...))
+		}
+
+		if input.Expands.Has(meta.ExpandRealizations) {
+			query = query.WithExternalPayment().WithInvoicedPayment()
+		}
+
+		res, err := query.Paginate(ctx, input.Page)
+		if err != nil {
+			return pagination.Result[creditpurchase.Charge]{}, err
+		}
+
+		charges, err := slicesx.MapWithErr(res.Items, func(entity *db.ChargeCreditPurchase) (creditpurchase.Charge, error) {
+			return MapCreditPurchaseChargeFromDB(entity, input.Expands)
+		})
+		if err != nil {
+			return pagination.Result[creditpurchase.Charge]{}, err
+		}
+
+		return pagination.Result[creditpurchase.Charge]{
+			Page:       res.Page,
+			TotalCount: res.TotalCount,
+			Items:      charges,
+		}, nil
 	})
 }

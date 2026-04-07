@@ -335,19 +335,42 @@ func (s *Server) GetCustomerCreditBalance(w http.ResponseWriter, r *http.Request
 }
 
 func (s *Server) ListCreditGrants(w http.ResponseWriter, r *http.Request, customerId api.ULID, params api.ListCreditGrantsParams) {
-	unimplemented.ListCreditGrants(w, r, customerId, params)
+	if s.customersCreditsHandler == nil || s.CreditGrantService == nil {
+		unimplemented.ListCreditGrants(w, r, customerId, params)
+		return
+	}
+
+	s.customersCreditsHandler.ListCreditGrants().With(customerscreditshandler.ListCreditGrantsParams{
+		CustomerID: customerId,
+		Params:     params,
+	}).ServeHTTP(w, r)
 }
 
 func (s *Server) CreateCreditGrant(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
-	unimplemented.CreateCreditGrant(w, r, customerId)
+	if s.customersCreditsHandler == nil || s.CreditGrantService == nil {
+		unimplemented.CreateCreditGrant(w, r, customerId)
+		return
+	}
+
+	s.customersCreditsHandler.CreateCreditGrant().With(customerscreditshandler.CreateCreditGrantParams{
+		CustomerID: customerId,
+	}).ServeHTTP(w, r)
 }
 
 func (s *Server) GetCreditGrant(w http.ResponseWriter, r *http.Request, customerId api.ULID, creditGrantId api.ULID) {
-	unimplemented.GetCreditGrant(w, r, customerId, creditGrantId)
+	if s.customersCreditsHandler == nil || s.CreditGrantService == nil {
+		unimplemented.GetCreditGrant(w, r, customerId, creditGrantId)
+		return
+	}
+
+	s.customersCreditsHandler.GetCreditGrant().With(customerscreditshandler.GetCreditGrantParams{
+		CustomerID:    customerId,
+		CreditGrantID: creditGrantId,
+	}).ServeHTTP(w, r)
 }
 
-func (s *Server) VoidCreditGrant(w http.ResponseWriter, r *http.Request, customerId api.ULID, creditGrantId api.ULID) {
-	unimplemented.VoidCreditGrant(w, r, customerId, creditGrantId)
+func (s *Server) CreateCreditAdjustment(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
+	unimplemented.CreateCreditAdjustment(w, r, customerId)
 }
 
 func (s *Server) UpdateCreditGrantExternalSettlement(w http.ResponseWriter, r *http.Request, customerId api.ULID, creditGrantId api.ULID) {

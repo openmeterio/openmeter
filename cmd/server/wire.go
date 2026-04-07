@@ -14,6 +14,7 @@ import (
 
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	"github.com/openmeterio/openmeter/openmeter/cost"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -57,6 +58,7 @@ type Application struct {
 	BillingRegistry                  common.BillingRegistry
 	CurrencyService                  currencies.CurrencyService
 	CostService                      cost.Service
+	CreditGrantService               creditgrant.Service
 	CustomerBalanceFacade            *customerbalance.Facade
 	EntClient                        *db.Client
 	EventPublisher                   eventbus.Publisher
@@ -102,6 +104,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Billing,
 		common.ClickHouse,
 		common.Config,
+		common.CreditGrant,
 		common.Currency,
 		common.Customer,
 		common.CustomerBalance,
