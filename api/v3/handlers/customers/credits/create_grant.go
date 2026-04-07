@@ -47,7 +47,7 @@ func (h *handler) CreateCreditGrant() CreateCreditGrantHandler {
 				return CreateCreditGrantResponse{}, err
 			}
 
-			return convertCreditGrant(charge), nil
+			return convertCreditGrant(charge)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateCreditGrantResponse](http.StatusCreated),
 		httptransport.AppendOptions(

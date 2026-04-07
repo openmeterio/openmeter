@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type (
@@ -85,9 +86,12 @@ func (h *handler) ListCreditGrants() ListCreditGrantsHandler {
 				return ListCreditGrantsResponse{}, fmt.Errorf("list credit grants: %w", err)
 			}
 
-			grants := lo.Map(result.Items, func(item creditpurchase.Charge, _ int) api.BillingCreditGrant {
+			grants, err := slicesx.MapWithErr(result.Items, func(item creditpurchase.Charge) (api.BillingCreditGrant, error) {
 				return convertCreditGrant(item)
 			})
+			if err != nil {
+				return ListCreditGrantsResponse{}, fmt.Errorf("converting credit grants: %w", err)
+			}
 
 			return response.NewPagePaginationResponse(grants, response.PageMetaPage{
 				Size:   request.Page.PageSize,

@@ -17,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func convertCreditGrant(charge creditpurchase.Charge) api.BillingCreditGrant {
+func convertCreditGrant(charge creditpurchase.Charge) (api.BillingCreditGrant, error) {
 	grant := api.BillingCreditGrant{
 		Id:            charge.ID,
 		Name:          charge.Intent.Name,
@@ -37,10 +37,14 @@ func convertCreditGrant(charge creditpurchase.Charge) api.BillingCreditGrant {
 		grant.Priority = &p
 	}
 
-	grant.Purchase = convertPurchase(charge)
+	purchase, err := convertPurchase(charge)
+	if err != nil {
+		return grant, fmt.Errorf("converting purchase: %w", err)
+	}
+	grant.Purchase = purchase
 	grant.TaxConfig = convertTaxConfig(charge)
 
-	return grant
+	return grant, nil
 }
 
 func convertFundingMethod(settlement creditpurchase.Settlement) api.BillingCreditFundingMethod {
@@ -77,18 +81,22 @@ type creditGrantPurchase = struct {
 
 // convertPurchase builds the purchase block for funded grants (invoice or external).
 // Returns nil for promotional grants (funding_method=none).
-func convertPurchase(charge creditpurchase.Charge) *creditGrantPurchase {
+func convertPurchase(charge creditpurchase.Charge) (*creditGrantPurchase, error) {
 	settlement := charge.Intent.Settlement
 
 	switch settlement.Type() {
 	case creditpurchase.SettlementTypeInvoice:
 		inv, err := settlement.AsInvoiceSettlement()
 		if err != nil {
-			return nil
+			return nil, fmt.Errorf("getting invoice settlement: %w", err)
 		}
 
 		costBasis := inv.CostBasis.String()
-		purchaseAmount := charge.Intent.CreditAmount.Mul(inv.CostBasis).String()
+		currencyCalculator, err := charge.Intent.Currency.Calculator()
+		if err != nil {
+			return nil, fmt.Errorf("getting currency calculator: %w", err)
+		}
+		purchaseAmount := currencyCalculator.RoundToPrecision(charge.Intent.CreditAmount.Mul(inv.CostBasis))
 		settlementStatus := api.BillingCreditPurchasePaymentSettlementStatusPending
 
 		if charge.State.InvoiceSettlement != nil {
@@ -96,23 +104,27 @@ func convertPurchase(charge creditpurchase.Charge) *creditGrantPurchase {
 		}
 
 		return &creditGrantPurchase{
-			Amount:           purchaseAmount,
+			Amount:           purchaseAmount.String(),
 			Currency:         api.CurrencyCode(inv.Currency),
 			PerUnitCostBasis: &costBasis,
 			SettlementStatus: &settlementStatus,
-		}
+		}, nil
 
 	case creditpurchase.SettlementTypeExternal:
 		ext, err := settlement.AsExternalSettlement()
 		if err != nil {
-			return nil
+			return nil, fmt.Errorf("getting external settlement: %w", err)
 		}
 
 		costBasis := ext.CostBasis.String()
-		purchaseAmount := charge.Intent.CreditAmount.Mul(ext.CostBasis).String()
+		currencyCalculator, err := charge.Intent.Currency.Calculator()
+		if err != nil {
+			return nil, fmt.Errorf("getting currency calculator: %w", err)
+		}
+		purchaseAmount := currencyCalculator.RoundToPrecision(charge.Intent.CreditAmount.Mul(ext.CostBasis))
 		availPolicy, err := convertAvailabilityPolicy(ext.InitialStatus)
 		if err != nil {
-			return nil
+			return nil, fmt.Errorf("converting availability policy: %w", err)
 		}
 		settlementStatus := api.BillingCreditPurchasePaymentSettlementStatusPending
 
@@ -121,15 +133,15 @@ func convertPurchase(charge creditpurchase.Charge) *creditGrantPurchase {
 		}
 
 		return &creditGrantPurchase{
-			Amount:             purchaseAmount,
+			Amount:             purchaseAmount.String(),
 			Currency:           api.CurrencyCode(ext.Currency),
 			PerUnitCostBasis:   &costBasis,
 			AvailabilityPolicy: &availPolicy,
 			SettlementStatus:   &settlementStatus,
-		}
+		}, nil
 
 	default:
-		return nil
+		return nil, fmt.Errorf("invalid settlement type: %s", settlement.Type())
 	}
 }
 
