@@ -74,6 +74,7 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 		// Let's add fields coming from the line creation
 		expected.Namespace = cust.Namespace
 		expected.InvoiceID = res.Invoice.ID
+		expected.Engine = line.Engine
 		expected.ID = line.ID
 		expected.CreatedAt = line.CreatedAt
 		expected.UpdatedAt = line.UpdatedAt

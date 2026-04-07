@@ -5,6 +5,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	chargesflatfee "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
@@ -17,7 +18,7 @@ type flatFeeChargeCollection struct {
 
 func newFlatFeeChargeCollection(preallocatedCapacity int) *flatFeeChargeCollection {
 	return &flatFeeChargeCollection{
-		chargePatchCollection: newChargePatchCollection(persistedstate.ItemTypeChargeFlatFee, preallocatedCapacity),
+		chargePatchCollection: newChargePatchCollection(billing.LineEngineTypeChargeFlatFee, persistedstate.ItemTypeChargeFlatFee, preallocatedCapacity),
 	}
 }
 

@@ -122,6 +122,7 @@ func gatheringLineFromUsageBasedCharge(flatFee usagebased.Charge) (usagebased.Ch
 			TaxConfig: intent.TaxConfig,
 
 			ChargeID:               lo.ToPtr(flatFee.ID),
+			Engine:                 billing.LineEngineTypeChargeUsageBased,
 			ChildUniqueReferenceID: intent.UniqueReferenceID,
 			Subscription:           subscription,
 		},

@@ -48,12 +48,11 @@ func (s *SubscriptionTestSuite) SetupSuite() {
 	s.NoError(err)
 
 	service, err := subscriptionsyncservice.New(subscriptionsyncservice.Config{
-		BillingService:             s.BillingService,
-		InvoicePendingLinesService: s.BillingService,
-		Logger:                     slog.Default(),
-		Tracer:                     noop.NewTracerProvider().Tracer("test"),
-		SubscriptionSyncAdapter:    subscriptionSyncAdapter,
-		SubscriptionService:        s.SubscriptionService,
+		BillingService:          s.BillingService,
+		Logger:                  slog.Default(),
+		Tracer:                  noop.NewTracerProvider().Tracer("test"),
+		SubscriptionSyncAdapter: subscriptionSyncAdapter,
+		SubscriptionService:     s.SubscriptionService,
 	})
 	s.NoError(err)
 	s.NotNil(service)

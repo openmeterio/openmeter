@@ -94,6 +94,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					SetInvoiceAt(line.InvoiceAt.In(time.UTC)).
 					SetStatus(billing.InvoiceLineStatusValid).
 					SetManagedBy(line.ManagedBy).
+					SetEngine(line.Engine).
 					SetType(billing.InvoiceLineAdapterTypeUsageBased).
 					SetName(line.Name).
 					SetNillableDescription(line.Description).
@@ -311,6 +312,8 @@ func (a *adapter) upsertDetailedLines(ctx context.Context, in detailedLineDiff) 
 				SetNillableDeletedAt(line.DeletedAt).
 				SetStatus(billing.InvoiceLineStatusDetailed).
 				SetManagedBy(billing.SystemManagedLine).
+				// Note: detailed lines should not have this field, but we set it until the data migartion is complete
+				SetEngine(billing.LineEngineTypeInvoice).
 				SetType(billing.InvoiceLineAdapterTypeFee).
 				SetName(line.Name).
 				SetNillableDescription(line.Description).

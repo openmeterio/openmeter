@@ -204,6 +204,25 @@ func (i InvoiceLine) Type() InvoiceLineType {
 	return i.t
 }
 
+func (i InvoiceLine) GetChargeID() (*string, error) {
+	switch i.t {
+	case InvoiceLineTypeStandard:
+		if i.standardLine == nil {
+			return nil, fmt.Errorf("standard line is nil")
+		}
+
+		return i.standardLine.ChargeID, nil
+	case InvoiceLineTypeGathering:
+		if i.gatheringLine == nil {
+			return nil, fmt.Errorf("gathering line is nil")
+		}
+
+		return i.gatheringLine.ChargeID, nil
+	default:
+		return nil, fmt.Errorf("invalid invoice line type: %s", i.t)
+	}
+}
+
 func (i InvoiceLine) AsStandardLine() (StandardLine, error) {
 	if i.t != InvoiceLineTypeStandard {
 		return StandardLine{}, fmt.Errorf("line is not a standard line")

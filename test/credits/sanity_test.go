@@ -293,7 +293,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 	var stdLineID billing.LineID
 	clock.SetTime(servicePeriod.From)
 	s.Run("invoice the charge", func() {
-		invoices, err := s.Charges.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: cust.GetID(),
 			AsOf:     lo.ToPtr(servicePeriod.From),
 		})

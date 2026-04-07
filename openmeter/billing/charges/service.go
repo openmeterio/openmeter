@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -17,7 +16,6 @@ import (
 
 type Service interface {
 	ChargeService
-	InvoiceService
 
 	// Facade interfaces provide convinience helpers for the API layer.
 	CreditPurchaseFacadeService
@@ -35,11 +33,6 @@ type ChargeService interface {
 	// going through the temporary delete+create remap.
 	ApplyPatches(ctx context.Context, input ApplyPatchesInput) error
 	ListCharges(ctx context.Context, input ListChargesInput) (pagination.Result[Charge], error)
-}
-
-// InvoiceService contains methods that are over time deprecate the current billing methods.
-type InvoiceService interface {
-	billing.InvoicePendingLinesService
 }
 
 type CreditPurchaseFacadeService interface {

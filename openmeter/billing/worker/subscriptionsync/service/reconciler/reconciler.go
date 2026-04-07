@@ -137,7 +137,7 @@ func (s *Service) diffItem(
 	//
 	// In case of charges based sync, the flatfee charge is responsible for handling the omission
 	// of empty invoice lines.
-	if patches.GetBackendType() == BackendTypeInvoicing {
+	if patches.GetLineEngineType() == billing.LineEngineTypeInvoice {
 		if decision, err := semanticProrateDecision(existing, *target); err != nil {
 			return err
 		} else if decision.ShouldProrate {
@@ -180,7 +180,7 @@ func filterInScopeLines(inScopeLines []targetstate.StateItem, patchCollections *
 			return nil, fmt.Errorf("resolving default patch collection for line[%s]: %w", line.UniqueID, err)
 		}
 
-		if defaultCollection.GetBackendType() == BackendTypeCharges {
+		if defaultCollection.GetLineEngineType().IsCharge() {
 			out = append(out, line)
 			continue
 		}

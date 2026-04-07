@@ -246,6 +246,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				InvoiceID: usdInvoice.ID,
 				InvoiceAt: issueAt.In(time.UTC),
 				ManagedBy: billing.ManuallyManagedLine,
+				Engine:    billing.LineEngineTypeInvoice,
 
 				Currency: currencyx.Code(currency.USD),
 

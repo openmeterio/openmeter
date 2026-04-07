@@ -96,6 +96,8 @@ const (
 	FieldSplitLineGroupID = "split_line_group_id"
 	// FieldChargeID holds the string denoting the charge_id field in the database.
 	FieldChargeID = "charge_id"
+	// FieldEngine holds the string denoting the engine field in the database.
+	FieldEngine = "engine"
 	// FieldLineIds holds the string denoting the line_ids field in the database.
 	FieldLineIds = "line_ids"
 	// FieldCreditsApplied holds the string denoting the credits_applied field in the database.
@@ -302,6 +304,7 @@ var Columns = []string{
 	FieldSubscriptionBillingPeriodTo,
 	FieldSplitLineGroupID,
 	FieldChargeID,
+	FieldEngine,
 	FieldCreditsApplied,
 }
 
@@ -389,6 +392,18 @@ func StatusValidator(s billing.InvoiceLineStatus) error {
 		return nil
 	default:
 		return fmt.Errorf("billinginvoiceline: invalid enum value for status field: %q", s)
+	}
+}
+
+const DefaultEngine billing.LineEngineType = "invoicing"
+
+// EngineValidator is a validator for the "engine" field enum values. It is called by the builders before save.
+func EngineValidator(e billing.LineEngineType) error {
+	switch e {
+	case "invoicing", "charge_flatfee", "charge_usagebased", "charge_creditpurchase":
+		return nil
+	default:
+		return fmt.Errorf("billinginvoiceline: invalid enum value for engine field: %q", e)
 	}
 }
 
@@ -578,6 +593,11 @@ func BySplitLineGroupID(opts ...sql.OrderTermOption) OrderOption {
 // ByChargeID orders the results by the charge_id field.
 func ByChargeID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldChargeID, opts...).ToFunc()
+}
+
+// ByEngine orders the results by the engine field.
+func ByEngine(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEngine, opts...).ToFunc()
 }
 
 // ByLineIds orders the results by the line_ids field.

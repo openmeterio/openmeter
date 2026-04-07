@@ -16,9 +16,9 @@ import (
 )
 
 type InvoiceCollector struct {
-	gatheringInvoices   billing.GatheringInvoiceService
-	invoicePendingLines billing.InvoicePendingLinesService
-	lockedNamespaces    []string
+	gatheringInvoices billing.GatheringInvoiceService
+	billingService    billing.Service
+	lockedNamespaces  []string
 
 	logger *slog.Logger
 }
@@ -84,7 +84,7 @@ func (a *InvoiceCollector) CollectCustomerInvoice(ctx context.Context, params Co
 
 	a.logger.DebugContext(ctx, "collecting customer invoices", "customer", params.CustomerID)
 
-	invoices, err := a.invoicePendingLines.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+	invoices, err := a.billingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 		Customer: params.CustomerID,
 		// We want to make sure that system collection does not use progressive billing.
 		ProgressiveBillingOverride: lo.ToPtr(false),
@@ -191,10 +191,10 @@ func (a *InvoiceCollector) All(ctx context.Context, namespaces []string, custome
 }
 
 type Config struct {
-	GatheringInvoiceService    billing.GatheringInvoiceService
-	InvoicePendingLinesService billing.InvoicePendingLinesService
-	Logger                     *slog.Logger
-	LockedNamespaces           []string
+	GatheringInvoiceService billing.GatheringInvoiceService
+	BillingService          billing.Service
+	Logger                  *slog.Logger
+	LockedNamespaces        []string
 }
 
 func NewInvoiceCollector(config Config) (*InvoiceCollector, error) {
@@ -202,8 +202,8 @@ func NewInvoiceCollector(config Config) (*InvoiceCollector, error) {
 		return nil, fmt.Errorf("gathering invoice service is required")
 	}
 
-	if config.InvoicePendingLinesService == nil {
-		return nil, fmt.Errorf("invoice pending lines service is required")
+	if config.BillingService == nil {
+		return nil, fmt.Errorf("billing service is required")
 	}
 
 	if config.Logger == nil {
@@ -211,9 +211,9 @@ func NewInvoiceCollector(config Config) (*InvoiceCollector, error) {
 	}
 
 	return &InvoiceCollector{
-		gatheringInvoices:   config.GatheringInvoiceService,
-		invoicePendingLines: config.InvoicePendingLinesService,
-		logger:              config.Logger,
-		lockedNamespaces:    config.LockedNamespaces,
+		gatheringInvoices: config.GatheringInvoiceService,
+		billingService:    config.BillingService,
+		logger:            config.Logger,
+		lockedNamespaces:  config.LockedNamespaces,
 	}, nil
 }

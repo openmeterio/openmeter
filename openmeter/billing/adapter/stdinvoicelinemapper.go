@@ -6,6 +6,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -77,6 +78,7 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 			Annotations: dbLine.Annotations,
 			InvoiceID:   dbLine.InvoiceID,
 			ManagedBy:   dbLine.ManagedBy,
+			Engine:      dbLine.Engine,
 
 			Period: billing.Period{
 				Start: dbLine.PeriodStart.In(time.UTC),
@@ -92,7 +94,7 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 
 			Currency: dbLine.Currency,
 
-			TaxConfig: productcatalog.BackfillTaxConfig(
+			TaxConfig: backfillTaxConfigReferences(
 				lo.EmptyableToPtr(dbLine.TaxConfig),
 				dbLine.TaxBehavior,
 				taxCodeFromInvoiceLineEdge(dbLine),
@@ -188,7 +190,7 @@ func (a *adapter) mapStandardInvoiceDetailedLineFromDB(dbLine *db.BillingInvoice
 		Currency: dbLine.Currency,
 
 		CreditsApplied: creditsApplied,
-		TaxConfig: productcatalog.BackfillTaxConfig(
+		TaxConfig: backfillTaxConfigReferences(
 			lo.EmptyableToPtr(dbLine.TaxConfig),
 			dbLine.TaxBehavior,
 			taxCodeFromInvoiceLineEdge(dbLine),
@@ -243,7 +245,7 @@ func (a *adapter) mapStandardInvoiceDetailedLineV2FromDB(dbLine *db.BillingStand
 		Currency: dbLine.Currency,
 
 		CreditsApplied: creditsApplied,
-		TaxConfig: productcatalog.BackfillTaxConfig(
+		TaxConfig: backfillTaxConfigReferences(
 			lo.EmptyableToPtr(dbLine.TaxConfig),
 			dbLine.TaxBehavior,
 			taxCodeFromDetailedLineV2Edge(dbLine),
@@ -363,6 +365,43 @@ func taxCodeFromDetailedLineV2Edge(dbLine *db.BillingStandardInvoiceDetailedLine
 		return nil
 	}
 	return &mapped
+}
+
+// backfillTaxConfigReferences reconstructs the invoice-line TaxConfig read model from the
+// persisted JSONB/config columns and the eagerly loaded TaxCode edge.
+//
+// Expected behavior:
+//   - always backfill the scalar legacy fields through productcatalog.BackfillTaxConfig(...)
+//   - only stamp TaxConfig.TaxCode when the resolved TaxCode entity matches the line's effective
+//     Stripe code / TaxCodeID after backfill and precedence rules are applied
+//   - if the line's own config takes precedence over the resolved TaxCode edge, keep the scalar
+//     config but do not attach a mismatching TaxCode snapshot
+//
+// TODO[later]: change the billing-facing types to expose TaxCodeSnapshot and TaxCodeReference
+// fields explicitly so it is obvious what is the immutable invoice snapshot and what is the live
+// reference to the tax entity.
+func backfillTaxConfigReferences(snapshottedTaxConfig *productcatalog.TaxConfig, persistedTaxBehavior *productcatalog.TaxBehavior, resolvedTaxCode *taxcode.TaxCode) *productcatalog.TaxConfig {
+	backfilledTaxConfig := productcatalog.BackfillTaxConfig(snapshottedTaxConfig, persistedTaxBehavior, resolvedTaxCode)
+
+	if backfilledTaxConfig == nil || resolvedTaxCode == nil {
+		return backfilledTaxConfig
+	}
+
+	if backfilledTaxConfig.TaxCodeID != nil && *backfilledTaxConfig.TaxCodeID != resolvedTaxCode.ID {
+		return backfilledTaxConfig
+	}
+
+	if backfilledTaxConfig.Stripe != nil {
+		mapping, ok := resolvedTaxCode.GetAppMapping(app.AppTypeStripe)
+		if !ok || mapping.TaxCode != backfilledTaxConfig.Stripe.Code {
+			return backfilledTaxConfig
+		}
+	}
+
+	cloned := backfilledTaxConfig.Clone()
+	cloned.TaxCode = resolvedTaxCode
+
+	return &cloned
 }
 
 func (a *adapter) mapStandardInvoiceDetailedLineAmountDiscountFromDB(dbDiscount *db.BillingStandardInvoiceDetailedLineAmountDiscount) (billing.AmountLineDiscountManaged, error) {

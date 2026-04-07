@@ -12,6 +12,7 @@ type Service interface {
 	ProfileService
 	CustomerOverrideService
 	InvoiceLineService
+	LineEngineService
 	SplitLineGroupService
 	InvoiceService
 	GatheringInvoiceService
@@ -22,10 +23,6 @@ type Service interface {
 	InvoiceAppService
 
 	ConfigService
-}
-
-type InvoicePendingLinesService interface {
-	InvoicePendingLines(ctx context.Context, input InvoicePendingLinesInput) ([]StandardInvoice, error)
 }
 
 type ProfileService interface {
@@ -63,15 +60,17 @@ type InvoiceLineService interface {
 	SnapshotLineQuantity(ctx context.Context, input SnapshotLineQuantityInput) (*StandardLine, error)
 }
 
+type LineEngineService interface {
+	RegisterLineEngine(engine LineEngine) error
+}
+
 type SplitLineGroupService interface {
 	DeleteSplitLineGroup(ctx context.Context, input DeleteSplitLineGroupInput) error
 	UpdateSplitLineGroup(ctx context.Context, input UpdateSplitLineGroupInput) (SplitLineGroup, error)
 }
 
 type InvoiceService interface {
-	// InvoicePendingLinesService is the service for invoicing pending lines, temporary extracted until charges
-	// provides the same interface. Later we should rely on invoicing hooks instead.
-	InvoicePendingLinesService
+	InvoicePendingLines(ctx context.Context, input InvoicePendingLinesInput) ([]StandardInvoice, error)
 
 	ListInvoices(ctx context.Context, input ListInvoicesInput) (ListInvoicesResponse, error)
 	// GetInvoiceById returns the invoice by its ID using the Invoice union type.

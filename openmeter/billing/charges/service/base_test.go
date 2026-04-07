@@ -11,9 +11,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/adapter"
 	creditpurchaseadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/adapter"
+	creditpurchaselineengine "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/lineengine"
 	creditpurchaseservice "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
+	flatfeelineengine "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/lineengine"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
@@ -75,6 +77,15 @@ func (s *BaseSuite) SetupSuite() {
 	})
 	s.NoError(err)
 
+	flatFeeLineEngine, err := flatfeelineengine.New(flatfeelineengine.Config{
+		FlatFeeService: flatFeeService,
+		RatingService:  billingratingservice.New(),
+	})
+	s.NoError(err)
+
+	err = s.BillingService.RegisterLineEngine(flatFeeLineEngine)
+	s.NoError(err)
+
 	usageBasedAdapter, err := usagebasedadapter.New(usagebasedadapter.Config{
 		Client:      s.DBClient,
 		Logger:      slog.Default(),
@@ -107,6 +118,14 @@ func (s *BaseSuite) SetupSuite() {
 		Handler:     s.CreditPurchaseTestHandler,
 		MetaAdapter: metaAdapter,
 	})
+	s.NoError(err)
+
+	creditPurchaseLineEngine, err := creditpurchaselineengine.New(creditpurchaselineengine.Config{
+		RatingService: billingratingservice.New(),
+	})
+	s.NoError(err)
+
+	err = s.BillingService.RegisterLineEngine(creditPurchaseLineEngine)
 	s.NoError(err)
 
 	chargesAdapter, err := adapter.New(adapter.Config{

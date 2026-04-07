@@ -359,6 +359,7 @@ type GatheringLineBase struct {
 	Metadata    models.Metadata      `json:"metadata"`
 	Annotations models.Annotations   `json:"annotations"`
 	ManagedBy   InvoiceLineManagedBy `json:"managedBy"`
+	Engine      LineEngineType       `json:"engine,omitempty"`
 	InvoiceID   string               `json:"invoiceID"`
 
 	Currency      currencyx.Code        `json:"currency"`
@@ -406,6 +407,12 @@ func (i GatheringLineBase) Validate() error {
 		errs = append(errs, fmt.Errorf("invalid managed by %s", i.ManagedBy))
 	}
 
+	if i.Engine != "" {
+		if err := i.Engine.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("engine: %w", err))
+		}
+	}
+
 	if i.Subscription != nil {
 		if err := i.Subscription.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("subscription: %w", err))
@@ -440,7 +447,6 @@ func (i GatheringLineBase) Validate() error {
 func (i *GatheringLineBase) NormalizeValues() error {
 	i.ServicePeriod = i.ServicePeriod.Truncate(streaming.MinimumWindowSizeDuration)
 	i.InvoiceAt = i.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
-
 	if err := setDefaultPaymentTermForFlatPrice(&i.Price); err != nil {
 		return fmt.Errorf("setting default payment term for flat price: %w", err)
 	}
@@ -698,6 +704,7 @@ func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error
 			Metadata:        g.Metadata.Clone(),
 			Annotations:     clonedAnnotations,
 			ManagedBy:       g.ManagedBy,
+			Engine:          g.Engine,
 			InvoiceID:       invoiceID,
 			Currency:        g.Currency,
 

@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -29,6 +30,7 @@ type Service struct {
 	taxCodeService     taxcode.Service
 	logger             *slog.Logger
 	invoiceCalculator  invoicecalc.Calculator
+	lineEngines        *engineRegistry
 	ratingService      rating.Service
 	featureService     feature.FeatureConnector
 	meterService       meter.Service
@@ -131,7 +133,21 @@ func New(config Config) (*Service, error) {
 		fsNamespaceLockdown:          config.FSNamespaceLockdown,
 		maxParallelQuantitySnapshots: config.MaxParallelQuantitySnapshots,
 		invoiceCalculator:            invoicecalc.New(),
+		lineEngines:                  newEngineRegistry(),
 		standardInvoiceHooks:         models.NewServiceHookRegistry[billing.StandardInvoice](),
+	}
+
+	invoiceEngine, err := billinglineengine.New(billinglineengine.Config{
+		SplitLineGroupAdapter: config.Adapter,
+		QuantitySnapshotter:   svc,
+		RatingService:         config.RatingService,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating invoice engine: %w", err)
+	}
+
+	if err := svc.RegisterLineEngine(invoiceEngine); err != nil {
+		return nil, fmt.Errorf("registering invoice engine: %w", err)
 	}
 
 	return svc, nil

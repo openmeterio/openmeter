@@ -2149,6 +2149,36 @@ func ChargeIDContainsFold(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldChargeID, v))
 }
 
+// EngineEQ applies the EQ predicate on the "engine" field.
+func EngineEQ(v billing.LineEngineType) predicate.BillingInvoiceLine {
+	vc := v
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldEngine, vc))
+}
+
+// EngineNEQ applies the NEQ predicate on the "engine" field.
+func EngineNEQ(v billing.LineEngineType) predicate.BillingInvoiceLine {
+	vc := v
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldEngine, vc))
+}
+
+// EngineIn applies the In predicate on the "engine" field.
+func EngineIn(vs ...billing.LineEngineType) predicate.BillingInvoiceLine {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldEngine, v...))
+}
+
+// EngineNotIn applies the NotIn predicate on the "engine" field.
+func EngineNotIn(vs ...billing.LineEngineType) predicate.BillingInvoiceLine {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldEngine, v...))
+}
+
 // LineIdsEQ applies the EQ predicate on the "line_ids" field.
 func LineIdsEQ(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldLineIds, v))

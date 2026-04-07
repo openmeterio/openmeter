@@ -52,12 +52,11 @@ type CustomerOverrideHandler interface {
 }
 
 type handler struct {
-	service                    billing.Service
-	invoicePendingLinesService billing.InvoicePendingLinesService
-	appService                 app.Service
-	namespaceDecoder           namespacedriver.NamespaceDecoder
-	featureSwitches            config.BillingFeatureSwitchesConfiguration
-	options                    []httptransport.HandlerOption
+	service          billing.Service
+	appService       app.Service
+	namespaceDecoder namespacedriver.NamespaceDecoder
+	featureSwitches  config.BillingFeatureSwitchesConfiguration
+	options          []httptransport.HandlerOption
 }
 
 func (h *handler) resolveNamespace(ctx context.Context) (string, error) {
@@ -74,17 +73,15 @@ func New(
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	featureSwitches config.BillingFeatureSwitchesConfiguration,
 	service billing.Service,
-	invoicePendingLinesService billing.InvoicePendingLinesService,
 	appService app.Service,
 	stripeAppService appstripe.Service,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
-		service:                    service,
-		invoicePendingLinesService: invoicePendingLinesService,
-		appService:                 appService,
-		namespaceDecoder:           namespaceDecoder,
-		options:                    options,
-		featureSwitches:            featureSwitches,
+		service:          service,
+		appService:       appService,
+		namespaceDecoder: namespaceDecoder,
+		options:          options,
+		featureSwitches:  featureSwitches,
 	}
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	chargesusagebased "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
@@ -17,7 +18,7 @@ type usageBasedChargeCollection struct {
 
 func newUsageBasedChargeCollection(preallocatedCapacity int) *usageBasedChargeCollection {
 	return &usageBasedChargeCollection{
-		chargePatchCollection: newChargePatchCollection(persistedstate.ItemTypeChargeUsageBased, preallocatedCapacity),
+		chargePatchCollection: newChargePatchCollection(billing.LineEngineTypeChargeUsageBased, persistedstate.ItemTypeChargeUsageBased, preallocatedCapacity),
 	}
 }
 

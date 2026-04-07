@@ -141,7 +141,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 			}, nil
 		}
 
-		invoices, err := s.Charges.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: cust.GetID(),
 			AsOf:     lo.ToPtr(servicePeriod.From),
 		})
