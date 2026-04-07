@@ -6595,10 +6595,6 @@ components:
     ListCreditGrantsParamsFilter:
       type: object
       properties:
-        funding_method:
-          allOf:
-            - $ref: '#/components/schemas/BillingCreditFundingMethod'
-          description: Filter credit grants by funding method.
         status:
           allOf:
             - $ref: '#/components/schemas/BillingCreditGrantStatus'

@@ -21,11 +21,6 @@ namespace Customers;
 @friendlyName("ListCreditGrantsParamsFilter")
 model ListCreditGrantsParamsFilter {
   /**
-   * Filter credit grants by funding method.
-   */
-  funding_method?: CreditFundingMethod;
-
-  /**
    * Filter credit grants by status.
    */
   status?: CreditGrantStatus;

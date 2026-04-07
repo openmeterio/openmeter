@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type Service interface {
@@ -21,6 +22,7 @@ type CreditPurchaseService interface {
 	Create(ctx context.Context, input CreateInput) (ChargeWithGatheringLine, error)
 
 	GetByIDs(ctx context.Context, input GetByIDsInput) ([]Charge, error)
+	List(ctx context.Context, input ListChargesInput) (pagination.Result[Charge], error)
 }
 
 type ChargeWithGatheringLine struct {

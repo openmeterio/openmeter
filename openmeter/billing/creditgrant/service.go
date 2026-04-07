@@ -148,9 +148,8 @@ type ListInput struct {
 	CustomerID string
 
 	// Optional filters
-	FundingMethod *FundingMethod
-	Status        *meta.ChargeStatus
-	Currency      *currencyx.Code
+	Status   *meta.ChargeStatus
+	Currency *currencyx.Code
 }
 
 func (i ListInput) Validate() error {
@@ -162,12 +161,6 @@ func (i ListInput) Validate() error {
 
 	if i.CustomerID == "" {
 		errs = append(errs, errors.New("customer ID is required"))
-	}
-
-	if i.FundingMethod != nil {
-		if err := i.FundingMethod.Validate(); err != nil {
-			errs = append(errs, err)
-		}
 	}
 
 	if i.Status != nil {

@@ -62,11 +62,6 @@ func (h *handler) ListCreditGrants() ListCreditGrantsHandler {
 			}
 
 			if args.Params.Filter != nil {
-				if args.Params.Filter.FundingMethod != nil {
-					fm := convertAPIFundingMethod(*args.Params.Filter.FundingMethod)
-					req.FundingMethod = &fm
-				}
-
 				if args.Params.Filter.Status != nil {
 					status := convertAPIStatusToChargeStatus(*args.Params.Filter.Status)
 					req.Status = &status

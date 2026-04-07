@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -127,40 +128,21 @@ func (s *service) List(ctx context.Context, input creditgrant.ListInput) (pagina
 		return pagination.Result[creditpurchase.Charge]{}, fmt.Errorf("invalid input: %w", err)
 	}
 
-	listInput := charges.ListChargesInput{
+	listInput := creditpurchase.ListChargesInput{
 		Page:        input.Page,
 		Namespace:   input.Namespace,
 		CustomerIDs: []string{input.CustomerID},
-		ChargeTypes: []meta.ChargeType{meta.ChargeTypeCreditPurchase},
 	}
 
-	// TODO: apply FundingMethod, Status, Currency filters once the charges list supports them
-	if input.FundingMethod != nil || input.Status != nil || input.Currency != nil {
-		return pagination.Result[creditpurchase.Charge]{}, models.NewGenericValidationError(
-			errors.New("filtering by funding_method, status, or currency is not yet supported"),
-		)
+	if input.Status != nil {
+		listInput.Statuses = []meta.ChargeStatus{*input.Status}
 	}
 
-	result, err := s.chargesService.ListCharges(ctx, listInput)
-	if err != nil {
-		return pagination.Result[creditpurchase.Charge]{}, fmt.Errorf("list charges: %w", err)
+	if input.Currency != nil {
+		listInput.Currencies = []currencyx.Code{*input.Currency}
 	}
 
-	// Extract credit purchase charges
-	cpCharges := make([]creditpurchase.Charge, 0, len(result.Items))
-	for _, charge := range result.Items {
-		cpCharge, err := charge.AsCreditPurchaseCharge()
-		if err != nil {
-			return pagination.Result[creditpurchase.Charge]{}, fmt.Errorf("unexpected non-credit-purchase charge in results: %w", err)
-		}
-		cpCharges = append(cpCharges, cpCharge)
-	}
-
-	return pagination.Result[creditpurchase.Charge]{
-		Page:       result.Page,
-		TotalCount: result.TotalCount,
-		Items:      cpCharges,
-	}, nil
+	return s.creditPurchaseService.List(ctx, listInput)
 }
 
 func toIntent(input creditgrant.CreateInput) creditpurchase.Intent {
