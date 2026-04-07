@@ -380,3 +380,9 @@ func (s *Server) UpdateCreditGrantExternalSettlement(w http.ResponseWriter, r *h
 func (s *Server) ListCreditTransactions(w http.ResponseWriter, r *http.Request, customerId api.ULID, params api.ListCreditTransactionsParams) {
 	unimplemented.ListCreditTransactions(w, r, customerId, params)
 }
+
+// Charges
+
+func (s *Server) ListCustomerCharges(w http.ResponseWriter, r *http.Request, customerId api.ULID, params api.ListCustomerChargesParams) {
+	unimplemented.ListCustomerCharges(w, r, customerId, params)
+}
