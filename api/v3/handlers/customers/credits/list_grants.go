@@ -63,7 +63,16 @@ func (h *handler) ListCreditGrants() ListCreditGrantsHandler {
 
 			if args.Params.Filter != nil {
 				if args.Params.Filter.Status != nil {
-					status := convertAPIStatusToChargeStatus(*args.Params.Filter.Status)
+					status, err := convertAPIStatusToChargeStatus(*args.Params.Filter.Status)
+					if err != nil {
+						return ListCreditGrantsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+							{
+								Field:  "filter[status]",
+								Reason: err.Error(),
+								Source: apierrors.InvalidParamSourceQuery,
+							},
+						})
+					}
 					req.Status = &status
 				}
 

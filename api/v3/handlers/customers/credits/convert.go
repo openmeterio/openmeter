@@ -239,19 +239,19 @@ func convertAPITaxConfig(tc *api.BillingCreditGrantTaxConfig) *productcatalog.Ta
 	return config
 }
 
-func convertAPIStatusToChargeStatus(status api.BillingCreditGrantStatus) meta.ChargeStatus {
+func convertAPIStatusToChargeStatus(status api.BillingCreditGrantStatus) (meta.ChargeStatus, error) {
 	switch status {
 	case api.BillingCreditGrantStatusActive:
-		return meta.ChargeStatusActive
+		return meta.ChargeStatusActive, nil
 	case api.BillingCreditGrantStatusPending:
-		return meta.ChargeStatusCreated
+		return meta.ChargeStatusCreated, nil
 	case api.BillingCreditGrantStatusVoided:
-		return meta.ChargeStatusDeleted
+		return meta.ChargeStatusDeleted, nil
 	case api.BillingCreditGrantStatusExpired:
 		// Expired maps to final (terminal state, no further actions).
-		return meta.ChargeStatusFinal
+		return meta.ChargeStatusFinal, nil
 	default:
-		return meta.ChargeStatus(status)
+		return "", fmt.Errorf("unsupported credit grant status: %s", status)
 	}
 }
 
