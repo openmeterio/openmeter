@@ -1,4 +1,4 @@
-# pylint: disable=line-too-long,useless-suppression,too-many-lines
+# pylint: disable=too-many-lines
 # coding=utf-8
 from collections.abc import MutableMapping
 import datetime
@@ -6,7 +6,16 @@ from io import IOBase
 import json
 from typing import Any, Callable, IO, Optional, TYPE_CHECKING, TypeVar, Union, overload
 
-from corehttp.exceptions import ClientAuthenticationError, HttpResponseError, ResourceExistsError, ResourceNotFoundError, ResourceNotModifiedError, StreamClosedError, StreamConsumedError, map_error
+from corehttp.exceptions import (
+    ClientAuthenticationError,
+    HttpResponseError,
+    ResourceExistsError,
+    ResourceNotFoundError,
+    ResourceNotModifiedError,
+    StreamClosedError,
+    StreamConsumedError,
+    map_error,
+)
 from corehttp.paging import AsyncItemPaged, AsyncList
 from corehttp.rest import AsyncHttpResponse, HttpRequest
 from corehttp.runtime import AsyncPipelineClient
@@ -16,18 +25,175 @@ from corehttp.utils import case_insensitive_dict
 from ... import models as _models
 from ..._utils.model_base import SdkJSONEncoder, _deserialize, _failsafe_deserialize
 from ..._utils.serialization import Deserializer, Serializer
-from ...operations._operations import build_addons_archive_request, build_addons_create_request, build_addons_delete_request, build_addons_get_request, build_addons_list_request, build_addons_publish_request, build_addons_update_request, build_app_custom_invoicing_draft_syncronized_request, build_app_custom_invoicing_finalized_request, build_app_custom_invoicing_payment_status_request, build_app_stripe_create_checkout_session_request, build_app_stripe_update_stripe_api_key_request, build_app_stripe_webhook_request, build_apps_get_request, build_apps_list_request, build_apps_uninstall_request, build_apps_update_request, build_billing_profiles_create_request, build_billing_profiles_delete_request, build_billing_profiles_get_request, build_billing_profiles_list_request, build_billing_profiles_update_request, build_currencies_list_currencies_request, build_customer_apps_delete_app_data_request, build_customer_apps_list_app_data_request, build_customer_apps_upsert_app_data_request, build_customer_entitlement_get_customer_entitlement_value_request, build_customer_entitlement_v2_create_customer_entitlement_grant_request, build_customer_entitlement_v2_get_customer_entitlement_history_request, build_customer_entitlement_v2_get_customer_entitlement_value_request, build_customer_entitlement_v2_get_grants_request, build_customer_entitlement_v2_reset_customer_entitlement_request, build_customer_entitlements_v2_delete_request, build_customer_entitlements_v2_get_request, build_customer_entitlements_v2_list_request, build_customer_entitlements_v2_override_request, build_customer_entitlements_v2_post_request, build_customer_get_customer_access_request, build_customer_invoice_create_pending_invoice_line_request, build_customer_invoice_simulate_invoice_request, build_customer_overrides_delete_request, build_customer_overrides_get_request, build_customer_overrides_list_request, build_customer_overrides_upsert_request, build_customer_stripe_create_portal_session_request, build_customer_stripe_get_request, build_customer_stripe_upsert_request, build_customers_create_request, build_customers_delete_request, build_customers_get_request, build_customers_list_customer_subscriptions_request, build_customers_list_request, build_customers_update_request, build_debug_metrics_request, build_entitlements_get_request, build_entitlements_list_request, build_entitlements_v2_get_request, build_entitlements_v2_list_request, build_events_ingest_event_request, build_events_ingest_events_json_request, build_events_ingest_events_request, build_events_list_request, build_events_v2_list_request, build_features_create_request, build_features_delete_request, build_features_get_request, build_features_list_request, build_grants_delete_request, build_grants_list_request, build_grants_v2_list_request, build_invoice_advance_action_request, build_invoice_approve_action_request, build_invoice_delete_invoice_request, build_invoice_get_invoice_request, build_invoice_recalculate_tax_action_request, build_invoice_retry_action_request, build_invoice_snapshot_quantities_action_request, build_invoice_update_invoice_request, build_invoice_void_invoice_action_request, build_invoices_invoice_pending_lines_action_request, build_invoices_list_request, build_marketplace_authorize_o_auth2_install_request, build_marketplace_get_o_auth2_install_url_request, build_marketplace_get_request, build_marketplace_install_request, build_marketplace_install_with_api_key_request, build_marketplace_list_request, build_meters_create_request, build_meters_delete_request, build_meters_get_request, build_meters_list_group_by_values_request, build_meters_list_request, build_meters_list_subjects_request, build_meters_query_csv_post_request, build_meters_query_csv_request, build_meters_query_json_request, build_meters_query_request, build_meters_update_request, build_notification_channels_create_request, build_notification_channels_delete_request, build_notification_channels_get_request, build_notification_channels_list_request, build_notification_channels_update_request, build_notification_events_get_request, build_notification_events_list_request, build_notification_events_resend_request, build_notification_rules_create_request, build_notification_rules_delete_request, build_notification_rules_get_request, build_notification_rules_list_request, build_notification_rules_test_request, build_notification_rules_update_request, build_plan_addons_create_request, build_plan_addons_delete_request, build_plan_addons_get_request, build_plan_addons_list_request, build_plan_addons_update_request, build_plans_archive_request, build_plans_create_request, build_plans_delete_request, build_plans_get_request, build_plans_list_request, build_plans_next_request, build_plans_publish_request, build_plans_update_request, build_portal_portal_meters_query_csv_request, build_portal_portal_meters_query_json_request, build_portal_portal_tokens_create_request, build_portal_portal_tokens_invalidate_request, build_portal_portal_tokens_list_request, build_progress_get_progress_request, build_subjects_create_grant_request, build_subjects_delete_request, build_subjects_get_entitlement_history_request, build_subjects_get_entitlement_value_request, build_subjects_get_grants_request, build_subjects_get_request, build_subjects_list_request, build_subjects_override_request, build_subjects_post_request, build_subjects_reset_request, build_subjects_upsert_request, build_subscription_addons_create_request, build_subscription_addons_get_request, build_subscription_addons_list_request, build_subscription_addons_update_request, build_subscriptions_cancel_request, build_subscriptions_change_request, build_subscriptions_create_request, build_subscriptions_delete_request, build_subscriptions_edit_request, build_subscriptions_get_expanded_request, build_subscriptions_migrate_request, build_subscriptions_restore_request, build_subscriptions_unschedule_cancelation_request
+from ...operations._operations import (
+    build_addons_archive_request,
+    build_addons_create_request,
+    build_addons_delete_request,
+    build_addons_get_request,
+    build_addons_list_request,
+    build_addons_publish_request,
+    build_addons_update_request,
+    build_app_custom_invoicing_draft_syncronized_request,
+    build_app_custom_invoicing_finalized_request,
+    build_app_custom_invoicing_payment_status_request,
+    build_app_stripe_create_checkout_session_request,
+    build_app_stripe_update_stripe_api_key_request,
+    build_app_stripe_webhook_request,
+    build_apps_get_request,
+    build_apps_list_request,
+    build_apps_uninstall_request,
+    build_apps_update_request,
+    build_billing_profiles_create_request,
+    build_billing_profiles_delete_request,
+    build_billing_profiles_get_request,
+    build_billing_profiles_list_request,
+    build_billing_profiles_update_request,
+    build_currencies_list_currencies_request,
+    build_customer_apps_delete_app_data_request,
+    build_customer_apps_list_app_data_request,
+    build_customer_apps_upsert_app_data_request,
+    build_customer_entitlement_get_customer_entitlement_value_request,
+    build_customer_entitlement_v2_create_customer_entitlement_grant_request,
+    build_customer_entitlement_v2_get_customer_entitlement_history_request,
+    build_customer_entitlement_v2_get_customer_entitlement_value_request,
+    build_customer_entitlement_v2_get_grants_request,
+    build_customer_entitlement_v2_reset_customer_entitlement_request,
+    build_customer_entitlements_v2_delete_request,
+    build_customer_entitlements_v2_get_request,
+    build_customer_entitlements_v2_list_request,
+    build_customer_entitlements_v2_override_request,
+    build_customer_entitlements_v2_post_request,
+    build_customer_get_customer_access_request,
+    build_customer_invoice_create_pending_invoice_line_request,
+    build_customer_invoice_simulate_invoice_request,
+    build_customer_overrides_delete_request,
+    build_customer_overrides_get_request,
+    build_customer_overrides_list_request,
+    build_customer_overrides_upsert_request,
+    build_customer_stripe_create_portal_session_request,
+    build_customer_stripe_get_request,
+    build_customer_stripe_upsert_request,
+    build_customers_create_request,
+    build_customers_delete_request,
+    build_customers_get_request,
+    build_customers_list_customer_subscriptions_request,
+    build_customers_list_request,
+    build_customers_update_request,
+    build_debug_metrics_request,
+    build_entitlements_get_request,
+    build_entitlements_list_request,
+    build_entitlements_v2_get_request,
+    build_entitlements_v2_list_request,
+    build_events_ingest_event_request,
+    build_events_ingest_events_json_request,
+    build_events_ingest_events_request,
+    build_events_list_request,
+    build_events_v2_list_request,
+    build_features_create_request,
+    build_features_delete_request,
+    build_features_get_request,
+    build_features_list_request,
+    build_grants_delete_request,
+    build_grants_list_request,
+    build_grants_v2_list_request,
+    build_invoice_advance_action_request,
+    build_invoice_approve_action_request,
+    build_invoice_delete_invoice_request,
+    build_invoice_get_invoice_request,
+    build_invoice_recalculate_tax_action_request,
+    build_invoice_retry_action_request,
+    build_invoice_snapshot_quantities_action_request,
+    build_invoice_update_invoice_request,
+    build_invoice_void_invoice_action_request,
+    build_invoices_invoice_pending_lines_action_request,
+    build_invoices_list_request,
+    build_marketplace_authorize_o_auth2_install_request,
+    build_marketplace_get_o_auth2_install_url_request,
+    build_marketplace_get_request,
+    build_marketplace_install_request,
+    build_marketplace_install_with_api_key_request,
+    build_marketplace_list_request,
+    build_meters_create_request,
+    build_meters_delete_request,
+    build_meters_get_request,
+    build_meters_list_group_by_values_request,
+    build_meters_list_request,
+    build_meters_list_subjects_request,
+    build_meters_query_csv_post_request,
+    build_meters_query_csv_request,
+    build_meters_query_json_request,
+    build_meters_query_request,
+    build_meters_update_request,
+    build_notification_channels_create_request,
+    build_notification_channels_delete_request,
+    build_notification_channels_get_request,
+    build_notification_channels_list_request,
+    build_notification_channels_update_request,
+    build_notification_events_get_request,
+    build_notification_events_list_request,
+    build_notification_events_resend_request,
+    build_notification_rules_create_request,
+    build_notification_rules_delete_request,
+    build_notification_rules_get_request,
+    build_notification_rules_list_request,
+    build_notification_rules_test_request,
+    build_notification_rules_update_request,
+    build_plan_addons_create_request,
+    build_plan_addons_delete_request,
+    build_plan_addons_get_request,
+    build_plan_addons_list_request,
+    build_plan_addons_update_request,
+    build_plans_archive_request,
+    build_plans_create_request,
+    build_plans_delete_request,
+    build_plans_get_request,
+    build_plans_list_request,
+    build_plans_next_request,
+    build_plans_publish_request,
+    build_plans_update_request,
+    build_portal_portal_meters_query_csv_request,
+    build_portal_portal_meters_query_json_request,
+    build_portal_portal_tokens_create_request,
+    build_portal_portal_tokens_invalidate_request,
+    build_portal_portal_tokens_list_request,
+    build_progress_get_progress_request,
+    build_subjects_create_grant_request,
+    build_subjects_delete_request,
+    build_subjects_get_entitlement_history_request,
+    build_subjects_get_entitlement_value_request,
+    build_subjects_get_grants_request,
+    build_subjects_get_request,
+    build_subjects_list_request,
+    build_subjects_override_request,
+    build_subjects_post_request,
+    build_subjects_reset_request,
+    build_subjects_upsert_request,
+    build_subscription_addons_create_request,
+    build_subscription_addons_get_request,
+    build_subscription_addons_list_request,
+    build_subscription_addons_update_request,
+    build_subscriptions_cancel_request,
+    build_subscriptions_change_request,
+    build_subscriptions_create_request,
+    build_subscriptions_delete_request,
+    build_subscriptions_edit_request,
+    build_subscriptions_get_expanded_request,
+    build_subscriptions_migrate_request,
+    build_subscriptions_restore_request,
+    build_subscriptions_unschedule_cancelation_request,
+)
 from .._configuration import OpenMeterClientConfiguration
 
 if TYPE_CHECKING:
     from ... import _types
-T = TypeVar('T')
+T = TypeVar("T")
 ClsType = Optional[Callable[[PipelineResponse[HttpRequest, AsyncHttpResponse], T, dict[str, Any]], Any]]
 JSON = MutableMapping[str, Any]
 _Unset: Any = object()
 List = list
 
-class PortalOperations: 
+
+class PortalOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -52,7 +218,7 @@ class PortalOperations:
         )
 
 
-class AppsOperations: 
+class AppsOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -69,26 +235,19 @@ class AppsOperations:
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
 
-
-
-
     async def list(
-        self,
-        *,
-        page: Optional[int] = None,
-        page_size: Optional[int] = None,
-        **kwargs: Any
+        self, *, page: Optional[int] = None, page_size: Optional[int] = None, **kwargs: Any
     ) -> _models.AppPaginatedResponse:
         """List apps.
 
         List apps.
 
         :keyword page: Page index.
-         
+
          Default is 1. Default value is None.
         :paramtype page: int
         :keyword page_size: The maximum number of items per page.
-         
+
          Default is 100. Default value is None.
         :paramtype page_size: int
         :return: AppPaginatedResponse. The AppPaginatedResponse is compatible with MutableMapping
@@ -100,16 +259,13 @@ class AppsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.AppPaginatedResponse] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.AppPaginatedResponse] = kwargs.pop("cls", None)
 
-        
         _request = build_apps_list_request(
             page=page,
             page_size=page_size,
@@ -117,17 +273,13 @@ class AppsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -140,24 +292,18 @@ class AppsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -168,23 +314,14 @@ class AppsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.AppPaginatedResponse,
-                response.json()
-            )
+            deserialized = _deserialize(_models.AppPaginatedResponse, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def get(
-        self,
-        id: str,
-        **kwargs: Any
-    ) -> "_types.App":
+    async def get(self, id: str, **kwargs: Any) -> "_types.App":
         """Get app.
 
         Get the app.
@@ -200,33 +337,26 @@ class AppsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType["_types.App"] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType["_types.App"] = kwargs.pop("cls", None)
 
-        
         _request = build_apps_get_request(
             id=id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -239,28 +369,21 @@ class AppsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -271,26 +394,16 @@ class AppsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                "_types.App",
-                response.json()
-            )
+            deserialized = _deserialize("_types.App", response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
     @overload
     async def update(
-        self,
-        id: str,
-        app: _models.StripeAppReplaceUpdate,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, id: str, app: _models.StripeAppReplaceUpdate, *, content_type: str = "application/json", **kwargs: Any
     ) -> "_types.App":
         """Update app.
 
@@ -311,12 +424,7 @@ class AppsOperations:
 
     @overload
     async def update(
-        self,
-        id: str,
-        app: _models.SandboxAppReplaceUpdate,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, id: str, app: _models.SandboxAppReplaceUpdate, *, content_type: str = "application/json", **kwargs: Any
     ) -> "_types.App":
         """Update app.
 
@@ -361,13 +469,7 @@ class AppsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
-    async def update(
-        self,
-        id: str,
-        app: "_types.AppReplaceUpdate",
-        **kwargs: Any
-    ) -> "_types.App":
+    async def update(self, id: str, app: "_types.AppReplaceUpdate", **kwargs: Any) -> "_types.App":
         """Update app.
 
         Update an app.
@@ -388,15 +490,13 @@ class AppsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType["_types.App"] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType["_types.App"] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = json.dumps(app, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
@@ -409,17 +509,13 @@ class AppsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -432,28 +528,21 @@ class AppsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -464,23 +553,14 @@ class AppsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                "_types.App",
-                response.json()
-            )
+            deserialized = _deserialize("_types.App", response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def uninstall(
-        self,
-        id: str,
-        **kwargs: Any
-    ) -> None:
+    async def uninstall(self, id: str, **kwargs: Any) -> None:
         """Uninstall app.
 
         Uninstall an app.
@@ -495,32 +575,25 @@ class AppsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
-        
         _request = build_apps_uninstall_request(
             id=id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -528,28 +601,21 @@ class AppsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -558,10 +624,10 @@ class AppsOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
+            return cls(pipeline_response, None, {})  # type: ignore
 
 
-class AppStripeOperations: 
+class AppStripeOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -578,17 +644,9 @@ class AppStripeOperations:
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
 
-
-
-
     @overload
     async def webhook(
-        self,
-        id: str,
-        body: _models.StripeWebhookEvent,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, id: str, body: _models.StripeWebhookEvent, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.StripeWebhookResponse:
         """Stripe webhook.
 
@@ -608,12 +666,7 @@ class AppStripeOperations:
 
     @overload
     async def webhook(
-        self,
-        id: str,
-        body: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.StripeWebhookResponse:
         """Stripe webhook.
 
@@ -633,12 +686,7 @@ class AppStripeOperations:
 
     @overload
     async def webhook(
-        self,
-        id: str,
-        body: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, id: str, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.StripeWebhookResponse:
         """Stripe webhook.
 
@@ -656,12 +704,8 @@ class AppStripeOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def webhook(
-        self,
-        id: str,
-        body: Union[_models.StripeWebhookEvent, JSON, IO[bytes]],
-        **kwargs: Any
+        self, id: str, body: Union[_models.StripeWebhookEvent, JSON, IO[bytes]], **kwargs: Any
     ) -> _models.StripeWebhookResponse:
         """Stripe webhook.
 
@@ -679,15 +723,13 @@ class AppStripeOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.StripeWebhookResponse] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.StripeWebhookResponse] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -704,17 +746,13 @@ class AppStripeOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -727,28 +765,21 @@ class AppStripeOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -759,26 +790,16 @@ class AppStripeOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.StripeWebhookResponse,
-                response.json()
-            )
+            deserialized = _deserialize(_models.StripeWebhookResponse, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
     @overload
     async def update_stripe_api_key(
-        self,
-        id: str,
-        request: _models.StripeAPIKeyInput,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, id: str, request: _models.StripeAPIKeyInput, *, content_type: str = "application/json", **kwargs: Any
     ) -> None:
         """Update Stripe API key.
 
@@ -800,12 +821,7 @@ class AppStripeOperations:
 
     @overload
     async def update_stripe_api_key(
-        self,
-        id: str,
-        request: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, id: str, request: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> None:
         """Update Stripe API key.
 
@@ -827,12 +843,7 @@ class AppStripeOperations:
 
     @overload
     async def update_stripe_api_key(
-        self,
-        id: str,
-        request: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, id: str, request: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> None:
         """Update Stripe API key.
 
@@ -852,12 +863,8 @@ class AppStripeOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def update_stripe_api_key(
-        self,
-        id: str,
-        request: Union[_models.StripeAPIKeyInput, JSON, IO[bytes]],
-        **kwargs: Any
+        self, id: str, request: Union[_models.StripeAPIKeyInput, JSON, IO[bytes]], **kwargs: Any
     ) -> None:
         """Update Stripe API key.
 
@@ -878,15 +885,13 @@ class AppStripeOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -903,16 +908,12 @@ class AppStripeOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -920,24 +921,18 @@ class AppStripeOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -946,17 +941,11 @@ class AppStripeOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
-
-
+            return cls(pipeline_response, None, {})  # type: ignore
 
     @overload
     async def create_checkout_session(
-        self,
-        body: _models.CreateStripeCheckoutSessionRequest,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, body: _models.CreateStripeCheckoutSessionRequest, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.CreateStripeCheckoutSessionResult:
         """Create checkout session.
 
@@ -975,11 +964,7 @@ class AppStripeOperations:
 
     @overload
     async def create_checkout_session(
-        self,
-        body: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, body: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.CreateStripeCheckoutSessionResult:
         """Create checkout session.
 
@@ -998,11 +983,7 @@ class AppStripeOperations:
 
     @overload
     async def create_checkout_session(
-        self,
-        body: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.CreateStripeCheckoutSessionResult:
         """Create checkout session.
 
@@ -1019,11 +1000,8 @@ class AppStripeOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def create_checkout_session(
-        self,
-        body: Union[_models.CreateStripeCheckoutSessionRequest, JSON, IO[bytes]],
-        **kwargs: Any
+        self, body: Union[_models.CreateStripeCheckoutSessionRequest, JSON, IO[bytes]], **kwargs: Any
     ) -> _models.CreateStripeCheckoutSessionResult:
         """Create checkout session.
 
@@ -1042,15 +1020,13 @@ class AppStripeOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.CreateStripeCheckoutSessionResult] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.CreateStripeCheckoutSessionResult] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -1066,17 +1042,13 @@ class AppStripeOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -1089,28 +1061,21 @@ class AppStripeOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -1121,18 +1086,15 @@ class AppStripeOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.CreateStripeCheckoutSessionResult,
-                response.json()
-            )
+            deserialized = _deserialize(_models.CreateStripeCheckoutSessionResult, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
 
-class CustomerAppsOperations: 
+class CustomerAppsOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -1148,9 +1110,6 @@ class CustomerAppsOperations:
         self._config: OpenMeterClientConfiguration = input_args.pop(0) if input_args else kwargs.pop("config")
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
-
-
-
 
     async def list_app_data(
         self,
@@ -1168,11 +1127,11 @@ class CustomerAppsOperations:
         :param customer_id_or_key: Is one of the following types: str Required.
         :type customer_id_or_key: str or str
         :keyword page: Page index.
-         
+
          Default is 1. Default value is None.
         :paramtype page: int
         :keyword page_size: The maximum number of items per page.
-         
+
          Default is 100. Default value is None.
         :paramtype page_size: int
         :keyword type: Filter customer data by app type. Known values are: "stripe", "sandbox", and
@@ -1187,16 +1146,13 @@ class CustomerAppsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.CustomerAppDataPaginatedResponse] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.CustomerAppDataPaginatedResponse] = kwargs.pop("cls", None)
 
-        
         _request = build_customer_apps_list_app_data_request(
             customer_id_or_key=customer_id_or_key,
             page=page,
@@ -1206,17 +1162,13 @@ class CustomerAppsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -1229,28 +1181,21 @@ class CustomerAppsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -1261,17 +1206,12 @@ class CustomerAppsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.CustomerAppDataPaginatedResponse,
-                response.json()
-            )
+            deserialized = _deserialize(_models.CustomerAppDataPaginatedResponse, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def upsert_app_data(
@@ -1331,7 +1271,6 @@ class CustomerAppsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def upsert_app_data(
         self,
         customer_id_or_key: "_types.ULIDOrExternalKey",
@@ -1359,15 +1298,13 @@ class CustomerAppsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[List["_types.CustomerAppData"]] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[List["_types.CustomerAppData"]] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -1384,17 +1321,13 @@ class CustomerAppsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -1407,28 +1340,21 @@ class CustomerAppsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -1439,24 +1365,14 @@ class CustomerAppsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                List["_types.CustomerAppData"],
-                response.json()
-            )
+            deserialized = _deserialize(List["_types.CustomerAppData"], response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def delete_app_data(
-        self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
-        app_id: str,
-        **kwargs: Any
-    ) -> None:
+    async def delete_app_data(self, customer_id_or_key: "_types.ULIDOrExternalKey", app_id: str, **kwargs: Any) -> None:
         """Delete customer app data.
 
         Delete customer app data.
@@ -1473,16 +1389,13 @@ class CustomerAppsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
-        
         _request = build_customer_apps_delete_app_data_request(
             customer_id_or_key=customer_id_or_key,
             app_id=app_id,
@@ -1490,16 +1403,12 @@ class CustomerAppsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -1507,28 +1416,21 @@ class CustomerAppsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -1537,10 +1439,10 @@ class CustomerAppsOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
+            return cls(pipeline_response, None, {})  # type: ignore
 
 
-class CustomersOperations: 
+class CustomersOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -1557,16 +1459,9 @@ class CustomersOperations:
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
 
-
-
-
     @overload
     async def create(
-        self,
-        customer: _models.CustomerCreate,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, customer: _models.CustomerCreate, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Customer:
         """Create customer.
 
@@ -1584,11 +1479,7 @@ class CustomersOperations:
 
     @overload
     async def create(
-        self,
-        customer: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, customer: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Customer:
         """Create customer.
 
@@ -1606,11 +1497,7 @@ class CustomersOperations:
 
     @overload
     async def create(
-        self,
-        customer: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, customer: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Customer:
         """Create customer.
 
@@ -1626,12 +1513,7 @@ class CustomersOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
-    async def create(
-        self,
-        customer: Union[_models.CustomerCreate, JSON, IO[bytes]],
-        **kwargs: Any
-    ) -> _models.Customer:
+    async def create(self, customer: Union[_models.CustomerCreate, JSON, IO[bytes]], **kwargs: Any) -> _models.Customer:
         """Create customer.
 
         Create a new customer.
@@ -1647,15 +1529,13 @@ class CustomersOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.Customer] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.Customer] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -1671,17 +1551,13 @@ class CustomersOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -1694,24 +1570,18 @@ class CustomersOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -1722,17 +1592,12 @@ class CustomersOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Customer,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Customer, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     async def list(
         self,
@@ -1755,11 +1620,11 @@ class CustomersOperations:
         List customers.
 
         :keyword page: Page index.
-         
+
          Default is 1. Default value is None.
         :paramtype page: int
         :keyword page_size: The maximum number of items per page.
-         
+
          Default is 100. Default value is None.
         :paramtype page_size: int
         :keyword order: The order direction. Known values are: "ASC" and "DESC". Default value is None.
@@ -1796,16 +1661,13 @@ class CustomersOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.CustomerPaginatedResponse] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.CustomerPaginatedResponse] = kwargs.pop("cls", None)
 
-        
         _request = build_customers_list_request(
             page=page,
             page_size=page_size,
@@ -1822,17 +1684,13 @@ class CustomersOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -1845,24 +1703,18 @@ class CustomersOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -1873,17 +1725,12 @@ class CustomersOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.CustomerPaginatedResponse,
-                response.json()
-            )
+            deserialized = _deserialize(_models.CustomerPaginatedResponse, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     async def get(
         self,
@@ -1908,16 +1755,13 @@ class CustomersOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.Customer] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.Customer] = kwargs.pop("cls", None)
 
-        
         _request = build_customers_get_request(
             customer_id_or_key=customer_id_or_key,
             expand=expand,
@@ -1925,17 +1769,13 @@ class CustomersOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -1948,28 +1788,21 @@ class CustomersOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -1980,17 +1813,12 @@ class CustomersOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Customer,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Customer, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def update(
@@ -2067,7 +1895,6 @@ class CustomersOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def update(
         self,
         customer_id_or_key: "_types.ULIDOrExternalKey",
@@ -2091,15 +1918,13 @@ class CustomersOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.Customer] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.Customer] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -2116,17 +1941,13 @@ class CustomersOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -2139,28 +1960,21 @@ class CustomersOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -2171,23 +1985,14 @@ class CustomersOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Customer,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Customer, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def delete(
-        self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
-        **kwargs: Any
-    ) -> None:
+    async def delete(self, customer_id_or_key: "_types.ULIDOrExternalKey", **kwargs: Any) -> None:
         """Delete customer.
 
         Delete a customer by ID.
@@ -2202,32 +2007,25 @@ class CustomersOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
-        
         _request = build_customers_delete_request(
             customer_id_or_key=customer_id_or_key,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -2235,28 +2033,21 @@ class CustomersOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -2265,9 +2056,7 @@ class CustomersOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
-
-
+            return cls(pipeline_response, None, {})  # type: ignore
 
     async def list_customer_subscriptions(
         self,
@@ -2294,11 +2083,11 @@ class CustomersOperations:
          value is None.
         :paramtype order_by: str or ~openmeter.models.CustomerSubscriptionOrderBy
         :keyword page: Page index.
-         
+
          Default is 1. Default value is None.
         :paramtype page: int
         :keyword page_size: The maximum number of items per page.
-         
+
          Default is 100. Default value is None.
         :paramtype page_size: int
         :return: SubscriptionPaginatedResponse. The SubscriptionPaginatedResponse is compatible with
@@ -2310,16 +2099,13 @@ class CustomersOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.SubscriptionPaginatedResponse] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.SubscriptionPaginatedResponse] = kwargs.pop("cls", None)
 
-        
         _request = build_customers_list_customer_subscriptions_request(
             customer_id_or_key=customer_id_or_key,
             status=status,
@@ -2331,17 +2117,13 @@ class CustomersOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -2354,28 +2136,21 @@ class CustomersOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -2386,18 +2161,15 @@ class CustomersOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.SubscriptionPaginatedResponse,
-                response.json()
-            )
+            deserialized = _deserialize(_models.SubscriptionPaginatedResponse, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
 
-class FeaturesOperations: 
+class FeaturesOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -2413,9 +2185,6 @@ class FeaturesOperations:
         self._config: OpenMeterClientConfiguration = input_args.pop(0) if input_args else kwargs.pop("config")
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
-
-
-
 
     async def list(
         self,
@@ -2439,19 +2208,19 @@ class FeaturesOperations:
         :keyword include_archived: Include archived features in response. Default value is None.
         :paramtype include_archived: bool
         :keyword page: Page index.
-         
+
          Default is 1. Default value is None.
         :paramtype page: int
         :keyword page_size: The maximum number of items per page.
-         
+
          Default is 100. Default value is None.
         :paramtype page_size: int
         :keyword offset: Number of items to skip.
-         
+
          Default is 0. Default value is None.
         :paramtype offset: int
         :keyword limit: Number of items to return.
-         
+
          Default is 100. Default value is None.
         :paramtype limit: int
         :keyword order: The order direction. Known values are: "ASC" and "DESC". Default value is None.
@@ -2469,16 +2238,13 @@ class FeaturesOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType["_types.ListFeaturesResult"] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType["_types.ListFeaturesResult"] = kwargs.pop("cls", None)
 
-        
         _request = build_features_list_request(
             meter_slug=meter_slug,
             include_archived=include_archived,
@@ -2492,17 +2258,13 @@ class FeaturesOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -2515,24 +2277,18 @@ class FeaturesOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -2543,25 +2299,16 @@ class FeaturesOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                "_types.ListFeaturesResult",
-                response.json()
-            )
+            deserialized = _deserialize("_types.ListFeaturesResult", response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
     @overload
     async def create(
-        self,
-        feature: _models.FeatureCreateInputs,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, feature: _models.FeatureCreateInputs, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Feature:
         """Create feature.
 
@@ -2581,13 +2328,7 @@ class FeaturesOperations:
         """
 
     @overload
-    async def create(
-        self,
-        feature: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
-    ) -> _models.Feature:
+    async def create(self, feature: JSON, *, content_type: str = "application/json", **kwargs: Any) -> _models.Feature:
         """Create feature.
 
         Features are either metered or static. A feature is metered if meterSlug is provided at
@@ -2607,11 +2348,7 @@ class FeaturesOperations:
 
     @overload
     async def create(
-        self,
-        feature: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, feature: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Feature:
         """Create feature.
 
@@ -2630,11 +2367,8 @@ class FeaturesOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def create(
-        self,
-        feature: Union[_models.FeatureCreateInputs, JSON, IO[bytes]],
-        **kwargs: Any
+        self, feature: Union[_models.FeatureCreateInputs, JSON, IO[bytes]], **kwargs: Any
     ) -> _models.Feature:
         """Create feature.
 
@@ -2654,15 +2388,13 @@ class FeaturesOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.Feature] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.Feature] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -2678,17 +2410,13 @@ class FeaturesOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -2701,24 +2429,18 @@ class FeaturesOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -2729,23 +2451,14 @@ class FeaturesOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Feature,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Feature, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def get(
-        self,
-        feature_id: str,
-        **kwargs: Any
-    ) -> _models.Feature:
+    async def get(self, feature_id: str, **kwargs: Any) -> _models.Feature:
         """Get feature.
 
         Get a feature by ID.
@@ -2760,33 +2473,26 @@ class FeaturesOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.Feature] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.Feature] = kwargs.pop("cls", None)
 
-        
         _request = build_features_get_request(
             feature_id=feature_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -2799,28 +2505,21 @@ class FeaturesOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -2831,23 +2530,14 @@ class FeaturesOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Feature,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Feature, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def delete(
-        self,
-        feature_id: str,
-        **kwargs: Any
-    ) -> None:
+    async def delete(self, feature_id: str, **kwargs: Any) -> None:
         """Delete feature.
 
         Archive a feature by ID.
@@ -2867,32 +2557,25 @@ class FeaturesOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
-        
         _request = build_features_delete_request(
             feature_id=feature_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -2900,28 +2583,21 @@ class FeaturesOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -2930,10 +2606,10 @@ class FeaturesOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
+            return cls(pipeline_response, None, {})  # type: ignore
 
 
-class PlansOperations: 
+class PlansOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -2949,9 +2625,6 @@ class PlansOperations:
         self._config: OpenMeterClientConfiguration = input_args.pop(0) if input_args else kwargs.pop("config")
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
-
-
-
 
     def list(
         self,
@@ -2973,7 +2646,7 @@ class PlansOperations:
         List all plans.
 
         :keyword include_deleted: Include deleted plans in response.
-         
+
          Usage: ``?includeDeleted=true``. Default value is None.
         :paramtype include_deleted: bool
         :keyword id: Filter by plan.id attribute. Default value is None.
@@ -2983,9 +2656,9 @@ class PlansOperations:
         :keyword key_version: Filter by plan.key and plan.version attributes. Default value is None.
         :paramtype key_version: dict[str, list[int]]
         :keyword status: Only return plans with the given status.
-         
+
          Usage:
-         
+
          * `?status=active`: return only the currently active plan
          * `?status=draft`: return only the draft plan
          * `?status=archived`: return only the archived plans. Default value is None.
@@ -2993,11 +2666,11 @@ class PlansOperations:
         :keyword currency: Filter by plan.currency attribute. Default value is None.
         :paramtype currency: list[str]
         :keyword page: Page index.
-         
+
          Default is 1. Default value is None.
         :paramtype page: int
         :keyword page_size: The maximum number of items per page.
-         
+
          Default is 100. Default value is None.
         :paramtype page_size: int
         :keyword order: The order direction. Known values are: "ASC" and "DESC". Default value is None.
@@ -3012,19 +2685,18 @@ class PlansOperations:
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[List[_models.Plan]] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[List[_models.Plan]] = kwargs.pop("cls", None)
 
         error_map: MutableMapping = {
             404: ResourceNotFoundError,
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
         def prepare_request(next_link=None):
             if not next_link:
-                
+
                 _request = build_plans_list_request(
                     include_deleted=include_deleted,
                     id=id,
@@ -3040,14 +2712,18 @@ class PlansOperations:
                     params=_params,
                 )
                 path_format_arguments = {
-                    "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+                    "endpoint": self._serialize.url(
+                        "self._config.endpoint", self._config.endpoint, "str", skip_quote=True
+                    ),
                 }
                 _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
             else:
                 _request = HttpRequest("GET", next_link)
                 path_format_arguments = {
-                    "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+                    "endpoint": self._serialize.url(
+                        "self._config.endpoint", self._config.endpoint, "str", skip_quote=True
+                    ),
                 }
                 _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
@@ -3056,46 +2732,36 @@ class PlansOperations:
         async def extract_data(pipeline_response):
             deserialized = pipeline_response.http_response.json()
             list_of_elem = _deserialize(
-            List[_models.Plan],
-            deserialized.get("items", []),
+                List[_models.Plan],
+                deserialized.get("items", []),
             )
             if cls:
-                list_of_elem = cls(list_of_elem) # type: ignore
+                list_of_elem = cls(list_of_elem)  # type: ignore
             return None, AsyncList(list_of_elem)
 
         async def get_next(next_link=None):
             _request = prepare_request(next_link)
 
             _stream = False
-            pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-                _request,
-                stream=_stream,
-                **kwargs
-            )
+            pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
             response = pipeline_response.http_response
 
             if response.status_code not in [200]:
                 map_error(status_code=response.status_code, response=response, error_map=error_map)
                 error = None
                 if response.status_code == 400:
-                    error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                    error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
                 elif response.status_code == 401:
-                    error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                    error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                     raise ClientAuthenticationError(response=response, model=error)
                 if response.status_code == 403:
-                    error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                    error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
                 elif response.status_code == 500:
-                    error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                    error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
                 elif response.status_code == 503:
-                    error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                    error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
                 elif response.status_code == 412:
-                    error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                    error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
                 else:
                     error = _failsafe_deserialize(
                         _models.UnexpectedProblemResponse,
@@ -3105,19 +2771,11 @@ class PlansOperations:
 
             return pipeline_response
 
-
-        return AsyncItemPaged(
-            get_next, extract_data
-        )
-
+        return AsyncItemPaged(get_next, extract_data)
 
     @overload
     async def create(
-        self,
-        request: _models.PlanCreate,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, request: _models.PlanCreate, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Plan:
         """Create a plan.
 
@@ -3134,13 +2792,7 @@ class PlansOperations:
         """
 
     @overload
-    async def create(
-        self,
-        request: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
-    ) -> _models.Plan:
+    async def create(self, request: JSON, *, content_type: str = "application/json", **kwargs: Any) -> _models.Plan:
         """Create a plan.
 
         Create a new plan.
@@ -3157,11 +2809,7 @@ class PlansOperations:
 
     @overload
     async def create(
-        self,
-        request: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, request: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Plan:
         """Create a plan.
 
@@ -3177,12 +2825,7 @@ class PlansOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
-    async def create(
-        self,
-        request: Union[_models.PlanCreate, JSON, IO[bytes]],
-        **kwargs: Any
-    ) -> _models.Plan:
+    async def create(self, request: Union[_models.PlanCreate, JSON, IO[bytes]], **kwargs: Any) -> _models.Plan:
         """Create a plan.
 
         Create a new plan.
@@ -3198,15 +2841,13 @@ class PlansOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.Plan] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.Plan] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -3222,17 +2863,13 @@ class PlansOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -3245,24 +2882,18 @@ class PlansOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -3273,26 +2904,16 @@ class PlansOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Plan,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Plan, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
     @overload
     async def update(
-        self,
-        plan_id: str,
-        body: _models.PlanReplaceUpdate,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, plan_id: str, body: _models.PlanReplaceUpdate, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Plan:
         """Update a plan.
 
@@ -3312,12 +2933,7 @@ class PlansOperations:
 
     @overload
     async def update(
-        self,
-        plan_id: str,
-        body: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, plan_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Plan:
         """Update a plan.
 
@@ -3337,12 +2953,7 @@ class PlansOperations:
 
     @overload
     async def update(
-        self,
-        plan_id: str,
-        body: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, plan_id: str, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Plan:
         """Update a plan.
 
@@ -3360,12 +2971,8 @@ class PlansOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def update(
-        self,
-        plan_id: str,
-        body: Union[_models.PlanReplaceUpdate, JSON, IO[bytes]],
-        **kwargs: Any
+        self, plan_id: str, body: Union[_models.PlanReplaceUpdate, JSON, IO[bytes]], **kwargs: Any
     ) -> _models.Plan:
         """Update a plan.
 
@@ -3383,15 +2990,13 @@ class PlansOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.Plan] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.Plan] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -3408,17 +3013,13 @@ class PlansOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -3431,28 +3032,21 @@ class PlansOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -3463,25 +3057,14 @@ class PlansOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Plan,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Plan, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def get(
-        self,
-        plan_id: str,
-        *,
-        include_latest: Optional[bool] = None,
-        **kwargs: Any
-    ) -> _models.Plan:
+    async def get(self, plan_id: str, *, include_latest: Optional[bool] = None, **kwargs: Any) -> _models.Plan:
         """Get plan.
 
         Get a plan by id or key. The latest published version is returned if latter is used.
@@ -3490,7 +3073,7 @@ class PlansOperations:
         :type plan_id: str
         :keyword include_latest: Include latest version of the Plan instead of the version in active
          state.
-         
+
          Usage: ``?includeLatest=true``. Default value is None.
         :paramtype include_latest: bool
         :return: Plan. The Plan is compatible with MutableMapping
@@ -3501,16 +3084,13 @@ class PlansOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.Plan] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.Plan] = kwargs.pop("cls", None)
 
-        
         _request = build_plans_get_request(
             plan_id=plan_id,
             include_latest=include_latest,
@@ -3518,17 +3098,13 @@ class PlansOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -3541,28 +3117,21 @@ class PlansOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -3573,23 +3142,14 @@ class PlansOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Plan,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Plan, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def delete(
-        self,
-        plan_id: str,
-        **kwargs: Any
-    ) -> None:
+    async def delete(self, plan_id: str, **kwargs: Any) -> None:
         """Delete plan.
 
         Soft delete plan by plan.id.
@@ -3606,32 +3166,25 @@ class PlansOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
-        
         _request = build_plans_delete_request(
             plan_id=plan_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -3639,28 +3192,21 @@ class PlansOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -3669,15 +3215,9 @@ class PlansOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
+            return cls(pipeline_response, None, {})  # type: ignore
 
-
-
-    async def publish(
-        self,
-        plan_id: str,
-        **kwargs: Any
-    ) -> _models.Plan:
+    async def publish(self, plan_id: str, **kwargs: Any) -> _models.Plan:
         """Publish plan.
 
         Publish a plan version.
@@ -3692,33 +3232,26 @@ class PlansOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.Plan] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.Plan] = kwargs.pop("cls", None)
 
-        
         _request = build_plans_publish_request(
             plan_id=plan_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -3731,28 +3264,21 @@ class PlansOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -3763,23 +3289,14 @@ class PlansOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Plan,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Plan, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def archive(
-        self,
-        plan_id: str,
-        **kwargs: Any
-    ) -> _models.Plan:
+    async def archive(self, plan_id: str, **kwargs: Any) -> _models.Plan:
         """Archive plan version.
 
         Archive a plan version.
@@ -3794,33 +3311,26 @@ class PlansOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.Plan] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.Plan] = kwargs.pop("cls", None)
 
-        
         _request = build_plans_archive_request(
             plan_id=plan_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -3833,28 +3343,21 @@ class PlansOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -3865,23 +3368,14 @@ class PlansOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Plan,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Plan, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def next(
-        self,
-        plan_id_or_key: str,
-        **kwargs: Any
-    ) -> _models.Plan:
+    async def next(self, plan_id_or_key: str, **kwargs: Any) -> _models.Plan:
         """New draft plan.
 
         Create a new draft version from plan. It returns error if there is already a plan in draft or
@@ -3897,33 +3391,26 @@ class PlansOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.Plan] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.Plan] = kwargs.pop("cls", None)
 
-        
         _request = build_plans_next_request(
             plan_id_or_key=plan_id_or_key,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -3936,28 +3423,21 @@ class PlansOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -3968,18 +3448,15 @@ class PlansOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Plan,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Plan, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
 
-class PlanAddonsOperations: 
+class PlanAddonsOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -3995,9 +3472,6 @@ class PlanAddonsOperations:
         self._config: OpenMeterClientConfiguration = input_args.pop(0) if input_args else kwargs.pop("config")
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
-
-
-
 
     async def list(
         self,
@@ -4020,7 +3494,7 @@ class PlanAddonsOperations:
         :param plan_id: Required.
         :type plan_id: str
         :keyword include_deleted: Include deleted plan add-on assignments.
-         
+
          Usage: ``?includeDeleted=true``. Default value is None.
         :paramtype include_deleted: bool
         :keyword id: Filter by addon.id attribute. Default value is None.
@@ -4030,11 +3504,11 @@ class PlanAddonsOperations:
         :keyword key_version: Filter by addon.key and addon.version attributes. Default value is None.
         :paramtype key_version: dict[str, list[int]]
         :keyword page: Page index.
-         
+
          Default is 1. Default value is None.
         :paramtype page: int
         :keyword page_size: The maximum number of items per page.
-         
+
          Default is 100. Default value is None.
         :paramtype page_size: int
         :keyword order: The order direction. Known values are: "ASC" and "DESC". Default value is None.
@@ -4051,16 +3525,13 @@ class PlanAddonsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.PlanAddonPaginatedResponse] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.PlanAddonPaginatedResponse] = kwargs.pop("cls", None)
 
-        
         _request = build_plan_addons_list_request(
             plan_id=plan_id,
             include_deleted=include_deleted,
@@ -4075,17 +3546,13 @@ class PlanAddonsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -4098,28 +3565,21 @@ class PlanAddonsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -4130,26 +3590,16 @@ class PlanAddonsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.PlanAddonPaginatedResponse,
-                response.json()
-            )
+            deserialized = _deserialize(_models.PlanAddonPaginatedResponse, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
     @overload
     async def create(
-        self,
-        plan_id: str,
-        body: _models.PlanAddonCreate,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, plan_id: str, body: _models.PlanAddonCreate, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.PlanAddon:
         """Create new add-on assignment for plan.
 
@@ -4169,12 +3619,7 @@ class PlanAddonsOperations:
 
     @overload
     async def create(
-        self,
-        plan_id: str,
-        body: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, plan_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.PlanAddon:
         """Create new add-on assignment for plan.
 
@@ -4194,12 +3639,7 @@ class PlanAddonsOperations:
 
     @overload
     async def create(
-        self,
-        plan_id: str,
-        body: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, plan_id: str, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.PlanAddon:
         """Create new add-on assignment for plan.
 
@@ -4217,12 +3657,8 @@ class PlanAddonsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def create(
-        self,
-        plan_id: str,
-        body: Union[_models.PlanAddonCreate, JSON, IO[bytes]],
-        **kwargs: Any
+        self, plan_id: str, body: Union[_models.PlanAddonCreate, JSON, IO[bytes]], **kwargs: Any
     ) -> _models.PlanAddon:
         """Create new add-on assignment for plan.
 
@@ -4239,15 +3675,13 @@ class PlanAddonsOperations:
         error_map: MutableMapping = {
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.PlanAddon] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.PlanAddon] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -4264,17 +3698,13 @@ class PlanAddonsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -4287,32 +3717,24 @@ class PlanAddonsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 409:
-                error = _failsafe_deserialize(_models.ConflictProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ConflictProblemResponse, response)
                 raise ResourceExistsError(response=response, model=error)
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -4323,17 +3745,12 @@ class PlanAddonsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.PlanAddon,
-                response.json()
-            )
+            deserialized = _deserialize(_models.PlanAddon, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def update(
@@ -4365,13 +3782,7 @@ class PlanAddonsOperations:
 
     @overload
     async def update(
-        self,
-        plan_id: str,
-        plan_addon_id: str,
-        body: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, plan_id: str, plan_addon_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.PlanAddon:
         """Update add-on assignment for plan.
 
@@ -4419,7 +3830,6 @@ class PlanAddonsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def update(
         self,
         plan_id: str,
@@ -4445,15 +3855,13 @@ class PlanAddonsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.PlanAddon] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.PlanAddon] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -4471,17 +3879,13 @@ class PlanAddonsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -4494,28 +3898,21 @@ class PlanAddonsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -4526,24 +3923,14 @@ class PlanAddonsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.PlanAddon,
-                response.json()
-            )
+            deserialized = _deserialize(_models.PlanAddon, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def get(
-        self,
-        plan_id: str,
-        plan_addon_id: str,
-        **kwargs: Any
-    ) -> _models.PlanAddon:
+    async def get(self, plan_id: str, plan_addon_id: str, **kwargs: Any) -> _models.PlanAddon:
         """Get add-on assignment for plan.
 
         Get add-on assignment for plan by id.
@@ -4560,16 +3947,13 @@ class PlanAddonsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.PlanAddon] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.PlanAddon] = kwargs.pop("cls", None)
 
-        
         _request = build_plan_addons_get_request(
             plan_id=plan_id,
             plan_addon_id=plan_addon_id,
@@ -4577,17 +3961,13 @@ class PlanAddonsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -4600,28 +3980,21 @@ class PlanAddonsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -4632,24 +4005,14 @@ class PlanAddonsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.PlanAddon,
-                response.json()
-            )
+            deserialized = _deserialize(_models.PlanAddon, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def delete(
-        self,
-        plan_id: str,
-        plan_addon_id: str,
-        **kwargs: Any
-    ) -> None:
+    async def delete(self, plan_id: str, plan_addon_id: str, **kwargs: Any) -> None:
         """Delete add-on assignment for plan.
 
         Delete add-on assignment for plan.
@@ -4668,16 +4031,13 @@ class PlanAddonsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
-        
         _request = build_plan_addons_delete_request(
             plan_id=plan_id,
             plan_addon_id=plan_addon_id,
@@ -4685,16 +4045,12 @@ class PlanAddonsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -4702,28 +4058,21 @@ class PlanAddonsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -4732,10 +4081,10 @@ class PlanAddonsOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
+            return cls(pipeline_response, None, {})  # type: ignore
 
 
-class AddonsOperations: 
+class AddonsOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -4751,9 +4100,6 @@ class AddonsOperations:
         self._config: OpenMeterClientConfiguration = input_args.pop(0) if input_args else kwargs.pop("config")
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
-
-
-
 
     def list(
         self,
@@ -4775,7 +4121,7 @@ class AddonsOperations:
         List all add-ons.
 
         :keyword include_deleted: Include deleted add-ons in response.
-         
+
          Usage: ``?includeDeleted=true``. Default value is None.
         :paramtype include_deleted: bool
         :keyword id: Filter by addon.id attribute. Default value is None.
@@ -4785,9 +4131,9 @@ class AddonsOperations:
         :keyword key_version: Filter by addon.key and addon.version attributes. Default value is None.
         :paramtype key_version: dict[str, list[int]]
         :keyword status: Only return add-ons with the given status.
-         
+
          Usage:
-         
+
          * `?status=active`: return only the currently active add-ons
          * `?status=draft`: return only the draft add-ons
          * `?status=archived`: return only the archived add-ons. Default value is None.
@@ -4795,11 +4141,11 @@ class AddonsOperations:
         :keyword currency: Filter by addon.currency attribute. Default value is None.
         :paramtype currency: list[str]
         :keyword page: Page index.
-         
+
          Default is 1. Default value is None.
         :paramtype page: int
         :keyword page_size: The maximum number of items per page.
-         
+
          Default is 100. Default value is None.
         :paramtype page_size: int
         :keyword order: The order direction. Known values are: "ASC" and "DESC". Default value is None.
@@ -4814,19 +4160,18 @@ class AddonsOperations:
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[List[_models.Addon]] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[List[_models.Addon]] = kwargs.pop("cls", None)
 
         error_map: MutableMapping = {
             404: ResourceNotFoundError,
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
         def prepare_request(next_link=None):
             if not next_link:
-                
+
                 _request = build_addons_list_request(
                     include_deleted=include_deleted,
                     id=id,
@@ -4842,14 +4187,18 @@ class AddonsOperations:
                     params=_params,
                 )
                 path_format_arguments = {
-                    "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+                    "endpoint": self._serialize.url(
+                        "self._config.endpoint", self._config.endpoint, "str", skip_quote=True
+                    ),
                 }
                 _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
             else:
                 _request = HttpRequest("GET", next_link)
                 path_format_arguments = {
-                    "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+                    "endpoint": self._serialize.url(
+                        "self._config.endpoint", self._config.endpoint, "str", skip_quote=True
+                    ),
                 }
                 _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
@@ -4858,46 +4207,36 @@ class AddonsOperations:
         async def extract_data(pipeline_response):
             deserialized = pipeline_response.http_response.json()
             list_of_elem = _deserialize(
-            List[_models.Addon],
-            deserialized.get("items", []),
+                List[_models.Addon],
+                deserialized.get("items", []),
             )
             if cls:
-                list_of_elem = cls(list_of_elem) # type: ignore
+                list_of_elem = cls(list_of_elem)  # type: ignore
             return None, AsyncList(list_of_elem)
 
         async def get_next(next_link=None):
             _request = prepare_request(next_link)
 
             _stream = False
-            pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-                _request,
-                stream=_stream,
-                **kwargs
-            )
+            pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
             response = pipeline_response.http_response
 
             if response.status_code not in [200]:
                 map_error(status_code=response.status_code, response=response, error_map=error_map)
                 error = None
                 if response.status_code == 400:
-                    error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                    error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
                 elif response.status_code == 401:
-                    error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                    error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                     raise ClientAuthenticationError(response=response, model=error)
                 if response.status_code == 403:
-                    error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                    error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
                 elif response.status_code == 500:
-                    error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                    error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
                 elif response.status_code == 503:
-                    error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                    error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
                 elif response.status_code == 412:
-                    error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                    error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
                 else:
                     error = _failsafe_deserialize(
                         _models.UnexpectedProblemResponse,
@@ -4907,19 +4246,11 @@ class AddonsOperations:
 
             return pipeline_response
 
-
-        return AsyncItemPaged(
-            get_next, extract_data
-        )
-
+        return AsyncItemPaged(get_next, extract_data)
 
     @overload
     async def create(
-        self,
-        request: _models.AddonCreate,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, request: _models.AddonCreate, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Addon:
         """Create an add-on.
 
@@ -4936,13 +4267,7 @@ class AddonsOperations:
         """
 
     @overload
-    async def create(
-        self,
-        request: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
-    ) -> _models.Addon:
+    async def create(self, request: JSON, *, content_type: str = "application/json", **kwargs: Any) -> _models.Addon:
         """Create an add-on.
 
         Create a new add-on.
@@ -4959,11 +4284,7 @@ class AddonsOperations:
 
     @overload
     async def create(
-        self,
-        request: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, request: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Addon:
         """Create an add-on.
 
@@ -4979,12 +4300,7 @@ class AddonsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
-    async def create(
-        self,
-        request: Union[_models.AddonCreate, JSON, IO[bytes]],
-        **kwargs: Any
-    ) -> _models.Addon:
+    async def create(self, request: Union[_models.AddonCreate, JSON, IO[bytes]], **kwargs: Any) -> _models.Addon:
         """Create an add-on.
 
         Create a new add-on.
@@ -5000,15 +4316,13 @@ class AddonsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.Addon] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.Addon] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -5024,17 +4338,13 @@ class AddonsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -5047,24 +4357,18 @@ class AddonsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -5075,17 +4379,12 @@ class AddonsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Addon,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Addon, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def update(
@@ -5114,12 +4413,7 @@ class AddonsOperations:
 
     @overload
     async def update(
-        self,
-        addon_id: str,
-        request: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, addon_id: str, request: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Addon:
         """Update add-on.
 
@@ -5139,12 +4433,7 @@ class AddonsOperations:
 
     @overload
     async def update(
-        self,
-        addon_id: str,
-        request: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, addon_id: str, request: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Addon:
         """Update add-on.
 
@@ -5162,12 +4451,8 @@ class AddonsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def update(
-        self,
-        addon_id: str,
-        request: Union[_models.AddonReplaceUpdate, JSON, IO[bytes]],
-        **kwargs: Any
+        self, addon_id: str, request: Union[_models.AddonReplaceUpdate, JSON, IO[bytes]], **kwargs: Any
     ) -> _models.Addon:
         """Update add-on.
 
@@ -5185,15 +4470,13 @@ class AddonsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.Addon] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.Addon] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -5210,17 +4493,13 @@ class AddonsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -5233,28 +4512,21 @@ class AddonsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -5265,25 +4537,14 @@ class AddonsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Addon,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Addon, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def get(
-        self,
-        addon_id: str,
-        *,
-        include_latest: Optional[bool] = None,
-        **kwargs: Any
-    ) -> _models.Addon:
+    async def get(self, addon_id: str, *, include_latest: Optional[bool] = None, **kwargs: Any) -> _models.Addon:
         """Get add-on.
 
         Get add-on by id or key. The latest published version is returned if latter is used.
@@ -5292,7 +4553,7 @@ class AddonsOperations:
         :type addon_id: str
         :keyword include_latest: Include latest version of the add-on instead of the version in active
          state.
-         
+
          Usage: ``?includeLatest=true``. Default value is None.
         :paramtype include_latest: bool
         :return: Addon. The Addon is compatible with MutableMapping
@@ -5303,16 +4564,13 @@ class AddonsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.Addon] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.Addon] = kwargs.pop("cls", None)
 
-        
         _request = build_addons_get_request(
             addon_id=addon_id,
             include_latest=include_latest,
@@ -5320,17 +4578,13 @@ class AddonsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -5343,28 +4597,21 @@ class AddonsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -5375,23 +4622,14 @@ class AddonsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Addon,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Addon, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def delete(
-        self,
-        addon_id: str,
-        **kwargs: Any
-    ) -> None:
+    async def delete(self, addon_id: str, **kwargs: Any) -> None:
         """Delete add-on.
 
         Soft delete add-on by id.
@@ -5408,32 +4646,25 @@ class AddonsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
-        
         _request = build_addons_delete_request(
             addon_id=addon_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -5441,28 +4672,21 @@ class AddonsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -5471,15 +4695,9 @@ class AddonsOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
+            return cls(pipeline_response, None, {})  # type: ignore
 
-
-
-    async def publish(
-        self,
-        addon_id: str,
-        **kwargs: Any
-    ) -> _models.Addon:
+    async def publish(self, addon_id: str, **kwargs: Any) -> _models.Addon:
         """Publish add-on.
 
         Publish a add-on version.
@@ -5494,33 +4712,26 @@ class AddonsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.Addon] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.Addon] = kwargs.pop("cls", None)
 
-        
         _request = build_addons_publish_request(
             addon_id=addon_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -5533,28 +4744,21 @@ class AddonsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -5565,23 +4769,14 @@ class AddonsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Addon,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Addon, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def archive(
-        self,
-        addon_id: str,
-        **kwargs: Any
-    ) -> _models.Addon:
+    async def archive(self, addon_id: str, **kwargs: Any) -> _models.Addon:
         """Archive add-on version.
 
         Archive a add-on version.
@@ -5596,33 +4791,26 @@ class AddonsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.Addon] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.Addon] = kwargs.pop("cls", None)
 
-        
         _request = build_addons_archive_request(
             addon_id=addon_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -5635,28 +4823,21 @@ class AddonsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -5667,18 +4848,15 @@ class AddonsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Addon,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Addon, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
 
-class SubscriptionsOperations: 
+class SubscriptionsOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -5695,15 +4873,8 @@ class SubscriptionsOperations:
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
 
-
-
-
     async def get_expanded(
-        self,
-        subscription_id: str,
-        *,
-        at: Optional[datetime.datetime] = None,
-        **kwargs: Any
+        self, subscription_id: str, *, at: Optional[datetime.datetime] = None, **kwargs: Any
     ) -> _models.SubscriptionExpanded:
         """Get subscription.
 
@@ -5722,16 +4893,13 @@ class SubscriptionsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.SubscriptionExpanded] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.SubscriptionExpanded] = kwargs.pop("cls", None)
 
-        
         _request = build_subscriptions_get_expanded_request(
             subscription_id=subscription_id,
             at=at,
@@ -5739,17 +4907,13 @@ class SubscriptionsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -5762,28 +4926,21 @@ class SubscriptionsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -5794,25 +4951,16 @@ class SubscriptionsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.SubscriptionExpanded,
-                response.json()
-            )
+            deserialized = _deserialize(_models.SubscriptionExpanded, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
     @overload
     async def create(
-        self,
-        body: _models.PlanSubscriptionCreate,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, body: _models.PlanSubscriptionCreate, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Subscription:
         """Create subscription.
 
@@ -5830,11 +4978,7 @@ class SubscriptionsOperations:
 
     @overload
     async def create(
-        self,
-        body: _models.CustomSubscriptionCreate,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, body: _models.CustomSubscriptionCreate, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Subscription:
         """Create subscription.
 
@@ -5850,12 +4994,7 @@ class SubscriptionsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
-    async def create(
-        self,
-        body: "_types.SubscriptionCreate",
-        **kwargs: Any
-    ) -> _models.Subscription:
+    async def create(self, body: "_types.SubscriptionCreate", **kwargs: Any) -> _models.Subscription:
         """Create subscription.
 
         create.
@@ -5872,15 +5011,13 @@ class SubscriptionsOperations:
             404: ResourceNotFoundError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.Subscription] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.Subscription] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = json.dumps(body, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
@@ -5892,17 +5029,13 @@ class SubscriptionsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -5915,28 +5048,21 @@ class SubscriptionsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.SubscriptionBadRequestErrorResponse,
-          response)
+                error = _failsafe_deserialize(_models.SubscriptionBadRequestErrorResponse, response)
             elif response.status_code == 409:
-                error = _failsafe_deserialize(_models.SubscriptionConflictErrorResponse,
-          response)
+                error = _failsafe_deserialize(_models.SubscriptionConflictErrorResponse, response)
                 raise ResourceExistsError(response=response, model=error)
             if response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -5947,17 +5073,12 @@ class SubscriptionsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Subscription,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Subscription, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def edit(
@@ -5987,12 +5108,7 @@ class SubscriptionsOperations:
 
     @overload
     async def edit(
-        self,
-        subscription_id: str,
-        body: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, subscription_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Subscription:
         """Edit subscription.
 
@@ -6013,12 +5129,7 @@ class SubscriptionsOperations:
 
     @overload
     async def edit(
-        self,
-        subscription_id: str,
-        body: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, subscription_id: str, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Subscription:
         """Edit subscription.
 
@@ -6037,12 +5148,8 @@ class SubscriptionsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def edit(
-        self,
-        subscription_id: str,
-        body: Union[_models.SubscriptionEdit, JSON, IO[bytes]],
-        **kwargs: Any
+        self, subscription_id: str, body: Union[_models.SubscriptionEdit, JSON, IO[bytes]], **kwargs: Any
     ) -> _models.Subscription:
         """Edit subscription.
 
@@ -6060,15 +5167,13 @@ class SubscriptionsOperations:
         error_map: MutableMapping = {
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.Subscription] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.Subscription] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -6085,17 +5190,13 @@ class SubscriptionsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -6108,32 +5209,24 @@ class SubscriptionsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.SubscriptionBadRequestErrorResponse,
-          response)
+                error = _failsafe_deserialize(_models.SubscriptionBadRequestErrorResponse, response)
             elif response.status_code == 409:
-                error = _failsafe_deserialize(_models.SubscriptionConflictErrorResponse,
-          response)
+                error = _failsafe_deserialize(_models.SubscriptionConflictErrorResponse, response)
                 raise ResourceExistsError(response=response, model=error)
             if response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -6144,17 +5237,12 @@ class SubscriptionsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Subscription,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Subscription, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def change(
@@ -6210,12 +5298,8 @@ class SubscriptionsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def change(
-        self,
-        subscription_id: str,
-        body: "_types.SubscriptionChange",
-        **kwargs: Any
+        self, subscription_id: str, body: "_types.SubscriptionChange", **kwargs: Any
     ) -> _models.SubscriptionChangeResponseBody:
         """Change subscription.
 
@@ -6236,15 +5320,13 @@ class SubscriptionsOperations:
         error_map: MutableMapping = {
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.SubscriptionChangeResponseBody] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.SubscriptionChangeResponseBody] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = json.dumps(body, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
@@ -6257,17 +5339,13 @@ class SubscriptionsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -6280,32 +5358,24 @@ class SubscriptionsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.SubscriptionBadRequestErrorResponse,
-          response)
+                error = _failsafe_deserialize(_models.SubscriptionBadRequestErrorResponse, response)
             elif response.status_code == 409:
-                error = _failsafe_deserialize(_models.SubscriptionConflictErrorResponse,
-          response)
+                error = _failsafe_deserialize(_models.SubscriptionConflictErrorResponse, response)
                 raise ResourceExistsError(response=response, model=error)
             if response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -6316,17 +5386,12 @@ class SubscriptionsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.SubscriptionChangeResponseBody,
-                response.json()
-            )
+            deserialized = _deserialize(_models.SubscriptionChangeResponseBody, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def migrate(
@@ -6358,12 +5423,7 @@ class SubscriptionsOperations:
 
     @overload
     async def migrate(
-        self,
-        subscription_id: str,
-        body: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, subscription_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.SubscriptionChangeResponseBody:
         """Migrate subscription.
 
@@ -6386,12 +5446,7 @@ class SubscriptionsOperations:
 
     @overload
     async def migrate(
-        self,
-        subscription_id: str,
-        body: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, subscription_id: str, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.SubscriptionChangeResponseBody:
         """Migrate subscription.
 
@@ -6412,12 +5467,8 @@ class SubscriptionsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def migrate(
-        self,
-        subscription_id: str,
-        body: Union[_models.MigrateRequest, JSON, IO[bytes]],
-        **kwargs: Any
+        self, subscription_id: str, body: Union[_models.MigrateRequest, JSON, IO[bytes]], **kwargs: Any
     ) -> _models.SubscriptionChangeResponseBody:
         """Migrate subscription.
 
@@ -6437,15 +5488,13 @@ class SubscriptionsOperations:
         error_map: MutableMapping = {
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.SubscriptionChangeResponseBody] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.SubscriptionChangeResponseBody] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -6462,17 +5511,13 @@ class SubscriptionsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -6485,32 +5530,24 @@ class SubscriptionsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.SubscriptionBadRequestErrorResponse,
-          response)
+                error = _failsafe_deserialize(_models.SubscriptionBadRequestErrorResponse, response)
             elif response.status_code == 409:
-                error = _failsafe_deserialize(_models.SubscriptionConflictErrorResponse,
-          response)
+                error = _failsafe_deserialize(_models.SubscriptionConflictErrorResponse, response)
                 raise ResourceExistsError(response=response, model=error)
             if response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -6521,23 +5558,14 @@ class SubscriptionsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.SubscriptionChangeResponseBody,
-                response.json()
-            )
+            deserialized = _deserialize(_models.SubscriptionChangeResponseBody, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def restore(
-        self,
-        subscription_id: str,
-        **kwargs: Any
-    ) -> _models.Subscription:
+    async def restore(self, subscription_id: str, **kwargs: Any) -> _models.Subscription:
         """Restore subscription.
 
         Restores a canceled subscription. Any subscription scheduled to start later will be deleted and
@@ -6553,33 +5581,26 @@ class SubscriptionsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.Subscription] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.Subscription] = kwargs.pop("cls", None)
 
-        
         _request = build_subscriptions_restore_request(
             subscription_id=subscription_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -6592,28 +5613,21 @@ class SubscriptionsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -6624,17 +5638,12 @@ class SubscriptionsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Subscription,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Subscription, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def cancel(
@@ -6664,12 +5673,7 @@ class SubscriptionsOperations:
 
     @overload
     async def cancel(
-        self,
-        subscription_id: str,
-        body: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, subscription_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Subscription:
         """Cancel subscription.
 
@@ -6690,12 +5694,7 @@ class SubscriptionsOperations:
 
     @overload
     async def cancel(
-        self,
-        subscription_id: str,
-        body: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, subscription_id: str, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Subscription:
         """Cancel subscription.
 
@@ -6714,12 +5713,8 @@ class SubscriptionsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def cancel(
-        self,
-        subscription_id: str,
-        body: Union[_models.CancelRequest, JSON, IO[bytes]],
-        **kwargs: Any
+        self, subscription_id: str, body: Union[_models.CancelRequest, JSON, IO[bytes]], **kwargs: Any
     ) -> _models.Subscription:
         """Cancel subscription.
 
@@ -6737,15 +5732,13 @@ class SubscriptionsOperations:
         error_map: MutableMapping = {
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.Subscription] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.Subscription] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -6762,17 +5755,13 @@ class SubscriptionsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -6785,32 +5774,24 @@ class SubscriptionsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.SubscriptionBadRequestErrorResponse,
-          response)
+                error = _failsafe_deserialize(_models.SubscriptionBadRequestErrorResponse, response)
             elif response.status_code == 409:
-                error = _failsafe_deserialize(_models.SubscriptionConflictErrorResponse,
-          response)
+                error = _failsafe_deserialize(_models.SubscriptionConflictErrorResponse, response)
                 raise ResourceExistsError(response=response, model=error)
             if response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -6821,23 +5802,14 @@ class SubscriptionsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Subscription,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Subscription, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def unschedule_cancelation(
-        self,
-        subscription_id: str,
-        **kwargs: Any
-    ) -> _models.Subscription:
+    async def unschedule_cancelation(self, subscription_id: str, **kwargs: Any) -> _models.Subscription:
         """Unschedule cancelation.
 
         Cancels the scheduled cancelation.
@@ -6851,33 +5823,26 @@ class SubscriptionsOperations:
         error_map: MutableMapping = {
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.Subscription] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.Subscription] = kwargs.pop("cls", None)
 
-        
         _request = build_subscriptions_unschedule_cancelation_request(
             subscription_id=subscription_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -6890,32 +5855,24 @@ class SubscriptionsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.SubscriptionBadRequestErrorResponse,
-          response)
+                error = _failsafe_deserialize(_models.SubscriptionBadRequestErrorResponse, response)
             elif response.status_code == 409:
-                error = _failsafe_deserialize(_models.SubscriptionConflictErrorResponse,
-          response)
+                error = _failsafe_deserialize(_models.SubscriptionConflictErrorResponse, response)
                 raise ResourceExistsError(response=response, model=error)
             if response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -6926,23 +5883,14 @@ class SubscriptionsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Subscription,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Subscription, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def delete(
-        self,
-        subscription_id: str,
-        **kwargs: Any
-    ) -> None:
+    async def delete(self, subscription_id: str, **kwargs: Any) -> None:
         """Delete subscription.
 
         Deletes a subscription. Only scheduled subscriptions can be deleted.
@@ -6956,32 +5904,25 @@ class SubscriptionsOperations:
         error_map: MutableMapping = {
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
-        
         _request = build_subscriptions_delete_request(
             subscription_id=subscription_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -6989,32 +5930,24 @@ class SubscriptionsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.SubscriptionBadRequestErrorResponse,
-          response)
+                error = _failsafe_deserialize(_models.SubscriptionBadRequestErrorResponse, response)
             elif response.status_code == 409:
-                error = _failsafe_deserialize(_models.SubscriptionConflictErrorResponse,
-          response)
+                error = _failsafe_deserialize(_models.SubscriptionConflictErrorResponse, response)
                 raise ResourceExistsError(response=response, model=error)
             if response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -7023,10 +5956,10 @@ class SubscriptionsOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
+            return cls(pipeline_response, None, {})  # type: ignore
 
 
-class SubscriptionAddonsOperations: 
+class SubscriptionAddonsOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -7042,9 +5975,6 @@ class SubscriptionAddonsOperations:
         self._config: OpenMeterClientConfiguration = input_args.pop(0) if input_args else kwargs.pop("config")
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
-
-
-
 
     @overload
     async def create(
@@ -7073,12 +6003,7 @@ class SubscriptionAddonsOperations:
 
     @overload
     async def create(
-        self,
-        subscription_id: str,
-        request: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, subscription_id: str, request: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.SubscriptionAddon:
         """Create subscription addon.
 
@@ -7098,12 +6023,7 @@ class SubscriptionAddonsOperations:
 
     @overload
     async def create(
-        self,
-        subscription_id: str,
-        request: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, subscription_id: str, request: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.SubscriptionAddon:
         """Create subscription addon.
 
@@ -7121,12 +6041,8 @@ class SubscriptionAddonsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def create(
-        self,
-        subscription_id: str,
-        request: Union[_models.SubscriptionAddonCreate, JSON, IO[bytes]],
-        **kwargs: Any
+        self, subscription_id: str, request: Union[_models.SubscriptionAddonCreate, JSON, IO[bytes]], **kwargs: Any
     ) -> _models.SubscriptionAddon:
         """Create subscription addon.
 
@@ -7144,15 +6060,13 @@ class SubscriptionAddonsOperations:
         error_map: MutableMapping = {
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.SubscriptionAddon] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.SubscriptionAddon] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -7169,17 +6083,13 @@ class SubscriptionAddonsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -7192,32 +6102,24 @@ class SubscriptionAddonsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 409:
-                error = _failsafe_deserialize(_models.ConflictProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ConflictProblemResponse, response)
                 raise ResourceExistsError(response=response, model=error)
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -7228,23 +6130,14 @@ class SubscriptionAddonsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.SubscriptionAddon,
-                response.json()
-            )
+            deserialized = _deserialize(_models.SubscriptionAddon, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def list(
-        self,
-        subscription_id: str,
-        **kwargs: Any
-    ) -> List[_models.SubscriptionAddon]:
+    async def list(self, subscription_id: str, **kwargs: Any) -> List[_models.SubscriptionAddon]:
         """List subscription addons.
 
         List all addons of a subscription. In the returned list will match to a set unique by addonId.
@@ -7259,33 +6152,26 @@ class SubscriptionAddonsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[List[_models.SubscriptionAddon]] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[List[_models.SubscriptionAddon]] = kwargs.pop("cls", None)
 
-        
         _request = build_subscription_addons_list_request(
             subscription_id=subscription_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -7298,28 +6184,21 @@ class SubscriptionAddonsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -7330,24 +6209,14 @@ class SubscriptionAddonsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                List[_models.SubscriptionAddon],
-                response.json()
-            )
+            deserialized = _deserialize(List[_models.SubscriptionAddon], response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def get(
-        self,
-        subscription_id: str,
-        subscription_addon_id: str,
-        **kwargs: Any
-    ) -> _models.SubscriptionAddon:
+    async def get(self, subscription_id: str, subscription_addon_id: str, **kwargs: Any) -> _models.SubscriptionAddon:
         """Get subscription addon.
 
         Get a subscription addon by id.
@@ -7364,16 +6233,13 @@ class SubscriptionAddonsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.SubscriptionAddon] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.SubscriptionAddon] = kwargs.pop("cls", None)
 
-        
         _request = build_subscription_addons_get_request(
             subscription_id=subscription_id,
             subscription_addon_id=subscription_addon_id,
@@ -7381,17 +6247,13 @@ class SubscriptionAddonsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -7404,28 +6266,21 @@ class SubscriptionAddonsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -7436,17 +6291,12 @@ class SubscriptionAddonsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.SubscriptionAddon,
-                response.json()
-            )
+            deserialized = _deserialize(_models.SubscriptionAddon, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def update(
@@ -7535,7 +6385,6 @@ class SubscriptionAddonsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def update(
         self,
         subscription_id: str,
@@ -7562,15 +6411,13 @@ class SubscriptionAddonsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.SubscriptionAddon] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.SubscriptionAddon] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -7588,17 +6435,13 @@ class SubscriptionAddonsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -7611,28 +6454,21 @@ class SubscriptionAddonsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -7643,18 +6479,15 @@ class SubscriptionAddonsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.SubscriptionAddon,
-                response.json()
-            )
+            deserialized = _deserialize(_models.SubscriptionAddon, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
 
-class EntitlementsOperations: 
+class EntitlementsOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -7670,9 +6503,6 @@ class EntitlementsOperations:
         self._config: OpenMeterClientConfiguration = input_args.pop(0) if input_args else kwargs.pop("config")
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
-
-
-
 
     async def list(
         self,
@@ -7701,34 +6531,34 @@ class EntitlementsOperations:
         <#tag/entitlements/get/api/v2/entitlements>`_ instead.
 
         :keyword feature: Filtering by multiple features.
-         
+
          Usage: ``?feature=feature-1&feature=feature-2``. Default value is None.
         :paramtype feature: list[str]
         :keyword subject: Filtering by multiple subjects.
-         
+
          Usage: ``?subject=customer-1&subject=customer-2``. Default value is None.
         :paramtype subject: list[str]
         :keyword entitlement_type: Filtering by multiple entitlement types.
-         
+
          Usage: ``?entitlementType=metered&entitlementType=boolean``. Default value is None.
         :paramtype entitlement_type: list[str or ~openmeter.models.EntitlementType]
         :keyword exclude_inactive: Exclude inactive entitlements in the response (those scheduled for
          later or earlier). Default value is None.
         :paramtype exclude_inactive: bool
         :keyword page: Page index.
-         
+
          Default is 1. Default value is None.
         :paramtype page: int
         :keyword page_size: The maximum number of items per page.
-         
+
          Default is 100. Default value is None.
         :paramtype page_size: int
         :keyword offset: Number of items to skip.
-         
+
          Default is 0. Default value is None.
         :paramtype offset: int
         :keyword limit: Number of items to return.
-         
+
          Default is 100. Default value is None.
         :paramtype limit: int
         :keyword order: The order direction. Known values are: "ASC" and "DESC". Default value is None.
@@ -7749,16 +6579,13 @@ class EntitlementsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType["_types.ListEntitlementsResult"] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType["_types.ListEntitlementsResult"] = kwargs.pop("cls", None)
 
-        
         _request = build_entitlements_list_request(
             feature=feature,
             subject=subject,
@@ -7774,17 +6601,13 @@ class EntitlementsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -7797,24 +6620,18 @@ class EntitlementsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -7825,23 +6642,14 @@ class EntitlementsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                "_types.ListEntitlementsResult",
-                response.json()
-            )
+            deserialized = _deserialize("_types.ListEntitlementsResult", response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def get(
-        self,
-        entitlement_id: str,
-        **kwargs: Any
-    ) -> "_types.Entitlement":
+    async def get(self, entitlement_id: str, **kwargs: Any) -> "_types.Entitlement":
         """Get entitlement by ID.
 
         Get entitlement by ID.
@@ -7861,33 +6669,26 @@ class EntitlementsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType["_types.Entitlement"] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType["_types.Entitlement"] = kwargs.pop("cls", None)
 
-        
         _request = build_entitlements_get_request(
             entitlement_id=entitlement_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -7900,28 +6701,21 @@ class EntitlementsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -7932,18 +6726,15 @@ class EntitlementsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                "_types.Entitlement",
-                response.json()
-            )
+            deserialized = _deserialize("_types.Entitlement", response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
 
-class GrantsOperations: 
+class GrantsOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -7959,9 +6750,6 @@ class GrantsOperations:
         self._config: OpenMeterClientConfiguration = input_args.pop(0) if input_args else kwargs.pop("config")
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
-
-
-
 
     async def list(
         self,
@@ -7988,29 +6776,29 @@ class GrantsOperations:
         ⚠️ **Deprecated**: Use ``GET /api/v2/grants` <#tag/entitlements/get/api/v2/grants>`_ instead.
 
         :keyword feature: Filtering by multiple features.
-         
+
          Usage: ``?feature=feature-1&feature=feature-2``. Default value is None.
         :paramtype feature: list[str]
         :keyword subject: Filtering by multiple subjects.
-         
+
          Usage: ``?subject=customer-1&subject=customer-2``. Default value is None.
         :paramtype subject: list[str]
         :keyword include_deleted: Include deleted. Default value is None.
         :paramtype include_deleted: bool
         :keyword page: Page index.
-         
+
          Default is 1. Default value is None.
         :paramtype page: int
         :keyword page_size: The maximum number of items per page.
-         
+
          Default is 100. Default value is None.
         :paramtype page_size: int
         :keyword offset: Number of items to skip.
-         
+
          Default is 0. Default value is None.
         :paramtype offset: int
         :keyword limit: Number of items to return.
-         
+
          Default is 100. Default value is None.
         :paramtype limit: int
         :keyword order: The order direction. Known values are: "ASC" and "DESC". Default value is None.
@@ -8028,16 +6816,13 @@ class GrantsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[Union[List[_models.EntitlementGrant], _models.GrantPaginatedResponse]] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[Union[List[_models.EntitlementGrant], _models.GrantPaginatedResponse]] = kwargs.pop("cls", None)
 
-        
         _request = build_grants_list_request(
             feature=feature,
             subject=subject,
@@ -8052,17 +6837,13 @@ class GrantsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -8075,24 +6856,18 @@ class GrantsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -8104,24 +6879,15 @@ class GrantsOperations:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
             deserialized = _deserialize(
-                Union[List[_models.EntitlementGrant], _models.GrantPaginatedResponse],
-                response.json()
+                Union[List[_models.EntitlementGrant], _models.GrantPaginatedResponse], response.json()
             )
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def delete(
-        self,
-        grant_id: str,
-        *,
-        at: Optional[datetime.datetime] = None,
-        **kwargs: Any
-    ) -> None:
+    async def delete(self, grant_id: str, *, at: Optional[datetime.datetime] = None, **kwargs: Any) -> None:
         """Void grant.
 
         Voiding a grant means it is no longer valid, it doesn't take part in further balance
@@ -8145,16 +6911,13 @@ class GrantsOperations:
         error_map: MutableMapping = {
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
-        
         _request = build_grants_delete_request(
             grant_id=grant_id,
             at=at,
@@ -8162,16 +6925,12 @@ class GrantsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -8179,31 +6938,23 @@ class GrantsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             elif response.status_code == 409:
-                error = _failsafe_deserialize(_models.ConflictProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ConflictProblemResponse, response)
                 raise ResourceExistsError(response=response, model=error)
             else:
                 error = _failsafe_deserialize(
@@ -8213,10 +6964,10 @@ class GrantsOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
+            return cls(pipeline_response, None, {})  # type: ignore
 
 
-class SubjectsOperations: 
+class SubjectsOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -8232,9 +6983,6 @@ class SubjectsOperations:
         self._config: OpenMeterClientConfiguration = input_args.pop(0) if input_args else kwargs.pop("config")
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
-
-
-
 
     @overload
     async def post(
@@ -8380,12 +7128,8 @@ class SubjectsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def post(
-        self,
-        subject_id_or_key: str,
-        entitlement: "_types.EntitlementCreateInputs",
-        **kwargs: Any
+        self, subject_id_or_key: str, entitlement: "_types.EntitlementCreateInputs", **kwargs: Any
     ) -> "_types.Entitlement":
         """Create a subject entitlement.
 
@@ -8429,15 +7173,13 @@ class SubjectsOperations:
             404: ResourceNotFoundError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType["_types.Entitlement"] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType["_types.Entitlement"] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = json.dumps(entitlement, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
@@ -8450,17 +7192,13 @@ class SubjectsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -8473,27 +7211,20 @@ class SubjectsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             elif response.status_code == 409:
-                error = _failsafe_deserialize(_models.ConflictProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ConflictProblemResponse, response)
                 raise ResourceExistsError(response=response, model=error)
             else:
                 error = _failsafe_deserialize(
@@ -8505,24 +7236,15 @@ class SubjectsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                "_types.Entitlement",
-                response.json()
-            )
+            deserialized = _deserialize("_types.Entitlement", response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
     async def list(
-        self,
-        subject_id_or_key: str,
-        *,
-        include_deleted: Optional[bool] = None,
-        **kwargs: Any
+        self, subject_id_or_key: str, *, include_deleted: Optional[bool] = None, **kwargs: Any
     ) -> List["_types.Entitlement"]:
         """List subject entitlements.
 
@@ -8547,16 +7269,13 @@ class SubjectsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[List["_types.Entitlement"]] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[List["_types.Entitlement"]] = kwargs.pop("cls", None)
 
-        
         _request = build_subjects_list_request(
             subject_id_or_key=subject_id_or_key,
             include_deleted=include_deleted,
@@ -8564,17 +7283,13 @@ class SubjectsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -8587,24 +7302,18 @@ class SubjectsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -8615,24 +7324,14 @@ class SubjectsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                List["_types.Entitlement"],
-                response.json()
-            )
+            deserialized = _deserialize(List["_types.Entitlement"], response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def get(
-        self,
-        subject_id_or_key: str,
-        entitlement_id: str,
-        **kwargs: Any
-    ) -> "_types.Entitlement":
+    async def get(self, subject_id_or_key: str, entitlement_id: str, **kwargs: Any) -> "_types.Entitlement":
         """Get subject entitlement.
 
         Get entitlement by id. For checking entitlement access, use the /value endpoint instead.
@@ -8656,16 +7355,13 @@ class SubjectsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType["_types.Entitlement"] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType["_types.Entitlement"] = kwargs.pop("cls", None)
 
-        
         _request = build_subjects_get_request(
             subject_id_or_key=subject_id_or_key,
             entitlement_id=entitlement_id,
@@ -8673,17 +7369,13 @@ class SubjectsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -8696,27 +7388,20 @@ class SubjectsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             elif response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             else:
                 error = _failsafe_deserialize(
@@ -8728,24 +7413,14 @@ class SubjectsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                "_types.Entitlement",
-                response.json()
-            )
+            deserialized = _deserialize("_types.Entitlement", response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def delete(
-        self,
-        subject_id_or_key: str,
-        entitlement_id: str,
-        **kwargs: Any
-    ) -> None:
+    async def delete(self, subject_id_or_key: str, entitlement_id: str, **kwargs: Any) -> None:
         """Delete subject entitlement.
 
         Deleting an entitlement revokes access to the associated feature. As a single subject can only
@@ -8773,16 +7448,13 @@ class SubjectsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
-        
         _request = build_subjects_delete_request(
             subject_id_or_key=subject_id_or_key,
             entitlement_id=entitlement_id,
@@ -8790,16 +7462,12 @@ class SubjectsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -8807,27 +7475,20 @@ class SubjectsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             elif response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             else:
                 error = _failsafe_deserialize(
@@ -8837,9 +7498,7 @@ class SubjectsOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
-
-
+            return cls(pipeline_response, None, {})  # type: ignore
 
     @overload
     async def override(
@@ -8961,7 +7620,6 @@ class SubjectsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def override(
         self,
         subject_id_or_key: str,
@@ -9001,15 +7659,13 @@ class SubjectsOperations:
         error_map: MutableMapping = {
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType["_types.Entitlement"] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType["_types.Entitlement"] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = json.dumps(entitlement, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
@@ -9023,17 +7679,13 @@ class SubjectsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -9046,31 +7698,23 @@ class SubjectsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             elif response.status_code == 409:
-                error = _failsafe_deserialize(_models.ConflictProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ConflictProblemResponse, response)
                 raise ResourceExistsError(response=response, model=error)
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             else:
                 error = _failsafe_deserialize(
@@ -9082,17 +7726,12 @@ class SubjectsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                "_types.Entitlement",
-                response.json()
-            )
+            deserialized = _deserialize("_types.Entitlement", response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     async def get_grants(
         self,
@@ -9130,16 +7769,13 @@ class SubjectsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[List[_models.EntitlementGrant]] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[List[_models.EntitlementGrant]] = kwargs.pop("cls", None)
 
-        
         _request = build_subjects_get_grants_request(
             subject_id_or_key=subject_id_or_key,
             entitlement_id_or_feature_key=entitlement_id_or_feature_key,
@@ -9149,17 +7785,13 @@ class SubjectsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -9172,24 +7804,18 @@ class SubjectsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -9200,17 +7826,12 @@ class SubjectsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                List[_models.EntitlementGrant],
-                response.json()
-            )
+            deserialized = _deserialize(List[_models.EntitlementGrant], response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def create_grant(
@@ -9371,7 +7992,6 @@ class SubjectsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def create_grant(
         self,
         subject_id_or_key: str,
@@ -9423,15 +8043,13 @@ class SubjectsOperations:
             404: ResourceNotFoundError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.EntitlementGrant] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.EntitlementGrant] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -9449,17 +8067,13 @@ class SubjectsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -9472,27 +8086,20 @@ class SubjectsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             elif response.status_code == 409:
-                error = _failsafe_deserialize(_models.ConflictProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ConflictProblemResponse, response)
                 raise ResourceExistsError(response=response, model=error)
             else:
                 error = _failsafe_deserialize(
@@ -9504,17 +8111,12 @@ class SubjectsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.EntitlementGrant,
-                response.json()
-            )
+            deserialized = _deserialize(_models.EntitlementGrant, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     async def get_entitlement_value(
         self,
@@ -9551,16 +8153,13 @@ class SubjectsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.EntitlementValue] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.EntitlementValue] = kwargs.pop("cls", None)
 
-        
         _request = build_subjects_get_entitlement_value_request(
             subject_id_or_key=subject_id_or_key,
             entitlement_id_or_feature_key=entitlement_id_or_feature_key,
@@ -9569,17 +8168,13 @@ class SubjectsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -9592,27 +8187,20 @@ class SubjectsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             elif response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             else:
                 error = _failsafe_deserialize(
@@ -9624,17 +8212,12 @@ class SubjectsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.EntitlementValue,
-                response.json()
-            )
+            deserialized = _deserialize(_models.EntitlementValue, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     async def get_entitlement_history(
         self,
@@ -9690,16 +8273,13 @@ class SubjectsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.WindowedBalanceHistory] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.WindowedBalanceHistory] = kwargs.pop("cls", None)
 
-        
         _request = build_subjects_get_entitlement_history_request(
             subject_id_or_key=subject_id_or_key,
             entitlement_id=entitlement_id,
@@ -9711,17 +8291,13 @@ class SubjectsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -9734,27 +8310,20 @@ class SubjectsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             elif response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             else:
                 error = _failsafe_deserialize(
@@ -9766,17 +8335,12 @@ class SubjectsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.WindowedBalanceHistory,
-                response.json()
-            )
+            deserialized = _deserialize(_models.WindowedBalanceHistory, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def reset(
@@ -9898,7 +8462,6 @@ class SubjectsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def reset(
         self,
         subject_id_or_key: str,
@@ -9937,15 +8500,13 @@ class SubjectsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -9963,16 +8524,12 @@ class SubjectsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -9980,27 +8537,20 @@ class SubjectsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             elif response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             else:
                 error = _failsafe_deserialize(
@@ -10010,10 +8560,10 @@ class SubjectsOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
+            return cls(pipeline_response, None, {})  # type: ignore
 
 
-class CustomerOperations: 
+class CustomerOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -10030,13 +8580,8 @@ class CustomerOperations:
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
 
-
-
-
     async def get_customer_access(
-        self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
-        **kwargs: Any
+        self, customer_id_or_key: "_types.ULIDOrExternalKey", **kwargs: Any
     ) -> _models.CustomerAccess:
         """Get customer access.
 
@@ -10052,33 +8597,26 @@ class CustomerOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.CustomerAccess] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.CustomerAccess] = kwargs.pop("cls", None)
 
-        
         _request = build_customer_get_customer_access_request(
             customer_id_or_key=customer_id_or_key,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -10091,27 +8629,20 @@ class CustomerOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             elif response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             else:
                 error = _failsafe_deserialize(
@@ -10123,18 +8654,15 @@ class CustomerOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.CustomerAccess,
-                response.json()
-            )
+            deserialized = _deserialize(_models.CustomerAccess, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
 
-class CustomerEntitlementOperations: 
+class CustomerEntitlementOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -10150,9 +8678,6 @@ class CustomerEntitlementOperations:
         self._config: OpenMeterClientConfiguration = input_args.pop(0) if input_args else kwargs.pop("config")
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
-
-
-
 
     async def get_customer_entitlement_value(
         self,
@@ -10182,16 +8707,13 @@ class CustomerEntitlementOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.EntitlementValue] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.EntitlementValue] = kwargs.pop("cls", None)
 
-        
         _request = build_customer_entitlement_get_customer_entitlement_value_request(
             customer_id_or_key=customer_id_or_key,
             feature_key=feature_key,
@@ -10200,17 +8722,13 @@ class CustomerEntitlementOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -10223,27 +8741,20 @@ class CustomerEntitlementOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             elif response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             else:
                 error = _failsafe_deserialize(
@@ -10255,18 +8766,15 @@ class CustomerEntitlementOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.EntitlementValue,
-                response.json()
-            )
+            deserialized = _deserialize(_models.EntitlementValue, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
 
-class CustomerStripeOperations: 
+class CustomerStripeOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -10283,14 +8791,7 @@ class CustomerStripeOperations:
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
 
-
-
-
-    async def get(
-        self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
-        **kwargs: Any
-    ) -> _models.StripeCustomerAppData:
+    async def get(self, customer_id_or_key: "_types.ULIDOrExternalKey", **kwargs: Any) -> _models.StripeCustomerAppData:
         """Get customer stripe app data.
 
         Get stripe app data for a customer. Only returns data if the customer billing profile is linked
@@ -10306,33 +8807,26 @@ class CustomerStripeOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.StripeCustomerAppData] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.StripeCustomerAppData] = kwargs.pop("cls", None)
 
-        
         _request = build_customer_stripe_get_request(
             customer_id_or_key=customer_id_or_key,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -10345,28 +8839,21 @@ class CustomerStripeOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -10377,17 +8864,12 @@ class CustomerStripeOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.StripeCustomerAppData,
-                response.json()
-            )
+            deserialized = _deserialize(_models.StripeCustomerAppData, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def upsert(
@@ -10467,7 +8949,6 @@ class CustomerStripeOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def upsert(
         self,
         customer_id_or_key: "_types.ULIDOrExternalKey",
@@ -10492,15 +8973,13 @@ class CustomerStripeOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.StripeCustomerAppData] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.StripeCustomerAppData] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -10517,17 +8996,13 @@ class CustomerStripeOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -10540,28 +9015,21 @@ class CustomerStripeOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -10572,17 +9040,12 @@ class CustomerStripeOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.StripeCustomerAppData,
-                response.json()
-            )
+            deserialized = _deserialize(_models.StripeCustomerAppData, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def create_portal_session(
@@ -10674,7 +9137,6 @@ class CustomerStripeOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def create_portal_session(
         self,
         customer_id_or_key: "_types.ULIDOrExternalKey",
@@ -10704,15 +9166,13 @@ class CustomerStripeOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.StripeCustomerPortalSession] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.StripeCustomerPortalSession] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -10729,17 +9189,13 @@ class CustomerStripeOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -10752,28 +9208,21 @@ class CustomerStripeOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -10784,18 +9233,15 @@ class CustomerStripeOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.StripeCustomerPortalSession,
-                response.json()
-            )
+            deserialized = _deserialize(_models.StripeCustomerPortalSession, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
 
-class MarketplaceOperations: 
+class MarketplaceOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -10812,26 +9258,19 @@ class MarketplaceOperations:
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
 
-
-
-
     async def list(
-        self,
-        *,
-        page: Optional[int] = None,
-        page_size: Optional[int] = None,
-        **kwargs: Any
+        self, *, page: Optional[int] = None, page_size: Optional[int] = None, **kwargs: Any
     ) -> _models.MarketplaceListingPaginatedResponse:
         """List available apps.
 
         List available apps of the app marketplace.
 
         :keyword page: Page index.
-         
+
          Default is 1. Default value is None.
         :paramtype page: int
         :keyword page_size: The maximum number of items per page.
-         
+
          Default is 100. Default value is None.
         :paramtype page_size: int
         :return: MarketplaceListingPaginatedResponse. The MarketplaceListingPaginatedResponse is
@@ -10844,16 +9283,13 @@ class MarketplaceOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.MarketplaceListingPaginatedResponse] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.MarketplaceListingPaginatedResponse] = kwargs.pop("cls", None)
 
-        
         _request = build_marketplace_list_request(
             page=page,
             page_size=page_size,
@@ -10861,17 +9297,13 @@ class MarketplaceOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -10884,24 +9316,18 @@ class MarketplaceOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -10912,23 +9338,14 @@ class MarketplaceOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.MarketplaceListingPaginatedResponse,
-                response.json()
-            )
+            deserialized = _deserialize(_models.MarketplaceListingPaginatedResponse, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def get(
-        self,
-        type: Union[str, _models.AppType],
-        **kwargs: Any
-    ) -> _models.MarketplaceListing:
+    async def get(self, type: Union[str, _models.AppType], **kwargs: Any) -> _models.MarketplaceListing:
         """Get app details by type.
 
         Get a marketplace listing by type.
@@ -10944,33 +9361,26 @@ class MarketplaceOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.MarketplaceListing] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.MarketplaceListing] = kwargs.pop("cls", None)
 
-        
         _request = build_marketplace_get_request(
             type=type,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -10983,24 +9393,18 @@ class MarketplaceOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -11011,22 +9415,15 @@ class MarketplaceOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.MarketplaceListing,
-                response.json()
-            )
+            deserialized = _deserialize(_models.MarketplaceListing, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
     async def get_o_auth2_install_url(
-        self,
-        type: Union[str, _models.AppType],
-        **kwargs: Any
+        self, type: Union[str, _models.AppType], **kwargs: Any
     ) -> _models.ClientAppStartResponse:
         """Get OAuth2 install URL.
 
@@ -11043,33 +9440,26 @@ class MarketplaceOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.ClientAppStartResponse] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.ClientAppStartResponse] = kwargs.pop("cls", None)
 
-        
         _request = build_marketplace_get_o_auth2_install_url_request(
             type=type,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -11082,24 +9472,18 @@ class MarketplaceOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -11110,17 +9494,12 @@ class MarketplaceOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.ClientAppStartResponse,
-                response.json()
-            )
+            deserialized = _deserialize(_models.ClientAppStartResponse, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     async def authorize_o_auth2_install(
         self,
@@ -11143,7 +9522,7 @@ class MarketplaceOperations:
         :keyword state: Required if the "state" parameter was present in the client authorization
          request.
          The exact value received from the client:
-         
+
          Unique, randomly generated, opaque, and non-guessable string that is sent
          when starting an authentication request and validated when processing the response. Default
          value is None.
@@ -11173,16 +9552,13 @@ class MarketplaceOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
-        
         _request = build_marketplace_authorize_o_auth2_install_request(
             type=type,
             state=state,
@@ -11194,16 +9570,12 @@ class MarketplaceOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -11211,24 +9583,18 @@ class MarketplaceOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -11237,9 +9603,7 @@ class MarketplaceOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
-
-
+            return cls(pipeline_response, None, {})  # type: ignore
 
     @overload
     async def install_with_api_key(
@@ -11270,12 +9634,7 @@ class MarketplaceOperations:
 
     @overload
     async def install_with_api_key(
-        self,
-        type: Union[str, _models.AppType],
-        _: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, type: Union[str, _models.AppType], _: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.MarketplaceInstallResponse:
         """Install app via API key.
 
@@ -11297,12 +9656,7 @@ class MarketplaceOperations:
 
     @overload
     async def install_with_api_key(
-        self,
-        type: Union[str, _models.AppType],
-        _: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, type: Union[str, _models.AppType], _: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.MarketplaceInstallResponse:
         """Install app via API key.
 
@@ -11321,7 +9675,6 @@ class MarketplaceOperations:
         :rtype: ~openmeter._generated.models.MarketplaceInstallResponse
         :raises ~corehttp.exceptions.HttpResponseError:
         """
-
 
     async def install_with_api_key(
         self,
@@ -11348,15 +9701,13 @@ class MarketplaceOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.MarketplaceInstallResponse] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.MarketplaceInstallResponse] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -11373,17 +9724,13 @@ class MarketplaceOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -11396,24 +9743,18 @@ class MarketplaceOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -11424,17 +9765,12 @@ class MarketplaceOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.MarketplaceInstallResponse,
-                response.json()
-            )
+            deserialized = _deserialize(_models.MarketplaceInstallResponse, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def install(
@@ -11465,12 +9801,7 @@ class MarketplaceOperations:
 
     @overload
     async def install(
-        self,
-        type: Union[str, _models.AppType],
-        _: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, type: Union[str, _models.AppType], _: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.MarketplaceInstallResponse:
         """Install app.
 
@@ -11492,12 +9823,7 @@ class MarketplaceOperations:
 
     @overload
     async def install(
-        self,
-        type: Union[str, _models.AppType],
-        _: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, type: Union[str, _models.AppType], _: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.MarketplaceInstallResponse:
         """Install app.
 
@@ -11516,7 +9842,6 @@ class MarketplaceOperations:
         :rtype: ~openmeter._generated.models.MarketplaceInstallResponse
         :raises ~corehttp.exceptions.HttpResponseError:
         """
-
 
     async def install(
         self,
@@ -11544,15 +9869,13 @@ class MarketplaceOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.MarketplaceInstallResponse] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.MarketplaceInstallResponse] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -11569,17 +9892,13 @@ class MarketplaceOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -11592,24 +9911,18 @@ class MarketplaceOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -11620,18 +9933,15 @@ class MarketplaceOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.MarketplaceInstallResponse,
-                response.json()
-            )
+            deserialized = _deserialize(_models.MarketplaceInstallResponse, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
 
-class AppCustomInvoicingOperations: 
+class AppCustomInvoicingOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -11647,9 +9957,6 @@ class AppCustomInvoicingOperations:
         self._config: OpenMeterClientConfiguration = input_args.pop(0) if input_args else kwargs.pop("config")
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
-
-
-
 
     @overload
     async def draft_syncronized(
@@ -11678,12 +9985,7 @@ class AppCustomInvoicingOperations:
 
     @overload
     async def draft_syncronized(
-        self,
-        invoice_id: str,
-        body: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, invoice_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> None:
         """Submit draft synchronization results.
 
@@ -11703,12 +10005,7 @@ class AppCustomInvoicingOperations:
 
     @overload
     async def draft_syncronized(
-        self,
-        invoice_id: str,
-        body: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, invoice_id: str, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> None:
         """Submit draft synchronization results.
 
@@ -11725,7 +10022,6 @@ class AppCustomInvoicingOperations:
         :rtype: None
         :raises ~corehttp.exceptions.HttpResponseError:
         """
-
 
     async def draft_syncronized(
         self,
@@ -11752,15 +10048,13 @@ class AppCustomInvoicingOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -11777,16 +10071,12 @@ class AppCustomInvoicingOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -11794,24 +10084,18 @@ class AppCustomInvoicingOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -11820,9 +10104,7 @@ class AppCustomInvoicingOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
-
-
+            return cls(pipeline_response, None, {})  # type: ignore
 
     @overload
     async def finalized(
@@ -11851,12 +10133,7 @@ class AppCustomInvoicingOperations:
 
     @overload
     async def finalized(
-        self,
-        invoice_id: str,
-        body: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, invoice_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> None:
         """Submit issuing synchronization results.
 
@@ -11876,12 +10153,7 @@ class AppCustomInvoicingOperations:
 
     @overload
     async def finalized(
-        self,
-        invoice_id: str,
-        body: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, invoice_id: str, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> None:
         """Submit issuing synchronization results.
 
@@ -11899,12 +10171,8 @@ class AppCustomInvoicingOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def finalized(
-        self,
-        invoice_id: str,
-        body: Union[_models.CustomInvoicingFinalizedRequest, JSON, IO[bytes]],
-        **kwargs: Any
+        self, invoice_id: str, body: Union[_models.CustomInvoicingFinalizedRequest, JSON, IO[bytes]], **kwargs: Any
     ) -> None:
         """Submit issuing synchronization results.
 
@@ -11924,15 +10192,13 @@ class AppCustomInvoicingOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -11949,16 +10215,12 @@ class AppCustomInvoicingOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -11966,24 +10228,18 @@ class AppCustomInvoicingOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -11992,9 +10248,7 @@ class AppCustomInvoicingOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
-
-
+            return cls(pipeline_response, None, {})  # type: ignore
 
     @overload
     async def payment_status(
@@ -12023,12 +10277,7 @@ class AppCustomInvoicingOperations:
 
     @overload
     async def payment_status(
-        self,
-        invoice_id: str,
-        body: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, invoice_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> None:
         """Update payment status.
 
@@ -12048,12 +10297,7 @@ class AppCustomInvoicingOperations:
 
     @overload
     async def payment_status(
-        self,
-        invoice_id: str,
-        body: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, invoice_id: str, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> None:
         """Update payment status.
 
@@ -12070,7 +10314,6 @@ class AppCustomInvoicingOperations:
         :rtype: None
         :raises ~corehttp.exceptions.HttpResponseError:
         """
-
 
     async def payment_status(
         self,
@@ -12097,15 +10340,13 @@ class AppCustomInvoicingOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -12122,16 +10363,12 @@ class AppCustomInvoicingOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -12139,24 +10376,18 @@ class AppCustomInvoicingOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -12165,10 +10396,10 @@ class AppCustomInvoicingOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
+            return cls(pipeline_response, None, {})  # type: ignore
 
 
-class EventsOperations: 
+class EventsOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -12184,9 +10415,6 @@ class EventsOperations:
         self._config: OpenMeterClientConfiguration = input_args.pop(0) if input_args else kwargs.pop("config")
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
-
-
-
 
     async def list(
         self,
@@ -12212,29 +10440,29 @@ class EventsOperations:
          Useful to track progress of a query. Default value is None.
         :paramtype client_id: str
         :keyword ingested_at_from: Start date-time in RFC 3339 format.
-         
+
          Inclusive. Default value is None.
         :paramtype ingested_at_from: ~datetime.datetime
         :keyword ingested_at_to: End date-time in RFC 3339 format.
-         
+
          Inclusive. Default value is None.
         :paramtype ingested_at_to: ~datetime.datetime
         :keyword id: The event ID.
-         
+
          Accepts partial ID. Default value is None.
         :paramtype id: str
         :keyword subject: The event subject.
-         
+
          Accepts partial subject. Default value is None.
         :paramtype subject: str
         :keyword customer_id: The event customer ID. Default value is None.
         :paramtype customer_id: list[str]
         :keyword from_parameter: Start date-time in RFC 3339 format.
-         
+
          Inclusive. Default value is None.
         :paramtype from_parameter: ~datetime.datetime
         :keyword to: End date-time in RFC 3339 format.
-         
+
          Inclusive. Default value is None.
         :paramtype to: ~datetime.datetime
         :keyword limit: Number of events to return. Default value is None.
@@ -12248,16 +10476,13 @@ class EventsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[List[_models.IngestedEvent]] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[List[_models.IngestedEvent]] = kwargs.pop("cls", None)
 
-        
         _request = build_events_list_request(
             client_id=client_id,
             ingested_at_from=ingested_at_from,
@@ -12272,17 +10497,13 @@ class EventsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -12295,24 +10516,18 @@ class EventsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -12323,25 +10538,16 @@ class EventsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                List[_models.IngestedEvent],
-                response.json()
-            )
+            deserialized = _deserialize(List[_models.IngestedEvent], response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
     @overload
     async def ingest_event(
-        self,
-        body: _models.Event,
-        *,
-        content_type: str = "application/cloudevents+json",
-        **kwargs: Any
+        self, body: _models.Event, *, content_type: str = "application/cloudevents+json", **kwargs: Any
     ) -> None:
         """Ingest events.
 
@@ -12359,11 +10565,7 @@ class EventsOperations:
 
     @overload
     async def ingest_event(
-        self,
-        body: JSON,
-        *,
-        content_type: str = "application/cloudevents+json",
-        **kwargs: Any
+        self, body: JSON, *, content_type: str = "application/cloudevents+json", **kwargs: Any
     ) -> None:
         """Ingest events.
 
@@ -12381,11 +10583,7 @@ class EventsOperations:
 
     @overload
     async def ingest_event(
-        self,
-        body: IO[bytes],
-        *,
-        content_type: str = "application/cloudevents+json",
-        **kwargs: Any
+        self, body: IO[bytes], *, content_type: str = "application/cloudevents+json", **kwargs: Any
     ) -> None:
         """Ingest events.
 
@@ -12401,12 +10599,7 @@ class EventsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
-    async def ingest_event(
-        self,
-        body: Union[_models.Event, JSON, IO[bytes]],
-        **kwargs: Any
-    ) -> None:
+    async def ingest_event(self, body: Union[_models.Event, JSON, IO[bytes]], **kwargs: Any) -> None:
         """Ingest events.
 
         Ingests an event or batch of events following the CloudEvents specification.
@@ -12422,15 +10615,13 @@ class EventsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('content-type', None))
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("content-type", None))
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/cloudevents+json"
         _content = None
@@ -12446,16 +10637,12 @@ class EventsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -12463,24 +10650,18 @@ class EventsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -12489,17 +10670,11 @@ class EventsOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
-
-
+            return cls(pipeline_response, None, {})  # type: ignore
 
     @overload
     async def ingest_events(
-        self,
-        body: List[_models.Event],
-        *,
-        content_type: str = "application/cloudevents-batch+json",
-        **kwargs: Any
+        self, body: List[_models.Event], *, content_type: str = "application/cloudevents-batch+json", **kwargs: Any
     ) -> None:
         """ingest_events.
 
@@ -12515,11 +10690,7 @@ class EventsOperations:
 
     @overload
     async def ingest_events(
-        self,
-        body: List[JSON],
-        *,
-        content_type: str = "application/cloudevents-batch+json",
-        **kwargs: Any
+        self, body: List[JSON], *, content_type: str = "application/cloudevents-batch+json", **kwargs: Any
     ) -> None:
         """ingest_events.
 
@@ -12535,11 +10706,7 @@ class EventsOperations:
 
     @overload
     async def ingest_events(
-        self,
-        body: IO[bytes],
-        *,
-        content_type: str = "application/cloudevents-batch+json",
-        **kwargs: Any
+        self, body: IO[bytes], *, content_type: str = "application/cloudevents-batch+json", **kwargs: Any
     ) -> None:
         """ingest_events.
 
@@ -12553,12 +10720,7 @@ class EventsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
-    async def ingest_events(
-        self,
-        body: Union[List[_models.Event], List[JSON], IO[bytes]],
-        **kwargs: Any
-    ) -> None:
+    async def ingest_events(self, body: Union[List[_models.Event], List[JSON], IO[bytes]], **kwargs: Any) -> None:
         """ingest_events.
 
         :param body: Is one of the following types: [Event], [JSON], IO[bytes] Required.
@@ -12572,15 +10734,13 @@ class EventsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('content-type', None))
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("content-type", None))
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/cloudevents-batch+json"
         _content = None
@@ -12596,16 +10756,12 @@ class EventsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -12613,24 +10769,18 @@ class EventsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -12639,17 +10789,11 @@ class EventsOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
-
-
+            return cls(pipeline_response, None, {})  # type: ignore
 
     @overload
     async def ingest_events_json(
-        self,
-        body: _models.Event,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, body: _models.Event, *, content_type: str = "application/json", **kwargs: Any
     ) -> None:
         """ingest_events_json.
 
@@ -12665,11 +10809,7 @@ class EventsOperations:
 
     @overload
     async def ingest_events_json(
-        self,
-        body: List[_models.Event],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, body: List[_models.Event], *, content_type: str = "application/json", **kwargs: Any
     ) -> None:
         """ingest_events_json.
 
@@ -12683,12 +10823,7 @@ class EventsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
-    async def ingest_events_json(
-        self,
-        body: "_types.IngestEventsBody",
-        **kwargs: Any
-    ) -> None:
+    async def ingest_events_json(self, body: "_types.IngestEventsBody", **kwargs: Any) -> None:
         """ingest_events_json.
 
         :param body: Is either a Event type or a [Event] type. Required.
@@ -12702,15 +10837,13 @@ class EventsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('content-type', None))
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("content-type", None))
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -12726,16 +10859,12 @@ class EventsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -12743,24 +10872,18 @@ class EventsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -12769,10 +10892,10 @@ class EventsOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
+            return cls(pipeline_response, None, {})  # type: ignore
 
 
-class EventsV2Operations: 
+class EventsV2Operations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -12788,9 +10911,6 @@ class EventsV2Operations:
         self._config: OpenMeterClientConfiguration = input_args.pop(0) if input_args else kwargs.pop("config")
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
-
-
-
 
     def list(
         self,
@@ -12821,19 +10941,18 @@ class EventsV2Operations:
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[List[_models.IngestedEvent]] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[List[_models.IngestedEvent]] = kwargs.pop("cls", None)
 
         error_map: MutableMapping = {
             404: ResourceNotFoundError,
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
         def prepare_request(next_link=None):
             if not next_link:
-                
+
                 _request = build_events_v2_list_request(
                     cursor=cursor,
                     limit=limit,
@@ -12843,14 +10962,18 @@ class EventsV2Operations:
                     params=_params,
                 )
                 path_format_arguments = {
-                    "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+                    "endpoint": self._serialize.url(
+                        "self._config.endpoint", self._config.endpoint, "str", skip_quote=True
+                    ),
                 }
                 _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
             else:
                 _request = HttpRequest("GET", next_link)
                 path_format_arguments = {
-                    "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+                    "endpoint": self._serialize.url(
+                        "self._config.endpoint", self._config.endpoint, "str", skip_quote=True
+                    ),
                 }
                 _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
@@ -12859,46 +10982,36 @@ class EventsV2Operations:
         async def extract_data(pipeline_response):
             deserialized = pipeline_response.http_response.json()
             list_of_elem = _deserialize(
-            List[_models.IngestedEvent],
-            deserialized.get("items", []),
+                List[_models.IngestedEvent],
+                deserialized.get("items", []),
             )
             if cls:
-                list_of_elem = cls(list_of_elem) # type: ignore
+                list_of_elem = cls(list_of_elem)  # type: ignore
             return None, AsyncList(list_of_elem)
 
         async def get_next(next_link=None):
             _request = prepare_request(next_link)
 
             _stream = False
-            pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-                _request,
-                stream=_stream,
-                **kwargs
-            )
+            pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
             response = pipeline_response.http_response
 
             if response.status_code not in [200]:
                 map_error(status_code=response.status_code, response=response, error_map=error_map)
                 error = None
                 if response.status_code == 400:
-                    error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                    error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
                 elif response.status_code == 401:
-                    error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                    error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                     raise ClientAuthenticationError(response=response, model=error)
                 if response.status_code == 403:
-                    error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                    error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
                 elif response.status_code == 500:
-                    error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                    error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
                 elif response.status_code == 503:
-                    error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                    error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
                 elif response.status_code == 412:
-                    error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                    error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
                 else:
                     error = _failsafe_deserialize(
                         _models.UnexpectedProblemResponse,
@@ -12908,12 +11021,10 @@ class EventsV2Operations:
 
             return pipeline_response
 
+        return AsyncItemPaged(get_next, extract_data)
 
-        return AsyncItemPaged(
-            get_next, extract_data
-        )
 
-class MetersOperations: 
+class MetersOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -12930,9 +11041,6 @@ class MetersOperations:
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
 
-
-
-
     async def list(
         self,
         *,
@@ -12948,11 +11056,11 @@ class MetersOperations:
         List meters.
 
         :keyword page: Page index.
-         
+
          Default is 1. Default value is None.
         :paramtype page: int
         :keyword page_size: The maximum number of items per page.
-         
+
          Default is 100. Default value is None.
         :paramtype page_size: int
         :keyword order: The order direction. Known values are: "ASC" and "DESC". Default value is None.
@@ -12971,16 +11079,13 @@ class MetersOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[List[_models.Meter]] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[List[_models.Meter]] = kwargs.pop("cls", None)
 
-        
         _request = build_meters_list_request(
             page=page,
             page_size=page_size,
@@ -12991,17 +11096,13 @@ class MetersOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -13014,24 +11115,18 @@ class MetersOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -13042,23 +11137,14 @@ class MetersOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                List[_models.Meter],
-                response.json()
-            )
+            deserialized = _deserialize(List[_models.Meter], response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def get(
-        self,
-        meter_id_or_slug: str,
-        **kwargs: Any
-    ) -> _models.Meter:
+    async def get(self, meter_id_or_slug: str, **kwargs: Any) -> _models.Meter:
         """Get meter.
 
         Get a meter by ID or slug.
@@ -13073,33 +11159,26 @@ class MetersOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.Meter] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.Meter] = kwargs.pop("cls", None)
 
-        
         _request = build_meters_get_request(
             meter_id_or_slug=meter_id_or_slug,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -13112,28 +11191,21 @@ class MetersOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -13144,25 +11216,16 @@ class MetersOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Meter,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Meter, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
     @overload
     async def create(
-        self,
-        meter: _models.MeterCreate,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, meter: _models.MeterCreate, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Meter:
         """Create meter.
 
@@ -13179,13 +11242,7 @@ class MetersOperations:
         """
 
     @overload
-    async def create(
-        self,
-        meter: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
-    ) -> _models.Meter:
+    async def create(self, meter: JSON, *, content_type: str = "application/json", **kwargs: Any) -> _models.Meter:
         """Create meter.
 
         Create a meter.
@@ -13201,13 +11258,7 @@ class MetersOperations:
         """
 
     @overload
-    async def create(
-        self,
-        meter: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
-    ) -> _models.Meter:
+    async def create(self, meter: IO[bytes], *, content_type: str = "application/json", **kwargs: Any) -> _models.Meter:
         """Create meter.
 
         Create a meter.
@@ -13222,12 +11273,7 @@ class MetersOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
-    async def create(
-        self,
-        meter: Union[_models.MeterCreate, JSON, IO[bytes]],
-        **kwargs: Any
-    ) -> _models.Meter:
+    async def create(self, meter: Union[_models.MeterCreate, JSON, IO[bytes]], **kwargs: Any) -> _models.Meter:
         """Create meter.
 
         Create a meter.
@@ -13243,15 +11289,13 @@ class MetersOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.Meter] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.Meter] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -13267,17 +11311,13 @@ class MetersOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -13290,24 +11330,18 @@ class MetersOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -13318,17 +11352,12 @@ class MetersOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Meter,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Meter, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def update(
@@ -13357,12 +11386,7 @@ class MetersOperations:
 
     @overload
     async def update(
-        self,
-        meter_id_or_slug: str,
-        meter: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, meter_id_or_slug: str, meter: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Meter:
         """Update meter.
 
@@ -13382,12 +11406,7 @@ class MetersOperations:
 
     @overload
     async def update(
-        self,
-        meter_id_or_slug: str,
-        meter: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, meter_id_or_slug: str, meter: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Meter:
         """Update meter.
 
@@ -13405,12 +11424,8 @@ class MetersOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def update(
-        self,
-        meter_id_or_slug: str,
-        meter: Union[_models.MeterUpdate, JSON, IO[bytes]],
-        **kwargs: Any
+        self, meter_id_or_slug: str, meter: Union[_models.MeterUpdate, JSON, IO[bytes]], **kwargs: Any
     ) -> _models.Meter:
         """Update meter.
 
@@ -13429,15 +11444,13 @@ class MetersOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.Meter] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.Meter] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -13454,17 +11467,13 @@ class MetersOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -13477,24 +11486,18 @@ class MetersOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -13505,23 +11508,14 @@ class MetersOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Meter,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Meter, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def delete(
-        self,
-        meter_id_or_slug: str,
-        **kwargs: Any
-    ) -> None:
+    async def delete(self, meter_id_or_slug: str, **kwargs: Any) -> None:
         """Delete meter.
 
         Delete a meter.
@@ -13537,32 +11531,25 @@ class MetersOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
-        
         _request = build_meters_delete_request(
             meter_id_or_slug=meter_id_or_slug,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -13570,24 +11557,18 @@ class MetersOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -13596,9 +11577,7 @@ class MetersOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
-
-
+            return cls(pipeline_response, None, {})  # type: ignore
 
     async def query_json(
         self,
@@ -13626,41 +11605,41 @@ class MetersOperations:
          Useful to track progress of a query. Default value is None.
         :paramtype client_id: str
         :keyword from_parameter: Start date-time in RFC 3339 format.
-         
+
          Inclusive.
-         
+
          For example: ?from=2025-01-01T00%3A00%3A00.000Z. Default value is None.
         :paramtype from_parameter: ~datetime.datetime
         :keyword to: End date-time in RFC 3339 format.
-         
+
          Inclusive.
-         
+
          For example: ?to=2025-02-01T00%3A00%3A00.000Z. Default value is None.
         :paramtype to: ~datetime.datetime
         :keyword window_size: If not specified, a single usage aggregate will be returned for the
          entirety of the specified period for each subject and group.
-         
+
          For example: ?windowSize=DAY. Known values are: "MINUTE", "HOUR", "DAY", and "MONTH". Default
          value is None.
         :paramtype window_size: str or ~openmeter.models.WindowSize
         :keyword window_time_zone: The value is the name of the time zone as defined in the IANA Time
          Zone Database (`http://www.iana.org/time-zones <http://www.iana.org/time-zones>`_).
          If not specified, the UTC timezone will be used.
-         
+
          For example: ?windowTimeZone=UTC. Default value is None.
         :paramtype window_time_zone: str
         :keyword subject: Filtering by multiple subjects.
-         
+
          For example: ?subject=subject-1&subject=subject-2. Default value is None.
         :paramtype subject: list[str]
         :keyword filter_customer_id: Filtering by multiple customers.
-         
+
          For example: ?filterCustomerId=customer-1&filterCustomerId=customer-2. Default value is None.
         :paramtype filter_customer_id: list[str]
         :keyword filter_group_by: Simple filter for group bys with exact match.
-         
+
          For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo
-         
+
          ⚠️ **Deprecated**: Use ``advancedMeterGroupByFilters`` instead. Default value is None.
         :paramtype filter_group_by: dict[str, str]
         :keyword advanced_meter_group_by_filters: Advanced meter group by filters. Default value is
@@ -13670,7 +11649,7 @@ class MetersOperations:
         :keyword group_by: If not specified a single aggregate will be returned for each subject and
          time window.
          ``subject`` is a reserved group by value.
-         
+
          For example: ?groupBy=subject&groupBy=model. Default value is None.
         :paramtype group_by: list[str]
         :return: MeterQueryResult. The MeterQueryResult is compatible with MutableMapping
@@ -13681,16 +11660,13 @@ class MetersOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.MeterQueryResult] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.MeterQueryResult] = kwargs.pop("cls", None)
 
-        
         _request = build_meters_query_json_request(
             meter_id_or_slug=meter_id_or_slug,
             client_id=client_id,
@@ -13707,17 +11683,13 @@ class MetersOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -13730,28 +11702,21 @@ class MetersOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -13760,22 +11725,17 @@ class MetersOperations:
             raise HttpResponseError(response=response, model=error)
 
         response_headers = {}
-        response_headers['content-type']=self._deserialize('str', response.headers.get('content-type'))
+        response_headers["content-type"] = self._deserialize("str", response.headers.get("content-type"))
 
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.MeterQueryResult,
-                response.json()
-            )
+            deserialized = _deserialize(_models.MeterQueryResult, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, response_headers) # type: ignore
+            return cls(pipeline_response, deserialized, response_headers)  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     async def query_csv(
         self,
@@ -13801,41 +11761,41 @@ class MetersOperations:
          Useful to track progress of a query. Default value is None.
         :paramtype client_id: str
         :keyword from_parameter: Start date-time in RFC 3339 format.
-         
+
          Inclusive.
-         
+
          For example: ?from=2025-01-01T00%3A00%3A00.000Z. Default value is None.
         :paramtype from_parameter: ~datetime.datetime
         :keyword to: End date-time in RFC 3339 format.
-         
+
          Inclusive.
-         
+
          For example: ?to=2025-02-01T00%3A00%3A00.000Z. Default value is None.
         :paramtype to: ~datetime.datetime
         :keyword window_size: If not specified, a single usage aggregate will be returned for the
          entirety of the specified period for each subject and group.
-         
+
          For example: ?windowSize=DAY. Known values are: "MINUTE", "HOUR", "DAY", and "MONTH". Default
          value is None.
         :paramtype window_size: str or ~openmeter.models.WindowSize
         :keyword window_time_zone: The value is the name of the time zone as defined in the IANA Time
          Zone Database (`http://www.iana.org/time-zones <http://www.iana.org/time-zones>`_).
          If not specified, the UTC timezone will be used.
-         
+
          For example: ?windowTimeZone=UTC. Default value is None.
         :paramtype window_time_zone: str
         :keyword subject: Filtering by multiple subjects.
-         
+
          For example: ?subject=subject-1&subject=subject-2. Default value is None.
         :paramtype subject: list[str]
         :keyword filter_customer_id: Filtering by multiple customers.
-         
+
          For example: ?filterCustomerId=customer-1&filterCustomerId=customer-2. Default value is None.
         :paramtype filter_customer_id: list[str]
         :keyword filter_group_by: Simple filter for group bys with exact match.
-         
+
          For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo
-         
+
          ⚠️ **Deprecated**: Use ``advancedMeterGroupByFilters`` instead. Default value is None.
         :paramtype filter_group_by: dict[str, str]
         :keyword advanced_meter_group_by_filters: Advanced meter group by filters. Default value is
@@ -13845,7 +11805,7 @@ class MetersOperations:
         :keyword group_by: If not specified a single aggregate will be returned for each subject and
          time window.
          ``subject`` is a reserved group by value.
-         
+
          For example: ?groupBy=subject&groupBy=model. Default value is None.
         :paramtype group_by: list[str]
         :return: str
@@ -13856,16 +11816,13 @@ class MetersOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[str] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[str] = kwargs.pop("cls", None)
 
-        
         _request = build_meters_query_csv_request(
             meter_id_or_slug=meter_id_or_slug,
             client_id=client_id,
@@ -13882,17 +11839,13 @@ class MetersOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -13905,28 +11858,21 @@ class MetersOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -13935,22 +11881,17 @@ class MetersOperations:
             raise HttpResponseError(response=response, model=error)
 
         response_headers = {}
-        response_headers['content-type']=self._deserialize('str', response.headers.get('content-type'))
+        response_headers["content-type"] = self._deserialize("str", response.headers.get("content-type"))
 
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                str,
-                response.text()
-            )
+            deserialized = _deserialize(str, response.text())
 
         if cls:
-            return cls(pipeline_response, deserialized, response_headers) # type: ignore
+            return cls(pipeline_response, deserialized, response_headers)  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def query(
@@ -13979,12 +11920,7 @@ class MetersOperations:
 
     @overload
     async def query(
-        self,
-        meter_id_or_slug: str,
-        request: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, meter_id_or_slug: str, request: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.MeterQueryResult:
         """Query meter.
 
@@ -14004,12 +11940,7 @@ class MetersOperations:
 
     @overload
     async def query(
-        self,
-        meter_id_or_slug: str,
-        request: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, meter_id_or_slug: str, request: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.MeterQueryResult:
         """Query meter.
 
@@ -14027,12 +11958,8 @@ class MetersOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def query(
-        self,
-        meter_id_or_slug: str,
-        request: Union[_models.MeterQueryRequest, JSON, IO[bytes]],
-        **kwargs: Any
+        self, meter_id_or_slug: str, request: Union[_models.MeterQueryRequest, JSON, IO[bytes]], **kwargs: Any
     ) -> _models.MeterQueryResult:
         """Query meter.
 
@@ -14050,15 +11977,13 @@ class MetersOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.MeterQueryResult] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.MeterQueryResult] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -14075,17 +12000,13 @@ class MetersOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -14098,28 +12019,21 @@ class MetersOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -14128,28 +12042,19 @@ class MetersOperations:
             raise HttpResponseError(response=response, model=error)
 
         response_headers = {}
-        response_headers['content-type']=self._deserialize('str', response.headers.get('content-type'))
+        response_headers["content-type"] = self._deserialize("str", response.headers.get("content-type"))
 
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.MeterQueryResult,
-                response.json()
-            )
+            deserialized = _deserialize(_models.MeterQueryResult, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, response_headers) # type: ignore
+            return cls(pipeline_response, deserialized, response_headers)  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def query_csv_post(
-        self,
-        meter_id_or_slug: str,
-        **kwargs: Any
-    ) -> str:
+    async def query_csv_post(self, meter_id_or_slug: str, **kwargs: Any) -> str:
         """query_csv_post.
 
         :param meter_id_or_slug: Required.
@@ -14162,33 +12067,26 @@ class MetersOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[str] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[str] = kwargs.pop("cls", None)
 
-        
         _request = build_meters_query_csv_post_request(
             meter_id_or_slug=meter_id_or_slug,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -14201,28 +12099,21 @@ class MetersOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -14231,22 +12122,17 @@ class MetersOperations:
             raise HttpResponseError(response=response, model=error)
 
         response_headers = {}
-        response_headers['content-type']=self._deserialize('str', response.headers.get('content-type'))
+        response_headers["content-type"] = self._deserialize("str", response.headers.get("content-type"))
 
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                str,
-                response.text()
-            )
+            deserialized = _deserialize(str, response.text())
 
         if cls:
-            return cls(pipeline_response, deserialized, response_headers) # type: ignore
+            return cls(pipeline_response, deserialized, response_headers)  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     async def list_subjects(
         self,
@@ -14263,15 +12149,15 @@ class MetersOperations:
         :param meter_id_or_slug: Required.
         :type meter_id_or_slug: str
         :keyword from_parameter: Start date-time in RFC 3339 format.
-         
+
          Inclusive. Defaults to the beginning of time.
-         
+
          For example: ?from=2025-01-01T00%3A00%3A00.000Z. Default value is None.
         :paramtype from_parameter: ~datetime.datetime
         :keyword to: End date-time in RFC 3339 format.
-         
+
          Inclusive.
-         
+
          For example: ?to=2025-02-01T00%3A00%3A00.000Z. Default value is None.
         :paramtype to: ~datetime.datetime
         :return: list of str
@@ -14283,16 +12169,13 @@ class MetersOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[List[str]] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[List[str]] = kwargs.pop("cls", None)
 
-        
         _request = build_meters_list_subjects_request(
             meter_id_or_slug=meter_id_or_slug,
             from_parameter=from_parameter,
@@ -14301,17 +12184,13 @@ class MetersOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -14324,24 +12203,18 @@ class MetersOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -14352,17 +12225,12 @@ class MetersOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                List[str],
-                response.json()
-            )
+            deserialized = _deserialize(List[str], response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     async def list_group_by_values(
         self,
@@ -14382,15 +12250,15 @@ class MetersOperations:
         :param group_by_key: Required.
         :type group_by_key: str
         :keyword from_parameter: Start date-time in RFC 3339 format.
-         
+
          Inclusive. Defaults to 24 hours ago.
-         
+
          For example: ?from=2025-01-01T00%3A00%3A00.000Z. Default value is None.
         :paramtype from_parameter: ~datetime.datetime
         :keyword to: End date-time in RFC 3339 format.
-         
+
          Inclusive.
-         
+
          For example: ?to=2025-02-01T00%3A00%3A00.000Z. Default value is None.
         :paramtype to: ~datetime.datetime
         :return: list of str
@@ -14402,16 +12270,13 @@ class MetersOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[List[str]] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[List[str]] = kwargs.pop("cls", None)
 
-        
         _request = build_meters_list_group_by_values_request(
             meter_id_or_slug=meter_id_or_slug,
             group_by_key=group_by_key,
@@ -14421,17 +12286,13 @@ class MetersOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -14444,24 +12305,18 @@ class MetersOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -14472,18 +12327,15 @@ class MetersOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                List[str],
-                response.json()
-            )
+            deserialized = _deserialize(List[str], response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
 
-class SubjectsOperations: 
+class SubjectsOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -14500,13 +12352,7 @@ class SubjectsOperations:
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
 
-
-
-
-    async def list(
-        self,
-        **kwargs: Any
-    ) -> List[_models.Subject]:
+    async def list(self, **kwargs: Any) -> List[_models.Subject]:
         """List subjects.
 
         List subjects.
@@ -14523,32 +12369,25 @@ class SubjectsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[List[_models.Subject]] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[List[_models.Subject]] = kwargs.pop("cls", None)
 
-        
         _request = build_subjects_list_request(
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -14561,24 +12400,18 @@ class SubjectsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -14589,23 +12422,14 @@ class SubjectsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                List[_models.Subject],
-                response.json()
-            )
+            deserialized = _deserialize(List[_models.Subject], response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def get(
-        self,
-        subject_id_or_key: str,
-        **kwargs: Any
-    ) -> _models.Subject:
+    async def get(self, subject_id_or_key: str, **kwargs: Any) -> _models.Subject:
         """Get subject.
 
         Get subject by ID or key.
@@ -14623,33 +12447,26 @@ class SubjectsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.Subject] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.Subject] = kwargs.pop("cls", None)
 
-        
         _request = build_subjects_get_request(
             subject_id_or_key=subject_id_or_key,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -14662,28 +12479,21 @@ class SubjectsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -14694,25 +12504,16 @@ class SubjectsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Subject,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Subject, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
     @overload
     async def upsert(
-        self,
-        subject: List[_models.SubjectUpsert],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, subject: List[_models.SubjectUpsert], *, content_type: str = "application/json", **kwargs: Any
     ) -> List[_models.Subject]:
         """Upsert subject.
 
@@ -14736,11 +12537,7 @@ class SubjectsOperations:
 
     @overload
     async def upsert(
-        self,
-        subject: List[JSON],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, subject: List[JSON], *, content_type: str = "application/json", **kwargs: Any
     ) -> List[_models.Subject]:
         """Upsert subject.
 
@@ -14764,11 +12561,7 @@ class SubjectsOperations:
 
     @overload
     async def upsert(
-        self,
-        subject: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, subject: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> List[_models.Subject]:
         """Upsert subject.
 
@@ -14790,11 +12583,8 @@ class SubjectsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def upsert(
-        self,
-        subject: Union[List[_models.SubjectUpsert], List[JSON], IO[bytes]],
-        **kwargs: Any
+        self, subject: Union[List[_models.SubjectUpsert], List[JSON], IO[bytes]], **kwargs: Any
     ) -> List[_models.Subject]:
         """Upsert subject.
 
@@ -14817,15 +12607,13 @@ class SubjectsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[List[_models.Subject]] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[List[_models.Subject]] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -14841,17 +12629,13 @@ class SubjectsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -14864,24 +12648,18 @@ class SubjectsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -14892,23 +12670,14 @@ class SubjectsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                List[_models.Subject],
-                response.json()
-            )
+            deserialized = _deserialize(List[_models.Subject], response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def delete(
-        self,
-        subject_id_or_key: str,
-        **kwargs: Any
-    ) -> None:
+    async def delete(self, subject_id_or_key: str, **kwargs: Any) -> None:
         """Delete subject.
 
         Delete subject by ID or key.
@@ -14927,32 +12696,25 @@ class SubjectsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
-        
         _request = build_subjects_delete_request(
             subject_id_or_key=subject_id_or_key,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -14960,24 +12722,18 @@ class SubjectsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -14986,10 +12742,10 @@ class SubjectsOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
+            return cls(pipeline_response, None, {})  # type: ignore
 
 
-class DebugOperations: 
+class DebugOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -15006,13 +12762,7 @@ class DebugOperations:
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
 
-
-
-
-    async def metrics(
-        self,
-        **kwargs: Any
-    ) -> str:
+    async def metrics(self, **kwargs: Any) -> str:
         """Get event metrics.
 
         Returns debug metrics (in OpenMetrics format) like the number of ingested events since
@@ -15029,32 +12779,25 @@ class DebugOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[str] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[str] = kwargs.pop("cls", None)
 
-        
         _request = build_debug_metrics_request(
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -15067,24 +12810,18 @@ class DebugOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -15093,23 +12830,20 @@ class DebugOperations:
             raise HttpResponseError(response=response, model=error)
 
         response_headers = {}
-        response_headers['content-type']=self._deserialize('str', response.headers.get('content-type'))
+        response_headers["content-type"] = self._deserialize("str", response.headers.get("content-type"))
 
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                str,
-                response.text()
-            )
+            deserialized = _deserialize(str, response.text())
 
         if cls:
-            return cls(pipeline_response, deserialized, response_headers) # type: ignore
+            return cls(pipeline_response, deserialized, response_headers)  # type: ignore
 
         return deserialized  # type: ignore
 
 
-class NotificationChannelsOperations: 
+class NotificationChannelsOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -15125,9 +12859,6 @@ class NotificationChannelsOperations:
         self._config: OpenMeterClientConfiguration = input_args.pop(0) if input_args else kwargs.pop("config")
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
-
-
-
 
     async def list(
         self,
@@ -15145,19 +12876,19 @@ class NotificationChannelsOperations:
         List all notification channels.
 
         :keyword include_deleted: Include deleted notification channels in response.
-         
+
          Usage: ``?includeDeleted=true``. Default value is None.
         :paramtype include_deleted: bool
         :keyword include_disabled: Include disabled notification channels in response.
-         
+
          Usage: ``?includeDisabled=false``. Default value is None.
         :paramtype include_disabled: bool
         :keyword page: Page index.
-         
+
          Default is 1. Default value is None.
         :paramtype page: int
         :keyword page_size: The maximum number of items per page.
-         
+
          Default is 100. Default value is None.
         :paramtype page_size: int
         :keyword order: The order direction. Known values are: "ASC" and "DESC". Default value is None.
@@ -15175,16 +12906,13 @@ class NotificationChannelsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.NotificationChannelPaginatedResponse] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.NotificationChannelPaginatedResponse] = kwargs.pop("cls", None)
 
-        
         _request = build_notification_channels_list_request(
             include_deleted=include_deleted,
             include_disabled=include_disabled,
@@ -15196,17 +12924,13 @@ class NotificationChannelsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -15219,24 +12943,18 @@ class NotificationChannelsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -15247,17 +12965,12 @@ class NotificationChannelsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.NotificationChannelPaginatedResponse,
-                response.json()
-            )
+            deserialized = _deserialize(_models.NotificationChannelPaginatedResponse, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def create(
@@ -15281,11 +12994,8 @@ class NotificationChannelsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def create(
-        self,
-        request: "_types.NotificationChannelCreateRequest",
-        **kwargs: Any
+        self, request: "_types.NotificationChannelCreateRequest", **kwargs: Any
     ) -> "_types.NotificationChannel":
         """Create a notification channel.
 
@@ -15303,15 +13013,13 @@ class NotificationChannelsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType["_types.NotificationChannel"] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType["_types.NotificationChannel"] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = json.dumps(request, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
@@ -15323,17 +13031,13 @@ class NotificationChannelsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -15346,24 +13050,18 @@ class NotificationChannelsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -15374,17 +13072,12 @@ class NotificationChannelsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                "_types.NotificationChannel",
-                response.json()
-            )
+            deserialized = _deserialize("_types.NotificationChannel", response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def update(
@@ -15411,12 +13104,8 @@ class NotificationChannelsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def update(
-        self,
-        channel_id: str,
-        request: "_types.NotificationChannelCreateRequest",
-        **kwargs: Any
+        self, channel_id: str, request: "_types.NotificationChannelCreateRequest", **kwargs: Any
     ) -> "_types.NotificationChannel":
         """Update a notification channel.
 
@@ -15435,15 +13124,13 @@ class NotificationChannelsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType["_types.NotificationChannel"] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType["_types.NotificationChannel"] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = json.dumps(request, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
@@ -15456,17 +13143,13 @@ class NotificationChannelsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -15479,28 +13162,21 @@ class NotificationChannelsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -15511,23 +13187,14 @@ class NotificationChannelsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                "_types.NotificationChannel",
-                response.json()
-            )
+            deserialized = _deserialize("_types.NotificationChannel", response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def get(
-        self,
-        channel_id: str,
-        **kwargs: Any
-    ) -> "_types.NotificationChannel":
+    async def get(self, channel_id: str, **kwargs: Any) -> "_types.NotificationChannel":
         """Get notification channel.
 
         Get a notification channel by id.
@@ -15542,33 +13209,26 @@ class NotificationChannelsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType["_types.NotificationChannel"] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType["_types.NotificationChannel"] = kwargs.pop("cls", None)
 
-        
         _request = build_notification_channels_get_request(
             channel_id=channel_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -15581,28 +13241,21 @@ class NotificationChannelsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -15613,23 +13266,14 @@ class NotificationChannelsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                "_types.NotificationChannel",
-                response.json()
-            )
+            deserialized = _deserialize("_types.NotificationChannel", response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def delete(
-        self,
-        channel_id: str,
-        **kwargs: Any
-    ) -> None:
+    async def delete(self, channel_id: str, **kwargs: Any) -> None:
         """Delete a notification channel.
 
         Soft delete notification channel by id.
@@ -15646,32 +13290,25 @@ class NotificationChannelsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
-        
         _request = build_notification_channels_delete_request(
             channel_id=channel_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -15679,28 +13316,21 @@ class NotificationChannelsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -15709,10 +13339,10 @@ class NotificationChannelsOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
+            return cls(pipeline_response, None, {})  # type: ignore
 
 
-class NotificationRulesOperations: 
+class NotificationRulesOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -15728,9 +13358,6 @@ class NotificationRulesOperations:
         self._config: OpenMeterClientConfiguration = input_args.pop(0) if input_args else kwargs.pop("config")
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
-
-
-
 
     async def list(
         self,
@@ -15750,28 +13377,28 @@ class NotificationRulesOperations:
         List all notification rules.
 
         :keyword include_deleted: Include deleted notification rules in response.
-         
+
          Usage: ``?includeDeleted=true``. Default value is None.
         :paramtype include_deleted: bool
         :keyword include_disabled: Include disabled notification rules in response.
-         
+
          Usage: ``?includeDisabled=false``. Default value is None.
         :paramtype include_disabled: bool
         :keyword feature: Filtering by multiple feature ids/keys.
-         
+
          Usage: ``?feature=feature-1&feature=feature-2``. Default value is None.
         :paramtype feature: list[str]
         :keyword channel: Filtering by multiple notifiaction channel ids.
-         
+
          Usage: ``?channel=01ARZ3NDEKTSV4RRFFQ69G5FAV&channel=01J8J2Y5X4NNGQS32CF81W95E3``. Default
          value is None.
         :paramtype channel: list[str]
         :keyword page: Page index.
-         
+
          Default is 1. Default value is None.
         :paramtype page: int
         :keyword page_size: The maximum number of items per page.
-         
+
          Default is 100. Default value is None.
         :paramtype page_size: int
         :keyword order: The order direction. Known values are: "ASC" and "DESC". Default value is None.
@@ -15789,16 +13416,13 @@ class NotificationRulesOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.NotificationRulePaginatedResponse] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.NotificationRulePaginatedResponse] = kwargs.pop("cls", None)
 
-        
         _request = build_notification_rules_list_request(
             include_deleted=include_deleted,
             include_disabled=include_disabled,
@@ -15812,17 +13436,13 @@ class NotificationRulesOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -15835,24 +13455,18 @@ class NotificationRulesOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -15863,17 +13477,12 @@ class NotificationRulesOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.NotificationRulePaginatedResponse,
-                response.json()
-            )
+            deserialized = _deserialize(_models.NotificationRulePaginatedResponse, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def create(
@@ -15979,12 +13588,7 @@ class NotificationRulesOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
-    async def create(
-        self,
-        request: "_types.NotificationRuleCreateRequest",
-        **kwargs: Any
-    ) -> "_types.NotificationRule":
+    async def create(self, request: "_types.NotificationRuleCreateRequest", **kwargs: Any) -> "_types.NotificationRule":
         """Create a notification rule.
 
         Create a new notification rule.
@@ -16009,15 +13613,13 @@ class NotificationRulesOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType["_types.NotificationRule"] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType["_types.NotificationRule"] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = json.dumps(request, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
@@ -16029,17 +13631,13 @@ class NotificationRulesOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -16052,24 +13650,18 @@ class NotificationRulesOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -16080,17 +13672,12 @@ class NotificationRulesOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                "_types.NotificationRule",
-                response.json()
-            )
+            deserialized = _deserialize("_types.NotificationRule", response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def update(
@@ -16208,12 +13795,8 @@ class NotificationRulesOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def update(
-        self,
-        rule_id: str,
-        request: "_types.NotificationRuleCreateRequest",
-        **kwargs: Any
+        self, rule_id: str, request: "_types.NotificationRuleCreateRequest", **kwargs: Any
     ) -> "_types.NotificationRule":
         """Update a notification rule.
 
@@ -16240,15 +13823,13 @@ class NotificationRulesOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType["_types.NotificationRule"] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType["_types.NotificationRule"] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = json.dumps(request, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
@@ -16261,17 +13842,13 @@ class NotificationRulesOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -16284,28 +13861,21 @@ class NotificationRulesOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -16316,23 +13886,14 @@ class NotificationRulesOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                "_types.NotificationRule",
-                response.json()
-            )
+            deserialized = _deserialize("_types.NotificationRule", response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def get(
-        self,
-        rule_id: str,
-        **kwargs: Any
-    ) -> "_types.NotificationRule":
+    async def get(self, rule_id: str, **kwargs: Any) -> "_types.NotificationRule":
         """Get notification rule.
 
         Get a notification rule by id.
@@ -16351,33 +13912,26 @@ class NotificationRulesOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType["_types.NotificationRule"] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType["_types.NotificationRule"] = kwargs.pop("cls", None)
 
-        
         _request = build_notification_rules_get_request(
             rule_id=rule_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -16390,28 +13944,21 @@ class NotificationRulesOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -16422,23 +13969,14 @@ class NotificationRulesOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                "_types.NotificationRule",
-                response.json()
-            )
+            deserialized = _deserialize("_types.NotificationRule", response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def delete(
-        self,
-        rule_id: str,
-        **kwargs: Any
-    ) -> None:
+    async def delete(self, rule_id: str, **kwargs: Any) -> None:
         """Delete a notification rule.
 
         Soft delete notification rule by id.
@@ -16455,32 +13993,25 @@ class NotificationRulesOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
-        
         _request = build_notification_rules_delete_request(
             rule_id=rule_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -16488,28 +14019,21 @@ class NotificationRulesOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -16518,15 +14042,9 @@ class NotificationRulesOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
+            return cls(pipeline_response, None, {})  # type: ignore
 
-
-
-    async def test(
-        self,
-        rule_id: str,
-        **kwargs: Any
-    ) -> _models.NotificationEvent:
+    async def test(self, rule_id: str, **kwargs: Any) -> _models.NotificationEvent:
         """Test notification rule.
 
         Test a notification rule by sending a test event with random data.
@@ -16541,33 +14059,26 @@ class NotificationRulesOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.NotificationEvent] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.NotificationEvent] = kwargs.pop("cls", None)
 
-        
         _request = build_notification_rules_test_request(
             rule_id=rule_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -16580,28 +14091,21 @@ class NotificationRulesOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -16612,18 +14116,15 @@ class NotificationRulesOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.NotificationEvent,
-                response.json()
-            )
+            deserialized = _deserialize(_models.NotificationEvent, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
 
-class NotificationEventsOperations: 
+class NotificationEventsOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -16639,9 +14140,6 @@ class NotificationEventsOperations:
         self._config: OpenMeterClientConfiguration = input_args.pop(0) if input_args else kwargs.pop("config")
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
-
-
-
 
     async def list(
         self,
@@ -16669,29 +14167,29 @@ class NotificationEventsOperations:
          Inclusive. Default value is None.
         :paramtype to: ~datetime.datetime
         :keyword feature: Filtering by multiple feature ids or keys.
-         
+
          Usage: ``?feature=feature-1&feature=feature-2``. Default value is None.
         :paramtype feature: list[str]
         :keyword subject: Filtering by multiple subject ids or keys.
-         
+
          Usage: ``?subject=subject-1&subject=subject-2``. Default value is None.
         :paramtype subject: list[str]
         :keyword rule: Filtering by multiple rule ids.
-         
+
          Usage: ``?rule=01J8J2XYZ2N5WBYK09EDZFBSZM&rule=01J8J4R4VZH180KRKQ63NB2VA5``. Default value is
          None.
         :paramtype rule: list[str]
         :keyword channel: Filtering by multiple channel ids.
-         
+
          Usage: ``?channel=01J8J4RXH778XB056JS088PCYT&channel=01J8J4S1R1G9EVN62RG23A9M6J``. Default
          value is None.
         :paramtype channel: list[str]
         :keyword page: Page index.
-         
+
          Default is 1. Default value is None.
         :paramtype page: int
         :keyword page_size: The maximum number of items per page.
-         
+
          Default is 100. Default value is None.
         :paramtype page_size: int
         :keyword order: The order direction. Known values are: "ASC" and "DESC". Default value is None.
@@ -16709,16 +14207,13 @@ class NotificationEventsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.NotificationEventPaginatedResponse] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.NotificationEventPaginatedResponse] = kwargs.pop("cls", None)
 
-        
         _request = build_notification_events_list_request(
             from_parameter=from_parameter,
             to=to,
@@ -16734,17 +14229,13 @@ class NotificationEventsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -16757,24 +14248,18 @@ class NotificationEventsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -16785,23 +14270,14 @@ class NotificationEventsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.NotificationEventPaginatedResponse,
-                response.json()
-            )
+            deserialized = _deserialize(_models.NotificationEventPaginatedResponse, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def get(
-        self,
-        event_id: str,
-        **kwargs: Any
-    ) -> _models.NotificationEvent:
+    async def get(self, event_id: str, **kwargs: Any) -> _models.NotificationEvent:
         """Get notification event.
 
         Get a notification event by id.
@@ -16816,33 +14292,26 @@ class NotificationEventsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.NotificationEvent] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.NotificationEvent] = kwargs.pop("cls", None)
 
-        
         _request = build_notification_events_get_request(
             event_id=event_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -16855,28 +14324,21 @@ class NotificationEventsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -16887,17 +14349,12 @@ class NotificationEventsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.NotificationEvent,
-                response.json()
-            )
+            deserialized = _deserialize(_models.NotificationEvent, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def resend(
@@ -16926,12 +14383,7 @@ class NotificationEventsOperations:
 
     @overload
     async def resend(
-        self,
-        event_id: str,
-        request: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, event_id: str, request: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> None:
         """Re-send notification event.
 
@@ -16951,12 +14403,7 @@ class NotificationEventsOperations:
 
     @overload
     async def resend(
-        self,
-        event_id: str,
-        request: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, event_id: str, request: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> None:
         """Re-send notification event.
 
@@ -16974,12 +14421,8 @@ class NotificationEventsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def resend(
-        self,
-        event_id: str,
-        request: Union[_models.NotificationEventResendRequest, JSON, IO[bytes]],
-        **kwargs: Any
+        self, event_id: str, request: Union[_models.NotificationEventResendRequest, JSON, IO[bytes]], **kwargs: Any
     ) -> None:
         """Re-send notification event.
 
@@ -16998,15 +14441,13 @@ class NotificationEventsOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -17023,16 +14464,12 @@ class NotificationEventsOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -17040,28 +14477,21 @@ class NotificationEventsOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -17070,10 +14500,10 @@ class NotificationEventsOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
+            return cls(pipeline_response, None, {})  # type: ignore
 
 
-class EntitlementsV2Operations: 
+class EntitlementsV2Operations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -17089,9 +14519,6 @@ class EntitlementsV2Operations:
         self._config: OpenMeterClientConfiguration = input_args.pop(0) if input_args else kwargs.pop("config")
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
-
-
-
 
     async def list(
         self,
@@ -17116,39 +14543,39 @@ class EntitlementsV2Operations:
         /api/v2/customers/{customerIdOrKey}/entitlements endpoint.
 
         :keyword feature: Filtering by multiple features.
-         
+
          Usage: ``?feature=feature-1&feature=feature-2``. Default value is None.
         :paramtype feature: list[str]
         :keyword customer_keys: Filtering by multiple customers.
-         
+
          Usage: ``?customerKeys=customer-1&customerKeys=customer-3``. Default value is None.
         :paramtype customer_keys: list[str]
         :keyword customer_ids: Filtering by multiple customers.
-         
+
          Usage: ``?customerIds=01K4WAQ0J99ZZ0MD75HXR112H8&customerIds=01K4WAQ0J99ZZ0MD75HXR112H9``.
          Default value is None.
         :paramtype customer_ids: list[str]
         :keyword entitlement_type: Filtering by multiple entitlement types.
-         
+
          Usage: ``?entitlementType=metered&entitlementType=boolean``. Default value is None.
         :paramtype entitlement_type: list[str or ~openmeter.models.EntitlementType]
         :keyword exclude_inactive: Exclude inactive entitlements in the response (those scheduled for
          later or earlier). Default value is None.
         :paramtype exclude_inactive: bool
         :keyword page: Page index.
-         
+
          Default is 1. Default value is None.
         :paramtype page: int
         :keyword page_size: The maximum number of items per page.
-         
+
          Default is 100. Default value is None.
         :paramtype page_size: int
         :keyword offset: Number of items to skip.
-         
+
          Default is 0. Default value is None.
         :paramtype offset: int
         :keyword limit: Number of items to return.
-         
+
          Default is 100. Default value is None.
         :paramtype limit: int
         :keyword order: The order direction. Known values are: "ASC" and "DESC". Default value is None.
@@ -17166,16 +14593,13 @@ class EntitlementsV2Operations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.EntitlementV2PaginatedResponse] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.EntitlementV2PaginatedResponse] = kwargs.pop("cls", None)
 
-        
         _request = build_entitlements_v2_list_request(
             feature=feature,
             customer_keys=customer_keys,
@@ -17192,17 +14616,13 @@ class EntitlementsV2Operations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -17215,24 +14635,18 @@ class EntitlementsV2Operations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -17243,23 +14657,14 @@ class EntitlementsV2Operations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.EntitlementV2PaginatedResponse,
-                response.json()
-            )
+            deserialized = _deserialize(_models.EntitlementV2PaginatedResponse, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def get(
-        self,
-        entitlement_id: str,
-        **kwargs: Any
-    ) -> "_types.EntitlementV2":
+    async def get(self, entitlement_id: str, **kwargs: Any) -> "_types.EntitlementV2":
         """Get entitlement by ID.
 
         Get entitlement by ID.
@@ -17276,33 +14681,26 @@ class EntitlementsV2Operations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType["_types.EntitlementV2"] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType["_types.EntitlementV2"] = kwargs.pop("cls", None)
 
-        
         _request = build_entitlements_v2_get_request(
             entitlement_id=entitlement_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -17315,28 +14713,21 @@ class EntitlementsV2Operations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -17347,18 +14738,15 @@ class EntitlementsV2Operations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                "_types.EntitlementV2",
-                response.json()
-            )
+            deserialized = _deserialize("_types.EntitlementV2", response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
 
-class CustomerEntitlementsV2Operations: 
+class CustomerEntitlementsV2Operations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -17374,9 +14762,6 @@ class CustomerEntitlementsV2Operations:
         self._config: OpenMeterClientConfiguration = input_args.pop(0) if input_args else kwargs.pop("config")
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
-
-
-
 
     @overload
     async def post(
@@ -17513,7 +14898,6 @@ class CustomerEntitlementsV2Operations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def post(
         self,
         customer_id_or_key: "_types.ULIDOrExternalKey",
@@ -17559,15 +14943,13 @@ class CustomerEntitlementsV2Operations:
             404: ResourceNotFoundError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType["_types.EntitlementV2"] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType["_types.EntitlementV2"] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = json.dumps(entitlement, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
@@ -17580,17 +14962,13 @@ class CustomerEntitlementsV2Operations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -17603,27 +14981,20 @@ class CustomerEntitlementsV2Operations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             elif response.status_code == 409:
-                error = _failsafe_deserialize(_models.ConflictProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ConflictProblemResponse, response)
                 raise ResourceExistsError(response=response, model=error)
             else:
                 error = _failsafe_deserialize(
@@ -17635,17 +15006,12 @@ class CustomerEntitlementsV2Operations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                "_types.EntitlementV2",
-                response.json()
-            )
+            deserialized = _deserialize("_types.EntitlementV2", response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     async def list(
         self,
@@ -17668,11 +15034,11 @@ class CustomerEntitlementsV2Operations:
         :keyword include_deleted: Default value is None.
         :paramtype include_deleted: bool
         :keyword page: Page index.
-         
+
          Default is 1. Default value is None.
         :paramtype page: int
         :keyword page_size: The maximum number of items per page.
-         
+
          Default is 100. Default value is None.
         :paramtype page_size: int
         :keyword order: The order direction. Known values are: "ASC" and "DESC". Default value is None.
@@ -17690,16 +15056,13 @@ class CustomerEntitlementsV2Operations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.EntitlementV2PaginatedResponse] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.EntitlementV2PaginatedResponse] = kwargs.pop("cls", None)
 
-        
         _request = build_customer_entitlements_v2_list_request(
             customer_id_or_key=customer_id_or_key,
             include_deleted=include_deleted,
@@ -17711,17 +15074,13 @@ class CustomerEntitlementsV2Operations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -17734,24 +15093,18 @@ class CustomerEntitlementsV2Operations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -17762,23 +15115,15 @@ class CustomerEntitlementsV2Operations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.EntitlementV2PaginatedResponse,
-                response.json()
-            )
+            deserialized = _deserialize(_models.EntitlementV2PaginatedResponse, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
     async def get(
-        self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
-        entitlement_id_or_feature_key: str,
-        **kwargs: Any
+        self, customer_id_or_key: "_types.ULIDOrExternalKey", entitlement_id_or_feature_key: str, **kwargs: Any
     ) -> "_types.EntitlementV2":
         """Get customer entitlement.
 
@@ -17799,16 +15144,13 @@ class CustomerEntitlementsV2Operations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType["_types.EntitlementV2"] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType["_types.EntitlementV2"] = kwargs.pop("cls", None)
 
-        
         _request = build_customer_entitlements_v2_get_request(
             customer_id_or_key=customer_id_or_key,
             entitlement_id_or_feature_key=entitlement_id_or_feature_key,
@@ -17816,17 +15158,13 @@ class CustomerEntitlementsV2Operations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -17839,27 +15177,20 @@ class CustomerEntitlementsV2Operations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             elif response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             else:
                 error = _failsafe_deserialize(
@@ -17871,23 +15202,15 @@ class CustomerEntitlementsV2Operations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                "_types.EntitlementV2",
-                response.json()
-            )
+            deserialized = _deserialize("_types.EntitlementV2", response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
     async def delete(
-        self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
-        entitlement_id_or_feature_key: str,
-        **kwargs: Any
+        self, customer_id_or_key: "_types.ULIDOrExternalKey", entitlement_id_or_feature_key: str, **kwargs: Any
     ) -> None:
         """Delete customer entitlement.
 
@@ -17910,16 +15233,13 @@ class CustomerEntitlementsV2Operations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
-        
         _request = build_customer_entitlements_v2_delete_request(
             customer_id_or_key=customer_id_or_key,
             entitlement_id_or_feature_key=entitlement_id_or_feature_key,
@@ -17927,16 +15247,12 @@ class CustomerEntitlementsV2Operations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -17944,27 +15260,20 @@ class CustomerEntitlementsV2Operations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             elif response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             else:
                 error = _failsafe_deserialize(
@@ -17974,9 +15283,7 @@ class CustomerEntitlementsV2Operations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
-
-
+            return cls(pipeline_response, None, {})  # type: ignore
 
     @overload
     async def override(
@@ -18083,7 +15390,6 @@ class CustomerEntitlementsV2Operations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def override(
         self,
         customer_id_or_key: "_types.ULIDOrExternalKey",
@@ -18118,15 +15424,13 @@ class CustomerEntitlementsV2Operations:
         error_map: MutableMapping = {
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType["_types.EntitlementV2"] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType["_types.EntitlementV2"] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = json.dumps(entitlement, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
@@ -18140,17 +15444,13 @@ class CustomerEntitlementsV2Operations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -18163,31 +15463,23 @@ class CustomerEntitlementsV2Operations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             elif response.status_code == 409:
-                error = _failsafe_deserialize(_models.ConflictProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ConflictProblemResponse, response)
                 raise ResourceExistsError(response=response, model=error)
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             else:
                 error = _failsafe_deserialize(
@@ -18199,18 +15491,15 @@ class CustomerEntitlementsV2Operations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                "_types.EntitlementV2",
-                response.json()
-            )
+            deserialized = _deserialize("_types.EntitlementV2", response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
 
-class CustomerEntitlementV2Operations: 
+class CustomerEntitlementV2Operations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -18226,9 +15515,6 @@ class CustomerEntitlementV2Operations:
         self._config: OpenMeterClientConfiguration = input_args.pop(0) if input_args else kwargs.pop("config")
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
-
-
-
 
     async def get_grants(
         self,
@@ -18256,19 +15542,19 @@ class CustomerEntitlementV2Operations:
         :keyword include_deleted: Default value is None.
         :paramtype include_deleted: bool
         :keyword page: Page index.
-         
+
          Default is 1. Default value is None.
         :paramtype page: int
         :keyword page_size: The maximum number of items per page.
-         
+
          Default is 100. Default value is None.
         :paramtype page_size: int
         :keyword offset: Number of items to skip.
-         
+
          Default is 0. Default value is None.
         :paramtype offset: int
         :keyword limit: Number of items to return.
-         
+
          Default is 100. Default value is None.
         :paramtype limit: int
         :keyword order: The order direction. Known values are: "ASC" and "DESC". Default value is None.
@@ -18286,16 +15572,13 @@ class CustomerEntitlementV2Operations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.GrantV2PaginatedResponse] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.GrantV2PaginatedResponse] = kwargs.pop("cls", None)
 
-        
         _request = build_customer_entitlement_v2_get_grants_request(
             customer_id_or_key=customer_id_or_key,
             entitlement_id_or_feature_key=entitlement_id_or_feature_key,
@@ -18310,17 +15593,13 @@ class CustomerEntitlementV2Operations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -18333,24 +15612,18 @@ class CustomerEntitlementV2Operations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -18361,17 +15634,12 @@ class CustomerEntitlementV2Operations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.GrantV2PaginatedResponse,
-                response.json()
-            )
+            deserialized = _deserialize(_models.GrantV2PaginatedResponse, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def create_customer_entitlement_grant(
@@ -18517,7 +15785,6 @@ class CustomerEntitlementV2Operations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def create_customer_entitlement_grant(
         self,
         customer_id_or_key: "_types.ULIDOrExternalKey",
@@ -18564,15 +15831,13 @@ class CustomerEntitlementV2Operations:
             404: ResourceNotFoundError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.EntitlementGrantV2] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.EntitlementGrantV2] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -18590,17 +15855,13 @@ class CustomerEntitlementV2Operations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -18613,27 +15874,20 @@ class CustomerEntitlementV2Operations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             elif response.status_code == 409:
-                error = _failsafe_deserialize(_models.ConflictProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ConflictProblemResponse, response)
                 raise ResourceExistsError(response=response, model=error)
             else:
                 error = _failsafe_deserialize(
@@ -18645,17 +15899,12 @@ class CustomerEntitlementV2Operations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.EntitlementGrantV2,
-                response.json()
-            )
+            deserialized = _deserialize(_models.EntitlementGrantV2, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     async def get_customer_entitlement_value(
         self,
@@ -18685,16 +15934,13 @@ class CustomerEntitlementV2Operations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.EntitlementValueV2] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.EntitlementValueV2] = kwargs.pop("cls", None)
 
-        
         _request = build_customer_entitlement_v2_get_customer_entitlement_value_request(
             customer_id_or_key=customer_id_or_key,
             entitlement_id_or_feature_key=entitlement_id_or_feature_key,
@@ -18703,17 +15949,13 @@ class CustomerEntitlementV2Operations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -18726,27 +15968,20 @@ class CustomerEntitlementV2Operations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             elif response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             else:
                 error = _failsafe_deserialize(
@@ -18758,17 +15993,12 @@ class CustomerEntitlementV2Operations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.EntitlementValueV2,
-                response.json()
-            )
+            deserialized = _deserialize(_models.EntitlementValueV2, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     async def get_customer_entitlement_history(
         self,
@@ -18819,16 +16049,13 @@ class CustomerEntitlementV2Operations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.WindowedBalanceHistory] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.WindowedBalanceHistory] = kwargs.pop("cls", None)
 
-        
         _request = build_customer_entitlement_v2_get_customer_entitlement_history_request(
             customer_id_or_key=customer_id_or_key,
             entitlement_id_or_feature_key=entitlement_id_or_feature_key,
@@ -18840,17 +16067,13 @@ class CustomerEntitlementV2Operations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -18863,27 +16086,20 @@ class CustomerEntitlementV2Operations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             elif response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             else:
                 error = _failsafe_deserialize(
@@ -18895,17 +16111,12 @@ class CustomerEntitlementV2Operations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.WindowedBalanceHistory,
-                response.json()
-            )
+            deserialized = _deserialize(_models.WindowedBalanceHistory, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def reset_customer_entitlement(
@@ -19012,7 +16223,6 @@ class CustomerEntitlementV2Operations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def reset_customer_entitlement(
         self,
         customer_id_or_key: "_types.ULIDOrExternalKey",
@@ -19046,15 +16256,13 @@ class CustomerEntitlementV2Operations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -19072,16 +16280,12 @@ class CustomerEntitlementV2Operations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -19089,27 +16293,20 @@ class CustomerEntitlementV2Operations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             elif response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             else:
                 error = _failsafe_deserialize(
@@ -19119,10 +16316,10 @@ class CustomerEntitlementV2Operations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
+            return cls(pipeline_response, None, {})  # type: ignore
 
 
-class GrantsV2Operations: 
+class GrantsV2Operations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -19138,9 +16335,6 @@ class GrantsV2Operations:
         self._config: OpenMeterClientConfiguration = input_args.pop(0) if input_args else kwargs.pop("config")
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
-
-
-
 
     async def list(
         self,
@@ -19164,29 +16358,29 @@ class GrantsV2Operations:
         If page is provided that takes precedence and the paginated response is returned.
 
         :keyword feature: Filtering by multiple features.
-         
+
          Usage: ``?feature=feature-1&feature=feature-2``. Default value is None.
         :paramtype feature: list[str]
         :keyword customer: Filtering by multiple customers (either by ID or key).
-         
+
          Usage: ``?customer=customer-1&customer=customer-2``. Default value is None.
         :paramtype customer: list[str or str]
         :keyword include_deleted: Include deleted. Default value is None.
         :paramtype include_deleted: bool
         :keyword page: Page index.
-         
+
          Default is 1. Default value is None.
         :paramtype page: int
         :keyword page_size: The maximum number of items per page.
-         
+
          Default is 100. Default value is None.
         :paramtype page_size: int
         :keyword offset: Number of items to skip.
-         
+
          Default is 0. Default value is None.
         :paramtype offset: int
         :keyword limit: Number of items to return.
-         
+
          Default is 100. Default value is None.
         :paramtype limit: int
         :keyword order: The order direction. Known values are: "ASC" and "DESC". Default value is None.
@@ -19204,16 +16398,13 @@ class GrantsV2Operations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.GrantV2PaginatedResponse] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.GrantV2PaginatedResponse] = kwargs.pop("cls", None)
 
-        
         _request = build_grants_v2_list_request(
             feature=feature,
             customer=customer,
@@ -19228,17 +16419,13 @@ class GrantsV2Operations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -19251,24 +16438,18 @@ class GrantsV2Operations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -19279,18 +16460,15 @@ class GrantsV2Operations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.GrantV2PaginatedResponse,
-                response.json()
-            )
+            deserialized = _deserialize(_models.GrantV2PaginatedResponse, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
 
-class BillingProfilesOperations: 
+class BillingProfilesOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -19306,9 +16484,6 @@ class BillingProfilesOperations:
         self._config: OpenMeterClientConfiguration = input_args.pop(0) if input_args else kwargs.pop("config")
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
-
-
-
 
     async def list(
         self,
@@ -19335,11 +16510,11 @@ class BillingProfilesOperations:
         :keyword expand: Default value is None.
         :paramtype expand: list[str or ~openmeter.models.BillingProfileExpand]
         :keyword page: Page index.
-         
+
          Default is 1. Default value is None.
         :paramtype page: int
         :keyword page_size: The maximum number of items per page.
-         
+
          Default is 100. Default value is None.
         :paramtype page_size: int
         :keyword order: The order direction. Known values are: "ASC" and "DESC". Default value is None.
@@ -19357,16 +16532,13 @@ class BillingProfilesOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.BillingProfilePaginatedResponse] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.BillingProfilePaginatedResponse] = kwargs.pop("cls", None)
 
-        
         _request = build_billing_profiles_list_request(
             include_archived=include_archived,
             expand=expand,
@@ -19378,17 +16550,13 @@ class BillingProfilesOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -19401,24 +16569,18 @@ class BillingProfilesOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -19429,25 +16591,16 @@ class BillingProfilesOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.BillingProfilePaginatedResponse,
-                response.json()
-            )
+            deserialized = _deserialize(_models.BillingProfilePaginatedResponse, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
     @overload
     async def create(
-        self,
-        profile: _models.BillingProfileCreate,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, profile: _models.BillingProfileCreate, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.BillingProfile:
         """Create a new billing profile.
 
@@ -19468,11 +16621,7 @@ class BillingProfilesOperations:
 
     @overload
     async def create(
-        self,
-        profile: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, profile: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.BillingProfile:
         """Create a new billing profile.
 
@@ -19493,11 +16642,7 @@ class BillingProfilesOperations:
 
     @overload
     async def create(
-        self,
-        profile: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, profile: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.BillingProfile:
         """Create a new billing profile.
 
@@ -19516,11 +16661,8 @@ class BillingProfilesOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def create(
-        self,
-        profile: Union[_models.BillingProfileCreate, JSON, IO[bytes]],
-        **kwargs: Any
+        self, profile: Union[_models.BillingProfileCreate, JSON, IO[bytes]], **kwargs: Any
     ) -> _models.BillingProfile:
         """Create a new billing profile.
 
@@ -19540,15 +16682,13 @@ class BillingProfilesOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.BillingProfile] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.BillingProfile] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -19564,17 +16704,13 @@ class BillingProfilesOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -19587,24 +16723,18 @@ class BillingProfilesOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -19615,23 +16745,14 @@ class BillingProfilesOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.BillingProfile,
-                response.json()
-            )
+            deserialized = _deserialize(_models.BillingProfile, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def delete(
-        self,
-        id: str,
-        **kwargs: Any
-    ) -> None:
+    async def delete(self, id: str, **kwargs: Any) -> None:
         """Delete a billing profile.
 
         Delete a billing profile by id.
@@ -19652,32 +16773,25 @@ class BillingProfilesOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
-        
         _request = build_billing_profiles_delete_request(
             id=id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -19685,28 +16799,21 @@ class BillingProfilesOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -19715,16 +16822,10 @@ class BillingProfilesOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
-
-
+            return cls(pipeline_response, None, {})  # type: ignore
 
     async def get(
-        self,
-        id: str,
-        *,
-        expand: Optional[List[Union[str, _models.BillingProfileExpand]]] = None,
-        **kwargs: Any
+        self, id: str, *, expand: Optional[List[Union[str, _models.BillingProfileExpand]]] = None, **kwargs: Any
     ) -> _models.BillingProfile:
         """Get a billing profile.
 
@@ -19747,16 +16848,13 @@ class BillingProfilesOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.BillingProfile] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.BillingProfile] = kwargs.pop("cls", None)
 
-        
         _request = build_billing_profiles_get_request(
             id=id,
             expand=expand,
@@ -19764,17 +16862,13 @@ class BillingProfilesOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -19787,28 +16881,21 @@ class BillingProfilesOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -19819,17 +16906,12 @@ class BillingProfilesOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.BillingProfile,
-                response.json()
-            )
+            deserialized = _deserialize(_models.BillingProfile, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def update(
@@ -19861,12 +16943,7 @@ class BillingProfilesOperations:
 
     @overload
     async def update(
-        self,
-        id: str,
-        profile: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, id: str, profile: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.BillingProfile:
         """Update a billing profile.
 
@@ -19889,12 +16966,7 @@ class BillingProfilesOperations:
 
     @overload
     async def update(
-        self,
-        id: str,
-        profile: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, id: str, profile: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.BillingProfile:
         """Update a billing profile.
 
@@ -19915,12 +16987,8 @@ class BillingProfilesOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def update(
-        self,
-        id: str,
-        profile: Union[_models.BillingProfileReplaceUpdateWithWorkflow, JSON, IO[bytes]],
-        **kwargs: Any
+        self, id: str, profile: Union[_models.BillingProfileReplaceUpdateWithWorkflow, JSON, IO[bytes]], **kwargs: Any
     ) -> _models.BillingProfile:
         """Update a billing profile.
 
@@ -19943,15 +17011,13 @@ class BillingProfilesOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.BillingProfile] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.BillingProfile] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -19968,17 +17034,13 @@ class BillingProfilesOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -19991,28 +17053,21 @@ class BillingProfilesOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -20023,18 +17078,15 @@ class BillingProfilesOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.BillingProfile,
-                response.json()
-            )
+            deserialized = _deserialize(_models.BillingProfile, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
 
-class CustomerOverridesOperations: 
+class CustomerOverridesOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -20050,9 +17102,6 @@ class CustomerOverridesOperations:
         self._config: OpenMeterClientConfiguration = input_args.pop(0) if input_args else kwargs.pop("config")
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
-
-
-
 
     async def list(  # pylint: disable=too-many-locals
         self,
@@ -20087,10 +17136,10 @@ class CustomerOverridesOperations:
          profiles. This implicitly sets includeAllCustomers to true. Default value is None.
         :paramtype customers_without_pinned_profile: bool
         :keyword include_all_customers: Include customers without customer overrides.
-         
+
          If set to false only the customers specifically associated with a billing profile will be
          returned.
-         
+
          If set to true, in case of the default billing profile, all customers will be returned.
          Default value is None.
         :paramtype include_all_customers: bool
@@ -20110,11 +17159,11 @@ class CustomerOverridesOperations:
          "customerKey", "customerPrimaryEmail", and "customerCreatedAt". Default value is None.
         :paramtype order_by: str or ~openmeter.models.BillingProfileCustomerOverrideOrderBy
         :keyword page: Page index.
-         
+
          Default is 1. Default value is None.
         :paramtype page: int
         :keyword page_size: The maximum number of items per page.
-         
+
          Default is 100. Default value is None.
         :paramtype page_size: int
         :return: BillingProfileCustomerOverrideWithDetailsPaginatedResponse. The
@@ -20127,16 +17176,13 @@ class CustomerOverridesOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.BillingProfileCustomerOverrideWithDetailsPaginatedResponse] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.BillingProfileCustomerOverrideWithDetailsPaginatedResponse] = kwargs.pop("cls", None)
 
-        
         _request = build_customer_overrides_list_request(
             billing_profile=billing_profile,
             customers_without_pinned_profile=customers_without_pinned_profile,
@@ -20154,17 +17200,13 @@ class CustomerOverridesOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -20177,24 +17219,18 @@ class CustomerOverridesOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -20206,16 +17242,13 @@ class CustomerOverridesOperations:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
             deserialized = _deserialize(
-                _models.BillingProfileCustomerOverrideWithDetailsPaginatedResponse,
-                response.json()
+                _models.BillingProfileCustomerOverrideWithDetailsPaginatedResponse, response.json()
             )
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def upsert(
@@ -20249,12 +17282,7 @@ class CustomerOverridesOperations:
 
     @overload
     async def upsert(
-        self,
-        customer_id: str,
-        request: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, customer_id: str, request: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.BillingProfileCustomerOverrideWithDetails:
         """Create a new or update a customer override.
 
@@ -20279,12 +17307,7 @@ class CustomerOverridesOperations:
 
     @overload
     async def upsert(
-        self,
-        customer_id: str,
-        request: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, customer_id: str, request: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.BillingProfileCustomerOverrideWithDetails:
         """Create a new or update a customer override.
 
@@ -20306,7 +17329,6 @@ class CustomerOverridesOperations:
         :rtype: ~openmeter._generated.models.BillingProfileCustomerOverrideWithDetails
         :raises ~corehttp.exceptions.HttpResponseError:
         """
-
 
     async def upsert(
         self,
@@ -20337,15 +17359,13 @@ class CustomerOverridesOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.BillingProfileCustomerOverrideWithDetails] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.BillingProfileCustomerOverrideWithDetails] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -20362,17 +17382,13 @@ class CustomerOverridesOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -20385,28 +17401,21 @@ class CustomerOverridesOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -20417,17 +17426,12 @@ class CustomerOverridesOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.BillingProfileCustomerOverrideWithDetails,
-                response.json()
-            )
+            deserialized = _deserialize(_models.BillingProfileCustomerOverrideWithDetails, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     async def get(
         self,
@@ -20459,16 +17463,13 @@ class CustomerOverridesOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.BillingProfileCustomerOverrideWithDetails] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.BillingProfileCustomerOverrideWithDetails] = kwargs.pop("cls", None)
 
-        
         _request = build_customer_overrides_get_request(
             customer_id=customer_id,
             expand=expand,
@@ -20476,17 +17477,13 @@ class CustomerOverridesOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -20499,28 +17496,21 @@ class CustomerOverridesOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -20531,23 +17521,14 @@ class CustomerOverridesOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.BillingProfileCustomerOverrideWithDetails,
-                response.json()
-            )
+            deserialized = _deserialize(_models.BillingProfileCustomerOverrideWithDetails, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def delete(
-        self,
-        customer_id: str,
-        **kwargs: Any
-    ) -> None:
+    async def delete(self, customer_id: str, **kwargs: Any) -> None:
         """Delete a customer override.
 
         Delete a customer override by customer id.
@@ -20565,32 +17546,25 @@ class CustomerOverridesOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
-        
         _request = build_customer_overrides_delete_request(
             customer_id=customer_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -20598,28 +17572,21 @@ class CustomerOverridesOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -20628,10 +17595,10 @@ class CustomerOverridesOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
+            return cls(pipeline_response, None, {})  # type: ignore
 
 
-class InvoicesOperations: 
+class InvoicesOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -20648,16 +17615,9 @@ class InvoicesOperations:
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
 
-
-
-
     @overload
     async def invoice_pending_lines_action(
-        self,
-        request: _models.InvoicePendingLinesActionInput,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, request: _models.InvoicePendingLinesActionInput, *, content_type: str = "application/json", **kwargs: Any
     ) -> List[_models.Invoice]:
         """Invoice a customer based on the pending line items.
 
@@ -20686,11 +17646,7 @@ class InvoicesOperations:
 
     @overload
     async def invoice_pending_lines_action(
-        self,
-        request: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, request: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> List[_models.Invoice]:
         """Invoice a customer based on the pending line items.
 
@@ -20719,11 +17675,7 @@ class InvoicesOperations:
 
     @overload
     async def invoice_pending_lines_action(
-        self,
-        request: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, request: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> List[_models.Invoice]:
         """Invoice a customer based on the pending line items.
 
@@ -20750,11 +17702,8 @@ class InvoicesOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def invoice_pending_lines_action(
-        self,
-        request: Union[_models.InvoicePendingLinesActionInput, JSON, IO[bytes]],
-        **kwargs: Any
+        self, request: Union[_models.InvoicePendingLinesActionInput, JSON, IO[bytes]], **kwargs: Any
     ) -> List[_models.Invoice]:
         """Invoice a customer based on the pending line items.
 
@@ -20783,15 +17732,13 @@ class InvoicesOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[List[_models.Invoice]] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[List[_models.Invoice]] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -20807,17 +17754,13 @@ class InvoicesOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -20830,24 +17773,18 @@ class InvoicesOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -20858,17 +17795,12 @@ class InvoicesOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                List[_models.Invoice],
-                response.json()
-            )
+            deserialized = _deserialize(List[_models.Invoice], response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     async def list(  # pylint: disable=too-many-locals
         self,
@@ -20930,11 +17862,11 @@ class InvoicesOperations:
         :keyword include_deleted: Include deleted invoices. Default value is None.
         :paramtype include_deleted: bool
         :keyword page: Page index.
-         
+
          Default is 1. Default value is None.
         :paramtype page: int
         :keyword page_size: The maximum number of items per page.
-         
+
          Default is 100. Default value is None.
         :paramtype page_size: int
         :keyword order: The order direction. Known values are: "ASC" and "DESC". Default value is None.
@@ -20952,16 +17884,13 @@ class InvoicesOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.InvoicePaginatedResponse] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.InvoicePaginatedResponse] = kwargs.pop("cls", None)
 
-        
         _request = build_invoices_list_request(
             statuses=statuses,
             extended_statuses=extended_statuses,
@@ -20982,17 +17911,13 @@ class InvoicesOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -21005,24 +17930,18 @@ class InvoicesOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -21033,18 +17952,15 @@ class InvoicesOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.InvoicePaginatedResponse,
-                response.json()
-            )
+            deserialized = _deserialize(_models.InvoicePaginatedResponse, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
 
-class InvoiceOperations: 
+class InvoiceOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -21060,9 +17976,6 @@ class InvoiceOperations:
         self._config: OpenMeterClientConfiguration = input_args.pop(0) if input_args else kwargs.pop("config")
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
-
-
-
 
     async def get_invoice(
         self,
@@ -21092,16 +18005,13 @@ class InvoiceOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.Invoice] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.Invoice] = kwargs.pop("cls", None)
 
-        
         _request = build_invoice_get_invoice_request(
             invoice_id=invoice_id,
             expand=expand,
@@ -21110,17 +18020,13 @@ class InvoiceOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -21133,28 +18039,21 @@ class InvoiceOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -21165,23 +18064,14 @@ class InvoiceOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Invoice,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Invoice, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def delete_invoice(
-        self,
-        invoice_id: str,
-        **kwargs: Any
-    ) -> None:
+    async def delete_invoice(self, invoice_id: str, **kwargs: Any) -> None:
         """Delete an invoice.
 
         Delete an invoice
@@ -21200,32 +18090,25 @@ class InvoiceOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
-        
         _request = build_invoice_delete_invoice_request(
             invoice_id=invoice_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -21233,28 +18116,21 @@ class InvoiceOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -21263,9 +18139,7 @@ class InvoiceOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
-
-
+            return cls(pipeline_response, None, {})  # type: ignore
 
     @overload
     async def update_invoice(
@@ -21296,12 +18170,7 @@ class InvoiceOperations:
 
     @overload
     async def update_invoice(
-        self,
-        invoice_id: str,
-        request: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, invoice_id: str, request: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Invoice:
         """Update an invoice.
 
@@ -21323,12 +18192,7 @@ class InvoiceOperations:
 
     @overload
     async def update_invoice(
-        self,
-        invoice_id: str,
-        request: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, invoice_id: str, request: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Invoice:
         """Update an invoice.
 
@@ -21348,12 +18212,8 @@ class InvoiceOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def update_invoice(
-        self,
-        invoice_id: str,
-        request: Union[_models.InvoiceReplaceUpdate, JSON, IO[bytes]],
-        **kwargs: Any
+        self, invoice_id: str, request: Union[_models.InvoiceReplaceUpdate, JSON, IO[bytes]], **kwargs: Any
     ) -> _models.Invoice:
         """Update an invoice.
 
@@ -21373,15 +18233,13 @@ class InvoiceOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.Invoice] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.Invoice] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -21398,17 +18256,13 @@ class InvoiceOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -21421,28 +18275,21 @@ class InvoiceOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -21453,23 +18300,14 @@ class InvoiceOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Invoice,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Invoice, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def recalculate_tax_action(
-        self,
-        invoice_id: str,
-        **kwargs: Any
-    ) -> _models.Invoice:
+    async def recalculate_tax_action(self, invoice_id: str, **kwargs: Any) -> _models.Invoice:
         """Recalculate an invoice's tax amounts.
 
         Recalculate an invoice's tax amounts (using the app set in the customer's billing profile)
@@ -21486,33 +18324,26 @@ class InvoiceOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.Invoice] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.Invoice] = kwargs.pop("cls", None)
 
-        
         _request = build_invoice_recalculate_tax_action_request(
             invoice_id=invoice_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -21525,28 +18356,21 @@ class InvoiceOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -21557,23 +18381,14 @@ class InvoiceOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Invoice,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Invoice, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def approve_action(
-        self,
-        invoice_id: str,
-        **kwargs: Any
-    ) -> _models.Invoice:
+    async def approve_action(self, invoice_id: str, **kwargs: Any) -> _models.Invoice:
         """Send the invoice to the customer.
 
         Approve an invoice and start executing the payment workflow.
@@ -21596,33 +18411,26 @@ class InvoiceOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.Invoice] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.Invoice] = kwargs.pop("cls", None)
 
-        
         _request = build_invoice_approve_action_request(
             invoice_id=invoice_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -21635,28 +18443,21 @@ class InvoiceOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -21667,17 +18468,12 @@ class InvoiceOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Invoice,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Invoice, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def void_invoice_action(
@@ -21711,12 +18507,7 @@ class InvoiceOperations:
 
     @overload
     async def void_invoice_action(
-        self,
-        invoice_id: str,
-        request: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, invoice_id: str, request: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Invoice:
         """Void an invoice.
 
@@ -21741,12 +18532,7 @@ class InvoiceOperations:
 
     @overload
     async def void_invoice_action(
-        self,
-        invoice_id: str,
-        request: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, invoice_id: str, request: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Invoice:
         """Void an invoice.
 
@@ -21769,12 +18555,8 @@ class InvoiceOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def void_invoice_action(
-        self,
-        invoice_id: str,
-        request: Union[_models.VoidInvoiceActionInput, JSON, IO[bytes]],
-        **kwargs: Any
+        self, invoice_id: str, request: Union[_models.VoidInvoiceActionInput, JSON, IO[bytes]], **kwargs: Any
     ) -> _models.Invoice:
         """Void an invoice.
 
@@ -21798,15 +18580,13 @@ class InvoiceOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.Invoice] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.Invoice] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -21823,17 +18603,13 @@ class InvoiceOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -21846,28 +18622,21 @@ class InvoiceOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -21878,23 +18647,14 @@ class InvoiceOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Invoice,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Invoice, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def advance_action(
-        self,
-        invoice_id: str,
-        **kwargs: Any
-    ) -> _models.Invoice:
+    async def advance_action(self, invoice_id: str, **kwargs: Any) -> _models.Invoice:
         """Advance the invoice's state to the next status.
 
         Advance the invoice's state to the next status.
@@ -21915,33 +18675,26 @@ class InvoiceOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.Invoice] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.Invoice] = kwargs.pop("cls", None)
 
-        
         _request = build_invoice_advance_action_request(
             invoice_id=invoice_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -21954,28 +18707,21 @@ class InvoiceOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -21986,23 +18732,14 @@ class InvoiceOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Invoice,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Invoice, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def retry_action(
-        self,
-        invoice_id: str,
-        **kwargs: Any
-    ) -> _models.Invoice:
+    async def retry_action(self, invoice_id: str, **kwargs: Any) -> _models.Invoice:
         """Retry advancing the invoice after a failed attempt.
 
         Retry advancing the invoice after a failed attempt.
@@ -22020,33 +18757,26 @@ class InvoiceOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.Invoice] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.Invoice] = kwargs.pop("cls", None)
 
-        
         _request = build_invoice_retry_action_request(
             invoice_id=invoice_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -22059,28 +18789,21 @@ class InvoiceOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -22091,23 +18814,14 @@ class InvoiceOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Invoice,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Invoice, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def snapshot_quantities_action(
-        self,
-        invoice_id: str,
-        **kwargs: Any
-    ) -> _models.Invoice:
+    async def snapshot_quantities_action(self, invoice_id: str, **kwargs: Any) -> _models.Invoice:
         """Snapshot quantities for usage based line items.
 
         Snapshot quantities for usage based line items.
@@ -22127,33 +18841,26 @@ class InvoiceOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.Invoice] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.Invoice] = kwargs.pop("cls", None)
 
-        
         _request = build_invoice_snapshot_quantities_action_request(
             invoice_id=invoice_id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -22166,28 +18873,21 @@ class InvoiceOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -22198,18 +18898,15 @@ class InvoiceOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Invoice,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Invoice, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
 
-class CustomerInvoiceOperations: 
+class CustomerInvoiceOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -22225,9 +18922,6 @@ class CustomerInvoiceOperations:
         self._config: OpenMeterClientConfiguration = input_args.pop(0) if input_args else kwargs.pop("config")
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
-
-
-
 
     @overload
     async def simulate_invoice(
@@ -22261,12 +18955,7 @@ class CustomerInvoiceOperations:
 
     @overload
     async def simulate_invoice(
-        self,
-        customer_id: str,
-        request: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, customer_id: str, request: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Invoice:
         """Simulate an invoice for a customer.
 
@@ -22291,12 +18980,7 @@ class CustomerInvoiceOperations:
 
     @overload
     async def simulate_invoice(
-        self,
-        customer_id: str,
-        request: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, customer_id: str, request: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Invoice:
         """Simulate an invoice for a customer.
 
@@ -22319,12 +19003,8 @@ class CustomerInvoiceOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def simulate_invoice(
-        self,
-        customer_id: str,
-        request: Union[_models.InvoiceSimulationInput, JSON, IO[bytes]],
-        **kwargs: Any
+        self, customer_id: str, request: Union[_models.InvoiceSimulationInput, JSON, IO[bytes]], **kwargs: Any
     ) -> _models.Invoice:
         """Simulate an invoice for a customer.
 
@@ -22349,15 +19029,13 @@ class CustomerInvoiceOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.Invoice] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.Invoice] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -22374,17 +19052,13 @@ class CustomerInvoiceOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -22397,24 +19071,18 @@ class CustomerInvoiceOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -22425,17 +19093,12 @@ class CustomerInvoiceOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Invoice,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Invoice, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def create_pending_invoice_line(
@@ -22473,12 +19136,7 @@ class CustomerInvoiceOperations:
 
     @overload
     async def create_pending_invoice_line(
-        self,
-        customer_id: str,
-        request: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, customer_id: str, request: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.InvoicePendingLineCreateResponse:
         """Create pending line items.
 
@@ -22507,12 +19165,7 @@ class CustomerInvoiceOperations:
 
     @overload
     async def create_pending_invoice_line(
-        self,
-        customer_id: str,
-        request: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, customer_id: str, request: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.InvoicePendingLineCreateResponse:
         """Create pending line items.
 
@@ -22539,12 +19192,8 @@ class CustomerInvoiceOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
     async def create_pending_invoice_line(
-        self,
-        customer_id: str,
-        request: Union[_models.InvoicePendingLineCreateInput, JSON, IO[bytes]],
-        **kwargs: Any
+        self, customer_id: str, request: Union[_models.InvoicePendingLineCreateInput, JSON, IO[bytes]], **kwargs: Any
     ) -> _models.InvoicePendingLineCreateResponse:
         """Create pending line items.
 
@@ -22573,15 +19222,13 @@ class CustomerInvoiceOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.InvoicePendingLineCreateResponse] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.InvoicePendingLineCreateResponse] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -22598,17 +19245,13 @@ class CustomerInvoiceOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -22621,24 +19264,18 @@ class CustomerInvoiceOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -22649,18 +19286,15 @@ class CustomerInvoiceOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.InvoicePendingLineCreateResponse,
-                response.json()
-            )
+            deserialized = _deserialize(_models.InvoicePendingLineCreateResponse, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
 
-class ProgressOperations: 
+class ProgressOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -22677,14 +19311,7 @@ class ProgressOperations:
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
 
-
-
-
-    async def get_progress(
-        self,
-        id: str,
-        **kwargs: Any
-    ) -> _models.Progress:
+    async def get_progress(self, id: str, **kwargs: Any) -> _models.Progress:
         """Get progress.
 
         Get progress.
@@ -22699,33 +19326,26 @@ class ProgressOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.Progress] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.Progress] = kwargs.pop("cls", None)
 
-        
         _request = build_progress_get_progress_request(
             id=id,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -22738,28 +19358,21 @@ class ProgressOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -22770,18 +19383,15 @@ class ProgressOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.Progress,
-                response.json()
-            )
+            deserialized = _deserialize(_models.Progress, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
 
-class CurrenciesOperations: 
+class CurrenciesOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -22798,13 +19408,7 @@ class CurrenciesOperations:
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
 
-
-
-
-    async def list_currencies(
-        self,
-        **kwargs: Any
-    ) -> List[_models.Currency]:
+    async def list_currencies(self, **kwargs: Any) -> List[_models.Currency]:
         """List supported currencies.
 
         List all supported currencies.
@@ -22818,32 +19422,25 @@ class CurrenciesOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[List[_models.Currency]] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[List[_models.Currency]] = kwargs.pop("cls", None)
 
-        
         _request = build_currencies_list_currencies_request(
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -22856,24 +19453,18 @@ class CurrenciesOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -22884,18 +19475,15 @@ class CurrenciesOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                List[_models.Currency],
-                response.json()
-            )
+            deserialized = _deserialize(List[_models.Currency], response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
 
-class PortalPortalTokensOperations: 
+class PortalPortalTokensOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -22912,16 +19500,9 @@ class PortalPortalTokensOperations:
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
 
-
-
-
     @overload
     async def create(
-        self,
-        token: _models.PortalToken,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, token: _models.PortalToken, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.PortalToken:
         """Create consumer portal token.
 
@@ -22939,11 +19520,7 @@ class PortalPortalTokensOperations:
 
     @overload
     async def create(
-        self,
-        token: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, token: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.PortalToken:
         """Create consumer portal token.
 
@@ -22961,11 +19538,7 @@ class PortalPortalTokensOperations:
 
     @overload
     async def create(
-        self,
-        token: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, token: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.PortalToken:
         """Create consumer portal token.
 
@@ -22981,12 +19554,7 @@ class PortalPortalTokensOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-
-    async def create(
-        self,
-        token: Union[_models.PortalToken, JSON, IO[bytes]],
-        **kwargs: Any
-    ) -> _models.PortalToken:
+    async def create(self, token: Union[_models.PortalToken, JSON, IO[bytes]], **kwargs: Any) -> _models.PortalToken:
         """Create consumer portal token.
 
         Create a consumer portal token.
@@ -23002,15 +19570,13 @@ class PortalPortalTokensOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[_models.PortalToken] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[_models.PortalToken] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -23026,17 +19592,13 @@ class PortalPortalTokensOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -23049,24 +19611,18 @@ class PortalPortalTokensOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -23077,24 +19633,14 @@ class PortalPortalTokensOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.PortalToken,
-                response.json()
-            )
+            deserialized = _deserialize(_models.PortalToken, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-
-
-    async def list(
-        self,
-        *,
-        limit: Optional[int] = None,
-        **kwargs: Any
-    ) -> List[_models.PortalToken]:
+    async def list(self, *, limit: Optional[int] = None, **kwargs: Any) -> List[_models.PortalToken]:
         """List consumer portal tokens.
 
         List tokens.
@@ -23110,33 +19656,26 @@ class PortalPortalTokensOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[List[_models.PortalToken]] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[List[_models.PortalToken]] = kwargs.pop("cls", None)
 
-        
         _request = build_portal_portal_tokens_list_request(
             limit=limit,
             headers=_headers,
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -23149,24 +19688,18 @@ class PortalPortalTokensOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -23177,17 +19710,12 @@ class PortalPortalTokensOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                List[_models.PortalToken],
-                response.json()
-            )
+            deserialized = _deserialize(List[_models.PortalToken], response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, {}) # type: ignore
+            return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     @overload
     async def invalidate(
@@ -23215,13 +19743,7 @@ class PortalPortalTokensOperations:
         """
 
     @overload
-    async def invalidate(
-        self,
-        body: JSON,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
-    ) -> None:
+    async def invalidate(self, body: JSON, *, content_type: str = "application/json", **kwargs: Any) -> None:
         """Invalidate portal tokens.
 
         Invalidates consumer portal tokens by ID or subject.
@@ -23237,13 +19759,7 @@ class PortalPortalTokensOperations:
         """
 
     @overload
-    async def invalidate(
-        self,
-        body: IO[bytes],
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
-    ) -> None:
+    async def invalidate(self, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any) -> None:
         """Invalidate portal tokens.
 
         Invalidates consumer portal tokens by ID or subject.
@@ -23257,7 +19773,6 @@ class PortalPortalTokensOperations:
         :rtype: None
         :raises ~corehttp.exceptions.HttpResponseError:
         """
-
 
     async def invalidate(
         self,
@@ -23286,22 +19801,17 @@ class PortalPortalTokensOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        content_type: Optional[str] = kwargs.pop('content_type', _headers.pop('Content-Type', None))
-        cls: ClsType[None] = kwargs.pop(
-            'cls', None
-        )
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[None] = kwargs.pop("cls", None)
 
         if body is _Unset:
-            body = {"id": id, 
-        "subject": subject}
-            body =  {
-                k: v for k, v in body.items() if v is not None
-            }
+            body = {"id": id, "subject": subject}
+            body = {k: v for k, v in body.items() if v is not None}
         content_type = content_type or "application/json"
         _content = None
         if isinstance(body, (IOBase, bytes)):
@@ -23316,16 +19826,12 @@ class PortalPortalTokensOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
         _stream = False
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -23333,24 +19839,18 @@ class PortalPortalTokensOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -23359,10 +19859,10 @@ class PortalPortalTokensOperations:
             raise HttpResponseError(response=response, model=error)
 
         if cls:
-            return cls(pipeline_response, None, {}) # type: ignore
+            return cls(pipeline_response, None, {})  # type: ignore
 
 
-class PortalPortalMetersOperations: 
+class PortalPortalMetersOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -23378,9 +19878,6 @@ class PortalPortalMetersOperations:
         self._config: OpenMeterClientConfiguration = input_args.pop(0) if input_args else kwargs.pop("config")
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
-
-
-
 
     async def query_json(
         self,
@@ -23407,37 +19904,37 @@ class PortalPortalMetersOperations:
          Useful to track progress of a query. Default value is None.
         :paramtype client_id: str
         :keyword from_parameter: Start date-time in RFC 3339 format.
-         
+
          Inclusive.
-         
+
          For example: ?from=2025-01-01T00%3A00%3A00.000Z. Default value is None.
         :paramtype from_parameter: ~datetime.datetime
         :keyword to: End date-time in RFC 3339 format.
-         
+
          Inclusive.
-         
+
          For example: ?to=2025-02-01T00%3A00%3A00.000Z. Default value is None.
         :paramtype to: ~datetime.datetime
         :keyword window_size: If not specified, a single usage aggregate will be returned for the
          entirety of the specified period for each subject and group.
-         
+
          For example: ?windowSize=DAY. Known values are: "MINUTE", "HOUR", "DAY", and "MONTH". Default
          value is None.
         :paramtype window_size: str or ~openmeter.models.WindowSize
         :keyword window_time_zone: The value is the name of the time zone as defined in the IANA Time
          Zone Database (`http://www.iana.org/time-zones <http://www.iana.org/time-zones>`_).
          If not specified, the UTC timezone will be used.
-         
+
          For example: ?windowTimeZone=UTC. Default value is None.
         :paramtype window_time_zone: str
         :keyword filter_customer_id: Filtering by multiple customers.
-         
+
          For example: ?filterCustomerId=customer-1&filterCustomerId=customer-2. Default value is None.
         :paramtype filter_customer_id: list[str]
         :keyword filter_group_by: Simple filter for group bys with exact match.
-         
+
          For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo
-         
+
          ⚠️ **Deprecated**: Use ``advancedMeterGroupByFilters`` instead. Default value is None.
         :paramtype filter_group_by: dict[str, str]
         :keyword advanced_meter_group_by_filters: Advanced meter group by filters. Default value is
@@ -23447,7 +19944,7 @@ class PortalPortalMetersOperations:
         :keyword group_by: If not specified a single aggregate will be returned for each subject and
          time window.
          ``subject`` is a reserved group by value.
-         
+
          For example: ?groupBy=subject&groupBy=model. Default value is None.
         :paramtype group_by: list[str]
         :return: MeterQueryResult. The MeterQueryResult is compatible with MutableMapping
@@ -23458,16 +19955,13 @@ class PortalPortalMetersOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.MeterQueryResult] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[_models.MeterQueryResult] = kwargs.pop("cls", None)
 
-        
         _request = build_portal_portal_meters_query_json_request(
             meter_slug=meter_slug,
             client_id=client_id,
@@ -23483,17 +19977,13 @@ class PortalPortalMetersOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -23506,28 +19996,21 @@ class PortalPortalMetersOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -23536,22 +20019,17 @@ class PortalPortalMetersOperations:
             raise HttpResponseError(response=response, model=error)
 
         response_headers = {}
-        response_headers['content-type']=self._deserialize('str', response.headers.get('content-type'))
+        response_headers["content-type"] = self._deserialize("str", response.headers.get("content-type"))
 
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                _models.MeterQueryResult,
-                response.json()
-            )
+            deserialized = _deserialize(_models.MeterQueryResult, response.json())
 
         if cls:
-            return cls(pipeline_response, deserialized, response_headers) # type: ignore
+            return cls(pipeline_response, deserialized, response_headers)  # type: ignore
 
         return deserialized  # type: ignore
-
-
 
     async def query_csv(
         self,
@@ -23578,37 +20056,37 @@ class PortalPortalMetersOperations:
          Useful to track progress of a query. Default value is None.
         :paramtype client_id: str
         :keyword from_parameter: Start date-time in RFC 3339 format.
-         
+
          Inclusive.
-         
+
          For example: ?from=2025-01-01T00%3A00%3A00.000Z. Default value is None.
         :paramtype from_parameter: ~datetime.datetime
         :keyword to: End date-time in RFC 3339 format.
-         
+
          Inclusive.
-         
+
          For example: ?to=2025-02-01T00%3A00%3A00.000Z. Default value is None.
         :paramtype to: ~datetime.datetime
         :keyword window_size: If not specified, a single usage aggregate will be returned for the
          entirety of the specified period for each subject and group.
-         
+
          For example: ?windowSize=DAY. Known values are: "MINUTE", "HOUR", "DAY", and "MONTH". Default
          value is None.
         :paramtype window_size: str or ~openmeter.models.WindowSize
         :keyword window_time_zone: The value is the name of the time zone as defined in the IANA Time
          Zone Database (`http://www.iana.org/time-zones <http://www.iana.org/time-zones>`_).
          If not specified, the UTC timezone will be used.
-         
+
          For example: ?windowTimeZone=UTC. Default value is None.
         :paramtype window_time_zone: str
         :keyword filter_customer_id: Filtering by multiple customers.
-         
+
          For example: ?filterCustomerId=customer-1&filterCustomerId=customer-2. Default value is None.
         :paramtype filter_customer_id: list[str]
         :keyword filter_group_by: Simple filter for group bys with exact match.
-         
+
          For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo
-         
+
          ⚠️ **Deprecated**: Use ``advancedMeterGroupByFilters`` instead. Default value is None.
         :paramtype filter_group_by: dict[str, str]
         :keyword advanced_meter_group_by_filters: Advanced meter group by filters. Default value is
@@ -23618,7 +20096,7 @@ class PortalPortalMetersOperations:
         :keyword group_by: If not specified a single aggregate will be returned for each subject and
          time window.
          ``subject`` is a reserved group by value.
-         
+
          For example: ?groupBy=subject&groupBy=model. Default value is None.
         :paramtype group_by: list[str]
         :return: str
@@ -23629,16 +20107,13 @@ class PortalPortalMetersOperations:
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
-        error_map.update(kwargs.pop('error_map', {}) or {})
+        error_map.update(kwargs.pop("error_map", {}) or {})
 
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[str] = kwargs.pop(
-            'cls', None
-        )
+        cls: ClsType[str] = kwargs.pop("cls", None)
 
-        
         _request = build_portal_portal_meters_query_csv_request(
             meter_slug=meter_slug,
             client_id=client_id,
@@ -23654,17 +20129,13 @@ class PortalPortalMetersOperations:
             params=_params,
         )
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
         _request.url = self._client.format_url(_request.url, **path_format_arguments)
 
-        _decompress = kwargs.pop('decompress', True)
+        _decompress = kwargs.pop("decompress", True)
         _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(  
-            _request,
-            stream=_stream,
-            **kwargs
-        )
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
 
         response = pipeline_response.http_response
 
@@ -23677,28 +20148,21 @@ class PortalPortalMetersOperations:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
             if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
             elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
             elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
             elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse,
-          response)
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
             else:
                 error = _failsafe_deserialize(
                     _models.UnexpectedProblemResponse,
@@ -23707,19 +20171,14 @@ class PortalPortalMetersOperations:
             raise HttpResponseError(response=response, model=error)
 
         response_headers = {}
-        response_headers['content-type']=self._deserialize('str', response.headers.get('content-type'))
+        response_headers["content-type"] = self._deserialize("str", response.headers.get("content-type"))
 
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(
-                str,
-                response.text()
-            )
+            deserialized = _deserialize(str, response.text())
 
         if cls:
-            return cls(pipeline_response, deserialized, response_headers) # type: ignore
+            return cls(pipeline_response, deserialized, response_headers)  # type: ignore
 
         return deserialized  # type: ignore
-
-
