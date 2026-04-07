@@ -68,6 +68,7 @@ type UpdateTaxCodeInput struct {
 	Description *string
 	AppMappings TaxCodeAppMappings
 	Metadata    models.Metadata
+	Annotations models.Annotations
 }
 
 func (i UpdateTaxCodeInput) Validate() error {

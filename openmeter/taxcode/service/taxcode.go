@@ -110,9 +110,6 @@ func (s *service) GetOrCreateByAppMapping(ctx context.Context, input taxcode.Get
 			AppMappings: taxcode.TaxCodeAppMappings{
 				{AppType: input.AppType, TaxCode: input.TaxCode},
 			},
-			Annotations: models.Annotations{
-				taxcode.AnnotationKeyManagedBy: taxcode.AnnotationValueManagedBySystem,
-			},
 		})
 		if err != nil {
 			// Another request may have created it concurrently.

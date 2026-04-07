@@ -58,7 +58,8 @@ func (a *adapter) UpdateTaxCode(ctx context.Context, input taxcode.UpdateTaxCode
 			Where(taxcodedb.DeletedAtIsNil()).
 			SetName(input.Name).
 			SetNillableDescription(input.Description).
-			SetMetadata(input.Metadata)
+			SetMetadata(input.Metadata).
+			SetAnnotations(input.Annotations)
 
 		if len(input.AppMappings) > 0 {
 			query = query.SetAppMappings(&input.AppMappings)

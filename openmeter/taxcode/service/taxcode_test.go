@@ -6,7 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -21,11 +20,15 @@ func TestTaxCodeService(t *testing.T) {
 	ns := testutils.NameGenerator.Generate().Key
 
 	t.Run("SystemManaged", func(t *testing.T) {
-		// Create a system-managed tax code via GetOrCreateByAppMapping.
-		tc, err := env.Service.GetOrCreateByAppMapping(t.Context(), taxcode.GetOrCreateByAppMappingInput{
+		// Create a system-managed tax code by explicitly setting the annotation.
+		name := testutils.NameGenerator.Generate()
+		tc, err := env.Service.CreateTaxCode(t.Context(), taxcode.CreateTaxCodeInput{
 			Namespace: ns,
-			AppType:   app.AppTypeStripe,
-			TaxCode:   "txcd_99999999",
+			Key:       name.Key,
+			Name:      name.Name,
+			Annotations: models.Annotations{
+				taxcode.AnnotationKeyManagedBy: taxcode.AnnotationValueManagedBySystem,
+			},
 		})
 		require.NoError(t, err)
 		assert.True(t, tc.IsManagedBySystem())
@@ -71,6 +74,20 @@ func TestTaxCodeService(t *testing.T) {
 			})
 			require.NoError(t, err)
 			assert.Equal(t, "updated name", updated.Name)
+		})
+
+		t.Run("UpdateAnnotationsSucceeds", func(t *testing.T) {
+			updated, err := env.Service.UpdateTaxCode(t.Context(), taxcode.UpdateTaxCodeInput{
+				NamespacedID: models.NamespacedID{Namespace: ns, ID: tc.ID},
+				Name:         tc.Name,
+				Annotations: models.Annotations{
+					taxcode.AnnotationKeyManagedBy: taxcode.AnnotationValueManagedBySystem,
+					"schema_version":               1,
+				},
+			})
+			require.NoError(t, err)
+			assert.True(t, updated.IsManagedBySystem())
+			assert.Equal(t, float64(1), updated.Annotations["schema_version"])
 		})
 
 		t.Run("DeleteSucceeds", func(t *testing.T) {
