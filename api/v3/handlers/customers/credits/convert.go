@@ -56,10 +56,12 @@ func convertFundingMethod(settlement creditpurchase.Settlement) api.BillingCredi
 
 func convertGrantStatus(charge creditpurchase.Charge) api.BillingCreditGrantStatus {
 	switch charge.Status {
-	case "active":
+	case meta.ChargeStatusActive, meta.ChargeStatusSettled, meta.ChargeStatusFinal:
 		return api.BillingCreditGrantStatusActive
-	case "created":
+	case meta.ChargeStatusCreated:
 		return api.BillingCreditGrantStatusPending
+	case meta.ChargeStatusDeleted:
+		return api.BillingCreditGrantStatusVoided
 	default:
 		return api.BillingCreditGrantStatusActive
 	}
@@ -163,6 +165,14 @@ func convertTaxConfig(charge creditpurchase.Charge) *api.BillingCreditGrantTaxCo
 		tc.Behavior = &behavior
 	}
 
+	if charge.Intent.TaxConfig.TaxCodeID != nil {
+		tc.TaxCode = &struct {
+			Id api.ULID `json:"id"`
+		}{
+			Id: *charge.Intent.TaxConfig.TaxCodeID,
+		}
+	}
+
 	return tc
 }
 
@@ -210,6 +220,10 @@ func convertAPITaxConfig(tc *api.BillingCreditGrantTaxConfig) *productcatalog.Ta
 		config.Behavior = &behavior
 	}
 
+	if tc.TaxCode != nil {
+		config.TaxCodeID = &tc.TaxCode.Id
+	}
+
 	return config
 }
 
@@ -219,6 +233,11 @@ func convertAPIStatusToChargeStatus(status api.BillingCreditGrantStatus) meta.Ch
 		return meta.ChargeStatusActive
 	case api.BillingCreditGrantStatusPending:
 		return meta.ChargeStatusCreated
+	case api.BillingCreditGrantStatusVoided:
+		return meta.ChargeStatusDeleted
+	case api.BillingCreditGrantStatusExpired:
+		// Expired maps to final (terminal state, no further actions).
+		return meta.ChargeStatusFinal
 	default:
 		return meta.ChargeStatus(status)
 	}

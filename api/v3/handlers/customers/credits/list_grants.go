@@ -62,7 +62,7 @@ func (h *handler) ListCreditGrants() ListCreditGrantsHandler {
 
 			if args.Params.Filter != nil {
 				if args.Params.Filter.FundingMethod != nil {
-					fm := creditgrant.FundingMethod(*args.Params.Filter.FundingMethod)
+					fm := convertAPIFundingMethod(*args.Params.Filter.FundingMethod)
 					req.FundingMethod = &fm
 				}
 
