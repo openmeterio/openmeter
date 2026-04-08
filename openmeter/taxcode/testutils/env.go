@@ -35,6 +35,12 @@ func (e *TestEnv) Close(t *testing.T) {
 	t.Helper()
 
 	e.close.Do(func() {
+		if e.Client != nil {
+			if err := e.Client.Close(); err != nil {
+				t.Errorf("failed to close ent client: %v", err)
+			}
+		}
+
 		if e.db != nil {
 			if err := e.db.EntDriver.Close(); err != nil {
 				t.Errorf("failed to close ent driver: %v", err)
@@ -42,12 +48,6 @@ func (e *TestEnv) Close(t *testing.T) {
 
 			if err := e.db.PGDriver.Close(); err != nil {
 				t.Errorf("failed to close postgres driver: %v", err)
-			}
-		}
-
-		if e.Client != nil {
-			if err := e.Client.Close(); err != nil {
-				t.Errorf("failed to close ent client: %v", err)
 			}
 		}
 	})
