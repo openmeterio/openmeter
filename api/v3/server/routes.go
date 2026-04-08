@@ -259,11 +259,11 @@ func (s *Server) DeletePlan(w http.ResponseWriter, r *http.Request, planId api.U
 }
 
 func (s *Server) ArchivePlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {
-	unimplemented.ArchivePlan(w, r, planId)
+	s.plansHandler.ArchivePlan().With(string(planId)).ServeHTTP(w, r)
 }
 
 func (s *Server) PublishPlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {
-	unimplemented.PublishPlan(w, r, planId)
+	s.plansHandler.PublishPlan().With(string(planId)).ServeHTTP(w, r)
 }
 
 // Addons
