@@ -186,6 +186,7 @@ func main() {
 			SubscriptionWorkflowService: app.Subscription.WorkflowService,
 			SubscriptionAddonService:    app.Subscription.SubscriptionAddonService,
 			SubjectService:              app.SubjectService,
+			ChargeService:               app.BillingRegistry.ChargesServiceOrNil(),
 			TaxCodeService:              app.TaxCodeService,
 			StreamingConnector:          app.StreamingConnector,
 		},

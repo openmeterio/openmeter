@@ -21,6 +21,7 @@ import (
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripehttpdriver "github.com/openmeterio/openmeter/openmeter/app/stripe/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	billinghttpdriver "github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/cost"
@@ -101,6 +102,7 @@ type Config struct {
 	AppCustomInvoicing          appcustominvoicing.SyncService
 	Billing                     billing.Service
 	BillingFeatureSwitches      config.BillingFeatureSwitchesConfiguration
+	ChargeService               billingcharges.ChargeService
 	Credits                     config.CreditsConfiguration
 	CurrencyService             currencies.CurrencyService
 	CostService                 cost.Service

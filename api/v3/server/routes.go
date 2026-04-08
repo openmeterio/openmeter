@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	chargeshandler "github.com/openmeterio/openmeter/api/v3/handlers/charges"
 	currencieshandler "github.com/openmeterio/openmeter/api/v3/handlers/currencies"
 	customerscreditshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/credits"
 	planaddonshandler "github.com/openmeterio/openmeter/api/v3/handlers/plans/planaddons"
@@ -405,5 +406,13 @@ func (s *Server) ListCreditTransactions(w http.ResponseWriter, r *http.Request, 
 // Charges
 
 func (s *Server) ListCustomerCharges(w http.ResponseWriter, r *http.Request, customerId api.ULID, params api.ListCustomerChargesParams) {
-	unimplemented.ListCustomerCharges(w, r, customerId, params)
+	if s.chargesHandler == nil {
+		unimplemented.ListCustomerCharges(w, r, customerId, params)
+		return
+	}
+
+	s.chargesHandler.ListCustomerCharges().With(chargeshandler.ListCustomerChargesParams{
+		CustomerID: customerId,
+		Params:     params,
+	}).ServeHTTP(w, r)
 }

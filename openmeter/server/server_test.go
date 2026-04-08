@@ -16,6 +16,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/api"
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
@@ -23,6 +24,7 @@ import (
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
 	costpkg "github.com/openmeterio/openmeter/openmeter/cost"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
@@ -596,6 +598,17 @@ func TestRoutes(t *testing.T) {
 				status: http.StatusNotImplemented,
 			},
 		},
+		// Charges
+		{
+			name: "list customer charges without charge service",
+			req: testRequest{
+				method: http.MethodGet,
+				path:   "/api/v3/openmeter/customers/01ARZ3NDEKTSV4RRFFQ69G5FAV/charges",
+			},
+			res: testResponse{
+				status: http.StatusNotImplemented,
+			},
+		},
 		// Debug
 		{
 			name: "get debug metrics",
@@ -662,8 +675,9 @@ func TestRoutes(t *testing.T) {
 	}
 }
 
-// getTestServer returns a test server and its streaming connector mock
-func getTestServer(t *testing.T) (*Server, *MockStreamingConnector) {
+// getTestServer returns a test server and its streaming connector mock.
+// Optional opts functions are applied to the router.Config before the server is created.
+func getTestServer(t *testing.T, opts ...func(*router.Config)) (*Server, *MockStreamingConnector) {
 	namespaceManager, err := namespace.NewManager(namespace.ManagerConfig{
 		DefaultNamespace: DefaultNamespace,
 	})
@@ -760,11 +774,73 @@ func getTestServer(t *testing.T) (*Server, *MockStreamingConnector) {
 		RouterHooks: RouterHooks{},
 	}
 
+	for _, opt := range opts {
+		opt(&config.RouterConfig)
+	}
+
 	// Create server
 	server, err := NewServer(config)
 	assert.NoError(t, err, "failed to create server")
 	return server, mockStreamingConnector
 }
+
+func TestListCustomerChargesRoute(t *testing.T) {
+	const customerID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+	path := "/api/v3/openmeter/customers/" + customerID + "/charges"
+
+	t.Run("with charge service configured returns empty list", func(t *testing.T) {
+		testServer, _ := getTestServer(t, func(c *router.Config) {
+			c.ChargeService = &NoopChargeService{}
+		})
+
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		w := httptest.NewRecorder()
+		testServer.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		assert.JSONEq(t,
+			`{"data":[],"meta":{"page":{"number":1,"size":20,"total":0}}}`,
+			w.Body.String(),
+		)
+	})
+}
+
+// NoopChargeService is a no-op implementation of billingcharges.ChargeService for testing.
+type NoopChargeService struct{}
+
+func (n NoopChargeService) GetByID(_ context.Context, _ billingcharges.GetByIDInput) (billingcharges.Charge, error) {
+	return billingcharges.Charge{}, nil
+}
+
+func (n NoopChargeService) GetByIDs(_ context.Context, _ billingcharges.GetByIDsInput) (billingcharges.Charges, error) {
+	return nil, nil
+}
+
+func (n NoopChargeService) Create(_ context.Context, _ billingcharges.CreateInput) (billingcharges.Charges, error) {
+	return nil, nil
+}
+
+func (n NoopChargeService) AdvanceCharges(_ context.Context, _ billingcharges.AdvanceChargesInput) (billingcharges.Charges, error) {
+	return nil, nil
+}
+
+func (n NoopChargeService) ListCustomersToAdvance(_ context.Context, _ billingcharges.ListCustomersToAdvanceInput) (pagination.Result[customer.CustomerID], error) {
+	return pagination.Result[customer.CustomerID]{}, nil
+}
+
+func (n NoopChargeService) ApplyPatches(_ context.Context, _ billingcharges.ApplyPatchesInput) error {
+	return nil
+}
+
+func (n NoopChargeService) ListCharges(_ context.Context, input billingcharges.ListChargesInput) (pagination.Result[billingcharges.Charge], error) {
+	return pagination.Result[billingcharges.Charge]{
+		Items:      []billingcharges.Charge{},
+		TotalCount: 0,
+		Page:       input.Page,
+	}, nil
+}
+
+var _ billingcharges.ChargeService = NoopChargeService{}
 
 // NoopPublisher is a publisher that does nothing (no-operation)
 // Useful for testing or when publishing needs to be disabled
