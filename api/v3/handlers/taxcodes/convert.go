@@ -31,7 +31,7 @@ var (
 	// goverter:ignore Annotations
 	ConvertFromUpsertTaxCodeRequestToUpdateTaxCodeInput func(namespacedID models.NamespacedID, upsertTaxCodeRequest api.UpsertTaxCodeRequest) (taxcode.UpdateTaxCodeInput, error)
 
-	// goverter:map . Labels | ConvertTaxCodeToLabels
+	// goverter:map . Labels | ConvertMetadataAnnotationsToLabels
 	// goverter:map NamespacedID.ID Id
 	// goverter:map ManagedModel.CreatedAt CreatedAt
 	// goverter:map ManagedModel.UpdatedAt UpdatedAt
@@ -40,7 +40,9 @@ var (
 	ConvertTaxCodeToAPITaxCode func(taxcode.TaxCode) (api.BillingTaxCode, error)
 )
 
-var ConvertMetadataToLabels = labels.FromMetadata[models.Metadata]
+func ConvertMetadataAnnotationsToLabels(source taxcode.TaxCode) *api.Labels {
+	return labels.FromMetadataAnnotations(source.Metadata, source.Annotations)
+}
 
 //goverter:context namespace
 func NamespaceFromContext(namespace string) string {
