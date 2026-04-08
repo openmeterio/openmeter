@@ -8,12 +8,12 @@ import (
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // goverter:variables
@@ -24,7 +24,6 @@ import (
 // goverter:matchIgnoreCase
 // goverter:extend IntToFloat32
 // goverter:extend MapAppToAPI
-// goverter:extend ConvertMetadataToLabels
 // goverter:enum:unknown @error
 var (
 	ConvertToListAppResponse func(source response.PagePaginationResponse[api.BillingApp]) api.AppPagePaginatedResponse
@@ -38,16 +37,6 @@ var (
 
 	ConvertAppsToBillingApps func(source []app.App) ([]api.BillingApp, error)
 )
-
-// ConvertMetadataToLabels converts metadata to api.Labels.
-// Always returns an initialized map (never nil) so JSON serializes to {} instead of null.
-func ConvertMetadataToLabels(source models.Metadata) *api.Labels {
-	labels := make(api.Labels)
-	for k, v := range source {
-		labels[k] = v
-	}
-	return &labels
-}
 
 func IntToFloat32(i int) float32 {
 	return float32(i)
@@ -128,7 +117,7 @@ func mapSandboxAppToAPI(sandboxApp appsandbox.Meta) (api.BillingAppSandbox, erro
 		Name:        sandboxApp.GetName(),
 		Status:      api.BillingAppStatus(sandboxApp.GetStatus()),
 		Definition:  definition,
-		Labels:      ConvertMetadataToLabels(sandboxApp.GetMetadata()),
+		Labels:      labels.FromMetadata(sandboxApp.GetMetadata()),
 		Description: sandboxApp.GetDescription(),
 		CreatedAt:   lo.ToPtr(sandboxApp.CreatedAt),
 		UpdatedAt:   lo.ToPtr(sandboxApp.UpdatedAt),
@@ -150,7 +139,7 @@ func mapStripeAppToAPI(
 		Name:        stripeApp.Name,
 		Status:      api.BillingAppStatus(stripeApp.GetStatus()),
 		Definition:  definition,
-		Labels:      ConvertMetadataToLabels(stripeApp.GetMetadata()),
+		Labels:      labels.FromMetadata(stripeApp.GetMetadata()),
 		Description: stripeApp.GetDescription(),
 		CreatedAt:   lo.ToPtr(stripeApp.CreatedAt),
 		UpdatedAt:   lo.ToPtr(stripeApp.UpdatedAt),
@@ -176,7 +165,7 @@ func mapCustomInvoicingAppToAPI(customInvoicingApp appcustominvoicing.Meta) (api
 		Name:        customInvoicingApp.GetName(),
 		Status:      api.BillingAppStatus(customInvoicingApp.GetStatus()),
 		Definition:  definition,
-		Labels:      ConvertMetadataToLabels(customInvoicingApp.GetMetadata()),
+		Labels:      labels.FromMetadata(customInvoicingApp.GetMetadata()),
 		Description: customInvoicingApp.GetDescription(),
 		CreatedAt:   lo.ToPtr(customInvoicingApp.CreatedAt),
 		UpdatedAt:   lo.ToPtr(customInvoicingApp.UpdatedAt),

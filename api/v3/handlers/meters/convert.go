@@ -7,6 +7,7 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/handlers/meters/query"
+	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -20,7 +21,7 @@ import (
 // goverter:matchIgnoreCase
 // goverter:extend ConvertAPIMeterAggregationToMeterAggregation
 // goverter:extend ConvertMeterAggregationToAPIMeterAggregation
-// goverter:extend ConvertMetadataToLabels
+// goverter:extend ConvertMetadataAnnotationsToLabels
 // goverter:extend IntToFloat32
 var (
 	// goverter:context namespace
@@ -31,7 +32,6 @@ var (
 	// goverter:ignore Annotations
 	// goverter:ignore inputOptions
 	ConvertFromCreateMeterRequestToCreateMeterInput func(namespace string, createMeterRequest api.CreateMeterRequest) meter.CreateMeterInput
-	// goverter:map Metadata Labels
 	// goverter:map GroupBy Dimensions
 	// goverter:map EventFrom EventsFrom
 	// goverter:map ManagedResource.ID Id
@@ -40,9 +40,14 @@ var (
 	// goverter:map ManagedResource.ManagedModel.CreatedAt CreatedAt
 	// goverter:map ManagedResource.ManagedModel.UpdatedAt UpdatedAt
 	// goverter:map ManagedResource.ManagedModel.DeletedAt DeletedAt
+	// goverter:map . Labels | ConvertMetadataAnnotationsToLabels
 	ConvertMeterToAPIMeter   func(meter.Meter) api.Meter
 	ConvertMeterListResponse func(meters response.PagePaginationResponse[meter.Meter]) api.MeterPagePaginatedResponse
 )
+
+func ConvertMetadataAnnotationsToLabels(source meter.Meter) *api.Labels {
+	return labels.FromMetadataAnnotations(source.Metadata, source.Annotations)
+}
 
 //goverter:context namespace
 func NamespaceFromContext(namespace string) string {

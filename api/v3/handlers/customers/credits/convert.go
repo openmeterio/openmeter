@@ -7,6 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -29,7 +30,7 @@ func convertCreditGrant(charge creditpurchase.Charge) (api.BillingCreditGrant, e
 		CreatedAt:     lo.ToPtr(charge.CreatedAt),
 		UpdatedAt:     lo.ToPtr(charge.UpdatedAt),
 		DeletedAt:     charge.DeletedAt,
-		Labels:        ConvertMetadataToLabels(&charge.Intent.Metadata),
+		Labels:        labels.FromMetadata(charge.Intent.Metadata),
 	}
 
 	if charge.Intent.Priority != nil {
@@ -186,18 +187,6 @@ func convertTaxConfig(charge creditpurchase.Charge) *api.BillingCreditGrantTaxCo
 	}
 
 	return tc
-}
-
-// ConvertMetadataToLabels converts models.Metadata to api.Labels.
-// Always returns an initialized map (never nil) so JSON serializes to {} instead of null.
-func ConvertMetadataToLabels(source *models.Metadata) *api.Labels {
-	labels := make(api.Labels)
-	if source != nil {
-		for k, v := range *source {
-			labels[k] = v
-		}
-	}
-	return &labels
 }
 
 func convertAPIFundingMethod(fm api.BillingCreditFundingMethod) creditgrant.FundingMethod {

@@ -3,7 +3,8 @@ package taxcodes
 
 import (
 	api "github.com/openmeterio/openmeter/api/v3"
-	app "github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/api/v3/labels"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -37,6 +38,8 @@ var (
 	// goverter:map AppMappings | ConvertAppMappingsToAPIAppMappings
 	ConvertTaxCodeToAPITaxCode func(taxcode.TaxCode) (api.BillingTaxCode, error)
 )
+
+var ConvertMetadataToLabels = labels.FromMetadata[models.Metadata]
 
 //goverter:context namespace
 func NamespaceFromContext(namespace string) string {
@@ -81,14 +84,4 @@ func ConvertAppMappingsToAPIAppMappings(source taxcode.TaxCodeAppMappings) []api
 		}
 	}
 	return result
-}
-
-// ConvertMetadataToLabels converts models.Metadata to api.Labels.
-// Always returns an initialized map (never nil) so JSON serializes to {} instead of null.
-func ConvertMetadataToLabels(source models.Metadata) *api.Labels {
-	labels := make(api.Labels)
-	for k, v := range source {
-		labels[k] = v
-	}
-	return &labels
 }
