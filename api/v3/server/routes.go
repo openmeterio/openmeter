@@ -243,7 +243,7 @@ func (s *Server) ListPlans(w http.ResponseWriter, r *http.Request, params api.Li
 }
 
 func (s *Server) CreatePlan(w http.ResponseWriter, r *http.Request) {
-	unimplemented.CreatePlan(w, r)
+	s.plansHandler.CreatePlan().ServeHTTP(w, r)
 }
 
 func (s *Server) GetPlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {
