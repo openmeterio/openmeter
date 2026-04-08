@@ -3804,6 +3804,29 @@ func HasBillingInvoiceValidationIssuesWith(preds ...predicate.BillingInvoiceVali
 	})
 }
 
+// HasAppStripeInvoiceSyncPlans applies the HasEdge predicate on the "app_stripe_invoice_sync_plans" edge.
+func HasAppStripeInvoiceSyncPlans() predicate.BillingInvoice {
+	return predicate.BillingInvoice(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, AppStripeInvoiceSyncPlansTable, AppStripeInvoiceSyncPlansColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasAppStripeInvoiceSyncPlansWith applies the HasEdge predicate on the "app_stripe_invoice_sync_plans" edge with a given conditions (other predicates).
+func HasAppStripeInvoiceSyncPlansWith(preds ...predicate.AppStripeInvoiceSyncPlan) predicate.BillingInvoice {
+	return predicate.BillingInvoice(func(s *sql.Selector) {
+		step := newAppStripeInvoiceSyncPlansStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasBillingInvoiceCustomer applies the HasEdge predicate on the "billing_invoice_customer" edge.
 func HasBillingInvoiceCustomer() predicate.BillingInvoice {
 	return predicate.BillingInvoice(func(s *sql.Selector) {

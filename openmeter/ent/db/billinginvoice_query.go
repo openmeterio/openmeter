@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripeinvoicesyncplan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
@@ -36,6 +37,7 @@ type BillingInvoiceQuery struct {
 	withBillingInvoiceLines            *BillingInvoiceLineQuery
 	withBillingInvoiceDetailedLines    *BillingStandardInvoiceDetailedLineQuery
 	withBillingInvoiceValidationIssues *BillingInvoiceValidationIssueQuery
+	withAppStripeInvoiceSyncPlans      *AppStripeInvoiceSyncPlanQuery
 	withBillingInvoiceCustomer         *CustomerQuery
 	withTaxApp                         *AppQuery
 	withInvoicingApp                   *AppQuery
@@ -180,6 +182,28 @@ func (_q *BillingInvoiceQuery) QueryBillingInvoiceValidationIssues() *BillingInv
 			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, selector),
 			sqlgraph.To(billinginvoicevalidationissue.Table, billinginvoicevalidationissue.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.BillingInvoiceValidationIssuesTable, billinginvoice.BillingInvoiceValidationIssuesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryAppStripeInvoiceSyncPlans chains the current query on the "app_stripe_invoice_sync_plans" edge.
+func (_q *BillingInvoiceQuery) QueryAppStripeInvoiceSyncPlans() *AppStripeInvoiceSyncPlanQuery {
+	query := (&AppStripeInvoiceSyncPlanClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, selector),
+			sqlgraph.To(appstripeinvoicesyncplan.Table, appstripeinvoicesyncplan.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.AppStripeInvoiceSyncPlansTable, billinginvoice.AppStripeInvoiceSyncPlansColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -472,6 +496,7 @@ func (_q *BillingInvoiceQuery) Clone() *BillingInvoiceQuery {
 		withBillingInvoiceLines:            _q.withBillingInvoiceLines.Clone(),
 		withBillingInvoiceDetailedLines:    _q.withBillingInvoiceDetailedLines.Clone(),
 		withBillingInvoiceValidationIssues: _q.withBillingInvoiceValidationIssues.Clone(),
+		withAppStripeInvoiceSyncPlans:      _q.withAppStripeInvoiceSyncPlans.Clone(),
 		withBillingInvoiceCustomer:         _q.withBillingInvoiceCustomer.Clone(),
 		withTaxApp:                         _q.withTaxApp.Clone(),
 		withInvoicingApp:                   _q.withInvoicingApp.Clone(),
@@ -534,6 +559,17 @@ func (_q *BillingInvoiceQuery) WithBillingInvoiceValidationIssues(opts ...func(*
 		opt(query)
 	}
 	_q.withBillingInvoiceValidationIssues = query
+	return _q
+}
+
+// WithAppStripeInvoiceSyncPlans tells the query-builder to eager-load the nodes that are connected to
+// the "app_stripe_invoice_sync_plans" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *BillingInvoiceQuery) WithAppStripeInvoiceSyncPlans(opts ...func(*AppStripeInvoiceSyncPlanQuery)) *BillingInvoiceQuery {
+	query := (&AppStripeInvoiceSyncPlanClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withAppStripeInvoiceSyncPlans = query
 	return _q
 }
 
@@ -659,12 +695,13 @@ func (_q *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 	var (
 		nodes       = []*BillingInvoice{}
 		_spec       = _q.querySpec()
-		loadedTypes = [9]bool{
+		loadedTypes = [10]bool{
 			_q.withSourceBillingProfile != nil,
 			_q.withBillingWorkflowConfig != nil,
 			_q.withBillingInvoiceLines != nil,
 			_q.withBillingInvoiceDetailedLines != nil,
 			_q.withBillingInvoiceValidationIssues != nil,
+			_q.withAppStripeInvoiceSyncPlans != nil,
 			_q.withBillingInvoiceCustomer != nil,
 			_q.withTaxApp != nil,
 			_q.withInvoicingApp != nil,
@@ -727,6 +764,15 @@ func (_q *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 			func(n *BillingInvoice) { n.Edges.BillingInvoiceValidationIssues = []*BillingInvoiceValidationIssue{} },
 			func(n *BillingInvoice, e *BillingInvoiceValidationIssue) {
 				n.Edges.BillingInvoiceValidationIssues = append(n.Edges.BillingInvoiceValidationIssues, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withAppStripeInvoiceSyncPlans; query != nil {
+		if err := _q.loadAppStripeInvoiceSyncPlans(ctx, query, nodes,
+			func(n *BillingInvoice) { n.Edges.AppStripeInvoiceSyncPlans = []*AppStripeInvoiceSyncPlan{} },
+			func(n *BillingInvoice, e *AppStripeInvoiceSyncPlan) {
+				n.Edges.AppStripeInvoiceSyncPlans = append(n.Edges.AppStripeInvoiceSyncPlans, e)
 			}); err != nil {
 			return nil, err
 		}
@@ -892,6 +938,36 @@ func (_q *BillingInvoiceQuery) loadBillingInvoiceValidationIssues(ctx context.Co
 	}
 	query.Where(predicate.BillingInvoiceValidationIssue(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(billinginvoice.BillingInvoiceValidationIssuesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.InvoiceID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "invoice_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *BillingInvoiceQuery) loadAppStripeInvoiceSyncPlans(ctx context.Context, query *AppStripeInvoiceSyncPlanQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *AppStripeInvoiceSyncPlan)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*BillingInvoice)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(appstripeinvoicesyncplan.FieldInvoiceID)
+	}
+	query.Where(predicate.AppStripeInvoiceSyncPlan(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(billinginvoice.AppStripeInvoiceSyncPlansColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

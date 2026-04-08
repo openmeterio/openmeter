@@ -909,6 +909,53 @@ func (i UpdateInvoiceFieldsInput) Validate() error {
 	return nil
 }
 
+// SyncExternalIDsInput allows writing back external IDs (e.g., Stripe invoice/line IDs) to the
+// invoice without triggering the state machine. Used by async sync plans to persist Stripe state
+// incrementally after each operation completes.
+type SyncExternalIDsInput struct {
+	Invoice InvoiceID
+
+	// InvoicingExternalID is the external invoicing system's ID for this invoice (e.g., Stripe invoice ID).
+	InvoicingExternalID *string
+	// LineExternalIDs maps OpenMeter detailed line IDs to external line item IDs.
+	LineExternalIDs map[string]string
+	// LineDiscountExternalIDs maps OpenMeter discount IDs to external line item IDs.
+	LineDiscountExternalIDs map[string]string
+}
+
+func (i SyncExternalIDsInput) Validate() error {
+	if err := i.Invoice.Validate(); err != nil {
+		return fmt.Errorf("invoice: %w", err)
+	}
+
+	return nil
+}
+
+// FailSyncInvoiceInput triggers the invoice into a sync-failed state, recording the
+// sync error as a validation issue visible to API consumers.
+type FailSyncInvoiceInput struct {
+	Invoice   InvoiceID
+	AppType   app.AppType
+	Operation StandardInvoiceOperation
+	Err       error
+}
+
+func (i FailSyncInvoiceInput) Validate() error {
+	if err := i.Invoice.Validate(); err != nil {
+		return fmt.Errorf("invoice: %w", err)
+	}
+	if i.AppType == "" {
+		return errors.New("app type is required")
+	}
+	if err := i.Operation.Validate(); err != nil {
+		return fmt.Errorf("operation: %w", err)
+	}
+	if i.Err == nil {
+		return errors.New("error is required")
+	}
+	return nil
+}
+
 type RecalculateGatheringInvoicesInput = customer.CustomerID
 
 type StandardInvoiceExpand string

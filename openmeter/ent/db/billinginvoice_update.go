@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripeinvoicesyncplan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
@@ -978,6 +979,21 @@ func (_u *BillingInvoiceUpdate) AddBillingInvoiceValidationIssues(v ...*BillingI
 	return _u.AddBillingInvoiceValidationIssueIDs(ids...)
 }
 
+// AddAppStripeInvoiceSyncPlanIDs adds the "app_stripe_invoice_sync_plans" edge to the AppStripeInvoiceSyncPlan entity by IDs.
+func (_u *BillingInvoiceUpdate) AddAppStripeInvoiceSyncPlanIDs(ids ...string) *BillingInvoiceUpdate {
+	_u.mutation.AddAppStripeInvoiceSyncPlanIDs(ids...)
+	return _u
+}
+
+// AddAppStripeInvoiceSyncPlans adds the "app_stripe_invoice_sync_plans" edges to the AppStripeInvoiceSyncPlan entity.
+func (_u *BillingInvoiceUpdate) AddAppStripeInvoiceSyncPlans(v ...*AppStripeInvoiceSyncPlan) *BillingInvoiceUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddAppStripeInvoiceSyncPlanIDs(ids...)
+}
+
 // Mutation returns the BillingInvoiceMutation object of the builder.
 func (_u *BillingInvoiceUpdate) Mutation() *BillingInvoiceMutation {
 	return _u.mutation
@@ -1050,6 +1066,27 @@ func (_u *BillingInvoiceUpdate) RemoveBillingInvoiceValidationIssues(v ...*Billi
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBillingInvoiceValidationIssueIDs(ids...)
+}
+
+// ClearAppStripeInvoiceSyncPlans clears all "app_stripe_invoice_sync_plans" edges to the AppStripeInvoiceSyncPlan entity.
+func (_u *BillingInvoiceUpdate) ClearAppStripeInvoiceSyncPlans() *BillingInvoiceUpdate {
+	_u.mutation.ClearAppStripeInvoiceSyncPlans()
+	return _u
+}
+
+// RemoveAppStripeInvoiceSyncPlanIDs removes the "app_stripe_invoice_sync_plans" edge to AppStripeInvoiceSyncPlan entities by IDs.
+func (_u *BillingInvoiceUpdate) RemoveAppStripeInvoiceSyncPlanIDs(ids ...string) *BillingInvoiceUpdate {
+	_u.mutation.RemoveAppStripeInvoiceSyncPlanIDs(ids...)
+	return _u
+}
+
+// RemoveAppStripeInvoiceSyncPlans removes "app_stripe_invoice_sync_plans" edges to AppStripeInvoiceSyncPlan entities.
+func (_u *BillingInvoiceUpdate) RemoveAppStripeInvoiceSyncPlans(v ...*AppStripeInvoiceSyncPlan) *BillingInvoiceUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveAppStripeInvoiceSyncPlanIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -1567,6 +1604,51 @@ func (_u *BillingInvoiceUpdate) sqlSave(ctx context.Context) (_node int, err err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicevalidationissue.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.AppStripeInvoiceSyncPlansCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.AppStripeInvoiceSyncPlansTable,
+			Columns: []string{billinginvoice.AppStripeInvoiceSyncPlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(appstripeinvoicesyncplan.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedAppStripeInvoiceSyncPlansIDs(); len(nodes) > 0 && !_u.mutation.AppStripeInvoiceSyncPlansCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.AppStripeInvoiceSyncPlansTable,
+			Columns: []string{billinginvoice.AppStripeInvoiceSyncPlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(appstripeinvoicesyncplan.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.AppStripeInvoiceSyncPlansIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.AppStripeInvoiceSyncPlansTable,
+			Columns: []string{billinginvoice.AppStripeInvoiceSyncPlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(appstripeinvoicesyncplan.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -2537,6 +2619,21 @@ func (_u *BillingInvoiceUpdateOne) AddBillingInvoiceValidationIssues(v ...*Billi
 	return _u.AddBillingInvoiceValidationIssueIDs(ids...)
 }
 
+// AddAppStripeInvoiceSyncPlanIDs adds the "app_stripe_invoice_sync_plans" edge to the AppStripeInvoiceSyncPlan entity by IDs.
+func (_u *BillingInvoiceUpdateOne) AddAppStripeInvoiceSyncPlanIDs(ids ...string) *BillingInvoiceUpdateOne {
+	_u.mutation.AddAppStripeInvoiceSyncPlanIDs(ids...)
+	return _u
+}
+
+// AddAppStripeInvoiceSyncPlans adds the "app_stripe_invoice_sync_plans" edges to the AppStripeInvoiceSyncPlan entity.
+func (_u *BillingInvoiceUpdateOne) AddAppStripeInvoiceSyncPlans(v ...*AppStripeInvoiceSyncPlan) *BillingInvoiceUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddAppStripeInvoiceSyncPlanIDs(ids...)
+}
+
 // Mutation returns the BillingInvoiceMutation object of the builder.
 func (_u *BillingInvoiceUpdateOne) Mutation() *BillingInvoiceMutation {
 	return _u.mutation
@@ -2609,6 +2706,27 @@ func (_u *BillingInvoiceUpdateOne) RemoveBillingInvoiceValidationIssues(v ...*Bi
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBillingInvoiceValidationIssueIDs(ids...)
+}
+
+// ClearAppStripeInvoiceSyncPlans clears all "app_stripe_invoice_sync_plans" edges to the AppStripeInvoiceSyncPlan entity.
+func (_u *BillingInvoiceUpdateOne) ClearAppStripeInvoiceSyncPlans() *BillingInvoiceUpdateOne {
+	_u.mutation.ClearAppStripeInvoiceSyncPlans()
+	return _u
+}
+
+// RemoveAppStripeInvoiceSyncPlanIDs removes the "app_stripe_invoice_sync_plans" edge to AppStripeInvoiceSyncPlan entities by IDs.
+func (_u *BillingInvoiceUpdateOne) RemoveAppStripeInvoiceSyncPlanIDs(ids ...string) *BillingInvoiceUpdateOne {
+	_u.mutation.RemoveAppStripeInvoiceSyncPlanIDs(ids...)
+	return _u
+}
+
+// RemoveAppStripeInvoiceSyncPlans removes "app_stripe_invoice_sync_plans" edges to AppStripeInvoiceSyncPlan entities.
+func (_u *BillingInvoiceUpdateOne) RemoveAppStripeInvoiceSyncPlans(v ...*AppStripeInvoiceSyncPlan) *BillingInvoiceUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveAppStripeInvoiceSyncPlanIDs(ids...)
 }
 
 // Where appends a list predicates to the BillingInvoiceUpdate builder.
@@ -3156,6 +3274,51 @@ func (_u *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *BillingI
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicevalidationissue.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.AppStripeInvoiceSyncPlansCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.AppStripeInvoiceSyncPlansTable,
+			Columns: []string{billinginvoice.AppStripeInvoiceSyncPlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(appstripeinvoicesyncplan.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedAppStripeInvoiceSyncPlansIDs(); len(nodes) > 0 && !_u.mutation.AppStripeInvoiceSyncPlansCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.AppStripeInvoiceSyncPlansTable,
+			Columns: []string{billinginvoice.AppStripeInvoiceSyncPlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(appstripeinvoicesyncplan.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.AppStripeInvoiceSyncPlansIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.AppStripeInvoiceSyncPlansTable,
+			Columns: []string{billinginvoice.AppStripeInvoiceSyncPlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(appstripeinvoicesyncplan.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

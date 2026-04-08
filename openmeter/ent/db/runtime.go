@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/app/stripe/invoicesync"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
@@ -16,6 +17,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustominvoicingcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripeinvoicesyncop"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripeinvoicesyncplan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomerlock"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
@@ -369,6 +372,98 @@ func init() {
 	appstripecustomerDescStripeCustomerID := appstripecustomerFields[2].Descriptor()
 	// appstripecustomer.StripeCustomerIDValidator is a validator for the "stripe_customer_id" field. It is called by the builders before save.
 	appstripecustomer.StripeCustomerIDValidator = appstripecustomerDescStripeCustomerID.Validators[0].(func(string) error)
+	appstripeinvoicesyncopMixin := schema.AppStripeInvoiceSyncOp{}.Mixin()
+	appstripeinvoicesyncopMixinFields0 := appstripeinvoicesyncopMixin[0].Fields()
+	_ = appstripeinvoicesyncopMixinFields0
+	appstripeinvoicesyncopMixinFields1 := appstripeinvoicesyncopMixin[1].Fields()
+	_ = appstripeinvoicesyncopMixinFields1
+	appstripeinvoicesyncopFields := schema.AppStripeInvoiceSyncOp{}.Fields()
+	_ = appstripeinvoicesyncopFields
+	// appstripeinvoicesyncopDescCreatedAt is the schema descriptor for created_at field.
+	appstripeinvoicesyncopDescCreatedAt := appstripeinvoicesyncopMixinFields1[0].Descriptor()
+	// appstripeinvoicesyncop.DefaultCreatedAt holds the default value on creation for the created_at field.
+	appstripeinvoicesyncop.DefaultCreatedAt = appstripeinvoicesyncopDescCreatedAt.Default.(func() time.Time)
+	// appstripeinvoicesyncopDescUpdatedAt is the schema descriptor for updated_at field.
+	appstripeinvoicesyncopDescUpdatedAt := appstripeinvoicesyncopMixinFields1[1].Descriptor()
+	// appstripeinvoicesyncop.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	appstripeinvoicesyncop.DefaultUpdatedAt = appstripeinvoicesyncopDescUpdatedAt.Default.(func() time.Time)
+	// appstripeinvoicesyncop.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	appstripeinvoicesyncop.UpdateDefaultUpdatedAt = appstripeinvoicesyncopDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// appstripeinvoicesyncopDescPlanID is the schema descriptor for plan_id field.
+	appstripeinvoicesyncopDescPlanID := appstripeinvoicesyncopFields[0].Descriptor()
+	// appstripeinvoicesyncop.PlanIDValidator is a validator for the "plan_id" field. It is called by the builders before save.
+	appstripeinvoicesyncop.PlanIDValidator = appstripeinvoicesyncopDescPlanID.Validators[0].(func(string) error)
+	// appstripeinvoicesyncopDescSequence is the schema descriptor for sequence field.
+	appstripeinvoicesyncopDescSequence := appstripeinvoicesyncopFields[1].Descriptor()
+	// appstripeinvoicesyncop.SequenceValidator is a validator for the "sequence" field. It is called by the builders before save.
+	appstripeinvoicesyncop.SequenceValidator = appstripeinvoicesyncopDescSequence.Validators[0].(func(int) error)
+	// appstripeinvoicesyncopDescType is the schema descriptor for type field.
+	appstripeinvoicesyncopDescType := appstripeinvoicesyncopFields[2].Descriptor()
+	// appstripeinvoicesyncop.TypeValidator is a validator for the "type" field. It is called by the builders before save.
+	appstripeinvoicesyncop.TypeValidator = appstripeinvoicesyncopDescType.Validators[0].(func(string) error)
+	// appstripeinvoicesyncopDescIdempotencyKey is the schema descriptor for idempotency_key field.
+	appstripeinvoicesyncopDescIdempotencyKey := appstripeinvoicesyncopFields[4].Descriptor()
+	// appstripeinvoicesyncop.IdempotencyKeyValidator is a validator for the "idempotency_key" field. It is called by the builders before save.
+	appstripeinvoicesyncop.IdempotencyKeyValidator = appstripeinvoicesyncopDescIdempotencyKey.Validators[0].(func(string) error)
+	// appstripeinvoicesyncopDescStatus is the schema descriptor for status field.
+	appstripeinvoicesyncopDescStatus := appstripeinvoicesyncopFields[5].Descriptor()
+	// appstripeinvoicesyncop.DefaultStatus holds the default value on creation for the status field.
+	appstripeinvoicesyncop.DefaultStatus = invoicesync.OpStatus(appstripeinvoicesyncopDescStatus.Default.(string))
+	// appstripeinvoicesyncop.StatusValidator is a validator for the "status" field. It is called by the builders before save.
+	appstripeinvoicesyncop.StatusValidator = appstripeinvoicesyncopDescStatus.Validators[0].(func(string) error)
+	// appstripeinvoicesyncopDescID is the schema descriptor for id field.
+	appstripeinvoicesyncopDescID := appstripeinvoicesyncopMixinFields0[0].Descriptor()
+	// appstripeinvoicesyncop.DefaultID holds the default value on creation for the id field.
+	appstripeinvoicesyncop.DefaultID = appstripeinvoicesyncopDescID.Default.(func() string)
+	appstripeinvoicesyncplanMixin := schema.AppStripeInvoiceSyncPlan{}.Mixin()
+	appstripeinvoicesyncplanMixinFields0 := appstripeinvoicesyncplanMixin[0].Fields()
+	_ = appstripeinvoicesyncplanMixinFields0
+	appstripeinvoicesyncplanMixinFields1 := appstripeinvoicesyncplanMixin[1].Fields()
+	_ = appstripeinvoicesyncplanMixinFields1
+	appstripeinvoicesyncplanMixinFields2 := appstripeinvoicesyncplanMixin[2].Fields()
+	_ = appstripeinvoicesyncplanMixinFields2
+	appstripeinvoicesyncplanFields := schema.AppStripeInvoiceSyncPlan{}.Fields()
+	_ = appstripeinvoicesyncplanFields
+	// appstripeinvoicesyncplanDescNamespace is the schema descriptor for namespace field.
+	appstripeinvoicesyncplanDescNamespace := appstripeinvoicesyncplanMixinFields1[0].Descriptor()
+	// appstripeinvoicesyncplan.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	appstripeinvoicesyncplan.NamespaceValidator = appstripeinvoicesyncplanDescNamespace.Validators[0].(func(string) error)
+	// appstripeinvoicesyncplanDescCreatedAt is the schema descriptor for created_at field.
+	appstripeinvoicesyncplanDescCreatedAt := appstripeinvoicesyncplanMixinFields2[0].Descriptor()
+	// appstripeinvoicesyncplan.DefaultCreatedAt holds the default value on creation for the created_at field.
+	appstripeinvoicesyncplan.DefaultCreatedAt = appstripeinvoicesyncplanDescCreatedAt.Default.(func() time.Time)
+	// appstripeinvoicesyncplanDescUpdatedAt is the schema descriptor for updated_at field.
+	appstripeinvoicesyncplanDescUpdatedAt := appstripeinvoicesyncplanMixinFields2[1].Descriptor()
+	// appstripeinvoicesyncplan.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	appstripeinvoicesyncplan.DefaultUpdatedAt = appstripeinvoicesyncplanDescUpdatedAt.Default.(func() time.Time)
+	// appstripeinvoicesyncplan.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	appstripeinvoicesyncplan.UpdateDefaultUpdatedAt = appstripeinvoicesyncplanDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// appstripeinvoicesyncplanDescInvoiceID is the schema descriptor for invoice_id field.
+	appstripeinvoicesyncplanDescInvoiceID := appstripeinvoicesyncplanFields[0].Descriptor()
+	// appstripeinvoicesyncplan.InvoiceIDValidator is a validator for the "invoice_id" field. It is called by the builders before save.
+	appstripeinvoicesyncplan.InvoiceIDValidator = appstripeinvoicesyncplanDescInvoiceID.Validators[0].(func(string) error)
+	// appstripeinvoicesyncplanDescAppID is the schema descriptor for app_id field.
+	appstripeinvoicesyncplanDescAppID := appstripeinvoicesyncplanFields[1].Descriptor()
+	// appstripeinvoicesyncplan.AppIDValidator is a validator for the "app_id" field. It is called by the builders before save.
+	appstripeinvoicesyncplan.AppIDValidator = appstripeinvoicesyncplanDescAppID.Validators[0].(func(string) error)
+	// appstripeinvoicesyncplanDescSessionID is the schema descriptor for session_id field.
+	appstripeinvoicesyncplanDescSessionID := appstripeinvoicesyncplanFields[2].Descriptor()
+	// appstripeinvoicesyncplan.SessionIDValidator is a validator for the "session_id" field. It is called by the builders before save.
+	appstripeinvoicesyncplan.SessionIDValidator = appstripeinvoicesyncplanDescSessionID.Validators[0].(func(string) error)
+	// appstripeinvoicesyncplanDescPhase is the schema descriptor for phase field.
+	appstripeinvoicesyncplanDescPhase := appstripeinvoicesyncplanFields[3].Descriptor()
+	// appstripeinvoicesyncplan.PhaseValidator is a validator for the "phase" field. It is called by the builders before save.
+	appstripeinvoicesyncplan.PhaseValidator = appstripeinvoicesyncplanDescPhase.Validators[0].(func(string) error)
+	// appstripeinvoicesyncplanDescStatus is the schema descriptor for status field.
+	appstripeinvoicesyncplanDescStatus := appstripeinvoicesyncplanFields[4].Descriptor()
+	// appstripeinvoicesyncplan.DefaultStatus holds the default value on creation for the status field.
+	appstripeinvoicesyncplan.DefaultStatus = invoicesync.PlanStatus(appstripeinvoicesyncplanDescStatus.Default.(string))
+	// appstripeinvoicesyncplan.StatusValidator is a validator for the "status" field. It is called by the builders before save.
+	appstripeinvoicesyncplan.StatusValidator = appstripeinvoicesyncplanDescStatus.Validators[0].(func(string) error)
+	// appstripeinvoicesyncplanDescID is the schema descriptor for id field.
+	appstripeinvoicesyncplanDescID := appstripeinvoicesyncplanMixinFields0[0].Descriptor()
+	// appstripeinvoicesyncplan.DefaultID holds the default value on creation for the id field.
+	appstripeinvoicesyncplan.DefaultID = appstripeinvoicesyncplanDescID.Default.(func() string)
 	balancesnapshotMixin := schema.BalanceSnapshot{}.Mixin()
 	balancesnapshotMixinFields0 := balancesnapshotMixin[0].Fields()
 	_ = balancesnapshotMixinFields0

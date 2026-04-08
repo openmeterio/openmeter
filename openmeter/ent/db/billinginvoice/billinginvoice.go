@@ -142,6 +142,8 @@ const (
 	EdgeBillingInvoiceDetailedLines = "billing_invoice_detailed_lines"
 	// EdgeBillingInvoiceValidationIssues holds the string denoting the billing_invoice_validation_issues edge name in mutations.
 	EdgeBillingInvoiceValidationIssues = "billing_invoice_validation_issues"
+	// EdgeAppStripeInvoiceSyncPlans holds the string denoting the app_stripe_invoice_sync_plans edge name in mutations.
+	EdgeAppStripeInvoiceSyncPlans = "app_stripe_invoice_sync_plans"
 	// EdgeBillingInvoiceCustomer holds the string denoting the billing_invoice_customer edge name in mutations.
 	EdgeBillingInvoiceCustomer = "billing_invoice_customer"
 	// EdgeTaxApp holds the string denoting the tax_app edge name in mutations.
@@ -187,6 +189,13 @@ const (
 	BillingInvoiceValidationIssuesInverseTable = "billing_invoice_validation_issues"
 	// BillingInvoiceValidationIssuesColumn is the table column denoting the billing_invoice_validation_issues relation/edge.
 	BillingInvoiceValidationIssuesColumn = "invoice_id"
+	// AppStripeInvoiceSyncPlansTable is the table that holds the app_stripe_invoice_sync_plans relation/edge.
+	AppStripeInvoiceSyncPlansTable = "app_stripe_invoice_sync_plans"
+	// AppStripeInvoiceSyncPlansInverseTable is the table name for the AppStripeInvoiceSyncPlan entity.
+	// It exists in this package in order to avoid circular dependency with the "appstripeinvoicesyncplan" package.
+	AppStripeInvoiceSyncPlansInverseTable = "app_stripe_invoice_sync_plans"
+	// AppStripeInvoiceSyncPlansColumn is the table column denoting the app_stripe_invoice_sync_plans relation/edge.
+	AppStripeInvoiceSyncPlansColumn = "invoice_id"
 	// BillingInvoiceCustomerTable is the table that holds the billing_invoice_customer relation/edge.
 	BillingInvoiceCustomerTable = "billing_invoices"
 	// BillingInvoiceCustomerInverseTable is the table name for the Customer entity.
@@ -680,6 +689,20 @@ func ByBillingInvoiceValidationIssues(term sql.OrderTerm, terms ...sql.OrderTerm
 	}
 }
 
+// ByAppStripeInvoiceSyncPlansCount orders the results by app_stripe_invoice_sync_plans count.
+func ByAppStripeInvoiceSyncPlansCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newAppStripeInvoiceSyncPlansStep(), opts...)
+	}
+}
+
+// ByAppStripeInvoiceSyncPlans orders the results by app_stripe_invoice_sync_plans terms.
+func ByAppStripeInvoiceSyncPlans(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newAppStripeInvoiceSyncPlansStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByBillingInvoiceCustomerField orders the results by billing_invoice_customer field.
 func ByBillingInvoiceCustomerField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -740,6 +763,13 @@ func newBillingInvoiceValidationIssuesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingInvoiceValidationIssuesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceValidationIssuesTable, BillingInvoiceValidationIssuesColumn),
+	)
+}
+func newAppStripeInvoiceSyncPlansStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(AppStripeInvoiceSyncPlansInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, AppStripeInvoiceSyncPlansTable, AppStripeInvoiceSyncPlansColumn),
 	)
 }
 func newBillingInvoiceCustomerStep() *sqlgraph.Step {

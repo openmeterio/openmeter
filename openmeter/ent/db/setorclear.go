@@ -3,6 +3,7 @@
 package db
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -407,6 +408,104 @@ func (u *AppStripeCustomerUpdateOne) SetOrClearStripeDefaultPaymentMethodID(valu
 		return u.ClearStripeDefaultPaymentMethodID()
 	}
 	return u.SetStripeDefaultPaymentMethodID(*value)
+}
+
+func (u *AppStripeInvoiceSyncOpUpdate) SetOrClearDeletedAt(value *time.Time) *AppStripeInvoiceSyncOpUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AppStripeInvoiceSyncOpUpdateOne) SetOrClearDeletedAt(value *time.Time) *AppStripeInvoiceSyncOpUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AppStripeInvoiceSyncOpUpdate) SetOrClearStripeResponse(value *json.RawMessage) *AppStripeInvoiceSyncOpUpdate {
+	if value == nil {
+		return u.ClearStripeResponse()
+	}
+	return u.SetStripeResponse(*value)
+}
+
+func (u *AppStripeInvoiceSyncOpUpdateOne) SetOrClearStripeResponse(value *json.RawMessage) *AppStripeInvoiceSyncOpUpdateOne {
+	if value == nil {
+		return u.ClearStripeResponse()
+	}
+	return u.SetStripeResponse(*value)
+}
+
+func (u *AppStripeInvoiceSyncOpUpdate) SetOrClearError(value *string) *AppStripeInvoiceSyncOpUpdate {
+	if value == nil {
+		return u.ClearError()
+	}
+	return u.SetError(*value)
+}
+
+func (u *AppStripeInvoiceSyncOpUpdateOne) SetOrClearError(value *string) *AppStripeInvoiceSyncOpUpdateOne {
+	if value == nil {
+		return u.ClearError()
+	}
+	return u.SetError(*value)
+}
+
+func (u *AppStripeInvoiceSyncOpUpdate) SetOrClearCompletedAt(value *time.Time) *AppStripeInvoiceSyncOpUpdate {
+	if value == nil {
+		return u.ClearCompletedAt()
+	}
+	return u.SetCompletedAt(*value)
+}
+
+func (u *AppStripeInvoiceSyncOpUpdateOne) SetOrClearCompletedAt(value *time.Time) *AppStripeInvoiceSyncOpUpdateOne {
+	if value == nil {
+		return u.ClearCompletedAt()
+	}
+	return u.SetCompletedAt(*value)
+}
+
+func (u *AppStripeInvoiceSyncPlanUpdate) SetOrClearDeletedAt(value *time.Time) *AppStripeInvoiceSyncPlanUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AppStripeInvoiceSyncPlanUpdateOne) SetOrClearDeletedAt(value *time.Time) *AppStripeInvoiceSyncPlanUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AppStripeInvoiceSyncPlanUpdate) SetOrClearError(value *string) *AppStripeInvoiceSyncPlanUpdate {
+	if value == nil {
+		return u.ClearError()
+	}
+	return u.SetError(*value)
+}
+
+func (u *AppStripeInvoiceSyncPlanUpdateOne) SetOrClearError(value *string) *AppStripeInvoiceSyncPlanUpdateOne {
+	if value == nil {
+		return u.ClearError()
+	}
+	return u.SetError(*value)
+}
+
+func (u *AppStripeInvoiceSyncPlanUpdate) SetOrClearCompletedAt(value *time.Time) *AppStripeInvoiceSyncPlanUpdate {
+	if value == nil {
+		return u.ClearCompletedAt()
+	}
+	return u.SetCompletedAt(*value)
+}
+
+func (u *AppStripeInvoiceSyncPlanUpdateOne) SetOrClearCompletedAt(value *time.Time) *AppStripeInvoiceSyncPlanUpdateOne {
+	if value == nil {
+		return u.ClearCompletedAt()
+	}
+	return u.SetCompletedAt(*value)
 }
 
 func (u *BalanceSnapshotUpdate) SetOrClearDeletedAt(value *time.Time) *BalanceSnapshotUpdate {

@@ -2,8 +2,8 @@ package billingservice
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
@@ -50,6 +50,16 @@ func (s *Service) TriggerInvoice(ctx context.Context, input billing.InvoiceTrigg
 	})
 }
 
+func (s *Service) SyncExternalIDs(ctx context.Context, input billing.SyncExternalIDsInput) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
+	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
+		return s.adapter.SyncExternalIDs(ctx, input)
+	})
+}
+
 func (s *Service) UpdateInvoiceFields(ctx context.Context, input billing.UpdateInvoiceFieldsInput) error {
 	if err := input.Validate(); err != nil {
 		return err
@@ -57,6 +67,25 @@ func (s *Service) UpdateInvoiceFields(ctx context.Context, input billing.UpdateI
 
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
 		return s.adapter.UpdateInvoiceFields(ctx, input)
+	})
+}
+
+func (s *Service) FailSyncInvoice(ctx context.Context, input billing.FailSyncInvoiceInput) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
+	return s.TriggerInvoice(ctx, billing.InvoiceTriggerServiceInput{
+		InvoiceTriggerInput: billing.InvoiceTriggerInput{
+			Invoice: input.Invoice,
+			Trigger: billing.TriggerFailed,
+			ValidationErrors: &billing.InvoiceTriggerValidationInput{
+				Operation: input.Operation,
+				Errors:    []error{input.Err},
+			},
+		},
+		AppType:    input.AppType,
+		Capability: app.CapabilityTypeInvoiceCustomers,
 	})
 }
 
@@ -77,8 +106,10 @@ func (s *Service) syncEditInvoice(ctx context.Context, input syncEditInvoiceInpu
 			InvoiceID: input.SyncInput.GetInvoiceID(),
 			Callback: func(ctx context.Context, sm *InvoiceStateMachine) error {
 				if sm.Invoice.Status != input.ExpectedStartingState {
-					return billing.ValidationError{
-						Err: fmt.Errorf("invoice is not in %s state", input.ExpectedStartingState),
+					return billing.InvoiceStateMismatchError{
+						InvoiceID:     input.SyncInput.GetInvoiceID(),
+						ExpectedState: input.ExpectedStartingState,
+						ActualState:   sm.Invoice.Status,
 					}
 				}
 

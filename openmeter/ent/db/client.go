@@ -23,6 +23,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustominvoicingcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripeinvoicesyncop"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripeinvoicesyncplan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomerlock"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
@@ -111,6 +113,10 @@ type Client struct {
 	AppStripe *AppStripeClient
 	// AppStripeCustomer is the client for interacting with the AppStripeCustomer builders.
 	AppStripeCustomer *AppStripeCustomerClient
+	// AppStripeInvoiceSyncOp is the client for interacting with the AppStripeInvoiceSyncOp builders.
+	AppStripeInvoiceSyncOp *AppStripeInvoiceSyncOpClient
+	// AppStripeInvoiceSyncPlan is the client for interacting with the AppStripeInvoiceSyncPlan builders.
+	AppStripeInvoiceSyncPlan *AppStripeInvoiceSyncPlanClient
 	// BalanceSnapshot is the client for interacting with the BalanceSnapshot builders.
 	BalanceSnapshot *BalanceSnapshotClient
 	// BillingCustomerLock is the client for interacting with the BillingCustomerLock builders.
@@ -258,6 +264,8 @@ func (c *Client) init() {
 	c.AppCustomer = NewAppCustomerClient(c.config)
 	c.AppStripe = NewAppStripeClient(c.config)
 	c.AppStripeCustomer = NewAppStripeCustomerClient(c.config)
+	c.AppStripeInvoiceSyncOp = NewAppStripeInvoiceSyncOpClient(c.config)
+	c.AppStripeInvoiceSyncPlan = NewAppStripeInvoiceSyncPlanClient(c.config)
 	c.BalanceSnapshot = NewBalanceSnapshotClient(c.config)
 	c.BillingCustomerLock = NewBillingCustomerLockClient(c.config)
 	c.BillingCustomerOverride = NewBillingCustomerOverrideClient(c.config)
@@ -422,6 +430,8 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		AppCustomer:                        NewAppCustomerClient(cfg),
 		AppStripe:                          NewAppStripeClient(cfg),
 		AppStripeCustomer:                  NewAppStripeCustomerClient(cfg),
+		AppStripeInvoiceSyncOp:             NewAppStripeInvoiceSyncOpClient(cfg),
+		AppStripeInvoiceSyncPlan:           NewAppStripeInvoiceSyncPlanClient(cfg),
 		BalanceSnapshot:                    NewBalanceSnapshotClient(cfg),
 		BillingCustomerLock:                NewBillingCustomerLockClient(cfg),
 		BillingCustomerOverride:            NewBillingCustomerOverrideClient(cfg),
@@ -513,6 +523,8 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		AppCustomer:                        NewAppCustomerClient(cfg),
 		AppStripe:                          NewAppStripeClient(cfg),
 		AppStripeCustomer:                  NewAppStripeCustomerClient(cfg),
+		AppStripeInvoiceSyncOp:             NewAppStripeInvoiceSyncOpClient(cfg),
+		AppStripeInvoiceSyncPlan:           NewAppStripeInvoiceSyncPlanClient(cfg),
 		BalanceSnapshot:                    NewBalanceSnapshotClient(cfg),
 		BillingCustomerLock:                NewBillingCustomerLockClient(cfg),
 		BillingCustomerOverride:            NewBillingCustomerOverrideClient(cfg),
@@ -608,8 +620,9 @@ func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.Addon, c.AddonRateCard, c.App, c.AppCustomInvoicing,
 		c.AppCustomInvoicingCustomer, c.AppCustomer, c.AppStripe, c.AppStripeCustomer,
-		c.BalanceSnapshot, c.BillingCustomerLock, c.BillingCustomerOverride,
-		c.BillingInvoice, c.BillingInvoiceFlatFeeLineConfig, c.BillingInvoiceLine,
+		c.AppStripeInvoiceSyncOp, c.AppStripeInvoiceSyncPlan, c.BalanceSnapshot,
+		c.BillingCustomerLock, c.BillingCustomerOverride, c.BillingInvoice,
+		c.BillingInvoiceFlatFeeLineConfig, c.BillingInvoiceLine,
 		c.BillingInvoiceLineDiscount, c.BillingInvoiceLineUsageDiscount,
 		c.BillingInvoiceSplitLineGroup, c.BillingInvoiceUsageBasedLineConfig,
 		c.BillingInvoiceValidationIssue, c.BillingInvoiceWriteSchemaLevel,
@@ -642,8 +655,9 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.Addon, c.AddonRateCard, c.App, c.AppCustomInvoicing,
 		c.AppCustomInvoicingCustomer, c.AppCustomer, c.AppStripe, c.AppStripeCustomer,
-		c.BalanceSnapshot, c.BillingCustomerLock, c.BillingCustomerOverride,
-		c.BillingInvoice, c.BillingInvoiceFlatFeeLineConfig, c.BillingInvoiceLine,
+		c.AppStripeInvoiceSyncOp, c.AppStripeInvoiceSyncPlan, c.BalanceSnapshot,
+		c.BillingCustomerLock, c.BillingCustomerOverride, c.BillingInvoice,
+		c.BillingInvoiceFlatFeeLineConfig, c.BillingInvoiceLine,
 		c.BillingInvoiceLineDiscount, c.BillingInvoiceLineUsageDiscount,
 		c.BillingInvoiceSplitLineGroup, c.BillingInvoiceUsageBasedLineConfig,
 		c.BillingInvoiceValidationIssue, c.BillingInvoiceWriteSchemaLevel,
@@ -689,6 +703,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.AppStripe.mutate(ctx, m)
 	case *AppStripeCustomerMutation:
 		return c.AppStripeCustomer.mutate(ctx, m)
+	case *AppStripeInvoiceSyncOpMutation:
+		return c.AppStripeInvoiceSyncOp.mutate(ctx, m)
+	case *AppStripeInvoiceSyncPlanMutation:
+		return c.AppStripeInvoiceSyncPlan.mutate(ctx, m)
 	case *BalanceSnapshotMutation:
 		return c.BalanceSnapshot.mutate(ctx, m)
 	case *BillingCustomerLockMutation:
@@ -2252,6 +2270,320 @@ func (c *AppStripeCustomerClient) mutate(ctx context.Context, m *AppStripeCustom
 	}
 }
 
+// AppStripeInvoiceSyncOpClient is a client for the AppStripeInvoiceSyncOp schema.
+type AppStripeInvoiceSyncOpClient struct {
+	config
+}
+
+// NewAppStripeInvoiceSyncOpClient returns a client for the AppStripeInvoiceSyncOp from the given config.
+func NewAppStripeInvoiceSyncOpClient(c config) *AppStripeInvoiceSyncOpClient {
+	return &AppStripeInvoiceSyncOpClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `appstripeinvoicesyncop.Hooks(f(g(h())))`.
+func (c *AppStripeInvoiceSyncOpClient) Use(hooks ...Hook) {
+	c.hooks.AppStripeInvoiceSyncOp = append(c.hooks.AppStripeInvoiceSyncOp, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `appstripeinvoicesyncop.Intercept(f(g(h())))`.
+func (c *AppStripeInvoiceSyncOpClient) Intercept(interceptors ...Interceptor) {
+	c.inters.AppStripeInvoiceSyncOp = append(c.inters.AppStripeInvoiceSyncOp, interceptors...)
+}
+
+// Create returns a builder for creating a AppStripeInvoiceSyncOp entity.
+func (c *AppStripeInvoiceSyncOpClient) Create() *AppStripeInvoiceSyncOpCreate {
+	mutation := newAppStripeInvoiceSyncOpMutation(c.config, OpCreate)
+	return &AppStripeInvoiceSyncOpCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AppStripeInvoiceSyncOp entities.
+func (c *AppStripeInvoiceSyncOpClient) CreateBulk(builders ...*AppStripeInvoiceSyncOpCreate) *AppStripeInvoiceSyncOpCreateBulk {
+	return &AppStripeInvoiceSyncOpCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AppStripeInvoiceSyncOpClient) MapCreateBulk(slice any, setFunc func(*AppStripeInvoiceSyncOpCreate, int)) *AppStripeInvoiceSyncOpCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AppStripeInvoiceSyncOpCreateBulk{err: fmt.Errorf("calling to AppStripeInvoiceSyncOpClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AppStripeInvoiceSyncOpCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AppStripeInvoiceSyncOpCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AppStripeInvoiceSyncOp.
+func (c *AppStripeInvoiceSyncOpClient) Update() *AppStripeInvoiceSyncOpUpdate {
+	mutation := newAppStripeInvoiceSyncOpMutation(c.config, OpUpdate)
+	return &AppStripeInvoiceSyncOpUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AppStripeInvoiceSyncOpClient) UpdateOne(_m *AppStripeInvoiceSyncOp) *AppStripeInvoiceSyncOpUpdateOne {
+	mutation := newAppStripeInvoiceSyncOpMutation(c.config, OpUpdateOne, withAppStripeInvoiceSyncOp(_m))
+	return &AppStripeInvoiceSyncOpUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AppStripeInvoiceSyncOpClient) UpdateOneID(id string) *AppStripeInvoiceSyncOpUpdateOne {
+	mutation := newAppStripeInvoiceSyncOpMutation(c.config, OpUpdateOne, withAppStripeInvoiceSyncOpID(id))
+	return &AppStripeInvoiceSyncOpUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AppStripeInvoiceSyncOp.
+func (c *AppStripeInvoiceSyncOpClient) Delete() *AppStripeInvoiceSyncOpDelete {
+	mutation := newAppStripeInvoiceSyncOpMutation(c.config, OpDelete)
+	return &AppStripeInvoiceSyncOpDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AppStripeInvoiceSyncOpClient) DeleteOne(_m *AppStripeInvoiceSyncOp) *AppStripeInvoiceSyncOpDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AppStripeInvoiceSyncOpClient) DeleteOneID(id string) *AppStripeInvoiceSyncOpDeleteOne {
+	builder := c.Delete().Where(appstripeinvoicesyncop.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AppStripeInvoiceSyncOpDeleteOne{builder}
+}
+
+// Query returns a query builder for AppStripeInvoiceSyncOp.
+func (c *AppStripeInvoiceSyncOpClient) Query() *AppStripeInvoiceSyncOpQuery {
+	return &AppStripeInvoiceSyncOpQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAppStripeInvoiceSyncOp},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a AppStripeInvoiceSyncOp entity by its id.
+func (c *AppStripeInvoiceSyncOpClient) Get(ctx context.Context, id string) (*AppStripeInvoiceSyncOp, error) {
+	return c.Query().Where(appstripeinvoicesyncop.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AppStripeInvoiceSyncOpClient) GetX(ctx context.Context, id string) *AppStripeInvoiceSyncOp {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QuerySyncPlan queries the sync_plan edge of a AppStripeInvoiceSyncOp.
+func (c *AppStripeInvoiceSyncOpClient) QuerySyncPlan(_m *AppStripeInvoiceSyncOp) *AppStripeInvoiceSyncPlanQuery {
+	query := (&AppStripeInvoiceSyncPlanClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(appstripeinvoicesyncop.Table, appstripeinvoicesyncop.FieldID, id),
+			sqlgraph.To(appstripeinvoicesyncplan.Table, appstripeinvoicesyncplan.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, appstripeinvoicesyncop.SyncPlanTable, appstripeinvoicesyncop.SyncPlanColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *AppStripeInvoiceSyncOpClient) Hooks() []Hook {
+	return c.hooks.AppStripeInvoiceSyncOp
+}
+
+// Interceptors returns the client interceptors.
+func (c *AppStripeInvoiceSyncOpClient) Interceptors() []Interceptor {
+	return c.inters.AppStripeInvoiceSyncOp
+}
+
+func (c *AppStripeInvoiceSyncOpClient) mutate(ctx context.Context, m *AppStripeInvoiceSyncOpMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AppStripeInvoiceSyncOpCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AppStripeInvoiceSyncOpUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AppStripeInvoiceSyncOpUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AppStripeInvoiceSyncOpDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown AppStripeInvoiceSyncOp mutation op: %q", m.Op())
+	}
+}
+
+// AppStripeInvoiceSyncPlanClient is a client for the AppStripeInvoiceSyncPlan schema.
+type AppStripeInvoiceSyncPlanClient struct {
+	config
+}
+
+// NewAppStripeInvoiceSyncPlanClient returns a client for the AppStripeInvoiceSyncPlan from the given config.
+func NewAppStripeInvoiceSyncPlanClient(c config) *AppStripeInvoiceSyncPlanClient {
+	return &AppStripeInvoiceSyncPlanClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `appstripeinvoicesyncplan.Hooks(f(g(h())))`.
+func (c *AppStripeInvoiceSyncPlanClient) Use(hooks ...Hook) {
+	c.hooks.AppStripeInvoiceSyncPlan = append(c.hooks.AppStripeInvoiceSyncPlan, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `appstripeinvoicesyncplan.Intercept(f(g(h())))`.
+func (c *AppStripeInvoiceSyncPlanClient) Intercept(interceptors ...Interceptor) {
+	c.inters.AppStripeInvoiceSyncPlan = append(c.inters.AppStripeInvoiceSyncPlan, interceptors...)
+}
+
+// Create returns a builder for creating a AppStripeInvoiceSyncPlan entity.
+func (c *AppStripeInvoiceSyncPlanClient) Create() *AppStripeInvoiceSyncPlanCreate {
+	mutation := newAppStripeInvoiceSyncPlanMutation(c.config, OpCreate)
+	return &AppStripeInvoiceSyncPlanCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AppStripeInvoiceSyncPlan entities.
+func (c *AppStripeInvoiceSyncPlanClient) CreateBulk(builders ...*AppStripeInvoiceSyncPlanCreate) *AppStripeInvoiceSyncPlanCreateBulk {
+	return &AppStripeInvoiceSyncPlanCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AppStripeInvoiceSyncPlanClient) MapCreateBulk(slice any, setFunc func(*AppStripeInvoiceSyncPlanCreate, int)) *AppStripeInvoiceSyncPlanCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AppStripeInvoiceSyncPlanCreateBulk{err: fmt.Errorf("calling to AppStripeInvoiceSyncPlanClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AppStripeInvoiceSyncPlanCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AppStripeInvoiceSyncPlanCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AppStripeInvoiceSyncPlan.
+func (c *AppStripeInvoiceSyncPlanClient) Update() *AppStripeInvoiceSyncPlanUpdate {
+	mutation := newAppStripeInvoiceSyncPlanMutation(c.config, OpUpdate)
+	return &AppStripeInvoiceSyncPlanUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AppStripeInvoiceSyncPlanClient) UpdateOne(_m *AppStripeInvoiceSyncPlan) *AppStripeInvoiceSyncPlanUpdateOne {
+	mutation := newAppStripeInvoiceSyncPlanMutation(c.config, OpUpdateOne, withAppStripeInvoiceSyncPlan(_m))
+	return &AppStripeInvoiceSyncPlanUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AppStripeInvoiceSyncPlanClient) UpdateOneID(id string) *AppStripeInvoiceSyncPlanUpdateOne {
+	mutation := newAppStripeInvoiceSyncPlanMutation(c.config, OpUpdateOne, withAppStripeInvoiceSyncPlanID(id))
+	return &AppStripeInvoiceSyncPlanUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AppStripeInvoiceSyncPlan.
+func (c *AppStripeInvoiceSyncPlanClient) Delete() *AppStripeInvoiceSyncPlanDelete {
+	mutation := newAppStripeInvoiceSyncPlanMutation(c.config, OpDelete)
+	return &AppStripeInvoiceSyncPlanDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AppStripeInvoiceSyncPlanClient) DeleteOne(_m *AppStripeInvoiceSyncPlan) *AppStripeInvoiceSyncPlanDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AppStripeInvoiceSyncPlanClient) DeleteOneID(id string) *AppStripeInvoiceSyncPlanDeleteOne {
+	builder := c.Delete().Where(appstripeinvoicesyncplan.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AppStripeInvoiceSyncPlanDeleteOne{builder}
+}
+
+// Query returns a query builder for AppStripeInvoiceSyncPlan.
+func (c *AppStripeInvoiceSyncPlanClient) Query() *AppStripeInvoiceSyncPlanQuery {
+	return &AppStripeInvoiceSyncPlanQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAppStripeInvoiceSyncPlan},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a AppStripeInvoiceSyncPlan entity by its id.
+func (c *AppStripeInvoiceSyncPlanClient) Get(ctx context.Context, id string) (*AppStripeInvoiceSyncPlan, error) {
+	return c.Query().Where(appstripeinvoicesyncplan.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AppStripeInvoiceSyncPlanClient) GetX(ctx context.Context, id string) *AppStripeInvoiceSyncPlan {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryBillingInvoice queries the billing_invoice edge of a AppStripeInvoiceSyncPlan.
+func (c *AppStripeInvoiceSyncPlanClient) QueryBillingInvoice(_m *AppStripeInvoiceSyncPlan) *BillingInvoiceQuery {
+	query := (&BillingInvoiceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(appstripeinvoicesyncplan.Table, appstripeinvoicesyncplan.FieldID, id),
+			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, appstripeinvoicesyncplan.BillingInvoiceTable, appstripeinvoicesyncplan.BillingInvoiceColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryOperations queries the operations edge of a AppStripeInvoiceSyncPlan.
+func (c *AppStripeInvoiceSyncPlanClient) QueryOperations(_m *AppStripeInvoiceSyncPlan) *AppStripeInvoiceSyncOpQuery {
+	query := (&AppStripeInvoiceSyncOpClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(appstripeinvoicesyncplan.Table, appstripeinvoicesyncplan.FieldID, id),
+			sqlgraph.To(appstripeinvoicesyncop.Table, appstripeinvoicesyncop.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, appstripeinvoicesyncplan.OperationsTable, appstripeinvoicesyncplan.OperationsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *AppStripeInvoiceSyncPlanClient) Hooks() []Hook {
+	return c.hooks.AppStripeInvoiceSyncPlan
+}
+
+// Interceptors returns the client interceptors.
+func (c *AppStripeInvoiceSyncPlanClient) Interceptors() []Interceptor {
+	return c.inters.AppStripeInvoiceSyncPlan
+}
+
+func (c *AppStripeInvoiceSyncPlanClient) mutate(ctx context.Context, m *AppStripeInvoiceSyncPlanMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AppStripeInvoiceSyncPlanCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AppStripeInvoiceSyncPlanUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AppStripeInvoiceSyncPlanUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AppStripeInvoiceSyncPlanDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown AppStripeInvoiceSyncPlan mutation op: %q", m.Op())
+	}
+}
+
 // BalanceSnapshotClient is a client for the BalanceSnapshot schema.
 type BalanceSnapshotClient struct {
 	config
@@ -2896,6 +3228,22 @@ func (c *BillingInvoiceClient) QueryBillingInvoiceValidationIssues(_m *BillingIn
 			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, id),
 			sqlgraph.To(billinginvoicevalidationissue.Table, billinginvoicevalidationissue.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.BillingInvoiceValidationIssuesTable, billinginvoice.BillingInvoiceValidationIssuesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryAppStripeInvoiceSyncPlans queries the app_stripe_invoice_sync_plans edge of a BillingInvoice.
+func (c *BillingInvoiceClient) QueryAppStripeInvoiceSyncPlans(_m *BillingInvoice) *AppStripeInvoiceSyncPlanQuery {
+	query := (&AppStripeInvoiceSyncPlanClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, id),
+			sqlgraph.To(appstripeinvoicesyncplan.Table, appstripeinvoicesyncplan.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.AppStripeInvoiceSyncPlansTable, billinginvoice.AppStripeInvoiceSyncPlansColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -13833,13 +14181,14 @@ func (c *UsageResetClient) mutate(ctx context.Context, m *UsageResetMutation) (V
 type (
 	hooks struct {
 		Addon, AddonRateCard, App, AppCustomInvoicing, AppCustomInvoicingCustomer,
-		AppCustomer, AppStripe, AppStripeCustomer, BalanceSnapshot,
-		BillingCustomerLock, BillingCustomerOverride, BillingInvoice,
-		BillingInvoiceFlatFeeLineConfig, BillingInvoiceLine,
-		BillingInvoiceLineDiscount, BillingInvoiceLineUsageDiscount,
-		BillingInvoiceSplitLineGroup, BillingInvoiceUsageBasedLineConfig,
-		BillingInvoiceValidationIssue, BillingInvoiceWriteSchemaLevel, BillingProfile,
-		BillingSequenceNumbers, BillingStandardInvoiceDetailedLine,
+		AppCustomer, AppStripe, AppStripeCustomer, AppStripeInvoiceSyncOp,
+		AppStripeInvoiceSyncPlan, BalanceSnapshot, BillingCustomerLock,
+		BillingCustomerOverride, BillingInvoice, BillingInvoiceFlatFeeLineConfig,
+		BillingInvoiceLine, BillingInvoiceLineDiscount,
+		BillingInvoiceLineUsageDiscount, BillingInvoiceSplitLineGroup,
+		BillingInvoiceUsageBasedLineConfig, BillingInvoiceValidationIssue,
+		BillingInvoiceWriteSchemaLevel, BillingProfile, BillingSequenceNumbers,
+		BillingStandardInvoiceDetailedLine,
 		BillingStandardInvoiceDetailedLineAmountDiscount, BillingWorkflowConfig,
 		Charge, ChargeCreditPurchase, ChargeCreditPurchaseExternalPayment,
 		ChargeCreditPurchaseInvoicedPayment, ChargeFlatFee,
@@ -13857,13 +14206,14 @@ type (
 	}
 	inters struct {
 		Addon, AddonRateCard, App, AppCustomInvoicing, AppCustomInvoicingCustomer,
-		AppCustomer, AppStripe, AppStripeCustomer, BalanceSnapshot,
-		BillingCustomerLock, BillingCustomerOverride, BillingInvoice,
-		BillingInvoiceFlatFeeLineConfig, BillingInvoiceLine,
-		BillingInvoiceLineDiscount, BillingInvoiceLineUsageDiscount,
-		BillingInvoiceSplitLineGroup, BillingInvoiceUsageBasedLineConfig,
-		BillingInvoiceValidationIssue, BillingInvoiceWriteSchemaLevel, BillingProfile,
-		BillingSequenceNumbers, BillingStandardInvoiceDetailedLine,
+		AppCustomer, AppStripe, AppStripeCustomer, AppStripeInvoiceSyncOp,
+		AppStripeInvoiceSyncPlan, BalanceSnapshot, BillingCustomerLock,
+		BillingCustomerOverride, BillingInvoice, BillingInvoiceFlatFeeLineConfig,
+		BillingInvoiceLine, BillingInvoiceLineDiscount,
+		BillingInvoiceLineUsageDiscount, BillingInvoiceSplitLineGroup,
+		BillingInvoiceUsageBasedLineConfig, BillingInvoiceValidationIssue,
+		BillingInvoiceWriteSchemaLevel, BillingProfile, BillingSequenceNumbers,
+		BillingStandardInvoiceDetailedLine,
 		BillingStandardInvoiceDetailedLineAmountDiscount, BillingWorkflowConfig,
 		Charge, ChargeCreditPurchase, ChargeCreditPurchaseExternalPayment,
 		ChargeCreditPurchaseInvoicedPayment, ChargeFlatFee,

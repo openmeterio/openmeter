@@ -429,6 +429,109 @@ var (
 			},
 		},
 	}
+	// AppStripeInvoiceSyncOpsColumns holds the columns for the "app_stripe_invoice_sync_ops" table.
+	AppStripeInvoiceSyncOpsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "sequence", Type: field.TypeInt},
+		{Name: "type", Type: field.TypeString},
+		{Name: "payload", Type: field.TypeJSON},
+		{Name: "idempotency_key", Type: field.TypeString},
+		{Name: "status", Type: field.TypeString, Default: "pending"},
+		{Name: "stripe_response", Type: field.TypeJSON, Nullable: true},
+		{Name: "error", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "completed_at", Type: field.TypeTime, Nullable: true},
+		{Name: "plan_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// AppStripeInvoiceSyncOpsTable holds the schema information for the "app_stripe_invoice_sync_ops" table.
+	AppStripeInvoiceSyncOpsTable = &schema.Table{
+		Name:       "app_stripe_invoice_sync_ops",
+		Columns:    AppStripeInvoiceSyncOpsColumns,
+		PrimaryKey: []*schema.Column{AppStripeInvoiceSyncOpsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "app_stripe_invoice_sync_ops_app_stripe_invoice_sync_plans_operations",
+				Columns:    []*schema.Column{AppStripeInvoiceSyncOpsColumns[12]},
+				RefColumns: []*schema.Column{AppStripeInvoiceSyncPlansColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "appstripeinvoicesyncop_id",
+				Unique:  true,
+				Columns: []*schema.Column{AppStripeInvoiceSyncOpsColumns[0]},
+			},
+			{
+				Name:    "appstripeinvoicesyncop_plan_id_sequence",
+				Unique:  true,
+				Columns: []*schema.Column{AppStripeInvoiceSyncOpsColumns[12], AppStripeInvoiceSyncOpsColumns[4]},
+			},
+			{
+				Name:    "appstripeinvoicesyncop_plan_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{AppStripeInvoiceSyncOpsColumns[12], AppStripeInvoiceSyncOpsColumns[8]},
+			},
+		},
+	}
+	// AppStripeInvoiceSyncPlansColumns holds the columns for the "app_stripe_invoice_sync_plans" table.
+	AppStripeInvoiceSyncPlansColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "app_id", Type: field.TypeString},
+		{Name: "session_id", Type: field.TypeString},
+		{Name: "phase", Type: field.TypeString},
+		{Name: "status", Type: field.TypeString, Default: "pending"},
+		{Name: "error", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "completed_at", Type: field.TypeTime, Nullable: true},
+		{Name: "invoice_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// AppStripeInvoiceSyncPlansTable holds the schema information for the "app_stripe_invoice_sync_plans" table.
+	AppStripeInvoiceSyncPlansTable = &schema.Table{
+		Name:       "app_stripe_invoice_sync_plans",
+		Columns:    AppStripeInvoiceSyncPlansColumns,
+		PrimaryKey: []*schema.Column{AppStripeInvoiceSyncPlansColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "app_stripe_invoice_sync_plans_billing_invoices_app_stripe_invoice_sync_plans",
+				Columns:    []*schema.Column{AppStripeInvoiceSyncPlansColumns[11]},
+				RefColumns: []*schema.Column{BillingInvoicesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "appstripeinvoicesyncplan_id",
+				Unique:  true,
+				Columns: []*schema.Column{AppStripeInvoiceSyncPlansColumns[0]},
+			},
+			{
+				Name:    "appstripeinvoicesyncplan_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{AppStripeInvoiceSyncPlansColumns[1]},
+			},
+			{
+				Name:    "appstripeinvoicesyncplan_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{AppStripeInvoiceSyncPlansColumns[1], AppStripeInvoiceSyncPlansColumns[0]},
+			},
+			{
+				Name:    "appstripeinvoicesyncplan_namespace_invoice_id_session_id",
+				Unique:  true,
+				Columns: []*schema.Column{AppStripeInvoiceSyncPlansColumns[1], AppStripeInvoiceSyncPlansColumns[11], AppStripeInvoiceSyncPlansColumns[6]},
+			},
+			{
+				Name:    "appstripeinvoicesyncplan_namespace_invoice_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{AppStripeInvoiceSyncPlansColumns[1], AppStripeInvoiceSyncPlansColumns[11], AppStripeInvoiceSyncPlansColumns[8]},
+			},
+		},
+	}
 	// BalanceSnapshotsColumns holds the columns for the "balance_snapshots" table.
 	BalanceSnapshotsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -4549,6 +4652,8 @@ var (
 		AppCustomersTable,
 		AppStripesTable,
 		AppStripeCustomersTable,
+		AppStripeInvoiceSyncOpsTable,
+		AppStripeInvoiceSyncPlansTable,
 		BalanceSnapshotsTable,
 		BillingCustomerLocksTable,
 		BillingCustomerOverridesTable,
@@ -4629,6 +4734,8 @@ func init() {
 	AppStripesTable.ForeignKeys[0].RefTable = AppsTable
 	AppStripeCustomersTable.ForeignKeys[0].RefTable = AppStripesTable
 	AppStripeCustomersTable.ForeignKeys[1].RefTable = CustomersTable
+	AppStripeInvoiceSyncOpsTable.ForeignKeys[0].RefTable = AppStripeInvoiceSyncPlansTable
+	AppStripeInvoiceSyncPlansTable.ForeignKeys[0].RefTable = BillingInvoicesTable
 	BalanceSnapshotsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	BillingCustomerOverridesTable.ForeignKeys[0].RefTable = BillingProfilesTable
 	BillingCustomerOverridesTable.ForeignKeys[1].RefTable = CustomersTable

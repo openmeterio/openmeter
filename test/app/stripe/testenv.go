@@ -13,6 +13,8 @@ import (
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripeadapter "github.com/openmeterio/openmeter/openmeter/app/stripe/adapter"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
+	invoicesyncadapter "github.com/openmeterio/openmeter/openmeter/app/stripe/invoicesync/adapter"
+	invoicesyncservice "github.com/openmeterio/openmeter/openmeter/app/stripe/invoicesync/service"
 	appstripeservice "github.com/openmeterio/openmeter/openmeter/app/stripe/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -181,6 +183,20 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create webhook url generator: %w", err)
 	}
 
+	syncPlanAdapter, err := invoicesyncadapter.New(invoicesyncadapter.Config{Client: entClient})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create sync plan adapter: %w", err)
+	}
+
+	syncPlanService, err := invoicesyncservice.New(invoicesyncservice.Config{
+		Adapter:   syncPlanAdapter,
+		Publisher: publisher,
+		Logger:    logger.With("component", "invoicesync-service"),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create sync plan service: %w", err)
+	}
+
 	appStripeService, err := appstripeservice.New(appstripeservice.Config{
 		Adapter:             appStripeAdapter,
 		AppService:          appService,
@@ -189,6 +205,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		Logger:              logger,
 		Publisher:           publisher,
 		WebhookURLGenerator: webhookURLGenerator,
+		SyncPlanService:     syncPlanService,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create appstripe service: %w", err)

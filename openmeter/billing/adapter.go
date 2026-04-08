@@ -105,6 +105,7 @@ type SequenceAdapter interface {
 
 type InvoiceAppAdapter interface {
 	UpdateInvoiceFields(ctx context.Context, input UpdateInvoiceFieldsInput) error
+	SyncExternalIDs(ctx context.Context, input SyncExternalIDsInput) error
 }
 
 type SchemaLevelAdapter interface {

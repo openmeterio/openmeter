@@ -348,7 +348,52 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	workerOptions := common.NewBillingWorkerOptions(eventsConfiguration, options, eventbusPublisher, billingRegistry, subscriptionServiceWithWorkflow, subscriptionsyncService, billingFeatureSwitchesConfiguration, logger)
-	worker, err := common.NewBillingWorker(workerOptions)
+	appsConfiguration := conf.Apps
+	secretserviceService, err := common.NewUnsafeSecretService(logger, client)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	invoicesyncadapterAdapter, err := common.NewSyncPlanAdapter(client)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	invoicesyncService, err := common.NewSyncPlanService(invoicesyncadapterAdapter, eventbusPublisher, logger)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, service, customerService, secretserviceService, billingRegistry, eventbusPublisher, invoicesyncService)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	worker, err := common.NewBillingWorker(workerOptions, service, appstripeService, secretserviceService, billingRegistry, eventbusPublisher, logger, invoicesyncadapterAdapter)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -367,7 +412,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Group:  group,
 		Logger: logger,
 	}
-	appsConfiguration := conf.Apps
 	factory, err := common.NewAppSandboxFactory(appsConfiguration, service, billingRegistry)
 	if err != nil {
 		cleanup8()
@@ -381,30 +425,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	appSandboxProvisioner, err := common.NewAppSandboxProvisioner(ctx, logger, appsConfiguration, service, manager, billingRegistry, factory)
-	if err != nil {
-		cleanup8()
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	secretserviceService, err := common.NewUnsafeSecretService(logger, client)
-	if err != nil {
-		cleanup8()
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, service, customerService, secretserviceService, billingRegistry, eventbusPublisher)
 	if err != nil {
 		cleanup8()
 		cleanup7()

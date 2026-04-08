@@ -15,6 +15,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripeinvoicesyncplan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
@@ -737,6 +738,21 @@ func (_c *BillingInvoiceCreate) AddBillingInvoiceValidationIssues(v ...*BillingI
 	return _c.AddBillingInvoiceValidationIssueIDs(ids...)
 }
 
+// AddAppStripeInvoiceSyncPlanIDs adds the "app_stripe_invoice_sync_plans" edge to the AppStripeInvoiceSyncPlan entity by IDs.
+func (_c *BillingInvoiceCreate) AddAppStripeInvoiceSyncPlanIDs(ids ...string) *BillingInvoiceCreate {
+	_c.mutation.AddAppStripeInvoiceSyncPlanIDs(ids...)
+	return _c
+}
+
+// AddAppStripeInvoiceSyncPlans adds the "app_stripe_invoice_sync_plans" edges to the AppStripeInvoiceSyncPlan entity.
+func (_c *BillingInvoiceCreate) AddAppStripeInvoiceSyncPlans(v ...*AppStripeInvoiceSyncPlan) *BillingInvoiceCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddAppStripeInvoiceSyncPlanIDs(ids...)
+}
+
 // SetBillingInvoiceCustomerID sets the "billing_invoice_customer" edge to the Customer entity by ID.
 func (_c *BillingInvoiceCreate) SetBillingInvoiceCustomerID(id string) *BillingInvoiceCreate {
 	_c.mutation.SetBillingInvoiceCustomerID(id)
@@ -1286,6 +1302,22 @@ func (_c *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.CreateS
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicevalidationissue.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.AppStripeInvoiceSyncPlansIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.AppStripeInvoiceSyncPlansTable,
+			Columns: []string{billinginvoice.AppStripeInvoiceSyncPlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(appstripeinvoicesyncplan.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

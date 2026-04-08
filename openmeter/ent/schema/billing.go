@@ -1250,6 +1250,8 @@ func (BillingInvoice) Edges() []ent.Edge {
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("billing_invoice_validation_issues", BillingInvoiceValidationIssue.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("app_stripe_invoice_sync_plans", AppStripeInvoiceSyncPlan.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.From("billing_invoice_customer", Customer.Type).
 			Ref("billing_invoice").
 			Field("customer_id").

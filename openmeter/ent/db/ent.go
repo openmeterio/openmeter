@@ -21,6 +21,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustominvoicingcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripeinvoicesyncop"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripeinvoicesyncplan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomerlock"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
@@ -157,6 +159,8 @@ func checkColumn(t, c string) error {
 			appcustomer.Table:                                      appcustomer.ValidColumn,
 			appstripe.Table:                                        appstripe.ValidColumn,
 			appstripecustomer.Table:                                appstripecustomer.ValidColumn,
+			appstripeinvoicesyncop.Table:                           appstripeinvoicesyncop.ValidColumn,
+			appstripeinvoicesyncplan.Table:                         appstripeinvoicesyncplan.ValidColumn,
 			balancesnapshot.Table:                                  balancesnapshot.ValidColumn,
 			billingcustomerlock.Table:                              billingcustomerlock.ValidColumn,
 			billingcustomeroverride.Table:                          billingcustomeroverride.ValidColumn,

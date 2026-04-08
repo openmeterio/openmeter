@@ -689,6 +689,14 @@ func (m *InvoiceStateMachine) syncDraftInvoice(ctx context.Context) error {
 		return err
 	}
 
+	// Clear any previous sync completion metadata so canDraftSyncAdvance returns false
+	// until the new sync plan completes. Without this, re-entering draft.syncing (e.g. after
+	// an invoice update) would immediately advance because the old metadata is still present.
+	if m.Invoice.Metadata != nil {
+		delete(m.Invoice.Metadata, billing.MetadataKeyDraftSyncCompletedAt)
+		delete(m.Invoice.Metadata, billing.MetadataKeyDraftSyncPlanID)
+	}
+
 	// Let's save the invoice so that we are sure that all the IDs are available for downstream apps
 	return m.withInvoicingApp(billing.StandardInvoiceOpSync, func(app billing.InvoicingApp) (*billing.StandardInvoiceOperation, error) {
 		clonedInvoice, err := m.Invoice.Clone()
@@ -713,6 +721,12 @@ func (m *InvoiceStateMachine) syncDraftInvoice(ctx context.Context) error {
 func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
 	if err := m.validateNamespaceLockdown(); err != nil {
 		return err
+	}
+
+	// Clear any previous issuing sync completion metadata (see syncDraftInvoice comment).
+	if m.Invoice.Metadata != nil {
+		delete(m.Invoice.Metadata, billing.MetadataKeyIssuingSyncCompletedAt)
+		delete(m.Invoice.Metadata, billing.MetadataKeyIssuingSyncPlanID)
 	}
 
 	return m.withInvoicingApp(billing.StandardInvoiceOpFinalize, func(app billing.InvoicingApp) (*billing.StandardInvoiceOperation, error) {

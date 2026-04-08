@@ -38,15 +38,33 @@ func Run[R any](ctx context.Context, creator Creator, cb func(ctx context.Contex
 	}
 
 	// Make sure transaction is set on context
+	isOutermost := false
 	ctx, err = SetDriverOnContext(ctx, tx)
 	if _, ok := err.(*DriverConflictError); !ok && err != nil {
 		return def, fmt.Errorf("unknown error %w", err)
+	} else if err == nil {
+		isOutermost = true
+	}
+
+	// Initialize post-commit callback collection for the outermost transaction
+	if isOutermost {
+		ctx = initPostCommitCallbacks(ctx)
 	}
 
 	// Execute the callback and manage the transaction
-	return manage(ctx, tx, func(ctx context.Context, tx Driver) (R, error) {
+	result, err := manage(ctx, tx, func(ctx context.Context, tx Driver) (R, error) {
 		return cb(ctx)
 	})
+	if err != nil {
+		return def, err
+	}
+
+	// Run post-commit callbacks after the outermost transaction commits
+	if isOutermost {
+		runPostCommitCallbacks(ctx)
+	}
+
+	return result, nil
 }
 
 // Returns the current transaction from the context or creates a new one

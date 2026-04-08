@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	"github.com/openmeterio/openmeter/openmeter/app/stripe/invoicesync"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/secret"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -24,6 +25,7 @@ type Service struct {
 	publisher                  eventbus.Publisher
 	disableWebhookRegistration bool
 	webhookURLGenerator        app.WebhookURLGenerator
+	syncPlanService            invoicesync.Service
 }
 
 type Config struct {
@@ -32,9 +34,11 @@ type Config struct {
 	SecretService              secret.Service
 	BillingService             billing.Service
 	Logger                     *slog.Logger
-	DisableWebhookRegistration bool
 	Publisher                  eventbus.Publisher
+	DisableWebhookRegistration bool
 	WebhookURLGenerator        app.WebhookURLGenerator
+	// SyncPlanService manages the lifecycle of async invoice sync plans.
+	SyncPlanService invoicesync.Service
 }
 
 func (c Config) Validate() error {
@@ -66,6 +70,10 @@ func (c Config) Validate() error {
 		return errors.New("webhook url generator cannot be null")
 	}
 
+	if c.SyncPlanService == nil {
+		return errors.New("sync plan service cannot be null")
+	}
+
 	return nil
 }
 
@@ -80,9 +88,10 @@ func New(config Config) (*Service, error) {
 		secretService:              config.SecretService,
 		billingService:             config.BillingService,
 		logger:                     config.Logger,
-		disableWebhookRegistration: config.DisableWebhookRegistration,
 		publisher:                  config.Publisher,
+		disableWebhookRegistration: config.DisableWebhookRegistration,
 		webhookURLGenerator:        config.WebhookURLGenerator,
+		syncPlanService:            config.SyncPlanService,
 	}
 
 	// Register stripe app in marketplace

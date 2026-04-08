@@ -160,6 +160,8 @@ type BillingInvoiceEdges struct {
 	BillingInvoiceDetailedLines []*BillingStandardInvoiceDetailedLine `json:"billing_invoice_detailed_lines,omitempty"`
 	// BillingInvoiceValidationIssues holds the value of the billing_invoice_validation_issues edge.
 	BillingInvoiceValidationIssues []*BillingInvoiceValidationIssue `json:"billing_invoice_validation_issues,omitempty"`
+	// AppStripeInvoiceSyncPlans holds the value of the app_stripe_invoice_sync_plans edge.
+	AppStripeInvoiceSyncPlans []*AppStripeInvoiceSyncPlan `json:"app_stripe_invoice_sync_plans,omitempty"`
 	// BillingInvoiceCustomer holds the value of the billing_invoice_customer edge.
 	BillingInvoiceCustomer *Customer `json:"billing_invoice_customer,omitempty"`
 	// TaxApp holds the value of the tax_app edge.
@@ -170,7 +172,7 @@ type BillingInvoiceEdges struct {
 	PaymentApp *App `json:"payment_app,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [9]bool
+	loadedTypes [10]bool
 }
 
 // SourceBillingProfileOrErr returns the SourceBillingProfile value or an error if the edge
@@ -222,12 +224,21 @@ func (e BillingInvoiceEdges) BillingInvoiceValidationIssuesOrErr() ([]*BillingIn
 	return nil, &NotLoadedError{edge: "billing_invoice_validation_issues"}
 }
 
+// AppStripeInvoiceSyncPlansOrErr returns the AppStripeInvoiceSyncPlans value or an error if the edge
+// was not loaded in eager-loading.
+func (e BillingInvoiceEdges) AppStripeInvoiceSyncPlansOrErr() ([]*AppStripeInvoiceSyncPlan, error) {
+	if e.loadedTypes[5] {
+		return e.AppStripeInvoiceSyncPlans, nil
+	}
+	return nil, &NotLoadedError{edge: "app_stripe_invoice_sync_plans"}
+}
+
 // BillingInvoiceCustomerOrErr returns the BillingInvoiceCustomer value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e BillingInvoiceEdges) BillingInvoiceCustomerOrErr() (*Customer, error) {
 	if e.BillingInvoiceCustomer != nil {
 		return e.BillingInvoiceCustomer, nil
-	} else if e.loadedTypes[5] {
+	} else if e.loadedTypes[6] {
 		return nil, &NotFoundError{label: customer.Label}
 	}
 	return nil, &NotLoadedError{edge: "billing_invoice_customer"}
@@ -238,7 +249,7 @@ func (e BillingInvoiceEdges) BillingInvoiceCustomerOrErr() (*Customer, error) {
 func (e BillingInvoiceEdges) TaxAppOrErr() (*App, error) {
 	if e.TaxApp != nil {
 		return e.TaxApp, nil
-	} else if e.loadedTypes[6] {
+	} else if e.loadedTypes[7] {
 		return nil, &NotFoundError{label: dbapp.Label}
 	}
 	return nil, &NotLoadedError{edge: "tax_app"}
@@ -249,7 +260,7 @@ func (e BillingInvoiceEdges) TaxAppOrErr() (*App, error) {
 func (e BillingInvoiceEdges) InvoicingAppOrErr() (*App, error) {
 	if e.InvoicingApp != nil {
 		return e.InvoicingApp, nil
-	} else if e.loadedTypes[7] {
+	} else if e.loadedTypes[8] {
 		return nil, &NotFoundError{label: dbapp.Label}
 	}
 	return nil, &NotLoadedError{edge: "invoicing_app"}
@@ -260,7 +271,7 @@ func (e BillingInvoiceEdges) InvoicingAppOrErr() (*App, error) {
 func (e BillingInvoiceEdges) PaymentAppOrErr() (*App, error) {
 	if e.PaymentApp != nil {
 		return e.PaymentApp, nil
-	} else if e.loadedTypes[8] {
+	} else if e.loadedTypes[9] {
 		return nil, &NotFoundError{label: dbapp.Label}
 	}
 	return nil, &NotLoadedError{edge: "payment_app"}
@@ -722,6 +733,11 @@ func (_m *BillingInvoice) QueryBillingInvoiceDetailedLines() *BillingStandardInv
 // QueryBillingInvoiceValidationIssues queries the "billing_invoice_validation_issues" edge of the BillingInvoice entity.
 func (_m *BillingInvoice) QueryBillingInvoiceValidationIssues() *BillingInvoiceValidationIssueQuery {
 	return NewBillingInvoiceClient(_m.config).QueryBillingInvoiceValidationIssues(_m)
+}
+
+// QueryAppStripeInvoiceSyncPlans queries the "app_stripe_invoice_sync_plans" edge of the BillingInvoice entity.
+func (_m *BillingInvoice) QueryAppStripeInvoiceSyncPlans() *AppStripeInvoiceSyncPlanQuery {
+	return NewBillingInvoiceClient(_m.config).QueryAppStripeInvoiceSyncPlans(_m)
 }
 
 // QueryBillingInvoiceCustomer queries the "billing_invoice_customer" edge of the BillingInvoice entity.
