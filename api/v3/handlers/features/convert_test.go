@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/filter"
@@ -524,25 +525,25 @@ func TestConvertFiltersRoundTrip(t *testing.T) {
 
 func TestConvertMetadataLabels(t *testing.T) {
 	t.Run("metadata to labels", func(t *testing.T) {
-		labels := convertMetadataToLabels(map[string]string{"a": "1", "b": "2"})
-		require.NotNil(t, labels)
-		assert.Equal(t, "1", (*labels)["a"])
-		assert.Equal(t, "2", (*labels)["b"])
+		l := labels.FromMetadata(map[string]string{"a": "1", "b": "2"})
+		require.NotNil(t, l)
+		assert.Equal(t, "1", (*l)["a"])
+		assert.Equal(t, "2", (*l)["b"])
 	})
 
 	t.Run("nil metadata returns nil labels", func(t *testing.T) {
-		labels := convertMetadataToLabels(nil)
-		assert.Nil(t, labels)
+		l := labels.FromMetadata((map[string]string)(nil))
+		assert.Empty(t, l)
 	})
 
 	t.Run("labels to metadata", func(t *testing.T) {
-		labels := api.Labels{"x": "y"}
-		meta := convertLabelsToMetadata(&labels)
+		l := api.Labels{"x": "y"}
+		meta := labels.ToMetadata(&l)
 		assert.Equal(t, "y", meta["x"])
 	})
 
 	t.Run("nil labels returns nil metadata", func(t *testing.T) {
-		meta := convertLabelsToMetadata(nil)
+		meta := labels.ToMetadata(nil)
 		assert.Nil(t, meta)
 	})
 }

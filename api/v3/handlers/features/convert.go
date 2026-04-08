@@ -9,11 +9,11 @@ import (
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/filter"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func convertFeatureToAPI(f feature.Feature) (api.Feature, error) {
@@ -22,7 +22,7 @@ func convertFeatureToAPI(f feature.Feature) (api.Feature, error) {
 		Key:         f.Key,
 		Name:        f.Name,
 		Description: f.Description,
-		Labels:      convertMetadataToLabels(f.Metadata),
+		Labels:      labels.FromMetadata(f.Metadata),
 		CreatedAt:   &f.CreatedAt,
 		UpdatedAt:   &f.UpdatedAt,
 		DeletedAt:   f.ArchivedAt,
@@ -60,7 +60,7 @@ func convertCreateRequestToDomain(ns string, body api.CreateFeatureRequest, mete
 		Description: body.Description,
 		Key:         body.Key,
 		MeterID:     meterID,
-		Metadata:    convertLabelsToMetadata(body.Labels),
+		Metadata:    labels.ToMetadata(body.Labels),
 	}
 
 	if body.Meter != nil {
@@ -329,27 +329,4 @@ func convertFilterStringToAPIQueryFilter(f filter.FilterString) api.QueryFilterS
 		And:       convertFilterStringListToAPI(f.And),
 		Or:        convertFilterStringListToAPI(f.Or),
 	}
-}
-
-func convertMetadataToLabels(metadata models.Metadata) *api.Labels {
-	if len(metadata) == 0 {
-		return nil
-	}
-
-	labels := make(api.Labels)
-	for k, v := range metadata {
-		labels[k] = v
-	}
-	return &labels
-}
-
-func convertLabelsToMetadata(labels *api.Labels) models.Metadata {
-	if labels == nil {
-		return nil
-	}
-	metadata := make(models.Metadata, len(*labels))
-	for k, v := range *labels {
-		metadata[k] = v
-	}
-	return metadata
 }

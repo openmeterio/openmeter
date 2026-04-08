@@ -54,7 +54,7 @@ func init() {
 		if source.Key != nil {
 			v3BillingCustomer.Key = *source.Key
 		}
-		v3BillingCustomer.Labels = ConvertMetadataToLabels(source.Metadata)
+		v3BillingCustomer.Labels = ConvertMetadataAnnotationsToLabels(source)
 		v3BillingCustomer.Name = source.ManagedResource.Name
 		v3BillingCustomer.PrimaryEmail = source.PrimaryEmail
 		v3BillingCustomer.UpdatedAt = timeTimeToPTimeTime(source.ManagedResource.ManagedModel.UpdatedAt)

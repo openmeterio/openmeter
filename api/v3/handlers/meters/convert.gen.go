@@ -50,7 +50,7 @@ func init() {
 		v3Meter.EventsFrom = source.EventFrom
 		v3Meter.Id = source.ManagedResource.ID
 		v3Meter.Key = source.Key
-		v3Meter.Labels = ConvertMetadataToLabels(source.Metadata)
+		v3Meter.Labels = ConvertMetadataAnnotationsToLabels(source)
 		v3Meter.Name = source.ManagedResource.Name
 		v3Meter.UpdatedAt = timeTimeToPTimeTime(source.ManagedResource.ManagedModel.UpdatedAt)
 		v3Meter.ValueProperty = source.ValueProperty

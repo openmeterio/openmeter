@@ -6,6 +6,7 @@ import (
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -72,15 +73,7 @@ var (
 	ConvertBillingTaxConfigToTaxConfig func(config *api.BillingTaxConfig) (*productcatalog.TaxConfig, error)
 )
 
-// ConvertMetadataToLabels converts billing.Metadata to api.Labels.
-// Always returns an initialized map (never nil) so JSON serializes to {} instead of null.
-func ConvertMetadataToLabels(source billing.Metadata) *api.Labels {
-	labels := make(api.Labels)
-	for k, v := range source {
-		labels[k] = v
-	}
-	return &labels
-}
+var ConvertMetadataToLabels = labels.FromMetadata[billing.Metadata]
 
 //goverter:context namespace
 func NamespaceFromContext(namespace string) string {

@@ -6,11 +6,12 @@ import (
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	models "github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func ConvertSubscriptionToAPISubscription(subscription subscription.Subscription) api.BillingSubscription {
@@ -19,7 +20,7 @@ func ConvertSubscriptionToAPISubscription(subscription subscription.Subscription
 		CustomerId:    subscription.CustomerId,
 		BillingAnchor: subscription.BillingAnchor,
 		Status:        api.BillingSubscriptionStatus(subscription.GetStatusAt(clock.Now())),
-		Labels:        convertMetadataToLabels(subscription.Metadata),
+		Labels:        labels.FromMetadataAnnotations(subscription.Metadata, subscription.Annotations),
 		CreatedAt:     &subscription.CreatedAt,
 		UpdatedAt:     &subscription.UpdatedAt,
 		DeletedAt:     subscription.DeletedAt,
@@ -84,14 +85,4 @@ func ConvertFromCreateSubscriptionRequestToCreateSubscriptionWorkflowInput(
 	}
 
 	return workflowInput, nil
-}
-
-// convertMetadataToLabels converts models.Metadata to api.Labels.
-// Always returns an initialized map (never nil) so JSON serializes to {} instead of null.
-func convertMetadataToLabels(source models.Metadata) *api.Labels {
-	labels := make(api.Labels)
-	for k, v := range source {
-		labels[k] = v
-	}
-	return &labels
 }

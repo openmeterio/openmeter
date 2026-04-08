@@ -2,10 +2,12 @@
 package customers
 
 import (
+	"github.com/samber/lo"
+
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // goverter:variables
@@ -15,13 +17,13 @@ import (
 // goverter:useUnderlyingTypeMethods
 // goverter:matchIgnoreCase
 // goverter:extend IntToFloat32
-// goverter:extend ConvertMetadataToLabels
+// goverter:extend ConvertMetadataAnnotationsToLabels
 var (
 	// goverter:context namespace
 	// goverter:map Namespace | NamespaceFromContext
 	// goverter:map . CustomerMutate
 	ConvertFromCreateCustomerRequestToCreateCustomerInput func(namespace string, createCustomerRequest api.CreateCustomerRequest) customer.CreateCustomerInput
-	// goverter:map Metadata Labels
+	// goverter:map . Labels | ConvertMetadataAnnotationsToLabels
 	// goverter:map ManagedResource.ID Id
 	// goverter:map ManagedResource.Description Description
 	// goverter:map ManagedResource.Name Name
@@ -48,14 +50,6 @@ func IntToFloat32(i int) float32 {
 	return float32(i)
 }
 
-// ConvertMetadataToLabels converts models.Metadata to api.Labels.
-// Always returns an initialized map (never nil) so JSON serializes to {} instead of null.
-func ConvertMetadataToLabels(source *models.Metadata) *api.Labels {
-	labels := make(api.Labels)
-	if source != nil {
-		for k, v := range *source {
-			labels[k] = v
-		}
-	}
-	return &labels
+func ConvertMetadataAnnotationsToLabels(source customer.Customer) *api.Labels {
+	return labels.FromMetadataAnnotations(lo.FromPtr(source.Metadata), lo.FromPtr(source.Annotation))
 }
