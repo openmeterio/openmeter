@@ -10,6 +10,7 @@ import (
 type Handler interface {
 	GetPlan() GetPlanHandler
 	CreatePlan() CreatePlanHandler
+	DeletePlan() DeletePlanHandler
 }
 
 type handler struct {
