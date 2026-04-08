@@ -3,12 +3,16 @@ package plans
 import (
 	"fmt"
 
+	decimal "github.com/alpacahq/alpacadecimal"
+	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -322,4 +326,382 @@ func fromValidationErrors(issues models.ValidationIssues) *[]api.ProductCatalogV
 	}
 
 	return &result
+}
+
+func toCreatePlanInput(ns string, body api.CreatePlanRequest) (plan.CreatePlanInput, error) {
+	req := plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: ns,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Key:             body.Key,
+				Name:            body.Name,
+				Description:     body.Description,
+				Metadata:        labels.ToMetadata(body.Labels),
+				ProRatingConfig: toProRatingConfig(body.ProRatingEnabled),
+			},
+		},
+	}
+
+	cur := currency.Code(body.Currency)
+	if err := cur.Validate(); err != nil {
+		return req, fmt.Errorf("invalid currency: %w", err)
+	}
+
+	req.Currency = cur
+
+	billingCadence, err := datetime.ISODurationString(body.BillingCadence).Parse()
+	if err != nil {
+		return req, fmt.Errorf("invalid billing cadence: %w", err)
+	}
+
+	req.BillingCadence = billingCadence
+
+	if len(body.Phases) > 0 {
+		req.Phases = make([]productcatalog.Phase, 0, len(body.Phases))
+
+		for _, phase := range body.Phases {
+			p, err := toPlanPhase(phase)
+			if err != nil {
+				return req, fmt.Errorf("failed to convert phase: %w", err)
+			}
+
+			req.Phases = append(req.Phases, p)
+		}
+	}
+
+	return req, nil
+}
+
+func toProRatingConfig(enabled *bool) productcatalog.ProRatingConfig {
+	if enabled == nil || *enabled {
+		return productcatalog.ProRatingConfig{
+			Enabled: true,
+			Mode:    productcatalog.ProRatingModeProratePrices,
+		}
+	}
+
+	return productcatalog.ProRatingConfig{
+		Enabled: false,
+	}
+}
+
+func toPlanPhase(p api.BillingPlanPhase) (productcatalog.Phase, error) {
+	phase := productcatalog.Phase{
+		PhaseMeta: productcatalog.PhaseMeta{
+			Key:         p.Key,
+			Name:        p.Name,
+			Description: p.Description,
+			Metadata:    labels.ToMetadata(p.Labels),
+		},
+	}
+
+	var err error
+
+	phase.Duration, err = (*datetime.ISODurationString)(p.Duration).ParsePtrOrNil()
+	if err != nil {
+		return phase, fmt.Errorf("invalid duration: %w", err)
+	}
+
+	if len(p.RateCards) > 0 {
+		phase.RateCards = make(productcatalog.RateCards, 0, len(p.RateCards))
+
+		for _, rc := range p.RateCards {
+			rateCard, err := toRateCard(rc)
+			if err != nil {
+				return phase, fmt.Errorf("failed to convert rate card %q: %w", rc.Key, err)
+			}
+
+			phase.RateCards = append(phase.RateCards, rateCard)
+		}
+	}
+
+	return phase, nil
+}
+
+func toRateCard(rc api.BillingRateCard) (productcatalog.RateCard, error) {
+	priceType, err := rc.Price.Discriminator()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read price type: %w", err)
+	}
+
+	meta := productcatalog.RateCardMeta{
+		Key:         rc.Key,
+		Name:        rc.Name,
+		Description: rc.Description,
+		Metadata:    labels.ToMetadata(rc.Labels),
+	}
+
+	if rc.Feature != nil {
+		meta.FeatureID = &rc.Feature.Id
+	}
+
+	if rc.TaxConfig != nil {
+		meta.TaxConfig = toBillingTaxConfig(*rc.TaxConfig)
+	}
+
+	if rc.Discounts != nil {
+		discounts, err := toBillingDiscounts(*rc.Discounts)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert discounts: %w", err)
+		}
+
+		meta.Discounts = discounts
+	}
+
+	switch priceType {
+	case "free", "flat":
+		price, err := toBillingPrice(rc.Price, rc.PaymentTerm)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert price: %w", err)
+		}
+
+		meta.Price = price
+
+		flatRC := &productcatalog.FlatFeeRateCard{
+			RateCardMeta: meta,
+		}
+
+		if rc.BillingCadence != nil {
+			bc, err := datetime.ISODurationString(*rc.BillingCadence).Parse()
+			if err != nil {
+				return nil, fmt.Errorf("invalid billing cadence: %w", err)
+			}
+
+			flatRC.BillingCadence = &bc
+		}
+
+		return flatRC, nil
+
+	case "unit", "graduated", "volume":
+		if rc.BillingCadence == nil {
+			return nil, fmt.Errorf("billing cadence is required for usage-based rate card %q", rc.Key)
+		}
+
+		bc, err := datetime.ISODurationString(*rc.BillingCadence).Parse()
+		if err != nil {
+			return nil, fmt.Errorf("invalid billing cadence: %w", err)
+		}
+
+		price, err := toBillingPriceWithCommitments(rc.Price, rc.Commitments)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert price: %w", err)
+		}
+
+		meta.Price = price
+
+		return &productcatalog.UsageBasedRateCard{
+			RateCardMeta:   meta,
+			BillingCadence: bc,
+		}, nil
+
+	default:
+		return nil, fmt.Errorf("unsupported price type: %s", priceType)
+	}
+}
+
+func toBillingPrice(p api.BillingPrice, paymentTerm *api.BillingPricePaymentTerm) (*productcatalog.Price, error) {
+	disc, err := p.Discriminator()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read price type: %w", err)
+	}
+
+	switch disc {
+	case "free":
+		return nil, nil
+
+	case "flat":
+		flat, err := p.AsBillingPriceFlat()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read flat price: %w", err)
+		}
+
+		amount, err := decimal.NewFromString(flat.Amount)
+		if err != nil {
+			return nil, fmt.Errorf("invalid flat price amount: %w", err)
+		}
+
+		term := productcatalog.DefaultPaymentTerm
+		if paymentTerm != nil {
+			term = productcatalog.PaymentTermType(*paymentTerm)
+		}
+
+		return productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Amount:      amount,
+			PaymentTerm: term,
+		}), nil
+
+	default:
+		return nil, fmt.Errorf("toBillingPrice does not handle price type %q", disc)
+	}
+}
+
+func toBillingPriceWithCommitments(p api.BillingPrice, commitments *api.BillingSpendCommitments) (*productcatalog.Price, error) {
+	disc, err := p.Discriminator()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read price type: %w", err)
+	}
+
+	c, err := parseCommitments(commitments)
+	if err != nil {
+		return nil, err
+	}
+
+	switch disc {
+	case "unit":
+		unit, err := p.AsBillingPriceUnit()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read unit price: %w", err)
+		}
+
+		amount, err := decimal.NewFromString(unit.Amount)
+		if err != nil {
+			return nil, fmt.Errorf("invalid unit price amount: %w", err)
+		}
+
+		return productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Amount:      amount,
+			Commitments: c,
+		}), nil
+
+	case "graduated":
+		grad, err := p.AsBillingPriceGraduated()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read graduated price: %w", err)
+		}
+
+		tiers, err := toBillingPriceTiers(grad.Tiers)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert graduated tiers: %w", err)
+		}
+
+		return productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+			Mode:        productcatalog.GraduatedTieredPrice,
+			Tiers:       tiers,
+			Commitments: c,
+		}), nil
+
+	case "volume":
+		vol, err := p.AsBillingPriceVolume()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read volume price: %w", err)
+		}
+
+		tiers, err := toBillingPriceTiers(vol.Tiers)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert volume tiers: %w", err)
+		}
+
+		return productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+			Mode:        productcatalog.VolumeTieredPrice,
+			Tiers:       tiers,
+			Commitments: c,
+		}), nil
+
+	default:
+		return nil, fmt.Errorf("unsupported usage-based price type: %s", disc)
+	}
+}
+
+func parseCommitments(c *api.BillingSpendCommitments) (productcatalog.Commitments, error) {
+	if c == nil {
+		return productcatalog.Commitments{}, nil
+	}
+
+	result := productcatalog.Commitments{}
+
+	if c.MinimumAmount != nil {
+		min, err := decimal.NewFromString(*c.MinimumAmount)
+		if err != nil {
+			return result, fmt.Errorf("invalid minimum amount: %w", err)
+		}
+
+		result.MinimumAmount = &min
+	}
+
+	if c.MaximumAmount != nil {
+		max, err := decimal.NewFromString(*c.MaximumAmount)
+		if err != nil {
+			return result, fmt.Errorf("invalid maximum amount: %w", err)
+		}
+
+		result.MaximumAmount = &max
+	}
+
+	return result, nil
+}
+
+func toBillingPriceTiers(tiers []api.BillingPriceTier) ([]productcatalog.PriceTier, error) {
+	result := make([]productcatalog.PriceTier, 0, len(tiers))
+
+	for _, t := range tiers {
+		tier := productcatalog.PriceTier{}
+
+		if t.UpToAmount != nil {
+			amount, err := decimal.NewFromString(*t.UpToAmount)
+			if err != nil {
+				return nil, fmt.Errorf("invalid tier up-to amount: %w", err)
+			}
+
+			tier.UpToAmount = &amount
+		}
+
+		if t.FlatPrice != nil {
+			amount, err := decimal.NewFromString(t.FlatPrice.Amount)
+			if err != nil {
+				return nil, fmt.Errorf("invalid tier flat price amount: %w", err)
+			}
+
+			tier.FlatPrice = &productcatalog.PriceTierFlatPrice{Amount: amount}
+		}
+
+		if t.UnitPrice != nil {
+			amount, err := decimal.NewFromString(t.UnitPrice.Amount)
+			if err != nil {
+				return nil, fmt.Errorf("invalid tier unit price amount: %w", err)
+			}
+
+			tier.UnitPrice = &productcatalog.PriceTierUnitPrice{Amount: amount}
+		}
+
+		result = append(result, tier)
+	}
+
+	return result, nil
+}
+
+func toBillingTaxConfig(tc api.BillingRateCardTaxConfig) *productcatalog.TaxConfig {
+	result := &productcatalog.TaxConfig{
+		TaxCodeID: &tc.Code.Id,
+	}
+
+	if tc.Behavior != nil {
+		result.Behavior = lo.ToPtr(productcatalog.TaxBehavior(*tc.Behavior))
+	}
+
+	return result
+}
+
+func toBillingDiscounts(d api.BillingRateCardDiscounts) (productcatalog.Discounts, error) {
+	result := productcatalog.Discounts{}
+
+	if d.Percentage != nil {
+		result.Percentage = &productcatalog.PercentageDiscount{
+			Percentage: models.NewPercentage(float64(*d.Percentage)),
+		}
+	}
+
+	if d.Usage != nil {
+		qty, err := decimal.NewFromString(*d.Usage)
+		if err != nil {
+			return result, fmt.Errorf("invalid usage discount quantity: %w", err)
+		}
+
+		result.Usage = &productcatalog.UsageDiscount{
+			Quantity: qty,
+		}
+	}
+
+	return result, nil
 }

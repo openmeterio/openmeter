@@ -695,6 +695,497 @@ func TestFromPlanPhaseWithRateCards(t *testing.T) {
 	})
 }
 
+func TestToCreatePlanInput(t *testing.T) {
+	t.Run("maps scalar fields correctly", func(t *testing.T) {
+		body := api.CreatePlanRequest{
+			Key:            "pro",
+			Name:           "Pro Plan",
+			Currency:       "USD",
+			BillingCadence: "P1M",
+			Description:    lo.ToPtr("A great plan"),
+		}
+
+		result, err := toCreatePlanInput("test-ns", body)
+		require.NoError(t, err)
+
+		assert.Equal(t, "test-ns", result.Namespace)
+		assert.Equal(t, "pro", result.Key)
+		assert.Equal(t, "Pro Plan", result.Name)
+		assert.Equal(t, "USD", result.Currency.String())
+		assert.Equal(t, "P1M", result.BillingCadence.ISOString().String())
+		require.NotNil(t, result.Description)
+		assert.Equal(t, "A great plan", *result.Description)
+	})
+
+	t.Run("labels map to metadata", func(t *testing.T) {
+		body := api.CreatePlanRequest{
+			Key:            "pro",
+			Name:           "Pro",
+			Currency:       "USD",
+			BillingCadence: "P1M",
+			Labels:         &api.Labels{"env": "prod"},
+		}
+
+		result, err := toCreatePlanInput("ns", body)
+		require.NoError(t, err)
+		assert.Equal(t, "prod", result.Metadata["env"])
+	})
+
+	t.Run("nil labels result in nil metadata", func(t *testing.T) {
+		body := api.CreatePlanRequest{
+			Key:            "pro",
+			Name:           "Pro",
+			Currency:       "USD",
+			BillingCadence: "P1M",
+		}
+
+		result, err := toCreatePlanInput("ns", body)
+		require.NoError(t, err)
+		assert.Nil(t, result.Metadata)
+	})
+
+	t.Run("invalid currency returns error", func(t *testing.T) {
+		body := api.CreatePlanRequest{
+			Key:            "pro",
+			Name:           "Pro",
+			Currency:       "INVALID",
+			BillingCadence: "P1M",
+		}
+
+		_, err := toCreatePlanInput("ns", body)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid currency")
+	})
+
+	t.Run("invalid billing cadence returns error", func(t *testing.T) {
+		body := api.CreatePlanRequest{
+			Key:            "pro",
+			Name:           "Pro",
+			Currency:       "USD",
+			BillingCadence: "not-a-duration",
+		}
+
+		_, err := toCreatePlanInput("ns", body)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid billing cadence")
+	})
+
+	t.Run("pro rating enabled true", func(t *testing.T) {
+		body := api.CreatePlanRequest{
+			Key:              "pro",
+			Name:             "Pro",
+			Currency:         "USD",
+			BillingCadence:   "P1M",
+			ProRatingEnabled: lo.ToPtr(true),
+		}
+
+		result, err := toCreatePlanInput("ns", body)
+		require.NoError(t, err)
+		assert.True(t, result.ProRatingConfig.Enabled)
+		assert.Equal(t, productcatalog.ProRatingModeProratePrices, result.ProRatingConfig.Mode)
+	})
+
+	t.Run("pro rating enabled false", func(t *testing.T) {
+		body := api.CreatePlanRequest{
+			Key:              "pro",
+			Name:             "Pro",
+			Currency:         "USD",
+			BillingCadence:   "P1M",
+			ProRatingEnabled: lo.ToPtr(false),
+		}
+
+		result, err := toCreatePlanInput("ns", body)
+		require.NoError(t, err)
+		assert.False(t, result.ProRatingConfig.Enabled)
+	})
+
+	t.Run("pro rating nil defaults to enabled", func(t *testing.T) {
+		body := api.CreatePlanRequest{
+			Key:            "pro",
+			Name:           "Pro",
+			Currency:       "USD",
+			BillingCadence: "P1M",
+		}
+
+		result, err := toCreatePlanInput("ns", body)
+		require.NoError(t, err)
+		assert.True(t, result.ProRatingConfig.Enabled)
+	})
+
+	t.Run("phases are converted", func(t *testing.T) {
+		body := api.CreatePlanRequest{
+			Key:            "pro",
+			Name:           "Pro",
+			Currency:       "USD",
+			BillingCadence: "P1M",
+			Phases: []api.BillingPlanPhase{
+				{Key: "p1", Name: "Phase 1", RateCards: []api.BillingRateCard{}},
+				{Key: "p2", Name: "Phase 2", RateCards: []api.BillingRateCard{}},
+			},
+		}
+
+		result, err := toCreatePlanInput("ns", body)
+		require.NoError(t, err)
+		require.Len(t, result.Phases, 2)
+		assert.Equal(t, "p1", result.Phases[0].Key)
+		assert.Equal(t, "p2", result.Phases[1].Key)
+	})
+}
+
+func TestToPlanPhase(t *testing.T) {
+	t.Run("maps fields correctly", func(t *testing.T) {
+		dur := api.ISO8601Duration("P3M")
+		phase := api.BillingPlanPhase{
+			Key:         "trial",
+			Name:        "Trial",
+			Description: lo.ToPtr("Free trial"),
+			Duration:    &dur,
+			Labels:      &api.Labels{"tier": "free"},
+			RateCards:   []api.BillingRateCard{},
+		}
+
+		result, err := toPlanPhase(phase)
+		require.NoError(t, err)
+
+		assert.Equal(t, "trial", result.Key)
+		assert.Equal(t, "Trial", result.Name)
+		require.NotNil(t, result.Description)
+		assert.Equal(t, "Free trial", *result.Description)
+		require.NotNil(t, result.Duration)
+		assert.Equal(t, "P3M", result.Duration.ISOString().String())
+		assert.Equal(t, "free", result.Metadata["tier"])
+	})
+
+	t.Run("nil duration maps to nil", func(t *testing.T) {
+		phase := api.BillingPlanPhase{
+			Key:       "main",
+			Name:      "Main",
+			RateCards: []api.BillingRateCard{},
+		}
+
+		result, err := toPlanPhase(phase)
+		require.NoError(t, err)
+		assert.Nil(t, result.Duration)
+	})
+}
+
+func TestToRateCard(t *testing.T) {
+	t.Run("free price creates flat fee rate card with nil price", func(t *testing.T) {
+		var price api.BillingPrice
+		require.NoError(t, price.FromBillingPriceFree(api.BillingPriceFree{Type: "free"}))
+
+		rc := api.BillingRateCard{
+			Key:   "setup",
+			Name:  "Setup",
+			Price: price,
+		}
+
+		result, err := toRateCard(rc)
+		require.NoError(t, err)
+
+		assert.Equal(t, productcatalog.FlatFeeRateCardType, result.Type())
+		assert.Nil(t, result.AsMeta().Price)
+		assert.Nil(t, result.GetBillingCadence())
+	})
+
+	t.Run("flat price creates flat fee rate card", func(t *testing.T) {
+		var price api.BillingPrice
+		require.NoError(t, price.FromBillingPriceFlat(api.BillingPriceFlat{Amount: "9.99", Type: "flat"}))
+
+		bc := api.ISO8601Duration("P1M")
+		pt := api.BillingPricePaymentTerm("in_advance")
+
+		rc := api.BillingRateCard{
+			Key:            "base",
+			Name:           "Base Fee",
+			Price:          price,
+			BillingCadence: &bc,
+			PaymentTerm:    &pt,
+		}
+
+		result, err := toRateCard(rc)
+		require.NoError(t, err)
+
+		assert.Equal(t, productcatalog.FlatFeeRateCardType, result.Type())
+		require.NotNil(t, result.AsMeta().Price)
+
+		flat, err := result.AsMeta().Price.AsFlat()
+		require.NoError(t, err)
+		assert.Equal(t, "9.99", flat.Amount.String())
+		assert.Equal(t, productcatalog.InAdvancePaymentTerm, flat.PaymentTerm)
+		require.NotNil(t, result.GetBillingCadence())
+	})
+
+	t.Run("unit price creates usage based rate card", func(t *testing.T) {
+		var price api.BillingPrice
+		require.NoError(t, price.FromBillingPriceUnit(api.BillingPriceUnit{Amount: "0.05", Type: "unit"}))
+
+		bc := api.ISO8601Duration("P1M")
+
+		rc := api.BillingRateCard{
+			Key:            "api-calls",
+			Name:           "API Calls",
+			Price:          price,
+			BillingCadence: &bc,
+		}
+
+		result, err := toRateCard(rc)
+		require.NoError(t, err)
+
+		assert.Equal(t, productcatalog.UsageBasedRateCardType, result.Type())
+		require.NotNil(t, result.GetBillingCadence())
+		assert.Equal(t, "P1M", result.GetBillingCadence().ISOString().String())
+
+		unit, err := result.AsMeta().Price.AsUnit()
+		require.NoError(t, err)
+		assert.Equal(t, "0.05", unit.Amount.String())
+	})
+
+	t.Run("usage based without billing cadence returns error", func(t *testing.T) {
+		var price api.BillingPrice
+		require.NoError(t, price.FromBillingPriceUnit(api.BillingPriceUnit{Amount: "0.05", Type: "unit"}))
+
+		rc := api.BillingRateCard{
+			Key:   "api-calls",
+			Name:  "API Calls",
+			Price: price,
+		}
+
+		_, err := toRateCard(rc)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "billing cadence is required")
+	})
+
+	t.Run("usage based with commitments", func(t *testing.T) {
+		var price api.BillingPrice
+		require.NoError(t, price.FromBillingPriceUnit(api.BillingPriceUnit{Amount: "0.05", Type: "unit"}))
+
+		bc := api.ISO8601Duration("P1M")
+
+		rc := api.BillingRateCard{
+			Key:            "api-calls",
+			Name:           "API Calls",
+			Price:          price,
+			BillingCadence: &bc,
+			Commitments: &api.BillingSpendCommitments{
+				MinimumAmount: lo.ToPtr(api.Numeric("10")),
+				MaximumAmount: lo.ToPtr(api.Numeric("100")),
+			},
+		}
+
+		result, err := toRateCard(rc)
+		require.NoError(t, err)
+
+		c := result.AsMeta().Price.GetCommitments()
+		require.NotNil(t, c.MinimumAmount)
+		assert.Equal(t, "10", c.MinimumAmount.String())
+		require.NotNil(t, c.MaximumAmount)
+		assert.Equal(t, "100", c.MaximumAmount.String())
+	})
+
+	t.Run("feature ID is mapped", func(t *testing.T) {
+		var price api.BillingPrice
+		require.NoError(t, price.FromBillingPriceFree(api.BillingPriceFree{Type: "free"}))
+
+		rc := api.BillingRateCard{
+			Key:     "rc",
+			Name:    "RC",
+			Price:   price,
+			Feature: &api.FeatureReferenceItem{Id: "01FEATURE00000000"},
+		}
+
+		result, err := toRateCard(rc)
+		require.NoError(t, err)
+		require.NotNil(t, result.AsMeta().FeatureID)
+		assert.Equal(t, "01FEATURE00000000", *result.AsMeta().FeatureID)
+	})
+
+	t.Run("graduated price creates usage based rate card", func(t *testing.T) {
+		var price api.BillingPrice
+		require.NoError(t, price.FromBillingPriceGraduated(api.BillingPriceGraduated{
+			Type: "graduated",
+			Tiers: []api.BillingPriceTier{
+				{UpToAmount: lo.ToPtr(api.Numeric("100")), UnitPrice: &api.BillingPriceUnit{Amount: "0.10", Type: "unit"}},
+				{UnitPrice: &api.BillingPriceUnit{Amount: "0.05", Type: "unit"}},
+			},
+		}))
+
+		bc := api.ISO8601Duration("P1M")
+
+		rc := api.BillingRateCard{
+			Key:            "usage",
+			Name:           "Usage",
+			Price:          price,
+			BillingCadence: &bc,
+		}
+
+		result, err := toRateCard(rc)
+		require.NoError(t, err)
+
+		assert.Equal(t, productcatalog.UsageBasedRateCardType, result.Type())
+
+		tiered, err := result.AsMeta().Price.AsTiered()
+		require.NoError(t, err)
+		assert.Equal(t, productcatalog.GraduatedTieredPrice, tiered.Mode)
+		require.Len(t, tiered.Tiers, 2)
+	})
+
+	t.Run("volume price creates usage based rate card", func(t *testing.T) {
+		var price api.BillingPrice
+		require.NoError(t, price.FromBillingPriceVolume(api.BillingPriceVolume{
+			Type:  "volume",
+			Tiers: []api.BillingPriceTier{},
+		}))
+
+		bc := api.ISO8601Duration("P1M")
+
+		rc := api.BillingRateCard{
+			Key:            "usage",
+			Name:           "Usage",
+			Price:          price,
+			BillingCadence: &bc,
+		}
+
+		result, err := toRateCard(rc)
+		require.NoError(t, err)
+
+		assert.Equal(t, productcatalog.UsageBasedRateCardType, result.Type())
+
+		tiered, err := result.AsMeta().Price.AsTiered()
+		require.NoError(t, err)
+		assert.Equal(t, productcatalog.VolumeTieredPrice, tiered.Mode)
+	})
+}
+
+func TestToBillingPrice(t *testing.T) {
+	t.Run("free maps to nil", func(t *testing.T) {
+		var price api.BillingPrice
+		require.NoError(t, price.FromBillingPriceFree(api.BillingPriceFree{Type: "free"}))
+
+		result, err := toBillingPrice(price, nil)
+		require.NoError(t, err)
+		assert.Nil(t, result)
+	})
+
+	t.Run("flat with payment term", func(t *testing.T) {
+		var price api.BillingPrice
+		require.NoError(t, price.FromBillingPriceFlat(api.BillingPriceFlat{Amount: "5.00", Type: "flat"}))
+
+		pt := api.BillingPricePaymentTerm("in_arrears")
+		result, err := toBillingPrice(price, &pt)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+
+		flat, err := result.AsFlat()
+		require.NoError(t, err)
+		assert.Equal(t, "5", flat.Amount.String())
+		assert.Equal(t, productcatalog.InArrearsPaymentTerm, flat.PaymentTerm)
+	})
+
+	t.Run("flat with nil payment term uses default", func(t *testing.T) {
+		var price api.BillingPrice
+		require.NoError(t, price.FromBillingPriceFlat(api.BillingPriceFlat{Amount: "5.00", Type: "flat"}))
+
+		result, err := toBillingPrice(price, nil)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+
+		flat, err := result.AsFlat()
+		require.NoError(t, err)
+		assert.Equal(t, productcatalog.DefaultPaymentTerm, flat.PaymentTerm)
+	})
+}
+
+func TestToBillingPriceTiers(t *testing.T) {
+	t.Run("maps tiers correctly", func(t *testing.T) {
+		tiers := []api.BillingPriceTier{
+			{
+				UpToAmount: lo.ToPtr(api.Numeric("1000")),
+				FlatPrice:  &api.BillingPriceFlat{Amount: "5", Type: "flat"},
+				UnitPrice:  &api.BillingPriceUnit{Amount: "0.01", Type: "unit"},
+			},
+			{
+				UnitPrice: &api.BillingPriceUnit{Amount: "0.005", Type: "unit"},
+			},
+		}
+
+		result, err := toBillingPriceTiers(tiers)
+		require.NoError(t, err)
+		require.Len(t, result, 2)
+
+		require.NotNil(t, result[0].UpToAmount)
+		assert.Equal(t, "1000", result[0].UpToAmount.String())
+		require.NotNil(t, result[0].FlatPrice)
+		assert.Equal(t, "5", result[0].FlatPrice.Amount.String())
+		require.NotNil(t, result[0].UnitPrice)
+		assert.Equal(t, "0.01", result[0].UnitPrice.Amount.String())
+
+		assert.Nil(t, result[1].UpToAmount)
+		assert.Nil(t, result[1].FlatPrice)
+		require.NotNil(t, result[1].UnitPrice)
+		assert.Equal(t, "0.005", result[1].UnitPrice.Amount.String())
+	})
+}
+
+func TestToBillingTaxConfig(t *testing.T) {
+	t.Run("maps code ID", func(t *testing.T) {
+		tc := api.BillingRateCardTaxConfig{
+			Code: api.TaxCodeReferenceItem{Id: "01TAXCODE000"},
+		}
+
+		result := toBillingTaxConfig(tc)
+		require.NotNil(t, result)
+		require.NotNil(t, result.TaxCodeID)
+		assert.Equal(t, "01TAXCODE000", *result.TaxCodeID)
+		assert.Nil(t, result.Behavior)
+	})
+
+	t.Run("maps behavior", func(t *testing.T) {
+		tc := api.BillingRateCardTaxConfig{
+			Code:     api.TaxCodeReferenceItem{Id: "01TAXCODE000"},
+			Behavior: lo.ToPtr(api.BillingTaxBehavior("inclusive")),
+		}
+
+		result := toBillingTaxConfig(tc)
+		require.NotNil(t, result)
+		require.NotNil(t, result.Behavior)
+		assert.Equal(t, productcatalog.InclusiveTaxBehavior, *result.Behavior)
+	})
+}
+
+func TestToBillingDiscounts(t *testing.T) {
+	t.Run("percentage discount", func(t *testing.T) {
+		pct := float32(20)
+		result, err := toBillingDiscounts(api.BillingRateCardDiscounts{Percentage: &pct})
+		require.NoError(t, err)
+
+		require.NotNil(t, result.Percentage)
+		assert.InDelta(t, 20, result.Percentage.Percentage.InexactFloat64(), 0.001)
+		assert.Nil(t, result.Usage)
+	})
+
+	t.Run("usage discount", func(t *testing.T) {
+		result, err := toBillingDiscounts(api.BillingRateCardDiscounts{Usage: lo.ToPtr(api.Numeric("100"))})
+		require.NoError(t, err)
+
+		assert.Nil(t, result.Percentage)
+		require.NotNil(t, result.Usage)
+		assert.Equal(t, "100", result.Usage.Quantity.String())
+	})
+
+	t.Run("both discounts", func(t *testing.T) {
+		pct := float32(10)
+		result, err := toBillingDiscounts(api.BillingRateCardDiscounts{
+			Percentage: &pct,
+			Usage:      lo.ToPtr(api.Numeric("50")),
+		})
+		require.NoError(t, err)
+
+		require.NotNil(t, result.Percentage)
+		require.NotNil(t, result.Usage)
+	})
+}
+
 func TestFromPlanInvalidStatus(t *testing.T) {
 	t.Run("invalid status returns error", func(t *testing.T) {
 		now := time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC)
