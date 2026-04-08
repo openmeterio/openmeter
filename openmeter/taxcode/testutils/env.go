@@ -61,19 +61,20 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	db := testutils.InitPostgresDB(t)
 	client := db.EntDriver.Client()
 
+	env := &TestEnv{
+		Logger: logger,
+		Client: client,
+		db:     db,
+	}
+	t.Cleanup(func() { env.Close(t) })
+
 	adapter, err := taxcodeadapter.New(taxcodeadapter.Config{
 		Client: client,
 		Logger: logger,
 	})
 	require.NoErrorf(t, err, "initializing taxcode adapter must not fail")
 
-	svc := taxcodeservice.New(adapter, logger)
+	env.Service = taxcodeservice.New(adapter, logger)
 
-	return &TestEnv{
-		Logger:  logger,
-		Service: svc,
-		Client:  client,
-		db:      db,
-		close:   sync.Once{},
-	}
+	return env
 }
