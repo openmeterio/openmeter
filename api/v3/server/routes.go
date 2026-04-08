@@ -251,7 +251,7 @@ func (s *Server) GetPlan(w http.ResponseWriter, r *http.Request, planId api.ULID
 }
 
 func (s *Server) UpdatePlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {
-	unimplemented.UpdatePlan(w, r, planId)
+	s.plansHandler.UpdatePlan().With(string(planId)).ServeHTTP(w, r)
 }
 
 func (s *Server) DeletePlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {

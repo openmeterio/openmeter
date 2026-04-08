@@ -10,6 +10,7 @@ import (
 type Handler interface {
 	GetPlan() GetPlanHandler
 	CreatePlan() CreatePlanHandler
+	UpdatePlan() UpdatePlanHandler
 	DeletePlan() DeletePlanHandler
 	PublishPlan() PublishPlanHandler
 	ArchivePlan() ArchivePlanHandler

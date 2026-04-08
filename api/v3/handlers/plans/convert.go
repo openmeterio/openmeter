@@ -328,6 +328,37 @@ func fromValidationErrors(issues models.ValidationIssues) *[]api.ProductCatalogV
 	return &result
 }
 
+func toUpdatePlanInput(ns string, planID string, body api.UpsertPlanRequest) (plan.UpdatePlanInput, error) {
+	req := plan.UpdatePlanInput{
+		NamespacedID: models.NamespacedID{
+			Namespace: ns,
+			ID:        planID,
+		},
+		Name:            &body.Name,
+		Description:     body.Description,
+		ProRatingConfig: lo.ToPtr(toProRatingConfig(body.ProRatingEnabled)),
+	}
+
+	if body.Labels != nil {
+		m := labels.ToMetadata(body.Labels)
+		req.Metadata = &m
+	}
+
+	phases := make([]productcatalog.Phase, 0, len(body.Phases))
+	for _, phase := range body.Phases {
+		p, err := toPlanPhase(phase)
+		if err != nil {
+			return req, fmt.Errorf("failed to convert phase: %w", err)
+		}
+
+		phases = append(phases, p)
+	}
+
+	req.Phases = &phases
+
+	return req, nil
+}
+
 func toCreatePlanInput(ns string, body api.CreatePlanRequest) (plan.CreatePlanInput, error) {
 	req := plan.CreatePlanInput{
 		NamespacedModel: models.NamespacedModel{

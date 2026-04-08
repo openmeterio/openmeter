@@ -695,6 +695,92 @@ func TestFromPlanPhaseWithRateCards(t *testing.T) {
 	})
 }
 
+func TestToUpdatePlanInput(t *testing.T) {
+	t.Run("maps scalar fields correctly", func(t *testing.T) {
+		body := api.UpsertPlanRequest{
+			Name:        "Updated Plan",
+			Description: lo.ToPtr("New description"),
+			Phases:      []api.BillingPlanPhase{},
+		}
+
+		result, err := toUpdatePlanInput("test-ns", "plan-123", body)
+		require.NoError(t, err)
+
+		assert.Equal(t, "test-ns", result.Namespace)
+		assert.Equal(t, "plan-123", result.ID)
+		require.NotNil(t, result.Name)
+		assert.Equal(t, "Updated Plan", *result.Name)
+		require.NotNil(t, result.Description)
+		assert.Equal(t, "New description", *result.Description)
+		require.NotNil(t, result.Phases)
+		assert.Empty(t, *result.Phases)
+	})
+
+	t.Run("labels map to metadata", func(t *testing.T) {
+		body := api.UpsertPlanRequest{
+			Name:   "Plan",
+			Labels: &api.Labels{"env": "prod"},
+			Phases: []api.BillingPlanPhase{},
+		}
+
+		result, err := toUpdatePlanInput("ns", "id", body)
+		require.NoError(t, err)
+		require.NotNil(t, result.Metadata)
+		assert.Equal(t, "prod", (*result.Metadata)["env"])
+	})
+
+	t.Run("nil labels result in nil metadata", func(t *testing.T) {
+		body := api.UpsertPlanRequest{
+			Name:   "Plan",
+			Phases: []api.BillingPlanPhase{},
+		}
+
+		result, err := toUpdatePlanInput("ns", "id", body)
+		require.NoError(t, err)
+		assert.Nil(t, result.Metadata)
+	})
+
+	t.Run("pro rating enabled maps correctly", func(t *testing.T) {
+		body := api.UpsertPlanRequest{
+			Name:             "Plan",
+			ProRatingEnabled: lo.ToPtr(false),
+			Phases:           []api.BillingPlanPhase{},
+		}
+
+		result, err := toUpdatePlanInput("ns", "id", body)
+		require.NoError(t, err)
+		require.NotNil(t, result.ProRatingConfig)
+		assert.False(t, result.ProRatingConfig.Enabled)
+	})
+
+	t.Run("phases with rate cards are converted", func(t *testing.T) {
+		var price api.BillingPrice
+		require.NoError(t, price.FromBillingPriceUnit(api.BillingPriceUnit{Amount: "0.05", Type: "unit"}))
+
+		bc := api.ISO8601Duration("P1M")
+		body := api.UpsertPlanRequest{
+			Name: "Plan",
+			Phases: []api.BillingPlanPhase{
+				{
+					Key:  "p1",
+					Name: "Phase 1",
+					RateCards: []api.BillingRateCard{
+						{Key: "rc1", Name: "RC", Price: price, BillingCadence: &bc},
+					},
+				},
+			},
+		}
+
+		result, err := toUpdatePlanInput("ns", "id", body)
+		require.NoError(t, err)
+		require.NotNil(t, result.Phases)
+		require.Len(t, *result.Phases, 1)
+		assert.Equal(t, "p1", (*result.Phases)[0].Key)
+		require.Len(t, (*result.Phases)[0].RateCards, 1)
+		assert.Equal(t, productcatalog.UsageBasedRateCardType, (*result.Phases)[0].RateCards[0].Type())
+	})
+}
+
 func TestToCreatePlanInput(t *testing.T) {
 	t.Run("maps scalar fields correctly", func(t *testing.T) {
 		body := api.CreatePlanRequest{
