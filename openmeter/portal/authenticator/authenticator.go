@@ -188,7 +188,7 @@ func (a Authenticator) validateSecurityRequirement(securityRequirement openapi3.
 
 func (a Authenticator) getAuthenticatorFunc(securitySchemaName string) func(w http.ResponseWriter, r *http.Request) (*http.Request, error) {
 	switch securitySchemaName {
-	case strings.Split(api.PortalTokenAuthScopes, ".")[0]:
+	case strings.Split(string(api.PortalTokenAuthScopes), ".")[0]:
 		return a.verifyPortalToken
 	default:
 		return nil
