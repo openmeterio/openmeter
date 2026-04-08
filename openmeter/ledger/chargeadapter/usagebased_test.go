@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
+	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -124,14 +125,17 @@ type usageBasedHandlerTestEnv struct {
 
 func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
 	base := ledgertestutils.NewIntegrationEnv(t, "chargeadapter-usagebased")
+	collectorService := ledgercollector.NewService(ledgercollector.Config{
+		Ledger: base.Deps.HistoricalLedger,
+		Dependencies: transactions.ResolverDependencies{
+			AccountService:    base.Deps.ResolversService,
+			SubAccountService: base.Deps.AccountService,
+		},
+	})
 
 	return &usageBasedHandlerTestEnv{
 		IntegrationEnv: base,
-		handler: chargeadapter.NewUsageBasedHandler(
-			base.Deps.HistoricalLedger,
-			base.Deps.ResolversService,
-			base.Deps.AccountService,
-		),
+		handler:        chargeadapter.NewUsageBasedHandler(collectorService),
 	}
 }
 

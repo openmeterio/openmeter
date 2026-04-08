@@ -21,7 +21,7 @@ type CustomerTransactionTemplate interface {
 
 	// Resolve resolves the template's intent for a concrete customer
 	resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error)
-	correct(ctx context.Context, scope CorrectionScope, resolvers ResolverDependencies) ([]ledger.TransactionInput, error)
+	correct(scope CorrectionScope) ([]ledger.TransactionInput, error)
 }
 
 // OrgTransactionTemplate is a template for organization scoped transactions
@@ -30,5 +30,5 @@ type OrgTransactionTemplate interface {
 
 	// Resolve resolves the template's intent for a given organization
 	resolve(ctx context.Context, namespace string, resolvers ResolverDependencies) (ledger.TransactionInput, error)
-	correct(ctx context.Context, scope CorrectionScope, resolvers ResolverDependencies) ([]ledger.TransactionInput, error)
+	correct(scope CorrectionScope) ([]ledger.TransactionInput, error)
 }

@@ -6,30 +6,20 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
-	"github.com/openmeterio/openmeter/openmeter/ledger"
-	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
-	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
+	"github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 // usageBasedHandler maps usage-based credit-only lifecycle events to ledger transaction templates.
 type usageBasedHandler struct {
-	ledger          ledger.Ledger
-	accountResolver ledger.AccountResolver
-	accountService  ledgeraccount.Service
+	collector collector.Service
 }
 
 var _ usagebased.Handler = (*usageBasedHandler)(nil)
 
-func NewUsageBasedHandler(
-	ledger ledger.Ledger,
-	accountResolver ledger.AccountResolver,
-	accountService ledgeraccount.Service,
-) usagebased.Handler {
+func NewUsageBasedHandler(collectorService collector.Service) usagebased.Handler {
 	return &usageBasedHandler{
-		ledger:          ledger,
-		accountResolver: accountResolver,
-		accountService:  accountService,
+		collector: collectorService,
 	}
 }
 
@@ -46,25 +36,24 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input
 		return nil, fmt.Errorf("credits only usage accrued: %w", err)
 	}
 
-	groupID, inputs, err := allocateCreditsToAccrued(ctx, h.ledger, transactions.ResolverDependencies{
-		AccountService:    h.accountResolver,
-		SubAccountService: h.accountService,
-	}, creditsOnlyAccrualRequest{
+	realizations, err := h.collector.CollectToAccrued(ctx, collector.CollectToAccruedInput{
 		Namespace:      input.Charge.Namespace,
 		ChargeID:       input.Charge.ID,
 		CustomerID:     input.Charge.Intent.CustomerID,
 		At:             input.AllocateAt,
 		Currency:       input.Charge.Intent.Currency,
 		SettlementMode: input.Charge.Intent.SettlementMode,
-	}, input.AmountToAllocate)
+		ServicePeriod:  input.Charge.Intent.ServicePeriod,
+		Amount:         input.AmountToAllocate,
+	})
 	if err != nil {
 		return nil, err
 	}
-	if groupID == "" {
+	if len(realizations) == 0 {
 		return nil, nil
 	}
 
-	return creditRealizationsFromCollectedInputs(input.Charge.Intent.ServicePeriod, groupID, inputs...), nil
+	return realizations, nil
 }
 
 func (h *usageBasedHandler) OnCreditsOnlyUsageAccruedCorrection(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error) {
@@ -93,12 +82,10 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccruedCorrection(ctx context.Cont
 		return nil, fmt.Errorf("corrections: %w", err)
 	}
 
-	return correctCreditsOnlyAccrued(ctx, h.ledger, transactions.ResolverDependencies{
-		AccountService:    h.accountResolver,
-		SubAccountService: h.accountService,
-	}, CreditsOnlyUsageAccruedCorrectionInput{
+	return h.collector.CorrectCollectedAccrued(ctx, collector.CorrectCollectedAccruedInput{
 		Namespace:   input.Charge.Namespace,
 		ChargeID:    input.Charge.ID,
+		CustomerID:  input.Charge.Intent.CustomerID,
 		AllocateAt:  input.AllocateAt,
 		Corrections: input.Corrections,
 	})

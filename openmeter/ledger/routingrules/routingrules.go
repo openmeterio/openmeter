@@ -236,7 +236,7 @@ func (r RequireReceivableAuthorizationStageRule) Validate(tx TxView) error {
 
 	if allEntriesHaveAuthorizationStatus(negativeEntries, ledger.TransactionAuthorizationStatusOpen) &&
 		allEntriesHaveAuthorizationStatus(positiveEntries, ledger.TransactionAuthorizationStatusOpen) {
-		if err := requireKnownToUnknownCostBasisTranslation(
+		if err := requireKnownToUnknownCostBasisTranslationEitherDirection(
 			negativeEntries,
 			positiveEntries,
 			ledger.AccountTypeCustomerReceivable,
@@ -276,9 +276,9 @@ func (r RequireAccruedCostBasisTranslationRule) Validate(tx TxView) error {
 		})
 	}
 
-	return requireKnownToUnknownCostBasisTranslation(
-		positiveEntries,
+	return requireKnownToUnknownCostBasisTranslationEitherDirection(
 		negativeEntries,
+		positiveEntries,
 		ledger.AccountTypeCustomerAccrued,
 		[]RouteField{
 			RouteFieldCurrency,
@@ -375,6 +375,14 @@ func requireKnownToUnknownCostBasisTranslation(knownEntries, unknownEntries []En
 	}
 
 	return requireMatchingRouteFields(knownEntries, unknownEntries, accountType, accountType, fields)
+}
+
+func requireKnownToUnknownCostBasisTranslationEitherDirection(leftEntries, rightEntries []EntryView, accountType ledger.AccountType, fields []RouteField) error {
+	if err := requireKnownToUnknownCostBasisTranslation(leftEntries, rightEntries, accountType, fields); err == nil {
+		return nil
+	}
+
+	return requireKnownToUnknownCostBasisTranslation(rightEntries, leftEntries, accountType, fields)
 }
 
 func requireMatchingRouteFields(leftEntries, rightEntries []EntryView, leftType, rightType ledger.AccountType, fields []RouteField) error {

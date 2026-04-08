@@ -47,6 +47,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineage"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineagesegment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/currencycostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
@@ -1373,6 +1375,54 @@ func init() {
 	chargessearchv1.DefaultUpdatedAt = chargessearchv1DescUpdatedAt.Default.(func() time.Time)
 	// chargessearchv1.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	chargessearchv1.UpdateDefaultUpdatedAt = chargessearchv1DescUpdatedAt.UpdateDefault.(func() time.Time)
+	creditrealizationlineageMixin := schema.CreditRealizationLineage{}.Mixin()
+	creditrealizationlineageMixinFields0 := creditrealizationlineageMixin[0].Fields()
+	_ = creditrealizationlineageMixinFields0
+	creditrealizationlineageMixinFields1 := creditrealizationlineageMixin[1].Fields()
+	_ = creditrealizationlineageMixinFields1
+	creditrealizationlineageFields := schema.CreditRealizationLineage{}.Fields()
+	_ = creditrealizationlineageFields
+	// creditrealizationlineageDescNamespace is the schema descriptor for namespace field.
+	creditrealizationlineageDescNamespace := creditrealizationlineageMixinFields1[0].Descriptor()
+	// creditrealizationlineage.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	creditrealizationlineage.NamespaceValidator = creditrealizationlineageDescNamespace.Validators[0].(func(string) error)
+	// creditrealizationlineageDescCustomerID is the schema descriptor for customer_id field.
+	creditrealizationlineageDescCustomerID := creditrealizationlineageFields[1].Descriptor()
+	// creditrealizationlineage.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
+	creditrealizationlineage.CustomerIDValidator = creditrealizationlineageDescCustomerID.Validators[0].(func(string) error)
+	// creditrealizationlineageDescCurrency is the schema descriptor for currency field.
+	creditrealizationlineageDescCurrency := creditrealizationlineageFields[2].Descriptor()
+	// creditrealizationlineage.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
+	creditrealizationlineage.CurrencyValidator = creditrealizationlineageDescCurrency.Validators[0].(func(string) error)
+	// creditrealizationlineageDescCreatedAt is the schema descriptor for created_at field.
+	creditrealizationlineageDescCreatedAt := creditrealizationlineageFields[4].Descriptor()
+	// creditrealizationlineage.DefaultCreatedAt holds the default value on creation for the created_at field.
+	creditrealizationlineage.DefaultCreatedAt = creditrealizationlineageDescCreatedAt.Default.(func() time.Time)
+	// creditrealizationlineageDescID is the schema descriptor for id field.
+	creditrealizationlineageDescID := creditrealizationlineageMixinFields0[0].Descriptor()
+	// creditrealizationlineage.DefaultID holds the default value on creation for the id field.
+	creditrealizationlineage.DefaultID = creditrealizationlineageDescID.Default.(func() string)
+	creditrealizationlineagesegmentMixin := schema.CreditRealizationLineageSegment{}.Mixin()
+	creditrealizationlineagesegmentMixinFields0 := creditrealizationlineagesegmentMixin[0].Fields()
+	_ = creditrealizationlineagesegmentMixinFields0
+	creditrealizationlineagesegmentFields := schema.CreditRealizationLineageSegment{}.Fields()
+	_ = creditrealizationlineagesegmentFields
+	// creditrealizationlineagesegmentDescLineageID is the schema descriptor for lineage_id field.
+	creditrealizationlineagesegmentDescLineageID := creditrealizationlineagesegmentFields[0].Descriptor()
+	// creditrealizationlineagesegment.LineageIDValidator is a validator for the "lineage_id" field. It is called by the builders before save.
+	creditrealizationlineagesegment.LineageIDValidator = creditrealizationlineagesegmentDescLineageID.Validators[0].(func(string) error)
+	// creditrealizationlineagesegmentDescBackingTransactionGroupID is the schema descriptor for backing_transaction_group_id field.
+	creditrealizationlineagesegmentDescBackingTransactionGroupID := creditrealizationlineagesegmentFields[3].Descriptor()
+	// creditrealizationlineagesegment.BackingTransactionGroupIDValidator is a validator for the "backing_transaction_group_id" field. It is called by the builders before save.
+	creditrealizationlineagesegment.BackingTransactionGroupIDValidator = creditrealizationlineagesegmentDescBackingTransactionGroupID.Validators[0].(func(string) error)
+	// creditrealizationlineagesegmentDescCreatedAt is the schema descriptor for created_at field.
+	creditrealizationlineagesegmentDescCreatedAt := creditrealizationlineagesegmentFields[5].Descriptor()
+	// creditrealizationlineagesegment.DefaultCreatedAt holds the default value on creation for the created_at field.
+	creditrealizationlineagesegment.DefaultCreatedAt = creditrealizationlineagesegmentDescCreatedAt.Default.(func() time.Time)
+	// creditrealizationlineagesegmentDescID is the schema descriptor for id field.
+	creditrealizationlineagesegmentDescID := creditrealizationlineagesegmentMixinFields0[0].Descriptor()
+	// creditrealizationlineagesegment.DefaultID holds the default value on creation for the id field.
+	creditrealizationlineagesegment.DefaultID = creditrealizationlineagesegmentDescID.Default.(func() string)
 	currencycostbasisMixin := schema.CurrencyCostBasis{}.Mixin()
 	currencycostbasisMixinFields0 := currencycostbasisMixin[0].Fields()
 	_ = currencycostbasisMixinFields0

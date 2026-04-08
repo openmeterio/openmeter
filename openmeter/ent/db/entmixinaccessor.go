@@ -1707,6 +1707,18 @@ func (e *ChargeUsageBasedRuns) GetTotal() alpacadecimal.Decimal {
 	return e.Total
 }
 
+func (e *CreditRealizationLineage) GetID() string {
+	return e.ID
+}
+
+func (e *CreditRealizationLineage) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *CreditRealizationLineageSegment) GetID() string {
+	return e.ID
+}
+
 func (e *CurrencyCostBasis) GetID() string {
 	return e.ID
 }

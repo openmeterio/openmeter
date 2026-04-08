@@ -42,7 +42,7 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) typeGuard() guard {
 
 var _ CustomerTransactionTemplate = (RecognizeEarningsFromAttributableAccruedTemplate{})
 
-func (t RecognizeEarningsFromAttributableAccruedTemplate) correct(context.Context, CorrectionInput, ResolverDependencies) ([]ledger.TransactionInput, error) {
+func (t RecognizeEarningsFromAttributableAccruedTemplate) correct(CorrectionInput) ([]ledger.TransactionInput, error) {
 	return nil, templateCorrectionNotImplemented(templateName(t))
 }
 

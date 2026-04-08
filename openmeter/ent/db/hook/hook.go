@@ -465,6 +465,30 @@ func (f ChargeUsageBasedRunsFunc) Mutate(ctx context.Context, m db.Mutation) (db
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeUsageBasedRunsMutation", m)
 }
 
+// The CreditRealizationLineageFunc type is an adapter to allow the use of ordinary
+// function as CreditRealizationLineage mutator.
+type CreditRealizationLineageFunc func(context.Context, *db.CreditRealizationLineageMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f CreditRealizationLineageFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.CreditRealizationLineageMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.CreditRealizationLineageMutation", m)
+}
+
+// The CreditRealizationLineageSegmentFunc type is an adapter to allow the use of ordinary
+// function as CreditRealizationLineageSegment mutator.
+type CreditRealizationLineageSegmentFunc func(context.Context, *db.CreditRealizationLineageSegmentMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f CreditRealizationLineageSegmentFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.CreditRealizationLineageSegmentMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.CreditRealizationLineageSegmentMutation", m)
+}
+
 // The CurrencyCostBasisFunc type is an adapter to allow the use of ordinary
 // function as CurrencyCostBasis mutator.
 type CurrencyCostBasisFunc func(context.Context, *db.CurrencyCostBasisMutation) (db.Value, error)

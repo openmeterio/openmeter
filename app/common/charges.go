@@ -26,6 +26,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
+	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
+	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
@@ -46,12 +48,30 @@ func NewChargesMetaAdapter(
 	return metaAdapter, nil
 }
 
+func NewChargesCollectorService(
+	ledgerService ledger.Ledger,
+	accountResolver ledger.AccountResolver,
+	accountService ledgeraccount.Service,
+) ledgercollector.Service {
+	return ledgercollector.NewService(ledgercollector.Config{
+		Ledger: ledgerService,
+		Dependencies: transactions.ResolverDependencies{
+			AccountService:    accountResolver,
+			SubAccountService: accountService,
+		},
+	})
+}
+
 func NewChargesFlatFeeHandler(
 	ledgerService ledger.Ledger,
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
+	collectorService ledgercollector.Service,
 ) flatfee.Handler {
-	return ledgerchargeadapter.NewFlatFeeHandler(ledgerService, accountResolver, accountService)
+	return ledgerchargeadapter.NewFlatFeeHandler(ledgerService, transactions.ResolverDependencies{
+		AccountService:    accountResolver,
+		SubAccountService: accountService,
+	}, collectorService)
 }
 
 func NewChargesCreditPurchaseHandler(
@@ -62,8 +82,8 @@ func NewChargesCreditPurchaseHandler(
 	return ledgerchargeadapter.NewCreditPurchaseHandler(ledgerService, accountResolver, accountService)
 }
 
-func NewChargesUsageBasedHandler() usagebased.Handler {
-	return usagebased.UnimplementedHandler{}
+func NewChargesUsageBasedHandler(collectorService ledgercollector.Service) usagebased.Handler {
+	return ledgerchargeadapter.NewUsageBasedHandler(collectorService)
 }
 
 func NewChargesFlatFeeAdapter(
@@ -242,9 +262,10 @@ func newChargesRegistry(
 		return nil, err
 	}
 
-	flatFeeHandler := NewChargesFlatFeeHandler(ledgerService, accountResolver, accountService)
+	collectorService := NewChargesCollectorService(ledgerService, accountResolver, accountService)
+	flatFeeHandler := NewChargesFlatFeeHandler(ledgerService, accountResolver, accountService, collectorService)
 	creditPurchaseHandler := NewChargesCreditPurchaseHandler(ledgerService, accountResolver, accountService)
-	usageBasedHandler := NewChargesUsageBasedHandler()
+	usageBasedHandler := NewChargesUsageBasedHandler(collectorService)
 
 	flatFeeAdapter, err := NewChargesFlatFeeAdapter(db, logger, metaAdapter)
 	if err != nil {

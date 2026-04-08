@@ -37,7 +37,7 @@ func (i CorrectionScope) Validate() error {
 }
 
 func CorrectTransaction(
-	ctx context.Context,
+	_ context.Context,
 	deps ResolverDependencies,
 	scope CorrectionScope,
 ) ([]ledger.TransactionInput, error) {
@@ -64,7 +64,7 @@ func CorrectTransaction(
 		return nil, err
 	}
 
-	outputs, err := correctTemplate(ctx, deps, scope, template)
+	outputs, err := correctTemplate(scope, template)
 	if err != nil {
 		return nil, err
 	}
@@ -106,17 +106,12 @@ func transactionTemplateByName(name string) (TransactionTemplate, error) {
 	}
 }
 
-func correctTemplate(
-	ctx context.Context,
-	deps ResolverDependencies,
-	scope CorrectionScope,
-	template TransactionTemplate,
-) ([]ledger.TransactionInput, error) {
+func correctTemplate(scope CorrectionScope, template TransactionTemplate) ([]ledger.TransactionInput, error) {
 	switch typ := any(template).(type) {
 	case CustomerTransactionTemplate:
-		return typ.correct(ctx, scope, deps)
+		return typ.correct(scope)
 	case OrgTransactionTemplate:
-		return typ.correct(ctx, scope, deps)
+		return typ.correct(scope)
 	default:
 		return nil, fmt.Errorf("unsupported correction template type %T", template)
 	}

@@ -119,6 +119,11 @@ type Realization struct {
 	// SortHint is the hint for the order of the credit realizations created in the same batch.
 	// Given collection is in priority order, reverting any transaction group should happen in reverse order.
 	SortHint int `json:"sortHint"`
+
+	// ActiveLineageSegments are the currently active value slices for this allocation realization.
+	// They are loaded on expanded reads and let correction logic distinguish remaining uncovered
+	// advance, backfilled advance, and real-credit slices.
+	ActiveLineageSegments []ActiveLineageSegment `json:"activeLineageSegments,omitempty"`
 }
 
 func (r Realization) Validate() error {
@@ -126,6 +131,11 @@ func (r Realization) Validate() error {
 
 	if err := r.CreateInput.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("credit realization input: %w", err))
+	}
+	for idx, segment := range r.ActiveLineageSegments {
+		if err := segment.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("active lineage segment[%d]: %w", idx, err))
+		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

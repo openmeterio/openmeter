@@ -12,7 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
+	"github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -20,22 +20,22 @@ import (
 
 // flatFeeHandler maps charge lifecycle events to ledger transaction templates
 type flatFeeHandler struct {
-	ledger          ledger.Ledger
-	accountResolver ledger.AccountResolver
-	accountService  ledgeraccount.Service
+	ledger    ledger.Ledger
+	deps      transactions.ResolverDependencies
+	collector collector.Service
 }
 
 var _ flatfee.Handler = (*flatFeeHandler)(nil)
 
 func NewFlatFeeHandler(
 	ledger ledger.Ledger,
-	accountResolver ledger.AccountResolver,
-	accountService ledgeraccount.Service,
+	deps transactions.ResolverDependencies,
+	collectorService collector.Service,
 ) flatfee.Handler {
 	return &flatFeeHandler{
-		ledger:          ledger,
-		accountResolver: accountResolver,
-		accountService:  accountService,
+		ledger:    ledger,
+		deps:      deps,
+		collector: collectorService,
 	}
 }
 
@@ -63,15 +63,24 @@ func (h *flatFeeHandler) OnAssignedToInvoice(ctx context.Context, input flatfee.
 		return nil, nil
 	}
 
-	groupID, inputs, err := h.allocateCreditsToAccrued(ctx, input.Charge, input.PreTaxTotalAmount)
+	realizations, err := h.collector.CollectToAccrued(ctx, collector.CollectToAccruedInput{
+		Namespace:      input.Charge.Namespace,
+		ChargeID:       input.Charge.ID,
+		CustomerID:     input.Charge.Intent.CustomerID,
+		At:             input.Charge.Intent.InvoiceAt,
+		Currency:       input.Charge.Intent.Currency,
+		SettlementMode: input.Charge.Intent.SettlementMode,
+		ServicePeriod:  input.ServicePeriod,
+		Amount:         input.PreTaxTotalAmount,
+	})
 	if err != nil {
 		return nil, err
 	}
-	if groupID == "" {
+	if len(realizations) == 0 {
 		return nil, nil
 	}
 
-	return creditRealizationsFromCollectedInputs(input.ServicePeriod, groupID, inputs...), nil
+	return realizations, nil
 }
 
 // OnFlatFeeStandardInvoiceUsageAccrued handles the portion of usage not covered by FBO credits.
@@ -106,10 +115,7 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
-		transactions.ResolverDependencies{
-			AccountService:    h.accountResolver,
-			SubAccountService: h.accountService,
-		},
+		h.deps,
 		transactions.ResolutionScope{
 			CustomerID: customerID,
 			Namespace:  input.Charge.Namespace,
@@ -154,15 +160,24 @@ func (h *flatFeeHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input fl
 		return nil, fmt.Errorf("credits only usage accrued: %w", err)
 	}
 
-	groupID, inputs, err := h.allocateCreditsToAccrued(ctx, input.Charge, input.AmountToAllocate)
+	realizations, err := h.collector.CollectToAccrued(ctx, collector.CollectToAccruedInput{
+		Namespace:      input.Charge.Namespace,
+		ChargeID:       input.Charge.ID,
+		CustomerID:     input.Charge.Intent.CustomerID,
+		At:             input.Charge.Intent.InvoiceAt,
+		Currency:       input.Charge.Intent.Currency,
+		SettlementMode: input.Charge.Intent.SettlementMode,
+		ServicePeriod:  input.Charge.Intent.ServicePeriod,
+		Amount:         input.AmountToAllocate,
+	})
 	if err != nil {
 		return nil, err
 	}
-	if groupID == "" {
+	if len(realizations) == 0 {
 		return nil, nil
 	}
 
-	return creditRealizationsFromCollectedInputs(input.Charge.Intent.ServicePeriod, groupID, inputs...), nil
+	return realizations, nil
 }
 
 func (h *flatFeeHandler) OnCreditsOnlyUsageAccruedCorrection(ctx context.Context, input flatfee.CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error) {
@@ -175,12 +190,10 @@ func (h *flatFeeHandler) OnCreditsOnlyUsageAccruedCorrection(ctx context.Context
 		return nil, err
 	}
 
-	return correctCreditsOnlyAccrued(ctx, h.ledger, transactions.ResolverDependencies{
-		AccountService:    h.accountResolver,
-		SubAccountService: h.accountService,
-	}, CreditsOnlyUsageAccruedCorrectionInput{
+	return h.collector.CorrectCollectedAccrued(ctx, collector.CorrectCollectedAccruedInput{
 		Namespace:   input.Charge.Namespace,
 		ChargeID:    input.Charge.ID,
+		CustomerID:  input.Charge.Intent.CustomerID,
 		AllocateAt:  input.AllocateAt,
 		Corrections: input.Corrections,
 	})
@@ -213,10 +226,7 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, charge flatfee
 
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
-		transactions.ResolverDependencies{
-			AccountService:    h.accountResolver,
-			SubAccountService: h.accountService,
-		},
+		h.deps,
 		transactions.ResolutionScope{
 			CustomerID: customerID,
 			Namespace:  charge.Namespace,
@@ -266,10 +276,7 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, charge flatfee.Ch
 
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
-		transactions.ResolverDependencies{
-			AccountService:    h.accountResolver,
-			SubAccountService: h.accountService,
-		},
+		h.deps,
 		transactions.ResolutionScope{
 			CustomerID: customerID,
 			Namespace:  charge.Namespace,
@@ -313,20 +320,6 @@ func validateSettlementMode(actual productcatalog.SettlementMode, allowed ...pro
 	}
 
 	return fmt.Errorf("unsupported settlement mode %q", actual)
-}
-
-func (h *flatFeeHandler) allocateCreditsToAccrued(ctx context.Context, charge flatfee.Charge, amount alpacadecimal.Decimal) (string, []ledger.TransactionInput, error) {
-	return allocateCreditsToAccrued(ctx, h.ledger, transactions.ResolverDependencies{
-		AccountService:    h.accountResolver,
-		SubAccountService: h.accountService,
-	}, creditsOnlyAccrualRequest{
-		Namespace:      charge.Namespace,
-		ChargeID:       charge.ID,
-		CustomerID:     charge.Intent.CustomerID,
-		At:             charge.Intent.InvoiceAt,
-		Currency:       charge.Intent.Currency,
-		SettlementMode: charge.Intent.SettlementMode,
-	}, amount)
 }
 
 var invoiceCostBasis = lo.ToPtr(alpacadecimal.NewFromInt(1))

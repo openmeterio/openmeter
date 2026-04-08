@@ -7,6 +7,7 @@ import (
 
 	"github.com/samber/lo"
 
+	chargesadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -172,9 +173,20 @@ func (a *adapter) GetByIDs(ctx context.Context, input usagebased.GetByIDsInput) 
 			return nil, err
 		}
 
-		return slicesx.MapWithErr(entitiesInOrder, func(entity *db.ChargeUsageBased) (usagebased.Charge, error) {
+		out, err := slicesx.MapWithErr(entitiesInOrder, func(entity *db.ChargeUsageBased) (usagebased.Charge, error) {
 			return MapChargeFromDB(entity, input.Expands)
 		})
+		if err != nil {
+			return nil, err
+		}
+
+		if input.Expands.Has(meta.ExpandRealizations) {
+			if err := attachActiveLineageSegmentsToUsageBasedCharges(ctx, tx.db, input.Namespace, out); err != nil {
+				return nil, err
+			}
+		}
+
+		return out, nil
 	})
 }
 
@@ -201,7 +213,20 @@ func (a *adapter) GetByID(ctx context.Context, input usagebased.GetByIDInput) (u
 			return usagebased.Charge{}, fmt.Errorf("querying usage based charge [id=%s]: %w", input.ChargeID, err)
 		}
 
-		return MapChargeFromDB(entity, input.Expands)
+		charge, err := MapChargeFromDB(entity, input.Expands)
+		if err != nil {
+			return usagebased.Charge{}, err
+		}
+
+		if input.Expands.Has(meta.ExpandRealizations) {
+			charges := []usagebased.Charge{charge}
+			if err := attachActiveLineageSegmentsToUsageBasedCharges(ctx, tx.db, input.ChargeID.Namespace, charges); err != nil {
+				return usagebased.Charge{}, err
+			}
+			charge = charges[0]
+		}
+
+		return charge, nil
 	})
 }
 
@@ -213,6 +238,33 @@ func expandRealizations(query *db.ChargeUsageBasedQuery) *db.ChargeUsageBasedQue
 				WithPayment()
 		},
 	)
+}
+
+func attachActiveLineageSegmentsToUsageBasedCharges(ctx context.Context, dbClient *db.Client, namespace string, charges []usagebased.Charge) error {
+	realizationIDs := make([]string, 0)
+	for _, charge := range charges {
+		for _, run := range charge.Realizations {
+			for _, realization := range run.CreditsAllocated {
+				realizationIDs = append(realizationIDs, realization.ID)
+			}
+		}
+	}
+
+	segmentsByRealizationID, err := chargesadapter.LoadActiveLineageSegments(ctx, dbClient, namespace, realizationIDs)
+	if err != nil {
+		return fmt.Errorf("load active lineage segments for usage based charges: %w", err)
+	}
+
+	for chargeIdx := range charges {
+		for runIdx := range charges[chargeIdx].Realizations {
+			for realizationIdx := range charges[chargeIdx].Realizations[runIdx].CreditsAllocated {
+				realization := &charges[chargeIdx].Realizations[runIdx].CreditsAllocated[realizationIdx]
+				realization.ActiveLineageSegments = segmentsByRealizationID[realization.ID]
+			}
+		}
+	}
+
+	return nil
 }
 
 func (a *adapter) buildCreateUsageBasedCharge(ctx context.Context, ns string, intent usagebased.CreateIntent) (*db.ChargeUsageBasedCreate, error) {

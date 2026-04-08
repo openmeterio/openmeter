@@ -26,13 +26,16 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
+	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	ledgerresolvers "github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
+	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
@@ -64,15 +67,23 @@ func (s *CreditsTestSuite) SetupSuite() {
 	s.LedgerAccountService = deps.AccountService
 	s.LedgerResolver = deps.ResolversService
 
+	collectorService := ledgercollector.NewService(ledgercollector.Config{
+		Ledger: deps.HistoricalLedger,
+		Dependencies: transactions.ResolverDependencies{
+			AccountService:    deps.ResolversService,
+			SubAccountService: deps.AccountService,
+		},
+	})
+
 	stack, err := chargestestutils.NewServices(s.T(), chargestestutils.Config{
 		Client:                s.DBClient,
 		Logger:                logger,
 		BillingService:        s.BillingService,
 		FeatureService:        s.FeatureService,
 		StreamingConnector:    s.MockStreamingConnector,
-		FlatFeeHandler:        ledgerchargeadapter.NewFlatFeeHandler(deps.HistoricalLedger, deps.ResolversService, deps.AccountService),
+		FlatFeeHandler:        ledgerchargeadapter.NewFlatFeeHandler(deps.HistoricalLedger, transactions.ResolverDependencies{AccountService: deps.ResolversService, SubAccountService: deps.AccountService}, collectorService),
 		CreditPurchaseHandler: ledgerchargeadapter.NewCreditPurchaseHandler(deps.HistoricalLedger, deps.ResolversService, deps.AccountService),
-		UsageBasedHandler:     ledgerchargeadapter.NewUsageBasedHandler(deps.HistoricalLedger, deps.ResolversService, deps.AccountService),
+		UsageBasedHandler:     ledgerchargeadapter.NewUsageBasedHandler(collectorService),
 	})
 	s.NoError(err)
 	s.Charges = stack.ChargesService
@@ -216,10 +227,123 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionSanity() {
 		},
 	})
 	s.NoError(err)
-
 	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, nil).Equal(alpacadecimal.Zero))
 	s.True(s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, nil).Equal(alpacadecimal.Zero))
 	s.True(s.mustCustomerFBOBalance(cust.GetID(), USD, nil).Equal(alpacadecimal.Zero))
+}
+
+func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfillSanity() {
+	ctx := context.Background()
+	ns := s.GetUniqueNamespace("charges-sanity-usagebased-credit-only-delete-partial-backfill")
+
+	cust := s.createLedgerBackedCustomer(ns, "test-subject")
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	createAt := datetime.MustParseTimeInLocation(s.T(), "2026-02-03T00:00:00Z", time.UTC).AsTime()
+
+	clock.FreezeTime(createAt)
+	defer clock.UnFreeze()
+
+	s.MockStreamingConnector.AddSimpleEvent(
+		apiRequestsTotal.Feature.Key,
+		50,
+		datetime.MustParseTimeInLocation(s.T(), "2026-01-15T00:00:00Z", time.UTC).AsTime(),
+	)
+
+	res, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditOnlySettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromInt(1),
+				}),
+				name:              "usage-based-credit-only-delete-partial-backfill",
+				managedBy:         billing.SubscriptionManagedLine,
+				uniqueReferenceID: "usage-based-credit-only-delete-partial-backfill",
+				featureKey:        apiRequestsTotal.Feature.Key,
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Len(res, 1)
+
+	usageBasedCharge, err := res[0].AsUsageBasedCharge()
+	s.NoError(err)
+	s.Equal(meta.ChargeStatusFinal, meta.ChargeStatus(usageBasedCharge.Status))
+	s.Len(usageBasedCharge.Realizations, 1)
+	s.Len(usageBasedCharge.Realizations[0].CreditsAllocated, 1)
+	allocatedAmount := usageBasedCharge.Realizations[0].CreditsAllocated[0].Amount
+	purchaseAmount := alpacadecimal.NewFromInt(20)
+	remainingUncovered := allocatedAmount.Sub(purchaseAmount)
+
+	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, nil).Equal(allocatedAmount.Neg()))
+	s.True(s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, nil).Equal(allocatedAmount))
+
+	creditPurchaseIntent := s.createCreditPurchaseIntent(createCreditPurchaseIntentInput{
+		customer: cust.GetID(),
+		currency: USD,
+		amount:   purchaseAmount,
+		servicePeriod: timeutil.ClosedPeriod{
+			From: createAt,
+			To:   createAt,
+		},
+		settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
+			GenericSettlement: creditpurchase.GenericSettlement{
+				Currency:  USD,
+				CostBasis: alpacadecimal.NewFromFloat(0.5),
+			},
+			InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
+		}),
+	})
+
+	creditPurchaseRes, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			creditPurchaseIntent,
+		},
+	})
+	s.NoError(err)
+	s.Len(creditPurchaseRes, 1)
+	creditPurchaseCharge, err := creditPurchaseRes[0].AsCreditPurchaseCharge()
+	s.NoError(err)
+
+	costBasis := alpacadecimal.NewFromFloat(0.5)
+	backingGroup, err := s.Ledger.GetTransactionGroup(ctx, models.NamespacedID{
+		Namespace: ns,
+		ID:        creditPurchaseCharge.State.CreditGrantRealization.TransactionGroupID,
+	})
+	s.NoError(err)
+	s.Len(backingGroup.Transactions(), 2)
+	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, nil).Equal(allocatedAmount.Neg()))
+	s.True(s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, nil).Equal(remainingUncovered))
+	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, &costBasis).Equal(purchaseAmount.Neg()))
+	s.True(s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, &costBasis).Equal(purchaseAmount))
+	s.True(s.mustCustomerFBOBalance(cust.GetID(), USD, &costBasis).Equal(alpacadecimal.Zero))
+
+	err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+		CustomerID: cust.GetID(),
+		PatchesByChargeID: map[string]charges.Patch{
+			usageBasedCharge.ID: meta.NewPatchDelete(meta.RefundAsCreditsDeletePolicy),
+		},
+	})
+	s.NoError(err)
+	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, nil).Equal(purchaseAmount.Neg()))
+	s.True(s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, nil).Equal(alpacadecimal.Zero))
+	s.True(s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, &costBasis).Equal(alpacadecimal.Zero))
+	s.True(s.mustCustomerFBOBalance(cust.GetID(), USD, nil).Equal(alpacadecimal.Zero))
+	s.True(s.mustCustomerFBOBalance(cust.GetID(), USD, &costBasis).Equal(purchaseAmount))
+	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, &costBasis).Equal(purchaseAmount.Neg()))
 }
 
 func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {

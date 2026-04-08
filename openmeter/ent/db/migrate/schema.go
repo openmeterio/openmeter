@@ -2510,6 +2510,85 @@ var (
 			},
 		},
 	}
+	// CreditRealizationLineagesColumns holds the columns for the "credit_realization_lineages" table.
+	CreditRealizationLineagesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "root_realization_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
+		{Name: "origin_kind", Type: field.TypeEnum, Enums: []string{"real_credit", "advance"}},
+		{Name: "created_at", Type: field.TypeTime},
+	}
+	// CreditRealizationLineagesTable holds the schema information for the "credit_realization_lineages" table.
+	CreditRealizationLineagesTable = &schema.Table{
+		Name:       "credit_realization_lineages",
+		Columns:    CreditRealizationLineagesColumns,
+		PrimaryKey: []*schema.Column{CreditRealizationLineagesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "creditrealizationlineage_id",
+				Unique:  true,
+				Columns: []*schema.Column{CreditRealizationLineagesColumns[0]},
+			},
+			{
+				Name:    "creditrealizationlineage_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{CreditRealizationLineagesColumns[1]},
+			},
+			{
+				Name:    "creditrealizationlineage_namespace_root_realization_id",
+				Unique:  true,
+				Columns: []*schema.Column{CreditRealizationLineagesColumns[1], CreditRealizationLineagesColumns[2]},
+			},
+			{
+				Name:    "creditrealizationlineage_namespace_customer_id",
+				Unique:  false,
+				Columns: []*schema.Column{CreditRealizationLineagesColumns[1], CreditRealizationLineagesColumns[3]},
+			},
+		},
+	}
+	// CreditRealizationLineageSegmentsColumns holds the columns for the "credit_realization_lineage_segments" table.
+	CreditRealizationLineageSegmentsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "state", Type: field.TypeEnum, Enums: []string{"real_credit", "advance_uncovered", "advance_backfilled"}},
+		{Name: "backing_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "closed_at", Type: field.TypeTime, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "lineage_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// CreditRealizationLineageSegmentsTable holds the schema information for the "credit_realization_lineage_segments" table.
+	CreditRealizationLineageSegmentsTable = &schema.Table{
+		Name:       "credit_realization_lineage_segments",
+		Columns:    CreditRealizationLineageSegmentsColumns,
+		PrimaryKey: []*schema.Column{CreditRealizationLineageSegmentsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "credit_realization_lineage_segments_credit_realization_lineages_segments",
+				Columns:    []*schema.Column{CreditRealizationLineageSegmentsColumns[6]},
+				RefColumns: []*schema.Column{CreditRealizationLineagesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "creditrealizationlineagesegment_id",
+				Unique:  true,
+				Columns: []*schema.Column{CreditRealizationLineageSegmentsColumns[0]},
+			},
+			{
+				Name:    "creditrealizationlineagesegment_lineage_id",
+				Unique:  false,
+				Columns: []*schema.Column{CreditRealizationLineageSegmentsColumns[6]},
+			},
+			{
+				Name:    "creditrealizationlineagesegment_lineage_id_closed_at",
+				Unique:  false,
+				Columns: []*schema.Column{CreditRealizationLineageSegmentsColumns[6], CreditRealizationLineageSegmentsColumns[4]},
+			},
+		},
+	}
 	// CurrencyCostBasesColumns holds the columns for the "currency_cost_bases" table.
 	CurrencyCostBasesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -4591,6 +4670,8 @@ var (
 		ChargeUsageBasedRunInvoicedUsagesTable,
 		ChargeUsageBasedRunPaymentsTable,
 		ChargeUsageBasedRunsTable,
+		CreditRealizationLineagesTable,
+		CreditRealizationLineageSegmentsTable,
 		CurrencyCostBasesTable,
 		CustomCurrenciesTable,
 		CustomersTable,
@@ -4715,6 +4796,7 @@ func init() {
 	ChargeUsageBasedRunPaymentsTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunsTable
 	ChargeUsageBasedRunsTable.ForeignKeys[0].RefTable = ChargeUsageBasedTable
 	ChargeUsageBasedRunsTable.ForeignKeys[1].RefTable = FeaturesTable
+	CreditRealizationLineageSegmentsTable.ForeignKeys[0].RefTable = CreditRealizationLineagesTable
 	CurrencyCostBasesTable.ForeignKeys[0].RefTable = CustomCurrenciesTable
 	CustomerSubjectsTable.ForeignKeys[0].RefTable = CustomersTable
 	EntitlementsTable.ForeignKeys[0].RefTable = CustomersTable

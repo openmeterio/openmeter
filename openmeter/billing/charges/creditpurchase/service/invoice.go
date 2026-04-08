@@ -10,22 +10,38 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 func (s *service) PostInvoiceDraftCreated(ctx context.Context, charge creditpurchase.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
-	ledgerTransactionGroupReference, err := s.handler.OnCreditPurchaseInitiated(ctx, charge)
-	if err != nil {
+	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
+		ledgerTransactionGroupReference, err := s.handler.OnCreditPurchaseInitiated(ctx, charge)
+		if err != nil {
+			return err
+		}
+
+		charge.State.CreditGrantRealization = &ledgertransaction.TimedGroupReference{
+			GroupReference: ledgerTransactionGroupReference,
+			Time:           clock.Now(),
+		}
+
+		if ledgerTransactionGroupReference.TransactionGroupID != "" {
+			if err := s.adapter.BackfillAdvanceLineageSegments(ctx, creditpurchase.BackfillAdvanceLineageSegmentsInput{
+				Namespace:                 charge.Namespace,
+				CustomerID:                charge.Intent.CustomerID,
+				Currency:                  charge.Intent.Currency,
+				Amount:                    charge.Intent.CreditAmount,
+				BackingTransactionGroupID: ledgerTransactionGroupReference.TransactionGroupID,
+			}); err != nil {
+				return err
+			}
+		}
+
+		charge.Status = meta.ChargeStatusActive
+
+		_, err = s.adapter.UpdateCharge(ctx, charge)
 		return err
-	}
-
-	charge.State.CreditGrantRealization = &ledgertransaction.TimedGroupReference{
-		GroupReference: ledgerTransactionGroupReference,
-		Time:           clock.Now(),
-	}
-	charge.Status = meta.ChargeStatusActive
-
-	_, err = s.adapter.UpdateCharge(ctx, charge)
-	return err
+	})
 }
 
 // PostInvoicePaymentAuthorized is called when the invoice is approved/issued.

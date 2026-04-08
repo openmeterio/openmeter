@@ -22,7 +22,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
+	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
+	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
@@ -76,9 +78,17 @@ func NewCustomerBalanceService(
 		return nil, err
 	}
 
+	collectorService := ledgercollector.NewService(ledgercollector.Config{
+		Ledger: historicalLedger,
+		Dependencies: transactions.ResolverDependencies{
+			AccountService:    accountResolver,
+			SubAccountService: accountService,
+		},
+	})
+
 	flatFeeService, err := flatfeeservice.New(flatfeeservice.Config{
 		Adapter:     flatFeeAdapter,
-		Handler:     ledgerchargeadapter.NewFlatFeeHandler(historicalLedger, accountResolver, accountService),
+		Handler:     ledgerchargeadapter.NewFlatFeeHandler(historicalLedger, transactions.ResolverDependencies{AccountService: accountResolver, SubAccountService: accountService}, collectorService),
 		MetaAdapter: metaAdapter,
 		Locker:      locker,
 	})
@@ -97,7 +107,7 @@ func NewCustomerBalanceService(
 
 	usageService, err := usagebasedservice.New(usagebasedservice.Config{
 		Adapter:                 usageAdapter,
-		Handler:                 usagebased.UnimplementedHandler{},
+		Handler:                 ledgerchargeadapter.NewUsageBasedHandler(collectorService),
 		Locker:                  locker,
 		MetaAdapter:             metaAdapter,
 		CustomerOverrideService: billingRegistry.Billing,

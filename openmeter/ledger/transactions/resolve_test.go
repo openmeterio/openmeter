@@ -28,7 +28,7 @@ func (*spyCustomerTemplate) resolve(context.Context, customer.CustomerID, Resolv
 	return nil, nil
 }
 
-func (*spyCustomerTemplate) correct(context.Context, CorrectionScope, ResolverDependencies) ([]ledger.TransactionInput, error) {
+func (*spyCustomerTemplate) correct(CorrectionScope) ([]ledger.TransactionInput, error) {
 	return nil, nil
 }
 
@@ -67,7 +67,7 @@ func (annotatedCustomerTemplate) resolve(_ context.Context, _ customer.CustomerI
 	return &TransactionInput{}, nil
 }
 
-func (annotatedCustomerTemplate) correct(context.Context, CorrectionScope, ResolverDependencies) ([]ledger.TransactionInput, error) {
+func (annotatedCustomerTemplate) correct(CorrectionScope) ([]ledger.TransactionInput, error) {
 	return nil, nil
 }
 

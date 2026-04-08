@@ -42,7 +42,7 @@ func (t TransferCustomerFBOToAccruedTemplate) typeGuard() guard {
 
 var _ CustomerTransactionTemplate = (TransferCustomerFBOToAccruedTemplate{})
 
-func (t TransferCustomerFBOToAccruedTemplate) correct(_ context.Context, scope CorrectionInput, _ ResolverDependencies) ([]ledger.TransactionInput, error) {
+func (t TransferCustomerFBOToAccruedTemplate) correct(scope CorrectionInput) ([]ledger.TransactionInput, error) {
 	type selectedDebit struct {
 		fboAddress     ledger.PostingAddress
 		accruedAddress ledger.PostingAddress
@@ -260,7 +260,7 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) typeGuard() guard {
 
 var _ CustomerTransactionTemplate = (TransferCustomerFBOAdvanceToAccruedTemplate{})
 
-func (t TransferCustomerFBOAdvanceToAccruedTemplate) correct(_ context.Context, scope CorrectionInput, _ ResolverDependencies) ([]ledger.TransactionInput, error) {
+func (t TransferCustomerFBOAdvanceToAccruedTemplate) correct(scope CorrectionInput) ([]ledger.TransactionInput, error) {
 	var fboAddress ledger.PostingAddress
 	var accruedAddress ledger.PostingAddress
 	var fboAmount alpacadecimal.Decimal
@@ -381,7 +381,7 @@ func (t TransferCustomerReceivableToAccruedTemplate) typeGuard() guard {
 
 var _ CustomerTransactionTemplate = (TransferCustomerReceivableToAccruedTemplate{})
 
-func (t TransferCustomerReceivableToAccruedTemplate) correct(context.Context, CorrectionInput, ResolverDependencies) ([]ledger.TransactionInput, error) {
+func (t TransferCustomerReceivableToAccruedTemplate) correct(CorrectionInput) ([]ledger.TransactionInput, error) {
 	return nil, templateCorrectionNotImplemented(templateName(t))
 }
 
@@ -473,8 +473,48 @@ func (t TranslateCustomerAccruedCostBasisTemplate) typeGuard() guard {
 
 var _ CustomerTransactionTemplate = (TranslateCustomerAccruedCostBasisTemplate{})
 
-func (t TranslateCustomerAccruedCostBasisTemplate) correct(context.Context, CorrectionInput, ResolverDependencies) ([]ledger.TransactionInput, error) {
-	return nil, templateCorrectionNotImplemented(templateName(t))
+func (t TranslateCustomerAccruedCostBasisTemplate) correct(scope CorrectionInput) ([]ledger.TransactionInput, error) {
+	var fromAccruedAddress ledger.PostingAddress
+	var toAccruedAddress ledger.PostingAddress
+	var fromAccruedAmount alpacadecimal.Decimal
+	var toAccruedAmount alpacadecimal.Decimal
+
+	for _, entry := range scope.OriginalTransaction.Entries() {
+		switch {
+		case entry.PostingAddress().AccountType() != ledger.AccountTypeCustomerAccrued:
+			continue
+		case entry.Amount().IsNegative():
+			fromAccruedAddress = entry.PostingAddress()
+			fromAccruedAmount = fromAccruedAmount.Add(entry.Amount().Abs())
+		case entry.Amount().IsPositive():
+			toAccruedAddress = entry.PostingAddress()
+			toAccruedAmount = toAccruedAmount.Add(entry.Amount())
+		}
+	}
+
+	if fromAccruedAddress == nil || toAccruedAddress == nil {
+		return nil, fmt.Errorf("accrued cost-basis translation correction requires original accrued entries")
+	}
+
+	if scope.Amount.GreaterThan(fromAccruedAmount) || scope.Amount.GreaterThan(toAccruedAmount) {
+		return nil, fmt.Errorf("accrued cost-basis translation correction amount %s exceeds original transaction amount", scope.Amount.String())
+	}
+
+	return []ledger.TransactionInput{
+		&TransactionInput{
+			bookedAt: scope.At,
+			entryInputs: []*EntryInput{
+				{
+					address: fromAccruedAddress,
+					amount:  scope.Amount,
+				},
+				{
+					address: toAccruedAddress,
+					amount:  scope.Amount.Neg(),
+				},
+			},
+		},
+	}, nil
 }
 
 func (t TranslateCustomerAccruedCostBasisTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {

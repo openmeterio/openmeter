@@ -19,6 +19,7 @@ import (
 	ledgertransactiongroupdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
+	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -484,13 +485,21 @@ type flatFeeHandlerTestEnv struct {
 
 func newFlatFeeHandlerTestEnv(t *testing.T) *flatFeeHandlerTestEnv {
 	base := ledgertestutils.NewIntegrationEnv(t, "chargeadapter-flatfee")
+	deps := transactions.ResolverDependencies{
+		AccountService:    base.Deps.ResolversService,
+		SubAccountService: base.Deps.AccountService,
+	}
+	collectorService := ledgercollector.NewService(ledgercollector.Config{
+		Ledger:       base.Deps.HistoricalLedger,
+		Dependencies: deps,
+	})
 
 	return &flatFeeHandlerTestEnv{
 		IntegrationEnv: base,
 		handler: chargeadapter.NewFlatFeeHandler(
 			base.Deps.HistoricalLedger,
-			base.Deps.ResolversService,
-			base.Deps.AccountService,
+			deps,
+			collectorService,
 		),
 	}
 }

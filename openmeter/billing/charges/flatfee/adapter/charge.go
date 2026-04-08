@@ -7,6 +7,7 @@ import (
 
 	"github.com/samber/lo"
 
+	chargesadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
@@ -144,6 +145,7 @@ func (a *adapter) CreateCharges(ctx context.Context, in flatfee.CreateChargesInp
 			}
 			out = append(out, charge)
 		}
+
 		return out, nil
 	})
 }
@@ -172,9 +174,20 @@ func (a *adapter) GetByIDs(ctx context.Context, input flatfee.GetByIDsInput) ([]
 			return nil, err
 		}
 
-		return slicesx.MapWithErr(entitiesInOrder, func(entity *db.ChargeFlatFee) (flatfee.Charge, error) {
+		out, err := slicesx.MapWithErr(entitiesInOrder, func(entity *db.ChargeFlatFee) (flatfee.Charge, error) {
 			return MapChargeFlatFeeFromDB(entity, input.Expands)
 		})
+		if err != nil {
+			return nil, err
+		}
+
+		if input.Expands.Has(meta.ExpandRealizations) {
+			if err := attachActiveLineageSegmentsToFlatFeeCharges(ctx, tx.db, input.Namespace, out); err != nil {
+				return nil, err
+			}
+		}
+
+		return out, nil
 	})
 }
 
@@ -201,7 +214,20 @@ func (a *adapter) GetByID(ctx context.Context, input flatfee.GetByIDInput) (flat
 			return flatfee.Charge{}, fmt.Errorf("querying flat fee charge [id=%s]: %w", input.ChargeID, err)
 		}
 
-		return MapChargeFlatFeeFromDB(entity, input.Expands)
+		charge, err := MapChargeFlatFeeFromDB(entity, input.Expands)
+		if err != nil {
+			return flatfee.Charge{}, err
+		}
+
+		if input.Expands.Has(meta.ExpandRealizations) {
+			charges := []flatfee.Charge{charge}
+			if err := attachActiveLineageSegmentsToFlatFeeCharges(ctx, tx.db, input.ChargeID.Namespace, charges); err != nil {
+				return flatfee.Charge{}, err
+			}
+			charge = charges[0]
+		}
+
+		return charge, nil
 	})
 }
 
@@ -209,6 +235,29 @@ func expandRealizations(query *db.ChargeFlatFeeQuery) *db.ChargeFlatFeeQuery {
 	return query.WithCreditAllocations().
 		WithInvoicedUsage().
 		WithPayment()
+}
+
+func attachActiveLineageSegmentsToFlatFeeCharges(ctx context.Context, dbClient *db.Client, namespace string, charges []flatfee.Charge) error {
+	realizationIDs := make([]string, 0)
+	for _, charge := range charges {
+		for _, realization := range charge.State.CreditRealizations {
+			realizationIDs = append(realizationIDs, realization.ID)
+		}
+	}
+
+	segmentsByRealizationID, err := chargesadapter.LoadActiveLineageSegments(ctx, dbClient, namespace, realizationIDs)
+	if err != nil {
+		return fmt.Errorf("load active lineage segments for flat fee charges: %w", err)
+	}
+
+	for chargeIdx := range charges {
+		for realizationIdx := range charges[chargeIdx].State.CreditRealizations {
+			realization := &charges[chargeIdx].State.CreditRealizations[realizationIdx]
+			realization.ActiveLineageSegments = segmentsByRealizationID[realization.ID]
+		}
+	}
+
+	return nil
 }
 
 func (a *adapter) buildCreateFlatFeeCharge(ns string, intent flatfee.IntentWithInitialStatus) (*db.ChargeFlatFeeCreate, error) {
