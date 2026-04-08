@@ -85,7 +85,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.42.0
 	go.opentelemetry.io/proto/otlp v1.10.0
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b
-	google.golang.org/grpc v1.79.3
+	google.golang.org/grpc v1.80.0
 	google.golang.org/protobuf v1.36.11
 	k8s.io/api v0.35.3
 	k8s.io/apimachinery v0.35.3
@@ -105,7 +105,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azdatalake v1.4.1 // indirect
 	github.com/BurntSushi/toml v1.5.0 // indirect
 	github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp v1.6.0 // indirect
-	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.30.0 // indirect
+	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.31.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.54.0 // indirect
 	github.com/ProtonMail/go-crypto v1.3.0 // indirect
 	github.com/apache/arrow-go/v18 v18.3.1 // indirect
