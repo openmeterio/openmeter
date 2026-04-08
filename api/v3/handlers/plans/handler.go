@@ -11,6 +11,8 @@ type Handler interface {
 	GetPlan() GetPlanHandler
 	CreatePlan() CreatePlanHandler
 	DeletePlan() DeletePlanHandler
+	PublishPlan() PublishPlanHandler
+	ArchivePlan() ArchivePlanHandler
 }
 
 type handler struct {
