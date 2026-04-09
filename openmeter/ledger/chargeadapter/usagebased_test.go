@@ -141,6 +141,7 @@ func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
 
 func (e *usageBasedHandlerTestEnv) newCreditsOnlyCharge() chargeusagebased.Charge {
 	now := time.Now().UTC()
+	featureID := "feature-api-requests"
 	servicePeriod := timeutil.ClosedPeriod{
 		From: now.Add(-time.Hour),
 		To:   now,
@@ -173,13 +174,16 @@ func (e *usageBasedHandlerTestEnv) newCreditsOnlyCharge() chargeusagebased.Charg
 				Price:          *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
 			},
 			Status: chargeusagebased.StatusActiveFinalRealizationProcessing,
-			State:  chargeusagebased.State{},
+			State: chargeusagebased.State{
+				FeatureID: featureID,
+			},
 		},
 	}
 }
 
 func (e *usageBasedHandlerTestEnv) newRun() chargeusagebased.RealizationRun {
 	now := time.Now().UTC()
+	featureID := "feature-api-requests"
 
 	return chargeusagebased.RealizationRun{
 		RealizationRunBase: chargeusagebased.RealizationRunBase{
@@ -195,6 +199,7 @@ func (e *usageBasedHandlerTestEnv) newRun() chargeusagebased.RealizationRun {
 			AsOf:          now,
 			CollectionEnd: now,
 			MeterValue:    alpacadecimal.NewFromInt(30),
+			FeatureID:     featureID,
 			Totals: totals.Totals{
 				Amount:       alpacadecimal.NewFromInt(30),
 				CreditsTotal: alpacadecimal.NewFromInt(30),
