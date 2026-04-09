@@ -2,27 +2,14 @@ package models
 
 import (
 	"fmt"
+	"maps"
 	"reflect"
 )
 
 type Attributes map[any]any
 
 func (a Attributes) Clone() Attributes {
-	if a == nil {
-		return nil
-	}
-
-	m := make(Attributes)
-
-	if len(a) == 0 {
-		return m
-	}
-
-	for k, v := range a {
-		m[k] = v
-	}
-
-	return m
+	return maps.Clone(a)
 }
 
 // AsStringMap converts Attributes into a map[string]any by:
