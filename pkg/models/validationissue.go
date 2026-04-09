@@ -3,6 +3,7 @@ package models
 import (
 	"encoding/json"
 	"errors"
+	"maps"
 	"reflect"
 
 	"github.com/samber/lo"
@@ -41,8 +42,9 @@ func (i ValidationIssue) Clone() ValidationIssue {
 	}
 }
 
+// Attributes returns a shallow-copy of the underlying attributes map.
 func (i ValidationIssue) Attributes() Attributes {
-	return i.attributes
+	return maps.Clone(i.attributes)
 }
 
 func (i ValidationIssue) Code() ErrorCode {
@@ -135,12 +137,10 @@ func (i ValidationIssue) WithAttrs(attrs Attributes) ValidationIssue {
 }
 
 func (i ValidationIssue) SetAttributes(attrs Attributes) ValidationIssue {
-	if len(attrs) == 0 {
-		return i
-	}
-
 	v := i.Clone()
+
 	v.attributes = attrs
+
 	return v
 }
 
@@ -363,7 +363,7 @@ func asValidationIssues(err error, prefix *FieldDescriptor, component ComponentN
 				return component
 			}()),
 			WithSeverity(e.severity),
-			WithAttributes(e.attributes),
+			WithAttributes(e.Attributes()),
 		}
 
 		if e.field != nil {
