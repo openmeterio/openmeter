@@ -27,3 +27,6 @@ openmeter.log
 .claude/todos.json
 .claude/worktrees
 CLAUDE.local.md
+
+# CodeGraph
+.codegraph/
