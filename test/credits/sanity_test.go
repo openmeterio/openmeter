@@ -1257,7 +1257,6 @@ func (s *CreditsTestSuite) mustCustomerFBOBalanceWithPriority(customerID custome
 	balance, err := customerAccounts.FBOAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
 		Currency:       code,
 		CostBasis:      costBasis,
-		CreditPriority: priority,
 		CreditPriority: lo.ToPtr(priority),
 	})
 	s.NoError(err)
