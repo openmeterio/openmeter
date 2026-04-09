@@ -255,6 +255,12 @@ type ChargeUsageBasedRuns func(*sql.Selector)
 // ChargesSearchV1 is the predicate function for chargessearchv1 builders.
 type ChargesSearchV1 func(*sql.Selector)
 
+// CreditRealizationLineage is the predicate function for creditrealizationlineage builders.
+type CreditRealizationLineage func(*sql.Selector)
+
+// CreditRealizationLineageSegment is the predicate function for creditrealizationlineagesegment builders.
+type CreditRealizationLineageSegment func(*sql.Selector)
+
 // CurrencyCostBasis is the predicate function for currencycostbasis builders.
 type CurrencyCostBasis func(*sql.Selector)
 

@@ -40,6 +40,8 @@ const (
 	EdgeBillingInvoiceLines = "billing_invoice_lines"
 	// EdgeBillingSplitLineGroups holds the string denoting the billing_split_line_groups edge name in mutations.
 	EdgeBillingSplitLineGroups = "billing_split_line_groups"
+	// EdgeCreditRealizationLineages holds the string denoting the credit_realization_lineages edge name in mutations.
+	EdgeCreditRealizationLineages = "credit_realization_lineages"
 	// Table holds the table name of the charge in the database.
 	Table = "charges"
 	// FlatFeeTable is the table that holds the flat_fee relation/edge.
@@ -77,6 +79,13 @@ const (
 	BillingSplitLineGroupsInverseTable = "billing_invoice_split_line_groups"
 	// BillingSplitLineGroupsColumn is the table column denoting the billing_split_line_groups relation/edge.
 	BillingSplitLineGroupsColumn = "charge_id"
+	// CreditRealizationLineagesTable is the table that holds the credit_realization_lineages relation/edge.
+	CreditRealizationLineagesTable = "credit_realization_lineages"
+	// CreditRealizationLineagesInverseTable is the table name for the CreditRealizationLineage entity.
+	// It exists in this package in order to avoid circular dependency with the "creditrealizationlineage" package.
+	CreditRealizationLineagesInverseTable = "credit_realization_lineages"
+	// CreditRealizationLineagesColumn is the table column denoting the credit_realization_lineages relation/edge.
+	CreditRealizationLineagesColumn = "charge_id"
 )
 
 // Columns holds all SQL columns for charge fields.
@@ -209,6 +218,20 @@ func ByBillingSplitLineGroups(term sql.OrderTerm, terms ...sql.OrderTerm) OrderO
 		sqlgraph.OrderByNeighborTerms(s, newBillingSplitLineGroupsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByCreditRealizationLineagesCount orders the results by credit_realization_lineages count.
+func ByCreditRealizationLineagesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newCreditRealizationLineagesStep(), opts...)
+	}
+}
+
+// ByCreditRealizationLineages orders the results by credit_realization_lineages terms.
+func ByCreditRealizationLineages(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCreditRealizationLineagesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newFlatFeeStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -242,5 +265,12 @@ func newBillingSplitLineGroupsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingSplitLineGroupsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, BillingSplitLineGroupsTable, BillingSplitLineGroupsColumn),
+	)
+}
+func newCreditRealizationLineagesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CreditRealizationLineagesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, CreditRealizationLineagesTable, CreditRealizationLineagesColumn),
 	)
 }

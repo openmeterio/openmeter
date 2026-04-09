@@ -56,9 +56,20 @@ func (t *Transaction) BookedAt() time.Time {
 	return t.data.BookedAt
 }
 
+func (t *Transaction) Annotations() models.Annotations {
+	return t.data.Annotations
+}
+
 type TransactionGroup struct {
 	data         TransactionGroupData
 	transactions []*Transaction
+}
+
+func NewTransactionGroupFromData(data TransactionGroupData, transactions []*Transaction) *TransactionGroup {
+	return &TransactionGroup{
+		data:         data,
+		transactions: transactions,
+	}
 }
 
 var _ ledger.TransactionGroup = (*TransactionGroup)(nil)

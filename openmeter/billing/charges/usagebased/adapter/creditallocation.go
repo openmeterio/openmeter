@@ -38,8 +38,10 @@ func (a *adapter) CreateRunCreditRealization(ctx context.Context, runID usagebas
 			return nil, err
 		}
 
-		return lo.Map(dbEntities, func(entity *entdb.ChargeUsageBasedRunCreditAllocations, _ int) creditrealization.Realization {
+		realizations := lo.Map(dbEntities, func(entity *entdb.ChargeUsageBasedRunCreditAllocations, _ int) creditrealization.Realization {
 			return creditrealization.MapFromDB(entity)
-		}), nil
+		})
+
+		return realizations, nil
 	})
 }

@@ -18,6 +18,9 @@ type Repo interface {
 	// Create a transaction group
 	CreateTransactionGroup(ctx context.Context, transactionGroup CreateTransactionGroupInput) (TransactionGroupData, error)
 
+	// Get a transaction group with hydrated transactions and entries.
+	GetTransactionGroup(ctx context.Context, id models.NamespacedID) (*TransactionGroup, error)
+
 	// Book a transaction
 	BookTransaction(ctx context.Context, groupID models.NamespacedID, transaction ledger.TransactionInput) (*Transaction, error)
 

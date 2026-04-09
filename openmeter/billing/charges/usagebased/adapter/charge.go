@@ -172,9 +172,14 @@ func (a *adapter) GetByIDs(ctx context.Context, input usagebased.GetByIDsInput) 
 			return nil, err
 		}
 
-		return slicesx.MapWithErr(entitiesInOrder, func(entity *db.ChargeUsageBased) (usagebased.Charge, error) {
+		out, err := slicesx.MapWithErr(entitiesInOrder, func(entity *db.ChargeUsageBased) (usagebased.Charge, error) {
 			return MapChargeFromDB(entity, input.Expands)
 		})
+		if err != nil {
+			return nil, err
+		}
+
+		return out, nil
 	})
 }
 
@@ -201,7 +206,12 @@ func (a *adapter) GetByID(ctx context.Context, input usagebased.GetByIDInput) (u
 			return usagebased.Charge{}, fmt.Errorf("querying usage based charge [id=%s]: %w", input.ChargeID, err)
 		}
 
-		return MapChargeFromDB(entity, input.Expands)
+		charge, err := MapChargeFromDB(entity, input.Expands)
+		if err != nil {
+			return usagebased.Charge{}, err
+		}
+
+		return charge, nil
 	})
 }
 

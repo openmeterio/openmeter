@@ -3181,6 +3181,34 @@ func (u *ChargeUsageBasedRunsUpdateOne) SetOrClearDeletedAt(value *time.Time) *C
 	return u.SetDeletedAt(*value)
 }
 
+func (u *CreditRealizationLineageSegmentUpdate) SetOrClearBackingTransactionGroupID(value *string) *CreditRealizationLineageSegmentUpdate {
+	if value == nil {
+		return u.ClearBackingTransactionGroupID()
+	}
+	return u.SetBackingTransactionGroupID(*value)
+}
+
+func (u *CreditRealizationLineageSegmentUpdateOne) SetOrClearBackingTransactionGroupID(value *string) *CreditRealizationLineageSegmentUpdateOne {
+	if value == nil {
+		return u.ClearBackingTransactionGroupID()
+	}
+	return u.SetBackingTransactionGroupID(*value)
+}
+
+func (u *CreditRealizationLineageSegmentUpdate) SetOrClearClosedAt(value *time.Time) *CreditRealizationLineageSegmentUpdate {
+	if value == nil {
+		return u.ClearClosedAt()
+	}
+	return u.SetClosedAt(*value)
+}
+
+func (u *CreditRealizationLineageSegmentUpdateOne) SetOrClearClosedAt(value *time.Time) *CreditRealizationLineageSegmentUpdateOne {
+	if value == nil {
+		return u.ClearClosedAt()
+	}
+	return u.SetClosedAt(*value)
+}
+
 func (u *CurrencyCostBasisUpdate) SetOrClearDeletedAt(value *time.Time) *CurrencyCostBasisUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

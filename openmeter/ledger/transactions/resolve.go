@@ -3,6 +3,7 @@ package transactions
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -60,20 +61,12 @@ func (s ResolutionScope) validateForOrgTransaction() error {
 	return nil
 }
 
-type (
-	guard    bool // private type guard
-	Resolver interface {
-		typeGuard() guard
-		Validate() error
-	}
-)
-
 // ResolveTransactions resolves a list of transaction templates into a list of transaction inputs
 func ResolveTransactions(
 	ctx context.Context,
 	deps ResolverDependencies,
 	scope ResolutionScope,
-	templates ...Resolver,
+	templates ...TransactionTemplate,
 ) ([]ledger.TransactionInput, error) {
 	if err := scope.Validate(); err != nil {
 		return nil, err
@@ -98,7 +91,7 @@ func ResolveTransactions(
 			}
 
 			if tx != nil {
-				inputs = append(inputs, tx)
+				inputs = append(inputs, annotateTemplateTransaction(tx, template, ledger.TransactionDirectionForward))
 			}
 		case OrgTransactionTemplate:
 			if err := scope.validateForOrgTransaction(); err != nil {
@@ -111,7 +104,7 @@ func ResolveTransactions(
 			}
 
 			if tx != nil {
-				inputs = append(inputs, tx)
+				inputs = append(inputs, annotateTemplateTransaction(tx, template, ledger.TransactionDirectionForward))
 			}
 		default:
 			return nil, ledger.ErrResolutionTemplateUnknown.WithAttrs(models.Attributes{
@@ -121,4 +114,21 @@ func ResolveTransactions(
 	}
 
 	return inputs, nil
+}
+
+func templateName(template TransactionTemplate) string {
+	typ := reflect.TypeOf(template)
+	for typ.Kind() == reflect.Pointer {
+		typ = typ.Elem()
+	}
+
+	return typ.Name()
+}
+
+func TemplateName(template TransactionTemplate) string {
+	return templateName(template)
+}
+
+func annotateTemplateTransaction(input ledger.TransactionInput, template TransactionTemplate, direction ledger.TransactionDirection) ledger.TransactionInput {
+	return WithAnnotations(input, ledger.TransactionAnnotations(templateName(template), direction))
 }

@@ -85,6 +85,7 @@ type Entry interface {
 type TransactionInput interface {
 	BookedAt() time.Time
 	EntryInputs() []EntryInput
+	Annotations() models.Annotations
 	AsGroupInput(namespace string, annotations models.Annotations) TransactionGroupInput
 }
 
@@ -93,6 +94,7 @@ type Transaction interface {
 	BookedAt() time.Time
 	Entries() []Entry
 	ID() models.NamespacedID
+	Annotations() models.Annotations
 }
 
 type TransactionGroupInput interface {
@@ -115,6 +117,9 @@ type TransactionGroup interface {
 type Ledger interface {
 	// CommitGroup commits a list of transactions on the Ledger atomically
 	CommitGroup(ctx context.Context, group TransactionGroupInput) (TransactionGroup, error)
+
+	// GetTransactionGroup loads a previously committed transaction group including its transactions.
+	GetTransactionGroup(ctx context.Context, id models.NamespacedID) (TransactionGroup, error)
 
 	// ListTransactions lists transactions on the Ledger according to some filters
 	//

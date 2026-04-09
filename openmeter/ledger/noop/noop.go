@@ -75,6 +75,10 @@ func (Ledger) CommitGroup(context.Context, ledger.TransactionGroupInput) (ledger
 	return nil, nil
 }
 
+func (Ledger) GetTransactionGroup(context.Context, models.NamespacedID) (ledger.TransactionGroup, error) {
+	return nil, nil
+}
+
 func (Ledger) ListTransactions(context.Context, ledger.ListTransactionsInput) (pagination.Result[ledger.Transaction], error) {
 	return pagination.Result[ledger.Transaction]{}, nil
 }

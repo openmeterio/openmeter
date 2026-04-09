@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineage"
 )
 
 // ChargeCreate is the builder for creating a Charge entity.
@@ -226,6 +227,21 @@ func (_c *ChargeCreate) AddBillingSplitLineGroups(v ...*BillingInvoiceSplitLineG
 	return _c.AddBillingSplitLineGroupIDs(ids...)
 }
 
+// AddCreditRealizationLineageIDs adds the "credit_realization_lineages" edge to the CreditRealizationLineage entity by IDs.
+func (_c *ChargeCreate) AddCreditRealizationLineageIDs(ids ...string) *ChargeCreate {
+	_c.mutation.AddCreditRealizationLineageIDs(ids...)
+	return _c
+}
+
+// AddCreditRealizationLineages adds the "credit_realization_lineages" edges to the CreditRealizationLineage entity.
+func (_c *ChargeCreate) AddCreditRealizationLineages(v ...*CreditRealizationLineage) *ChargeCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddCreditRealizationLineageIDs(ids...)
+}
+
 // Mutation returns the ChargeMutation object of the builder.
 func (_c *ChargeCreate) Mutation() *ChargeMutation {
 	return _c.mutation
@@ -429,6 +445,22 @@ func (_c *ChargeCreate) createSpec() (*Charge, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CreditRealizationLineagesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   charge.CreditRealizationLineagesTable,
+			Columns: []string{charge.CreditRealizationLineagesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(creditrealizationlineage.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

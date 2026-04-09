@@ -57,6 +57,15 @@ func (l *Ledger) ListTransactions(ctx context.Context, params ledger.ListTransac
 	}, nil
 }
 
+func (l *Ledger) GetTransactionGroup(ctx context.Context, id models.NamespacedID) (ledger.TransactionGroup, error) {
+	group, err := l.repo.GetTransactionGroup(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get transaction group: %w", err)
+	}
+
+	return group, nil
+}
+
 func (l *Ledger) CommitGroup(ctx context.Context, group ledger.TransactionGroupInput) (ledger.TransactionGroup, error) {
 	txInputs := group.Transactions()
 

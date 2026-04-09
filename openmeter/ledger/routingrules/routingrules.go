@@ -78,10 +78,13 @@ func (r RequireFlowDirectionRule) Validate(tx TxView) error {
 
 	for _, entry := range fromEntries {
 		if !entry.Amount().IsNegative() {
+			if allEntriesPositive(fromEntries) && allEntriesNegative(toEntries) {
+				return nil
+			}
 			return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
 				"reason":       "invalid_flow_direction",
 				"account_type": r.From,
-				"expected":     "negative",
+				"expected":     "negative_or_positive_if_reversed",
 				"target_type":  r.To,
 			})
 		}
@@ -89,10 +92,13 @@ func (r RequireFlowDirectionRule) Validate(tx TxView) error {
 
 	for _, entry := range toEntries {
 		if !entry.Amount().IsPositive() {
+			if allEntriesPositive(fromEntries) && allEntriesNegative(toEntries) {
+				return nil
+			}
 			return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
 				"reason":       "invalid_flow_direction",
 				"account_type": r.To,
-				"expected":     "positive",
+				"expected":     "positive_or_negative_if_reversed",
 				"source_type":  r.From,
 			})
 		}
@@ -114,6 +120,26 @@ func hasMixedSigns(entries []EntryView) bool {
 	}
 
 	return false
+}
+
+func allEntriesPositive(entries []EntryView) bool {
+	for _, entry := range entries {
+		if !entry.Amount().IsPositive() {
+			return false
+		}
+	}
+
+	return len(entries) > 0
+}
+
+func allEntriesNegative(entries []EntryView) bool {
+	for _, entry := range entries {
+		if !entry.Amount().IsNegative() {
+			return false
+		}
+	}
+
+	return len(entries) > 0
 }
 
 type RouteField string
@@ -210,7 +236,7 @@ func (r RequireReceivableAuthorizationStageRule) Validate(tx TxView) error {
 
 	if allEntriesHaveAuthorizationStatus(negativeEntries, ledger.TransactionAuthorizationStatusOpen) &&
 		allEntriesHaveAuthorizationStatus(positiveEntries, ledger.TransactionAuthorizationStatusOpen) {
-		if err := requireKnownToUnknownCostBasisTranslation(
+		if err := requireKnownToUnknownCostBasisTranslationEitherDirection(
 			negativeEntries,
 			positiveEntries,
 			ledger.AccountTypeCustomerReceivable,
@@ -250,9 +276,9 @@ func (r RequireAccruedCostBasisTranslationRule) Validate(tx TxView) error {
 		})
 	}
 
-	return requireKnownToUnknownCostBasisTranslation(
-		positiveEntries,
+	return requireKnownToUnknownCostBasisTranslationEitherDirection(
 		negativeEntries,
+		positiveEntries,
 		ledger.AccountTypeCustomerAccrued,
 		[]RouteField{
 			RouteFieldCurrency,
@@ -349,6 +375,14 @@ func requireKnownToUnknownCostBasisTranslation(knownEntries, unknownEntries []En
 	}
 
 	return requireMatchingRouteFields(knownEntries, unknownEntries, accountType, accountType, fields)
+}
+
+func requireKnownToUnknownCostBasisTranslationEitherDirection(leftEntries, rightEntries []EntryView, accountType ledger.AccountType, fields []RouteField) error {
+	if err := requireKnownToUnknownCostBasisTranslation(leftEntries, rightEntries, accountType, fields); err == nil {
+		return nil
+	}
+
+	return requireKnownToUnknownCostBasisTranslation(rightEntries, leftEntries, accountType, fields)
 }
 
 func requireMatchingRouteFields(leftEntries, rightEntries []EntryView, leftType, rightType ledger.AccountType, fields []RouteField) error {

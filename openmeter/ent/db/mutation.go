@@ -60,6 +60,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineage"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineagesegment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/currencycostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
@@ -154,6 +156,8 @@ const (
 	TypeChargeUsageBasedRunPayment                       = "ChargeUsageBasedRunPayment"
 	TypeChargeUsageBasedRuns                             = "ChargeUsageBasedRuns"
 	TypeChargesSearchV1                                  = "ChargesSearchV1"
+	TypeCreditRealizationLineage                         = "CreditRealizationLineage"
+	TypeCreditRealizationLineageSegment                  = "CreditRealizationLineageSegment"
 	TypeCurrencyCostBasis                                = "CurrencyCostBasis"
 	TypeCustomCurrency                                   = "CustomCurrency"
 	TypeCustomer                                         = "Customer"
@@ -35376,30 +35380,33 @@ func (m *BillingWorkflowConfigMutation) ResetEdge(name string) error {
 // ChargeMutation represents an operation that mutates the Charge nodes in the graph.
 type ChargeMutation struct {
 	config
-	op                               Op
-	typ                              string
-	id                               *string
-	namespace                        *string
-	created_at                       *time.Time
-	deleted_at                       *time.Time
-	unique_reference_id              *string
-	_type                            *meta.ChargeType
-	clearedFields                    map[string]struct{}
-	flat_fee                         *string
-	clearedflat_fee                  bool
-	credit_purchase                  *string
-	clearedcredit_purchase           bool
-	usage_based                      *string
-	clearedusage_based               bool
-	billing_invoice_lines            map[string]struct{}
-	removedbilling_invoice_lines     map[string]struct{}
-	clearedbilling_invoice_lines     bool
-	billing_split_line_groups        map[string]struct{}
-	removedbilling_split_line_groups map[string]struct{}
-	clearedbilling_split_line_groups bool
-	done                             bool
-	oldValue                         func(context.Context) (*Charge, error)
-	predicates                       []predicate.Charge
+	op                                 Op
+	typ                                string
+	id                                 *string
+	namespace                          *string
+	created_at                         *time.Time
+	deleted_at                         *time.Time
+	unique_reference_id                *string
+	_type                              *meta.ChargeType
+	clearedFields                      map[string]struct{}
+	flat_fee                           *string
+	clearedflat_fee                    bool
+	credit_purchase                    *string
+	clearedcredit_purchase             bool
+	usage_based                        *string
+	clearedusage_based                 bool
+	billing_invoice_lines              map[string]struct{}
+	removedbilling_invoice_lines       map[string]struct{}
+	clearedbilling_invoice_lines       bool
+	billing_split_line_groups          map[string]struct{}
+	removedbilling_split_line_groups   map[string]struct{}
+	clearedbilling_split_line_groups   bool
+	credit_realization_lineages        map[string]struct{}
+	removedcredit_realization_lineages map[string]struct{}
+	clearedcredit_realization_lineages bool
+	done                               bool
+	oldValue                           func(context.Context) (*Charge, error)
+	predicates                         []predicate.Charge
 }
 
 var _ ent.Mutation = (*ChargeMutation)(nil)
@@ -36087,6 +36094,60 @@ func (m *ChargeMutation) ResetBillingSplitLineGroups() {
 	m.removedbilling_split_line_groups = nil
 }
 
+// AddCreditRealizationLineageIDs adds the "credit_realization_lineages" edge to the CreditRealizationLineage entity by ids.
+func (m *ChargeMutation) AddCreditRealizationLineageIDs(ids ...string) {
+	if m.credit_realization_lineages == nil {
+		m.credit_realization_lineages = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.credit_realization_lineages[ids[i]] = struct{}{}
+	}
+}
+
+// ClearCreditRealizationLineages clears the "credit_realization_lineages" edge to the CreditRealizationLineage entity.
+func (m *ChargeMutation) ClearCreditRealizationLineages() {
+	m.clearedcredit_realization_lineages = true
+}
+
+// CreditRealizationLineagesCleared reports if the "credit_realization_lineages" edge to the CreditRealizationLineage entity was cleared.
+func (m *ChargeMutation) CreditRealizationLineagesCleared() bool {
+	return m.clearedcredit_realization_lineages
+}
+
+// RemoveCreditRealizationLineageIDs removes the "credit_realization_lineages" edge to the CreditRealizationLineage entity by IDs.
+func (m *ChargeMutation) RemoveCreditRealizationLineageIDs(ids ...string) {
+	if m.removedcredit_realization_lineages == nil {
+		m.removedcredit_realization_lineages = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.credit_realization_lineages, ids[i])
+		m.removedcredit_realization_lineages[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedCreditRealizationLineages returns the removed IDs of the "credit_realization_lineages" edge to the CreditRealizationLineage entity.
+func (m *ChargeMutation) RemovedCreditRealizationLineagesIDs() (ids []string) {
+	for id := range m.removedcredit_realization_lineages {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// CreditRealizationLineagesIDs returns the "credit_realization_lineages" edge IDs in the mutation.
+func (m *ChargeMutation) CreditRealizationLineagesIDs() (ids []string) {
+	for id := range m.credit_realization_lineages {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetCreditRealizationLineages resets all changes to the "credit_realization_lineages" edge.
+func (m *ChargeMutation) ResetCreditRealizationLineages() {
+	m.credit_realization_lineages = nil
+	m.clearedcredit_realization_lineages = false
+	m.removedcredit_realization_lineages = nil
+}
+
 // Where appends a list predicates to the ChargeMutation builder.
 func (m *ChargeMutation) Where(ps ...predicate.Charge) {
 	m.predicates = append(m.predicates, ps...)
@@ -36372,7 +36433,7 @@ func (m *ChargeMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeMutation) AddedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.flat_fee != nil {
 		edges = append(edges, charge.EdgeFlatFee)
 	}
@@ -36387,6 +36448,9 @@ func (m *ChargeMutation) AddedEdges() []string {
 	}
 	if m.billing_split_line_groups != nil {
 		edges = append(edges, charge.EdgeBillingSplitLineGroups)
+	}
+	if m.credit_realization_lineages != nil {
+		edges = append(edges, charge.EdgeCreditRealizationLineages)
 	}
 	return edges
 }
@@ -36419,18 +36483,27 @@ func (m *ChargeMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case charge.EdgeCreditRealizationLineages:
+		ids := make([]ent.Value, 0, len(m.credit_realization_lineages))
+		for id := range m.credit_realization_lineages {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ChargeMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.removedbilling_invoice_lines != nil {
 		edges = append(edges, charge.EdgeBillingInvoiceLines)
 	}
 	if m.removedbilling_split_line_groups != nil {
 		edges = append(edges, charge.EdgeBillingSplitLineGroups)
+	}
+	if m.removedcredit_realization_lineages != nil {
+		edges = append(edges, charge.EdgeCreditRealizationLineages)
 	}
 	return edges
 }
@@ -36451,13 +36524,19 @@ func (m *ChargeMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case charge.EdgeCreditRealizationLineages:
+		ids := make([]ent.Value, 0, len(m.removedcredit_realization_lineages))
+		for id := range m.removedcredit_realization_lineages {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.clearedflat_fee {
 		edges = append(edges, charge.EdgeFlatFee)
 	}
@@ -36472,6 +36551,9 @@ func (m *ChargeMutation) ClearedEdges() []string {
 	}
 	if m.clearedbilling_split_line_groups {
 		edges = append(edges, charge.EdgeBillingSplitLineGroups)
+	}
+	if m.clearedcredit_realization_lineages {
+		edges = append(edges, charge.EdgeCreditRealizationLineages)
 	}
 	return edges
 }
@@ -36490,6 +36572,8 @@ func (m *ChargeMutation) EdgeCleared(name string) bool {
 		return m.clearedbilling_invoice_lines
 	case charge.EdgeBillingSplitLineGroups:
 		return m.clearedbilling_split_line_groups
+	case charge.EdgeCreditRealizationLineages:
+		return m.clearedcredit_realization_lineages
 	}
 	return false
 }
@@ -36529,6 +36613,9 @@ func (m *ChargeMutation) ResetEdge(name string) error {
 		return nil
 	case charge.EdgeBillingSplitLineGroups:
 		m.ResetBillingSplitLineGroups()
+		return nil
+	case charge.EdgeCreditRealizationLineages:
+		m.ResetCreditRealizationLineages()
 		return nil
 	}
 	return fmt.Errorf("unknown Charge edge %s", name)
@@ -56975,6 +57062,1498 @@ func (m *ChargeUsageBasedRunsMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeUsageBasedRuns edge %s", name)
+}
+
+// CreditRealizationLineageMutation represents an operation that mutates the CreditRealizationLineage nodes in the graph.
+type CreditRealizationLineageMutation struct {
+	config
+	op                  Op
+	typ                 string
+	id                  *string
+	namespace           *string
+	root_realization_id *string
+	customer_id         *string
+	currency            *currencyx.Code
+	origin_kind         *creditrealization.LineageOriginKind
+	created_at          *time.Time
+	clearedFields       map[string]struct{}
+	charge              *string
+	clearedcharge       bool
+	segments            map[string]struct{}
+	removedsegments     map[string]struct{}
+	clearedsegments     bool
+	done                bool
+	oldValue            func(context.Context) (*CreditRealizationLineage, error)
+	predicates          []predicate.CreditRealizationLineage
+}
+
+var _ ent.Mutation = (*CreditRealizationLineageMutation)(nil)
+
+// creditrealizationlineageOption allows management of the mutation configuration using functional options.
+type creditrealizationlineageOption func(*CreditRealizationLineageMutation)
+
+// newCreditRealizationLineageMutation creates new mutation for the CreditRealizationLineage entity.
+func newCreditRealizationLineageMutation(c config, op Op, opts ...creditrealizationlineageOption) *CreditRealizationLineageMutation {
+	m := &CreditRealizationLineageMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeCreditRealizationLineage,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withCreditRealizationLineageID sets the ID field of the mutation.
+func withCreditRealizationLineageID(id string) creditrealizationlineageOption {
+	return func(m *CreditRealizationLineageMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *CreditRealizationLineage
+		)
+		m.oldValue = func(ctx context.Context) (*CreditRealizationLineage, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().CreditRealizationLineage.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withCreditRealizationLineage sets the old CreditRealizationLineage of the mutation.
+func withCreditRealizationLineage(node *CreditRealizationLineage) creditrealizationlineageOption {
+	return func(m *CreditRealizationLineageMutation) {
+		m.oldValue = func(context.Context) (*CreditRealizationLineage, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m CreditRealizationLineageMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m CreditRealizationLineageMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of CreditRealizationLineage entities.
+func (m *CreditRealizationLineageMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *CreditRealizationLineageMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *CreditRealizationLineageMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().CreditRealizationLineage.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *CreditRealizationLineageMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *CreditRealizationLineageMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the CreditRealizationLineage entity.
+// If the CreditRealizationLineage object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditRealizationLineageMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *CreditRealizationLineageMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetChargeID sets the "charge_id" field.
+func (m *CreditRealizationLineageMutation) SetChargeID(s string) {
+	m.charge = &s
+}
+
+// ChargeID returns the value of the "charge_id" field in the mutation.
+func (m *CreditRealizationLineageMutation) ChargeID() (r string, exists bool) {
+	v := m.charge
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChargeID returns the old "charge_id" field's value of the CreditRealizationLineage entity.
+// If the CreditRealizationLineage object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditRealizationLineageMutation) OldChargeID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChargeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChargeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChargeID: %w", err)
+	}
+	return oldValue.ChargeID, nil
+}
+
+// ResetChargeID resets all changes to the "charge_id" field.
+func (m *CreditRealizationLineageMutation) ResetChargeID() {
+	m.charge = nil
+}
+
+// SetRootRealizationID sets the "root_realization_id" field.
+func (m *CreditRealizationLineageMutation) SetRootRealizationID(s string) {
+	m.root_realization_id = &s
+}
+
+// RootRealizationID returns the value of the "root_realization_id" field in the mutation.
+func (m *CreditRealizationLineageMutation) RootRealizationID() (r string, exists bool) {
+	v := m.root_realization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRootRealizationID returns the old "root_realization_id" field's value of the CreditRealizationLineage entity.
+// If the CreditRealizationLineage object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditRealizationLineageMutation) OldRootRealizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRootRealizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRootRealizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRootRealizationID: %w", err)
+	}
+	return oldValue.RootRealizationID, nil
+}
+
+// ResetRootRealizationID resets all changes to the "root_realization_id" field.
+func (m *CreditRealizationLineageMutation) ResetRootRealizationID() {
+	m.root_realization_id = nil
+}
+
+// SetCustomerID sets the "customer_id" field.
+func (m *CreditRealizationLineageMutation) SetCustomerID(s string) {
+	m.customer_id = &s
+}
+
+// CustomerID returns the value of the "customer_id" field in the mutation.
+func (m *CreditRealizationLineageMutation) CustomerID() (r string, exists bool) {
+	v := m.customer_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustomerID returns the old "customer_id" field's value of the CreditRealizationLineage entity.
+// If the CreditRealizationLineage object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditRealizationLineageMutation) OldCustomerID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustomerID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustomerID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustomerID: %w", err)
+	}
+	return oldValue.CustomerID, nil
+}
+
+// ResetCustomerID resets all changes to the "customer_id" field.
+func (m *CreditRealizationLineageMutation) ResetCustomerID() {
+	m.customer_id = nil
+}
+
+// SetCurrency sets the "currency" field.
+func (m *CreditRealizationLineageMutation) SetCurrency(c currencyx.Code) {
+	m.currency = &c
+}
+
+// Currency returns the value of the "currency" field in the mutation.
+func (m *CreditRealizationLineageMutation) Currency() (r currencyx.Code, exists bool) {
+	v := m.currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCurrency returns the old "currency" field's value of the CreditRealizationLineage entity.
+// If the CreditRealizationLineage object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditRealizationLineageMutation) OldCurrency(ctx context.Context) (v currencyx.Code, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCurrency requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
+	}
+	return oldValue.Currency, nil
+}
+
+// ResetCurrency resets all changes to the "currency" field.
+func (m *CreditRealizationLineageMutation) ResetCurrency() {
+	m.currency = nil
+}
+
+// SetOriginKind sets the "origin_kind" field.
+func (m *CreditRealizationLineageMutation) SetOriginKind(cok creditrealization.LineageOriginKind) {
+	m.origin_kind = &cok
+}
+
+// OriginKind returns the value of the "origin_kind" field in the mutation.
+func (m *CreditRealizationLineageMutation) OriginKind() (r creditrealization.LineageOriginKind, exists bool) {
+	v := m.origin_kind
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOriginKind returns the old "origin_kind" field's value of the CreditRealizationLineage entity.
+// If the CreditRealizationLineage object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditRealizationLineageMutation) OldOriginKind(ctx context.Context) (v creditrealization.LineageOriginKind, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOriginKind is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOriginKind requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOriginKind: %w", err)
+	}
+	return oldValue.OriginKind, nil
+}
+
+// ResetOriginKind resets all changes to the "origin_kind" field.
+func (m *CreditRealizationLineageMutation) ResetOriginKind() {
+	m.origin_kind = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *CreditRealizationLineageMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *CreditRealizationLineageMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the CreditRealizationLineage entity.
+// If the CreditRealizationLineage object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditRealizationLineageMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *CreditRealizationLineageMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// ClearCharge clears the "charge" edge to the Charge entity.
+func (m *CreditRealizationLineageMutation) ClearCharge() {
+	m.clearedcharge = true
+	m.clearedFields[creditrealizationlineage.FieldChargeID] = struct{}{}
+}
+
+// ChargeCleared reports if the "charge" edge to the Charge entity was cleared.
+func (m *CreditRealizationLineageMutation) ChargeCleared() bool {
+	return m.clearedcharge
+}
+
+// ChargeIDs returns the "charge" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ChargeID instead. It exists only for internal usage by the builders.
+func (m *CreditRealizationLineageMutation) ChargeIDs() (ids []string) {
+	if id := m.charge; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCharge resets all changes to the "charge" edge.
+func (m *CreditRealizationLineageMutation) ResetCharge() {
+	m.charge = nil
+	m.clearedcharge = false
+}
+
+// AddSegmentIDs adds the "segments" edge to the CreditRealizationLineageSegment entity by ids.
+func (m *CreditRealizationLineageMutation) AddSegmentIDs(ids ...string) {
+	if m.segments == nil {
+		m.segments = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.segments[ids[i]] = struct{}{}
+	}
+}
+
+// ClearSegments clears the "segments" edge to the CreditRealizationLineageSegment entity.
+func (m *CreditRealizationLineageMutation) ClearSegments() {
+	m.clearedsegments = true
+}
+
+// SegmentsCleared reports if the "segments" edge to the CreditRealizationLineageSegment entity was cleared.
+func (m *CreditRealizationLineageMutation) SegmentsCleared() bool {
+	return m.clearedsegments
+}
+
+// RemoveSegmentIDs removes the "segments" edge to the CreditRealizationLineageSegment entity by IDs.
+func (m *CreditRealizationLineageMutation) RemoveSegmentIDs(ids ...string) {
+	if m.removedsegments == nil {
+		m.removedsegments = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.segments, ids[i])
+		m.removedsegments[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedSegments returns the removed IDs of the "segments" edge to the CreditRealizationLineageSegment entity.
+func (m *CreditRealizationLineageMutation) RemovedSegmentsIDs() (ids []string) {
+	for id := range m.removedsegments {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// SegmentsIDs returns the "segments" edge IDs in the mutation.
+func (m *CreditRealizationLineageMutation) SegmentsIDs() (ids []string) {
+	for id := range m.segments {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetSegments resets all changes to the "segments" edge.
+func (m *CreditRealizationLineageMutation) ResetSegments() {
+	m.segments = nil
+	m.clearedsegments = false
+	m.removedsegments = nil
+}
+
+// Where appends a list predicates to the CreditRealizationLineageMutation builder.
+func (m *CreditRealizationLineageMutation) Where(ps ...predicate.CreditRealizationLineage) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the CreditRealizationLineageMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *CreditRealizationLineageMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.CreditRealizationLineage, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *CreditRealizationLineageMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *CreditRealizationLineageMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (CreditRealizationLineage).
+func (m *CreditRealizationLineageMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *CreditRealizationLineageMutation) Fields() []string {
+	fields := make([]string, 0, 7)
+	if m.namespace != nil {
+		fields = append(fields, creditrealizationlineage.FieldNamespace)
+	}
+	if m.charge != nil {
+		fields = append(fields, creditrealizationlineage.FieldChargeID)
+	}
+	if m.root_realization_id != nil {
+		fields = append(fields, creditrealizationlineage.FieldRootRealizationID)
+	}
+	if m.customer_id != nil {
+		fields = append(fields, creditrealizationlineage.FieldCustomerID)
+	}
+	if m.currency != nil {
+		fields = append(fields, creditrealizationlineage.FieldCurrency)
+	}
+	if m.origin_kind != nil {
+		fields = append(fields, creditrealizationlineage.FieldOriginKind)
+	}
+	if m.created_at != nil {
+		fields = append(fields, creditrealizationlineage.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *CreditRealizationLineageMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case creditrealizationlineage.FieldNamespace:
+		return m.Namespace()
+	case creditrealizationlineage.FieldChargeID:
+		return m.ChargeID()
+	case creditrealizationlineage.FieldRootRealizationID:
+		return m.RootRealizationID()
+	case creditrealizationlineage.FieldCustomerID:
+		return m.CustomerID()
+	case creditrealizationlineage.FieldCurrency:
+		return m.Currency()
+	case creditrealizationlineage.FieldOriginKind:
+		return m.OriginKind()
+	case creditrealizationlineage.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *CreditRealizationLineageMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case creditrealizationlineage.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case creditrealizationlineage.FieldChargeID:
+		return m.OldChargeID(ctx)
+	case creditrealizationlineage.FieldRootRealizationID:
+		return m.OldRootRealizationID(ctx)
+	case creditrealizationlineage.FieldCustomerID:
+		return m.OldCustomerID(ctx)
+	case creditrealizationlineage.FieldCurrency:
+		return m.OldCurrency(ctx)
+	case creditrealizationlineage.FieldOriginKind:
+		return m.OldOriginKind(ctx)
+	case creditrealizationlineage.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown CreditRealizationLineage field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *CreditRealizationLineageMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case creditrealizationlineage.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case creditrealizationlineage.FieldChargeID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChargeID(v)
+		return nil
+	case creditrealizationlineage.FieldRootRealizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRootRealizationID(v)
+		return nil
+	case creditrealizationlineage.FieldCustomerID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustomerID(v)
+		return nil
+	case creditrealizationlineage.FieldCurrency:
+		v, ok := value.(currencyx.Code)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrency(v)
+		return nil
+	case creditrealizationlineage.FieldOriginKind:
+		v, ok := value.(creditrealization.LineageOriginKind)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOriginKind(v)
+		return nil
+	case creditrealizationlineage.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown CreditRealizationLineage field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *CreditRealizationLineageMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *CreditRealizationLineageMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *CreditRealizationLineageMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown CreditRealizationLineage numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *CreditRealizationLineageMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *CreditRealizationLineageMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *CreditRealizationLineageMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown CreditRealizationLineage nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *CreditRealizationLineageMutation) ResetField(name string) error {
+	switch name {
+	case creditrealizationlineage.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case creditrealizationlineage.FieldChargeID:
+		m.ResetChargeID()
+		return nil
+	case creditrealizationlineage.FieldRootRealizationID:
+		m.ResetRootRealizationID()
+		return nil
+	case creditrealizationlineage.FieldCustomerID:
+		m.ResetCustomerID()
+		return nil
+	case creditrealizationlineage.FieldCurrency:
+		m.ResetCurrency()
+		return nil
+	case creditrealizationlineage.FieldOriginKind:
+		m.ResetOriginKind()
+		return nil
+	case creditrealizationlineage.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown CreditRealizationLineage field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *CreditRealizationLineageMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.charge != nil {
+		edges = append(edges, creditrealizationlineage.EdgeCharge)
+	}
+	if m.segments != nil {
+		edges = append(edges, creditrealizationlineage.EdgeSegments)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *CreditRealizationLineageMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case creditrealizationlineage.EdgeCharge:
+		if id := m.charge; id != nil {
+			return []ent.Value{*id}
+		}
+	case creditrealizationlineage.EdgeSegments:
+		ids := make([]ent.Value, 0, len(m.segments))
+		for id := range m.segments {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *CreditRealizationLineageMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.removedsegments != nil {
+		edges = append(edges, creditrealizationlineage.EdgeSegments)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *CreditRealizationLineageMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case creditrealizationlineage.EdgeSegments:
+		ids := make([]ent.Value, 0, len(m.removedsegments))
+		for id := range m.removedsegments {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *CreditRealizationLineageMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedcharge {
+		edges = append(edges, creditrealizationlineage.EdgeCharge)
+	}
+	if m.clearedsegments {
+		edges = append(edges, creditrealizationlineage.EdgeSegments)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *CreditRealizationLineageMutation) EdgeCleared(name string) bool {
+	switch name {
+	case creditrealizationlineage.EdgeCharge:
+		return m.clearedcharge
+	case creditrealizationlineage.EdgeSegments:
+		return m.clearedsegments
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *CreditRealizationLineageMutation) ClearEdge(name string) error {
+	switch name {
+	case creditrealizationlineage.EdgeCharge:
+		m.ClearCharge()
+		return nil
+	}
+	return fmt.Errorf("unknown CreditRealizationLineage unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *CreditRealizationLineageMutation) ResetEdge(name string) error {
+	switch name {
+	case creditrealizationlineage.EdgeCharge:
+		m.ResetCharge()
+		return nil
+	case creditrealizationlineage.EdgeSegments:
+		m.ResetSegments()
+		return nil
+	}
+	return fmt.Errorf("unknown CreditRealizationLineage edge %s", name)
+}
+
+// CreditRealizationLineageSegmentMutation represents an operation that mutates the CreditRealizationLineageSegment nodes in the graph.
+type CreditRealizationLineageSegmentMutation struct {
+	config
+	op                           Op
+	typ                          string
+	id                           *string
+	amount                       *alpacadecimal.Decimal
+	state                        *creditrealization.LineageSegmentState
+	backing_transaction_group_id *string
+	closed_at                    *time.Time
+	created_at                   *time.Time
+	clearedFields                map[string]struct{}
+	lineage                      *string
+	clearedlineage               bool
+	done                         bool
+	oldValue                     func(context.Context) (*CreditRealizationLineageSegment, error)
+	predicates                   []predicate.CreditRealizationLineageSegment
+}
+
+var _ ent.Mutation = (*CreditRealizationLineageSegmentMutation)(nil)
+
+// creditrealizationlineagesegmentOption allows management of the mutation configuration using functional options.
+type creditrealizationlineagesegmentOption func(*CreditRealizationLineageSegmentMutation)
+
+// newCreditRealizationLineageSegmentMutation creates new mutation for the CreditRealizationLineageSegment entity.
+func newCreditRealizationLineageSegmentMutation(c config, op Op, opts ...creditrealizationlineagesegmentOption) *CreditRealizationLineageSegmentMutation {
+	m := &CreditRealizationLineageSegmentMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeCreditRealizationLineageSegment,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withCreditRealizationLineageSegmentID sets the ID field of the mutation.
+func withCreditRealizationLineageSegmentID(id string) creditrealizationlineagesegmentOption {
+	return func(m *CreditRealizationLineageSegmentMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *CreditRealizationLineageSegment
+		)
+		m.oldValue = func(ctx context.Context) (*CreditRealizationLineageSegment, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().CreditRealizationLineageSegment.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withCreditRealizationLineageSegment sets the old CreditRealizationLineageSegment of the mutation.
+func withCreditRealizationLineageSegment(node *CreditRealizationLineageSegment) creditrealizationlineagesegmentOption {
+	return func(m *CreditRealizationLineageSegmentMutation) {
+		m.oldValue = func(context.Context) (*CreditRealizationLineageSegment, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m CreditRealizationLineageSegmentMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m CreditRealizationLineageSegmentMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of CreditRealizationLineageSegment entities.
+func (m *CreditRealizationLineageSegmentMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *CreditRealizationLineageSegmentMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *CreditRealizationLineageSegmentMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().CreditRealizationLineageSegment.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetLineageID sets the "lineage_id" field.
+func (m *CreditRealizationLineageSegmentMutation) SetLineageID(s string) {
+	m.lineage = &s
+}
+
+// LineageID returns the value of the "lineage_id" field in the mutation.
+func (m *CreditRealizationLineageSegmentMutation) LineageID() (r string, exists bool) {
+	v := m.lineage
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLineageID returns the old "lineage_id" field's value of the CreditRealizationLineageSegment entity.
+// If the CreditRealizationLineageSegment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditRealizationLineageSegmentMutation) OldLineageID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLineageID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLineageID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLineageID: %w", err)
+	}
+	return oldValue.LineageID, nil
+}
+
+// ResetLineageID resets all changes to the "lineage_id" field.
+func (m *CreditRealizationLineageSegmentMutation) ResetLineageID() {
+	m.lineage = nil
+}
+
+// SetAmount sets the "amount" field.
+func (m *CreditRealizationLineageSegmentMutation) SetAmount(a alpacadecimal.Decimal) {
+	m.amount = &a
+}
+
+// Amount returns the value of the "amount" field in the mutation.
+func (m *CreditRealizationLineageSegmentMutation) Amount() (r alpacadecimal.Decimal, exists bool) {
+	v := m.amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAmount returns the old "amount" field's value of the CreditRealizationLineageSegment entity.
+// If the CreditRealizationLineageSegment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditRealizationLineageSegmentMutation) OldAmount(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAmount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAmount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAmount: %w", err)
+	}
+	return oldValue.Amount, nil
+}
+
+// ResetAmount resets all changes to the "amount" field.
+func (m *CreditRealizationLineageSegmentMutation) ResetAmount() {
+	m.amount = nil
+}
+
+// SetState sets the "state" field.
+func (m *CreditRealizationLineageSegmentMutation) SetState(css creditrealization.LineageSegmentState) {
+	m.state = &css
+}
+
+// State returns the value of the "state" field in the mutation.
+func (m *CreditRealizationLineageSegmentMutation) State() (r creditrealization.LineageSegmentState, exists bool) {
+	v := m.state
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldState returns the old "state" field's value of the CreditRealizationLineageSegment entity.
+// If the CreditRealizationLineageSegment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditRealizationLineageSegmentMutation) OldState(ctx context.Context) (v creditrealization.LineageSegmentState, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldState is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldState requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldState: %w", err)
+	}
+	return oldValue.State, nil
+}
+
+// ResetState resets all changes to the "state" field.
+func (m *CreditRealizationLineageSegmentMutation) ResetState() {
+	m.state = nil
+}
+
+// SetBackingTransactionGroupID sets the "backing_transaction_group_id" field.
+func (m *CreditRealizationLineageSegmentMutation) SetBackingTransactionGroupID(s string) {
+	m.backing_transaction_group_id = &s
+}
+
+// BackingTransactionGroupID returns the value of the "backing_transaction_group_id" field in the mutation.
+func (m *CreditRealizationLineageSegmentMutation) BackingTransactionGroupID() (r string, exists bool) {
+	v := m.backing_transaction_group_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBackingTransactionGroupID returns the old "backing_transaction_group_id" field's value of the CreditRealizationLineageSegment entity.
+// If the CreditRealizationLineageSegment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditRealizationLineageSegmentMutation) OldBackingTransactionGroupID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBackingTransactionGroupID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBackingTransactionGroupID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBackingTransactionGroupID: %w", err)
+	}
+	return oldValue.BackingTransactionGroupID, nil
+}
+
+// ClearBackingTransactionGroupID clears the value of the "backing_transaction_group_id" field.
+func (m *CreditRealizationLineageSegmentMutation) ClearBackingTransactionGroupID() {
+	m.backing_transaction_group_id = nil
+	m.clearedFields[creditrealizationlineagesegment.FieldBackingTransactionGroupID] = struct{}{}
+}
+
+// BackingTransactionGroupIDCleared returns if the "backing_transaction_group_id" field was cleared in this mutation.
+func (m *CreditRealizationLineageSegmentMutation) BackingTransactionGroupIDCleared() bool {
+	_, ok := m.clearedFields[creditrealizationlineagesegment.FieldBackingTransactionGroupID]
+	return ok
+}
+
+// ResetBackingTransactionGroupID resets all changes to the "backing_transaction_group_id" field.
+func (m *CreditRealizationLineageSegmentMutation) ResetBackingTransactionGroupID() {
+	m.backing_transaction_group_id = nil
+	delete(m.clearedFields, creditrealizationlineagesegment.FieldBackingTransactionGroupID)
+}
+
+// SetClosedAt sets the "closed_at" field.
+func (m *CreditRealizationLineageSegmentMutation) SetClosedAt(t time.Time) {
+	m.closed_at = &t
+}
+
+// ClosedAt returns the value of the "closed_at" field in the mutation.
+func (m *CreditRealizationLineageSegmentMutation) ClosedAt() (r time.Time, exists bool) {
+	v := m.closed_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldClosedAt returns the old "closed_at" field's value of the CreditRealizationLineageSegment entity.
+// If the CreditRealizationLineageSegment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditRealizationLineageSegmentMutation) OldClosedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldClosedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldClosedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldClosedAt: %w", err)
+	}
+	return oldValue.ClosedAt, nil
+}
+
+// ClearClosedAt clears the value of the "closed_at" field.
+func (m *CreditRealizationLineageSegmentMutation) ClearClosedAt() {
+	m.closed_at = nil
+	m.clearedFields[creditrealizationlineagesegment.FieldClosedAt] = struct{}{}
+}
+
+// ClosedAtCleared returns if the "closed_at" field was cleared in this mutation.
+func (m *CreditRealizationLineageSegmentMutation) ClosedAtCleared() bool {
+	_, ok := m.clearedFields[creditrealizationlineagesegment.FieldClosedAt]
+	return ok
+}
+
+// ResetClosedAt resets all changes to the "closed_at" field.
+func (m *CreditRealizationLineageSegmentMutation) ResetClosedAt() {
+	m.closed_at = nil
+	delete(m.clearedFields, creditrealizationlineagesegment.FieldClosedAt)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *CreditRealizationLineageSegmentMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *CreditRealizationLineageSegmentMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the CreditRealizationLineageSegment entity.
+// If the CreditRealizationLineageSegment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditRealizationLineageSegmentMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *CreditRealizationLineageSegmentMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// ClearLineage clears the "lineage" edge to the CreditRealizationLineage entity.
+func (m *CreditRealizationLineageSegmentMutation) ClearLineage() {
+	m.clearedlineage = true
+	m.clearedFields[creditrealizationlineagesegment.FieldLineageID] = struct{}{}
+}
+
+// LineageCleared reports if the "lineage" edge to the CreditRealizationLineage entity was cleared.
+func (m *CreditRealizationLineageSegmentMutation) LineageCleared() bool {
+	return m.clearedlineage
+}
+
+// LineageIDs returns the "lineage" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// LineageID instead. It exists only for internal usage by the builders.
+func (m *CreditRealizationLineageSegmentMutation) LineageIDs() (ids []string) {
+	if id := m.lineage; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetLineage resets all changes to the "lineage" edge.
+func (m *CreditRealizationLineageSegmentMutation) ResetLineage() {
+	m.lineage = nil
+	m.clearedlineage = false
+}
+
+// Where appends a list predicates to the CreditRealizationLineageSegmentMutation builder.
+func (m *CreditRealizationLineageSegmentMutation) Where(ps ...predicate.CreditRealizationLineageSegment) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the CreditRealizationLineageSegmentMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *CreditRealizationLineageSegmentMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.CreditRealizationLineageSegment, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *CreditRealizationLineageSegmentMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *CreditRealizationLineageSegmentMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (CreditRealizationLineageSegment).
+func (m *CreditRealizationLineageSegmentMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *CreditRealizationLineageSegmentMutation) Fields() []string {
+	fields := make([]string, 0, 6)
+	if m.lineage != nil {
+		fields = append(fields, creditrealizationlineagesegment.FieldLineageID)
+	}
+	if m.amount != nil {
+		fields = append(fields, creditrealizationlineagesegment.FieldAmount)
+	}
+	if m.state != nil {
+		fields = append(fields, creditrealizationlineagesegment.FieldState)
+	}
+	if m.backing_transaction_group_id != nil {
+		fields = append(fields, creditrealizationlineagesegment.FieldBackingTransactionGroupID)
+	}
+	if m.closed_at != nil {
+		fields = append(fields, creditrealizationlineagesegment.FieldClosedAt)
+	}
+	if m.created_at != nil {
+		fields = append(fields, creditrealizationlineagesegment.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *CreditRealizationLineageSegmentMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case creditrealizationlineagesegment.FieldLineageID:
+		return m.LineageID()
+	case creditrealizationlineagesegment.FieldAmount:
+		return m.Amount()
+	case creditrealizationlineagesegment.FieldState:
+		return m.State()
+	case creditrealizationlineagesegment.FieldBackingTransactionGroupID:
+		return m.BackingTransactionGroupID()
+	case creditrealizationlineagesegment.FieldClosedAt:
+		return m.ClosedAt()
+	case creditrealizationlineagesegment.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *CreditRealizationLineageSegmentMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case creditrealizationlineagesegment.FieldLineageID:
+		return m.OldLineageID(ctx)
+	case creditrealizationlineagesegment.FieldAmount:
+		return m.OldAmount(ctx)
+	case creditrealizationlineagesegment.FieldState:
+		return m.OldState(ctx)
+	case creditrealizationlineagesegment.FieldBackingTransactionGroupID:
+		return m.OldBackingTransactionGroupID(ctx)
+	case creditrealizationlineagesegment.FieldClosedAt:
+		return m.OldClosedAt(ctx)
+	case creditrealizationlineagesegment.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown CreditRealizationLineageSegment field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *CreditRealizationLineageSegmentMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case creditrealizationlineagesegment.FieldLineageID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLineageID(v)
+		return nil
+	case creditrealizationlineagesegment.FieldAmount:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAmount(v)
+		return nil
+	case creditrealizationlineagesegment.FieldState:
+		v, ok := value.(creditrealization.LineageSegmentState)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetState(v)
+		return nil
+	case creditrealizationlineagesegment.FieldBackingTransactionGroupID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBackingTransactionGroupID(v)
+		return nil
+	case creditrealizationlineagesegment.FieldClosedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetClosedAt(v)
+		return nil
+	case creditrealizationlineagesegment.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown CreditRealizationLineageSegment field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *CreditRealizationLineageSegmentMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *CreditRealizationLineageSegmentMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *CreditRealizationLineageSegmentMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown CreditRealizationLineageSegment numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *CreditRealizationLineageSegmentMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(creditrealizationlineagesegment.FieldBackingTransactionGroupID) {
+		fields = append(fields, creditrealizationlineagesegment.FieldBackingTransactionGroupID)
+	}
+	if m.FieldCleared(creditrealizationlineagesegment.FieldClosedAt) {
+		fields = append(fields, creditrealizationlineagesegment.FieldClosedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *CreditRealizationLineageSegmentMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *CreditRealizationLineageSegmentMutation) ClearField(name string) error {
+	switch name {
+	case creditrealizationlineagesegment.FieldBackingTransactionGroupID:
+		m.ClearBackingTransactionGroupID()
+		return nil
+	case creditrealizationlineagesegment.FieldClosedAt:
+		m.ClearClosedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown CreditRealizationLineageSegment nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *CreditRealizationLineageSegmentMutation) ResetField(name string) error {
+	switch name {
+	case creditrealizationlineagesegment.FieldLineageID:
+		m.ResetLineageID()
+		return nil
+	case creditrealizationlineagesegment.FieldAmount:
+		m.ResetAmount()
+		return nil
+	case creditrealizationlineagesegment.FieldState:
+		m.ResetState()
+		return nil
+	case creditrealizationlineagesegment.FieldBackingTransactionGroupID:
+		m.ResetBackingTransactionGroupID()
+		return nil
+	case creditrealizationlineagesegment.FieldClosedAt:
+		m.ResetClosedAt()
+		return nil
+	case creditrealizationlineagesegment.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown CreditRealizationLineageSegment field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *CreditRealizationLineageSegmentMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.lineage != nil {
+		edges = append(edges, creditrealizationlineagesegment.EdgeLineage)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *CreditRealizationLineageSegmentMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case creditrealizationlineagesegment.EdgeLineage:
+		if id := m.lineage; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *CreditRealizationLineageSegmentMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *CreditRealizationLineageSegmentMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *CreditRealizationLineageSegmentMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedlineage {
+		edges = append(edges, creditrealizationlineagesegment.EdgeLineage)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *CreditRealizationLineageSegmentMutation) EdgeCleared(name string) bool {
+	switch name {
+	case creditrealizationlineagesegment.EdgeLineage:
+		return m.clearedlineage
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *CreditRealizationLineageSegmentMutation) ClearEdge(name string) error {
+	switch name {
+	case creditrealizationlineagesegment.EdgeLineage:
+		m.ClearLineage()
+		return nil
+	}
+	return fmt.Errorf("unknown CreditRealizationLineageSegment unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *CreditRealizationLineageSegmentMutation) ResetEdge(name string) error {
+	switch name {
+	case creditrealizationlineagesegment.EdgeLineage:
+		m.ResetLineage()
+		return nil
+	}
+	return fmt.Errorf("unknown CreditRealizationLineageSegment edge %s", name)
 }
 
 // CurrencyCostBasisMutation represents an operation that mutates the CurrencyCostBasis nodes in the graph.

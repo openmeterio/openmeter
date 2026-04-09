@@ -144,6 +144,7 @@ func (a *adapter) CreateCharges(ctx context.Context, in flatfee.CreateChargesInp
 			}
 			out = append(out, charge)
 		}
+
 		return out, nil
 	})
 }
@@ -172,9 +173,14 @@ func (a *adapter) GetByIDs(ctx context.Context, input flatfee.GetByIDsInput) ([]
 			return nil, err
 		}
 
-		return slicesx.MapWithErr(entitiesInOrder, func(entity *db.ChargeFlatFee) (flatfee.Charge, error) {
+		out, err := slicesx.MapWithErr(entitiesInOrder, func(entity *db.ChargeFlatFee) (flatfee.Charge, error) {
 			return MapChargeFlatFeeFromDB(entity, input.Expands)
 		})
+		if err != nil {
+			return nil, err
+		}
+
+		return out, nil
 	})
 }
 
@@ -201,7 +207,12 @@ func (a *adapter) GetByID(ctx context.Context, input flatfee.GetByIDInput) (flat
 			return flatfee.Charge{}, fmt.Errorf("querying flat fee charge [id=%s]: %w", input.ChargeID, err)
 		}
 
-		return MapChargeFlatFeeFromDB(entity, input.Expands)
+		charge, err := MapChargeFlatFeeFromDB(entity, input.Expands)
+		if err != nil {
+			return flatfee.Charge{}, err
+		}
+
+		return charge, nil
 	})
 }
 

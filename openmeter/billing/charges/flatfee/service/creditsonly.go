@@ -153,7 +153,7 @@ func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
 	}
 
 	if len(creditAllocations) > 0 {
-		realizations, err := s.Adapter.CreateCreditAllocations(ctx, s.Charge.GetChargeID(), creditAllocations.AsCreateInputs())
+		realizations, err := s.Service.createCreditAllocations(ctx, s.Charge, creditAllocations.AsCreateInputs())
 		if err != nil {
 			return fmt.Errorf("create credit allocations: %w", err)
 		}
@@ -222,12 +222,21 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, policy meta.
 			return fmt.Errorf("get currency calculator: %w", err)
 		}
 
+		realizationIDs := lo.Map(s.Charge.State.CreditRealizations, func(realization creditrealization.Realization, _ int) string {
+			return realization.ID
+		})
+		lineageSegmentsByRealization, err := s.Service.lineage.LoadActiveSegmentsByRealizationID(ctx, s.Charge.Namespace, realizationIDs)
+		if err != nil {
+			return fmt.Errorf("load active lineage segments: %w", err)
+		}
+
 		// Let's reverse the credit allocations
 		corrections, err := s.Charge.State.CreditRealizations.CorrectAll(currencyCalculator, func(req creditrealization.CorrectionRequest) (creditrealization.CreateCorrectionInputs, error) {
 			return s.Service.handler.OnCreditsOnlyUsageAccruedCorrection(ctx, flatfee.CreditsOnlyUsageAccruedCorrectionInput{
-				Charge:      s.Charge,
-				AllocateAt:  clock.Now(),
-				Corrections: req,
+				Charge:                       s.Charge,
+				AllocateAt:                   clock.Now(),
+				Corrections:                  req,
+				LineageSegmentsByRealization: lineageSegmentsByRealization,
 			})
 		})
 		if err != nil {
@@ -235,7 +244,7 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, policy meta.
 		}
 
 		if len(corrections) > 0 {
-			if _, err := s.Adapter.CreateCreditAllocations(ctx, s.Charge.GetChargeID(), corrections); err != nil {
+			if _, err := s.Service.createCreditAllocations(ctx, s.Charge, corrections); err != nil {
 				return fmt.Errorf("create credit corrections: %w", err)
 			}
 		}

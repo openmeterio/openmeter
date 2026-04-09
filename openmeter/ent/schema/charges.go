@@ -156,6 +156,7 @@ func (Charge) Edges() []ent.Edge {
 		// Billing
 		edge.To("billing_invoice_lines", BillingInvoiceLine.Type),
 		edge.To("billing_split_line_groups", BillingInvoiceSplitLineGroup.Type),
+		edge.To("credit_realization_lineages", CreditRealizationLineage.Type),
 	}
 }
 

@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	ledgerentrydb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
+	ledgertransactiongroupdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -18,6 +19,65 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
+
+func hydrateHistoricalTransaction(tx *db.LedgerTransaction) (*ledgerhistorical.Transaction, error) {
+	entryData, err := slicesx.MapWithErr(tx.Edges.Entries, func(entry *db.LedgerEntry) (ledgerhistorical.EntryData, error) {
+		subAccount, err := entry.Edges.SubAccountOrErr()
+		if err != nil {
+			return ledgerhistorical.EntryData{}, fmt.Errorf("entry %s missing sub-account edge: %w", entry.ID, err)
+		}
+
+		account, err := subAccount.Edges.AccountOrErr()
+		if err != nil {
+			return ledgerhistorical.EntryData{}, fmt.Errorf("entry %s sub-account %s missing account edge: %w", entry.ID, subAccount.ID, err)
+		}
+		route, err := subAccount.Edges.RouteOrErr()
+		if err != nil {
+			return ledgerhistorical.EntryData{}, fmt.Errorf("entry %s sub-account %s missing route edge: %w", entry.ID, subAccount.ID, err)
+		}
+
+		return ledgerhistorical.EntryData{
+			ID:           entry.ID,
+			Namespace:    entry.Namespace,
+			Annotations:  entry.Annotations,
+			CreatedAt:    entry.CreatedAt,
+			SubAccountID: entry.SubAccountID,
+			AccountType:  account.AccountType,
+			Route: ledger.Route{
+				Currency:                       currencyx.Code(route.Currency),
+				TaxCode:                        route.TaxCode,
+				Features:                       route.Features,
+				CostBasis:                      route.CostBasis,
+				CreditPriority:                 route.CreditPriority,
+				TransactionAuthorizationStatus: route.TransactionAuthorizationStatus,
+			},
+			RouteID:       route.ID,
+			RouteKey:      route.RoutingKey,
+			RouteKeyVer:   route.RoutingKeyVersion,
+			Amount:        entry.Amount,
+			TransactionID: entry.TransactionID,
+		}, nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("transaction %s entry hydration failed: %w", tx.ID, err)
+	}
+
+	reconstructed, err := ledgerhistorical.NewTransactionFromData(
+		ledgerhistorical.TransactionData{
+			ID:          tx.ID,
+			Namespace:   tx.Namespace,
+			Annotations: tx.Annotations,
+			CreatedAt:   tx.CreatedAt,
+			BookedAt:    tx.BookedAt,
+		},
+		entryData,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("transaction %s: %w", tx.ID, err)
+	}
+
+	return reconstructed, nil
+}
 
 func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID, input ledger.TransactionInput) (*ledgerhistorical.Transaction, error) {
 	if input == nil {
@@ -27,6 +87,7 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 	entity, err := r.db.LedgerTransaction.Create().
 		SetNamespace(groupID.Namespace).
 		SetGroupID(groupID.ID).
+		SetAnnotations(input.Annotations()).
 		SetBookedAt(input.BookedAt()).
 		Save(ctx)
 	if err != nil {
@@ -113,6 +174,49 @@ func (r *repo) CreateTransactionGroup(ctx context.Context, transactionGroup ledg
 	}, nil
 }
 
+func (r *repo) GetTransactionGroup(ctx context.Context, id models.NamespacedID) (*ledgerhistorical.TransactionGroup, error) {
+	entity, err := r.db.LedgerTransactionGroup.Query().
+		Where(
+			ledgertransactiongroupdb.Namespace(id.Namespace),
+			ledgertransactiongroupdb.ID(id.ID),
+		).
+		WithTransactions(func(q *db.LedgerTransactionQuery) {
+			q.Order(
+				ledgertransactiondb.ByCreatedAt(),
+				ledgertransactiondb.ByID(),
+			)
+			q.WithEntries(func(eq *db.LedgerEntryQuery) {
+				eq.Order(
+					ledgerentrydb.ByCreatedAt(),
+					ledgerentrydb.ByID(),
+				)
+				eq.WithSubAccount(func(sq *db.LedgerSubAccountQuery) {
+					sq.WithAccount()
+					sq.WithRoute()
+				})
+			})
+		}).
+		Only(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query transaction group: %w", err)
+	}
+
+	transactions, err := slicesx.MapWithErr(entity.Edges.Transactions, hydrateHistoricalTransaction)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hydrate transaction group transactions: %w", err)
+	}
+
+	return ledgerhistorical.NewTransactionGroupFromData(
+		ledgerhistorical.TransactionGroupData{
+			ID:          entity.ID,
+			Namespace:   entity.Namespace,
+			CreatedAt:   entity.CreatedAt,
+			Annotations: entity.Annotations,
+		},
+		transactions,
+	), nil
+}
+
 func (r *repo) SumEntries(ctx context.Context, query ledger.Query) (alpacadecimal.Decimal, error) {
 	q := sumEntriesQuery{
 		query: query,
@@ -179,62 +283,7 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 	}
 
 	items, err := slicesx.MapWithErr(paged.Items, func(tx *db.LedgerTransaction) (*ledgerhistorical.Transaction, error) {
-		entryData, err := slicesx.MapWithErr(tx.Edges.Entries, func(entry *db.LedgerEntry) (ledgerhistorical.EntryData, error) {
-			subAccount, err := entry.Edges.SubAccountOrErr()
-			if err != nil {
-				return ledgerhistorical.EntryData{}, fmt.Errorf("entry %s missing sub-account edge: %w", entry.ID, err)
-			}
-
-			account, err := subAccount.Edges.AccountOrErr()
-			if err != nil {
-				return ledgerhistorical.EntryData{}, fmt.Errorf("entry %s sub-account %s missing account edge: %w", entry.ID, subAccount.ID, err)
-			}
-			route, err := subAccount.Edges.RouteOrErr()
-			if err != nil {
-				return ledgerhistorical.EntryData{}, fmt.Errorf("entry %s sub-account %s missing route edge: %w", entry.ID, subAccount.ID, err)
-			}
-
-			return ledgerhistorical.EntryData{
-				ID:           entry.ID,
-				Namespace:    entry.Namespace,
-				Annotations:  entry.Annotations,
-				CreatedAt:    entry.CreatedAt,
-				SubAccountID: entry.SubAccountID,
-				AccountType:  account.AccountType,
-				Route: ledger.Route{
-					Currency:                       currencyx.Code(route.Currency),
-					TaxCode:                        route.TaxCode,
-					Features:                       route.Features,
-					CostBasis:                      route.CostBasis,
-					CreditPriority:                 route.CreditPriority,
-					TransactionAuthorizationStatus: route.TransactionAuthorizationStatus,
-				},
-				RouteID:       route.ID,
-				RouteKey:      route.RoutingKey,
-				RouteKeyVer:   route.RoutingKeyVersion,
-				Amount:        entry.Amount,
-				TransactionID: entry.TransactionID,
-			}, nil
-		})
-		if err != nil {
-			return nil, fmt.Errorf("transaction %s entry hydration failed: %w", tx.ID, err)
-		}
-
-		reconstructed, err := ledgerhistorical.NewTransactionFromData(
-			ledgerhistorical.TransactionData{
-				ID:          tx.ID,
-				Namespace:   tx.Namespace,
-				Annotations: tx.Annotations,
-				CreatedAt:   tx.CreatedAt,
-				BookedAt:    tx.BookedAt,
-			},
-			entryData,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("transaction %s: %w", tx.ID, err)
-		}
-
-		return reconstructed, nil
+		return hydrateHistoricalTransaction(tx)
 	})
 	if err != nil {
 		return pagination.Result[*ledgerhistorical.Transaction]{}, fmt.Errorf("failed to hydrate listed transactions: %w", err)

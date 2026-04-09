@@ -53,6 +53,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineage"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineagesegment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/currencycostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
@@ -173,6 +175,10 @@ type Client struct {
 	ChargeUsageBasedRuns *ChargeUsageBasedRunsClient
 	// ChargesSearchV1 is the client for interacting with the ChargesSearchV1 builders.
 	ChargesSearchV1 *ChargesSearchV1Client
+	// CreditRealizationLineage is the client for interacting with the CreditRealizationLineage builders.
+	CreditRealizationLineage *CreditRealizationLineageClient
+	// CreditRealizationLineageSegment is the client for interacting with the CreditRealizationLineageSegment builders.
+	CreditRealizationLineageSegment *CreditRealizationLineageSegmentClient
 	// CurrencyCostBasis is the client for interacting with the CurrencyCostBasis builders.
 	CurrencyCostBasis *CurrencyCostBasisClient
 	// CustomCurrency is the client for interacting with the CustomCurrency builders.
@@ -289,6 +295,8 @@ func (c *Client) init() {
 	c.ChargeUsageBasedRunPayment = NewChargeUsageBasedRunPaymentClient(c.config)
 	c.ChargeUsageBasedRuns = NewChargeUsageBasedRunsClient(c.config)
 	c.ChargesSearchV1 = NewChargesSearchV1Client(c.config)
+	c.CreditRealizationLineage = NewCreditRealizationLineageClient(c.config)
+	c.CreditRealizationLineageSegment = NewCreditRealizationLineageSegmentClient(c.config)
 	c.CurrencyCostBasis = NewCurrencyCostBasisClient(c.config)
 	c.CustomCurrency = NewCustomCurrencyClient(c.config)
 	c.Customer = NewCustomerClient(c.config)
@@ -453,6 +461,8 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ChargeUsageBasedRunPayment:                       NewChargeUsageBasedRunPaymentClient(cfg),
 		ChargeUsageBasedRuns:                             NewChargeUsageBasedRunsClient(cfg),
 		ChargesSearchV1:                                  NewChargesSearchV1Client(cfg),
+		CreditRealizationLineage:                         NewCreditRealizationLineageClient(cfg),
+		CreditRealizationLineageSegment:                  NewCreditRealizationLineageSegmentClient(cfg),
 		CurrencyCostBasis:                                NewCurrencyCostBasisClient(cfg),
 		CustomCurrency:                                   NewCustomCurrencyClient(cfg),
 		Customer:                                         NewCustomerClient(cfg),
@@ -544,6 +554,8 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ChargeUsageBasedRunPayment:                       NewChargeUsageBasedRunPaymentClient(cfg),
 		ChargeUsageBasedRuns:                             NewChargeUsageBasedRunsClient(cfg),
 		ChargesSearchV1:                                  NewChargesSearchV1Client(cfg),
+		CreditRealizationLineage:                         NewCreditRealizationLineageClient(cfg),
+		CreditRealizationLineageSegment:                  NewCreditRealizationLineageSegmentClient(cfg),
 		CurrencyCostBasis:                                NewCurrencyCostBasisClient(cfg),
 		CustomCurrency:                                   NewCustomCurrencyClient(cfg),
 		Customer:                                         NewCustomerClient(cfg),
@@ -621,16 +633,17 @@ func (c *Client) Use(hooks ...Hook) {
 		c.ChargeFlatFeeCreditAllocations, c.ChargeFlatFeeInvoicedUsage,
 		c.ChargeFlatFeePayment, c.ChargeUsageBased,
 		c.ChargeUsageBasedRunCreditAllocations, c.ChargeUsageBasedRunInvoicedUsage,
-		c.ChargeUsageBasedRunPayment, c.ChargeUsageBasedRuns, c.CurrencyCostBasis,
-		c.CustomCurrency, c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature,
-		c.Grant, c.LLMCostPrice, c.LedgerAccount, c.LedgerCustomerAccount,
-		c.LedgerEntry, c.LedgerSubAccount, c.LedgerSubAccountRoute,
-		c.LedgerTransaction, c.LedgerTransactionGroup, c.Meter, c.NotificationChannel,
-		c.NotificationEvent, c.NotificationEventDeliveryStatus, c.NotificationRule,
-		c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard, c.Subject, c.Subscription,
-		c.SubscriptionAddon, c.SubscriptionAddonQuantity,
-		c.SubscriptionBillingSyncState, c.SubscriptionItem, c.SubscriptionPhase,
-		c.TaxCode, c.UsageReset,
+		c.ChargeUsageBasedRunPayment, c.ChargeUsageBasedRuns,
+		c.CreditRealizationLineage, c.CreditRealizationLineageSegment,
+		c.CurrencyCostBasis, c.CustomCurrency, c.Customer, c.CustomerSubjects,
+		c.Entitlement, c.Feature, c.Grant, c.LLMCostPrice, c.LedgerAccount,
+		c.LedgerCustomerAccount, c.LedgerEntry, c.LedgerSubAccount,
+		c.LedgerSubAccountRoute, c.LedgerTransaction, c.LedgerTransactionGroup,
+		c.Meter, c.NotificationChannel, c.NotificationEvent,
+		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanAddon,
+		c.PlanPhase, c.PlanRateCard, c.Subject, c.Subscription, c.SubscriptionAddon,
+		c.SubscriptionAddonQuantity, c.SubscriptionBillingSyncState,
+		c.SubscriptionItem, c.SubscriptionPhase, c.TaxCode, c.UsageReset,
 	} {
 		n.Use(hooks...)
 	}
@@ -656,6 +669,7 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.ChargeFlatFeePayment, c.ChargeUsageBased,
 		c.ChargeUsageBasedRunCreditAllocations, c.ChargeUsageBasedRunInvoicedUsage,
 		c.ChargeUsageBasedRunPayment, c.ChargeUsageBasedRuns, c.ChargesSearchV1,
+		c.CreditRealizationLineage, c.CreditRealizationLineageSegment,
 		c.CurrencyCostBasis, c.CustomCurrency, c.Customer, c.CustomerSubjects,
 		c.Entitlement, c.Feature, c.Grant, c.LLMCostPrice, c.LedgerAccount,
 		c.LedgerCustomerAccount, c.LedgerEntry, c.LedgerSubAccount,
@@ -749,6 +763,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ChargeUsageBasedRunPayment.mutate(ctx, m)
 	case *ChargeUsageBasedRunsMutation:
 		return c.ChargeUsageBasedRuns.mutate(ctx, m)
+	case *CreditRealizationLineageMutation:
+		return c.CreditRealizationLineage.mutate(ctx, m)
+	case *CreditRealizationLineageSegmentMutation:
+		return c.CreditRealizationLineageSegment.mutate(ctx, m)
 	case *CurrencyCostBasisMutation:
 		return c.CurrencyCostBasis.mutate(ctx, m)
 	case *CustomCurrencyMutation:
@@ -5565,6 +5583,22 @@ func (c *ChargeClient) QueryBillingSplitLineGroups(_m *Charge) *BillingInvoiceSp
 	return query
 }
 
+// QueryCreditRealizationLineages queries the credit_realization_lineages edge of a Charge.
+func (c *ChargeClient) QueryCreditRealizationLineages(_m *Charge) *CreditRealizationLineageQuery {
+	query := (&CreditRealizationLineageClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(charge.Table, charge.FieldID, id),
+			sqlgraph.To(creditrealizationlineage.Table, creditrealizationlineage.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, charge.CreditRealizationLineagesTable, charge.CreditRealizationLineagesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *ChargeClient) Hooks() []Hook {
 	return c.hooks.Charge
@@ -7934,6 +7968,320 @@ func (c *ChargesSearchV1Client) Query() *ChargesSearchV1Query {
 // Interceptors returns the client interceptors.
 func (c *ChargesSearchV1Client) Interceptors() []Interceptor {
 	return c.inters.ChargesSearchV1
+}
+
+// CreditRealizationLineageClient is a client for the CreditRealizationLineage schema.
+type CreditRealizationLineageClient struct {
+	config
+}
+
+// NewCreditRealizationLineageClient returns a client for the CreditRealizationLineage from the given config.
+func NewCreditRealizationLineageClient(c config) *CreditRealizationLineageClient {
+	return &CreditRealizationLineageClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `creditrealizationlineage.Hooks(f(g(h())))`.
+func (c *CreditRealizationLineageClient) Use(hooks ...Hook) {
+	c.hooks.CreditRealizationLineage = append(c.hooks.CreditRealizationLineage, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `creditrealizationlineage.Intercept(f(g(h())))`.
+func (c *CreditRealizationLineageClient) Intercept(interceptors ...Interceptor) {
+	c.inters.CreditRealizationLineage = append(c.inters.CreditRealizationLineage, interceptors...)
+}
+
+// Create returns a builder for creating a CreditRealizationLineage entity.
+func (c *CreditRealizationLineageClient) Create() *CreditRealizationLineageCreate {
+	mutation := newCreditRealizationLineageMutation(c.config, OpCreate)
+	return &CreditRealizationLineageCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of CreditRealizationLineage entities.
+func (c *CreditRealizationLineageClient) CreateBulk(builders ...*CreditRealizationLineageCreate) *CreditRealizationLineageCreateBulk {
+	return &CreditRealizationLineageCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *CreditRealizationLineageClient) MapCreateBulk(slice any, setFunc func(*CreditRealizationLineageCreate, int)) *CreditRealizationLineageCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &CreditRealizationLineageCreateBulk{err: fmt.Errorf("calling to CreditRealizationLineageClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*CreditRealizationLineageCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &CreditRealizationLineageCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for CreditRealizationLineage.
+func (c *CreditRealizationLineageClient) Update() *CreditRealizationLineageUpdate {
+	mutation := newCreditRealizationLineageMutation(c.config, OpUpdate)
+	return &CreditRealizationLineageUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *CreditRealizationLineageClient) UpdateOne(_m *CreditRealizationLineage) *CreditRealizationLineageUpdateOne {
+	mutation := newCreditRealizationLineageMutation(c.config, OpUpdateOne, withCreditRealizationLineage(_m))
+	return &CreditRealizationLineageUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *CreditRealizationLineageClient) UpdateOneID(id string) *CreditRealizationLineageUpdateOne {
+	mutation := newCreditRealizationLineageMutation(c.config, OpUpdateOne, withCreditRealizationLineageID(id))
+	return &CreditRealizationLineageUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for CreditRealizationLineage.
+func (c *CreditRealizationLineageClient) Delete() *CreditRealizationLineageDelete {
+	mutation := newCreditRealizationLineageMutation(c.config, OpDelete)
+	return &CreditRealizationLineageDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *CreditRealizationLineageClient) DeleteOne(_m *CreditRealizationLineage) *CreditRealizationLineageDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *CreditRealizationLineageClient) DeleteOneID(id string) *CreditRealizationLineageDeleteOne {
+	builder := c.Delete().Where(creditrealizationlineage.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &CreditRealizationLineageDeleteOne{builder}
+}
+
+// Query returns a query builder for CreditRealizationLineage.
+func (c *CreditRealizationLineageClient) Query() *CreditRealizationLineageQuery {
+	return &CreditRealizationLineageQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeCreditRealizationLineage},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a CreditRealizationLineage entity by its id.
+func (c *CreditRealizationLineageClient) Get(ctx context.Context, id string) (*CreditRealizationLineage, error) {
+	return c.Query().Where(creditrealizationlineage.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *CreditRealizationLineageClient) GetX(ctx context.Context, id string) *CreditRealizationLineage {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryCharge queries the charge edge of a CreditRealizationLineage.
+func (c *CreditRealizationLineageClient) QueryCharge(_m *CreditRealizationLineage) *ChargeQuery {
+	query := (&ChargeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(creditrealizationlineage.Table, creditrealizationlineage.FieldID, id),
+			sqlgraph.To(charge.Table, charge.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, creditrealizationlineage.ChargeTable, creditrealizationlineage.ChargeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySegments queries the segments edge of a CreditRealizationLineage.
+func (c *CreditRealizationLineageClient) QuerySegments(_m *CreditRealizationLineage) *CreditRealizationLineageSegmentQuery {
+	query := (&CreditRealizationLineageSegmentClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(creditrealizationlineage.Table, creditrealizationlineage.FieldID, id),
+			sqlgraph.To(creditrealizationlineagesegment.Table, creditrealizationlineagesegment.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, creditrealizationlineage.SegmentsTable, creditrealizationlineage.SegmentsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *CreditRealizationLineageClient) Hooks() []Hook {
+	return c.hooks.CreditRealizationLineage
+}
+
+// Interceptors returns the client interceptors.
+func (c *CreditRealizationLineageClient) Interceptors() []Interceptor {
+	return c.inters.CreditRealizationLineage
+}
+
+func (c *CreditRealizationLineageClient) mutate(ctx context.Context, m *CreditRealizationLineageMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&CreditRealizationLineageCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&CreditRealizationLineageUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&CreditRealizationLineageUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&CreditRealizationLineageDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown CreditRealizationLineage mutation op: %q", m.Op())
+	}
+}
+
+// CreditRealizationLineageSegmentClient is a client for the CreditRealizationLineageSegment schema.
+type CreditRealizationLineageSegmentClient struct {
+	config
+}
+
+// NewCreditRealizationLineageSegmentClient returns a client for the CreditRealizationLineageSegment from the given config.
+func NewCreditRealizationLineageSegmentClient(c config) *CreditRealizationLineageSegmentClient {
+	return &CreditRealizationLineageSegmentClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `creditrealizationlineagesegment.Hooks(f(g(h())))`.
+func (c *CreditRealizationLineageSegmentClient) Use(hooks ...Hook) {
+	c.hooks.CreditRealizationLineageSegment = append(c.hooks.CreditRealizationLineageSegment, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `creditrealizationlineagesegment.Intercept(f(g(h())))`.
+func (c *CreditRealizationLineageSegmentClient) Intercept(interceptors ...Interceptor) {
+	c.inters.CreditRealizationLineageSegment = append(c.inters.CreditRealizationLineageSegment, interceptors...)
+}
+
+// Create returns a builder for creating a CreditRealizationLineageSegment entity.
+func (c *CreditRealizationLineageSegmentClient) Create() *CreditRealizationLineageSegmentCreate {
+	mutation := newCreditRealizationLineageSegmentMutation(c.config, OpCreate)
+	return &CreditRealizationLineageSegmentCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of CreditRealizationLineageSegment entities.
+func (c *CreditRealizationLineageSegmentClient) CreateBulk(builders ...*CreditRealizationLineageSegmentCreate) *CreditRealizationLineageSegmentCreateBulk {
+	return &CreditRealizationLineageSegmentCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *CreditRealizationLineageSegmentClient) MapCreateBulk(slice any, setFunc func(*CreditRealizationLineageSegmentCreate, int)) *CreditRealizationLineageSegmentCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &CreditRealizationLineageSegmentCreateBulk{err: fmt.Errorf("calling to CreditRealizationLineageSegmentClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*CreditRealizationLineageSegmentCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &CreditRealizationLineageSegmentCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for CreditRealizationLineageSegment.
+func (c *CreditRealizationLineageSegmentClient) Update() *CreditRealizationLineageSegmentUpdate {
+	mutation := newCreditRealizationLineageSegmentMutation(c.config, OpUpdate)
+	return &CreditRealizationLineageSegmentUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *CreditRealizationLineageSegmentClient) UpdateOne(_m *CreditRealizationLineageSegment) *CreditRealizationLineageSegmentUpdateOne {
+	mutation := newCreditRealizationLineageSegmentMutation(c.config, OpUpdateOne, withCreditRealizationLineageSegment(_m))
+	return &CreditRealizationLineageSegmentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *CreditRealizationLineageSegmentClient) UpdateOneID(id string) *CreditRealizationLineageSegmentUpdateOne {
+	mutation := newCreditRealizationLineageSegmentMutation(c.config, OpUpdateOne, withCreditRealizationLineageSegmentID(id))
+	return &CreditRealizationLineageSegmentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for CreditRealizationLineageSegment.
+func (c *CreditRealizationLineageSegmentClient) Delete() *CreditRealizationLineageSegmentDelete {
+	mutation := newCreditRealizationLineageSegmentMutation(c.config, OpDelete)
+	return &CreditRealizationLineageSegmentDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *CreditRealizationLineageSegmentClient) DeleteOne(_m *CreditRealizationLineageSegment) *CreditRealizationLineageSegmentDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *CreditRealizationLineageSegmentClient) DeleteOneID(id string) *CreditRealizationLineageSegmentDeleteOne {
+	builder := c.Delete().Where(creditrealizationlineagesegment.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &CreditRealizationLineageSegmentDeleteOne{builder}
+}
+
+// Query returns a query builder for CreditRealizationLineageSegment.
+func (c *CreditRealizationLineageSegmentClient) Query() *CreditRealizationLineageSegmentQuery {
+	return &CreditRealizationLineageSegmentQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeCreditRealizationLineageSegment},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a CreditRealizationLineageSegment entity by its id.
+func (c *CreditRealizationLineageSegmentClient) Get(ctx context.Context, id string) (*CreditRealizationLineageSegment, error) {
+	return c.Query().Where(creditrealizationlineagesegment.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *CreditRealizationLineageSegmentClient) GetX(ctx context.Context, id string) *CreditRealizationLineageSegment {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryLineage queries the lineage edge of a CreditRealizationLineageSegment.
+func (c *CreditRealizationLineageSegmentClient) QueryLineage(_m *CreditRealizationLineageSegment) *CreditRealizationLineageQuery {
+	query := (&CreditRealizationLineageClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(creditrealizationlineagesegment.Table, creditrealizationlineagesegment.FieldID, id),
+			sqlgraph.To(creditrealizationlineage.Table, creditrealizationlineage.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, creditrealizationlineagesegment.LineageTable, creditrealizationlineagesegment.LineageColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *CreditRealizationLineageSegmentClient) Hooks() []Hook {
+	return c.hooks.CreditRealizationLineageSegment
+}
+
+// Interceptors returns the client interceptors.
+func (c *CreditRealizationLineageSegmentClient) Interceptors() []Interceptor {
+	return c.inters.CreditRealizationLineageSegment
+}
+
+func (c *CreditRealizationLineageSegmentClient) mutate(ctx context.Context, m *CreditRealizationLineageSegmentMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&CreditRealizationLineageSegmentCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&CreditRealizationLineageSegmentUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&CreditRealizationLineageSegmentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&CreditRealizationLineageSegmentDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown CreditRealizationLineageSegment mutation op: %q", m.Op())
+	}
 }
 
 // CurrencyCostBasisClient is a client for the CurrencyCostBasis schema.
@@ -13846,7 +14194,8 @@ type (
 		ChargeFlatFeeCreditAllocations, ChargeFlatFeeInvoicedUsage,
 		ChargeFlatFeePayment, ChargeUsageBased, ChargeUsageBasedRunCreditAllocations,
 		ChargeUsageBasedRunInvoicedUsage, ChargeUsageBasedRunPayment,
-		ChargeUsageBasedRuns, CurrencyCostBasis, CustomCurrency, Customer,
+		ChargeUsageBasedRuns, CreditRealizationLineage,
+		CreditRealizationLineageSegment, CurrencyCostBasis, CustomCurrency, Customer,
 		CustomerSubjects, Entitlement, Feature, Grant, LLMCostPrice, LedgerAccount,
 		LedgerCustomerAccount, LedgerEntry, LedgerSubAccount, LedgerSubAccountRoute,
 		LedgerTransaction, LedgerTransactionGroup, Meter, NotificationChannel,
@@ -13870,15 +14219,15 @@ type (
 		ChargeFlatFeeCreditAllocations, ChargeFlatFeeInvoicedUsage,
 		ChargeFlatFeePayment, ChargeUsageBased, ChargeUsageBasedRunCreditAllocations,
 		ChargeUsageBasedRunInvoicedUsage, ChargeUsageBasedRunPayment,
-		ChargeUsageBasedRuns, ChargesSearchV1, CurrencyCostBasis, CustomCurrency,
-		Customer, CustomerSubjects, Entitlement, Feature, Grant, LLMCostPrice,
-		LedgerAccount, LedgerCustomerAccount, LedgerEntry, LedgerSubAccount,
-		LedgerSubAccountRoute, LedgerTransaction, LedgerTransactionGroup, Meter,
-		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
-		NotificationRule, Plan, PlanAddon, PlanPhase, PlanRateCard, Subject,
-		Subscription, SubscriptionAddon, SubscriptionAddonQuantity,
-		SubscriptionBillingSyncState, SubscriptionItem, SubscriptionPhase, TaxCode,
-		UsageReset []ent.Interceptor
+		ChargeUsageBasedRuns, ChargesSearchV1, CreditRealizationLineage,
+		CreditRealizationLineageSegment, CurrencyCostBasis, CustomCurrency, Customer,
+		CustomerSubjects, Entitlement, Feature, Grant, LLMCostPrice, LedgerAccount,
+		LedgerCustomerAccount, LedgerEntry, LedgerSubAccount, LedgerSubAccountRoute,
+		LedgerTransaction, LedgerTransactionGroup, Meter, NotificationChannel,
+		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
+		PlanAddon, PlanPhase, PlanRateCard, Subject, Subscription, SubscriptionAddon,
+		SubscriptionAddonQuantity, SubscriptionBillingSyncState, SubscriptionItem,
+		SubscriptionPhase, TaxCode, UsageReset []ent.Interceptor
 	}
 )
 

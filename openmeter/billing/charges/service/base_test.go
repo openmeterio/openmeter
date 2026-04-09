@@ -17,6 +17,8 @@ import (
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
 	flatfeelineengine "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/lineengine"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
+	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
+	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -62,6 +64,16 @@ func (s *BaseSuite) SetupSuite() {
 	})
 	s.NoError(err)
 
+	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
+		Client: s.DBClient,
+	})
+	s.NoError(err)
+
+	lineageService, err := lineageservice.New(lineageservice.Config{
+		Adapter: lineageAdapter,
+	})
+	s.NoError(err)
+
 	flatFeeAdapter, err := flatfeeadapter.New(flatfeeadapter.Config{
 		Client:      s.DBClient,
 		Logger:      slog.Default(),
@@ -72,6 +84,7 @@ func (s *BaseSuite) SetupSuite() {
 	flatFeeService, err := flatfeeservice.New(flatfeeservice.Config{
 		Adapter:     flatFeeAdapter,
 		Handler:     s.FlatFeeTestHandler,
+		Lineage:     lineageService,
 		MetaAdapter: metaAdapter,
 		Locker:      locker,
 	})
@@ -96,6 +109,7 @@ func (s *BaseSuite) SetupSuite() {
 	usageBasedService, err := usagebasedservice.New(usagebasedservice.Config{
 		Adapter:                 usageBasedAdapter,
 		Handler:                 s.UsageBasedTestHandler,
+		Lineage:                 lineageService,
 		Locker:                  locker,
 		MetaAdapter:             metaAdapter,
 		CustomerOverrideService: s.BillingService,
@@ -116,6 +130,7 @@ func (s *BaseSuite) SetupSuite() {
 	creditPurchaseService, err := creditpurchaseservice.New(creditpurchaseservice.Config{
 		Adapter:     creditPurchaseAdapter,
 		Handler:     s.CreditPurchaseTestHandler,
+		Lineage:     lineageService,
 		MetaAdapter: metaAdapter,
 	})
 	s.NoError(err)

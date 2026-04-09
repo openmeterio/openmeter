@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -19,20 +20,38 @@ func (s *service) onExternalCreditPurchase(ctx context.Context, charge creditpur
 
 	targetStatus := externalCreditPurchaseSettlement.InitialStatus
 
-	// Let's handle the initial state
-	ledgerTransactionGroupReference, err := s.handler.OnCreditPurchaseInitiated(ctx, charge)
-	if err != nil {
-		return creditpurchase.Charge{}, err
-	}
+	charge, err = transaction.Run(ctx, s.adapter, func(ctx context.Context) (creditpurchase.Charge, error) {
+		ledgerTransactionGroupReference, err := s.handler.OnCreditPurchaseInitiated(ctx, charge)
+		if err != nil {
+			return creditpurchase.Charge{}, err
+		}
 
-	charge.State.CreditGrantRealization = &ledgertransaction.TimedGroupReference{
-		GroupReference: ledgerTransactionGroupReference,
-		Time:           clock.Now(),
-	}
+		charge.State.CreditGrantRealization = &ledgertransaction.TimedGroupReference{
+			GroupReference: ledgerTransactionGroupReference,
+			Time:           clock.Now(),
+		}
 
-	charge.Status = meta.ChargeStatusActive
+		if ledgerTransactionGroupReference.TransactionGroupID != "" {
+			if err := s.lineage.BackfillAdvanceLineageSegments(ctx, lineage.BackfillAdvanceLineageSegmentsInput{
+				Namespace:                 charge.Namespace,
+				CustomerID:                charge.Intent.CustomerID,
+				Currency:                  charge.Intent.Currency,
+				Amount:                    charge.Intent.CreditAmount,
+				BackingTransactionGroupID: ledgerTransactionGroupReference.TransactionGroupID,
+			}); err != nil {
+				return creditpurchase.Charge{}, err
+			}
+		}
 
-	charge, err = s.adapter.UpdateCharge(ctx, charge)
+		charge.Status = meta.ChargeStatusActive
+
+		updatedCharge, err := s.adapter.UpdateCharge(ctx, charge)
+		if err != nil {
+			return creditpurchase.Charge{}, err
+		}
+
+		return updatedCharge, nil
+	})
 	if err != nil {
 		return creditpurchase.Charge{}, err
 	}

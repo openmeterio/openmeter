@@ -32,8 +32,13 @@ func (a *adapter) CreateCreditAllocations(ctx context.Context, chargeID meta.Cha
 			return creditrealization.Realizations{}, err
 		}
 
-		return slicesx.MapWithErr(dbEntities, func(entity *db.ChargeFlatFeeCreditAllocations) (creditrealization.Realization, error) {
+		realizations, err := slicesx.MapWithErr(dbEntities, func(entity *db.ChargeFlatFeeCreditAllocations) (creditrealization.Realization, error) {
 			return creditrealization.MapFromDB(entity), nil
 		})
+		if err != nil {
+			return creditrealization.Realizations{}, err
+		}
+
+		return realizations, nil
 	})
 }
