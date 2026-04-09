@@ -19,24 +19,50 @@ func RecalculateDetailedLinesAndTotals(invoice *billing.StandardInvoice, deps Ca
 		return errors.New("cannot recaulculate invoice without expanded lines")
 	}
 
-	if deps.RatingService == nil {
-		return errors.New("rating service is nil")
+	if deps.LineEngines == nil {
+		return errors.New("line engines are nil")
 	}
 
 	var outErr error
+	groupedLines := make(map[billing.LineEngineType]billing.StandardLines)
 
 	for _, line := range invoice.Lines.OrEmpty() {
 		if line.IsDeleted() {
 			continue
 		}
 
-		detailedLines, err := deps.RatingService.GenerateDetailedLines(line)
+		groupedLines[line.Engine] = append(groupedLines[line.Engine], line)
+	}
+
+	for lineEngineType, stdLines := range groupedLines {
+		lineEngine, err := deps.LineEngines.Get(lineEngineType)
 		if err != nil {
-			return fmt.Errorf("calculating detailed lines: %w", err)
+			return fmt.Errorf("getting line engine[%s]: %w", lineEngineType, err)
 		}
 
-		if err := MergeGeneratedDetailedLines(line, detailedLines); err != nil {
-			return fmt.Errorf("merging generated detailed lines: %w", err)
+		input := billing.CalculateLinesInput{
+			Invoice: *invoice,
+			Lines:   stdLines,
+		}
+		if err := input.Validate(); err != nil {
+			return fmt.Errorf("validating calculate lines input for engine[%s]: %w", lineEngineType, err)
+		}
+
+		updatedLines, err := lineEngine.CalculateLines(input)
+		if err != nil {
+			return fmt.Errorf("calculating lines for engine[%s]: %w", lineEngineType, err)
+		}
+
+		if err := updatedLines.Validate(); err != nil {
+			return fmt.Errorf("validating calculate lines output for engine[%s]: %w", lineEngineType, err)
+		}
+
+		if err := billing.ValidateStandardLineIDsMatchExactly(stdLines, updatedLines); err != nil {
+			return fmt.Errorf("validating calculate lines ids for engine[%s]: %w", lineEngineType, err)
+		}
+
+		if err := invoice.Lines.ReplaceLinesByID(updatedLines...); err != nil {
+			return fmt.Errorf("replacing recalculated lines for engine[%s]: %w", lineEngineType, err)
 		}
 	}
 

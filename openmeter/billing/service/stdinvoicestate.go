@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -110,7 +111,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 		Permit(billing.TriggerUpdated, billing.StandardInvoiceStatusDraftUpdating).
 		OnActive(
 			statelessx.AllOf(
-				out.snapshotQuantityAsNeeded,
+				out.onCollectionCompleted,
 				out.calculateInvoice,
 				out.requireDBSave, // so that any new detailed lines have IDs
 			),
@@ -680,6 +681,7 @@ func (m *InvoiceStateMachine) calculateInvoice(ctx context.Context) error {
 		FeatureMeters: featureMeters,
 		RatingService: m.Service.ratingService,
 		TaxCodes:      taxCodes,
+		LineEngines:   m.Service.lineEngines,
 	})
 }
 
@@ -815,47 +817,66 @@ func (m *InvoiceStateMachine) isReadyForCollection() bool {
 	return true
 }
 
-func (m *InvoiceStateMachine) snapshotQuantityAsNeeded(ctx context.Context) error {
-	// Let's skip the snapshot if we already have the snapshot and it happened after the collection date
-	if m.Invoice.QuantitySnapshotedAt != nil && !m.Invoice.QuantitySnapshotedAt.Before(m.Invoice.DefaultCollectionAtForStandardInvoice()) {
-		m.Logger.InfoContext(ctx, "skipping snapshot quantity as it already exists and was taken after the collection date",
-			"invoice", m.Invoice.ID,
-			"quantity_snapshoted_at", m.Invoice.QuantitySnapshotedAt,
-			"collection_at", m.Invoice.CollectionAt,
-		)
-		return nil
-	}
-
-	// We don't have the snapshot and the collection date is in the future
-	if m.Invoice.QuantitySnapshotedAt == nil && clock.Now().Before(*m.Invoice.CollectionAt) {
-		return nil
-	}
-
-	featureMeters, err := m.Service.resolveFeatureMeters(ctx, m.Invoice.Namespace, m.Invoice.Lines)
+func (m *InvoiceStateMachine) onCollectionCompleted(ctx context.Context) error {
+	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(m.Invoice.Lines.OrEmpty())
 	if err != nil {
-		return fmt.Errorf("resolving feature meters: %w", err)
+		return fmt.Errorf("grouping standard lines by engine: %w", err)
 	}
 
-	err = m.Service.snapshotLineQuantitiesInParallel(ctx, m.Invoice.Customer, m.Invoice.Lines.OrEmpty(), featureMeters)
-	if err != nil {
-		if _, isInvalidDatabaseState := lo.ErrorsAs[*billing.ErrSnapshotInvalidDatabaseState](err); isInvalidDatabaseState {
-			return m.Invoice.MergeValidationIssues(
-				billing.ValidationIssue{
-					Severity:  billing.ValidationIssueSeverityCritical,
-					Code:      billing.ErrInvoiceLineSnapshotFailed.Code,
-					Message:   err.Error(),
-					Component: billing.ValidationComponentOpenMeterMetering,
-				},
-				billing.ValidationComponentOpenMeterMetering,
-			)
+	var validationErrs []error
+
+	for _, grouped := range groupedLines {
+		input := billing.OnCollectionCompletedInput{
+			Invoice: m.Invoice,
+			Lines:   grouped.Lines,
+		}
+		if err := input.Validate(); err != nil {
+			return fmt.Errorf("validating collection completed input for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
 		}
 
-		return fmt.Errorf("snapshotting lines: %w", err)
+		lines, err := grouped.Engine.OnCollectionCompleted(ctx, input)
+		if err != nil {
+			validationErrs = append(validationErrs, billing.NewLineEngineValidationError(grouped.Engine, err))
+			continue
+		}
+
+		if err := lines.Validate(); err != nil {
+			return fmt.Errorf("validating collection completed output for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+		}
+
+		if err := billing.ValidateStandardLineIDsMatchExactly(grouped.Lines, lines); err != nil {
+			return fmt.Errorf("validating collection completed line ids for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+		}
+
+		if err := m.Invoice.Lines.ReplaceLinesByID(lines...); err != nil {
+			return fmt.Errorf("replacing collection completed lines for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+		}
 	}
 
-	m.Invoice.QuantitySnapshotedAt = lo.ToPtr(clock.Now().UTC())
+	if len(validationErrs) > 0 {
+		if err := m.mergeLineEngineValidationIssues(errors.Join(validationErrs...)); err != nil {
+			return err
+		}
+	}
+
+	if len(groupedLines) > 0 {
+		now := clock.Now().UTC()
+		m.Invoice.QuantitySnapshotedAt = &now
+	}
 
 	return nil
+}
+
+func (m *InvoiceStateMachine) mergeLineEngineValidationIssues(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	m.Invoice.ValidationIssues = lo.Filter(m.Invoice.ValidationIssues, func(issue billing.ValidationIssue, _ int) bool {
+		return !strings.HasPrefix(string(issue.Component), "openmeter.lineengine.")
+	})
+
+	return m.Invoice.MergeValidationIssues(err, "")
 }
 
 func (m *InvoiceStateMachine) canDraftSyncAdvance() bool {

@@ -275,13 +275,18 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 				return gatheringLineWithBillablePeriod{}, fmt.Errorf("getting engine[%s]: %w", line.ID, err)
 			}
 
-			isBillable, err := eng.IsLineBillableAsOf(ctx, billing.IsLineBillableAsOfInput{
+			engineInput := billing.IsLineBillableAsOfInput{
 				Line:                   line,
 				AsOf:                   in.AsOf,
 				ProgressiveBilling:     in.ProgressiveBilling,
 				FeatureMeters:          invoice.FeatureMeters,
 				ResolvedBillablePeriod: lo.FromPtr(period),
-			})
+			}
+			if err := engineInput.Validate(); err != nil {
+				return gatheringLineWithBillablePeriod{}, fmt.Errorf("validating billable status input[%s]: %w", line.ID, err)
+			}
+
+			isBillable, err := eng.IsLineBillableAsOf(ctx, engineInput)
 			if err != nil {
 				return gatheringLineWithBillablePeriod{}, fmt.Errorf("checking billable status[%s]: %w", line.ID, err)
 			}
@@ -469,38 +474,66 @@ func (s *Service) prepareLinesToBill(ctx context.Context, input prepareLinesToBi
 	wasSplit := false
 
 	for _, line := range input.InScopeLines {
-		if !line.Line.ServicePeriod.Equal(line.BillablePeriod) {
+		currentLine, found := gatheringInvoice.Lines.GetByID(line.Line.ID)
+		if !found {
+			return nil, fmt.Errorf("line[%s]: line not found in gathering invoice[%s]", line.Line.ID, gatheringInvoice.ID)
+		}
+
+		if !currentLine.ServicePeriod.Equal(line.BillablePeriod) {
 			// We need to split the line into multiple lines
-			if !line.Line.ServicePeriod.From.Equal(line.BillablePeriod.From) {
-				return nil, fmt.Errorf("line[%s]: line period start[%s] is not equal to billable period start[%s]", line.Line.ID, line.Line.ServicePeriod.From, line.BillablePeriod.From)
+			if !currentLine.ServicePeriod.From.Equal(line.BillablePeriod.From) {
+				return nil, fmt.Errorf("line[%s]: line period start[%s] is not equal to billable period start[%s]", currentLine.ID, currentLine.ServicePeriod.From, line.BillablePeriod.From)
 			}
 
-			splitLine, err := line.Engine.SplitGatheringLine(ctx, billing.SplitGatheringLineInput{
-				GatheringInvoice: gatheringInvoice,
-				FeatureMeters:    input.FeatureMeters,
-				LineID:           line.Line.ID,
-				SplitAt:          line.BillablePeriod.To,
-			})
+			engineInput := billing.SplitGatheringLineInput{
+				Line:          currentLine,
+				FeatureMeters: input.FeatureMeters,
+				SplitAt:       line.BillablePeriod.To,
+			}
+			if err := engineInput.Validate(); err != nil {
+				return nil, fmt.Errorf("line[%s]: validating split input: %w", currentLine.ID, err)
+			}
+
+			splitLine, err := line.Engine.SplitGatheringLine(ctx, engineInput)
 			if err != nil {
-				return nil, fmt.Errorf("line[%s]: splitting line: %w", line.Line.ID, err)
+				return nil, fmt.Errorf("line[%s]: splitting line: %w", currentLine.ID, err)
+			}
+
+			if err := splitLine.Validate(); err != nil {
+				return nil, fmt.Errorf("line[%s]: validating split output: %w", currentLine.ID, err)
 			}
 
 			if splitLine.PreSplitAtLine.DeletedAt != nil {
+				if err := gatheringInvoice.Lines.ReplaceByID(splitLine.PreSplitAtLine); err != nil {
+					return nil, fmt.Errorf("line[%s]: merging deleted pre split line: %w", currentLine.ID, err)
+				}
+
+				if splitLine.PostSplitAtLine != nil {
+					gatheringInvoice.Lines.Append(*splitLine.PostSplitAtLine)
+				}
+
 				wasSplit = true
 
 				s.logger.WarnContext(ctx, "pre split line is nil, skipping collection",
-					"line", line.Line.ID,
-					"original_period_start", line.Line.ServicePeriod.From,
-					"original_period_end", line.Line.ServicePeriod.To,
+					"line", currentLine.ID,
+					"original_period_start", currentLine.ServicePeriod.From,
+					"original_period_end", currentLine.ServicePeriod.To,
 					"split_at", line.BillablePeriod.To)
 				continue
 			}
 
-			gatheringInvoice = splitLine.GatheringInvoice
+			if err := gatheringInvoice.Lines.ReplaceByID(splitLine.PreSplitAtLine); err != nil {
+				return nil, fmt.Errorf("line[%s]: merging pre split line: %w", currentLine.ID, err)
+			}
+
+			if splitLine.PostSplitAtLine != nil {
+				gatheringInvoice.Lines.Append(*splitLine.PostSplitAtLine)
+			}
+
 			invoiceLines = append(invoiceLines, splitLine.PreSplitAtLine)
 			wasSplit = true
 		} else {
-			invoiceLines = append(invoiceLines, line.Line)
+			invoiceLines = append(invoiceLines, currentLine)
 		}
 	}
 
@@ -596,12 +629,21 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 	}
 
 	for _, item := range linesWithEngines {
-		stdLines, err := item.Engine.BuildStandardInvoiceLines(ctx, billing.BuildStandardInvoiceLinesInput{
+		engineInput := billing.BuildStandardInvoiceLinesInput{
 			Invoice:        invoice,
 			GatheringLines: item.Lines,
-		})
+		}
+		if err := engineInput.Validate(); err != nil {
+			return nil, fmt.Errorf("validating build standard invoice lines input for engine %s: %w", item.Engine.GetLineEngineType(), err)
+		}
+
+		stdLines, err := item.Engine.BuildStandardInvoiceLines(ctx, engineInput)
 		if err != nil {
 			return nil, fmt.Errorf("building standard invoice lines for engine %s: %w", item.Engine.GetLineEngineType(), err)
+		}
+
+		if err := stdLines.Validate(); err != nil {
+			return nil, fmt.Errorf("validating build standard invoice lines output for engine %s: %w", item.Engine.GetLineEngineType(), err)
 		}
 
 		invoice.Lines.Append(stdLines...)

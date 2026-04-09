@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -157,7 +156,7 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesReturnsEmptyWhenCustomerHasN
 	s.Empty(advancedCharges)
 }
 
-func (s *AdvanceChargesTestSuite) TestAdvanceChargesFailsForCreditThenInvoiceUsageBasedCharges() {
+func (s *AdvanceChargesTestSuite) TestAdvanceChargesActivatesCreditThenInvoiceUsageBasedChargesAtServicePeriodStart() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-advance-credit-then-invoice")
 
@@ -203,13 +202,20 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesFailsForCreditThenInvoiceUsa
 	advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
 		Customer: cust.GetID(),
 	})
-	s.Error(err)
-	s.True(models.IsGenericNotImplementedError(err))
-	s.Nil(advancedCharges)
+	s.NoError(err)
+	s.Len(advancedCharges, 1)
+	s.Equal(meta.ChargeTypeUsageBased, advancedCharges[0].Type())
+
+	advancedCharge, err := advancedCharges[0].AsUsageBasedCharge()
+	s.NoError(err)
+	s.Equal(meta.ChargeStatusActive, meta.ChargeStatus(advancedCharge.Status))
+	s.NotNil(advancedCharge.State.AdvanceAfter)
+	s.True(servicePeriod.To.Equal(*advancedCharge.State.AdvanceAfter))
 
 	fetchedCharge := s.mustGetChargeByID(usageBasedChargeID)
 	usageBasedCharge, err := fetchedCharge.AsUsageBasedCharge()
 	s.NoError(err)
-	s.Equal(meta.ChargeStatusCreated, meta.ChargeStatus(usageBasedCharge.Status))
-	s.Nil(usageBasedCharge.State.AdvanceAfter)
+	s.Equal(meta.ChargeStatusActive, meta.ChargeStatus(usageBasedCharge.Status))
+	s.NotNil(usageBasedCharge.State.AdvanceAfter)
+	s.True(servicePeriod.To.Equal(*usageBasedCharge.State.AdvanceAfter))
 }

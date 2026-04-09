@@ -1729,6 +1729,14 @@ func (n NoopBillingService) RegisterLineEngine(engine billing.LineEngine) error 
 	return nil
 }
 
+func (n NoopBillingService) DeregisterLineEngine(engineType billing.LineEngineType) error {
+	return nil
+}
+
+func (n NoopBillingService) GetRegisterdLineEngines() []billing.LineEngineType {
+	return nil
+}
+
 func (n NoopBillingService) GetLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]billing.LineOrHierarchy, error) {
 	return []billing.LineOrHierarchy{}, nil
 }

@@ -560,6 +560,20 @@ func (c *StandardInvoiceLines) ReplaceByID(id string, newLine *StandardLine) boo
 	return false
 }
 
+func (c *StandardInvoiceLines) ReplaceLinesByID(lines ...*StandardLine) error {
+	for _, line := range lines {
+		if line == nil {
+			return fmt.Errorf("line is required")
+		}
+
+		if ok := c.ReplaceByID(line.ID, line); !ok {
+			return fmt.Errorf("replacing line[%s]", line.ID)
+		}
+	}
+
+	return nil
+}
+
 func (c *StandardInvoiceLines) Sort() {
 	if c.IsAbsent() {
 		return

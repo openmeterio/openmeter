@@ -80,6 +80,11 @@ type CalculatorDependencies struct {
 	FeatureMeters feature.FeatureMeters
 	RatingService rating.Service
 	TaxCodes      TaxCodes
+	LineEngines   LineEngineResolver
+}
+
+type LineEngineResolver interface {
+	Get(billing.LineEngineType) (billing.LineEngine, error)
 }
 
 type calculator struct{}

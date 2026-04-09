@@ -354,6 +354,10 @@ func newChargesRegistry(
 		return nil, err
 	}
 
+	if err := billingService.RegisterLineEngine(usageBasedSvc.GetLineEngine()); err != nil {
+		return nil, fmt.Errorf("failed to register charges usage based line engine: %w", err)
+	}
+
 	creditPurchaseAdapter, err := NewChargesCreditPurchaseAdapter(db, logger, metaAdapter)
 	if err != nil {
 		return nil, err

@@ -136,6 +136,8 @@ Codex's default shell may not auto-load `.envrc`, so `direnv`-managed tools like
 
 When invoking commands through Codex tools, prefer direct command execution. Do not wrap commands in `sh -lc`, `bash -lc`, or other helper shells when the command can be run directly. For environment variables, prefer `env KEY=value <command>` or `KEY=value <command>` over shell-wrapped forms. This keeps failures attributable to the actual toolchain/runtime being tested.
 
+Do not introduce `context.Background()` or `context.TODO()` to sidestep missing context propagation in application code. Either propagate the caller's context through the full call path, or remove the unused `context.Context` parameter from the API if the operation is purely local and does not need cancellation, deadlines, or request-scoped values.
+
 Examples:
 
 ```bash

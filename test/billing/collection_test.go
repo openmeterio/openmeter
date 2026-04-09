@@ -361,6 +361,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 	s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
 	s.Equal(float64(1), invoice.Totals.Amount.InexactFloat64())
 
+	clock.FreezeTime(*invoice.QuantitySnapshotedAt)
 	previousSnapshot := *invoice.QuantitySnapshotedAt
 	s.NotNil(previousSnapshot)
 

@@ -60,6 +60,74 @@ type BuildStandardInvoiceLinesInput struct {
 	GatheringLines GatheringLines
 }
 
+func (i BuildStandardInvoiceLinesInput) Validate() error {
+	var errs []error
+
+	if i.Invoice.ID == "" {
+		errs = append(errs, fmt.Errorf("invoice id is required"))
+	}
+
+	if len(i.GatheringLines) == 0 {
+		errs = append(errs, fmt.Errorf("gathering lines are required"))
+	}
+
+	if err := i.GatheringLines.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("gathering lines: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
+type CalculateLinesInput struct {
+	// Invoice is the standard invoice owning the lines being recalculated.
+	Invoice StandardInvoice
+	// Lines are the standard invoice lines already assigned to this engine.
+	Lines StandardLines
+}
+
+func (i CalculateLinesInput) Validate() error {
+	var errs []error
+
+	if i.Invoice.ID == "" {
+		errs = append(errs, fmt.Errorf("invoice id is required"))
+	}
+
+	if len(i.Lines) == 0 {
+		errs = append(errs, fmt.Errorf("lines are required"))
+	}
+
+	if err := i.Lines.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("lines: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
+type OnCollectionCompletedInput struct {
+	// Invoice is the standard invoice whose collection has just completed.
+	Invoice StandardInvoice
+	// Lines are the standard invoice lines already assigned to this engine.
+	Lines StandardLines
+}
+
+func (i OnCollectionCompletedInput) Validate() error {
+	var errs []error
+
+	if i.Invoice.ID == "" {
+		errs = append(errs, fmt.Errorf("invoice id is required"))
+	}
+
+	if len(i.Lines) == 0 {
+		errs = append(errs, fmt.Errorf("lines are required"))
+	}
+
+	if err := i.Lines.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("lines: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
 type IsLineBillableAsOfInput struct {
 	Line                   GatheringLine
 	AsOf                   time.Time
@@ -81,25 +149,20 @@ func (i IsLineBillableAsOfInput) Validate() error {
 }
 
 type SplitGatheringLineInput struct {
-	GatheringInvoice GatheringInvoice
-	FeatureMeters    feature.FeatureMeters
-	LineID           string
-	SplitAt          time.Time
+	Line          GatheringLine
+	FeatureMeters feature.FeatureMeters
+	SplitAt       time.Time
 }
 
 func (i SplitGatheringLineInput) Validate() error {
 	var errs []error
 
-	if i.LineID == "" {
-		errs = append(errs, fmt.Errorf("line ID is required"))
+	if err := i.Line.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("line: %w", err))
 	}
 
 	if i.SplitAt.IsZero() {
 		errs = append(errs, fmt.Errorf("split at is required"))
-	}
-
-	if i.GatheringInvoice.Lines.IsAbsent() {
-		errs = append(errs, fmt.Errorf("gathering invoice must have lines expanded"))
 	}
 
 	if i.FeatureMeters == nil {
@@ -110,9 +173,24 @@ func (i SplitGatheringLineInput) Validate() error {
 }
 
 type SplitGatheringLineResult struct {
-	PreSplitAtLine   GatheringLine
-	PostSplitAtLine  GatheringLine
-	GatheringInvoice GatheringInvoice
+	PreSplitAtLine  GatheringLine
+	PostSplitAtLine *GatheringLine
+}
+
+func (r SplitGatheringLineResult) Validate() error {
+	var errs []error
+
+	if err := r.PreSplitAtLine.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("pre split at line: %w", err))
+	}
+
+	if r.PostSplitAtLine != nil {
+		if err := r.PostSplitAtLine.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("post split at line: %w", err))
+		}
+	}
+
+	return errors.Join(errs...)
 }
 
 type LineEngine interface {
@@ -126,13 +204,46 @@ type LineEngine interface {
 	SplitGatheringLine(ctx context.Context, input SplitGatheringLineInput) (SplitGatheringLineResult, error)
 	// BuildStandardInvoiceLines materializes gathering lines into standard lines for a target invoice.
 	BuildStandardInvoiceLines(ctx context.Context, input BuildStandardInvoiceLinesInput) (StandardLines, error)
+	// OnCollectionCompleted is invoked when a standard invoice collection window closes.
+	OnCollectionCompleted(ctx context.Context, input OnCollectionCompletedInput) (StandardLines, error)
+	// CalculateLines recalculates detailed lines and totals for standard-invoice lines owned by this engine.
+	CalculateLines(input CalculateLinesInput) (StandardLines, error)
 
-	// TODO[later]: implement this lifecycle event/hook.
-	// SnapshotCollection(ctx context.Context, lines StandardLines) (StandardLines, error)
 	// TODO[later]: implement this lifecycle event/hook.
 	// OnInvoiceIssued(ctx context.Context, lines StandardLines) error
 	// TODO[later]: implement this lifecycle event/hook.
 	// OnPaymentAuthorized(ctx context.Context, lines StandardLines) error
 	// TODO[later]: implement this lifecycle event/hook.
 	// OnPaymentSettled(ctx context.Context, lines StandardLines) error
+}
+
+func LineEngineValidationComponent(engineType LineEngineType) ComponentName {
+	return ComponentName(fmt.Sprintf("openmeter.lineengine.%s", engineType))
+}
+
+func NewLineEngineValidationError(engine LineEngine, err error) error {
+	if err == nil {
+		return nil
+	}
+
+	if engine == nil {
+		return fmt.Errorf("line engine is required")
+	}
+
+	component := LineEngineValidationComponent(engine.GetLineEngineType())
+	validationErr := ValidationWithComponent(component, err)
+
+	if _, convertErr := ToValidationIssues(validationErr); convertErr == nil {
+		return validationErr
+	}
+
+	return ValidationWithComponent(
+		component,
+		ValidationIssue{
+			Severity:  ValidationIssueSeverityCritical,
+			Code:      ValidationIssueCodeLineEngineCollectionCompletedFailed,
+			Message:   err.Error(),
+			Component: component,
+		},
+	)
 }
