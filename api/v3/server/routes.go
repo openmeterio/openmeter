@@ -251,19 +251,19 @@ func (s *Server) GetPlan(w http.ResponseWriter, r *http.Request, planId api.ULID
 }
 
 func (s *Server) UpdatePlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {
-	s.plansHandler.UpdatePlan().With(string(planId)).ServeHTTP(w, r)
+	s.plansHandler.UpdatePlan().With(planId).ServeHTTP(w, r)
 }
 
 func (s *Server) DeletePlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {
-	s.plansHandler.DeletePlan().With(string(planId)).ServeHTTP(w, r)
+	s.plansHandler.DeletePlan().With(planId).ServeHTTP(w, r)
 }
 
 func (s *Server) ArchivePlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {
-	s.plansHandler.ArchivePlan().With(string(planId)).ServeHTTP(w, r)
+	s.plansHandler.ArchivePlan().With(planId).ServeHTTP(w, r)
 }
 
 func (s *Server) PublishPlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {
-	s.plansHandler.PublishPlan().With(string(planId)).ServeHTTP(w, r)
+	s.plansHandler.PublishPlan().With(planId).ServeHTTP(w, r)
 }
 
 // Addons
