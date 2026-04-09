@@ -45,7 +45,7 @@ func (s *service) UpdateTaxCode(ctx context.Context, input taxcode.UpdateTaxCode
 		}
 
 		if existing.IsManagedBySystem() {
-			return taxcode.TaxCode{}, taxcode.ErrTaxCodeManagedBySystem
+			return taxcode.TaxCode{}, models.NewGenericConflictError(taxcode.ErrTaxCodeManagedBySystem)
 		}
 
 		return s.adapter.UpdateTaxCode(ctx, input)
@@ -136,7 +136,7 @@ func (s *service) DeleteTaxCode(ctx context.Context, input taxcode.DeleteTaxCode
 		}
 
 		if existing.IsManagedBySystem() {
-			return taxcode.ErrTaxCodeManagedBySystem
+			return models.NewGenericConflictError(taxcode.ErrTaxCodeManagedBySystem)
 		}
 
 		return s.adapter.DeleteTaxCode(ctx, input)
