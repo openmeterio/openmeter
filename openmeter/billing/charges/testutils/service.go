@@ -11,9 +11,11 @@ import (
 	chargesadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	creditpurchaseadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/adapter"
+	creditpurchaselineengine "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/lineengine"
 	creditpurchaseservice "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
+	flatfeelineengine "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/lineengine"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	chargesservice "github.com/openmeterio/openmeter/openmeter/billing/charges/service"
@@ -128,6 +130,18 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		return nil, fmt.Errorf("creating flat fee service: %w", err)
 	}
 
+	flatFeeLineEngine, err := flatfeelineengine.New(flatfeelineengine.Config{
+		FlatFeeService: flatFeeService,
+		RatingService:  billingratingservice.New(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating flat fee line engine: %w", err)
+	}
+
+	if err := config.BillingService.RegisterLineEngine(flatFeeLineEngine); err != nil {
+		return nil, fmt.Errorf("registering flat fee line engine: %w", err)
+	}
+
 	usageBasedAdapter, err := usagebasedadapter.New(usagebasedadapter.Config{
 		Client:      config.Client,
 		Logger:      logger,
@@ -167,6 +181,17 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating credit purchase service: %w", err)
+	}
+
+	creditPurchaseLineEngine, err := creditpurchaselineengine.New(creditpurchaselineengine.Config{
+		RatingService: billingratingservice.New(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating credit purchase line engine: %w", err)
+	}
+
+	if err := config.BillingService.RegisterLineEngine(creditPurchaseLineEngine); err != nil {
+		return nil, fmt.Errorf("registering credit purchase line engine: %w", err)
 	}
 
 	rootAdapter, err := chargesadapter.New(chargesadapter.Config{

@@ -27,6 +27,7 @@ type StandardLineBase struct {
 	Metadata    models.Metadata      `json:"metadata,omitempty"`
 	Annotations models.Annotations   `json:"annotations,omitempty"`
 	ManagedBy   InvoiceLineManagedBy `json:"managedBy"`
+	Engine      LineEngineType       `json:"engine,omitempty"`
 
 	InvoiceID string         `json:"invoiceID,omitempty"`
 	Currency  currencyx.Code `json:"currency"`
@@ -88,6 +89,12 @@ func (i StandardLineBase) Validate() error {
 
 	if !slices.Contains(InvoiceLineManagedBy("").Values(), string(i.ManagedBy)) {
 		errs = append(errs, fmt.Errorf("invalid managed by %s", i.ManagedBy))
+	}
+
+	if i.Engine != "" {
+		if err := i.Engine.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("engine: %w", err))
+		}
 	}
 
 	if i.RateCardDiscounts.Percentage != nil {
@@ -380,6 +387,7 @@ func (i StandardLine) ToGatheringLineBase() (GatheringLineBase, error) {
 		Metadata:        clonedMetadata,
 		Annotations:     clonedAnnotations,
 		ManagedBy:       i.ManagedBy,
+		Engine:          i.Engine,
 		InvoiceID:       i.InvoiceID,
 		Currency:        i.Currency,
 		ServicePeriod: timeutil.ClosedPeriod{
@@ -792,6 +800,7 @@ func NewFlatFeeLine(input NewFlatFeeLineInput, opts ...usageBasedLineOption) *St
 			Annotations: input.Annotations,
 
 			ManagedBy: lo.CoalesceOrEmpty(input.ManagedBy, SystemManagedLine),
+			Engine:    LineEngineTypeInvoice,
 
 			Currency:          input.Currency,
 			RateCardDiscounts: input.RateCardDiscounts,

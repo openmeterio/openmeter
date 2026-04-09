@@ -100,6 +100,7 @@ func newLine(in newLineInput) *billing.StandardLine {
 			}),
 
 			ManagedBy: billing.ManuallyManagedLine,
+			Engine:    billing.LineEngineTypeInvoice,
 			InvoiceID: in.Invoice.ID,
 			Currency:  in.Invoice.Currency,
 

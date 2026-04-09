@@ -151,6 +151,7 @@ func mapCreateLineToEntity(line api.InvoicePendingLineCreate, ns string) (*billi
 
 			Metadata:  lo.FromPtrOr(line.Metadata, map[string]string{}),
 			ManagedBy: billing.ManuallyManagedLine,
+			Engine:    billing.LineEngineTypeInvoice,
 
 			Period: billing.Period{
 				Start: line.Period.From,
@@ -193,6 +194,7 @@ func mapCreateGatheringLineToEntity(line api.InvoicePendingLineCreate, ns string
 
 			Metadata:  lo.FromPtrOr(line.Metadata, map[string]string{}),
 			ManagedBy: billing.ManuallyManagedLine,
+			Engine:    billing.LineEngineTypeInvoice,
 
 			ServicePeriod: timeutil.ClosedPeriod{
 				From: line.Period.From,

@@ -409,6 +409,10 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
+		field.Enum("engine").
+			GoType(billing.LineEngineType("")).
+			Default(string(billing.LineEngineTypeInvoice)),
+
 		// Deprecated fields
 		field.String("line_ids").
 			Optional().

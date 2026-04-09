@@ -35,7 +35,7 @@ func RecalculateDetailedLinesAndTotals(invoice *billing.StandardInvoice, deps Ca
 			return fmt.Errorf("calculating detailed lines: %w", err)
 		}
 
-		if err := mergeGeneratedDetailedLines(line, detailedLines); err != nil {
+		if err := MergeGeneratedDetailedLines(line, detailedLines); err != nil {
 			return fmt.Errorf("merging generated detailed lines: %w", err)
 		}
 	}
@@ -103,7 +103,7 @@ func newDetailedLines(line *billing.StandardLine, inputs ...rating.DetailedLine)
 	})
 }
 
-func mergeGeneratedDetailedLines(parentLine *billing.StandardLine, in rating.GenerateDetailedLinesResult) error {
+func MergeGeneratedDetailedLines(parentLine *billing.StandardLine, in rating.GenerateDetailedLinesResult) error {
 	detailedLines, err := newDetailedLines(parentLine, in.DetailedLines...)
 	if err != nil {
 		return fmt.Errorf("detailed lines: %w", err)

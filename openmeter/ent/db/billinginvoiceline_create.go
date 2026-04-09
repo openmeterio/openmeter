@@ -422,6 +422,20 @@ func (_c *BillingInvoiceLineCreate) SetNillableChargeID(v *string) *BillingInvoi
 	return _c
 }
 
+// SetEngine sets the "engine" field.
+func (_c *BillingInvoiceLineCreate) SetEngine(v billing.LineEngineType) *BillingInvoiceLineCreate {
+	_c.mutation.SetEngine(v)
+	return _c
+}
+
+// SetNillableEngine sets the "engine" field if the given value is not nil.
+func (_c *BillingInvoiceLineCreate) SetNillableEngine(v *billing.LineEngineType) *BillingInvoiceLineCreate {
+	if v != nil {
+		_c.SetEngine(*v)
+	}
+	return _c
+}
+
 // SetLineIds sets the "line_ids" field.
 func (_c *BillingInvoiceLineCreate) SetLineIds(v string) *BillingInvoiceLineCreate {
 	_c.mutation.SetLineIds(v)
@@ -711,6 +725,10 @@ func (_c *BillingInvoiceLineCreate) defaults() {
 		v := billinginvoiceline.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.Engine(); !ok {
+		v := billinginvoiceline.DefaultEngine
+		_c.mutation.SetEngine(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := billinginvoiceline.DefaultID()
 		_c.mutation.SetID(v)
@@ -812,6 +830,14 @@ func (_c *BillingInvoiceLineCreate) check() error {
 	if v, ok := _c.mutation.Status(); ok {
 		if err := billinginvoiceline.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.status": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.Engine(); !ok {
+		return &ValidationError{Name: "engine", err: errors.New(`db: missing required field "BillingInvoiceLine.engine"`)}
+	}
+	if v, ok := _c.mutation.Engine(); ok {
+		if err := billinginvoiceline.EngineValidator(v); err != nil {
+			return &ValidationError{Name: "engine", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.engine": %w`, err)}
 		}
 	}
 	if v, ok := _c.mutation.CreditsApplied(); ok {
@@ -988,6 +1014,10 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 	if value, ok := _c.mutation.SubscriptionBillingPeriodTo(); ok {
 		_spec.SetField(billinginvoiceline.FieldSubscriptionBillingPeriodTo, field.TypeTime, value)
 		_node.SubscriptionBillingPeriodTo = &value
+	}
+	if value, ok := _c.mutation.Engine(); ok {
+		_spec.SetField(billinginvoiceline.FieldEngine, field.TypeEnum, value)
+		_node.Engine = value
 	}
 	if value, ok := _c.mutation.LineIds(); ok {
 		_spec.SetField(billinginvoiceline.FieldLineIds, field.TypeString, value)
@@ -1885,6 +1915,18 @@ func (u *BillingInvoiceLineUpsert) ClearChargeID() *BillingInvoiceLineUpsert {
 	return u
 }
 
+// SetEngine sets the "engine" field.
+func (u *BillingInvoiceLineUpsert) SetEngine(v billing.LineEngineType) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldEngine, v)
+	return u
+}
+
+// UpdateEngine sets the "engine" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateEngine() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldEngine)
+	return u
+}
+
 // SetLineIds sets the "line_ids" field.
 func (u *BillingInvoiceLineUpsert) SetLineIds(v string) *BillingInvoiceLineUpsert {
 	u.Set(billinginvoiceline.FieldLineIds, v)
@@ -2601,6 +2643,20 @@ func (u *BillingInvoiceLineUpsertOne) UpdateChargeID() *BillingInvoiceLineUpsert
 func (u *BillingInvoiceLineUpsertOne) ClearChargeID() *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearChargeID()
+	})
+}
+
+// SetEngine sets the "engine" field.
+func (u *BillingInvoiceLineUpsertOne) SetEngine(v billing.LineEngineType) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetEngine(v)
+	})
+}
+
+// UpdateEngine sets the "engine" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateEngine() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateEngine()
 	})
 }
 
@@ -3496,6 +3552,20 @@ func (u *BillingInvoiceLineUpsertBulk) UpdateChargeID() *BillingInvoiceLineUpser
 func (u *BillingInvoiceLineUpsertBulk) ClearChargeID() *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearChargeID()
+	})
+}
+
+// SetEngine sets the "engine" field.
+func (u *BillingInvoiceLineUpsertBulk) SetEngine(v billing.LineEngineType) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetEngine(v)
+	})
+}
+
+// UpdateEngine sets the "engine" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateEngine() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateEngine()
 	})
 }
 

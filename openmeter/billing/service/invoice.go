@@ -686,6 +686,12 @@ func (s *Service) DeleteInvoice(ctx context.Context, input billing.DeleteInvoice
 // updateInvoice calls the adapter to update the invoice and returns the updated invoice including any expands that are
 // the responsibility of the service
 func (s Service) updateInvoice(ctx context.Context, in billing.UpdateStandardInvoiceAdapterInput) (billing.StandardInvoice, error) {
+	for _, stdLine := range in.Lines.OrEmpty() {
+		if err := s.lineEngines.populateStandardLineEngine(stdLine); err != nil {
+			return billing.StandardInvoice{}, fmt.Errorf("line[%s]: inferring engine: %w", stdLine.ID, err)
+		}
+	}
+
 	invoice, err := s.resolveStatusDetails(ctx, in)
 	if err != nil {
 		return billing.StandardInvoice{}, fmt.Errorf("error resolving status details for invoice [%s]: %w", in.ID, err)

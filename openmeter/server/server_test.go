@@ -723,7 +723,6 @@ func getTestServer(t *testing.T) (*Server, *MockStreamingConnector) {
 			AppStripe:                   appStripeService,
 			AppCustomInvoicing:          appCustomInvoicingService,
 			Billing:                     billingService,
-			BillingInvoicePendingLines:  billingService,
 			CostService:                 &NoopCostService{},
 			Customer:                    customerService,
 			CurrencyService:             &NoopCurrencyService{},
@@ -1724,6 +1723,10 @@ func (n NoopBillingService) ListCustomerOverrides(ctx context.Context, input bil
 // InvoiceLineService methods
 func (n NoopBillingService) CreatePendingInvoiceLines(ctx context.Context, input billing.CreatePendingInvoiceLinesInput) (*billing.CreatePendingInvoiceLinesResult, error) {
 	return nil, nil
+}
+
+func (n NoopBillingService) RegisterLineEngine(engine billing.LineEngine) error {
+	return nil
 }
 
 func (n NoopBillingService) GetLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]billing.LineOrHierarchy, error) {

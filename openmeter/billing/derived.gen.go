@@ -15,6 +15,7 @@ func deriveEqualGatheringLineBase(this, that *GatheringLineBase) bool {
 			this.Metadata.Equal(that.Metadata) &&
 			this.Annotations.Equal(that.Annotations) &&
 			this.ManagedBy == that.ManagedBy &&
+			this.Engine == that.Engine &&
 			this.InvoiceID == that.InvoiceID &&
 			this.Currency == that.Currency &&
 			this.ServicePeriod.Equal(that.ServicePeriod) &&
@@ -103,6 +104,7 @@ func deriveEqualLineBase(this, that *StandardLineBase) bool {
 			this.Metadata.Equal(that.Metadata) &&
 			this.Annotations.Equal(that.Annotations) &&
 			this.ManagedBy == that.ManagedBy &&
+			this.Engine == that.Engine &&
 			this.InvoiceID == that.InvoiceID &&
 			this.Currency == that.Currency &&
 			this.Period.Equal(that.Period) &&

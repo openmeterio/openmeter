@@ -26,6 +26,18 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 	for i := range input.Lines {
 		input.Lines[i].Namespace = input.Customer.Namespace
 		input.Lines[i].Currency = input.Currency
+
+		if input.Lines[i].ChargeID != nil && input.Lines[i].Engine == "" {
+			// Charge-backed pending lines must set their engine explicitly. Defaulting them
+			// to the invoice engine can hide routing mistakes and lead to unexpected behavior.
+			return nil, billing.ValidationError{
+				Err: fmt.Errorf("line[%d]: engine is required when charge_id is set", i),
+			}
+		}
+
+		if err := s.lineEngines.populateGatheringLineEngine(&input.Lines[i]); err != nil {
+			return nil, fmt.Errorf("line[%d]: populating engine: %w", i, err)
+		}
 	}
 
 	cust, err := s.customerService.GetCustomer(ctx, customer.GetCustomerInput{

@@ -32,6 +32,8 @@ Primary packages:
 
 `openmeter/billing/charges` is the root facade for charge operations.
 
+Charge-backed invoicing no longer relies on a charges-side `InvoicePendingLines(...)` wrapper. Billing owns invoice creation and dispatches gathering lines by `billing.LineEngineType`, while charge packages provide charge-specific line engines where needed.
+
 Important layers:
 
 - `charges.Service`
@@ -69,6 +71,34 @@ Important types:
   - `CollectionEnd`
   - `MeterValue`
   - `Totals`
+
+## Billing Line Engines
+
+Charge-backed gathering lines must carry the correct billing line engine when they are created.
+
+Current engine values:
+
+- `billing.LineEngineTypeChargeFlatFee`
+- `billing.LineEngineTypeChargeUsageBased`
+- `billing.LineEngineTypeChargeCreditPurchase`
+
+Current implementations:
+
+- flat fee line engine: `openmeter/billing/charges/flatfee/lineengine`
+- credit purchase line engine: `openmeter/billing/charges/creditpurchase/lineengine`
+
+Important rules:
+
+- do not rely on billing to infer a charge-backed engine from `ChargeID`
+- `billing/service.CreatePendingInvoiceLines(...)` rejects charge-backed gathering lines with empty `Engine`
+- production wiring must register charge line engines through `billing.Service.RegisterLineEngine(...)`
+- charge test setups must also register those engines explicitly; keep this in `openmeter/billing/charges/testutils`
+- if a charge create path stamps a new `LineEngineType`, app wiring and charge test wiring must register a matching implementation in the same change
+
+Operational consequence:
+
+- adding a new charge engine enum without a registered implementation causes invoice collection to fail when billing resolves the line engine
+- a schema migration defaulting old persisted rows to `invoicing` is not enough for charge-backed lines; existing persisted gathering lines may need a backfill if they should route to a charge engine after rollout
 
 ## Timestamp Normalization
 
@@ -158,6 +188,11 @@ Placement guidance:
 - Merges advanced charges back into the result by charge ID
 
 This means a newly created credit-only charge (usage-based or flat fee) that is eligible for immediate activation will be returned as `active` (or `final`) from `Create(...)` itself.
+
+For invoice-settled charges:
+
+- flat fee and credit purchase creation now stamp the gathering line engine in their type-specific `Create(...)` flows
+- usage-based charge creation also stamps `LineEngineTypeChargeUsageBased`; do not introduce this discriminator unless a corresponding billing engine exists or the path is intentionally blocked
 
 ## Root Charges Advance Flow
 

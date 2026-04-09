@@ -194,6 +194,7 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 				SetInvoiceAt(line.InvoiceAt.In(time.UTC)).
 				SetStatus(billing.InvoiceLineStatusValid).
 				SetManagedBy(line.ManagedBy).
+				SetEngine(line.Engine).
 				SetType(billing.InvoiceLineAdapterTypeUsageBased).
 				SetName(line.Name).
 				SetNillableDescription(line.Description).
@@ -293,6 +294,7 @@ func (a *adapter) mapGatheringInvoiceLineFromDB(schemaLevel int, dbLine *db.Bill
 			Annotations: dbLine.Annotations,
 			InvoiceID:   dbLine.InvoiceID,
 			ManagedBy:   dbLine.ManagedBy,
+			Engine:      dbLine.Engine,
 
 			ServicePeriod: timeutil.ClosedPeriod{
 				From: dbLine.PeriodStart.In(time.UTC),

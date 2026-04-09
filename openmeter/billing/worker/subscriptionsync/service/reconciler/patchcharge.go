@@ -17,21 +17,23 @@ import (
 )
 
 type chargePatchCollection struct {
-	itemType persistedstate.ItemType
-	patches  charges.ApplyPatchesInput
+	engineType billing.LineEngineType
+	itemType   persistedstate.ItemType
+	patches    charges.ApplyPatchesInput
 }
 
-func (c chargePatchCollection) GetBackendType() BackendType {
-	return BackendTypeCharges
+func (c chargePatchCollection) GetLineEngineType() billing.LineEngineType {
+	return c.engineType
 }
 
-func newChargePatchCollection(itemType persistedstate.ItemType, preallocatedCapacity int) chargePatchCollection {
+func newChargePatchCollection(engineType billing.LineEngineType, itemType persistedstate.ItemType, preallocatedCapacity int) chargePatchCollection {
 	if preallocatedCapacity <= 0 {
 		preallocatedCapacity = 16
 	}
 
 	return chargePatchCollection{
-		itemType: itemType,
+		engineType: engineType,
+		itemType:   itemType,
 		patches: charges.ApplyPatchesInput{
 			PatchesByChargeID: make(map[string]charges.Patch, preallocatedCapacity),
 			Creates:           make(charges.ChargeIntents, 0, preallocatedCapacity),

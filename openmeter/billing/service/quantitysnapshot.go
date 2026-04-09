@@ -37,6 +37,19 @@ func (s *Service) SnapshotLineQuantity(ctx context.Context, input billing.Snapsh
 	return input.Line, nil
 }
 
+func (s *Service) SnapshotLineQuantities(ctx context.Context, invoice billing.StandardInvoice, lines billing.StandardLines) error {
+	featureMeters, err := s.resolveFeatureMeters(ctx, invoice.Namespace, lines)
+	if err != nil {
+		return fmt.Errorf("resolving feature meters: %w", err)
+	}
+
+	if err := s.snapshotLineQuantitiesInParallel(ctx, invoice.Customer, lines, featureMeters); err != nil {
+		return fmt.Errorf("snapshotting lines: %w", err)
+	}
+
+	return nil
+}
+
 func (s *Service) snapshotMeteredLineQuantity(ctx context.Context, line *billing.StandardLine, customer billing.InvoiceCustomer, featureMeters feature.FeatureMeters) error {
 	featureMeter, err := featureMeters.Get(line.UsageBased.FeatureKey, true)
 	if err != nil {

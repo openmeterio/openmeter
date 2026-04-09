@@ -7,6 +7,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
@@ -15,10 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-type (
-	PatchOperation string
-	BackendType    string
-)
+type PatchOperation string
 
 const (
 	PatchOperationCreate  PatchOperation = "create"
@@ -26,9 +24,6 @@ const (
 	PatchOperationShrink  PatchOperation = "shrink"
 	PatchOperationExtend  PatchOperation = "extend"
 	PatchOperationProrate PatchOperation = "prorate"
-
-	BackendTypeInvoicing BackendType = "invoicing"
-	BackendTypeCharges   BackendType = "charges"
 )
 
 type Patch interface {
@@ -52,7 +47,7 @@ type ChargePatchCollection interface {
 }
 
 type PatchCollection interface {
-	GetBackendType() BackendType
+	GetLineEngineType() billing.LineEngineType
 	AddCreate(target targetstate.StateItem) error
 	AddDelete(uniqueID string, existing persistedstate.Item) error
 	AddShrink(uniqueID string, existing persistedstate.Item, target targetstate.StateItem) error

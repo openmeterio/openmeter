@@ -3,6 +3,7 @@ package reconciler
 import (
 	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
 )
 
@@ -10,8 +11,8 @@ type invoicePatchCollectionBase struct {
 	patches []InvoicePatch
 }
 
-func (c invoicePatchCollectionBase) GetBackendType() BackendType {
-	return BackendTypeInvoicing
+func (c invoicePatchCollectionBase) GetLineEngineType() billing.LineEngineType {
+	return billing.LineEngineTypeInvoice
 }
 
 func newInvoicePatchCollectionBase(preallocatedCapacity int) invoicePatchCollectionBase {

@@ -620,6 +620,20 @@ func (_u *BillingInvoiceLineUpdate) ClearChargeID() *BillingInvoiceLineUpdate {
 	return _u
 }
 
+// SetEngine sets the "engine" field.
+func (_u *BillingInvoiceLineUpdate) SetEngine(v billing.LineEngineType) *BillingInvoiceLineUpdate {
+	_u.mutation.SetEngine(v)
+	return _u
+}
+
+// SetNillableEngine sets the "engine" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdate) SetNillableEngine(v *billing.LineEngineType) *BillingInvoiceLineUpdate {
+	if v != nil {
+		_u.SetEngine(*v)
+	}
+	return _u
+}
+
 // SetLineIds sets the "line_ids" field.
 func (_u *BillingInvoiceLineUpdate) SetLineIds(v string) *BillingInvoiceLineUpdate {
 	_u.mutation.SetLineIds(v)
@@ -1125,6 +1139,11 @@ func (_u *BillingInvoiceLineUpdate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.status": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Engine(); ok {
+		if err := billinginvoiceline.EngineValidator(v); err != nil {
+			return &ValidationError{Name: "engine", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.engine": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.CreditsApplied(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "credits_applied", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.credits_applied": %w`, err)}
@@ -1268,6 +1287,9 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 	}
 	if _u.mutation.SubscriptionBillingPeriodToCleared() {
 		_spec.ClearField(billinginvoiceline.FieldSubscriptionBillingPeriodTo, field.TypeTime)
+	}
+	if value, ok := _u.mutation.Engine(); ok {
+		_spec.SetField(billinginvoiceline.FieldEngine, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.LineIds(); ok {
 		_spec.SetField(billinginvoiceline.FieldLineIds, field.TypeString, value)
@@ -2495,6 +2517,20 @@ func (_u *BillingInvoiceLineUpdateOne) ClearChargeID() *BillingInvoiceLineUpdate
 	return _u
 }
 
+// SetEngine sets the "engine" field.
+func (_u *BillingInvoiceLineUpdateOne) SetEngine(v billing.LineEngineType) *BillingInvoiceLineUpdateOne {
+	_u.mutation.SetEngine(v)
+	return _u
+}
+
+// SetNillableEngine sets the "engine" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdateOne) SetNillableEngine(v *billing.LineEngineType) *BillingInvoiceLineUpdateOne {
+	if v != nil {
+		_u.SetEngine(*v)
+	}
+	return _u
+}
+
 // SetLineIds sets the "line_ids" field.
 func (_u *BillingInvoiceLineUpdateOne) SetLineIds(v string) *BillingInvoiceLineUpdateOne {
 	_u.mutation.SetLineIds(v)
@@ -3013,6 +3049,11 @@ func (_u *BillingInvoiceLineUpdateOne) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.status": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Engine(); ok {
+		if err := billinginvoiceline.EngineValidator(v); err != nil {
+			return &ValidationError{Name: "engine", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.engine": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.CreditsApplied(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "credits_applied", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.credits_applied": %w`, err)}
@@ -3173,6 +3214,9 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 	}
 	if _u.mutation.SubscriptionBillingPeriodToCleared() {
 		_spec.ClearField(billinginvoiceline.FieldSubscriptionBillingPeriodTo, field.TypeTime)
+	}
+	if value, ok := _u.mutation.Engine(); ok {
+		_spec.SetField(billinginvoiceline.FieldEngine, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.LineIds(); ok {
 		_spec.SetField(billinginvoiceline.FieldLineIds, field.TypeString, value)

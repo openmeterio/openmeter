@@ -288,7 +288,7 @@ func (s *service) invokeInvoiceNowOnCreate(ctx context.Context, invoiceNowLines 
 	})
 
 	for customerID, lines := range invoiceNowArgs {
-		if _, err := s.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		if _, err := s.billingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer:            customerID,
 			IncludePendingLines: mo.Some(lines),
 			AsOf:                lo.ToPtr(clock.Now()),
