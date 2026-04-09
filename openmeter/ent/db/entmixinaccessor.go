@@ -2527,6 +2527,10 @@ func (e *TaxCode) GetKey() string {
 	return e.Key
 }
 
+func (e *TaxCode) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
 func (e *UsageReset) GetID() string {
 	return e.ID
 }

@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // TaxCodeUpdate is the builder for updating TaxCode entities.
@@ -106,6 +107,18 @@ func (_u *TaxCodeUpdate) SetNillableDescription(v *string) *TaxCodeUpdate {
 // ClearDescription clears the value of the "description" field.
 func (_u *TaxCodeUpdate) ClearDescription() *TaxCodeUpdate {
 	_u.mutation.ClearDescription()
+	return _u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_u *TaxCodeUpdate) SetAnnotations(v models.Annotations) *TaxCodeUpdate {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *TaxCodeUpdate) ClearAnnotations() *TaxCodeUpdate {
+	_u.mutation.ClearAnnotations()
 	return _u
 }
 
@@ -482,6 +495,12 @@ func (_u *TaxCodeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(dbtaxcode.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(dbtaxcode.FieldAnnotations, field.TypeJSON, value)
+	}
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(dbtaxcode.FieldAnnotations, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.AppMappings(); ok {
 		vv, err := dbtaxcode.ValueScanner.AppMappings.Value(value)
@@ -945,6 +964,18 @@ func (_u *TaxCodeUpdateOne) ClearDescription() *TaxCodeUpdateOne {
 	return _u
 }
 
+// SetAnnotations sets the "annotations" field.
+func (_u *TaxCodeUpdateOne) SetAnnotations(v models.Annotations) *TaxCodeUpdateOne {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *TaxCodeUpdateOne) ClearAnnotations() *TaxCodeUpdateOne {
+	_u.mutation.ClearAnnotations()
+	return _u
+}
+
 // SetAppMappings sets the "app_mappings" field.
 func (_u *TaxCodeUpdateOne) SetAppMappings(v *taxcode.TaxCodeAppMappings) *TaxCodeUpdateOne {
 	_u.mutation.SetAppMappings(v)
@@ -1348,6 +1379,12 @@ func (_u *TaxCodeUpdateOne) sqlSave(ctx context.Context) (_node *TaxCode, err er
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(dbtaxcode.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(dbtaxcode.FieldAnnotations, field.TypeJSON, value)
+	}
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(dbtaxcode.FieldAnnotations, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.AppMappings(); ok {
 		vv, err := dbtaxcode.ValueScanner.AppMappings.Value(value)

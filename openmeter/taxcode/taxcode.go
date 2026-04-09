@@ -81,6 +81,19 @@ type TaxCode struct {
 
 	// Metadata
 	Metadata models.Metadata `json:"metadata,omitempty"`
+
+	// Annotations are system-managed key/value pairs stored alongside the tax code.
+	Annotations models.Annotations `json:"annotations,omitempty"`
+}
+
+// IsManagedBySystem returns true when this tax code was auto-created by the system.
+func (t TaxCode) IsManagedBySystem() bool {
+	v, ok := t.Annotations[AnnotationKeyManagedBy]
+	if !ok {
+		return false
+	}
+	s, ok := v.(string)
+	return ok && s == AnnotationValueManagedBySystem
 }
 
 // GetAppMapping returns the app mapping for the given app type, if it exists.

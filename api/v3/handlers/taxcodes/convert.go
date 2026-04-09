@@ -15,7 +15,6 @@ import (
 // goverter:useZeroValueOnPointerInconsistency
 // goverter:useUnderlyingTypeMethods
 // goverter:matchIgnoreCase
-// goverter:extend ConvertMetadataToLabels
 // goverter:extend ConvertAPIAppTypeToDomainAppType
 // goverter:extend ConvertDomainAppTypeToAPIAppType
 // goverter:extend ConvertAppMappingsToAPIAppMappings
@@ -23,14 +22,16 @@ var (
 	// goverter:context namespace
 	// goverter:map Namespace | NamespaceFromContext
 	// goverter:map Labels Metadata
+	// goverter:ignore Annotations
 	ConvertFromCreateTaxCodeRequestToCreateTaxCodeInput func(namespace string, createTaxCodeRequest api.CreateTaxCodeRequest) (taxcode.CreateTaxCodeInput, error)
 
 	// goverter:context namespacedID
 	// goverter:map NamespacedID | ResolveNamespacedIDFromContext
 	// goverter:map Labels Metadata
+	// goverter:ignore Annotations
 	ConvertFromUpsertTaxCodeRequestToUpdateTaxCodeInput func(namespacedID models.NamespacedID, upsertTaxCodeRequest api.UpsertTaxCodeRequest) (taxcode.UpdateTaxCodeInput, error)
 
-	// goverter:map Metadata Labels
+	// goverter:map . Labels | ConvertMetadataAnnotationsToLabels
 	// goverter:map NamespacedID.ID Id
 	// goverter:map ManagedModel.CreatedAt CreatedAt
 	// goverter:map ManagedModel.UpdatedAt UpdatedAt
@@ -39,7 +40,9 @@ var (
 	ConvertTaxCodeToAPITaxCode func(taxcode.TaxCode) (api.BillingTaxCode, error)
 )
 
-var ConvertMetadataToLabels = labels.FromMetadata[models.Metadata]
+func ConvertMetadataAnnotationsToLabels(source taxcode.TaxCode) *api.Labels {
+	return labels.FromMetadataAnnotations(source.Metadata, source.Annotations)
+}
 
 //goverter:context namespace
 func NamespaceFromContext(namespace string) string {

@@ -94415,6 +94415,7 @@ type TaxCodeMutation struct {
 	name                                           *string
 	description                                    *string
 	key                                            *string
+	annotations                                    *models.Annotations
 	app_mappings                                   **taxcode.TaxCodeAppMappings
 	clearedFields                                  map[string]struct{}
 	billing_workflow_configs                       map[string]struct{}
@@ -94875,6 +94876,55 @@ func (m *TaxCodeMutation) OldKey(ctx context.Context) (v string, err error) {
 // ResetKey resets all changes to the "key" field.
 func (m *TaxCodeMutation) ResetKey() {
 	m.key = nil
+}
+
+// SetAnnotations sets the "annotations" field.
+func (m *TaxCodeMutation) SetAnnotations(value models.Annotations) {
+	m.annotations = &value
+}
+
+// Annotations returns the value of the "annotations" field in the mutation.
+func (m *TaxCodeMutation) Annotations() (r models.Annotations, exists bool) {
+	v := m.annotations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnnotations returns the old "annotations" field's value of the TaxCode entity.
+// If the TaxCode object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TaxCodeMutation) OldAnnotations(ctx context.Context) (v models.Annotations, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnnotations requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnnotations: %w", err)
+	}
+	return oldValue.Annotations, nil
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (m *TaxCodeMutation) ClearAnnotations() {
+	m.annotations = nil
+	m.clearedFields[dbtaxcode.FieldAnnotations] = struct{}{}
+}
+
+// AnnotationsCleared returns if the "annotations" field was cleared in this mutation.
+func (m *TaxCodeMutation) AnnotationsCleared() bool {
+	_, ok := m.clearedFields[dbtaxcode.FieldAnnotations]
+	return ok
+}
+
+// ResetAnnotations resets all changes to the "annotations" field.
+func (m *TaxCodeMutation) ResetAnnotations() {
+	m.annotations = nil
+	delete(m.clearedFields, dbtaxcode.FieldAnnotations)
 }
 
 // SetAppMappings sets the "app_mappings" field.
@@ -95392,7 +95442,7 @@ func (m *TaxCodeMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *TaxCodeMutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 10)
 	if m.namespace != nil {
 		fields = append(fields, dbtaxcode.FieldNamespace)
 	}
@@ -95416,6 +95466,9 @@ func (m *TaxCodeMutation) Fields() []string {
 	}
 	if m.key != nil {
 		fields = append(fields, dbtaxcode.FieldKey)
+	}
+	if m.annotations != nil {
+		fields = append(fields, dbtaxcode.FieldAnnotations)
 	}
 	if m.app_mappings != nil {
 		fields = append(fields, dbtaxcode.FieldAppMappings)
@@ -95444,6 +95497,8 @@ func (m *TaxCodeMutation) Field(name string) (ent.Value, bool) {
 		return m.Description()
 	case dbtaxcode.FieldKey:
 		return m.Key()
+	case dbtaxcode.FieldAnnotations:
+		return m.Annotations()
 	case dbtaxcode.FieldAppMappings:
 		return m.AppMappings()
 	}
@@ -95471,6 +95526,8 @@ func (m *TaxCodeMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldDescription(ctx)
 	case dbtaxcode.FieldKey:
 		return m.OldKey(ctx)
+	case dbtaxcode.FieldAnnotations:
+		return m.OldAnnotations(ctx)
 	case dbtaxcode.FieldAppMappings:
 		return m.OldAppMappings(ctx)
 	}
@@ -95538,6 +95595,13 @@ func (m *TaxCodeMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetKey(v)
 		return nil
+	case dbtaxcode.FieldAnnotations:
+		v, ok := value.(models.Annotations)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnnotations(v)
+		return nil
 	case dbtaxcode.FieldAppMappings:
 		v, ok := value.(*taxcode.TaxCodeAppMappings)
 		if !ok {
@@ -95584,6 +95648,9 @@ func (m *TaxCodeMutation) ClearedFields() []string {
 	if m.FieldCleared(dbtaxcode.FieldDescription) {
 		fields = append(fields, dbtaxcode.FieldDescription)
 	}
+	if m.FieldCleared(dbtaxcode.FieldAnnotations) {
+		fields = append(fields, dbtaxcode.FieldAnnotations)
+	}
 	if m.FieldCleared(dbtaxcode.FieldAppMappings) {
 		fields = append(fields, dbtaxcode.FieldAppMappings)
 	}
@@ -95609,6 +95676,9 @@ func (m *TaxCodeMutation) ClearField(name string) error {
 		return nil
 	case dbtaxcode.FieldDescription:
 		m.ClearDescription()
+		return nil
+	case dbtaxcode.FieldAnnotations:
+		m.ClearAnnotations()
 		return nil
 	case dbtaxcode.FieldAppMappings:
 		m.ClearAppMappings()
@@ -95644,6 +95714,9 @@ func (m *TaxCodeMutation) ResetField(name string) error {
 		return nil
 	case dbtaxcode.FieldKey:
 		m.ResetKey()
+		return nil
+	case dbtaxcode.FieldAnnotations:
+		m.ResetAnnotations()
 		return nil
 	case dbtaxcode.FieldAppMappings:
 		m.ResetAppMappings()

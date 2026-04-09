@@ -4392,6 +4392,7 @@ var (
 		{Name: "name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "key", Type: field.TypeString},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "app_mappings", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 	}
 	// TaxCodesTable holds the schema information for the "tax_codes" table.
@@ -4419,6 +4420,16 @@ var (
 				Name:    "taxcode_namespace_key_deleted_at",
 				Unique:  true,
 				Columns: []*schema.Column{TaxCodesColumns[1], TaxCodesColumns[8], TaxCodesColumns[5]},
+			},
+			{
+				Name:    "taxcode_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{TaxCodesColumns[9]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
 			},
 			{
 				Name:    "taxcode_namespace_key",

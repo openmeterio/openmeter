@@ -510,6 +510,16 @@ func KeyContainsFold(v string) predicate.TaxCode {
 	return predicate.TaxCode(sql.FieldContainsFold(FieldKey, v))
 }
 
+// AnnotationsIsNil applies the IsNil predicate on the "annotations" field.
+func AnnotationsIsNil() predicate.TaxCode {
+	return predicate.TaxCode(sql.FieldIsNull(FieldAnnotations))
+}
+
+// AnnotationsNotNil applies the NotNil predicate on the "annotations" field.
+func AnnotationsNotNil() predicate.TaxCode {
+	return predicate.TaxCode(sql.FieldNotNull(FieldAnnotations))
+}
+
 // AppMappingsIsNil applies the IsNil predicate on the "app_mappings" field.
 func AppMappingsIsNil() predicate.TaxCode {
 	return predicate.TaxCode(sql.FieldIsNull(FieldAppMappings))

@@ -85,6 +85,15 @@ var ErrTaxCodeEmpty = models.NewValidationIssue(
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
+const ErrCodeTaxCodeManagedBySystem models.ErrorCode = "tax_code_managed_by_system"
+
+var ErrTaxCodeManagedBySystem = models.NewValidationIssue(
+	ErrCodeTaxCodeManagedBySystem,
+	"tax code is managed by the system and cannot be modified or deleted",
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusConflict),
+)
+
 const ErrCodeTaxCodeStripeInvalid models.ErrorCode = "tax_code_stripe_invalid"
 
 var ErrTaxCodeStripeInvalid = models.NewValidationIssue(
