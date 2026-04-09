@@ -116,6 +116,9 @@
               (writeShellScriptBin "spectral" ''
                 exec ${pkgs.nodejs_24}/bin/npx -y @stoplight/spectral-cli@6.13.1 "$@"
               '')
+              (writeShellScriptBin "codegraph" ''
+                exec ${pkgs.nodejs_24}/bin/npx -y @colbymchenry/codegraph@0.7.3 "$@"
+              '')
 
               # python
               poetry

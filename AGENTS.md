@@ -194,6 +194,45 @@ See the `/service` skill for service/adapter patterns, constructors, input types
 | Config | Viper + Cobra |
 | Utilities | samber/lo |
 
+## CodeGraph
+
+CodeGraph builds a semantic knowledge graph of the codebase (~1,800 Go files, ~36k symbols) for faster, smarter code exploration. The index lives in `.codegraph/codegraph.db` (gitignored). Generated files (`ent/db/`, `*_gen.go`, `wire_gen.go`, `*.gen.go`) are excluded.
+
+### If `.codegraph/` exists
+
+**Never call `codegraph_explore` or `codegraph_context` in the main session.** These tools return large source code blocks that fill up main-session context fast. Instead, spawn an Explore agent for any exploration question (e.g., "how does billing sync work?", "where is entitlement reset implemented?").
+
+When spawning Explore agents, include this instruction in the prompt:
+
+> This project has CodeGraph initialized (.codegraph/ exists). Use `codegraph_explore` as your PRIMARY exploration tool — it returns full source code sections from all relevant files in one call.
+>
+> **Rules:**
+> 1. Follow the explore call budget in the `codegraph_explore` tool description — it scales automatically based on project size.
+> 2. Do NOT re-read files that `codegraph_explore` already returned source code for. The source sections are complete and authoritative.
+> 3. Only fall back to Grep/Glob/Read for files listed under "Additional relevant files" if you need more detail, or if CodeGraph returned no results.
+
+**The main session may use these lightweight tools directly** for targeted lookups before making edits:
+
+| Tool | Use for | Example |
+|------|---------|---------|
+| `codegraph_search` | Find symbols by name | `query: "BillingService"` |
+| `codegraph_callers` | Who calls this function? | Before renaming or changing a signature |
+| `codegraph_callees` | What does this function call? | Understanding a function's dependencies |
+| `codegraph_impact` | Blast radius of a change | Before refactoring a shared type |
+| `codegraph_node` | Single symbol details | Quick check on a struct or interface |
+| `codegraph_files` | Project file tree | Faster than Glob for directory overviews |
+| `codegraph_status` | Index health check | Verify the index is up to date |
+
+### Keeping the index fresh
+
+Run `codegraph sync` after significant code changes (new files, renames, major refactors). Run `codegraph index` for a full rebuild if the index seems stale or after branch switches.
+
+### If `.codegraph/` does NOT exist
+
+At the start of a session, ask the user if they'd like to initialize CodeGraph:
+
+> I notice this project doesn't have CodeGraph initialized. Would you like me to run `codegraph init -i` to build a code knowledge graph? It indexes ~1,800 Go files and takes about 5 seconds.
+
 ## Skills
 
 Skills are created inside [.agents/skills](.agents/skills/) by default and then symlinked to [.claude/skills](.claude/skills). Make sure you always treat `.agents/skills` as the source of truth.
