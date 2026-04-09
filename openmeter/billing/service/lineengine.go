@@ -21,6 +21,10 @@ func newEngineRegistry() *engineRegistry {
 }
 
 func (r *engineRegistry) Register(eng billing.LineEngine) error {
+	if eng == nil {
+		return fmt.Errorf("line engine is required")
+	}
+
 	engineType := eng.GetLineEngineType()
 	if err := engineType.Validate(); err != nil {
 		return fmt.Errorf("validating engine type: %w", err)

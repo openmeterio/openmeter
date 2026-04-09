@@ -113,11 +113,9 @@ func (e *Engine) BuildStandardInvoiceLines(ctx context.Context, input billing.Bu
 			return nil, fmt.Errorf("allocating credits for line[%s]: %w", stdLine.ID, err)
 		}
 
-		if len(realizations) == 0 {
-			continue
+		if len(realizations) > 0 {
+			stdLine.CreditsApplied = convertCreditRealizations(realizations)
 		}
-
-		stdLine.CreditsApplied = convertCreditRealizations(realizations)
 
 		generatedDetailedLines, err := e.ratingService.GenerateDetailedLines(stdLine)
 		if err != nil {
