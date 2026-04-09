@@ -12,6 +12,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
+	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
+	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -61,6 +63,20 @@ func NewCustomerBalanceService(
 		return nil, err
 	}
 
+	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
+		Client: db,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	lineageService, err := lineageservice.New(lineageservice.Config{
+		Adapter: lineageAdapter,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	searchAdapter, err := chargeadapter.New(chargeadapter.Config{
 		Client: db,
 		Logger: logger,
@@ -89,6 +105,7 @@ func NewCustomerBalanceService(
 	flatFeeService, err := flatfeeservice.New(flatfeeservice.Config{
 		Adapter:     flatFeeAdapter,
 		Handler:     ledgerchargeadapter.NewFlatFeeHandler(historicalLedger, transactions.ResolverDependencies{AccountService: accountResolver, SubAccountService: accountService}, collectorService),
+		Lineage:     lineageService,
 		MetaAdapter: metaAdapter,
 		Locker:      locker,
 	})
@@ -108,6 +125,7 @@ func NewCustomerBalanceService(
 	usageService, err := usagebasedservice.New(usagebasedservice.Config{
 		Adapter:                 usageAdapter,
 		Handler:                 ledgerchargeadapter.NewUsageBasedHandler(collectorService),
+		Lineage:                 lineageService,
 		Locker:                  locker,
 		MetaAdapter:             metaAdapter,
 		CustomerOverrideService: billingRegistry.Billing,

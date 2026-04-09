@@ -15,6 +15,9 @@ import (
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
 	flatfeelineengine "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/lineengine"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
+	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	chargesservice "github.com/openmeterio/openmeter/openmeter/billing/charges/service"
@@ -103,15 +106,43 @@ func NewChargesFlatFeeAdapter(
 	return flatFeeAdapter, nil
 }
 
+func NewChargesLineageAdapter(
+	db *entdb.Client,
+) (lineage.Adapter, error) {
+	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
+		Client: db,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create charges lineage adapter: %w", err)
+	}
+
+	return lineageAdapter, nil
+}
+
+func NewChargesLineageService(
+	lineageAdapter lineage.Adapter,
+) (lineage.Service, error) {
+	lineageService, err := lineageservice.New(lineageservice.Config{
+		Adapter: lineageAdapter,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create charges lineage service: %w", err)
+	}
+
+	return lineageService, nil
+}
+
 func NewChargesFlatFeeService(
 	flatFeeAdapter flatfee.Adapter,
 	flatFeeHandler flatfee.Handler,
+	lineageService lineage.Service,
 	metaAdapter meta.Adapter,
 	locker *lockr.Locker,
 ) (flatfee.Service, error) {
 	flatFeeSvc, err := flatfeeservice.New(flatfeeservice.Config{
 		Adapter:     flatFeeAdapter,
 		Handler:     flatFeeHandler,
+		Lineage:     lineageService,
 		MetaAdapter: metaAdapter,
 		Locker:      locker,
 	})
@@ -142,6 +173,7 @@ func NewChargesUsageBasedAdapter(
 func NewChargesUsageBasedService(
 	usageBasedAdapter usagebased.Adapter,
 	usageBasedHandler usagebased.Handler,
+	lineageService lineage.Service,
 	locker *lockr.Locker,
 	metaAdapter meta.Adapter,
 	billingService billing.Service,
@@ -152,6 +184,7 @@ func NewChargesUsageBasedService(
 	usageBasedSvc, err := usagebasedservice.New(usagebasedservice.Config{
 		Adapter:                 usageBasedAdapter,
 		Handler:                 usageBasedHandler,
+		Lineage:                 lineageService,
 		Locker:                  locker,
 		MetaAdapter:             metaAdapter,
 		CustomerOverrideService: billingService,
@@ -186,11 +219,13 @@ func NewChargesCreditPurchaseAdapter(
 func NewChargesCreditPurchaseService(
 	creditPurchaseAdapter creditpurchase.Adapter,
 	creditPurchaseHandler creditpurchase.Handler,
+	lineageService lineage.Service,
 	metaAdapter meta.Adapter,
 ) (creditpurchase.Service, error) {
 	creditPurchaseSvc, err := creditpurchaseservice.New(creditpurchaseservice.Config{
 		Adapter:     creditPurchaseAdapter,
 		Handler:     creditPurchaseHandler,
+		Lineage:     lineageService,
 		MetaAdapter: metaAdapter,
 	})
 	if err != nil {
@@ -262,6 +297,16 @@ func newChargesRegistry(
 		return nil, err
 	}
 
+	lineageAdapter, err := NewChargesLineageAdapter(db)
+	if err != nil {
+		return nil, err
+	}
+
+	lineageService, err := NewChargesLineageService(lineageAdapter)
+	if err != nil {
+		return nil, err
+	}
+
 	collectorService := NewChargesCollectorService(ledgerService, accountResolver, accountService)
 	flatFeeHandler := NewChargesFlatFeeHandler(ledgerService, accountResolver, accountService, collectorService)
 	creditPurchaseHandler := NewChargesCreditPurchaseHandler(ledgerService, accountResolver, accountService)
@@ -272,7 +317,7 @@ func newChargesRegistry(
 		return nil, err
 	}
 
-	flatFeeSvc, err := NewChargesFlatFeeService(flatFeeAdapter, flatFeeHandler, metaAdapter, locker)
+	flatFeeSvc, err := NewChargesFlatFeeService(flatFeeAdapter, flatFeeHandler, lineageService, metaAdapter, locker)
 	if err != nil {
 		return nil, err
 	}
@@ -297,6 +342,7 @@ func newChargesRegistry(
 	usageBasedSvc, err := NewChargesUsageBasedService(
 		usageBasedAdapter,
 		usageBasedHandler,
+		lineageService,
 		locker,
 		metaAdapter,
 		billingService,
@@ -313,7 +359,7 @@ func newChargesRegistry(
 		return nil, err
 	}
 
-	creditPurchaseSvc, err := NewChargesCreditPurchaseService(creditPurchaseAdapter, creditPurchaseHandler, metaAdapter)
+	creditPurchaseSvc, err := NewChargesCreditPurchaseService(creditPurchaseAdapter, creditPurchaseHandler, lineageService, metaAdapter)
 	if err != nil {
 		return nil, err
 	}
