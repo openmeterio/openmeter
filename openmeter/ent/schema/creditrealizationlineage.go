@@ -33,6 +33,12 @@ func (CreditRealizationLineage) Mixin() []ent.Mixin {
 
 func (CreditRealizationLineage) Fields() []ent.Field {
 	return []ent.Field{
+		field.String("charge_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			NotEmpty().
+			Immutable(),
 		field.String("root_realization_id").
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
@@ -63,6 +69,12 @@ func (CreditRealizationLineage) Fields() []ent.Field {
 
 func (CreditRealizationLineage) Edges() []ent.Edge {
 	return []ent.Edge{
+		edge.From("charge", Charge.Type).
+			Field("charge_id").
+			Ref("credit_realization_lineages").
+			Required().
+			Unique().
+			Immutable(),
 		edge.To("segments", CreditRealizationLineageSegment.Type),
 	}
 }
@@ -70,6 +82,7 @@ func (CreditRealizationLineage) Edges() []ent.Edge {
 func (CreditRealizationLineage) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "root_realization_id").Unique(),
+		index.Fields("namespace", "charge_id"),
 		index.Fields("namespace", "customer_id"),
 	}
 }

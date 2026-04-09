@@ -5583,6 +5583,22 @@ func (c *ChargeClient) QueryBillingSplitLineGroups(_m *Charge) *BillingInvoiceSp
 	return query
 }
 
+// QueryCreditRealizationLineages queries the credit_realization_lineages edge of a Charge.
+func (c *ChargeClient) QueryCreditRealizationLineages(_m *Charge) *CreditRealizationLineageQuery {
+	query := (&CreditRealizationLineageClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(charge.Table, charge.FieldID, id),
+			sqlgraph.To(creditrealizationlineage.Table, creditrealizationlineage.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, charge.CreditRealizationLineagesTable, charge.CreditRealizationLineagesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *ChargeClient) Hooks() []Hook {
 	return c.hooks.Charge
@@ -8060,6 +8076,22 @@ func (c *CreditRealizationLineageClient) GetX(ctx context.Context, id string) *C
 		panic(err)
 	}
 	return obj
+}
+
+// QueryCharge queries the charge edge of a CreditRealizationLineage.
+func (c *CreditRealizationLineageClient) QueryCharge(_m *CreditRealizationLineage) *ChargeQuery {
+	query := (&ChargeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(creditrealizationlineage.Table, creditrealizationlineage.FieldID, id),
+			sqlgraph.To(charge.Table, charge.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, creditrealizationlineage.ChargeTable, creditrealizationlineage.ChargeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // QuerySegments queries the segments edge of a CreditRealizationLineage.

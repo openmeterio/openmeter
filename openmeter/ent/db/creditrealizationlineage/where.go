@@ -72,6 +72,11 @@ func Namespace(v string) predicate.CreditRealizationLineage {
 	return predicate.CreditRealizationLineage(sql.FieldEQ(FieldNamespace, v))
 }
 
+// ChargeID applies equality check predicate on the "charge_id" field. It's identical to ChargeIDEQ.
+func ChargeID(v string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldEQ(FieldChargeID, v))
+}
+
 // RootRealizationID applies equality check predicate on the "root_realization_id" field. It's identical to RootRealizationIDEQ.
 func RootRealizationID(v string) predicate.CreditRealizationLineage {
 	return predicate.CreditRealizationLineage(sql.FieldEQ(FieldRootRealizationID, v))
@@ -156,6 +161,71 @@ func NamespaceEqualFold(v string) predicate.CreditRealizationLineage {
 // NamespaceContainsFold applies the ContainsFold predicate on the "namespace" field.
 func NamespaceContainsFold(v string) predicate.CreditRealizationLineage {
 	return predicate.CreditRealizationLineage(sql.FieldContainsFold(FieldNamespace, v))
+}
+
+// ChargeIDEQ applies the EQ predicate on the "charge_id" field.
+func ChargeIDEQ(v string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldEQ(FieldChargeID, v))
+}
+
+// ChargeIDNEQ applies the NEQ predicate on the "charge_id" field.
+func ChargeIDNEQ(v string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldNEQ(FieldChargeID, v))
+}
+
+// ChargeIDIn applies the In predicate on the "charge_id" field.
+func ChargeIDIn(vs ...string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldIn(FieldChargeID, vs...))
+}
+
+// ChargeIDNotIn applies the NotIn predicate on the "charge_id" field.
+func ChargeIDNotIn(vs ...string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldNotIn(FieldChargeID, vs...))
+}
+
+// ChargeIDGT applies the GT predicate on the "charge_id" field.
+func ChargeIDGT(v string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldGT(FieldChargeID, v))
+}
+
+// ChargeIDGTE applies the GTE predicate on the "charge_id" field.
+func ChargeIDGTE(v string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldGTE(FieldChargeID, v))
+}
+
+// ChargeIDLT applies the LT predicate on the "charge_id" field.
+func ChargeIDLT(v string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldLT(FieldChargeID, v))
+}
+
+// ChargeIDLTE applies the LTE predicate on the "charge_id" field.
+func ChargeIDLTE(v string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldLTE(FieldChargeID, v))
+}
+
+// ChargeIDContains applies the Contains predicate on the "charge_id" field.
+func ChargeIDContains(v string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldContains(FieldChargeID, v))
+}
+
+// ChargeIDHasPrefix applies the HasPrefix predicate on the "charge_id" field.
+func ChargeIDHasPrefix(v string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldHasPrefix(FieldChargeID, v))
+}
+
+// ChargeIDHasSuffix applies the HasSuffix predicate on the "charge_id" field.
+func ChargeIDHasSuffix(v string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldHasSuffix(FieldChargeID, v))
+}
+
+// ChargeIDEqualFold applies the EqualFold predicate on the "charge_id" field.
+func ChargeIDEqualFold(v string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldEqualFold(FieldChargeID, v))
+}
+
+// ChargeIDContainsFold applies the ContainsFold predicate on the "charge_id" field.
+func ChargeIDContainsFold(v string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldContainsFold(FieldChargeID, v))
 }
 
 // RootRealizationIDEQ applies the EQ predicate on the "root_realization_id" field.
@@ -440,6 +510,29 @@ func CreatedAtLT(v time.Time) predicate.CreditRealizationLineage {
 // CreatedAtLTE applies the LTE predicate on the "created_at" field.
 func CreatedAtLTE(v time.Time) predicate.CreditRealizationLineage {
 	return predicate.CreditRealizationLineage(sql.FieldLTE(FieldCreatedAt, v))
+}
+
+// HasCharge applies the HasEdge predicate on the "charge" edge.
+func HasCharge() predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ChargeTable, ChargeColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasChargeWith applies the HasEdge predicate on the "charge" edge with a given conditions (other predicates).
+func HasChargeWith(preds ...predicate.Charge) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(func(s *sql.Selector) {
+		step := newChargeStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // HasSegments applies the HasEdge predicate on the "segments" edge.

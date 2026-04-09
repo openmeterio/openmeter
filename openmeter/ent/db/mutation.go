@@ -35380,30 +35380,33 @@ func (m *BillingWorkflowConfigMutation) ResetEdge(name string) error {
 // ChargeMutation represents an operation that mutates the Charge nodes in the graph.
 type ChargeMutation struct {
 	config
-	op                               Op
-	typ                              string
-	id                               *string
-	namespace                        *string
-	created_at                       *time.Time
-	deleted_at                       *time.Time
-	unique_reference_id              *string
-	_type                            *meta.ChargeType
-	clearedFields                    map[string]struct{}
-	flat_fee                         *string
-	clearedflat_fee                  bool
-	credit_purchase                  *string
-	clearedcredit_purchase           bool
-	usage_based                      *string
-	clearedusage_based               bool
-	billing_invoice_lines            map[string]struct{}
-	removedbilling_invoice_lines     map[string]struct{}
-	clearedbilling_invoice_lines     bool
-	billing_split_line_groups        map[string]struct{}
-	removedbilling_split_line_groups map[string]struct{}
-	clearedbilling_split_line_groups bool
-	done                             bool
-	oldValue                         func(context.Context) (*Charge, error)
-	predicates                       []predicate.Charge
+	op                                 Op
+	typ                                string
+	id                                 *string
+	namespace                          *string
+	created_at                         *time.Time
+	deleted_at                         *time.Time
+	unique_reference_id                *string
+	_type                              *meta.ChargeType
+	clearedFields                      map[string]struct{}
+	flat_fee                           *string
+	clearedflat_fee                    bool
+	credit_purchase                    *string
+	clearedcredit_purchase             bool
+	usage_based                        *string
+	clearedusage_based                 bool
+	billing_invoice_lines              map[string]struct{}
+	removedbilling_invoice_lines       map[string]struct{}
+	clearedbilling_invoice_lines       bool
+	billing_split_line_groups          map[string]struct{}
+	removedbilling_split_line_groups   map[string]struct{}
+	clearedbilling_split_line_groups   bool
+	credit_realization_lineages        map[string]struct{}
+	removedcredit_realization_lineages map[string]struct{}
+	clearedcredit_realization_lineages bool
+	done                               bool
+	oldValue                           func(context.Context) (*Charge, error)
+	predicates                         []predicate.Charge
 }
 
 var _ ent.Mutation = (*ChargeMutation)(nil)
@@ -36091,6 +36094,60 @@ func (m *ChargeMutation) ResetBillingSplitLineGroups() {
 	m.removedbilling_split_line_groups = nil
 }
 
+// AddCreditRealizationLineageIDs adds the "credit_realization_lineages" edge to the CreditRealizationLineage entity by ids.
+func (m *ChargeMutation) AddCreditRealizationLineageIDs(ids ...string) {
+	if m.credit_realization_lineages == nil {
+		m.credit_realization_lineages = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.credit_realization_lineages[ids[i]] = struct{}{}
+	}
+}
+
+// ClearCreditRealizationLineages clears the "credit_realization_lineages" edge to the CreditRealizationLineage entity.
+func (m *ChargeMutation) ClearCreditRealizationLineages() {
+	m.clearedcredit_realization_lineages = true
+}
+
+// CreditRealizationLineagesCleared reports if the "credit_realization_lineages" edge to the CreditRealizationLineage entity was cleared.
+func (m *ChargeMutation) CreditRealizationLineagesCleared() bool {
+	return m.clearedcredit_realization_lineages
+}
+
+// RemoveCreditRealizationLineageIDs removes the "credit_realization_lineages" edge to the CreditRealizationLineage entity by IDs.
+func (m *ChargeMutation) RemoveCreditRealizationLineageIDs(ids ...string) {
+	if m.removedcredit_realization_lineages == nil {
+		m.removedcredit_realization_lineages = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.credit_realization_lineages, ids[i])
+		m.removedcredit_realization_lineages[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedCreditRealizationLineages returns the removed IDs of the "credit_realization_lineages" edge to the CreditRealizationLineage entity.
+func (m *ChargeMutation) RemovedCreditRealizationLineagesIDs() (ids []string) {
+	for id := range m.removedcredit_realization_lineages {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// CreditRealizationLineagesIDs returns the "credit_realization_lineages" edge IDs in the mutation.
+func (m *ChargeMutation) CreditRealizationLineagesIDs() (ids []string) {
+	for id := range m.credit_realization_lineages {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetCreditRealizationLineages resets all changes to the "credit_realization_lineages" edge.
+func (m *ChargeMutation) ResetCreditRealizationLineages() {
+	m.credit_realization_lineages = nil
+	m.clearedcredit_realization_lineages = false
+	m.removedcredit_realization_lineages = nil
+}
+
 // Where appends a list predicates to the ChargeMutation builder.
 func (m *ChargeMutation) Where(ps ...predicate.Charge) {
 	m.predicates = append(m.predicates, ps...)
@@ -36376,7 +36433,7 @@ func (m *ChargeMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeMutation) AddedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.flat_fee != nil {
 		edges = append(edges, charge.EdgeFlatFee)
 	}
@@ -36391,6 +36448,9 @@ func (m *ChargeMutation) AddedEdges() []string {
 	}
 	if m.billing_split_line_groups != nil {
 		edges = append(edges, charge.EdgeBillingSplitLineGroups)
+	}
+	if m.credit_realization_lineages != nil {
+		edges = append(edges, charge.EdgeCreditRealizationLineages)
 	}
 	return edges
 }
@@ -36423,18 +36483,27 @@ func (m *ChargeMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case charge.EdgeCreditRealizationLineages:
+		ids := make([]ent.Value, 0, len(m.credit_realization_lineages))
+		for id := range m.credit_realization_lineages {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ChargeMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.removedbilling_invoice_lines != nil {
 		edges = append(edges, charge.EdgeBillingInvoiceLines)
 	}
 	if m.removedbilling_split_line_groups != nil {
 		edges = append(edges, charge.EdgeBillingSplitLineGroups)
+	}
+	if m.removedcredit_realization_lineages != nil {
+		edges = append(edges, charge.EdgeCreditRealizationLineages)
 	}
 	return edges
 }
@@ -36455,13 +36524,19 @@ func (m *ChargeMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case charge.EdgeCreditRealizationLineages:
+		ids := make([]ent.Value, 0, len(m.removedcredit_realization_lineages))
+		for id := range m.removedcredit_realization_lineages {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.clearedflat_fee {
 		edges = append(edges, charge.EdgeFlatFee)
 	}
@@ -36476,6 +36551,9 @@ func (m *ChargeMutation) ClearedEdges() []string {
 	}
 	if m.clearedbilling_split_line_groups {
 		edges = append(edges, charge.EdgeBillingSplitLineGroups)
+	}
+	if m.clearedcredit_realization_lineages {
+		edges = append(edges, charge.EdgeCreditRealizationLineages)
 	}
 	return edges
 }
@@ -36494,6 +36572,8 @@ func (m *ChargeMutation) EdgeCleared(name string) bool {
 		return m.clearedbilling_invoice_lines
 	case charge.EdgeBillingSplitLineGroups:
 		return m.clearedbilling_split_line_groups
+	case charge.EdgeCreditRealizationLineages:
+		return m.clearedcredit_realization_lineages
 	}
 	return false
 }
@@ -36533,6 +36613,9 @@ func (m *ChargeMutation) ResetEdge(name string) error {
 		return nil
 	case charge.EdgeBillingSplitLineGroups:
 		m.ResetBillingSplitLineGroups()
+		return nil
+	case charge.EdgeCreditRealizationLineages:
+		m.ResetCreditRealizationLineages()
 		return nil
 	}
 	return fmt.Errorf("unknown Charge edge %s", name)
@@ -56994,6 +57077,8 @@ type CreditRealizationLineageMutation struct {
 	origin_kind         *creditrealization.LineageOriginKind
 	created_at          *time.Time
 	clearedFields       map[string]struct{}
+	charge              *string
+	clearedcharge       bool
 	segments            map[string]struct{}
 	removedsegments     map[string]struct{}
 	clearedsegments     bool
@@ -57140,6 +57225,42 @@ func (m *CreditRealizationLineageMutation) OldNamespace(ctx context.Context) (v 
 // ResetNamespace resets all changes to the "namespace" field.
 func (m *CreditRealizationLineageMutation) ResetNamespace() {
 	m.namespace = nil
+}
+
+// SetChargeID sets the "charge_id" field.
+func (m *CreditRealizationLineageMutation) SetChargeID(s string) {
+	m.charge = &s
+}
+
+// ChargeID returns the value of the "charge_id" field in the mutation.
+func (m *CreditRealizationLineageMutation) ChargeID() (r string, exists bool) {
+	v := m.charge
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChargeID returns the old "charge_id" field's value of the CreditRealizationLineage entity.
+// If the CreditRealizationLineage object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditRealizationLineageMutation) OldChargeID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChargeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChargeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChargeID: %w", err)
+	}
+	return oldValue.ChargeID, nil
+}
+
+// ResetChargeID resets all changes to the "charge_id" field.
+func (m *CreditRealizationLineageMutation) ResetChargeID() {
+	m.charge = nil
 }
 
 // SetRootRealizationID sets the "root_realization_id" field.
@@ -57322,6 +57443,33 @@ func (m *CreditRealizationLineageMutation) ResetCreatedAt() {
 	m.created_at = nil
 }
 
+// ClearCharge clears the "charge" edge to the Charge entity.
+func (m *CreditRealizationLineageMutation) ClearCharge() {
+	m.clearedcharge = true
+	m.clearedFields[creditrealizationlineage.FieldChargeID] = struct{}{}
+}
+
+// ChargeCleared reports if the "charge" edge to the Charge entity was cleared.
+func (m *CreditRealizationLineageMutation) ChargeCleared() bool {
+	return m.clearedcharge
+}
+
+// ChargeIDs returns the "charge" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ChargeID instead. It exists only for internal usage by the builders.
+func (m *CreditRealizationLineageMutation) ChargeIDs() (ids []string) {
+	if id := m.charge; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCharge resets all changes to the "charge" edge.
+func (m *CreditRealizationLineageMutation) ResetCharge() {
+	m.charge = nil
+	m.clearedcharge = false
+}
+
 // AddSegmentIDs adds the "segments" edge to the CreditRealizationLineageSegment entity by ids.
 func (m *CreditRealizationLineageMutation) AddSegmentIDs(ids ...string) {
 	if m.segments == nil {
@@ -57410,9 +57558,12 @@ func (m *CreditRealizationLineageMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CreditRealizationLineageMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 7)
 	if m.namespace != nil {
 		fields = append(fields, creditrealizationlineage.FieldNamespace)
+	}
+	if m.charge != nil {
+		fields = append(fields, creditrealizationlineage.FieldChargeID)
 	}
 	if m.root_realization_id != nil {
 		fields = append(fields, creditrealizationlineage.FieldRootRealizationID)
@@ -57439,6 +57590,8 @@ func (m *CreditRealizationLineageMutation) Field(name string) (ent.Value, bool) 
 	switch name {
 	case creditrealizationlineage.FieldNamespace:
 		return m.Namespace()
+	case creditrealizationlineage.FieldChargeID:
+		return m.ChargeID()
 	case creditrealizationlineage.FieldRootRealizationID:
 		return m.RootRealizationID()
 	case creditrealizationlineage.FieldCustomerID:
@@ -57460,6 +57613,8 @@ func (m *CreditRealizationLineageMutation) OldField(ctx context.Context, name st
 	switch name {
 	case creditrealizationlineage.FieldNamespace:
 		return m.OldNamespace(ctx)
+	case creditrealizationlineage.FieldChargeID:
+		return m.OldChargeID(ctx)
 	case creditrealizationlineage.FieldRootRealizationID:
 		return m.OldRootRealizationID(ctx)
 	case creditrealizationlineage.FieldCustomerID:
@@ -57485,6 +57640,13 @@ func (m *CreditRealizationLineageMutation) SetField(name string, value ent.Value
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetNamespace(v)
+		return nil
+	case creditrealizationlineage.FieldChargeID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChargeID(v)
 		return nil
 	case creditrealizationlineage.FieldRootRealizationID:
 		v, ok := value.(string)
@@ -57573,6 +57735,9 @@ func (m *CreditRealizationLineageMutation) ResetField(name string) error {
 	case creditrealizationlineage.FieldNamespace:
 		m.ResetNamespace()
 		return nil
+	case creditrealizationlineage.FieldChargeID:
+		m.ResetChargeID()
+		return nil
 	case creditrealizationlineage.FieldRootRealizationID:
 		m.ResetRootRealizationID()
 		return nil
@@ -57594,7 +57759,10 @@ func (m *CreditRealizationLineageMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *CreditRealizationLineageMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
+	if m.charge != nil {
+		edges = append(edges, creditrealizationlineage.EdgeCharge)
+	}
 	if m.segments != nil {
 		edges = append(edges, creditrealizationlineage.EdgeSegments)
 	}
@@ -57605,6 +57773,10 @@ func (m *CreditRealizationLineageMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *CreditRealizationLineageMutation) AddedIDs(name string) []ent.Value {
 	switch name {
+	case creditrealizationlineage.EdgeCharge:
+		if id := m.charge; id != nil {
+			return []ent.Value{*id}
+		}
 	case creditrealizationlineage.EdgeSegments:
 		ids := make([]ent.Value, 0, len(m.segments))
 		for id := range m.segments {
@@ -57617,7 +57789,7 @@ func (m *CreditRealizationLineageMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *CreditRealizationLineageMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.removedsegments != nil {
 		edges = append(edges, creditrealizationlineage.EdgeSegments)
 	}
@@ -57640,7 +57812,10 @@ func (m *CreditRealizationLineageMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *CreditRealizationLineageMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
+	if m.clearedcharge {
+		edges = append(edges, creditrealizationlineage.EdgeCharge)
+	}
 	if m.clearedsegments {
 		edges = append(edges, creditrealizationlineage.EdgeSegments)
 	}
@@ -57651,6 +57826,8 @@ func (m *CreditRealizationLineageMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *CreditRealizationLineageMutation) EdgeCleared(name string) bool {
 	switch name {
+	case creditrealizationlineage.EdgeCharge:
+		return m.clearedcharge
 	case creditrealizationlineage.EdgeSegments:
 		return m.clearedsegments
 	}
@@ -57661,6 +57838,9 @@ func (m *CreditRealizationLineageMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *CreditRealizationLineageMutation) ClearEdge(name string) error {
 	switch name {
+	case creditrealizationlineage.EdgeCharge:
+		m.ClearCharge()
+		return nil
 	}
 	return fmt.Errorf("unknown CreditRealizationLineage unique edge %s", name)
 }
@@ -57669,6 +57849,9 @@ func (m *CreditRealizationLineageMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *CreditRealizationLineageMutation) ResetEdge(name string) error {
 	switch name {
+	case creditrealizationlineage.EdgeCharge:
+		m.ResetCharge()
+		return nil
 	case creditrealizationlineage.EdgeSegments:
 		m.ResetSegments()
 		return nil

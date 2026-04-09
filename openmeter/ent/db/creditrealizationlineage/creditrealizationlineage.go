@@ -18,6 +18,8 @@ const (
 	FieldID = "id"
 	// FieldNamespace holds the string denoting the namespace field in the database.
 	FieldNamespace = "namespace"
+	// FieldChargeID holds the string denoting the charge_id field in the database.
+	FieldChargeID = "charge_id"
 	// FieldRootRealizationID holds the string denoting the root_realization_id field in the database.
 	FieldRootRealizationID = "root_realization_id"
 	// FieldCustomerID holds the string denoting the customer_id field in the database.
@@ -28,10 +30,19 @@ const (
 	FieldOriginKind = "origin_kind"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
+	// EdgeCharge holds the string denoting the charge edge name in mutations.
+	EdgeCharge = "charge"
 	// EdgeSegments holds the string denoting the segments edge name in mutations.
 	EdgeSegments = "segments"
 	// Table holds the table name of the creditrealizationlineage in the database.
 	Table = "credit_realization_lineages"
+	// ChargeTable is the table that holds the charge relation/edge.
+	ChargeTable = "credit_realization_lineages"
+	// ChargeInverseTable is the table name for the Charge entity.
+	// It exists in this package in order to avoid circular dependency with the "charge" package.
+	ChargeInverseTable = "charges"
+	// ChargeColumn is the table column denoting the charge relation/edge.
+	ChargeColumn = "charge_id"
 	// SegmentsTable is the table that holds the segments relation/edge.
 	SegmentsTable = "credit_realization_lineage_segments"
 	// SegmentsInverseTable is the table name for the CreditRealizationLineageSegment entity.
@@ -45,6 +56,7 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldNamespace,
+	FieldChargeID,
 	FieldRootRealizationID,
 	FieldCustomerID,
 	FieldCurrency,
@@ -65,6 +77,8 @@ func ValidColumn(column string) bool {
 var (
 	// NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	NamespaceValidator func(string) error
+	// ChargeIDValidator is a validator for the "charge_id" field. It is called by the builders before save.
+	ChargeIDValidator func(string) error
 	// RootRealizationIDValidator is a validator for the "root_realization_id" field. It is called by the builders before save.
 	RootRealizationIDValidator func(string) error
 	// CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
@@ -100,6 +114,11 @@ func ByNamespace(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNamespace, opts...).ToFunc()
 }
 
+// ByChargeID orders the results by the charge_id field.
+func ByChargeID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldChargeID, opts...).ToFunc()
+}
+
 // ByRootRealizationID orders the results by the root_realization_id field.
 func ByRootRealizationID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldRootRealizationID, opts...).ToFunc()
@@ -125,6 +144,13 @@ func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
 }
 
+// ByChargeField orders the results by charge field.
+func ByChargeField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newChargeStep(), sql.OrderByField(field, opts...))
+	}
+}
+
 // BySegmentsCount orders the results by segments count.
 func BySegmentsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -137,6 +163,13 @@ func BySegments(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newSegmentsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
+}
+func newChargeStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ChargeInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, ChargeTable, ChargeColumn),
+	)
 }
 func newSegmentsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(

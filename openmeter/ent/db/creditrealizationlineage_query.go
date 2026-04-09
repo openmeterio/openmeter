@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineagesegment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -25,6 +26,7 @@ type CreditRealizationLineageQuery struct {
 	order        []creditrealizationlineage.OrderOption
 	inters       []Interceptor
 	predicates   []predicate.CreditRealizationLineage
+	withCharge   *ChargeQuery
 	withSegments *CreditRealizationLineageSegmentQuery
 	modifiers    []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
@@ -61,6 +63,28 @@ func (_q *CreditRealizationLineageQuery) Unique(unique bool) *CreditRealizationL
 func (_q *CreditRealizationLineageQuery) Order(o ...creditrealizationlineage.OrderOption) *CreditRealizationLineageQuery {
 	_q.order = append(_q.order, o...)
 	return _q
+}
+
+// QueryCharge chains the current query on the "charge" edge.
+func (_q *CreditRealizationLineageQuery) QueryCharge() *ChargeQuery {
+	query := (&ChargeClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(creditrealizationlineage.Table, creditrealizationlineage.FieldID, selector),
+			sqlgraph.To(charge.Table, charge.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, creditrealizationlineage.ChargeTable, creditrealizationlineage.ChargeColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // QuerySegments chains the current query on the "segments" edge.
@@ -277,11 +301,23 @@ func (_q *CreditRealizationLineageQuery) Clone() *CreditRealizationLineageQuery 
 		order:        append([]creditrealizationlineage.OrderOption{}, _q.order...),
 		inters:       append([]Interceptor{}, _q.inters...),
 		predicates:   append([]predicate.CreditRealizationLineage{}, _q.predicates...),
+		withCharge:   _q.withCharge.Clone(),
 		withSegments: _q.withSegments.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
+}
+
+// WithCharge tells the query-builder to eager-load the nodes that are connected to
+// the "charge" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *CreditRealizationLineageQuery) WithCharge(opts ...func(*ChargeQuery)) *CreditRealizationLineageQuery {
+	query := (&ChargeClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withCharge = query
+	return _q
 }
 
 // WithSegments tells the query-builder to eager-load the nodes that are connected to
@@ -373,7 +409,8 @@ func (_q *CreditRealizationLineageQuery) sqlAll(ctx context.Context, hooks ...qu
 	var (
 		nodes       = []*CreditRealizationLineage{}
 		_spec       = _q.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
+			_q.withCharge != nil,
 			_q.withSegments != nil,
 		}
 	)
@@ -398,6 +435,12 @@ func (_q *CreditRealizationLineageQuery) sqlAll(ctx context.Context, hooks ...qu
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := _q.withCharge; query != nil {
+		if err := _q.loadCharge(ctx, query, nodes, nil,
+			func(n *CreditRealizationLineage, e *Charge) { n.Edges.Charge = e }); err != nil {
+			return nil, err
+		}
+	}
 	if query := _q.withSegments; query != nil {
 		if err := _q.loadSegments(ctx, query, nodes,
 			func(n *CreditRealizationLineage) { n.Edges.Segments = []*CreditRealizationLineageSegment{} },
@@ -410,6 +453,35 @@ func (_q *CreditRealizationLineageQuery) sqlAll(ctx context.Context, hooks ...qu
 	return nodes, nil
 }
 
+func (_q *CreditRealizationLineageQuery) loadCharge(ctx context.Context, query *ChargeQuery, nodes []*CreditRealizationLineage, init func(*CreditRealizationLineage), assign func(*CreditRealizationLineage, *Charge)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*CreditRealizationLineage)
+	for i := range nodes {
+		fk := nodes[i].ChargeID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(charge.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "charge_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 func (_q *CreditRealizationLineageQuery) loadSegments(ctx context.Context, query *CreditRealizationLineageSegmentQuery, nodes []*CreditRealizationLineage, init func(*CreditRealizationLineage), assign func(*CreditRealizationLineage, *CreditRealizationLineageSegment)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*CreditRealizationLineage)
@@ -468,6 +540,9 @@ func (_q *CreditRealizationLineageQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != creditrealizationlineage.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withCharge != nil {
+			_spec.Node.AddColumnOnce(creditrealizationlineage.FieldChargeID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

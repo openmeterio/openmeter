@@ -1386,20 +1386,24 @@ func init() {
 	creditrealizationlineageDescNamespace := creditrealizationlineageMixinFields1[0].Descriptor()
 	// creditrealizationlineage.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	creditrealizationlineage.NamespaceValidator = creditrealizationlineageDescNamespace.Validators[0].(func(string) error)
+	// creditrealizationlineageDescChargeID is the schema descriptor for charge_id field.
+	creditrealizationlineageDescChargeID := creditrealizationlineageFields[0].Descriptor()
+	// creditrealizationlineage.ChargeIDValidator is a validator for the "charge_id" field. It is called by the builders before save.
+	creditrealizationlineage.ChargeIDValidator = creditrealizationlineageDescChargeID.Validators[0].(func(string) error)
 	// creditrealizationlineageDescRootRealizationID is the schema descriptor for root_realization_id field.
-	creditrealizationlineageDescRootRealizationID := creditrealizationlineageFields[0].Descriptor()
+	creditrealizationlineageDescRootRealizationID := creditrealizationlineageFields[1].Descriptor()
 	// creditrealizationlineage.RootRealizationIDValidator is a validator for the "root_realization_id" field. It is called by the builders before save.
 	creditrealizationlineage.RootRealizationIDValidator = creditrealizationlineageDescRootRealizationID.Validators[0].(func(string) error)
 	// creditrealizationlineageDescCustomerID is the schema descriptor for customer_id field.
-	creditrealizationlineageDescCustomerID := creditrealizationlineageFields[1].Descriptor()
+	creditrealizationlineageDescCustomerID := creditrealizationlineageFields[2].Descriptor()
 	// creditrealizationlineage.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	creditrealizationlineage.CustomerIDValidator = creditrealizationlineageDescCustomerID.Validators[0].(func(string) error)
 	// creditrealizationlineageDescCurrency is the schema descriptor for currency field.
-	creditrealizationlineageDescCurrency := creditrealizationlineageFields[2].Descriptor()
+	creditrealizationlineageDescCurrency := creditrealizationlineageFields[3].Descriptor()
 	// creditrealizationlineage.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	creditrealizationlineage.CurrencyValidator = creditrealizationlineageDescCurrency.Validators[0].(func(string) error)
 	// creditrealizationlineageDescCreatedAt is the schema descriptor for created_at field.
-	creditrealizationlineageDescCreatedAt := creditrealizationlineageFields[4].Descriptor()
+	creditrealizationlineageDescCreatedAt := creditrealizationlineageFields[5].Descriptor()
 	// creditrealizationlineage.DefaultCreatedAt holds the default value on creation for the created_at field.
 	creditrealizationlineage.DefaultCreatedAt = creditrealizationlineageDescCreatedAt.Default.(func() time.Time)
 	// creditrealizationlineageDescID is the schema descriptor for id field.

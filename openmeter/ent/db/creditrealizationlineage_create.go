@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineagesegment"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -29,6 +30,12 @@ type CreditRealizationLineageCreate struct {
 // SetNamespace sets the "namespace" field.
 func (_c *CreditRealizationLineageCreate) SetNamespace(v string) *CreditRealizationLineageCreate {
 	_c.mutation.SetNamespace(v)
+	return _c
+}
+
+// SetChargeID sets the "charge_id" field.
+func (_c *CreditRealizationLineageCreate) SetChargeID(v string) *CreditRealizationLineageCreate {
+	_c.mutation.SetChargeID(v)
 	return _c
 }
 
@@ -82,6 +89,11 @@ func (_c *CreditRealizationLineageCreate) SetNillableID(v *string) *CreditRealiz
 		_c.SetID(*v)
 	}
 	return _c
+}
+
+// SetCharge sets the "charge" edge to the Charge entity.
+func (_c *CreditRealizationLineageCreate) SetCharge(v *Charge) *CreditRealizationLineageCreate {
+	return _c.SetChargeID(v.ID)
 }
 
 // AddSegmentIDs adds the "segments" edge to the CreditRealizationLineageSegment entity by IDs.
@@ -154,6 +166,14 @@ func (_c *CreditRealizationLineageCreate) check() error {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "CreditRealizationLineage.namespace": %w`, err)}
 		}
 	}
+	if _, ok := _c.mutation.ChargeID(); !ok {
+		return &ValidationError{Name: "charge_id", err: errors.New(`db: missing required field "CreditRealizationLineage.charge_id"`)}
+	}
+	if v, ok := _c.mutation.ChargeID(); ok {
+		if err := creditrealizationlineage.ChargeIDValidator(v); err != nil {
+			return &ValidationError{Name: "charge_id", err: fmt.Errorf(`db: validator failed for field "CreditRealizationLineage.charge_id": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.RootRealizationID(); !ok {
 		return &ValidationError{Name: "root_realization_id", err: errors.New(`db: missing required field "CreditRealizationLineage.root_realization_id"`)}
 	}
@@ -188,6 +208,9 @@ func (_c *CreditRealizationLineageCreate) check() error {
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "CreditRealizationLineage.created_at"`)}
+	}
+	if len(_c.mutation.ChargeIDs()) == 0 {
+		return &ValidationError{Name: "charge", err: errors.New(`db: missing required edge "CreditRealizationLineage.charge"`)}
 	}
 	return nil
 }
@@ -248,6 +271,23 @@ func (_c *CreditRealizationLineageCreate) createSpec() (*CreditRealizationLineag
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(creditrealizationlineage.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
+	}
+	if nodes := _c.mutation.ChargeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   creditrealizationlineage.ChargeTable,
+			Columns: []string{creditrealizationlineage.ChargeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.ChargeID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.SegmentsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -336,6 +376,9 @@ func (u *CreditRealizationLineageUpsertOne) UpdateNewValues() *CreditRealization
 		}
 		if _, exists := u.create.mutation.Namespace(); exists {
 			s.SetIgnore(creditrealizationlineage.FieldNamespace)
+		}
+		if _, exists := u.create.mutation.ChargeID(); exists {
+			s.SetIgnore(creditrealizationlineage.FieldChargeID)
 		}
 		if _, exists := u.create.mutation.RootRealizationID(); exists {
 			s.SetIgnore(creditrealizationlineage.FieldRootRealizationID)
@@ -568,6 +611,9 @@ func (u *CreditRealizationLineageUpsertBulk) UpdateNewValues() *CreditRealizatio
 			}
 			if _, exists := b.mutation.Namespace(); exists {
 				s.SetIgnore(creditrealizationlineage.FieldNamespace)
+			}
+			if _, exists := b.mutation.ChargeID(); exists {
+				s.SetIgnore(creditrealizationlineage.FieldChargeID)
 			}
 			if _, exists := b.mutation.RootRealizationID(); exists {
 				s.SetIgnore(creditrealizationlineage.FieldRootRealizationID)

@@ -16,7 +16,7 @@ import (
 type Service interface {
 	CreateInitialLineages(ctx context.Context, input CreateInitialLineagesInput) error
 	LoadActiveSegmentsByRealizationID(ctx context.Context, namespace string, realizationIDs []string) (ActiveSegmentsByRealizationID, error)
-	WritebackCorrectionLineageSegments(ctx context.Context, input WritebackCorrectionLineageSegmentsInput) error
+	PersistCorrectionLineageSegments(ctx context.Context, input PersistCorrectionLineageSegmentsInput) error
 	BackfillAdvanceLineageSegments(ctx context.Context, input BackfillAdvanceLineageSegmentsInput) error
 }
 
@@ -34,6 +34,7 @@ type Adapter interface {
 
 type CreateInitialLineagesInput struct {
 	Namespace    string
+	ChargeID     string
 	CustomerID   string
 	Currency     currencyx.Code
 	Realizations creditrealization.Realizations
@@ -44,6 +45,9 @@ func (i CreateInitialLineagesInput) Validate() error {
 
 	if i.Namespace == "" {
 		errs = append(errs, errors.New("namespace is required"))
+	}
+	if i.ChargeID == "" {
+		errs = append(errs, errors.New("charge id is required"))
 	}
 	if i.CustomerID == "" {
 		errs = append(errs, errors.New("customer id is required"))
@@ -58,12 +62,12 @@ func (i CreateInitialLineagesInput) Validate() error {
 	return errors.Join(errs...)
 }
 
-type WritebackCorrectionLineageSegmentsInput struct {
+type PersistCorrectionLineageSegmentsInput struct {
 	Namespace    string
 	Realizations creditrealization.Realizations
 }
 
-func (i WritebackCorrectionLineageSegmentsInput) Validate() error {
+func (i PersistCorrectionLineageSegmentsInput) Validate() error {
 	var errs []error
 
 	if i.Namespace == "" {
@@ -115,6 +119,7 @@ func (i BackfillAdvanceLineageSegmentsInput) Validate() error {
 
 type CreateLineagesInput struct {
 	Namespace  string
+	ChargeID   string
 	CustomerID string
 	Currency   currencyx.Code
 	Specs      []creditrealization.InitialLineageSpec
@@ -161,6 +166,7 @@ func (i CreateSegmentInput) Validate() error {
 
 type Lineage struct {
 	ID                string
+	ChargeID          string
 	RootRealizationID string
 	CustomerID        string
 	Currency          currencyx.Code

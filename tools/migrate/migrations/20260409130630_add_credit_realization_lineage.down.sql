@@ -6,6 +6,8 @@ DROP INDEX "creditrealizationlineagesegment_lineage_id";
 DROP INDEX "creditrealizationlineagesegment_id";
 -- reverse: create "credit_realization_lineage_segments" table
 DROP TABLE "credit_realization_lineage_segments";
+-- reverse: create index "creditrealizationlineage_namespace_charge_id" to table: "credit_realization_lineages"
+DROP INDEX "creditrealizationlineage_namespace_charge_id";
 -- reverse: create index "creditrealizationlineage_namespace_root_realization_id" to table: "credit_realization_lineages"
 DROP INDEX "creditrealizationlineage_namespace_root_realization_id";
 -- reverse: create index "creditrealizationlineage_namespace_customer_id" to table: "credit_realization_lineages"

@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -80,6 +81,21 @@ func (_u *ChargeUpdate) AddBillingSplitLineGroups(v ...*BillingInvoiceSplitLineG
 	return _u.AddBillingSplitLineGroupIDs(ids...)
 }
 
+// AddCreditRealizationLineageIDs adds the "credit_realization_lineages" edge to the CreditRealizationLineage entity by IDs.
+func (_u *ChargeUpdate) AddCreditRealizationLineageIDs(ids ...string) *ChargeUpdate {
+	_u.mutation.AddCreditRealizationLineageIDs(ids...)
+	return _u
+}
+
+// AddCreditRealizationLineages adds the "credit_realization_lineages" edges to the CreditRealizationLineage entity.
+func (_u *ChargeUpdate) AddCreditRealizationLineages(v ...*CreditRealizationLineage) *ChargeUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCreditRealizationLineageIDs(ids...)
+}
+
 // Mutation returns the ChargeMutation object of the builder.
 func (_u *ChargeUpdate) Mutation() *ChargeMutation {
 	return _u.mutation
@@ -125,6 +141,27 @@ func (_u *ChargeUpdate) RemoveBillingSplitLineGroups(v ...*BillingInvoiceSplitLi
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBillingSplitLineGroupIDs(ids...)
+}
+
+// ClearCreditRealizationLineages clears all "credit_realization_lineages" edges to the CreditRealizationLineage entity.
+func (_u *ChargeUpdate) ClearCreditRealizationLineages() *ChargeUpdate {
+	_u.mutation.ClearCreditRealizationLineages()
+	return _u
+}
+
+// RemoveCreditRealizationLineageIDs removes the "credit_realization_lineages" edge to CreditRealizationLineage entities by IDs.
+func (_u *ChargeUpdate) RemoveCreditRealizationLineageIDs(ids ...string) *ChargeUpdate {
+	_u.mutation.RemoveCreditRealizationLineageIDs(ids...)
+	return _u
+}
+
+// RemoveCreditRealizationLineages removes "credit_realization_lineages" edges to CreditRealizationLineage entities.
+func (_u *ChargeUpdate) RemoveCreditRealizationLineages(v ...*CreditRealizationLineage) *ChargeUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCreditRealizationLineageIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -262,6 +299,51 @@ func (_u *ChargeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.CreditRealizationLineagesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   charge.CreditRealizationLineagesTable,
+			Columns: []string{charge.CreditRealizationLineagesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(creditrealizationlineage.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCreditRealizationLineagesIDs(); len(nodes) > 0 && !_u.mutation.CreditRealizationLineagesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   charge.CreditRealizationLineagesTable,
+			Columns: []string{charge.CreditRealizationLineagesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(creditrealizationlineage.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CreditRealizationLineagesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   charge.CreditRealizationLineagesTable,
+			Columns: []string{charge.CreditRealizationLineagesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(creditrealizationlineage.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{charge.Label}
@@ -332,6 +414,21 @@ func (_u *ChargeUpdateOne) AddBillingSplitLineGroups(v ...*BillingInvoiceSplitLi
 	return _u.AddBillingSplitLineGroupIDs(ids...)
 }
 
+// AddCreditRealizationLineageIDs adds the "credit_realization_lineages" edge to the CreditRealizationLineage entity by IDs.
+func (_u *ChargeUpdateOne) AddCreditRealizationLineageIDs(ids ...string) *ChargeUpdateOne {
+	_u.mutation.AddCreditRealizationLineageIDs(ids...)
+	return _u
+}
+
+// AddCreditRealizationLineages adds the "credit_realization_lineages" edges to the CreditRealizationLineage entity.
+func (_u *ChargeUpdateOne) AddCreditRealizationLineages(v ...*CreditRealizationLineage) *ChargeUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCreditRealizationLineageIDs(ids...)
+}
+
 // Mutation returns the ChargeMutation object of the builder.
 func (_u *ChargeUpdateOne) Mutation() *ChargeMutation {
 	return _u.mutation
@@ -377,6 +474,27 @@ func (_u *ChargeUpdateOne) RemoveBillingSplitLineGroups(v ...*BillingInvoiceSpli
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBillingSplitLineGroupIDs(ids...)
+}
+
+// ClearCreditRealizationLineages clears all "credit_realization_lineages" edges to the CreditRealizationLineage entity.
+func (_u *ChargeUpdateOne) ClearCreditRealizationLineages() *ChargeUpdateOne {
+	_u.mutation.ClearCreditRealizationLineages()
+	return _u
+}
+
+// RemoveCreditRealizationLineageIDs removes the "credit_realization_lineages" edge to CreditRealizationLineage entities by IDs.
+func (_u *ChargeUpdateOne) RemoveCreditRealizationLineageIDs(ids ...string) *ChargeUpdateOne {
+	_u.mutation.RemoveCreditRealizationLineageIDs(ids...)
+	return _u
+}
+
+// RemoveCreditRealizationLineages removes "credit_realization_lineages" edges to CreditRealizationLineage entities.
+func (_u *ChargeUpdateOne) RemoveCreditRealizationLineages(v ...*CreditRealizationLineage) *ChargeUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCreditRealizationLineageIDs(ids...)
 }
 
 // Where appends a list predicates to the ChargeUpdate builder.
@@ -537,6 +655,51 @@ func (_u *ChargeUpdateOne) sqlSave(ctx context.Context) (_node *Charge, err erro
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CreditRealizationLineagesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   charge.CreditRealizationLineagesTable,
+			Columns: []string{charge.CreditRealizationLineagesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(creditrealizationlineage.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCreditRealizationLineagesIDs(); len(nodes) > 0 && !_u.mutation.CreditRealizationLineagesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   charge.CreditRealizationLineagesTable,
+			Columns: []string{charge.CreditRealizationLineagesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(creditrealizationlineage.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CreditRealizationLineagesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   charge.CreditRealizationLineagesTable,
+			Columns: []string{charge.CreditRealizationLineagesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(creditrealizationlineage.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

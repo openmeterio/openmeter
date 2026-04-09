@@ -2519,12 +2519,21 @@ var (
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
 		{Name: "origin_kind", Type: field.TypeEnum, Enums: []string{"real_credit", "advance"}},
 		{Name: "created_at", Type: field.TypeTime},
+		{Name: "charge_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// CreditRealizationLineagesTable holds the schema information for the "credit_realization_lineages" table.
 	CreditRealizationLineagesTable = &schema.Table{
 		Name:       "credit_realization_lineages",
 		Columns:    CreditRealizationLineagesColumns,
 		PrimaryKey: []*schema.Column{CreditRealizationLineagesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "credit_realization_lineages_charges_credit_realization_lineages",
+				Columns:    []*schema.Column{CreditRealizationLineagesColumns[7]},
+				RefColumns: []*schema.Column{ChargesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
 		Indexes: []*schema.Index{
 			{
 				Name:    "creditrealizationlineage_id",
@@ -2540,6 +2549,11 @@ var (
 				Name:    "creditrealizationlineage_namespace_root_realization_id",
 				Unique:  true,
 				Columns: []*schema.Column{CreditRealizationLineagesColumns[1], CreditRealizationLineagesColumns[2]},
+			},
+			{
+				Name:    "creditrealizationlineage_namespace_charge_id",
+				Unique:  false,
+				Columns: []*schema.Column{CreditRealizationLineagesColumns[1], CreditRealizationLineagesColumns[7]},
 			},
 			{
 				Name:    "creditrealizationlineage_namespace_customer_id",
@@ -4796,6 +4810,7 @@ func init() {
 	ChargeUsageBasedRunPaymentsTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunsTable
 	ChargeUsageBasedRunsTable.ForeignKeys[0].RefTable = ChargeUsageBasedTable
 	ChargeUsageBasedRunsTable.ForeignKeys[1].RefTable = FeaturesTable
+	CreditRealizationLineagesTable.ForeignKeys[0].RefTable = ChargesTable
 	CreditRealizationLineageSegmentsTable.ForeignKeys[0].RefTable = CreditRealizationLineagesTable
 	CurrencyCostBasesTable.ForeignKeys[0].RefTable = CustomCurrenciesTable
 	CustomerSubjectsTable.ForeignKeys[0].RefTable = CustomersTable

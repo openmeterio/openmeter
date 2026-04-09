@@ -10,7 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 )
 
-func SortCorrectionWritebackSegments(segments []Segment) []Segment {
+func SortCorrectionPersistSegments(segments []Segment) []Segment {
 	sorted := append([]Segment(nil), segments...)
 	sort.SliceStable(sorted, func(i, j int) bool {
 		precedence := func(state creditrealization.LineageSegmentState) int {

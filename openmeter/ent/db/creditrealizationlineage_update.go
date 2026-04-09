@@ -96,7 +96,18 @@ func (_u *CreditRealizationLineageUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (_u *CreditRealizationLineageUpdate) check() error {
+	if _u.mutation.ChargeCleared() && len(_u.mutation.ChargeIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "CreditRealizationLineage.charge"`)
+	}
+	return nil
+}
+
 func (_u *CreditRealizationLineageUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(creditrealizationlineage.Table, creditrealizationlineage.Columns, sqlgraph.NewFieldSpec(creditrealizationlineage.FieldID, field.TypeString))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -251,7 +262,18 @@ func (_u *CreditRealizationLineageUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (_u *CreditRealizationLineageUpdateOne) check() error {
+	if _u.mutation.ChargeCleared() && len(_u.mutation.ChargeIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "CreditRealizationLineage.charge"`)
+	}
+	return nil
+}
+
 func (_u *CreditRealizationLineageUpdateOne) sqlSave(ctx context.Context) (_node *CreditRealizationLineage, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(creditrealizationlineage.Table, creditrealizationlineage.Columns, sqlgraph.NewFieldSpec(creditrealizationlineage.FieldID, field.TypeString))
 	id, ok := _u.mutation.ID()
 	if !ok {

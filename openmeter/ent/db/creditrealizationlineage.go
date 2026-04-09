@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineage"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
@@ -21,6 +22,8 @@ type CreditRealizationLineage struct {
 	ID string `json:"id,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
+	// ChargeID holds the value of the "charge_id" field.
+	ChargeID string `json:"charge_id,omitempty"`
 	// RootRealizationID holds the value of the "root_realization_id" field.
 	RootRealizationID string `json:"root_realization_id,omitempty"`
 	// CustomerID holds the value of the "customer_id" field.
@@ -39,17 +42,30 @@ type CreditRealizationLineage struct {
 
 // CreditRealizationLineageEdges holds the relations/edges for other nodes in the graph.
 type CreditRealizationLineageEdges struct {
+	// Charge holds the value of the charge edge.
+	Charge *Charge `json:"charge,omitempty"`
 	// Segments holds the value of the segments edge.
 	Segments []*CreditRealizationLineageSegment `json:"segments,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
+}
+
+// ChargeOrErr returns the Charge value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e CreditRealizationLineageEdges) ChargeOrErr() (*Charge, error) {
+	if e.Charge != nil {
+		return e.Charge, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: charge.Label}
+	}
+	return nil, &NotLoadedError{edge: "charge"}
 }
 
 // SegmentsOrErr returns the Segments value or an error if the edge
 // was not loaded in eager-loading.
 func (e CreditRealizationLineageEdges) SegmentsOrErr() ([]*CreditRealizationLineageSegment, error) {
-	if e.loadedTypes[0] {
+	if e.loadedTypes[1] {
 		return e.Segments, nil
 	}
 	return nil, &NotLoadedError{edge: "segments"}
@@ -60,7 +76,7 @@ func (*CreditRealizationLineage) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case creditrealizationlineage.FieldID, creditrealizationlineage.FieldNamespace, creditrealizationlineage.FieldRootRealizationID, creditrealizationlineage.FieldCustomerID, creditrealizationlineage.FieldCurrency, creditrealizationlineage.FieldOriginKind:
+		case creditrealizationlineage.FieldID, creditrealizationlineage.FieldNamespace, creditrealizationlineage.FieldChargeID, creditrealizationlineage.FieldRootRealizationID, creditrealizationlineage.FieldCustomerID, creditrealizationlineage.FieldCurrency, creditrealizationlineage.FieldOriginKind:
 			values[i] = new(sql.NullString)
 		case creditrealizationlineage.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
@@ -90,6 +106,12 @@ func (_m *CreditRealizationLineage) assignValues(columns []string, values []any)
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
 				_m.Namespace = value.String
+			}
+		case creditrealizationlineage.FieldChargeID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field charge_id", values[i])
+			} else if value.Valid {
+				_m.ChargeID = value.String
 			}
 		case creditrealizationlineage.FieldRootRealizationID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -134,6 +156,11 @@ func (_m *CreditRealizationLineage) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
+// QueryCharge queries the "charge" edge of the CreditRealizationLineage entity.
+func (_m *CreditRealizationLineage) QueryCharge() *ChargeQuery {
+	return NewCreditRealizationLineageClient(_m.config).QueryCharge(_m)
+}
+
 // QuerySegments queries the "segments" edge of the CreditRealizationLineage entity.
 func (_m *CreditRealizationLineage) QuerySegments() *CreditRealizationLineageSegmentQuery {
 	return NewCreditRealizationLineageClient(_m.config).QuerySegments(_m)
@@ -164,6 +191,9 @@ func (_m *CreditRealizationLineage) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
 	builder.WriteString(_m.Namespace)
+	builder.WriteString(", ")
+	builder.WriteString("charge_id=")
+	builder.WriteString(_m.ChargeID)
 	builder.WriteString(", ")
 	builder.WriteString("root_realization_id=")
 	builder.WriteString(_m.RootRealizationID)

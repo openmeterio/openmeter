@@ -54,8 +54,14 @@ func LineageOriginKindFromAnnotations(annotations models.Annotations) (LineageOr
 type LineageSegmentState string
 
 const (
-	LineageSegmentStateRealCredit        LineageSegmentState = "real_credit"
-	LineageSegmentStateAdvanceUncovered  LineageSegmentState = "advance_uncovered"
+	// LineageSegmentStateRealCredit marks value that is still backed by the original
+	// real-credit source and has not passed through advance/backfill flows.
+	LineageSegmentStateRealCredit LineageSegmentState = "real_credit"
+	// LineageSegmentStateAdvanceUncovered marks value that was collected as advance-backed
+	// usage and is still not covered by a later credit purchase.
+	LineageSegmentStateAdvanceUncovered LineageSegmentState = "advance_uncovered"
+	// LineageSegmentStateAdvanceBackfilled marks value that was originally advance-backed
+	// usage but was later covered by a credit purchase.
 	LineageSegmentStateAdvanceBackfilled LineageSegmentState = "advance_backfilled"
 )
 

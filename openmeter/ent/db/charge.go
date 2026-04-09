@@ -55,9 +55,11 @@ type ChargeEdges struct {
 	BillingInvoiceLines []*BillingInvoiceLine `json:"billing_invoice_lines,omitempty"`
 	// BillingSplitLineGroups holds the value of the billing_split_line_groups edge.
 	BillingSplitLineGroups []*BillingInvoiceSplitLineGroup `json:"billing_split_line_groups,omitempty"`
+	// CreditRealizationLineages holds the value of the credit_realization_lineages edge.
+	CreditRealizationLineages []*CreditRealizationLineage `json:"credit_realization_lineages,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
+	loadedTypes [6]bool
 }
 
 // FlatFeeOrErr returns the FlatFee value or an error if the edge
@@ -109,6 +111,15 @@ func (e ChargeEdges) BillingSplitLineGroupsOrErr() ([]*BillingInvoiceSplitLineGr
 		return e.BillingSplitLineGroups, nil
 	}
 	return nil, &NotLoadedError{edge: "billing_split_line_groups"}
+}
+
+// CreditRealizationLineagesOrErr returns the CreditRealizationLineages value or an error if the edge
+// was not loaded in eager-loading.
+func (e ChargeEdges) CreditRealizationLineagesOrErr() ([]*CreditRealizationLineage, error) {
+	if e.loadedTypes[5] {
+		return e.CreditRealizationLineages, nil
+	}
+	return nil, &NotLoadedError{edge: "credit_realization_lineages"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -230,6 +241,11 @@ func (_m *Charge) QueryBillingInvoiceLines() *BillingInvoiceLineQuery {
 // QueryBillingSplitLineGroups queries the "billing_split_line_groups" edge of the Charge entity.
 func (_m *Charge) QueryBillingSplitLineGroups() *BillingInvoiceSplitLineGroupQuery {
 	return NewChargeClient(_m.config).QueryBillingSplitLineGroups(_m)
+}
+
+// QueryCreditRealizationLineages queries the "credit_realization_lineages" edge of the Charge entity.
+func (_m *Charge) QueryCreditRealizationLineages() *CreditRealizationLineageQuery {
+	return NewChargeClient(_m.config).QueryCreditRealizationLineages(_m)
 }
 
 // Update returns a builder for updating this Charge.

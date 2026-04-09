@@ -56,6 +56,7 @@ func (s *service) CreateInitialLineages(ctx context.Context, input lineage.Creat
 
 		return s.adapter.CreateLineages(ctx, lineage.CreateLineagesInput{
 			Namespace:  input.Namespace,
+			ChargeID:   input.ChargeID,
 			CustomerID: input.CustomerID,
 			Currency:   input.Currency,
 			Specs:      specs,
@@ -76,7 +77,7 @@ func (s *service) LoadActiveSegmentsByRealizationID(ctx context.Context, namespa
 	return segmentsByRealizationID, nil
 }
 
-func (s *service) WritebackCorrectionLineageSegments(ctx context.Context, input lineage.WritebackCorrectionLineageSegmentsInput) error {
+func (s *service) PersistCorrectionLineageSegments(ctx context.Context, input lineage.PersistCorrectionLineageSegmentsInput) error {
 	if err := input.Validate(); err != nil {
 		return err
 	}
@@ -104,7 +105,7 @@ func (s *service) WritebackCorrectionLineageSegments(ctx context.Context, input 
 
 		lineages, err := s.adapter.LockCorrectionLineages(ctx, input.Namespace, correctionOrder)
 		if err != nil {
-			return fmt.Errorf("lock lineages for correction writeback: %w", err)
+			return fmt.Errorf("lock lineages for correction persistence: %w", err)
 		}
 
 		lineagesByRealizationID := make(map[string]lineage.Lineage, len(lineages))
@@ -121,7 +122,7 @@ func (s *service) WritebackCorrectionLineageSegments(ctx context.Context, input 
 			}
 
 			remaining := correctionAmountsByRealizationID[realizationID]
-			for _, segment := range lineage.SortCorrectionWritebackSegments(entry.Segments) {
+			for _, segment := range lineage.SortCorrectionPersistSegments(entry.Segments) {
 				if !remaining.IsPositive() {
 					break
 				}

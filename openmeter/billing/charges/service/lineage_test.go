@@ -19,6 +19,7 @@ import (
 	lineage "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
 	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
+	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -126,8 +127,8 @@ func (s *CreditRealizationLineageTestSuite) TestFlatFeeCreditOnlyAllocationCreat
 	lineages := s.mustListLineages(ns, realizationIDs(charge.State.CreditRealizations))
 	s.Require().Len(lineages, 2)
 
-	s.assertInitialLineage(lineages[charge.State.CreditRealizations[0].ID], charge.State.CreditRealizations[0].Amount, creditrealization.LineageOriginKindRealCredit, creditrealization.LineageSegmentStateRealCredit)
-	s.assertInitialLineage(lineages[charge.State.CreditRealizations[1].ID], charge.State.CreditRealizations[1].Amount, creditrealization.LineageOriginKindAdvance, creditrealization.LineageSegmentStateAdvanceUncovered)
+	s.assertInitialLineage(lineages[charge.State.CreditRealizations[0].ID], chargeID.ID, charge.State.CreditRealizations[0].Amount, creditrealization.LineageOriginKindRealCredit, creditrealization.LineageSegmentStateRealCredit)
+	s.assertInitialLineage(lineages[charge.State.CreditRealizations[1].ID], chargeID.ID, charge.State.CreditRealizations[1].Amount, creditrealization.LineageOriginKindAdvance, creditrealization.LineageSegmentStateAdvanceUncovered)
 }
 
 func (s *CreditRealizationLineageTestSuite) TestUsageBasedCreditOnlyAllocationCreatesInitialLineage() {
@@ -215,7 +216,7 @@ func (s *CreditRealizationLineageTestSuite) TestUsageBasedCreditOnlyAllocationCr
 	lineages := s.mustListLineages(ns, realizationIDs(currentRun.CreditsAllocated))
 	s.Require().Len(lineages, 1)
 
-	s.assertInitialLineage(lineages[currentRun.CreditsAllocated[0].ID], currentRun.CreditsAllocated[0].Amount, creditrealization.LineageOriginKindAdvance, creditrealization.LineageSegmentStateAdvanceUncovered)
+	s.assertInitialLineage(lineages[currentRun.CreditsAllocated[0].ID], usageCharge.ID, currentRun.CreditsAllocated[0].Amount, creditrealization.LineageOriginKindAdvance, creditrealization.LineageSegmentStateAdvanceUncovered)
 }
 
 func (s *CreditRealizationLineageTestSuite) TestLockAdvanceLineagesForBackfillRequiresTransaction() {
@@ -253,7 +254,7 @@ func (s *CreditRealizationLineageTestSuite) TestLockAdvanceLineagesForBackfillWo
 	s.Empty(lineages)
 }
 
-func (s *CreditRealizationLineageTestSuite) TestWritebackCorrectionLineageSegmentsConsumesBackfilledBeforeUncovered() {
+func (s *CreditRealizationLineageTestSuite) TestPersistCorrectionLineageSegmentsConsumesBackfilledBeforeUncovered() {
 	ctx := context.Background()
 	adapter, err := lineageadapter.New(lineageadapter.Config{
 		Client: s.DBClient,
@@ -265,14 +266,23 @@ func (s *CreditRealizationLineageTestSuite) TestWritebackCorrectionLineageSegmen
 	})
 	s.Require().NoError(err)
 
-	ns := s.GetUniqueNamespace("charges-service-lineage-correction-writeback")
+	ns := s.GetUniqueNamespace("charges-service-lineage-correction-persist")
 	backingTransactionGroupID := ulid.Make().String()
 	lineageID := ulid.Make().String()
+	chargeID := ulid.Make().String()
 	rootRealizationID := ulid.Make().String()
+
+	_, err = s.DBClient.Charge.Create().
+		SetID(chargeID).
+		SetNamespace(ns).
+		SetType(chargesmeta.ChargeTypeFlatFee).
+		Save(ctx)
+	s.Require().NoError(err)
 
 	_, err = s.DBClient.CreditRealizationLineage.Create().
 		SetID(lineageID).
 		SetNamespace(ns).
+		SetChargeID(chargeID).
 		SetRootRealizationID(rootRealizationID).
 		SetCustomerID(ulid.Make().String()).
 		SetCurrency(currencyx.Code(currency.USD)).
@@ -295,7 +305,7 @@ func (s *CreditRealizationLineageTestSuite) TestWritebackCorrectionLineageSegmen
 	).Save(ctx)
 	s.Require().NoError(err)
 
-	err = service.WritebackCorrectionLineageSegments(ctx, lineage.WritebackCorrectionLineageSegmentsInput{
+	err = service.PersistCorrectionLineageSegments(ctx, lineage.PersistCorrectionLineageSegmentsInput{
 		Namespace: ns,
 		Realizations: creditrealization.Realizations{
 			{
@@ -383,10 +393,11 @@ func (s *CreditRealizationLineageTestSuite) mustListLineages(namespace string, r
 	return out
 }
 
-func (s *CreditRealizationLineageTestSuite) assertInitialLineage(lineage *entdb.CreditRealizationLineage, amount alpacadecimal.Decimal, originKind creditrealization.LineageOriginKind, state creditrealization.LineageSegmentState) {
+func (s *CreditRealizationLineageTestSuite) assertInitialLineage(lineage *entdb.CreditRealizationLineage, chargeID string, amount alpacadecimal.Decimal, originKind creditrealization.LineageOriginKind, state creditrealization.LineageSegmentState) {
 	s.T().Helper()
 
 	require.NotNil(s.T(), lineage)
+	s.Equal(chargeID, lineage.ChargeID)
 	s.Equal(originKind, lineage.OriginKind)
 	s.Require().Len(lineage.Edges.Segments, 1)
 	s.Equal(amount, lineage.Edges.Segments[0].Amount)

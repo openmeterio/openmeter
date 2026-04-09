@@ -17,6 +17,7 @@ func (s *service) createCreditAllocations(ctx context.Context, charge flatfee.Ch
 
 	if err := s.lineage.CreateInitialLineages(ctx, lineage.CreateInitialLineagesInput{
 		Namespace:    charge.Namespace,
+		ChargeID:     charge.ID,
 		CustomerID:   charge.Intent.CustomerID,
 		Currency:     charge.Intent.Currency,
 		Realizations: realizations,
@@ -24,11 +25,11 @@ func (s *service) createCreditAllocations(ctx context.Context, charge flatfee.Ch
 		return creditrealization.Realizations{}, fmt.Errorf("create initial credit realization lineages: %w", err)
 	}
 
-	if err := s.lineage.WritebackCorrectionLineageSegments(ctx, lineage.WritebackCorrectionLineageSegmentsInput{
+	if err := s.lineage.PersistCorrectionLineageSegments(ctx, lineage.PersistCorrectionLineageSegmentsInput{
 		Namespace:    charge.Namespace,
 		Realizations: realizations,
 	}); err != nil {
-		return creditrealization.Realizations{}, fmt.Errorf("write back correction lineage segments: %w", err)
+		return creditrealization.Realizations{}, fmt.Errorf("persist correction lineage segments: %w", err)
 	}
 
 	return realizations, nil

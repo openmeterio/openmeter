@@ -75,6 +75,7 @@ func (a *adapter) CreateLineages(ctx context.Context, input lineage.CreateLineag
 			rootCreates = append(rootCreates, tx.db.CreditRealizationLineage.Create().
 				SetID(spec.LineageID).
 				SetNamespace(input.Namespace).
+				SetChargeID(input.ChargeID).
 				SetRootRealizationID(spec.RootRealizationID).
 				SetCustomerID(input.CustomerID).
 				SetCurrency(input.Currency).
@@ -150,6 +151,7 @@ func (a *adapter) LockAdvanceLineagesForBackfill(ctx context.Context, namespace 
 		return lo.Map(lineages, func(entry *entdb.CreditRealizationLineage, _ int) lineage.Lineage {
 			return lineage.Lineage{
 				ID:                entry.ID,
+				ChargeID:          entry.ChargeID,
 				RootRealizationID: entry.RootRealizationID,
 				CustomerID:        entry.CustomerID,
 				Currency:          entry.Currency,
@@ -219,6 +221,7 @@ func (a *adapter) CreateSegment(ctx context.Context, input lineage.CreateSegment
 func mapLineage(entry *entdb.CreditRealizationLineage, _ int) lineage.Lineage {
 	return lineage.Lineage{
 		ID:                entry.ID,
+		ChargeID:          entry.ChargeID,
 		RootRealizationID: entry.RootRealizationID,
 		CustomerID:        entry.CustomerID,
 		Currency:          entry.Currency,
