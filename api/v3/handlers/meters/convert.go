@@ -22,6 +22,7 @@ import (
 // goverter:extend ConvertAPIMeterAggregationToMeterAggregation
 // goverter:extend ConvertMeterAggregationToAPIMeterAggregation
 // goverter:extend ConvertMetadataAnnotationsToLabels
+// goverter:extend ConvertLabelsToMetadata
 // goverter:extend IntToFloat32
 var (
 	// goverter:context namespace
@@ -31,7 +32,7 @@ var (
 	// goverter:map EventsFrom EventFrom
 	// goverter:ignore Annotations
 	// goverter:ignore inputOptions
-	ConvertFromCreateMeterRequestToCreateMeterInput func(namespace string, createMeterRequest api.CreateMeterRequest) meter.CreateMeterInput
+	ConvertFromCreateMeterRequestToCreateMeterInput func(namespace string, createMeterRequest api.CreateMeterRequest) (meter.CreateMeterInput, error)
 	// goverter:map GroupBy Dimensions
 	// goverter:map EventFrom EventsFrom
 	// goverter:map ManagedResource.ID Id
@@ -44,6 +45,8 @@ var (
 	ConvertMeterToAPIMeter   func(meter.Meter) api.Meter
 	ConvertMeterListResponse func(meters response.PagePaginationResponse[meter.Meter]) api.MeterPagePaginatedResponse
 )
+
+var ConvertLabelsToMetadata = labels.ToMetadata
 
 func ConvertMetadataAnnotationsToLabels(source meter.Meter) *api.Labels {
 	return labels.FromMetadataAnnotations(source.Metadata, source.Annotations)

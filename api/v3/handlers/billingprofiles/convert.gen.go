@@ -188,7 +188,11 @@ func init() {
 		billingUpdateProfileInput.WorkflowConfig = billingWorkflowConfig
 		billingUpdateProfileInput.Supplier = ConvertBillingPartyToSupplierContact(source.Supplier)
 		billingUpdateProfileInput.Default = source.Default
-		billingUpdateProfileInput.Metadata = pV3LabelsToBillingMetadata(source.Labels)
+		billingMetadata, err := ConvertLabelsToMetadata(source.Labels)
+		if err != nil {
+			return billingUpdateProfileInput, err
+		}
+		billingUpdateProfileInput.Metadata = billingMetadata
 		return billingUpdateProfileInput, nil
 	}
 }
@@ -227,9 +231,6 @@ func pV3BillingTaxConfigStripeToPProductcatalogStripeTaxConfig(source *v3.Billin
 		pProductcatalogStripeTaxConfig = &productcatalogStripeTaxConfig
 	}
 	return pProductcatalogStripeTaxConfig
-}
-func pV3LabelsToBillingMetadata(source *v3.Labels) billing.Metadata {
-	return billing.Metadata(pV3LabelsToMapStringString(source))
 }
 func pV3LabelsToMapStringString(source *v3.Labels) map[string]string {
 	var mapStringString map[string]string

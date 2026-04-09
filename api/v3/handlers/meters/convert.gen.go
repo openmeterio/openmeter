@@ -7,12 +7,11 @@ import (
 	v3 "github.com/openmeterio/openmeter/api/v3"
 	response "github.com/openmeterio/openmeter/api/v3/response"
 	meter "github.com/openmeterio/openmeter/openmeter/meter"
-	models "github.com/openmeterio/openmeter/pkg/models"
 	"time"
 )
 
 func init() {
-	ConvertFromCreateMeterRequestToCreateMeterInput = func(context string, source v3.CreateMeterRequest) meter.CreateMeterInput {
+	ConvertFromCreateMeterRequestToCreateMeterInput = func(context string, source v3.CreateMeterRequest) (meter.CreateMeterInput, error) {
 		var meterCreateMeterInput meter.CreateMeterInput
 		meterCreateMeterInput.Namespace = NamespaceFromContext(context)
 		meterCreateMeterInput.Name = source.Name
@@ -25,8 +24,12 @@ func init() {
 		if source.Dimensions != nil {
 			meterCreateMeterInput.GroupBy = (*source.Dimensions)
 		}
-		meterCreateMeterInput.Metadata = pV3LabelsToModelsMetadata(source.Labels)
-		return meterCreateMeterInput
+		modelsMetadata, err := ConvertLabelsToMetadata(source.Labels)
+		if err != nil {
+			return meterCreateMeterInput, err
+		}
+		meterCreateMeterInput.Metadata = modelsMetadata
+		return meterCreateMeterInput, nil
 	}
 	ConvertMeterListResponse = func(source response.PagePaginationResponse[meter.Meter]) v3.MeterPagePaginatedResponse {
 		var v3MeterPagePaginatedResponse v3.MeterPagePaginatedResponse
@@ -57,13 +60,6 @@ func init() {
 		return v3Meter
 	}
 }
-func pV3LabelsToModelsMetadata(source *v3.Labels) models.Metadata {
-	var modelsMetadata models.Metadata
-	if source != nil {
-		modelsMetadata = v3LabelsToModelsMetadata((*source))
-	}
-	return modelsMetadata
-}
 func responsePageMetaPageToV3PageMeta(source response.PageMetaPage) v3.PageMeta {
 	var v3PageMeta v3.PageMeta
 	v3PageMeta.Number = IntToFloat32(source.Number)
@@ -80,14 +76,4 @@ func responsePageMetaToV3PaginatedMeta(source response.PageMeta) v3.PaginatedMet
 }
 func timeTimeToPTimeTime(source time.Time) *time.Time {
 	return &source
-}
-func v3LabelsToModelsMetadata(source v3.Labels) models.Metadata {
-	var modelsMetadata models.Metadata
-	if source != nil {
-		modelsMetadata = make(models.Metadata, len(source))
-		for key, value := range source {
-			modelsMetadata[key] = value
-		}
-	}
-	return modelsMetadata
 }

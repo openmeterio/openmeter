@@ -25,6 +25,7 @@ import (
 // goverter:extend ConvertAppToBillingAppReference
 // goverter:extend ConvertBillingPartyToSupplierContact
 // goverter:extend ConvertMetadataToLabels
+// goverter:extend ConvertLabelsToMetadata
 var (
 	ConvertAddressToAPIAddress                               func(address models.Address) api.Address
 	ConvertAPIAddressToAddress                               func(address api.Address) models.Address
@@ -73,7 +74,14 @@ var (
 	ConvertBillingTaxConfigToTaxConfig func(config *api.BillingTaxConfig) (*productcatalog.TaxConfig, error)
 )
 
-var ConvertMetadataToLabels = labels.FromMetadata[billing.Metadata]
+var (
+	ConvertMetadataToLabels = labels.FromMetadata[billing.Metadata]
+	ConvertLabelsToMetadata = func(l *api.Labels) (billing.Metadata, error) {
+		m, err := labels.ToMetadata(l)
+
+		return billing.Metadata(m), err
+	}
+)
 
 //goverter:context namespace
 func NamespaceFromContext(namespace string) string {

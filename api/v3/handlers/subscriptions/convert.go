@@ -67,6 +67,11 @@ func ConvertFromCreateSubscriptionRequestToCreateSubscriptionWorkflowInput(
 	subscriptionName string,
 	createSubscriptionRequest api.BillingSubscriptionCreate,
 ) (subscriptionworkflow.CreateSubscriptionWorkflowInput, error) {
+	metadata, err := labels.ToMetadata(createSubscriptionRequest.Labels)
+	if err != nil {
+		return subscriptionworkflow.CreateSubscriptionWorkflowInput{}, err
+	}
+
 	workflowInput := subscriptionworkflow.CreateSubscriptionWorkflowInput{
 		Namespace:     namespace,
 		CustomerID:    customerID.ID,
@@ -79,7 +84,7 @@ func ConvertFromCreateSubscriptionRequestToCreateSubscriptionWorkflowInput(
 			},
 			BillingAnchor: createSubscriptionRequest.BillingAnchor,
 			MetadataModel: models.MetadataModel{
-				Metadata: models.Metadata(lo.FromPtrOr(createSubscriptionRequest.Labels, api.Labels{})),
+				Metadata: metadata,
 			},
 		},
 	}

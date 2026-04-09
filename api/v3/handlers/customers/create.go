@@ -33,9 +33,7 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 				return CreateCustomerRequest{}, err
 			}
 
-			req := ConvertFromCreateCustomerRequestToCreateCustomerInput(ns, body)
-
-			return req, nil
+			return ConvertFromCreateCustomerRequestToCreateCustomerInput(ns, body)
 		},
 		func(ctx context.Context, request CreateCustomerRequest) (CreateCustomerResponse, error) {
 			customer, err := h.service.CreateCustomer(ctx, request)

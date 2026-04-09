@@ -27,7 +27,7 @@ func ValidateLabel(k, v string) error {
 	if !keyValueFormat.MatchString(k) {
 		errs = append(errs, models.NewValidationIssue(
 			"invalid_label_key_format",
-			"label key must be a valid DNS_SUBDOMAIN format",
+			"label key must be in valid format",
 			models.WithFieldString("labels"),
 			models.WithCriticalSeverity(),
 			commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
@@ -37,7 +37,7 @@ func ValidateLabel(k, v string) error {
 	if !keyValueFormat.MatchString(v) {
 		errs = append(errs, models.NewValidationIssue(
 			"invalid_label_value_format",
-			"label value must be a valid DNS_SUBDOMAIN format",
+			"label value must be in valid format",
 			models.WithFieldString("labels"),
 			models.WithCriticalSeverity(),
 			commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
@@ -47,7 +47,7 @@ func ValidateLabel(k, v string) error {
 	if reservedPrefixMatcher.MatchString(k) {
 		errs = append(errs, models.NewValidationIssue(
 			"invalid_label_key_prefix",
-			"label key must be a valid DNS_SUBDOMAIN format",
+			"label key must not have reserved prefix",
 			models.WithFieldString("labels"),
 			models.WithCriticalSeverity(),
 			commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),

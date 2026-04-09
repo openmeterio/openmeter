@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	ConvertCreateCustomerRequestToCustomerMutate = func(source v3.CreateCustomerRequest) customer.CustomerMutate {
+	ConvertCreateCustomerRequestToCustomerMutate = func(source v3.CreateCustomerRequest) (customer.CustomerMutate, error) {
 		var customerCustomerMutate customer.CustomerMutate
 		pString := source.Key
 		customerCustomerMutate.Key = &pString
@@ -26,8 +26,12 @@ func init() {
 			customerCustomerMutate.Currency = &currencyxCode
 		}
 		customerCustomerMutate.BillingAddress = pV3BillingAddressToPModelsAddress(source.BillingAddress)
-		customerCustomerMutate.Metadata = pV3LabelsToPModelsMetadata(source.Labels)
-		return customerCustomerMutate
+		pModelsMetadata, err := ConvertLabelsToMetadata(source.Labels)
+		if err != nil {
+			return customerCustomerMutate, err
+		}
+		customerCustomerMutate.Metadata = pModelsMetadata
+		return customerCustomerMutate, nil
 	}
 	ConvertCustomerListResponse = func(source response.PagePaginationResponse[customer.Customer]) v3.CustomerPagePaginatedResponse {
 		var v3CustomerPagePaginatedResponse v3.CustomerPagePaginatedResponse
@@ -61,13 +65,17 @@ func init() {
 		v3BillingCustomer.UsageAttribution = pCustomerCustomerUsageAttributionToPV3BillingCustomerUsageAttribution(source.UsageAttribution)
 		return v3BillingCustomer
 	}
-	ConvertFromCreateCustomerRequestToCreateCustomerInput = func(context string, source v3.CreateCustomerRequest) customer.CreateCustomerInput {
+	ConvertFromCreateCustomerRequestToCreateCustomerInput = func(context string, source v3.CreateCustomerRequest) (customer.CreateCustomerInput, error) {
 		var customerCreateCustomerInput customer.CreateCustomerInput
 		customerCreateCustomerInput.Namespace = NamespaceFromContext(context)
-		customerCreateCustomerInput.CustomerMutate = ConvertCreateCustomerRequestToCustomerMutate(source)
-		return customerCreateCustomerInput
+		customerCustomerMutate, err := ConvertCreateCustomerRequestToCustomerMutate(source)
+		if err != nil {
+			return customerCreateCustomerInput, err
+		}
+		customerCreateCustomerInput.CustomerMutate = customerCustomerMutate
+		return customerCreateCustomerInput, nil
 	}
-	ConvertUpsertCustomerRequestToCustomerMutate = func(source v3.UpsertCustomerRequest) customer.CustomerMutate {
+	ConvertUpsertCustomerRequestToCustomerMutate = func(source v3.UpsertCustomerRequest) (customer.CustomerMutate, error) {
 		var customerCustomerMutate customer.CustomerMutate
 		customerCustomerMutate.Name = source.Name
 		customerCustomerMutate.Description = source.Description
@@ -78,8 +86,12 @@ func init() {
 			customerCustomerMutate.Currency = &currencyxCode
 		}
 		customerCustomerMutate.BillingAddress = pV3BillingAddressToPModelsAddress(source.BillingAddress)
-		customerCustomerMutate.Metadata = pV3LabelsToPModelsMetadata(source.Labels)
-		return customerCustomerMutate
+		pModelsMetadata, err := ConvertLabelsToMetadata(source.Labels)
+		if err != nil {
+			return customerCustomerMutate, err
+		}
+		customerCustomerMutate.Metadata = pModelsMetadata
+		return customerCustomerMutate, nil
 	}
 }
 func pCustomerCustomerUsageAttributionToPV3BillingCustomerUsageAttribution(source *customer.CustomerUsageAttribution) *v3.BillingCustomerUsageAttribution {
@@ -136,14 +148,6 @@ func pV3BillingCustomerUsageAttributionToPCustomerCustomerUsageAttribution(sourc
 	}
 	return pCustomerCustomerUsageAttribution
 }
-func pV3LabelsToPModelsMetadata(source *v3.Labels) *models.Metadata {
-	var pModelsMetadata *models.Metadata
-	if source != nil {
-		modelsMetadata := v3LabelsToModelsMetadata((*source))
-		pModelsMetadata = &modelsMetadata
-	}
-	return pModelsMetadata
-}
 func responsePageMetaPageToV3PageMeta(source response.PageMetaPage) v3.PageMeta {
 	var v3PageMeta v3.PageMeta
 	v3PageMeta.Number = IntToFloat32(source.Number)
@@ -160,14 +164,4 @@ func responsePageMetaToV3PaginatedMeta(source response.PageMeta) v3.PaginatedMet
 }
 func timeTimeToPTimeTime(source time.Time) *time.Time {
 	return &source
-}
-func v3LabelsToModelsMetadata(source v3.Labels) models.Metadata {
-	var modelsMetadata models.Metadata
-	if source != nil {
-		modelsMetadata = make(models.Metadata, len(source))
-		for key, value := range source {
-			modelsMetadata[key] = value
-		}
-	}
-	return modelsMetadata
 }
