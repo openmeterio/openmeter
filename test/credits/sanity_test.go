@@ -89,6 +89,12 @@ func (s *CreditsTestSuite) SetupSuite() {
 	s.Charges = stack.ChargesService
 }
 
+func (s *CreditsTestSuite) TearDownTest() {
+	s.MockStreamingConnector.Reset()
+	clock.UnFreeze()
+	clock.ResetTime()
+}
+
 func (s *CreditsTestSuite) TestFlatFeeCreditOnlyDeleteCorrectionSanity() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-sanity-flatfee-credit-only-delete")
@@ -148,8 +154,8 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlyDeleteCorrectionSanity() {
 	s.Equal(meta.ChargeStatusFinal, advancedCharge.Status)
 	s.Len(advancedCharge.State.CreditRealizations, 1)
 
-	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, nil).Equal(alpacadecimal.NewFromInt(-30)))
-	s.True(s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, nil).Equal(alpacadecimal.NewFromInt(30)))
+	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromInt(-30)))
+	s.True(s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.NewFromInt(30)))
 
 	err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
 		CustomerID: cust.GetID(),
@@ -159,9 +165,9 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlyDeleteCorrectionSanity() {
 	})
 	s.NoError(err)
 
-	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, nil).Equal(alpacadecimal.Zero))
-	s.True(s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, nil).Equal(alpacadecimal.Zero))
-	s.True(s.mustCustomerFBOBalance(cust.GetID(), USD, nil).Equal(alpacadecimal.Zero))
+	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
+	s.True(s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
+	s.True(s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
 }
 
 func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionSanity() {
@@ -217,8 +223,8 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionSanity() {
 	s.Len(usageBasedCharge.Realizations[0].CreditsAllocated, 1)
 	s.True(usageBasedCharge.Realizations[0].CreditsAllocated[0].Amount.Equal(alpacadecimal.NewFromInt(8)))
 
-	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, nil).Equal(alpacadecimal.NewFromInt(-8)))
-	s.True(s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, nil).Equal(alpacadecimal.NewFromInt(8)))
+	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromInt(-8)))
+	s.True(s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.NewFromInt(8)))
 
 	err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
 		CustomerID: cust.GetID(),
@@ -227,9 +233,9 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionSanity() {
 		},
 	})
 	s.NoError(err)
-	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, nil).Equal(alpacadecimal.Zero))
-	s.True(s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, nil).Equal(alpacadecimal.Zero))
-	s.True(s.mustCustomerFBOBalance(cust.GetID(), USD, nil).Equal(alpacadecimal.Zero))
+	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
+	s.True(s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
+	s.True(s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
 }
 
 func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfillSanity() {
@@ -251,6 +257,8 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBa
 	clock.FreezeTime(createAt)
 	defer clock.UnFreeze()
 
+	// Given a usage-based credit-only charge that is created after the service period, so it
+	// finalizes immediately with 50 units of unattributed advance-backed usage.
 	s.MockStreamingConnector.AddSimpleEvent(
 		apiRequestsTotal.Feature.Key,
 		50,
@@ -287,8 +295,9 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBa
 	purchaseAmount := alpacadecimal.NewFromInt(20)
 	remainingUncovered := allocatedAmount.Sub(purchaseAmount)
 
-	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, nil).Equal(allocatedAmount.Neg()))
-	s.True(s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, nil).Equal(allocatedAmount))
+	// Then the full amount sits on the nil-cost-basis receivable/accrued path.
+	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(allocatedAmount.Neg()))
+	s.True(s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(allocatedAmount))
 
 	creditPurchaseIntent := s.createCreditPurchaseIntent(createCreditPurchaseIntentInput{
 		customer: cust.GetID(),
@@ -307,6 +316,7 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBa
 		}),
 	})
 
+	// When a later external credit purchase backfills part of that earlier advance-backed usage.
 	creditPurchaseRes, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
 		Intents: charges.ChargeIntents{
@@ -325,12 +335,15 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBa
 	})
 	s.NoError(err)
 	s.Len(backingGroup.Transactions(), 2)
-	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, nil).Equal(allocatedAmount.Neg()))
-	s.True(s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, nil).Equal(remainingUncovered))
-	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, &costBasis).Equal(purchaseAmount.Neg()))
-	s.True(s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, &costBasis).Equal(purchaseAmount))
-	s.True(s.mustCustomerFBOBalance(cust.GetID(), USD, &costBasis).Equal(alpacadecimal.Zero))
 
+	// Then only the purchased portion moves onto the purchased-credit cost-basis route.
+	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(allocatedAmount.Neg()))
+	s.True(s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(remainingUncovered))
+	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).Equal(purchaseAmount.Neg()))
+	s.True(s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis)).Equal(purchaseAmount))
+	s.True(s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
+
+	// When the original charge is deleted with refund-as-credits.
 	err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
 		CustomerID: cust.GetID(),
 		PatchesByChargeID: map[string]charges.Patch{
@@ -338,12 +351,14 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBa
 		},
 	})
 	s.NoError(err)
-	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, nil).Equal(purchaseAmount.Neg()))
-	s.True(s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, nil).Equal(alpacadecimal.Zero))
-	s.True(s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, &costBasis).Equal(alpacadecimal.Zero))
-	s.True(s.mustCustomerFBOBalance(cust.GetID(), USD, nil).Equal(alpacadecimal.Zero))
-	s.True(s.mustCustomerFBOBalance(cust.GetID(), USD, &costBasis).Equal(purchaseAmount))
-	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, &costBasis).Equal(purchaseAmount.Neg()))
+
+	// Then the purchased part is returned as available credit and the original accrued usage is cleared.
+	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(purchaseAmount.Neg()))
+	s.True(s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
+	s.True(s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
+	s.True(s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
+	s.True(s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)).Equal(purchaseAmount))
+	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).Equal(purchaseAmount.Neg()))
 }
 
 func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
@@ -409,8 +424,8 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		// Validate balances
 		zeroCostBasis := alpacadecimal.Zero
 		purchasedCostBasis := alpacadecimal.NewFromFloat(0.5)
-		s.Equal(float64(30), s.mustCustomerFBOBalance(cust.GetID(), USD, &zeroCostBasis).InexactFloat64())
-		s.Equal(float64(0), s.mustCustomerFBOBalance(cust.GetID(), USD, &purchasedCostBasis).InexactFloat64())
+		s.Equal(float64(30), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&zeroCostBasis)).InexactFloat64())
+		s.Equal(float64(0), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&purchasedCostBasis)).InexactFloat64())
 	})
 
 	var externalCreditPurchaseChargeID meta.ChargeID
@@ -454,8 +469,8 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 
 		// Validate balances
 		costBasis := alpacadecimal.NewFromFloat(0.5)
-		s.Equal(float64(50), s.mustCustomerFBOBalance(cust.GetID(), USD, &costBasis).InexactFloat64())
-		s.Equal(float64(-50), s.mustCustomerReceivableBalance(cust.GetID(), USD, &costBasis).InexactFloat64())
+		s.Equal(float64(50), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)).InexactFloat64())
+		s.Equal(float64(-50), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
 
 		externalCreditPurchaseChargeID = cpCharge.GetChargeID()
 	})
@@ -472,7 +487,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 
 		costBasis := alpacadecimal.NewFromFloat(0.5)
 		s.Equal(payment.StatusAuthorized, updatedCharge.State.ExternalPaymentSettlement.Status)
-		s.Equal(float64(-50), s.mustCustomerReceivableBalance(cust.GetID(), USD, &costBasis).InexactFloat64())
+		s.Equal(float64(-50), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
 	})
 
 	s.Run("the customer settles the credit purchase payment", func() {
@@ -487,7 +502,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 
 		costBasis := alpacadecimal.NewFromFloat(0.5)
 		s.Equal(payment.StatusSettled, updatedCharge.State.ExternalPaymentSettlement.Status)
-		s.Equal(float64(0), s.mustCustomerReceivableBalance(cust.GetID(), USD, &costBasis).InexactFloat64())
+		s.Equal(float64(0), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
 	})
 
 	// TOTAL credits balance: 30 + 50 = 80 USD
@@ -508,15 +523,15 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		earnings             alpacadecimal.Decimal
 	}
 	flatFeeStart := flatFeeLedgerSnapshot{
-		promoFBO:             s.mustCustomerFBOBalance(cust.GetID(), USD, &promoCostBasis),
-		externalFBO:          s.mustCustomerFBOBalance(cust.GetID(), USD, &externalCostBasis),
-		promoReceivable:      s.mustCustomerReceivableBalance(cust.GetID(), USD, &promoCostBasis),
-		externalReceivable:   s.mustCustomerReceivableBalance(cust.GetID(), USD, &externalCostBasis),
-		totalOpenReceivable:  s.mustCustomerReceivableBalance(cust.GetID(), USD, nil),
-		accrued:              s.mustCustomerAccruedBalance(cust.GetID(), USD),
-		authorizedReceivable: s.mustCustomerAuthorizedReceivableBalance(cust.GetID(), USD, nil),
-		totalWash:            s.mustWashBalance(ns, USD, nil),
-		externalWash:         s.mustWashBalance(ns, USD, &externalCostBasis),
+		promoFBO:             s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&promoCostBasis)),
+		externalFBO:          s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)),
+		promoReceivable:      s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen),
+		externalReceivable:   s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen),
+		totalOpenReceivable:  s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen),
+		accrued:              s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()),
+		authorizedReceivable: s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized),
+		totalWash:            s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()),
+		externalWash:         s.mustWashBalance(ns, USD, mo.Some(&externalCostBasis)),
 		earnings:             s.mustEarningsBalance(ns, USD),
 	}
 	assertDelta := func(label string, start, delta, actual alpacadecimal.Decimal) {
@@ -595,15 +610,15 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		customerCreditRealization := updatedFlatFeeCharge.State.CreditRealizations[1]
 		s.Equal(float64(50), customerCreditRealization.Amount.InexactFloat64())
 
-		assertDelta("promo FBO after invoice assignment", flatFeeStart.promoFBO, alpacadecimal.NewFromInt(-30), s.mustCustomerFBOBalance(cust.GetID(), USD, &promoCostBasis))
-		assertDelta("external FBO after invoice assignment", flatFeeStart.externalFBO, alpacadecimal.NewFromInt(-50), s.mustCustomerFBOBalance(cust.GetID(), USD, &externalCostBasis))
-		assertDelta("promo receivable after invoice assignment", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, &promoCostBasis))
-		assertDelta("external receivable after invoice assignment", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, &externalCostBasis))
-		assertDelta("total open receivable after invoice assignment", flatFeeStart.totalOpenReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, nil))
-		assertDelta("accrued after invoice assignment", flatFeeStart.accrued, alpacadecimal.NewFromInt(80), s.mustCustomerAccruedBalance(cust.GetID(), USD))
-		assertDelta("authorized receivable after invoice assignment", flatFeeStart.authorizedReceivable, alpacadecimal.Zero, s.mustCustomerAuthorizedReceivableBalance(cust.GetID(), USD, nil))
-		assertDelta("total wash after invoice assignment", flatFeeStart.totalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, nil))
-		assertDelta("external wash after invoice assignment", flatFeeStart.externalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, &externalCostBasis))
+		assertDelta("promo FBO after invoice assignment", flatFeeStart.promoFBO, alpacadecimal.NewFromInt(-30), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&promoCostBasis)))
+		assertDelta("external FBO after invoice assignment", flatFeeStart.externalFBO, alpacadecimal.NewFromInt(-50), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)))
+		assertDelta("promo receivable after invoice assignment", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("external receivable after invoice assignment", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("total open receivable after invoice assignment", flatFeeStart.totalOpenReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("accrued after invoice assignment", flatFeeStart.accrued, alpacadecimal.NewFromInt(80), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()))
+		assertDelta("authorized receivable after invoice assignment", flatFeeStart.authorizedReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized))
+		assertDelta("total wash after invoice assignment", flatFeeStart.totalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()))
+		assertDelta("external wash after invoice assignment", flatFeeStart.externalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
 		assertDelta("earnings after invoice assignment", flatFeeStart.earnings, alpacadecimal.Zero, s.mustEarningsBalance(ns, USD))
 
 		stdInvoiceID = invoice.GetInvoiceID()
@@ -634,15 +649,15 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		s.Equal(float64(20), accruedUsage.Totals.Total.InexactFloat64(), "totals should be the same as the input")
 		s.Equal(float64(80), accruedUsage.Totals.CreditsTotal.InexactFloat64(), "totals should be the same as the input")
 
-		assertDelta("promo FBO after payment authorization", flatFeeStart.promoFBO, alpacadecimal.NewFromInt(-30), s.mustCustomerFBOBalance(cust.GetID(), USD, &promoCostBasis))
-		assertDelta("external FBO after payment authorization", flatFeeStart.externalFBO, alpacadecimal.NewFromInt(-50), s.mustCustomerFBOBalance(cust.GetID(), USD, &externalCostBasis))
-		assertDelta("promo receivable after payment authorization", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, &promoCostBasis))
-		assertDelta("external receivable after payment authorization", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, &externalCostBasis))
-		assertDelta("total open receivable after payment authorization", flatFeeStart.totalOpenReceivable, alpacadecimal.NewFromInt(-20), s.mustCustomerReceivableBalance(cust.GetID(), USD, nil))
-		assertDelta("authorized receivable after payment authorization", flatFeeStart.authorizedReceivable, alpacadecimal.NewFromInt(20), s.mustCustomerAuthorizedReceivableBalance(cust.GetID(), USD, nil))
-		assertDelta("accrued after payment authorization", flatFeeStart.accrued, alpacadecimal.NewFromInt(100), s.mustCustomerAccruedBalance(cust.GetID(), USD))
-		assertDelta("total wash after payment authorization", flatFeeStart.totalWash, alpacadecimal.NewFromInt(-20), s.mustWashBalance(ns, USD, nil))
-		assertDelta("external wash after payment authorization", flatFeeStart.externalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, &externalCostBasis))
+		assertDelta("promo FBO after payment authorization", flatFeeStart.promoFBO, alpacadecimal.NewFromInt(-30), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&promoCostBasis)))
+		assertDelta("external FBO after payment authorization", flatFeeStart.externalFBO, alpacadecimal.NewFromInt(-50), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)))
+		assertDelta("promo receivable after payment authorization", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("external receivable after payment authorization", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("total open receivable after payment authorization", flatFeeStart.totalOpenReceivable, alpacadecimal.NewFromInt(-20), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("authorized receivable after payment authorization", flatFeeStart.authorizedReceivable, alpacadecimal.NewFromInt(20), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized))
+		assertDelta("accrued after payment authorization", flatFeeStart.accrued, alpacadecimal.NewFromInt(100), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()))
+		assertDelta("total wash after payment authorization", flatFeeStart.totalWash, alpacadecimal.NewFromInt(-20), s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()))
+		assertDelta("external wash after payment authorization", flatFeeStart.externalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
 		assertDelta("earnings after payment authorization", flatFeeStart.earnings, alpacadecimal.Zero, s.mustEarningsBalance(ns, USD))
 	})
 
@@ -662,13 +677,13 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		s.NoError(err)
 		s.Equal(meta.ChargeStatusFinal, updatedFlatFeeCharge.Status)
 
-		assertDelta("promo receivable after payment settlement", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, &promoCostBasis))
-		assertDelta("external receivable after payment settlement", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, &externalCostBasis))
-		assertDelta("total open receivable after payment settlement", flatFeeStart.totalOpenReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, nil))
-		assertDelta("authorized receivable after payment settlement", flatFeeStart.authorizedReceivable, alpacadecimal.Zero, s.mustCustomerAuthorizedReceivableBalance(cust.GetID(), USD, nil))
-		assertDelta("accrued after payment settlement", flatFeeStart.accrued, alpacadecimal.NewFromInt(100), s.mustCustomerAccruedBalance(cust.GetID(), USD))
-		assertDelta("total wash after payment settlement", flatFeeStart.totalWash, alpacadecimal.NewFromInt(-20), s.mustWashBalance(ns, USD, nil))
-		assertDelta("external wash after payment settlement", flatFeeStart.externalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, &externalCostBasis))
+		assertDelta("promo receivable after payment settlement", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("external receivable after payment settlement", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("total open receivable after payment settlement", flatFeeStart.totalOpenReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("authorized receivable after payment settlement", flatFeeStart.authorizedReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized))
+		assertDelta("accrued after payment settlement", flatFeeStart.accrued, alpacadecimal.NewFromInt(100), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()))
+		assertDelta("total wash after payment settlement", flatFeeStart.totalWash, alpacadecimal.NewFromInt(-20), s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()))
+		assertDelta("external wash after payment settlement", flatFeeStart.externalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
 		assertDelta("earnings after payment settlement", flatFeeStart.earnings, alpacadecimal.Zero, s.mustEarningsBalance(ns, USD))
 	})
 }
@@ -710,8 +725,8 @@ func (s *CreditsTestSuite) TestCreditPurchasePersistsPriority() {
 	s.Equal(&priority, fetchedCharge.Intent.Priority)
 
 	zeroCostBasis := alpacadecimal.Zero
-	s.True(s.mustCustomerFBOBalanceWithPriority(cust.GetID(), USD, &zeroCostBasis, priority).Equal(alpacadecimal.NewFromInt(25)))
-	s.True(s.mustCustomerFBOBalance(cust.GetID(), USD, &zeroCostBasis).Equal(alpacadecimal.Zero))
+	s.True(s.mustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&zeroCostBasis), priority).Equal(alpacadecimal.NewFromInt(25)))
+	s.True(s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&zeroCostBasis)).Equal(alpacadecimal.Zero))
 }
 
 func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
@@ -770,8 +785,8 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 
 		zeroCostBasis := alpacadecimal.Zero
 		purchasedCostBasis := alpacadecimal.NewFromFloat(0.5)
-		s.Equal(float64(30), s.mustCustomerFBOBalance(cust.GetID(), USD, &zeroCostBasis).InexactFloat64())
-		s.Equal(float64(0), s.mustCustomerFBOBalance(cust.GetID(), USD, &purchasedCostBasis).InexactFloat64())
+		s.Equal(float64(30), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&zeroCostBasis)).InexactFloat64())
+		s.Equal(float64(0), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&purchasedCostBasis)).InexactFloat64())
 	})
 
 	var externalCreditPurchaseChargeID meta.ChargeID
@@ -808,8 +823,8 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		s.NotEmpty(cpCharge.State.CreditGrantRealization.TransactionGroupID)
 
 		costBasis := alpacadecimal.NewFromFloat(0.5)
-		s.Equal(float64(50), s.mustCustomerFBOBalance(cust.GetID(), USD, &costBasis).InexactFloat64())
-		s.Equal(float64(-50), s.mustCustomerReceivableBalance(cust.GetID(), USD, &costBasis).InexactFloat64())
+		s.Equal(float64(50), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)).InexactFloat64())
+		s.Equal(float64(-50), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
 
 		externalCreditPurchaseChargeID = cpCharge.GetChargeID()
 	})
@@ -823,7 +838,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 
 		costBasis := alpacadecimal.NewFromFloat(0.5)
 		s.Equal(payment.StatusAuthorized, updatedCharge.State.ExternalPaymentSettlement.Status)
-		s.Equal(float64(-50), s.mustCustomerReceivableBalance(cust.GetID(), USD, &costBasis).InexactFloat64())
+		s.Equal(float64(-50), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
 	})
 
 	s.Run("the customer settles the credit purchase payment", func() {
@@ -835,7 +850,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 
 		costBasis := alpacadecimal.NewFromFloat(0.5)
 		s.Equal(payment.StatusSettled, updatedCharge.State.ExternalPaymentSettlement.Status)
-		s.Equal(float64(0), s.mustCustomerReceivableBalance(cust.GetID(), USD, &costBasis).InexactFloat64())
+		s.Equal(float64(0), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
 	})
 
 	var flatFeeChargeID meta.ChargeID
@@ -855,16 +870,16 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		earnings             alpacadecimal.Decimal
 	}
 	flatFeeStart := flatFeeLedgerSnapshot{
-		promoFBO:             s.mustCustomerFBOBalance(cust.GetID(), USD, &promoCostBasis),
-		externalFBO:          s.mustCustomerFBOBalance(cust.GetID(), USD, &externalCostBasis),
-		unknownFBO:           s.mustCustomerFBOBalance(cust.GetID(), USD, nil),
-		promoReceivable:      s.mustCustomerReceivableBalance(cust.GetID(), USD, &promoCostBasis),
-		externalReceivable:   s.mustCustomerReceivableBalance(cust.GetID(), USD, &externalCostBasis),
-		totalOpenReceivable:  s.mustCustomerReceivableBalance(cust.GetID(), USD, nil),
-		accrued:              s.mustCustomerAccruedBalance(cust.GetID(), USD),
-		authorizedReceivable: s.mustCustomerAuthorizedReceivableBalance(cust.GetID(), USD, nil),
-		totalWash:            s.mustWashBalance(ns, USD, nil),
-		externalWash:         s.mustWashBalance(ns, USD, &externalCostBasis),
+		promoFBO:             s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&promoCostBasis)),
+		externalFBO:          s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)),
+		unknownFBO:           s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)),
+		promoReceivable:      s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen),
+		externalReceivable:   s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen),
+		totalOpenReceivable:  s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen),
+		accrued:              s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()),
+		authorizedReceivable: s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized),
+		totalWash:            s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()),
+		externalWash:         s.mustWashBalance(ns, USD, mo.Some(&externalCostBasis)),
 		earnings:             s.mustEarningsBalance(ns, USD),
 	}
 	assertDelta := func(label string, start, delta, actual alpacadecimal.Decimal) {
@@ -913,12 +928,12 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 
 		// Credit-only flat fees bypass invoice creation and are only allocated once the charge advances at InvoiceAt,
 		// so creating the charge early should leave every ledger bucket untouched.
-		assertDelta("promo FBO after credit-only create", flatFeeStart.promoFBO, alpacadecimal.Zero, s.mustCustomerFBOBalance(cust.GetID(), USD, &promoCostBasis))
-		assertDelta("external FBO after credit-only create", flatFeeStart.externalFBO, alpacadecimal.Zero, s.mustCustomerFBOBalance(cust.GetID(), USD, &externalCostBasis))
-		assertDelta("unknown FBO after credit-only create", flatFeeStart.unknownFBO, alpacadecimal.Zero, s.mustCustomerFBOBalance(cust.GetID(), USD, nil))
-		assertDelta("authorized receivable after credit-only create", flatFeeStart.authorizedReceivable, alpacadecimal.Zero, s.mustCustomerAuthorizedReceivableBalance(cust.GetID(), USD, nil))
-		assertDelta("total open receivable after credit-only create", flatFeeStart.totalOpenReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, nil))
-		assertDelta("accrued after credit-only create", flatFeeStart.accrued, alpacadecimal.Zero, s.mustCustomerAccruedBalance(cust.GetID(), USD))
+		assertDelta("promo FBO after credit-only create", flatFeeStart.promoFBO, alpacadecimal.Zero, s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&promoCostBasis)))
+		assertDelta("external FBO after credit-only create", flatFeeStart.externalFBO, alpacadecimal.Zero, s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)))
+		assertDelta("unknown FBO after credit-only create", flatFeeStart.unknownFBO, alpacadecimal.Zero, s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
+		assertDelta("authorized receivable after credit-only create", flatFeeStart.authorizedReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized))
+		assertDelta("total open receivable after credit-only create", flatFeeStart.totalOpenReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("accrued after credit-only create", flatFeeStart.accrued, alpacadecimal.Zero, s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()))
 		assertDelta("earnings after credit-only create", flatFeeStart.earnings, alpacadecimal.Zero, s.mustEarningsBalance(ns, USD))
 	})
 
@@ -957,24 +972,24 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		// - the uncovered remainder becomes open receivable immediately
 		// - authorized receivable stays empty because no payment authorization happens
 		// - wash and earnings stay unchanged because this flow never enters the invoice payment lifecycle
-		assertDelta("promo FBO after credit-only advance", flatFeeStart.promoFBO, alpacadecimal.NewFromInt(-30), s.mustCustomerFBOBalance(cust.GetID(), USD, &promoCostBasis))
-		assertDelta("external FBO after credit-only advance", flatFeeStart.externalFBO, alpacadecimal.NewFromInt(-50), s.mustCustomerFBOBalance(cust.GetID(), USD, &externalCostBasis))
-		assertDelta("unknown FBO after credit-only advance", flatFeeStart.unknownFBO, alpacadecimal.Zero, s.mustCustomerFBOBalance(cust.GetID(), USD, nil))
-		assertDelta("promo receivable after credit-only advance", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, &promoCostBasis))
-		assertDelta("external receivable after credit-only advance", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, &externalCostBasis))
-		assertDelta("total open receivable after credit-only advance", flatFeeStart.totalOpenReceivable, alpacadecimal.NewFromInt(-20), s.mustCustomerReceivableBalance(cust.GetID(), USD, nil))
-		assertDelta("authorized receivable after credit-only advance", flatFeeStart.authorizedReceivable, alpacadecimal.Zero, s.mustCustomerAuthorizedReceivableBalance(cust.GetID(), USD, nil))
+		assertDelta("promo FBO after credit-only advance", flatFeeStart.promoFBO, alpacadecimal.NewFromInt(-30), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&promoCostBasis)))
+		assertDelta("external FBO after credit-only advance", flatFeeStart.externalFBO, alpacadecimal.NewFromInt(-50), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)))
+		assertDelta("unknown FBO after credit-only advance", flatFeeStart.unknownFBO, alpacadecimal.Zero, s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
+		assertDelta("promo receivable after credit-only advance", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("external receivable after credit-only advance", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("total open receivable after credit-only advance", flatFeeStart.totalOpenReceivable, alpacadecimal.NewFromInt(-20), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("authorized receivable after credit-only advance", flatFeeStart.authorizedReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized))
 		s.True(
-			s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, nil, ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromInt(-20)),
+			s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromInt(-20)),
 			"the uncovered credit_only shortfall should live in the exact open advance receivable route",
 		)
 		s.True(
-			s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, nil).Equal(alpacadecimal.NewFromInt(20)),
+			s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.NewFromInt(20)),
 			"the uncovered shortfall should also remain in unattributed accrued until a later purchase backfills it",
 		)
-		assertDelta("accrued after credit-only advance", flatFeeStart.accrued, alpacadecimal.NewFromInt(100), s.mustCustomerAccruedBalance(cust.GetID(), USD))
-		assertDelta("total wash after credit-only advance", flatFeeStart.totalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, nil))
-		assertDelta("external wash after credit-only advance", flatFeeStart.externalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, &externalCostBasis))
+		assertDelta("accrued after credit-only advance", flatFeeStart.accrued, alpacadecimal.NewFromInt(100), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()))
+		assertDelta("total wash after credit-only advance", flatFeeStart.totalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()))
+		assertDelta("external wash after credit-only advance", flatFeeStart.externalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
 		assertDelta("earnings after credit-only advance", flatFeeStart.earnings, alpacadecimal.Zero, s.mustEarningsBalance(ns, USD))
 	})
 
@@ -991,14 +1006,14 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		}
 
 		start := backfillSnapshot{
-			externalFBO:            s.mustCustomerFBOBalance(cust.GetID(), USD, &externalCostBasis),
-			externalOpenReceivable: s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, &externalCostBasis, ledger.TransactionAuthorizationStatusOpen),
-			advanceOpenReceivable:  s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, nil, ledger.TransactionAuthorizationStatusOpen),
-			advanceAuthorized:      s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, nil, ledger.TransactionAuthorizationStatusAuthorized),
-			externalAccrued:        s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, &externalCostBasis),
-			unattributedAccrued:    s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, nil),
-			totalAccrued:           s.mustCustomerAccruedBalance(cust.GetID(), USD),
-			externalWash:           s.mustWashBalance(ns, USD, &externalCostBasis),
+			externalFBO:            s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)),
+			externalOpenReceivable: s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen),
+			advanceOpenReceivable:  s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen),
+			advanceAuthorized:      s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusAuthorized),
+			externalAccrued:        s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)),
+			unattributedAccrued:    s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)),
+			totalAccrued:           s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()),
+			externalWash:           s.mustWashBalance(ns, USD, mo.Some(&externalCostBasis)),
 		}
 
 		const laterPurchaseAmount = 50
@@ -1038,21 +1053,21 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		// - the prior advance receivable is re-attributed into the purchased cost-basis bucket
 		// - unattributed accrued is translated into the purchased cost-basis bucket
 		// - only the remainder becomes newly issued purchased credit
-		assertDelta("external FBO after later purchase initiation", start.externalFBO, alpacadecimal.NewFromInt(30), s.mustCustomerFBOBalance(cust.GetID(), USD, &externalCostBasis))
+		assertDelta("external FBO after later purchase initiation", start.externalFBO, alpacadecimal.NewFromInt(30), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)))
 		s.True(
-			s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, &externalCostBasis, ledger.TransactionAuthorizationStatusOpen).Equal(start.externalOpenReceivable.Sub(alpacadecimal.NewFromInt(50))),
+			s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(start.externalOpenReceivable.Sub(alpacadecimal.NewFromInt(50))),
 			"the purchased cost-basis open receivable should now represent the full purchase amount",
 		)
 		s.True(
-			s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, nil, ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero),
+			s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero),
 			"the prior advance receivable should be fully re-attributed out of the nil cost-basis bucket at initiation",
 		)
 		s.True(
-			s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, nil).Equal(alpacadecimal.Zero),
+			s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero),
 			"the unattributed accrued bucket should be translated immediately during attribution",
 		)
 		s.True(
-			s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, &externalCostBasis).Equal(start.externalAccrued.Add(alpacadecimal.NewFromInt(20))),
+			s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)).Equal(start.externalAccrued.Add(alpacadecimal.NewFromInt(20))),
 			"the backfilled portion should already be visible in the purchased cost-basis accrued bucket after initiation",
 		)
 
@@ -1065,11 +1080,11 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 
 		// Authorization now only stages settlement funding; attribution already happened during purchase initiation.
 		s.True(
-			s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, &externalCostBasis, ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromInt(50)),
+			s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromInt(50)),
 			"the purchased amount should be visible in the exact authorized receivable route before settlement",
 		)
 		s.True(
-			s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, nil, ledger.TransactionAuthorizationStatusAuthorized).Equal(start.advanceAuthorized),
+			s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusAuthorized).Equal(start.advanceAuthorized),
 			"the legacy advance route should still have no authorized staging",
 		)
 
@@ -1083,38 +1098,38 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		// Settlement is now just the normal authorized -> open move in the purchased cost-basis bucket.
 		// The earlier attribution stays intact, and the purchased receivable fully nets out here.
 		s.True(
-			s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, nil, ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero),
+			s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero),
 			"the exact open advance receivable bucket should stay cleared after initiation-time attribution",
 		)
 		s.True(
-			s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, nil, ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero),
+			s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero),
 			"the exact authorized advance bucket should stay empty",
 		)
 		s.True(
-			s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, nil).Equal(alpacadecimal.Zero),
+			s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero),
 			"the unattributed accrued bucket should remain empty after initiation-time translation",
 		)
 		s.True(
-			s.mustCustomerAccruedBalanceWithCostBasis(cust.GetID(), USD, &externalCostBasis).Equal(start.externalAccrued.Add(alpacadecimal.NewFromInt(20))),
+			s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)).Equal(start.externalAccrued.Add(alpacadecimal.NewFromInt(20))),
 			"the backfilled portion should remain attributed in the purchased cost-basis bucket",
 		)
 		s.True(
-			s.mustCustomerFBOBalance(cust.GetID(), USD, &externalCostBasis).Equal(start.externalFBO.Add(alpacadecimal.NewFromInt(30))),
+			s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)).Equal(start.externalFBO.Add(alpacadecimal.NewFromInt(30))),
 			"only the purchase remainder should stay behind as newly available credit",
 		)
 		s.True(
-			s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, &externalCostBasis, ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero),
+			s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero),
 			"the purchased cost-basis receivable should net back to zero after settlement and advance funding",
 		)
 		s.True(
-			s.mustCustomerReceivableRouteBalance(cust.GetID(), USD, &externalCostBasis, ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero),
+			s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero),
 			"the purchased authorized receivable route should be cleared by settlement",
 		)
 		s.True(
-			s.mustCustomerAccruedBalance(cust.GetID(), USD).Equal(start.totalAccrued),
+			s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()).Equal(start.totalAccrued),
 			"settlement should only translate accrued between buckets, not change the total accrued amount",
 		)
-		assertDelta("external wash after later purchase settlement", start.externalWash, alpacadecimal.NewFromInt(-50), s.mustWashBalance(ns, USD, &externalCostBasis))
+		assertDelta("external wash after later purchase settlement", start.externalWash, alpacadecimal.NewFromInt(-50), s.mustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
 	})
 }
 
@@ -1222,30 +1237,38 @@ func (s *CreditsTestSuite) createLedgerBackedCustomer(ns string, subjectKey stri
 	return cust
 }
 
-func (s *CreditsTestSuite) mustCustomerFBOBalance(customerID customer.CustomerID, code currencyx.Code, costBasis *alpacadecimal.Decimal) alpacadecimal.Decimal {
+// Use this helper for customer FBO balance in a currency. Pass mo.None() for
+// all cost bases, mo.Some(nil) for the explicit nil-cost-basis route, or
+// mo.Some(&costBasis) for one concrete cost-basis route.
+func (s *CreditsTestSuite) mustCustomerFBOBalance(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal]) alpacadecimal.Decimal {
 	return s.mustCustomerFBOBalanceWithPriority(customerID, code, costBasis, ledger.DefaultCustomerFBOPriority)
 }
 
-func (s *CreditsTestSuite) mustCustomerFBOBalanceWithPriority(customerID customer.CustomerID, code currencyx.Code, costBasis *alpacadecimal.Decimal, priority int) alpacadecimal.Decimal {
+// Use this helper for customer FBO balance in a currency when the test also
+// needs to filter by a specific credit priority. Pass mo.None() for all cost
+// bases, mo.Some(nil) for the explicit nil-cost-basis route, or
+// mo.Some(&costBasis) for one concrete cost-basis route.
+func (s *CreditsTestSuite) mustCustomerFBOBalanceWithPriority(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], priority int) alpacadecimal.Decimal {
 	s.T().Helper()
 
 	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
 	s.NoError(err)
 
-	subAccount, err := customerAccounts.FBOAccount.GetSubAccountForRoute(s.T().Context(), ledger.CustomerFBORouteParams{
+	balance, err := customerAccounts.FBOAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
 		Currency:       code,
 		CostBasis:      costBasis,
 		CreditPriority: priority,
+		CreditPriority: lo.ToPtr(priority),
 	})
-	s.NoError(err)
-
-	balance, err := subAccount.GetBalance(s.T().Context())
 	s.NoError(err)
 
 	return balance.Settled()
 }
 
-func (s *CreditsTestSuite) mustCustomerReceivableBalance(customerID customer.CustomerID, code currencyx.Code, costBasis *alpacadecimal.Decimal) alpacadecimal.Decimal {
+// Use this helper for customer receivable balance in a currency and one
+// authorization state. Pass mo.None() for all cost bases, mo.Some(nil) for the
+// explicit nil-cost-basis route, or mo.Some(&costBasis) for one concrete route.
+func (s *CreditsTestSuite) mustCustomerReceivableBalance(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], status ledger.TransactionAuthorizationStatus) alpacadecimal.Decimal {
 	s.T().Helper()
 
 	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
@@ -1253,82 +1276,36 @@ func (s *CreditsTestSuite) mustCustomerReceivableBalance(customerID customer.Cus
 
 	balance, err := customerAccounts.ReceivableAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
 		Currency:                       code,
-		CostBasis:                      routeFilterCostBasis(costBasis),
-		TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen),
+		CostBasis:                      costBasis,
+		TransactionAuthorizationStatus: lo.ToPtr(status),
 	})
 	s.NoError(err)
 
 	return balance.Settled()
 }
 
-func (s *CreditsTestSuite) mustCustomerAuthorizedReceivableBalance(customerID customer.CustomerID, code currencyx.Code, costBasis *alpacadecimal.Decimal) alpacadecimal.Decimal {
-	s.T().Helper()
-
-	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
-	s.NoError(err)
-
-	balance, err := customerAccounts.ReceivableAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
-		Currency:                       code,
-		CostBasis:                      routeFilterCostBasis(costBasis),
-		TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusAuthorized),
-	})
-	s.NoError(err)
-
-	return balance.Settled()
-}
-
-func (s *CreditsTestSuite) mustCustomerAccruedBalance(customerID customer.CustomerID, code currencyx.Code) alpacadecimal.Decimal {
+// Use this helper for customer accrued balance in a currency. Pass mo.None() for
+// all cost bases, mo.Some(nil) for the explicit nil-cost-basis route, or
+// mo.Some(&costBasis) for one concrete cost-basis route.
+func (s *CreditsTestSuite) mustCustomerAccruedBalance(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal]) alpacadecimal.Decimal {
 	s.T().Helper()
 
 	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
 	s.NoError(err)
 
 	balance, err := customerAccounts.AccruedAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
-		Currency: code,
-	})
-	s.NoError(err)
-
-	return balance.Settled()
-}
-
-func (s *CreditsTestSuite) mustCustomerAccruedBalanceWithCostBasis(customerID customer.CustomerID, code currencyx.Code, costBasis *alpacadecimal.Decimal) alpacadecimal.Decimal {
-	s.T().Helper()
-
-	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
-	s.NoError(err)
-
-	subAccount, err := customerAccounts.AccruedAccount.GetSubAccountForRoute(s.T().Context(), ledger.CustomerAccruedRouteParams{
 		Currency:  code,
 		CostBasis: costBasis,
 	})
 	s.NoError(err)
 
-	balance, err := subAccount.GetBalance(s.T().Context())
-	s.NoError(err)
-
 	return balance.Settled()
 }
 
-func (s *CreditsTestSuite) mustCustomerReceivableRouteBalance(customerID customer.CustomerID, code currencyx.Code, costBasis *alpacadecimal.Decimal, status ledger.TransactionAuthorizationStatus) alpacadecimal.Decimal {
-	s.T().Helper()
-
-	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
-	s.NoError(err)
-
-	subAccount, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(s.T().Context(), ledger.CustomerReceivableRouteParams{
-		Currency:                       code,
-		CostBasis:                      costBasis,
-		TransactionAuthorizationStatus: status,
-	})
-	s.NoError(err)
-
-	balance, err := subAccount.GetBalance(s.T().Context())
-	s.NoError(err)
-
-	return balance.Settled()
-}
-
-func (s *CreditsTestSuite) mustWashBalance(namespace string, code currencyx.Code, costBasis *alpacadecimal.Decimal) alpacadecimal.Decimal {
+// Use this helper for aggregate wash balance in a currency. Pass mo.None() for
+// all cost bases, mo.Some(nil) for the explicit nil-cost-basis route, or
+// mo.Some(&costBasis) for one concrete cost-basis route.
+func (s *CreditsTestSuite) mustWashBalance(namespace string, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal]) alpacadecimal.Decimal {
 	s.T().Helper()
 
 	businessAccounts, err := s.LedgerResolver.GetBusinessAccounts(s.T().Context(), namespace)
@@ -1336,7 +1313,7 @@ func (s *CreditsTestSuite) mustWashBalance(namespace string, code currencyx.Code
 
 	balance, err := businessAccounts.WashAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
 		Currency:  code,
-		CostBasis: routeFilterCostBasis(costBasis),
+		CostBasis: costBasis,
 	})
 	s.NoError(err)
 
@@ -1365,14 +1342,6 @@ func (s *CreditsTestSuite) mustGetChargeByID(chargeID meta.ChargeID) charges.Cha
 	})
 	s.NoError(err)
 	return charge
-}
-
-func routeFilterCostBasis(costBasis *alpacadecimal.Decimal) mo.Option[*alpacadecimal.Decimal] {
-	if costBasis == nil {
-		return mo.None[*alpacadecimal.Decimal]()
-	}
-
-	return mo.Some(costBasis)
 }
 
 type createCreditPurchaseIntentInput struct {

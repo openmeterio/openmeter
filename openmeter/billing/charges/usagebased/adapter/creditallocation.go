@@ -50,6 +50,10 @@ func (a *adapter) CreateRunCreditRealization(ctx context.Context, runID usagebas
 			return nil, err
 		}
 
+		if err := chargesadapter.WritebackCorrectionLineageSegments(ctx, tx.db, runID.Namespace, realizations); err != nil {
+			return nil, fmt.Errorf("write back correction lineage segments: %w", err)
+		}
+
 		chargesadapter.AttachInitialActiveLineageSegments(realizations)
 
 		return realizations, nil

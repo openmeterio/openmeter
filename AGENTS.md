@@ -122,6 +122,8 @@ Tests require PostgreSQL running locally. Start it with `docker compose up -d po
 
 Keep domain test helpers under `openmeter/.../testutils` independent from `app/common`. Build test dependencies from the underlying package constructors (repos, adapters, services, `lockr`) instead of importing the application wiring layer, or unrelated wiring additions can create test-only import cycles.
 
+For usage-based billing lifecycle tests, prefer driving behavior through `charges.Service.Create`, `AdvanceCharges`, and `ApplyPatches` rather than calling lower-level charge adapters directly. To model late-arriving or newly visible usage, use `MockStreamingConnector` events with explicit `StoredAt` values (or `SetSimpleEvents`) so the test exercises the real stored-at cutoff logic in finalization.
+
 For OpenMeter Go tests that touch the database, explicitly set `POSTGRES_HOST=127.0.0.1`. Without it, many suites will skip during setup even if PostgreSQL is running and the repo environment is otherwise loaded correctly.
 
 Use the repo's Nix CI dev shell when `go`, `gofmt`, or other toolchain binaries are missing from the ambient shell. The CI and local-compatible invocation pattern is:
@@ -179,6 +181,8 @@ All builds use `GO_BUILD_FLAGS=-tags=dynamic`.
 ## Coding Conventions
 
 See the `/service` skill for service/adapter patterns, constructors, input types, errors, transactions, hooks, logging, multi-tenancy, and DI wiring. See the `/api` skill for HTTP handler patterns and ValidationIssue. See the `/ent` skill for Ent ORM patterns and Postgres type gotchas. See the `/ledger` skill for ledger package architecture, wiring, and testing. See the `/subscription` skill for subscription domain model, sync algorithm, patch system, workflow layer, and addon sub-system. See the `/notification` skill for notification event pipeline, Kafka consumers, Svix webhook delivery, reconciliation loop, and payload versioning.
+
+In `openmeter/billing/charges/.../adapter`, keep Ent access transaction-aware even in shared helper functions. If a helper accepts a raw `*entdb.Client`, still wrap its body with `entutils.TransactingRepo(...)` / `TransactingRepoWithNoValue(...)` so it rebinds to the transaction already carried in `ctx` instead of depending on the caller to pass a tx-specific client.
 
 ## Key Dependencies
 

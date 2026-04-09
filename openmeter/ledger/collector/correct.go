@@ -215,6 +215,8 @@ func (c *accrualCorrector) planBackfilledAdvanceSegment(ctx context.Context, inp
 	actions = append(actions, plannedSourceCorrectionActions(source, amount, true)...)
 
 	// The purchased-credit-covered part becomes available credit again.
+	// We intentionally re-issue it into FBO and stop there: releasing purchased backing during
+	// correction does not trigger a fresh customer-wide backfill pass against other uncovered advance.
 	reissueInputs, err := c.reissueBackfilledCredit(ctx, input, backingGroup, amount)
 	if err != nil {
 		return nil, err
@@ -225,7 +227,9 @@ func (c *accrualCorrector) planBackfilledAdvanceSegment(ctx context.Context, inp
 }
 
 func (c *accrualCorrector) reissueBackfilledCredit(ctx context.Context, input CorrectCollectedAccruedInput, backingGroup ledger.TransactionGroup, amount alpacadecimal.Decimal) ([]ledger.TransactionInput, error) {
-	// Re-issue into the same known-cost bucket the backfill had used.
+	// Re-issue into the same known-cost bucket the backfill had used so the released value becomes
+	// ordinary purchased credit again. It can be consumed later, but we do not immediately redirect
+	// it onto some other uncovered advance during this correction flow.
 	currency, costBasis, err := c.backfilledIssueRoute(backingGroup)
 	if err != nil {
 		return nil, err

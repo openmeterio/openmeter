@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineage"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineagesegment"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -235,12 +236,83 @@ func (s *CreditRealizationLineageTestSuite) TestLockAdvanceLineagesForBackfillWo
 		_ = tx.Rollback()
 	})
 
-	txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 	ns := s.GetUniqueNamespace("charges-service-lineage-lock-in-tx")
 
-	lineages, err := chargesadapter.LockAdvanceLineagesForBackfill(ctx, txClient.Client(), ns, "customer-id", currencyx.Code(currency.USD))
+	lineages, err := chargesadapter.LockAdvanceLineagesForBackfill(ctx, s.DBClient, ns, "customer-id", currencyx.Code(currency.USD))
 	s.NoError(err)
 	s.Empty(lineages)
+}
+
+func (s *CreditRealizationLineageTestSuite) TestWritebackCorrectionLineageSegmentsConsumesBackfilledBeforeUncovered() {
+	ctx, rawConfig, eDriver, err := s.DBClient.HijackTx(context.Background(), &sql.TxOptions{ReadOnly: false})
+	s.Require().NoError(err)
+
+	tx := entutils.NewTxDriver(eDriver, rawConfig)
+	ctx, err = transaction.SetDriverOnContext(ctx, tx)
+	s.Require().NoError(err)
+	s.T().Cleanup(func() {
+		_ = tx.Rollback()
+	})
+
+	txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
+	ns := s.GetUniqueNamespace("charges-service-lineage-correction-writeback")
+	backingTransactionGroupID := ulid.Make().String()
+	lineageID := ulid.Make().String()
+	rootRealizationID := ulid.Make().String()
+
+	_, err = txClient.CreditRealizationLineage.Create().
+		SetID(lineageID).
+		SetNamespace(ns).
+		SetRootRealizationID(rootRealizationID).
+		SetCustomerID(ulid.Make().String()).
+		SetCurrency(currencyx.Code(currency.USD)).
+		SetOriginKind(creditrealization.LineageOriginKindAdvance).
+		Save(ctx)
+	s.Require().NoError(err)
+
+	_, err = txClient.CreditRealizationLineageSegment.CreateBulk(
+		txClient.CreditRealizationLineageSegment.Create().
+			SetID(ulid.Make().String()).
+			SetLineageID(lineageID).
+			SetAmount(alpacadecimal.NewFromInt(20)).
+			SetState(creditrealization.LineageSegmentStateAdvanceBackfilled).
+			SetBackingTransactionGroupID(backingTransactionGroupID),
+		txClient.CreditRealizationLineageSegment.Create().
+			SetID(ulid.Make().String()).
+			SetLineageID(lineageID).
+			SetAmount(alpacadecimal.NewFromInt(30)).
+			SetState(creditrealization.LineageSegmentStateAdvanceUncovered),
+	).Save(ctx)
+	s.Require().NoError(err)
+
+	err = chargesadapter.WritebackCorrectionLineageSegments(ctx, s.DBClient, ns, creditrealization.Realizations{
+		{
+			CreateInput: creditrealization.CreateInput{
+				Type:                  creditrealization.TypeCorrection,
+				Amount:                alpacadecimal.NewFromInt(-15),
+				CorrectsRealizationID: lo.ToPtr(rootRealizationID),
+			},
+		},
+	})
+	s.Require().NoError(err)
+
+	activeSegments, err := txClient.CreditRealizationLineageSegment.Query().
+		Where(
+			creditrealizationlineagesegment.LineageIDEQ(lineageID),
+			creditrealizationlineagesegment.ClosedAtIsNil(),
+		).
+		Order(creditrealizationlineagesegment.ByCreatedAt()).
+		All(ctx)
+	s.Require().NoError(err)
+	s.Require().Len(activeSegments, 2)
+
+	s.Equal(creditrealization.LineageSegmentStateAdvanceUncovered, activeSegments[0].State)
+	s.Equal(alpacadecimal.NewFromInt(30), activeSegments[0].Amount)
+	s.Nil(activeSegments[0].BackingTransactionGroupID)
+
+	s.Equal(creditrealization.LineageSegmentStateAdvanceBackfilled, activeSegments[1].State)
+	s.Equal(alpacadecimal.NewFromInt(5), activeSegments[1].Amount)
+	s.Equal(backingTransactionGroupID, lo.FromPtr(activeSegments[1].BackingTransactionGroupID))
 }
 
 func (s *CreditRealizationLineageTestSuite) mustAdvanceSingleUsageBasedCharge(ctx context.Context, customerID customer.CustomerID) *usagebased.Charge {

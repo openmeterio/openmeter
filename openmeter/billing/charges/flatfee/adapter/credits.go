@@ -46,6 +46,10 @@ func (a *adapter) CreateCreditAllocations(ctx context.Context, chargeID meta.Cha
 			return creditrealization.Realizations{}, err
 		}
 
+		if err := chargesadapter.WritebackCorrectionLineageSegments(ctx, tx.db, chargeID.Namespace, realizations); err != nil {
+			return creditrealization.Realizations{}, fmt.Errorf("write back correction lineage segments: %w", err)
+		}
+
 		chargesadapter.AttachInitialActiveLineageSegments(realizations)
 
 		return realizations, nil
