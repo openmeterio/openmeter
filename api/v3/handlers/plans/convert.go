@@ -16,6 +16,28 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+var unsupportedV3PriceTypes = map[productcatalog.PriceType]struct{}{
+	productcatalog.DynamicPriceType: {},
+	productcatalog.PackagePriceType: {},
+}
+
+func hasUnsupportedV3Price(p plan.Plan) bool {
+	for _, phase := range p.Phases {
+		for _, rc := range phase.RateCards {
+			price := rc.AsMeta().Price
+			if price == nil {
+				continue
+			}
+
+			if _, unsupported := unsupportedV3PriceTypes[price.Type()]; unsupported {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func FromPlan(p plan.Plan) (api.BillingPlan, error) {
 	validationIssues, _ := p.AsProductCatalogPlan().ValidationErrors()
 
