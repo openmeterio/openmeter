@@ -15,8 +15,10 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
-	chargesadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	lineage "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
+	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -219,8 +221,12 @@ func (s *CreditRealizationLineageTestSuite) TestUsageBasedCreditOnlyAllocationCr
 func (s *CreditRealizationLineageTestSuite) TestLockAdvanceLineagesForBackfillRequiresTransaction() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-lineage-lock-tx")
+	adapter, err := lineageadapter.New(lineageadapter.Config{
+		Client: s.DBClient,
+	})
+	s.Require().NoError(err)
 
-	_, err := chargesadapter.LockAdvanceLineagesForBackfill(ctx, s.DBClient, ns, "customer-id", currencyx.Code(currency.USD))
+	_, err = adapter.LockAdvanceLineagesForBackfill(ctx, ns, "customer-id", currencyx.Code(currency.USD))
 	s.Error(err)
 	s.ErrorContains(err, "must be called in a transaction")
 }
@@ -237,30 +243,34 @@ func (s *CreditRealizationLineageTestSuite) TestLockAdvanceLineagesForBackfillWo
 	})
 
 	ns := s.GetUniqueNamespace("charges-service-lineage-lock-in-tx")
+	adapter, err := lineageadapter.New(lineageadapter.Config{
+		Client: s.DBClient,
+	})
+	s.Require().NoError(err)
 
-	lineages, err := chargesadapter.LockAdvanceLineagesForBackfill(ctx, s.DBClient, ns, "customer-id", currencyx.Code(currency.USD))
+	lineages, err := adapter.LockAdvanceLineagesForBackfill(ctx, ns, "customer-id", currencyx.Code(currency.USD))
 	s.NoError(err)
 	s.Empty(lineages)
 }
 
 func (s *CreditRealizationLineageTestSuite) TestWritebackCorrectionLineageSegmentsConsumesBackfilledBeforeUncovered() {
-	ctx, rawConfig, eDriver, err := s.DBClient.HijackTx(context.Background(), &sql.TxOptions{ReadOnly: false})
-	s.Require().NoError(err)
-
-	tx := entutils.NewTxDriver(eDriver, rawConfig)
-	ctx, err = transaction.SetDriverOnContext(ctx, tx)
-	s.Require().NoError(err)
-	s.T().Cleanup(func() {
-		_ = tx.Rollback()
+	ctx := context.Background()
+	adapter, err := lineageadapter.New(lineageadapter.Config{
+		Client: s.DBClient,
 	})
+	s.Require().NoError(err)
 
-	txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
+	service, err := lineageservice.New(lineageservice.Config{
+		Adapter: adapter,
+	})
+	s.Require().NoError(err)
+
 	ns := s.GetUniqueNamespace("charges-service-lineage-correction-writeback")
 	backingTransactionGroupID := ulid.Make().String()
 	lineageID := ulid.Make().String()
 	rootRealizationID := ulid.Make().String()
 
-	_, err = txClient.CreditRealizationLineage.Create().
+	_, err = s.DBClient.CreditRealizationLineage.Create().
 		SetID(lineageID).
 		SetNamespace(ns).
 		SetRootRealizationID(rootRealizationID).
@@ -270,14 +280,14 @@ func (s *CreditRealizationLineageTestSuite) TestWritebackCorrectionLineageSegmen
 		Save(ctx)
 	s.Require().NoError(err)
 
-	_, err = txClient.CreditRealizationLineageSegment.CreateBulk(
-		txClient.CreditRealizationLineageSegment.Create().
+	_, err = s.DBClient.CreditRealizationLineageSegment.CreateBulk(
+		s.DBClient.CreditRealizationLineageSegment.Create().
 			SetID(ulid.Make().String()).
 			SetLineageID(lineageID).
 			SetAmount(alpacadecimal.NewFromInt(20)).
 			SetState(creditrealization.LineageSegmentStateAdvanceBackfilled).
 			SetBackingTransactionGroupID(backingTransactionGroupID),
-		txClient.CreditRealizationLineageSegment.Create().
+		s.DBClient.CreditRealizationLineageSegment.Create().
 			SetID(ulid.Make().String()).
 			SetLineageID(lineageID).
 			SetAmount(alpacadecimal.NewFromInt(30)).
@@ -285,18 +295,21 @@ func (s *CreditRealizationLineageTestSuite) TestWritebackCorrectionLineageSegmen
 	).Save(ctx)
 	s.Require().NoError(err)
 
-	err = chargesadapter.WritebackCorrectionLineageSegments(ctx, s.DBClient, ns, creditrealization.Realizations{
-		{
-			CreateInput: creditrealization.CreateInput{
-				Type:                  creditrealization.TypeCorrection,
-				Amount:                alpacadecimal.NewFromInt(-15),
-				CorrectsRealizationID: lo.ToPtr(rootRealizationID),
+	err = service.WritebackCorrectionLineageSegments(ctx, lineage.WritebackCorrectionLineageSegmentsInput{
+		Namespace: ns,
+		Realizations: creditrealization.Realizations{
+			{
+				CreateInput: creditrealization.CreateInput{
+					Type:                  creditrealization.TypeCorrection,
+					Amount:                alpacadecimal.NewFromInt(-15),
+					CorrectsRealizationID: lo.ToPtr(rootRealizationID),
+				},
 			},
 		},
 	})
 	s.Require().NoError(err)
 
-	activeSegments, err := txClient.CreditRealizationLineageSegment.Query().
+	activeSegments, err := s.DBClient.CreditRealizationLineageSegment.Query().
 		Where(
 			creditrealizationlineagesegment.LineageIDEQ(lineageID),
 			creditrealizationlineagesegment.ClosedAtIsNil(),

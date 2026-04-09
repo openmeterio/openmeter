@@ -7,7 +7,7 @@ import (
 
 	"github.com/samber/lo"
 
-	chargesadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/adapter"
+	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -250,7 +250,7 @@ func attachActiveLineageSegmentsToUsageBasedCharges(ctx context.Context, dbClien
 		}
 	}
 
-	segmentsByRealizationID, err := chargesadapter.LoadActiveLineageSegments(ctx, dbClient, namespace, realizationIDs)
+	segmentsByRealizationID, err := lineageadapter.LoadActiveLineageSegments(ctx, dbClient, namespace, realizationIDs)
 	if err != nil {
 		return fmt.Errorf("load active lineage segments for usage based charges: %w", err)
 	}

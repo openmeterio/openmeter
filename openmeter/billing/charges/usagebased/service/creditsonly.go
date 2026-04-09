@@ -139,7 +139,7 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, policy meta.
 			}
 
 			if len(corrections) > 0 {
-				if _, err := s.Adapter.CreateRunCreditRealization(ctx, run.ID, corrections); err != nil {
+				if _, err := s.Service.createRunCreditRealizations(ctx, s.Charge, run.ID, corrections); err != nil {
 					return fmt.Errorf("create credit corrections for run %s: %w", run.ID.ID, err)
 				}
 			}
@@ -237,7 +237,7 @@ func (s *CreditsOnlyStateMachine) StartFinalRealizationRun(ctx context.Context) 
 		}
 
 		if len(creditAllocations) > 0 {
-			creditRealizations, err = s.Adapter.CreateRunCreditRealization(ctx, currentRun.ID, creditAllocations)
+			creditRealizations, err = s.Service.createRunCreditRealizations(ctx, updatedCharge, currentRun.ID, creditAllocations)
 			if err != nil {
 				return fmt.Errorf("create credit allocations: %w", err)
 			}
@@ -312,7 +312,7 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 		}
 
 		if len(creditAllocations) > 0 {
-			if _, err := s.Adapter.CreateRunCreditRealization(ctx, currentRun.ID, creditAllocations); err != nil {
+			if _, err := s.Service.createRunCreditRealizations(ctx, s.Charge, currentRun.ID, creditAllocations); err != nil {
 				return fmt.Errorf("create credit allocations: %w", err)
 			}
 		}
@@ -334,7 +334,7 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 		}
 
 		if len(corrections) > 0 {
-			if _, err := s.Adapter.CreateRunCreditRealization(ctx, currentRun.ID, corrections); err != nil {
+			if _, err := s.Service.createRunCreditRealizations(ctx, s.Charge, currentRun.ID, corrections); err != nil {
 				return fmt.Errorf("create credit corrections: %w", err)
 			}
 		}

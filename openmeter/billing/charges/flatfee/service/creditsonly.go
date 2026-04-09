@@ -153,7 +153,7 @@ func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
 	}
 
 	if len(creditAllocations) > 0 {
-		realizations, err := s.Adapter.CreateCreditAllocations(ctx, s.Charge.GetChargeID(), creditAllocations.AsCreateInputs())
+		realizations, err := s.Service.createCreditAllocations(ctx, s.Charge, creditAllocations.AsCreateInputs())
 		if err != nil {
 			return fmt.Errorf("create credit allocations: %w", err)
 		}
@@ -235,7 +235,7 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, policy meta.
 		}
 
 		if len(corrections) > 0 {
-			if _, err := s.Adapter.CreateCreditAllocations(ctx, s.Charge.GetChargeID(), corrections); err != nil {
+			if _, err := s.Service.createCreditAllocations(ctx, s.Charge, corrections); err != nil {
 				return fmt.Errorf("create credit corrections: %w", err)
 			}
 		}

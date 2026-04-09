@@ -6,6 +6,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -26,7 +27,7 @@ func (s *service) PostInvoiceDraftCreated(ctx context.Context, charge creditpurc
 		}
 
 		if ledgerTransactionGroupReference.TransactionGroupID != "" {
-			if err := s.adapter.BackfillAdvanceLineageSegments(ctx, creditpurchase.BackfillAdvanceLineageSegmentsInput{
+			if err := s.lineage.BackfillAdvanceLineageSegments(ctx, lineage.BackfillAdvanceLineageSegmentsInput{
 				Namespace:                 charge.Namespace,
 				CustomerID:                charge.Intent.CustomerID,
 				Currency:                  charge.Intent.Currency,

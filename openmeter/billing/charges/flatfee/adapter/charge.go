@@ -7,8 +7,8 @@ import (
 
 	"github.com/samber/lo"
 
-	chargesadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -245,7 +245,7 @@ func attachActiveLineageSegmentsToFlatFeeCharges(ctx context.Context, dbClient *
 		}
 	}
 
-	segmentsByRealizationID, err := chargesadapter.LoadActiveLineageSegments(ctx, dbClient, namespace, realizationIDs)
+	segmentsByRealizationID, err := lineageadapter.LoadActiveLineageSegments(ctx, dbClient, namespace, realizationIDs)
 	if err != nil {
 		return fmt.Errorf("load active lineage segments for flat fee charges: %w", err)
 	}

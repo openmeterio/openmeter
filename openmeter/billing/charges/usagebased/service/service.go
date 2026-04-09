@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
@@ -15,6 +16,7 @@ import (
 type Config struct {
 	Adapter                 usagebased.Adapter
 	Handler                 usagebased.Handler
+	Lineage                 lineage.Service
 	Locker                  *lockr.Locker
 	MetaAdapter             meta.Adapter
 	CustomerOverrideService billing.CustomerOverrideService
@@ -33,6 +35,10 @@ func (c Config) Validate() error {
 
 	if c.Handler == nil {
 		errs = append(errs, errors.New("handler cannot be null"))
+	}
+
+	if c.Lineage == nil {
+		errs = append(errs, errors.New("lineage service cannot be null"))
 	}
 
 	if c.Locker == nil {
@@ -70,6 +76,7 @@ func New(config Config) (usagebased.Service, error) {
 	return &service{
 		adapter:                 config.Adapter,
 		handler:                 config.Handler,
+		lineage:                 config.Lineage,
 		locker:                  config.Locker,
 		metaAdapter:             config.MetaAdapter,
 		customerOverrideService: config.CustomerOverrideService,
@@ -83,6 +90,7 @@ type service struct {
 	streamingConnector      streaming.Connector
 	adapter                 usagebased.Adapter
 	handler                 usagebased.Handler
+	lineage                 lineage.Service
 	locker                  *lockr.Locker
 	metaAdapter             meta.Adapter
 	customerOverrideService billing.CustomerOverrideService

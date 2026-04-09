@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -31,7 +32,7 @@ func (s *service) onExternalCreditPurchase(ctx context.Context, charge creditpur
 		}
 
 		if ledgerTransactionGroupReference.TransactionGroupID != "" {
-			if err := s.adapter.BackfillAdvanceLineageSegments(ctx, creditpurchase.BackfillAdvanceLineageSegmentsInput{
+			if err := s.lineage.BackfillAdvanceLineageSegments(ctx, lineage.BackfillAdvanceLineageSegmentsInput{
 				Namespace:                 charge.Namespace,
 				CustomerID:                charge.Intent.CustomerID,
 				Currency:                  charge.Intent.Currency,

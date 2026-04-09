@@ -17,6 +17,8 @@ import (
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
 	flatfeelineengine "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/lineengine"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
+	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
+	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	chargesservice "github.com/openmeterio/openmeter/openmeter/billing/charges/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -111,6 +113,20 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		return nil, fmt.Errorf("creating locker: %w", err)
 	}
 
+	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
+		Client: config.Client,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating lineage adapter: %w", err)
+	}
+
+	lineageService, err := lineageservice.New(lineageservice.Config{
+		Adapter: lineageAdapter,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating lineage service: %w", err)
+	}
+
 	flatFeeAdapter, err := flatfeeadapter.New(flatfeeadapter.Config{
 		Client:      config.Client,
 		Logger:      logger,
@@ -123,6 +139,7 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 	flatFeeService, err := flatfeeservice.New(flatfeeservice.Config{
 		Adapter:     flatFeeAdapter,
 		Handler:     config.FlatFeeHandler,
+		Lineage:     lineageService,
 		MetaAdapter: metaAdapter,
 		Locker:      locker,
 	})
@@ -154,6 +171,7 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 	usageBasedService, err := usagebasedservice.New(usagebasedservice.Config{
 		Adapter:                 usageBasedAdapter,
 		Handler:                 config.UsageBasedHandler,
+		Lineage:                 lineageService,
 		Locker:                  locker,
 		MetaAdapter:             metaAdapter,
 		CustomerOverrideService: config.BillingService,
@@ -177,6 +195,7 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 	creditPurchaseService, err := creditpurchaseservice.New(creditpurchaseservice.Config{
 		Adapter:     creditPurchaseAdapter,
 		Handler:     config.CreditPurchaseHandler,
+		Lineage:     lineageService,
 		MetaAdapter: metaAdapter,
 	})
 	if err != nil {

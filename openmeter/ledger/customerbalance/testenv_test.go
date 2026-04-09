@@ -17,6 +17,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
+	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
+	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
 	chargemeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
@@ -148,6 +150,16 @@ func newTestEnv(t *testing.T) *testEnv {
 	})
 	require.NoError(t, err)
 
+	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
+		Client: base.DB,
+	})
+	require.NoError(t, err)
+
+	lineageService, err := lineageservice.New(lineageservice.Config{
+		Adapter: lineageAdapter,
+	})
+	require.NoError(t, err)
+
 	usageAdapter, err := usagebasedadapter.New(usagebasedadapter.Config{
 		Client:      base.DB,
 		Logger:      logger,
@@ -165,6 +177,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	flatFeeService, err := flatfeeservice.New(flatfeeservice.Config{
 		Adapter:     flatFeeAdapter,
 		Handler:     handlers.FlatFee,
+		Lineage:     lineageService,
 		MetaAdapter: metaAdapter,
 		Locker:      locker,
 	})
@@ -173,6 +186,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	usageService, err := usagebasedservice.New(usagebasedservice.Config{
 		Adapter:                 usageAdapter,
 		Handler:                 handlers.UsageBased,
+		Lineage:                 lineageService,
 		Locker:                  locker,
 		MetaAdapter:             metaAdapter,
 		CustomerOverrideService: billingService,

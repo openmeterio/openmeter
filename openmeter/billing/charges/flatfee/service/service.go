@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
@@ -11,6 +12,7 @@ import (
 type Config struct {
 	Adapter     flatfee.Adapter
 	Handler     flatfee.Handler
+	Lineage     lineage.Service
 	MetaAdapter meta.Adapter
 	Locker      *lockr.Locker
 }
@@ -24,6 +26,10 @@ func (c Config) Validate() error {
 
 	if c.Handler == nil {
 		errs = append(errs, errors.New("handler cannot be null"))
+	}
+
+	if c.Lineage == nil {
+		errs = append(errs, errors.New("lineage service cannot be null"))
 	}
 
 	if c.MetaAdapter == nil {
@@ -45,6 +51,7 @@ func New(config Config) (flatfee.Service, error) {
 	return &service{
 		adapter:     config.Adapter,
 		handler:     config.Handler,
+		lineage:     config.Lineage,
 		metaAdapter: config.MetaAdapter,
 		locker:      config.Locker,
 	}, nil
@@ -53,6 +60,7 @@ func New(config Config) (flatfee.Service, error) {
 type service struct {
 	adapter     flatfee.Adapter
 	handler     flatfee.Handler
+	lineage     lineage.Service
 	metaAdapter meta.Adapter
 	locker      *lockr.Locker
 }
