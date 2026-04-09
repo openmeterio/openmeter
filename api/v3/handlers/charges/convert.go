@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/labels"
@@ -260,12 +261,7 @@ func ConvertSubscriptionRefToAPI(ref meta.SubscriptionReference) api.BillingSubs
 // ConvertFeatureKeyToPtr converts a feature key string to a pointer, returning nil when empty.
 // This prevents goverter's useZeroValueOnPointerInconsistency from creating non-nil pointers
 // for empty feature key strings on flat fee charges.
-func ConvertFeatureKeyToPtr(key string) *string {
-	if key == "" {
-		return nil
-	}
-	return &key
-}
+var ConvertFeatureKeyToPtr = lo.ToPtr[string]
 
 // ConvertChargeStatusToAPI casts a meta.ChargeStatus to api.BillingChargeStatus.
 // Hand-written: goverter's enum-name matching requires identical const names across packages,
@@ -313,4 +309,21 @@ func TimePtrFromOptional(t *time.Time) *time.Time {
 		return nil
 	}
 	return t
+}
+
+// convertAPIChargeStatus maps an API status string to its domain equivalent.
+// Mirrors the pattern used in the credits handler (convertAPIStatusToChargeStatus).
+func convertAPIChargeStatus(s string) (meta.ChargeStatus, error) {
+	switch api.BillingChargeStatus(s) {
+	case api.BillingChargeStatusCreated:
+		return meta.ChargeStatusCreated, nil
+	case api.BillingChargeStatusActive:
+		return meta.ChargeStatusActive, nil
+	case api.BillingChargeStatusFinal:
+		return meta.ChargeStatusFinal, nil
+	case api.BillingChargeStatusDeleted:
+		return meta.ChargeStatusDeleted, nil
+	default:
+		return "", fmt.Errorf("unsupported charge status: %q", s)
+	}
 }

@@ -75,19 +75,17 @@ func (h *handler) ListCustomerCharges() ListCustomerChargesHandler {
 						},
 					})
 				}
-
-				// The service uses StatusNotIn, so we need to compute the complement:
-				// all valid statuses minus the requested ones.
-				req.StatusNotIn = chargeStatusComplement(statuses)
+				req.StatusIn = statuses
 			}
 
 			// Parse expand
 			if args.Params.Expand != nil {
-				for _, exp := range *args.Params.Expand {
+				req.Expands = lo.FilterMap(*args.Params.Expand, func(exp api.BillingChargesExpand, _ int) (meta.Expand, bool) {
 					if exp == api.BillingChargesExpandRealTimeUsage {
-						req.Expands = append(req.Expands, meta.ExpandRealizations)
+						return meta.ExpandRealizations, true
 					}
-				}
+					return "", false
+				})
 			}
 
 			return req, nil
@@ -119,6 +117,8 @@ func (h *handler) ListCustomerCharges() ListCustomerChargesHandler {
 }
 
 // parseChargeStatusFilter parses a comma-separated list of charge statuses.
+// Each token is validated with a type-safe switch so that unknown values are
+// rejected with an explicit error message rather than caught by a generic validator.
 func parseChargeStatusFilter(oeq string) ([]meta.ChargeStatus, error) {
 	if oeq == "" {
 		return nil, fmt.Errorf("empty status filter")
@@ -128,35 +128,12 @@ func parseChargeStatusFilter(oeq string) ([]meta.ChargeStatus, error) {
 	statuses := make([]meta.ChargeStatus, 0, len(parts))
 
 	for _, part := range parts {
-		s := meta.ChargeStatus(strings.TrimSpace(part))
-		if err := s.Validate(); err != nil {
-			return nil, fmt.Errorf("invalid status %q: %w", part, err)
+		s, err := convertAPIChargeStatus(strings.TrimSpace(part))
+		if err != nil {
+			return nil, err
 		}
 		statuses = append(statuses, s)
 	}
 
 	return statuses, nil
-}
-
-// chargeStatusComplement returns all valid statuses not in the given set.
-func chargeStatusComplement(include []meta.ChargeStatus) []meta.ChargeStatus {
-	rawValues := meta.ChargeStatus("").Values()
-	all := make([]meta.ChargeStatus, 0, len(rawValues))
-	for _, v := range rawValues {
-		all = append(all, meta.ChargeStatus(v))
-	}
-
-	includeSet := make(map[meta.ChargeStatus]bool, len(include))
-	for _, s := range include {
-		includeSet[s] = true
-	}
-
-	var complement []meta.ChargeStatus
-	for _, s := range all {
-		if !includeSet[s] {
-			complement = append(complement, s)
-		}
-	}
-
-	return complement
 }

@@ -406,7 +406,7 @@ func (s *Server) ListCreditTransactions(w http.ResponseWriter, r *http.Request, 
 // Charges
 
 func (s *Server) ListCustomerCharges(w http.ResponseWriter, r *http.Request, customerId api.ULID, params api.ListCustomerChargesParams) {
-	if s.chargesHandler == nil {
+	if s.chargesHandler == nil || s.billingProfilesHandler == nil {
 		unimplemented.ListCustomerCharges(w, r, customerId, params)
 		return
 	}
