@@ -130,6 +130,33 @@ type CreateSegmentInput struct {
 	BackingTransactionGroupID *string
 }
 
+func (i CreateSegmentInput) Validate() error {
+	var errs []error
+
+	if i.LineageID == "" {
+		errs = append(errs, errors.New("lineage id is required"))
+	}
+	if !i.Amount.IsPositive() {
+		errs = append(errs, errors.New("amount must be positive"))
+	}
+	if err := i.State.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("state: %w", err))
+	}
+
+	switch i.State {
+	case creditrealization.LineageSegmentStateAdvanceBackfilled:
+		if i.BackingTransactionGroupID == nil || *i.BackingTransactionGroupID == "" {
+			errs = append(errs, errors.New("backing transaction group id is required for advance_backfilled segments"))
+		}
+	default:
+		if i.BackingTransactionGroupID != nil && *i.BackingTransactionGroupID == "" {
+			errs = append(errs, errors.New("backing transaction group id must not be empty when provided"))
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
 type Lineage struct {
 	ID                string
 	RootRealizationID string

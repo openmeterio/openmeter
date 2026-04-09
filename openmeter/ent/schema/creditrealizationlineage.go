@@ -37,6 +37,7 @@ func (CreditRealizationLineage) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
 			}).
+			NotEmpty().
 			Immutable(),
 		field.String("customer_id").
 			SchemaType(map[string]string{

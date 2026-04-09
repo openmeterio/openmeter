@@ -187,6 +187,10 @@ func (a *adapter) CloseSegment(ctx context.Context, segmentID string, closedAt t
 }
 
 func (a *adapter) CreateSegment(ctx context.Context, input lineage.CreateSegmentInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("create lineage segment: %w", err)
+	}
+
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
 		create := tx.db.CreditRealizationLineageSegment.Create().
 			SetID(ulid.Make().String()).

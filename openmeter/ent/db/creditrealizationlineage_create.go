@@ -157,6 +157,11 @@ func (_c *CreditRealizationLineageCreate) check() error {
 	if _, ok := _c.mutation.RootRealizationID(); !ok {
 		return &ValidationError{Name: "root_realization_id", err: errors.New(`db: missing required field "CreditRealizationLineage.root_realization_id"`)}
 	}
+	if v, ok := _c.mutation.RootRealizationID(); ok {
+		if err := creditrealizationlineage.RootRealizationIDValidator(v); err != nil {
+			return &ValidationError{Name: "root_realization_id", err: fmt.Errorf(`db: validator failed for field "CreditRealizationLineage.root_realization_id": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.CustomerID(); !ok {
 		return &ValidationError{Name: "customer_id", err: errors.New(`db: missing required field "CreditRealizationLineage.customer_id"`)}
 	}

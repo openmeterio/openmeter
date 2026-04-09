@@ -1386,6 +1386,10 @@ func init() {
 	creditrealizationlineageDescNamespace := creditrealizationlineageMixinFields1[0].Descriptor()
 	// creditrealizationlineage.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	creditrealizationlineage.NamespaceValidator = creditrealizationlineageDescNamespace.Validators[0].(func(string) error)
+	// creditrealizationlineageDescRootRealizationID is the schema descriptor for root_realization_id field.
+	creditrealizationlineageDescRootRealizationID := creditrealizationlineageFields[0].Descriptor()
+	// creditrealizationlineage.RootRealizationIDValidator is a validator for the "root_realization_id" field. It is called by the builders before save.
+	creditrealizationlineage.RootRealizationIDValidator = creditrealizationlineageDescRootRealizationID.Validators[0].(func(string) error)
 	// creditrealizationlineageDescCustomerID is the schema descriptor for customer_id field.
 	creditrealizationlineageDescCustomerID := creditrealizationlineageFields[1].Descriptor()
 	// creditrealizationlineage.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.

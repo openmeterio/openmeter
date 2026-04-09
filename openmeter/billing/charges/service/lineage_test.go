@@ -328,6 +328,22 @@ func (s *CreditRealizationLineageTestSuite) TestWritebackCorrectionLineageSegmen
 	s.Equal(backingTransactionGroupID, lo.FromPtr(activeSegments[1].BackingTransactionGroupID))
 }
 
+func (s *CreditRealizationLineageTestSuite) TestCreateSegmentRejectsInvalidInput() {
+	ctx := context.Background()
+	adapter, err := lineageadapter.New(lineageadapter.Config{
+		Client: s.DBClient,
+	})
+	s.Require().NoError(err)
+
+	err = adapter.CreateSegment(ctx, lineage.CreateSegmentInput{
+		LineageID: ulid.Make().String(),
+		Amount:    alpacadecimal.NewFromInt(10),
+		State:     creditrealization.LineageSegmentStateAdvanceBackfilled,
+	})
+	s.Error(err)
+	s.ErrorContains(err, "backing transaction group id is required")
+}
+
 func (s *CreditRealizationLineageTestSuite) mustAdvanceSingleUsageBasedCharge(ctx context.Context, customerID customer.CustomerID) *usagebased.Charge {
 	s.T().Helper()
 
