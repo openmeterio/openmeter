@@ -8,6 +8,7 @@ import (
 )
 
 type Handler interface {
+	ListPlans() ListPlansHandler
 	GetPlan() GetPlanHandler
 	CreatePlan() CreatePlanHandler
 	UpdatePlan() UpdatePlanHandler

@@ -239,7 +239,7 @@ func (s *Server) DeleteLlmCostOverride(w http.ResponseWriter, r *http.Request, p
 // Plans
 
 func (s *Server) ListPlans(w http.ResponseWriter, r *http.Request, params api.ListPlansParams) {
-	unimplemented.ListPlans(w, r, params)
+	s.plansHandler.ListPlans().With(params).ServeHTTP(w, r)
 }
 
 func (s *Server) CreatePlan(w http.ResponseWriter, r *http.Request) {
