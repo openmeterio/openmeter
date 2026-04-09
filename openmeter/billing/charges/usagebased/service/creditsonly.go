@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
@@ -126,12 +127,21 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, policy meta.
 		}
 
 		for _, run := range s.Charge.Realizations {
+			realizationIDs := lo.Map(run.CreditsAllocated, func(realization creditrealization.Realization, _ int) string {
+				return realization.ID
+			})
+			lineageSegmentsByRealization, err := s.Service.lineage.LoadActiveSegmentsByRealizationID(ctx, s.Charge.Namespace, realizationIDs)
+			if err != nil {
+				return fmt.Errorf("load active lineage segments for run %s: %w", run.ID.ID, err)
+			}
+
 			corrections, err := run.CreditsAllocated.CorrectAll(currencyCalculator, func(req creditrealization.CorrectionRequest) (creditrealization.CreateCorrectionInputs, error) {
 				return s.Service.handler.OnCreditsOnlyUsageAccruedCorrection(ctx, usagebased.CreditsOnlyUsageAccruedCorrectionInput{
-					Charge:      s.Charge,
-					Run:         run,
-					AllocateAt:  clock.Now(),
-					Corrections: req,
+					Charge:                       s.Charge,
+					Run:                          run,
+					AllocateAt:                   clock.Now(),
+					Corrections:                  req,
+					LineageSegmentsByRealization: lineageSegmentsByRealization,
 				})
 			})
 			if err != nil {
@@ -317,15 +327,24 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 			}
 		}
 	case additionalAmount.IsNegative():
+		realizationIDs := lo.Map(currentRun.CreditsAllocated, func(realization creditrealization.Realization, _ int) string {
+			return realization.ID
+		})
+		lineageSegmentsByRealization, err := s.Service.lineage.LoadActiveSegmentsByRealizationID(ctx, s.Charge.Namespace, realizationIDs)
+		if err != nil {
+			return fmt.Errorf("load active lineage segments for current run: %w", err)
+		}
+
 		corrections, err := currentRun.CreditsAllocated.Correct(
 			additionalAmount,
 			s.CurrencyCalculator,
 			func(req creditrealization.CorrectionRequest) (creditrealization.CreateCorrectionInputs, error) {
 				return s.Service.handler.OnCreditsOnlyUsageAccruedCorrection(ctx, usagebased.CreditsOnlyUsageAccruedCorrectionInput{
-					Charge:      s.Charge,
-					Run:         currentRun,
-					AllocateAt:  storedAtOffset,
-					Corrections: req,
+					Charge:                       s.Charge,
+					Run:                          currentRun,
+					AllocateAt:                   storedAtOffset,
+					Corrections:                  req,
+					LineageSegmentsByRealization: lineageSegmentsByRealization,
 				})
 			},
 		)

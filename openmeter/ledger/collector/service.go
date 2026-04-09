@@ -6,6 +6,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
@@ -36,11 +37,12 @@ type CollectToAccruedInput struct {
 }
 
 type CorrectCollectedAccruedInput struct {
-	Namespace   string
-	ChargeID    string
-	CustomerID  string
-	AllocateAt  time.Time
-	Corrections creditrealization.CorrectionRequest
+	Namespace                    string
+	ChargeID                     string
+	CustomerID                   string
+	AllocateAt                   time.Time
+	Corrections                  creditrealization.CorrectionRequest
+	LineageSegmentsByRealization lineage.ActiveSegmentsByRealizationID
 }
 
 type service struct {

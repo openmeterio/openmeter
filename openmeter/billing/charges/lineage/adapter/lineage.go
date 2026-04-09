@@ -17,17 +17,17 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
-func LoadActiveLineageSegments(
+func LoadActiveSegmentsByRealizationID(
 	ctx context.Context,
 	db *entdb.Client,
 	namespace string,
 	realizationIDs []string,
-) (map[string][]creditrealization.ActiveLineageSegment, error) {
+) (lineage.ActiveSegmentsByRealizationID, error) {
 	repo := &adapter{db: db}
 
-	return entutils.TransactingRepo(ctx, repo, func(ctx context.Context, tx *adapter) (map[string][]creditrealization.ActiveLineageSegment, error) {
+	return entutils.TransactingRepo(ctx, repo, func(ctx context.Context, tx *adapter) (lineage.ActiveSegmentsByRealizationID, error) {
 		if len(realizationIDs) == 0 {
-			return map[string][]creditrealization.ActiveLineageSegment{}, nil
+			return lineage.ActiveSegmentsByRealizationID{}, nil
 		}
 
 		lineages, err := tx.db.CreditRealizationLineage.Query().
@@ -44,10 +44,11 @@ func LoadActiveLineageSegments(
 			return nil, err
 		}
 
-		return lo.SliceToMap(lineages, func(entry *entdb.CreditRealizationLineage) (string, []creditrealization.ActiveLineageSegment) {
-			return entry.RootRealizationID, lo.Map(entry.Edges.Segments, func(segment *entdb.CreditRealizationLineageSegment, _ int) creditrealization.ActiveLineageSegment {
-				return creditrealization.ActiveLineageSegment{
+		return lo.SliceToMap(lineages, func(entry *entdb.CreditRealizationLineage) (string, []lineage.Segment) {
+			return entry.RootRealizationID, lo.Map(entry.Edges.Segments, func(segment *entdb.CreditRealizationLineageSegment, _ int) lineage.Segment {
+				return lineage.Segment{
 					ID:                        segment.ID,
+					LineageID:                 segment.LineageID,
 					Amount:                    segment.Amount,
 					State:                     segment.State,
 					BackingTransactionGroupID: segment.BackingTransactionGroupID,
@@ -55,6 +56,14 @@ func LoadActiveLineageSegments(
 			})
 		}), nil
 	})
+}
+
+func (a *adapter) LoadActiveSegmentsByRealizationID(
+	ctx context.Context,
+	namespace string,
+	realizationIDs []string,
+) (lineage.ActiveSegmentsByRealizationID, error) {
+	return LoadActiveSegmentsByRealizationID(ctx, a.db, namespace, realizationIDs)
 }
 
 func (a *adapter) CreateLineages(ctx context.Context, input lineage.CreateLineagesInput) error {

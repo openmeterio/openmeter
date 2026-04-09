@@ -8,6 +8,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -46,7 +47,8 @@ type CreditsOnlyUsageAccruedCorrectionInput struct {
 	Run        RealizationRun `json:"run"`
 	AllocateAt time.Time      `json:"allocateAt"`
 
-	Corrections creditrealization.CorrectionRequest `json:"corrections"`
+	Corrections                  creditrealization.CorrectionRequest   `json:"corrections"`
+	LineageSegmentsByRealization lineage.ActiveSegmentsByRealizationID `json:"-"`
 }
 
 type Handler interface {

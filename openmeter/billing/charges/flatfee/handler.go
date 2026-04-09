@@ -8,6 +8,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
@@ -87,7 +88,8 @@ type CreditsOnlyUsageAccruedCorrectionInput struct {
 	Charge     Charge    `json:"charge"`
 	AllocateAt time.Time `json:"allocateAt"`
 
-	Corrections creditrealization.CorrectionRequest `json:"corrections"`
+	Corrections                  creditrealization.CorrectionRequest   `json:"corrections"`
+	LineageSegmentsByRealization lineage.ActiveSegmentsByRealizationID `json:"-"`
 }
 
 func (i CreditsOnlyUsageAccruedCorrectionInput) Validate() error {

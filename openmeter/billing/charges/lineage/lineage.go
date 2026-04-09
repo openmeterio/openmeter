@@ -1,33 +1,14 @@
 package lineage
 
 import (
+	"errors"
+	"fmt"
 	"sort"
 
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 )
-
-func AttachInitialActiveLineageSegments(realizations creditrealization.Realizations) {
-	for idx := range realizations {
-		originKind, err := creditrealization.LineageOriginKindFromAnnotations(realizations[idx].Annotations)
-		if err != nil {
-			continue
-		}
-
-		initialState := creditrealization.InitialLineageSegmentState(originKind)
-		if err := initialState.Validate(); err != nil {
-			continue
-		}
-
-		realizations[idx].ActiveLineageSegments = []creditrealization.ActiveLineageSegment{
-			{
-				Amount: realizations[idx].Amount,
-				State:  initialState,
-			},
-		}
-	}
-}
 
 func SortCorrectionWritebackSegments(segments []Segment) []Segment {
 	sorted := append([]Segment(nil), segments...)
@@ -57,4 +38,22 @@ func MinDecimal(a, b alpacadecimal.Decimal) alpacadecimal.Decimal {
 	}
 
 	return a
+}
+
+func (s Segment) Validate() error {
+	var errs []error
+
+	if !s.Amount.IsPositive() {
+		errs = append(errs, errors.New("amount must be positive"))
+	}
+
+	if err := s.State.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("state: %w", err))
+	}
+
+	if s.State == creditrealization.LineageSegmentStateAdvanceBackfilled && (s.BackingTransactionGroupID == nil || *s.BackingTransactionGroupID == "") {
+		errs = append(errs, errors.New("backing transaction group id is required for advance_backfilled"))
+	}
+
+	return errors.Join(errs...)
 }

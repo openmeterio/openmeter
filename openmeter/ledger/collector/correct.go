@@ -7,6 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -119,15 +120,15 @@ func (c *accrualCorrector) planCorrection(ctx context.Context, input CorrectColl
 	}
 
 	// Older data may not have lineage yet, so fall back to first-order source correction.
-	if len(correction.Allocation.ActiveLineageSegments) == 0 {
+	segments := input.LineageSegmentsByRealization[correction.Allocation.ID]
+	if len(segments) == 0 {
 		return plannedSourceCorrectionActions(source, correction.Amount.Abs(), source.advanceReceivableIssueTransaction != nil), nil
 	}
 
 	// Lineage tells us what this value looks like now, so consume that state first.
 	remaining := correction.Amount.Abs()
-	actions := make([]plannedAction, 0, len(correction.Allocation.ActiveLineageSegments)+2)
-	segments := sortCorrectionSegments(correction.Allocation.ActiveLineageSegments)
-	for _, segment := range segments {
+	actions := make([]plannedAction, 0, len(segments)+2)
+	for _, segment := range sortCorrectionSegments(segments) {
 		if !remaining.IsPositive() {
 			break
 		}
@@ -165,7 +166,7 @@ func (c *accrualCorrector) originalGroup(ctx context.Context, input CorrectColle
 	return group, nil
 }
 
-func (c *accrualCorrector) planSegmentCorrection(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment creditrealization.ActiveLineageSegment, amount alpacadecimal.Decimal) ([]plannedAction, error) {
+func (c *accrualCorrector) planSegmentCorrection(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment lineage.Segment, amount alpacadecimal.Decimal) ([]plannedAction, error) {
 	// Each current segment state needs a slightly different unwind.
 	switch segment.State {
 	case creditrealization.LineageSegmentStateRealCredit:
@@ -179,7 +180,7 @@ func (c *accrualCorrector) planSegmentCorrection(ctx context.Context, input Corr
 	}
 }
 
-func (c *accrualCorrector) planBackfilledAdvanceSegment(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment creditrealization.ActiveLineageSegment, amount alpacadecimal.Decimal) ([]plannedAction, error) {
+func (c *accrualCorrector) planBackfilledAdvanceSegment(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment lineage.Segment, amount alpacadecimal.Decimal) ([]plannedAction, error) {
 	if segment.BackingTransactionGroupID == nil || *segment.BackingTransactionGroupID == "" {
 		return nil, fmt.Errorf("advance_backfilled segment missing backing transaction group id")
 	}
@@ -421,8 +422,8 @@ func (c *accrualCorrector) backfilledIssueRoute(group ledger.TransactionGroup) (
 	return "", nil, fmt.Errorf("backing transaction group %s does not contain a known cost basis route", group.ID().ID)
 }
 
-func sortCorrectionSegments(segments []creditrealization.ActiveLineageSegment) []creditrealization.ActiveLineageSegment {
-	sorted := append([]creditrealization.ActiveLineageSegment(nil), segments...)
+func sortCorrectionSegments(segments []lineage.Segment) []lineage.Segment {
+	sorted := append([]lineage.Segment(nil), segments...)
 	sort.SliceStable(sorted, func(i, j int) bool {
 		// Go from most downstream representation back outward.
 		precedence := func(state creditrealization.LineageSegmentState) int {

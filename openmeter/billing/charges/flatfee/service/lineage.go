@@ -31,7 +31,5 @@ func (s *service) createCreditAllocations(ctx context.Context, charge flatfee.Ch
 		return creditrealization.Realizations{}, fmt.Errorf("write back correction lineage segments: %w", err)
 	}
 
-	lineage.AttachInitialActiveLineageSegments(realizations)
-
 	return realizations, nil
 }

@@ -63,6 +63,19 @@ func (s *service) CreateInitialLineages(ctx context.Context, input lineage.Creat
 	})
 }
 
+func (s *service) LoadActiveSegmentsByRealizationID(ctx context.Context, namespace string, realizationIDs []string) (lineage.ActiveSegmentsByRealizationID, error) {
+	if len(realizationIDs) == 0 {
+		return lineage.ActiveSegmentsByRealizationID{}, nil
+	}
+
+	segmentsByRealizationID, err := s.adapter.LoadActiveSegmentsByRealizationID(ctx, namespace, realizationIDs)
+	if err != nil {
+		return nil, fmt.Errorf("load active lineage segments: %w", err)
+	}
+
+	return segmentsByRealizationID, nil
+}
+
 func (s *service) WritebackCorrectionLineageSegments(ctx context.Context, input lineage.WritebackCorrectionLineageSegmentsInput) error {
 	if err := input.Validate(); err != nil {
 		return err

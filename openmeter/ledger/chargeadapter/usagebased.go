@@ -83,10 +83,11 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccruedCorrection(ctx context.Cont
 	}
 
 	return h.collector.CorrectCollectedAccrued(ctx, collector.CorrectCollectedAccruedInput{
-		Namespace:   input.Charge.Namespace,
-		ChargeID:    input.Charge.ID,
-		CustomerID:  input.Charge.Intent.CustomerID,
-		AllocateAt:  input.AllocateAt,
-		Corrections: input.Corrections,
+		Namespace:                    input.Charge.Namespace,
+		ChargeID:                     input.Charge.ID,
+		CustomerID:                   input.Charge.Intent.CustomerID,
+		AllocateAt:                   input.AllocateAt,
+		Corrections:                  input.Corrections,
+		LineageSegmentsByRealization: input.LineageSegmentsByRealization,
 	})
 }

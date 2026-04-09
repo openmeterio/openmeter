@@ -15,6 +15,7 @@ import (
 
 type Service interface {
 	CreateInitialLineages(ctx context.Context, input CreateInitialLineagesInput) error
+	LoadActiveSegmentsByRealizationID(ctx context.Context, namespace string, realizationIDs []string) (ActiveSegmentsByRealizationID, error)
 	WritebackCorrectionLineageSegments(ctx context.Context, input WritebackCorrectionLineageSegmentsInput) error
 	BackfillAdvanceLineageSegments(ctx context.Context, input BackfillAdvanceLineageSegmentsInput) error
 }
@@ -23,6 +24,7 @@ type Adapter interface {
 	entutils.TxCreator
 
 	CreateLineages(ctx context.Context, input CreateLineagesInput) error
+	LoadActiveSegmentsByRealizationID(ctx context.Context, namespace string, realizationIDs []string) (ActiveSegmentsByRealizationID, error)
 	LockCorrectionLineages(ctx context.Context, namespace string, realizationIDs []string) ([]Lineage, error)
 	LockAdvanceLineagesForBackfill(ctx context.Context, namespace string, customerID string, currency currencyx.Code) ([]Lineage, error)
 	ListActiveSegments(ctx context.Context, input ListActiveSegmentsInput) ([]Segment, error)
@@ -173,3 +175,5 @@ type Segment struct {
 	State                     creditrealization.LineageSegmentState
 	BackingTransactionGroupID *string
 }
+
+type ActiveSegmentsByRealizationID map[string][]Segment
