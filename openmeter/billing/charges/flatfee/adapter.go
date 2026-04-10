@@ -62,11 +62,8 @@ func (i IntentWithInitialStatus) Validate() error {
 		errs = append(errs, fmt.Errorf("amount after proration cannot be negative"))
 	}
 
-	// Initial status is optional, but if it is set, it must be valid
-	if i.InitialStatus != "" {
-		if err := i.InitialStatus.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("initial status: %w", err))
-		}
+	if err := i.InitialStatus.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("initial status: %w", err))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

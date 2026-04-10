@@ -501,9 +501,8 @@ Credit purchase handler interface (`creditpurchase.Handler`):
 
 When changing credit purchase charges:
 
-- `creditpurchase.ChargeBase` stores base-row data: `ManagedResource`, `Intent`, `Status` (own `creditpurchase.Status` type), `State`
-- `creditpurchase.Charge` embeds `ChargeBase` + `Realizations`
-- `creditpurchase.State` is empty — all lifecycle outcomes live in `Realizations`
+- `creditpurchase.ChargeBase` stores base-row data: `ManagedResource`, `Intent`, `Status` (own `creditpurchase.Status` type); `State` exists but is an empty struct
+- `creditpurchase.Charge` embeds `ChargeBase` + `Realizations` — all lifecycle outcomes live in `Realizations`, not `State`
 - `creditpurchase.Realizations` holds `CreditGrantRealization`, `ExternalPaymentSettlement`, and `InvoiceSettlement` (all loaded from edge tables)
 - `CreditGrantRealization` is stored in its own `charge_credit_purchase_credit_grants` table, not on the base row
 - `creditpurchase.Status` mirrors the flatfee pattern: `StatusCreated`, `StatusActive`, `StatusFinal`, `StatusDeleted` with `ToMetaChargeStatus()` bridge
