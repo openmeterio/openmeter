@@ -199,6 +199,10 @@ func (s State) Validate() error {
 		}
 	}
 
+	if s.AmountAfterProration.IsNegative() {
+		errs = append(errs, fmt.Errorf("amount after proration cannot be negative"))
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 

@@ -68,6 +68,7 @@ func (i IntentWithInitialStatus) Validate() error {
 			errs = append(errs, fmt.Errorf("initial status: %w", err))
 		}
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
