@@ -24,12 +24,7 @@ func (e *Engine) SplitGatheringLine(ctx context.Context, in billing.SplitGatheri
 		return res, err
 	}
 
-	gatheringInvoice := in.GatheringInvoice
-
-	line, found := gatheringInvoice.Lines.GetByID(in.LineID)
-	if !found {
-		return res, fmt.Errorf("line[%s]: line not found in gathering invoice", in.LineID)
-	}
+	line := in.Line
 
 	if !line.ServicePeriod.Contains(in.SplitAt) {
 		return res, fmt.Errorf("line[%s]: splitAt is not within the line period", line.ID)
@@ -85,8 +80,6 @@ func (e *Engine) SplitGatheringLine(ctx context.Context, in billing.SplitGatheri
 		if err := postSplitAtLine.Validate(); err != nil {
 			return res, fmt.Errorf("validating post split line: %w", err)
 		}
-
-		gatheringInvoice.Lines.Append(postSplitAtLine)
 	}
 
 	line.ServicePeriod.To = in.SplitAt
@@ -109,14 +102,14 @@ func (e *Engine) SplitGatheringLine(ctx context.Context, in billing.SplitGatheri
 		}
 	}
 
-	if err := gatheringInvoice.Lines.ReplaceByID(preSplitAtLine); err != nil {
-		return res, fmt.Errorf("setting pre split line: %w", err)
+	var postSplitAtLinePtr *billing.GatheringLine
+	if !postSplitAtLineEmpty {
+		postSplitAtLinePtr = &postSplitAtLine
 	}
 
 	return billing.SplitGatheringLineResult{
-		PreSplitAtLine:   preSplitAtLine,
-		PostSplitAtLine:  postSplitAtLine,
-		GatheringInvoice: gatheringInvoice,
+		PreSplitAtLine:  preSplitAtLine,
+		PostSplitAtLine: postSplitAtLinePtr,
 	}, nil
 }
 

@@ -120,6 +120,9 @@ func (s *BaseSuite) SetupSuite() {
 	s.NoError(err)
 	s.UsageBasedService = usageBasedService
 
+	err = s.BillingService.RegisterLineEngine(usageBasedService.GetLineEngine())
+	s.NoError(err)
+
 	creditPurchaseAdapter, err := creditpurchaseadapter.New(creditpurchaseadapter.Config{
 		Client:      s.DBClient,
 		Logger:      slog.Default(),

@@ -69,7 +69,26 @@ func (e *Engine) BuildStandardInvoiceLines(ctx context.Context, input billing.Bu
 		return nil, err
 	}
 
-	for _, stdLine := range stdLines {
+	return e.CalculateLines(billing.CalculateLinesInput{
+		Invoice: input.Invoice,
+		Lines:   stdLines,
+	})
+}
+
+func (e *Engine) OnCollectionCompleted(_ context.Context, input billing.OnCollectionCompletedInput) (billing.StandardLines, error) {
+	return input.Lines, nil
+}
+
+func (e *Engine) CalculateLines(input billing.CalculateLinesInput) (billing.StandardLines, error) {
+	if input.Invoice.ID == "" {
+		return nil, fmt.Errorf("invoice id is required")
+	}
+
+	if len(input.Lines) == 0 {
+		return nil, fmt.Errorf("lines are required")
+	}
+
+	for _, stdLine := range input.Lines {
 		if stdLine.ChargeID == nil {
 			return nil, fmt.Errorf("credit purchase standard line[%s]: charge id is required", stdLine.ID)
 		}
@@ -88,5 +107,5 @@ func (e *Engine) BuildStandardInvoiceLines(ctx context.Context, input billing.Bu
 		}
 	}
 
-	return stdLines, nil
+	return input.Lines, nil
 }

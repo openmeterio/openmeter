@@ -18,6 +18,7 @@ import (
 type Service interface {
 	UsageBasedService
 	InvoiceLifecycleHooks
+	GetLineEngine() billing.LineEngine
 }
 
 type UsageBasedService interface {

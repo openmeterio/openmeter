@@ -361,8 +361,10 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 	s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
 	s.Equal(float64(1), invoice.Totals.Amount.InexactFloat64())
 
+	s.NotNil(invoice.QuantitySnapshotedAt)
+	clock.FreezeTime(*invoice.QuantitySnapshotedAt)
 	previousSnapshot := *invoice.QuantitySnapshotedAt
-	s.NotNil(previousSnapshot)
+	s.NotEmpty(previousSnapshot)
 
 	// When adding a flat fee (in arrears)
 	s.MockStreamingConnector.AddSimpleEvent(apiRequestsTotalFeature.Feature.Key, 1, periodStart.Add(time.Minute*35))

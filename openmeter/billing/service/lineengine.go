@@ -57,6 +57,30 @@ func (r *engineRegistry) Get(engineType billing.LineEngineType) (billing.LineEng
 	return eng, nil
 }
 
+func (r *engineRegistry) Deregister(engineType billing.LineEngineType) error {
+	if err := engineType.Validate(); err != nil {
+		return fmt.Errorf("validating engine type: %w", err)
+	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if _, ok := r.engines[engineType]; !ok {
+		return fmt.Errorf("engine %s is not registered", engineType)
+	}
+
+	delete(r.engines, engineType)
+
+	return nil
+}
+
+func (r *engineRegistry) List() []billing.LineEngineType {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	return lo.Keys(r.engines)
+}
+
 func (r *engineRegistry) validateLineEngine(engineType billing.LineEngineType) error {
 	return engineType.Validate()
 }
@@ -84,6 +108,11 @@ type GatheringLinesWithEngine struct {
 	Lines  billing.GatheringLines
 }
 
+type StandardLinesWithEngine struct {
+	Engine billing.LineEngine
+	Lines  billing.StandardLines
+}
+
 func (r *engineRegistry) groupGatheringLinesByEngine(lines billing.GatheringLines) ([]GatheringLinesWithEngine, error) {
 	grouped := lo.GroupBy(lines, func(line billing.GatheringLine) billing.LineEngineType {
 		return line.Engine
@@ -105,6 +134,35 @@ func (r *engineRegistry) groupGatheringLinesByEngine(lines billing.GatheringLine
 	return result, nil
 }
 
+func (r *engineRegistry) groupStandardLinesByEngine(lines billing.StandardLines) ([]StandardLinesWithEngine, error) {
+	grouped := lo.GroupBy(lines, func(line *billing.StandardLine) billing.LineEngineType {
+		return line.Engine
+	})
+
+	result := make([]StandardLinesWithEngine, 0, len(grouped))
+	for engineType, groupedLines := range grouped {
+		eng, err := r.Get(engineType)
+		if err != nil {
+			return nil, fmt.Errorf("getting engine %s: %w", engineType, err)
+		}
+
+		result = append(result, StandardLinesWithEngine{
+			Engine: eng,
+			Lines:  groupedLines,
+		})
+	}
+
+	return result, nil
+}
+
 func (s *Service) RegisterLineEngine(eng billing.LineEngine) error {
 	return s.lineEngines.Register(eng)
+}
+
+func (s *Service) DeregisterLineEngine(engineType billing.LineEngineType) error {
+	return s.lineEngines.Deregister(engineType)
+}
+
+func (s *Service) GetRegisteredLineEngines() []billing.LineEngineType {
+	return s.lineEngines.List()
 }

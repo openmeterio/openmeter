@@ -1,10 +1,14 @@
 package lineengine
 
 import (
+	"context"
 	"fmt"
+
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
+	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
 var _ billing.LineEngine = (*Engine)(nil)
@@ -51,4 +55,36 @@ func New(config Config) (*Engine, error) {
 
 func (e *Engine) GetLineEngineType() billing.LineEngineType {
 	return billing.LineEngineTypeInvoice
+}
+
+func (e *Engine) OnCollectionCompleted(ctx context.Context, input billing.OnCollectionCompletedInput) (billing.StandardLines, error) {
+	if input.Invoice.ID == "" {
+		return nil, fmt.Errorf("invoice is required")
+	}
+
+	if input.Invoice.QuantitySnapshotedAt != nil &&
+		!input.Invoice.QuantitySnapshotedAt.Before(input.Invoice.DefaultCollectionAtForStandardInvoice()) {
+		return input.Lines, nil
+	}
+
+	if input.Invoice.QuantitySnapshotedAt == nil &&
+		input.Invoice.CollectionAt != nil &&
+		clock.Now().Before(*input.Invoice.CollectionAt) {
+		return input.Lines, nil
+	}
+
+	if err := e.quantitySnapshotter.SnapshotLineQuantities(ctx, input.Invoice, input.Lines); err != nil {
+		if _, isInvalidDatabaseState := lo.ErrorsAs[*billing.ErrSnapshotInvalidDatabaseState](err); isInvalidDatabaseState {
+			return nil, billing.ValidationIssue{
+				Severity:  billing.ValidationIssueSeverityCritical,
+				Code:      billing.ErrInvoiceLineSnapshotFailed.Code,
+				Message:   err.Error(),
+				Component: billing.ValidationComponentOpenMeterMetering,
+			}
+		}
+
+		return nil, fmt.Errorf("snapshotting lines: %w", err)
+	}
+
+	return input.Lines, nil
 }

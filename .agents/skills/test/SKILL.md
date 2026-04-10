@@ -230,6 +230,8 @@ func TestTimeSensitive(t *testing.T) {
 - `clock.SetTime(t)` — sets the clock to a specific time
 - `clock.FreezeTime(t)` — freezes time so it doesn't advance
 - Always `defer clock.ResetTime()` to avoid leaking into other tests
+- Do not use `WithinDuration(...)` for clock-sensitive assertions. It is fragile under varying CI worker load and scheduler timing.
+- If the code under test stamps `clock.Now()`, prefer `clock.FreezeTime(...)` and assert exact equality instead of tolerances.
 
 ## Suite Pattern
 

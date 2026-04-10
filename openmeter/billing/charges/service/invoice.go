@@ -47,7 +47,7 @@ func (s *service) handleStandardInvoiceUpdate(ctx context.Context, invoice billi
 	case billing.StandardInvoiceStatusIssued:
 		return s.handleChargeEvent(ctx, invoice, processorByType{
 			flatFee:    s.flatFeeService.PostInvoiceIssued,
-			usageBased: s.usageBasedService.PostInvoiceIssued,
+			usageBased: noop[usagebased.Charge],
 			// Invoice credit purchase settlements are not requiring any special handling at this point
 			creditPurchase: noop[creditpurchase.Charge],
 		})
@@ -55,14 +55,14 @@ func (s *service) handleStandardInvoiceUpdate(ctx context.Context, invoice billi
 	case billing.StandardInvoiceStatusPaymentProcessingPending:
 		return s.handleChargeEvent(ctx, invoice, processorByType{
 			flatFee:        s.flatFeeService.PostInvoicePaymentAuthorized,
-			usageBased:     s.usageBasedService.PostInvoicePaymentAuthorized,
+			usageBased:     noop[usagebased.Charge],
 			creditPurchase: s.creditPurchaseService.PostInvoicePaymentAuthorized,
 		})
 
 	case billing.StandardInvoiceStatusPaid:
 		return s.handleChargeEvent(ctx, invoice, processorByType{
 			flatFee:        s.flatFeeService.PostInvoicePaymentSettled,
-			usageBased:     s.usageBasedService.PostInvoicePaymentSettled,
+			usageBased:     noop[usagebased.Charge],
 			creditPurchase: s.creditPurchaseService.PostInvoicePaymentSettled,
 		})
 	}
@@ -103,6 +103,20 @@ func (s *service) handleChargeEvent(ctx context.Context, invoice billing.Standar
 			}
 
 			err = processorByType.creditPurchase(ctx, cp, lineWithCharge.StandardLineWithInvoiceHeader)
+			if err != nil {
+				return err
+			}
+		case meta.ChargeTypeUsageBased:
+			usageBased, err := lineWithCharge.Charge.AsUsageBasedCharge()
+			if err != nil {
+				return err
+			}
+
+			if processorByType.usageBased == nil {
+				return fmt.Errorf("usage based payment post processor is not supported")
+			}
+
+			err = processorByType.usageBased(ctx, usageBased, lineWithCharge.StandardLineWithInvoiceHeader)
 			if err != nil {
 				return err
 			}

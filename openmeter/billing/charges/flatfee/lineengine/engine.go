@@ -116,14 +116,35 @@ func (e *Engine) BuildStandardInvoiceLines(ctx context.Context, input billing.Bu
 		if len(realizations) > 0 {
 			stdLine.CreditsApplied = convertCreditRealizations(realizations)
 		}
+	}
 
+	return e.CalculateLines(billing.CalculateLinesInput{
+		Invoice: input.Invoice,
+		Lines:   stdLines,
+	})
+}
+
+func (e *Engine) OnCollectionCompleted(_ context.Context, input billing.OnCollectionCompletedInput) (billing.StandardLines, error) {
+	return input.Lines, nil
+}
+
+func (e *Engine) CalculateLines(input billing.CalculateLinesInput) (billing.StandardLines, error) {
+	if input.Invoice.ID == "" {
+		return nil, fmt.Errorf("invoice id is required")
+	}
+
+	if len(input.Lines) == 0 {
+		return nil, fmt.Errorf("lines are required")
+	}
+
+	for _, stdLine := range input.Lines {
 		generatedDetailedLines, err := e.ratingService.GenerateDetailedLines(stdLine)
 		if err != nil {
-			return nil, fmt.Errorf("regenerating detailed lines for line[%s]: %w", stdLine.ID, err)
+			return nil, fmt.Errorf("generating detailed lines for line[%s]: %w", stdLine.ID, err)
 		}
 
 		if err := invoicecalc.MergeGeneratedDetailedLines(stdLine, generatedDetailedLines); err != nil {
-			return nil, fmt.Errorf("merging regenerated detailed lines for line[%s]: %w", stdLine.ID, err)
+			return nil, fmt.Errorf("merging generated detailed lines for line[%s]: %w", stdLine.ID, err)
 		}
 
 		if err := stdLine.Validate(); err != nil {
@@ -131,5 +152,5 @@ func (e *Engine) BuildStandardInvoiceLines(ctx context.Context, input billing.Bu
 		}
 	}
 
-	return stdLines, nil
+	return input.Lines, nil
 }

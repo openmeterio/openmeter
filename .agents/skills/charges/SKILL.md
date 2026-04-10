@@ -86,19 +86,34 @@ Current implementations:
 
 - flat fee line engine: `openmeter/billing/charges/flatfee/lineengine`
 - credit purchase line engine: `openmeter/billing/charges/creditpurchase/lineengine`
+- usage-based line engine: `openmeter/billing/charges/usagebased/service/lineengine.go`
 
 Important rules:
 
 - do not rely on billing to infer a charge-backed engine from `ChargeID`
 - `billing/service.CreatePendingInvoiceLines(...)` rejects charge-backed gathering lines with empty `Engine`
 - production wiring must register charge line engines through `billing.Service.RegisterLineEngine(...)`
+- tests that temporarily add engines can remove them again through `billing.Service.DeregisterLineEngine(...)`; use the public registry API instead of mutating billing internals from non-service packages
 - charge test setups must also register those engines explicitly; keep this in `openmeter/billing/charges/testutils`
 - if a charge create path stamps a new `LineEngineType`, app wiring and charge test wiring must register a matching implementation in the same change
+- usage-based exposes its billing line engine from `usagebased.Service.GetLineEngine()`; register that returned engine instead of reusing the service type directly
 
 Operational consequence:
 
 - adding a new charge engine enum without a registered implementation causes invoice collection to fail when billing resolves the line engine
 - a schema migration defaulting old persisted rows to `invoicing` is not enough for charge-backed lines; existing persisted gathering lines may need a backfill if they should route to a charge engine after rollout
+
+Current shared contract details:
+
+- line-engine transport structs in `openmeter/billing/lineengine.go` are validated at the billing callsite before invoking the engine, and returned lines/results are validated after the call
+- `OnCollectionCompleted(...)` takes `billing.OnCollectionCompletedInput` and returns updated `billing.StandardLines`
+- collection-time engines must preserve the exact line ID set they were given; billing validates that returned line IDs match input line IDs exactly and then merges the returned lines back into the invoice
+- `CalculateLines(...)` returns updated `billing.StandardLines`; billing treats this as a pure recalculation boundary, validates exact line ID preservation, and merges the returned lines back into the invoice instead of relying on in-place mutation
+- `CalculateLines(...)` no longer takes `context.Context`; if a future charge engine needs context-aware recalculation, propagate that need deliberately through the contract instead of using `context.Background()` as a workaround
+- `SplitGatheringLine(...)` takes a concrete `billing.GatheringLine` plus `SplitAt` and returns only the split line fragments; the billing caller owns fetching the current line from the gathering invoice and merging `PreSplitAtLine` / optional `PostSplitAtLine` back into the invoice aggregate
+- optional split outputs use pointers; `SplitGatheringLineResult.PostSplitAtLine` is `*billing.GatheringLine`
+- use `billing.ValidateStandardLineIDsMatchExactly(...)` when a charge-side test or helper needs to assert that returned standard-line identities are preserved across a line-engine boundary
+- collection-time errors should be normalized through `billing.NewLineEngineValidationError(...)` instead of rebuilding the validation-issue wrapper at each billing callsite
 
 ## Timestamp Normalization
 
@@ -169,10 +184,10 @@ Placement guidance:
 ## Supported Behavior
 
 - `charges.AdvanceCharges(...)` advances both usage-based and flat-fee credit-only charges
-- `usagebased.Service.AdvanceCharge(...)` only supports `CreditOnly`
-- `flatfee.Service.AdvanceCharge(...)` only supports `CreditOnly`
-- `CreditThenInvoice` usage-based advance is deliberately rejected with a not-implemented error
+- `usagebased.Service.AdvanceCharge(...)` routes to the settlement-mode-specific state machine: `CreditOnly` uses the credits-only state machine and `CreditThenInvoice` uses `NewCreditThenInvoiceStateMachine(...)`
+- `flatfee.Service.AdvanceCharge(...)` currently only supports `CreditOnly`; it does not have a `CreditThenInvoice` state machine path
 - Both `AdvanceCharge(...)` methods return `*Charge` (nil means noop, non-nil means at least one transition)
+- For invoice-settled flows, invoice creation and collection completion are still billing-triggered downstream events (`invoice_created`, `collection_completed`), not generic advance-loop transitions
 
 ## Create + Auto-Advance Flow
 
@@ -193,6 +208,11 @@ For invoice-settled charges:
 
 - flat fee and credit purchase creation now stamp the gathering line engine in their type-specific `Create(...)` flows
 - usage-based charge creation also stamps `LineEngineTypeChargeUsageBased`; do not introduce this discriminator unless a corresponding billing engine exists or the path is intentionally blocked
+- usage-based `IsLineBillableAsOf(...)` is currently billable only once `asOf >= resolved service period end`; keep the existing progressive-billing TODO in place when touching that logic
+- for usage-based `credit_then_invoice`, `BuildStandardInvoiceLines(...)` is allowed to drive charge lifecycle transitions needed to create the invoice-backed realization run
+- `OnCollectionCompleted(...)` is the single collection-time line-engine hook; do not reintroduce a generic shared `SnapshotLines()` abstraction for charge engines
+- prefer explicit usage-based lifecycle triggers such as `invoice_created` and `collection_completed` over generic line-snapshot callbacks
+- collection-time charge-engine failures must surface as invoice validation issues through the billing line-engine validation flow, not as raw invoice-state-machine failures
 
 ## Root Charges Advance Flow
 
@@ -229,10 +249,16 @@ Usage-based advance currently does:
    - `*lockr.Locker`
 3. Reloads the charge with realizations expanded
 4. Routes by settlement mode
-5. Builds `NewCreditsOnlyStateMachine(...)`
+5. Builds the settlement-mode-specific state machine (`NewCreditsOnlyStateMachine(...)` or `NewCreditThenInvoiceStateMachine(...)`)
 6. Calls `AdvanceUntilStateStable(...)`
 
 This is the main place where charge lifecycle logic exists today.
+
+State-machine organization rule:
+
+- keep state-machine-specific methods and helpers in the state-machine file that owns them
+- do not spread one charge state machine across multiple files unless the split is the standard `service/` or `adapter/` package boundary
+- line-engine files may call into a state machine, but they should not define that state machine's transition handlers
 
 ## Credits-Only State Machine
 

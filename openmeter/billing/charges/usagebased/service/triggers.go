@@ -30,7 +30,7 @@ func (s *service) AdvanceCharge(ctx context.Context, input usagebased.AdvanceCha
 			return nil, fmt.Errorf("get currency calculator: %w", err)
 		}
 
-		stateMachine, err := NewCreditsOnlyStateMachine(StateMachineConfig{
+		stateMachine, err := s.newStateMachine(StateMachineConfig{
 			Charge:             charge,
 			Service:            s,
 			CustomerOverride:   input.CustomerOverride,
@@ -38,7 +38,7 @@ func (s *service) AdvanceCharge(ctx context.Context, input usagebased.AdvanceCha
 			CurrencyCalculator: currencyCalculator,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("new credits only state machine: %w", err)
+			return nil, fmt.Errorf("new state machine: %w", err)
 		}
 
 		return stateMachine.AdvanceUntilStateStable(ctx)
@@ -60,9 +60,9 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 			return nil, fmt.Errorf("get state machine config: %w", err)
 		}
 
-		stateMachine, err := NewCreditsOnlyStateMachine(stateMachineConfig)
+		stateMachine, err := s.newStateMachine(stateMachineConfig)
 		if err != nil {
-			return nil, fmt.Errorf("new credits only state machine: %w", err)
+			return nil, fmt.Errorf("new state machine: %w", err)
 		}
 
 		if err := stateMachine.FireAndActivate(ctx, patch.Trigger(), patch.TriggerParams()); err != nil {
@@ -71,6 +71,29 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 
 		return &stateMachine.Charge, nil
 	})
+}
+
+func (s *service) newStateMachine(config StateMachineConfig) (*StateMachine, error) {
+	switch config.Charge.Intent.SettlementMode {
+	case productcatalog.CreditOnlySettlementMode:
+		stateMachine, err := NewCreditsOnlyStateMachine(config)
+		if err != nil {
+			return nil, err
+		}
+
+		return stateMachine.StateMachine, nil
+	case productcatalog.CreditThenInvoiceSettlementMode:
+		stateMachine, err := NewCreditThenInvoiceStateMachine(config)
+		if err != nil {
+			return nil, err
+		}
+
+		return stateMachine.StateMachine, nil
+	default:
+		return nil, models.NewGenericNotImplementedError(
+			fmt.Errorf("unsupported settlement mode %s for usage based charge %s", config.Charge.Intent.SettlementMode, config.Charge.ID),
+		)
+	}
 }
 
 // getStateMachineConfigForPatch gets the state machine config for a patch.
@@ -134,9 +157,10 @@ func (s *service) withLockedCharge(ctx context.Context, chargeID meta.ChargeID, 
 			return nil, fmt.Errorf("get charge: %w", err)
 		}
 
-		if charge.Intent.SettlementMode != productcatalog.CreditOnlySettlementMode {
+		if charge.Intent.SettlementMode != productcatalog.CreditOnlySettlementMode &&
+			charge.Intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
 			return nil, models.NewGenericNotImplementedError(
-				fmt.Errorf("charge %s is not credit_only (settlement_mode=%s)", charge.ID, charge.Intent.SettlementMode),
+				fmt.Errorf("charge %s has unsupported settlement mode %s", charge.ID, charge.Intent.SettlementMode),
 			)
 		}
 

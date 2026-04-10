@@ -885,6 +885,21 @@ func (c StandardLines) GetByChildUniqueReferenceID(id string) *StandardLine {
 	})
 }
 
+func ValidateStandardLineIDsMatchExactly(expected StandardLines, actual StandardLines) error {
+	expectedIDs := lo.Map(expected, func(line *StandardLine, _ int) string {
+		return line.ID
+	})
+	actualIDs := lo.Map(actual, func(line *StandardLine, _ int) string {
+		return line.ID
+	})
+
+	if !lo.ElementsMatch(expectedIDs, actualIDs) {
+		return fmt.Errorf("line ids mismatch: expected %v, got %v", expectedIDs, actualIDs)
+	}
+
+	return nil
+}
+
 func (c StandardLines) Map(fn func(*StandardLine) *StandardLine) StandardLines {
 	return StandardLines(
 		lo.Map(c, func(l *StandardLine, _ int) *StandardLine {
