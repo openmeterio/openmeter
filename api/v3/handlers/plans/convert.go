@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -734,6 +735,22 @@ func toBillingTaxConfig(tc api.BillingRateCardTaxConfig) *productcatalog.TaxConf
 	}
 
 	return result
+}
+
+func fromPlanAddon(a planaddon.PlanAddon) (api.PlanAddon, error) {
+	validationIssues, _ := a.AsProductCatalogPlanAddon().ValidationErrors()
+
+	return api.PlanAddon{
+		Id:               a.ID,
+		Addon:            api.AddonReferenceItem{Id: a.Addon.ID},
+		FromPlanPhase:    a.PlanAddonConfig.FromPlanPhase,
+		MaxQuantity:      a.PlanAddonConfig.MaxQuantity,
+		CreatedAt:        lo.ToPtr(a.CreatedAt),
+		UpdatedAt:        lo.ToPtr(a.UpdatedAt),
+		DeletedAt:        a.DeletedAt,
+		Labels:           labels.FromMetadata(a.Metadata),
+		ValidationErrors: fromValidationErrors(validationIssues),
+	}, nil
 }
 
 func toBillingDiscounts(d api.BillingRateCardDiscounts) (productcatalog.Discounts, error) {
