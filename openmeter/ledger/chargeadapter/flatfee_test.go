@@ -181,7 +181,7 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		currencyCalculator, err := chargeWithRealizations.Intent.Currency.Calculator()
 		require.NoError(t, err)
 
-		correctionsRequest, err := chargeWithRealizations.State.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
+		correctionsRequest, err := chargeWithRealizations.Realizations.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
 		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeflatfee.CreditsOnlyUsageAccruedCorrectionInput{
@@ -218,7 +218,7 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		currencyCalculator, err := chargeWithRealizations.Intent.Currency.Calculator()
 		require.NoError(t, err)
 
-		correctionsRequest, err := chargeWithRealizations.State.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-35), currencyCalculator)
+		correctionsRequest, err := chargeWithRealizations.Realizations.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-35), currencyCalculator)
 		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeflatfee.CreditsOnlyUsageAccruedCorrectionInput{
@@ -253,7 +253,7 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		currencyCalculator, err := chargeWithRealizations.Intent.Currency.Calculator()
 		require.NoError(t, err)
 
-		correctionsRequest, err := chargeWithRealizations.State.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
+		correctionsRequest, err := chargeWithRealizations.Realizations.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
 		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeflatfee.CreditsOnlyUsageAccruedCorrectionInput{
@@ -517,36 +517,38 @@ func (e *flatFeeHandlerTestEnv) newAssignmentInputWithMode(amount alpacadecimal.
 
 	return chargeflatfee.OnAssignedToInvoiceInput{
 		Charge: chargeflatfee.Charge{
-			ManagedResource: meta.ManagedResource{
-				NamespacedModel: models.NamespacedModel{
-					Namespace: e.Namespace,
+			ChargeBase: chargeflatfee.ChargeBase{
+				ManagedResource: meta.ManagedResource{
+					NamespacedModel: models.NamespacedModel{
+						Namespace: e.Namespace,
+					},
+					ManagedModel: models.ManagedModel{
+						CreatedAt: now,
+						UpdatedAt: now,
+					},
+					ID: "flat-fee-charge",
 				},
-				ManagedModel: models.ManagedModel{
-					CreatedAt: now,
-					UpdatedAt: now,
+				Intent: chargeflatfee.Intent{
+					Intent: meta.Intent{
+						Name:              "Flat fee",
+						ManagedBy:         billing.SystemManagedLine,
+						CustomerID:        e.CustomerID.ID,
+						Currency:          currencyx.Code("USD"),
+						ServicePeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+						BillingPeriod:     servicePeriod,
+					},
+					InvoiceAt:             now,
+					SettlementMode:        mode,
+					PaymentTerm:           productcatalog.InAdvancePaymentTerm,
+					ProRating:             productcatalog.ProRatingConfig{},
+					AmountBeforeProration: amount,
 				},
-				ID: "flat-fee-charge",
-			},
-			Intent: chargeflatfee.Intent{
-				Intent: meta.Intent{
-					Name:              "Flat fee",
-					ManagedBy:         billing.SystemManagedLine,
-					CustomerID:        e.CustomerID.ID,
-					Currency:          currencyx.Code("USD"),
-					ServicePeriod:     servicePeriod,
-					FullServicePeriod: servicePeriod,
-					BillingPeriod:     servicePeriod,
+				State: chargeflatfee.State{
+					AmountAfterProration: amount,
 				},
-				InvoiceAt:             now,
-				SettlementMode:        mode,
-				PaymentTerm:           productcatalog.InAdvancePaymentTerm,
-				ProRating:             productcatalog.ProRatingConfig{},
-				AmountBeforeProration: amount,
+				Status: chargeflatfee.StatusActive,
 			},
-			State: chargeflatfee.State{
-				AmountAfterProration: amount,
-			},
-			Status: meta.ChargeStatusActive,
 		},
 		ServicePeriod:     servicePeriod,
 		PreTaxTotalAmount: amount,
@@ -638,36 +640,38 @@ func (e *flatFeeHandlerTestEnv) newCreditsOnlyCharge(amount alpacadecimal.Decima
 
 func (e *flatFeeHandlerTestEnv) newBaseCharge(servicePeriod timeutil.ClosedPeriod, amount alpacadecimal.Decimal) chargeflatfee.Charge {
 	return chargeflatfee.Charge{
-		ManagedResource: meta.ManagedResource{
-			NamespacedModel: models.NamespacedModel{
-				Namespace: e.Namespace,
+		ChargeBase: chargeflatfee.ChargeBase{
+			ManagedResource: meta.ManagedResource{
+				NamespacedModel: models.NamespacedModel{
+					Namespace: e.Namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: servicePeriod.To,
+					UpdatedAt: servicePeriod.To,
+				},
+				ID: "flat-fee-charge",
 			},
-			ManagedModel: models.ManagedModel{
-				CreatedAt: servicePeriod.To,
-				UpdatedAt: servicePeriod.To,
+			Intent: chargeflatfee.Intent{
+				Intent: meta.Intent{
+					Name:              "Flat fee",
+					ManagedBy:         billing.SystemManagedLine,
+					CustomerID:        e.CustomerID.ID,
+					Currency:          currencyx.Code("USD"),
+					ServicePeriod:     servicePeriod,
+					FullServicePeriod: servicePeriod,
+					BillingPeriod:     servicePeriod,
+				},
+				InvoiceAt:             servicePeriod.To,
+				SettlementMode:        productcatalog.InvoiceOnlySettlementMode,
+				PaymentTerm:           productcatalog.InAdvancePaymentTerm,
+				ProRating:             productcatalog.ProRatingConfig{},
+				AmountBeforeProration: amount,
 			},
-			ID: "flat-fee-charge",
-		},
-		Intent: chargeflatfee.Intent{
-			Intent: meta.Intent{
-				Name:              "Flat fee",
-				ManagedBy:         billing.SystemManagedLine,
-				CustomerID:        e.CustomerID.ID,
-				Currency:          currencyx.Code("USD"),
-				ServicePeriod:     servicePeriod,
-				FullServicePeriod: servicePeriod,
-				BillingPeriod:     servicePeriod,
+			State: chargeflatfee.State{
+				AmountAfterProration: amount,
 			},
-			InvoiceAt:             servicePeriod.To,
-			SettlementMode:        productcatalog.InvoiceOnlySettlementMode,
-			PaymentTerm:           productcatalog.InAdvancePaymentTerm,
-			ProRating:             productcatalog.ProRatingConfig{},
-			AmountBeforeProration: amount,
+			Status: chargeflatfee.StatusActive,
 		},
-		State: chargeflatfee.State{
-			AmountAfterProration: amount,
-		},
-		Status: meta.ChargeStatusActive,
 	}
 }
 
@@ -679,7 +683,7 @@ func (e *flatFeeHandlerTestEnv) newChargeWithAccruedUsage(total alpacadecimal.De
 	}
 
 	charge := e.newBaseCharge(servicePeriod, total)
-	charge.State.AccruedUsage = &invoicedusage.AccruedUsage{
+	charge.Realizations.AccruedUsage = &invoicedusage.AccruedUsage{
 		ServicePeriod: servicePeriod,
 		Mutable:       true,
 		Totals: totals.Totals{
@@ -718,8 +722,8 @@ func (e *flatFeeHandlerTestEnv) newChargeWithCreditRealizationsAndAccruedUsage(r
 	}
 
 	charge := e.newBaseCharge(servicePeriod, totalAmount)
-	charge.State.CreditRealizations = creditRealizations
-	charge.State.AccruedUsage = &invoicedusage.AccruedUsage{
+	charge.Realizations.CreditRealizations = creditRealizations
+	charge.Realizations.AccruedUsage = &invoicedusage.AccruedUsage{
 		ServicePeriod: servicePeriod,
 		Mutable:       true,
 		Totals: totals.Totals{
@@ -734,7 +738,7 @@ func (e *flatFeeHandlerTestEnv) newChargeWithCreditRealizationsAndAccruedUsage(r
 func (e *flatFeeHandlerTestEnv) newChargeWithPayment(total alpacadecimal.Decimal, authRef ledgertransaction.GroupReference) chargeflatfee.Charge {
 	now := time.Now().UTC()
 	charge := e.newChargeWithAccruedUsage(total)
-	charge.State.Payment = &payment.Invoiced{
+	charge.Realizations.Payment = &payment.Invoiced{
 		Payment: payment.Payment{
 			NamespacedID: models.NamespacedID{
 				Namespace: e.Namespace,

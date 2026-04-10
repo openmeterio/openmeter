@@ -14,6 +14,7 @@ const (
 	StatusCreated Status = Status(meta.ChargeStatusCreated)
 	StatusActive  Status = Status(meta.ChargeStatusActive)
 	StatusFinal   Status = Status(meta.ChargeStatusFinal)
+	StatusDeleted Status = Status(meta.ChargeStatusDeleted)
 )
 
 func (Status) Values() []string {
@@ -21,6 +22,7 @@ func (Status) Values() []string {
 		string(StatusCreated),
 		string(StatusActive),
 		string(StatusFinal),
+		string(StatusDeleted),
 	}
 }
 

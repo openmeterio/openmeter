@@ -20,30 +20,6 @@ import (
 
 var _ usagebased.ChargeAdapter = (*adapter)(nil)
 
-func (a *adapter) UpdateStatus(ctx context.Context, input usagebased.UpdateStatusInput) (usagebased.ChargeBase, error) {
-	if err := input.Validate(); err != nil {
-		return usagebased.ChargeBase{}, err
-	}
-
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (usagebased.ChargeBase, error) {
-		metaStatus, err := input.Status.ToMetaChargeStatus()
-		if err != nil {
-			return usagebased.ChargeBase{}, err
-		}
-
-		dbUpdatedChargeBase, err := tx.db.ChargeUsageBased.UpdateOneID(input.Charge.ID).
-			Where(dbchargeusagebased.NamespaceEQ(input.Charge.Namespace)).
-			SetStatus(metaStatus).
-			SetStatusDetailed(input.Status).
-			Save(ctx)
-		if err != nil {
-			return usagebased.ChargeBase{}, err
-		}
-
-		return MapChargeBaseFromDB(dbUpdatedChargeBase), nil
-	})
-}
-
 func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase) (usagebased.ChargeBase, error) {
 	if err := charge.Validate(); err != nil {
 		return usagebased.ChargeBase{}, err

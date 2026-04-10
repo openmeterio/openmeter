@@ -151,8 +151,8 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlyDeleteCorrectionSanity() {
 
 	advancedCharge, err := advancedCharges[0].AsFlatFeeCharge()
 	s.NoError(err)
-	s.Equal(meta.ChargeStatusFinal, advancedCharge.Status)
-	s.Len(advancedCharge.State.CreditRealizations, 1)
+	s.Equal(flatfee.StatusFinal, advancedCharge.Status)
+	s.Len(advancedCharge.Realizations.CreditRealizations, 1)
 
 	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromInt(-30)))
 	s.True(s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.NewFromInt(30)))
@@ -603,11 +603,11 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 
 		// Validate the credit realizations
 		// The charge should have $80 realized as credits
-		s.Len(updatedFlatFeeCharge.State.CreditRealizations, 2)
-		promotionalCreditRealization := updatedFlatFeeCharge.State.CreditRealizations[0]
+		s.Len(updatedFlatFeeCharge.Realizations.CreditRealizations, 2)
+		promotionalCreditRealization := updatedFlatFeeCharge.Realizations.CreditRealizations[0]
 		s.Equal(float64(30), promotionalCreditRealization.Amount.InexactFloat64())
 
-		customerCreditRealization := updatedFlatFeeCharge.State.CreditRealizations[1]
+		customerCreditRealization := updatedFlatFeeCharge.Realizations.CreditRealizations[1]
 		s.Equal(float64(50), customerCreditRealization.Amount.InexactFloat64())
 
 		assertDelta("promo FBO after invoice assignment", flatFeeStart.promoFBO, alpacadecimal.NewFromInt(-30), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&promoCostBasis)))
@@ -640,7 +640,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		// - OnFlatFeePaymentAuthorized is called (I cannot make this a two step process without creating a new app) with the USD 20
 
 		// Invoice usage accrued callback should have been invoked
-		accruedUsage := updatedFlatFeeCharge.State.AccruedUsage
+		accruedUsage := updatedFlatFeeCharge.Realizations.AccruedUsage
 		s.NotNil(accruedUsage)
 		s.Equal(servicePeriod, accruedUsage.ServicePeriod, "service period should be the same as the input")
 		s.False(accruedUsage.Mutable, "accrued usage should not be mutable")
@@ -950,13 +950,13 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		s.Equal(flatFeeChargeID.ID, advancedFlatFee.ID)
 		s.Equal(meta.ChargeStatusFinal, advancedFlatFee.Status)
 		// We expect three realizations here: promotional credit, purchased credit, and the synthetic shortfall coverage.
-		s.Len(advancedFlatFee.State.CreditRealizations, 3)
+		s.Len(advancedFlatFee.Realizations.CreditRealizations, 3)
 
 		fetchedCharge := s.mustGetChargeByID(flatFeeChargeID)
 		updatedFlatFeeCharge, err := fetchedCharge.AsFlatFeeCharge()
 		s.NoError(err)
-		s.Equal(meta.ChargeStatusFinal, updatedFlatFeeCharge.Status)
-		s.Len(updatedFlatFeeCharge.State.CreditRealizations, 3)
+		s.Equal(flatfee.StatusFinal, updatedFlatFeeCharge.Status)
+		s.Len(updatedFlatFeeCharge.Realizations.CreditRealizations, 3)
 
 		gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 			Namespaces: []string{ns},

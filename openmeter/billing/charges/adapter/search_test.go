@@ -87,6 +87,7 @@ func (s *ListCustomersToAdvanceSuite) insertFlatFeeCharge(namespace, customerID 
 		SetNamespace(namespace).
 		SetCustomerID(customerID).
 		SetStatus(status).
+		SetStatusDetailed(flatfee.Status(status)).
 		SetCurrency(currencyx.Code("USD")).
 		SetManagedBy(billing.SubscriptionManagedLine).
 		SetName("test-charge").

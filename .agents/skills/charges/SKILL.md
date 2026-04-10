@@ -57,7 +57,15 @@ Important types:
 - `meta.Charge` and `meta.ChargeID` define the shared charge identity and type
 - `charges.Charge` wraps concrete charge variants
 - `flatfee.Intent` carries `AmountBeforeProration`, `ProRating`, `SettlementMode`, `PaymentTerm`, `InvoiceAt` — immutable inputs provided by the caller
-- `flatfee.State` carries `AmountAfterProration`, `AdvanceAfter`, `CreditRealizations`, `AccruedUsage`, `Payment` — computed/mutable state persisted in DB
+- `flatfee.ChargeBase` stores the persisted flat-fee charge row: current `Status` plus durable `State`
+- `flatfee.State` currently tracks:
+  - `AmountAfterProration`
+  - `AdvanceAfter`
+  - `FeatureID`
+- `flatfee.Realizations` stores expanded, non-base data loaded from child tables:
+  - `CreditRealizations`
+  - `AccruedUsage`
+  - `Payment`
 - `flatfee.Intent.CalculateAmountAfterProration()` computes the prorated amount from `AmountBeforeProration`, `ServicePeriod/FullServicePeriod` ratio, and `ProRating` config, with currency-precision rounding
 - Charge-backed targets do not use invoice-style semantic proration or empty-period filtering; the charge stack materializes and prorates state itself, and the flat fee charge is responsible for omitting empty lines
 - `usagebased.Intent` carries `FeatureKey`, `Price`, `SettlementMode`, `InvoiceAt`, and `ServicePeriod`
@@ -323,8 +331,8 @@ Key differences from usage-based credits-only:
 - No collection period, no two-phase realization
 - Amount is computed at creation from `Intent.AmountBeforeProration` and stored in `State.AmountAfterProration`, no meter snapshot or rating
 - No `FeatureMeter` or `CustomerOverride` needed
-- Uses `meta.ChargeStatus` directly (not sub-statuses like `active.final_realization.*`)
-- The flat fee adapter's `UpdateCharge(...)` takes a full `flatfee.Charge` (not `ChargeBase`)
+- Uses `flatfee.Status` with only top-level states (not sub-statuses like `active.final_realization.*`)
+- Persists only `flatfee.ChargeBase`; credit allocations / payment / accrued usage live in `flatfee.Realizations`
 
 Service construction requires a `*lockr.Locker` (same as usage-based).
 
@@ -388,14 +396,14 @@ Charge status persistence is split across:
 - the shared meta charge row
 - the charge-type-specific row
 
-For usage-based charges:
+For usage-based and flat-fee charges:
 
 When status changes:
 
 - update the meta charge status to the short/meta status
-- update the usage-based charge status to the full usage-based status
+- update the type-specific charge `status_detailed` to the full type-specific status
 
-`usagebased.Status.ToMetaChargeStatus()` is the bridge between the full state-machine status and the root charge meta status.
+`usagebased.Status.ToMetaChargeStatus()` and `flatfee.Status.ToMetaChargeStatus()` are the bridges between the full state-machine status and the root charge meta status.
 
 ## Testing Guidance
 
@@ -464,10 +472,13 @@ When changing flat-fee charges:
 
 - the invoiced path (CreditThenInvoice/InvoiceOnly) starts as `Active` and is driven by invoice lifecycle hooks
 - the credit-only path starts as `Created` and is driven by the state machine — do not mix the two
-- `AmountAfterProration` lives on `flatfee.State`, not `flatfee.Intent` — it is computed at creation via `Intent.CalculateAmountAfterProration()` and persisted. Callers must not provide it; they set `AmountBeforeProration`, `ServicePeriod`, `FullServicePeriod`, and `ProRating` on the Intent
+- `AmountAfterProration` lives on `flatfee.State`, not `flatfee.Intent` — it is computed at creation via `Intent.CalculateAmountAfterProration()` and persisted on the base charge row. Callers must not provide it; they set `AmountBeforeProration`, `ServicePeriod`, `FullServicePeriod`, and `ProRating` on the Intent
 - `IntentWithInitialStatus` carries `AmountAfterProration` alongside `InitialStatus` to pass the computed value from the service to the adapter at creation time
 - `flatfee.State.AdvanceAfter` must be passed through `chargemeta.UpdateInput.AdvanceAfter` on every `UpdateCharge(...)` call
-- `flatfee.Adapter.UpdateCharge(...)` takes the full `flatfee.Charge`, not a `ChargeBase` — extract `State.AdvanceAfter` when building `chargemeta.UpdateInput`
+- `flatfee.Adapter.UpdateCharge(...)` takes `flatfee.ChargeBase` and persists only base-row fields; do not call it just because `flatfee.Realizations` changed
+- `CreatePayment(...)`, `UpdatePayment(...)`, `CreateInvoicedUsage(...)`, and `CreateCreditAllocations(...)` already persist the realization-side rows; a follow-up `UpdateCharge(...)` is redundant unless base-row fields changed too
+- `flatfee.Charge.Realizations` is expand-only data loaded from child tables; tests and service code should read payment/accrued-usage/credit-allocation state there, not from `flatfee.State`
+- `charge_flat_fees.status_detailed` mirrors `status` today; schema changes or migrations that introduce new flat-fee statuses must keep both columns consistent through `ToMetaChargeStatus()`
 - the `flatfee.Handler` interface has both invoiced-path methods and credits-only methods — implementors must satisfy all of them
 - adding new `Handler` methods requires updating: `ledger/chargeadapter/flatfee.go`, `test/credits/mockledger.go`, `charges/service/handlers_test.go`
 - the same applies to `usagebased.Handler` — new methods must be added to `UnimplementedHandler`, the ledger adapter, and the test handler

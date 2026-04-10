@@ -8,7 +8,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -30,9 +29,9 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 		intentsWithStatus, err := slicesx.MapWithErr(input.Intents, func(intent flatfee.Intent) (flatfee.IntentWithInitialStatus, error) {
 			intent = intent.Normalized()
 
-			initialStatus := meta.ChargeStatusActive
+			initialStatus := flatfee.StatusActive
 			if intent.SettlementMode == productcatalog.CreditOnlySettlementMode {
-				initialStatus = meta.ChargeStatusCreated
+				initialStatus = flatfee.StatusCreated
 			}
 
 			amountAfterProration, err := intent.CalculateAmountAfterProration()

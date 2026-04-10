@@ -84,6 +84,8 @@ const (
 	FieldAmountBeforeProration = "amount_before_proration"
 	// FieldAmountAfterProration holds the string denoting the amount_after_proration field in the database.
 	FieldAmountAfterProration = "amount_after_proration"
+	// FieldStatusDetailed holds the string denoting the status_detailed field in the database.
+	FieldStatusDetailed = "status_detailed"
 	// EdgeCreditAllocations holds the string denoting the credit_allocations edge name in mutations.
 	EdgeCreditAllocations = "credit_allocations"
 	// EdgeInvoicedUsage holds the string denoting the invoiced_usage edge name in mutations.
@@ -204,6 +206,7 @@ var Columns = []string{
 	FieldFeatureID,
 	FieldAmountBeforeProration,
 	FieldAmountAfterProration,
+	FieldStatusDetailed,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -278,6 +281,16 @@ func ProRatingValidator(pr flatfee.ProRatingModeAdapterEnum) error {
 		return nil
 	default:
 		return fmt.Errorf("chargeflatfee: invalid enum value for pro_rating field: %q", pr)
+	}
+}
+
+// StatusDetailedValidator is a validator for the "status_detailed" field enum values. It is called by the builders before save.
+func StatusDetailedValidator(sd flatfee.Status) error {
+	switch sd {
+	case "created", "active", "final", "deleted":
+		return nil
+	default:
+		return fmt.Errorf("chargeflatfee: invalid enum value for status_detailed field: %q", sd)
 	}
 }
 
@@ -437,6 +450,11 @@ func ByAmountBeforeProration(opts ...sql.OrderTermOption) OrderOption {
 // ByAmountAfterProration orders the results by the amount_after_proration field.
 func ByAmountAfterProration(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAmountAfterProration, opts...).ToFunc()
+}
+
+// ByStatusDetailed orders the results by the status_detailed field.
+func ByStatusDetailed(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldStatusDetailed, opts...).ToFunc()
 }
 
 // ByCreditAllocationsCount orders the results by credit_allocations count.

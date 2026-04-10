@@ -122,13 +122,13 @@ func (s *CreditRealizationLineageTestSuite) TestFlatFeeCreditOnlyAllocationCreat
 
 	charge, err := s.mustGetChargeByID(chargeID).AsFlatFeeCharge()
 	s.NoError(err)
-	s.Len(charge.State.CreditRealizations, 2)
+	s.Len(charge.Realizations.CreditRealizations, 2)
 
-	lineages := s.mustListLineages(ns, realizationIDs(charge.State.CreditRealizations))
+	lineages := s.mustListLineages(ns, realizationIDs(charge.Realizations.CreditRealizations))
 	s.Require().Len(lineages, 2)
 
-	s.assertInitialLineage(lineages[charge.State.CreditRealizations[0].ID], chargeID.ID, charge.State.CreditRealizations[0].Amount, creditrealization.LineageOriginKindRealCredit, creditrealization.LineageSegmentStateRealCredit)
-	s.assertInitialLineage(lineages[charge.State.CreditRealizations[1].ID], chargeID.ID, charge.State.CreditRealizations[1].Amount, creditrealization.LineageOriginKindAdvance, creditrealization.LineageSegmentStateAdvanceUncovered)
+	s.assertInitialLineage(lineages[charge.Realizations.CreditRealizations[0].ID], chargeID.ID, charge.Realizations.CreditRealizations[0].Amount, creditrealization.LineageOriginKindRealCredit, creditrealization.LineageSegmentStateRealCredit)
+	s.assertInitialLineage(lineages[charge.Realizations.CreditRealizations[1].ID], chargeID.ID, charge.Realizations.CreditRealizations[1].Amount, creditrealization.LineageOriginKindAdvance, creditrealization.LineageSegmentStateAdvanceUncovered)
 }
 
 func (s *CreditRealizationLineageTestSuite) TestUsageBasedCreditOnlyAllocationCreatesInitialLineage() {

@@ -376,6 +376,20 @@ func (_u *ChargeFlatFeeUpdate) SetNillableAmountAfterProration(v *alpacadecimal.
 	return _u
 }
 
+// SetStatusDetailed sets the "status_detailed" field.
+func (_u *ChargeFlatFeeUpdate) SetStatusDetailed(v flatfee.Status) *ChargeFlatFeeUpdate {
+	_u.mutation.SetStatusDetailed(v)
+	return _u
+}
+
+// SetNillableStatusDetailed sets the "status_detailed" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdate) SetNillableStatusDetailed(v *flatfee.Status) *ChargeFlatFeeUpdate {
+	if v != nil {
+		_u.SetStatusDetailed(*v)
+	}
+	return _u
+}
+
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeFlatFeeCreditAllocations entity by IDs.
 func (_u *ChargeFlatFeeUpdate) AddCreditAllocationIDs(ids ...string) *ChargeFlatFeeUpdate {
 	_u.mutation.AddCreditAllocationIDs(ids...)
@@ -546,6 +560,11 @@ func (_u *ChargeFlatFeeUpdate) check() error {
 			return &ValidationError{Name: "feature_key", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.feature_key": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.StatusDetailed(); ok {
+		if err := chargeflatfee.StatusDetailedValidator(v); err != nil {
+			return &ValidationError{Name: "status_detailed", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.status_detailed": %w`, err)}
+		}
+	}
 	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeFlatFee.customer"`)
 	}
@@ -657,6 +676,9 @@ func (_u *ChargeFlatFeeUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	}
 	if value, ok := _u.mutation.AmountAfterProration(); ok {
 		_spec.SetField(chargeflatfee.FieldAmountAfterProration, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.StatusDetailed(); ok {
+		_spec.SetField(chargeflatfee.FieldStatusDetailed, field.TypeEnum, value)
 	}
 	if _u.mutation.CreditAllocationsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1148,6 +1170,20 @@ func (_u *ChargeFlatFeeUpdateOne) SetNillableAmountAfterProration(v *alpacadecim
 	return _u
 }
 
+// SetStatusDetailed sets the "status_detailed" field.
+func (_u *ChargeFlatFeeUpdateOne) SetStatusDetailed(v flatfee.Status) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetStatusDetailed(v)
+	return _u
+}
+
+// SetNillableStatusDetailed sets the "status_detailed" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdateOne) SetNillableStatusDetailed(v *flatfee.Status) *ChargeFlatFeeUpdateOne {
+	if v != nil {
+		_u.SetStatusDetailed(*v)
+	}
+	return _u
+}
+
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeFlatFeeCreditAllocations entity by IDs.
 func (_u *ChargeFlatFeeUpdateOne) AddCreditAllocationIDs(ids ...string) *ChargeFlatFeeUpdateOne {
 	_u.mutation.AddCreditAllocationIDs(ids...)
@@ -1331,6 +1367,11 @@ func (_u *ChargeFlatFeeUpdateOne) check() error {
 			return &ValidationError{Name: "feature_key", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.feature_key": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.StatusDetailed(); ok {
+		if err := chargeflatfee.StatusDetailedValidator(v); err != nil {
+			return &ValidationError{Name: "status_detailed", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.status_detailed": %w`, err)}
+		}
+	}
 	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeFlatFee.customer"`)
 	}
@@ -1459,6 +1500,9 @@ func (_u *ChargeFlatFeeUpdateOne) sqlSave(ctx context.Context) (_node *ChargeFla
 	}
 	if value, ok := _u.mutation.AmountAfterProration(); ok {
 		_spec.SetField(chargeflatfee.FieldAmountAfterProration, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.StatusDetailed(); ok {
+		_spec.SetField(chargeflatfee.FieldStatusDetailed, field.TypeEnum, value)
 	}
 	if _u.mutation.CreditAllocationsCleared() {
 		edge := &sqlgraph.EdgeSpec{
