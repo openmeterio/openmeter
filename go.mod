@@ -68,7 +68,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/stripe/stripe-go/v80 v80.2.1
 	github.com/svix/svix-webhooks v1.89.0
-	github.com/wI2L/jsondiff v0.7.0
+	github.com/wI2L/jsondiff v0.7.1
 	go.opentelemetry.io/contrib/bridges/otelslog v0.17.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.67.0
 	go.opentelemetry.io/contrib/instrumentation/runtime v0.67.0
