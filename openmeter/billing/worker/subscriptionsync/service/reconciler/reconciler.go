@@ -202,7 +202,11 @@ func filterInScopeLines(inScopeLines []targetstate.StateItem, patchCollections *
 
 func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 	if input.Subscription.SettlementMode == productcatalog.CreditOnlySettlementMode && s.chargesService == nil {
-		return nil, fmt.Errorf("credit only settlement mode is not supported without charges service enabled")
+		s.logger.DebugContext(ctx, "skipping credit-only subscription reconciliation because charges service is disabled", "subscription_id", input.Subscription.ID)
+
+		return &Plan{
+			SubscriptionMaxGenerationTimeLimit: input.Target.MaxGenerationTimeLimit,
+		}, nil
 	}
 
 	patchCollections, err := newPatchCollectionRouter(len(input.Target.Items)+len(input.Persisted.ByUniqueID), input.Persisted.Invoices)
