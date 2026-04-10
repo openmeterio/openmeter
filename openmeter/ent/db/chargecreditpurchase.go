@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecreditgrant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
@@ -85,10 +86,8 @@ type ChargeCreditPurchase struct {
 	Priority *int `json:"priority,omitempty"`
 	// Settlement holds the value of the "settlement" field.
 	Settlement creditpurchase.Settlement `json:"settlement,omitempty"`
-	// CreditGrantTransactionGroupID holds the value of the "credit_grant_transaction_group_id" field.
-	CreditGrantTransactionGroupID *string `json:"credit_grant_transaction_group_id,omitempty"`
-	// CreditGrantedAt holds the value of the "credit_granted_at" field.
-	CreditGrantedAt *time.Time `json:"credit_granted_at,omitempty"`
+	// StatusDetailed holds the value of the "status_detailed" field.
+	StatusDetailed creditpurchase.Status `json:"status_detailed,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChargeCreditPurchaseQuery when eager-loading is set.
 	Edges        ChargeCreditPurchaseEdges `json:"edges"`
@@ -101,6 +100,8 @@ type ChargeCreditPurchaseEdges struct {
 	ExternalPayment *ChargeCreditPurchaseExternalPayment `json:"external_payment,omitempty"`
 	// InvoicedPayment holds the value of the invoiced_payment edge.
 	InvoicedPayment *ChargeCreditPurchaseInvoicedPayment `json:"invoiced_payment,omitempty"`
+	// CreditGrant holds the value of the credit_grant edge.
+	CreditGrant *ChargeCreditPurchaseCreditGrant `json:"credit_grant,omitempty"`
 	// Charge holds the value of the charge edge.
 	Charge *Charge `json:"charge,omitempty"`
 	// Subscription holds the value of the subscription edge.
@@ -113,7 +114,7 @@ type ChargeCreditPurchaseEdges struct {
 	Customer *Customer `json:"customer,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [7]bool
+	loadedTypes [8]bool
 }
 
 // ExternalPaymentOrErr returns the ExternalPayment value or an error if the edge
@@ -138,12 +139,23 @@ func (e ChargeCreditPurchaseEdges) InvoicedPaymentOrErr() (*ChargeCreditPurchase
 	return nil, &NotLoadedError{edge: "invoiced_payment"}
 }
 
+// CreditGrantOrErr returns the CreditGrant value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeCreditPurchaseEdges) CreditGrantOrErr() (*ChargeCreditPurchaseCreditGrant, error) {
+	if e.CreditGrant != nil {
+		return e.CreditGrant, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: chargecreditpurchasecreditgrant.Label}
+	}
+	return nil, &NotLoadedError{edge: "credit_grant"}
+}
+
 // ChargeOrErr returns the Charge value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ChargeCreditPurchaseEdges) ChargeOrErr() (*Charge, error) {
 	if e.Charge != nil {
 		return e.Charge, nil
-	} else if e.loadedTypes[2] {
+	} else if e.loadedTypes[3] {
 		return nil, &NotFoundError{label: charge.Label}
 	}
 	return nil, &NotLoadedError{edge: "charge"}
@@ -154,7 +166,7 @@ func (e ChargeCreditPurchaseEdges) ChargeOrErr() (*Charge, error) {
 func (e ChargeCreditPurchaseEdges) SubscriptionOrErr() (*Subscription, error) {
 	if e.Subscription != nil {
 		return e.Subscription, nil
-	} else if e.loadedTypes[3] {
+	} else if e.loadedTypes[4] {
 		return nil, &NotFoundError{label: subscription.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription"}
@@ -165,7 +177,7 @@ func (e ChargeCreditPurchaseEdges) SubscriptionOrErr() (*Subscription, error) {
 func (e ChargeCreditPurchaseEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, error) {
 	if e.SubscriptionPhase != nil {
 		return e.SubscriptionPhase, nil
-	} else if e.loadedTypes[4] {
+	} else if e.loadedTypes[5] {
 		return nil, &NotFoundError{label: subscriptionphase.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_phase"}
@@ -176,7 +188,7 @@ func (e ChargeCreditPurchaseEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase,
 func (e ChargeCreditPurchaseEdges) SubscriptionItemOrErr() (*SubscriptionItem, error) {
 	if e.SubscriptionItem != nil {
 		return e.SubscriptionItem, nil
-	} else if e.loadedTypes[5] {
+	} else if e.loadedTypes[6] {
 		return nil, &NotFoundError{label: subscriptionitem.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_item"}
@@ -187,7 +199,7 @@ func (e ChargeCreditPurchaseEdges) SubscriptionItemOrErr() (*SubscriptionItem, e
 func (e ChargeCreditPurchaseEdges) CustomerOrErr() (*Customer, error) {
 	if e.Customer != nil {
 		return e.Customer, nil
-	} else if e.loadedTypes[6] {
+	} else if e.loadedTypes[7] {
 		return nil, &NotFoundError{label: customer.Label}
 	}
 	return nil, &NotLoadedError{edge: "customer"}
@@ -204,9 +216,9 @@ func (*ChargeCreditPurchase) scanValues(columns []string) ([]any, error) {
 			values[i] = new(alpacadecimal.Decimal)
 		case chargecreditpurchase.FieldPriority:
 			values[i] = new(sql.NullInt64)
-		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldCustomerID, chargecreditpurchase.FieldStatus, chargecreditpurchase.FieldUniqueReferenceID, chargecreditpurchase.FieldCurrency, chargecreditpurchase.FieldManagedBy, chargecreditpurchase.FieldSubscriptionID, chargecreditpurchase.FieldSubscriptionPhaseID, chargecreditpurchase.FieldSubscriptionItemID, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldName, chargecreditpurchase.FieldDescription, chargecreditpurchase.FieldCreditGrantTransactionGroupID:
+		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldCustomerID, chargecreditpurchase.FieldStatus, chargecreditpurchase.FieldUniqueReferenceID, chargecreditpurchase.FieldCurrency, chargecreditpurchase.FieldManagedBy, chargecreditpurchase.FieldSubscriptionID, chargecreditpurchase.FieldSubscriptionPhaseID, chargecreditpurchase.FieldSubscriptionItemID, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldName, chargecreditpurchase.FieldDescription, chargecreditpurchase.FieldStatusDetailed:
 			values[i] = new(sql.NullString)
-		case chargecreditpurchase.FieldServicePeriodFrom, chargecreditpurchase.FieldServicePeriodTo, chargecreditpurchase.FieldBillingPeriodFrom, chargecreditpurchase.FieldBillingPeriodTo, chargecreditpurchase.FieldFullServicePeriodFrom, chargecreditpurchase.FieldFullServicePeriodTo, chargecreditpurchase.FieldAdvanceAfter, chargecreditpurchase.FieldCreatedAt, chargecreditpurchase.FieldUpdatedAt, chargecreditpurchase.FieldDeletedAt, chargecreditpurchase.FieldEffectiveAt, chargecreditpurchase.FieldCreditGrantedAt:
+		case chargecreditpurchase.FieldServicePeriodFrom, chargecreditpurchase.FieldServicePeriodTo, chargecreditpurchase.FieldBillingPeriodFrom, chargecreditpurchase.FieldBillingPeriodTo, chargecreditpurchase.FieldFullServicePeriodFrom, chargecreditpurchase.FieldFullServicePeriodTo, chargecreditpurchase.FieldAdvanceAfter, chargecreditpurchase.FieldCreatedAt, chargecreditpurchase.FieldUpdatedAt, chargecreditpurchase.FieldDeletedAt, chargecreditpurchase.FieldEffectiveAt:
 			values[i] = new(sql.NullTime)
 		case chargecreditpurchase.FieldSettlement:
 			values[i] = chargecreditpurchase.ValueScanner.Settlement.ScanValue()
@@ -406,19 +418,11 @@ func (_m *ChargeCreditPurchase) assignValues(columns []string, values []any) err
 			} else {
 				_m.Settlement = value
 			}
-		case chargecreditpurchase.FieldCreditGrantTransactionGroupID:
+		case chargecreditpurchase.FieldStatusDetailed:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field credit_grant_transaction_group_id", values[i])
+				return fmt.Errorf("unexpected type %T for field status_detailed", values[i])
 			} else if value.Valid {
-				_m.CreditGrantTransactionGroupID = new(string)
-				*_m.CreditGrantTransactionGroupID = value.String
-			}
-		case chargecreditpurchase.FieldCreditGrantedAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field credit_granted_at", values[i])
-			} else if value.Valid {
-				_m.CreditGrantedAt = new(time.Time)
-				*_m.CreditGrantedAt = value.Time
+				_m.StatusDetailed = creditpurchase.Status(value.String)
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -441,6 +445,11 @@ func (_m *ChargeCreditPurchase) QueryExternalPayment() *ChargeCreditPurchaseExte
 // QueryInvoicedPayment queries the "invoiced_payment" edge of the ChargeCreditPurchase entity.
 func (_m *ChargeCreditPurchase) QueryInvoicedPayment() *ChargeCreditPurchaseInvoicedPaymentQuery {
 	return NewChargeCreditPurchaseClient(_m.config).QueryInvoicedPayment(_m)
+}
+
+// QueryCreditGrant queries the "credit_grant" edge of the ChargeCreditPurchase entity.
+func (_m *ChargeCreditPurchase) QueryCreditGrant() *ChargeCreditPurchaseCreditGrantQuery {
+	return NewChargeCreditPurchaseClient(_m.config).QueryCreditGrant(_m)
 }
 
 // QueryCharge queries the "charge" edge of the ChargeCreditPurchase entity.
@@ -590,15 +599,8 @@ func (_m *ChargeCreditPurchase) String() string {
 	builder.WriteString("settlement=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Settlement))
 	builder.WriteString(", ")
-	if v := _m.CreditGrantTransactionGroupID; v != nil {
-		builder.WriteString("credit_grant_transaction_group_id=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := _m.CreditGrantedAt; v != nil {
-		builder.WriteString("credit_granted_at=")
-		builder.WriteString(v.Format(time.ANSIC))
-	}
+	builder.WriteString("status_detailed=")
+	builder.WriteString(fmt.Sprintf("%v", _m.StatusDetailed))
 	builder.WriteByte(')')
 	return builder.String()
 }

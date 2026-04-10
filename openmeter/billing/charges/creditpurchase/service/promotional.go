@@ -5,14 +5,12 @@ import (
 	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
-var activePromotionalCreditPurchaseStatuses = []meta.ChargeStatus{
-	meta.ChargeStatusCreated,
-	meta.ChargeStatusActive,
+var activePromotionalCreditPurchaseStatuses = []creditpurchase.Status{
+	creditpurchase.StatusCreated,
+	creditpurchase.StatusActive,
 }
 
 func (s *service) onPromotionalCreditPurchase(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.Charge, error) {
@@ -26,17 +24,24 @@ func (s *service) onPromotionalCreditPurchase(ctx context.Context, charge credit
 		return creditpurchase.Charge{}, err
 	}
 
-	charge.State.CreditGrantRealization = &ledgertransaction.TimedGroupReference{
-		GroupReference: ledgerTransactionGroupReference,
-		Time:           clock.Now(),
-	}
-
-	charge.Status = meta.ChargeStatusFinal
-
-	charge, err = s.adapter.UpdateCharge(ctx, charge)
+	grantRealization, err := s.adapter.CreateCreditGrant(ctx, charge.GetChargeID(), creditpurchase.CreateCreditGrantInput{
+		TransactionGroupID: ledgerTransactionGroupReference.TransactionGroupID,
+		GrantedAt:          clock.Now(),
+	})
 	if err != nil {
 		return creditpurchase.Charge{}, err
 	}
+
+	charge.Realizations.CreditGrantRealization = &grantRealization
+
+	charge.Status = creditpurchase.StatusFinal
+
+	updatedBase, err := s.adapter.UpdateCharge(ctx, charge.ChargeBase)
+	if err != nil {
+		return creditpurchase.Charge{}, err
+	}
+
+	charge.ChargeBase = updatedBase
 
 	return charge, nil
 }

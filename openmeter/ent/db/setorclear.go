@@ -2369,32 +2369,18 @@ func (u *ChargeCreditPurchaseUpdateOne) SetOrClearDescription(value *string) *Ch
 	return u.SetDescription(*value)
 }
 
-func (u *ChargeCreditPurchaseUpdate) SetOrClearCreditGrantTransactionGroupID(value *string) *ChargeCreditPurchaseUpdate {
+func (u *ChargeCreditPurchaseCreditGrantUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeCreditPurchaseCreditGrantUpdate {
 	if value == nil {
-		return u.ClearCreditGrantTransactionGroupID()
+		return u.ClearDeletedAt()
 	}
-	return u.SetCreditGrantTransactionGroupID(*value)
+	return u.SetDeletedAt(*value)
 }
 
-func (u *ChargeCreditPurchaseUpdateOne) SetOrClearCreditGrantTransactionGroupID(value *string) *ChargeCreditPurchaseUpdateOne {
+func (u *ChargeCreditPurchaseCreditGrantUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeCreditPurchaseCreditGrantUpdateOne {
 	if value == nil {
-		return u.ClearCreditGrantTransactionGroupID()
+		return u.ClearDeletedAt()
 	}
-	return u.SetCreditGrantTransactionGroupID(*value)
-}
-
-func (u *ChargeCreditPurchaseUpdate) SetOrClearCreditGrantedAt(value *time.Time) *ChargeCreditPurchaseUpdate {
-	if value == nil {
-		return u.ClearCreditGrantedAt()
-	}
-	return u.SetCreditGrantedAt(*value)
-}
-
-func (u *ChargeCreditPurchaseUpdateOne) SetOrClearCreditGrantedAt(value *time.Time) *ChargeCreditPurchaseUpdateOne {
-	if value == nil {
-		return u.ClearCreditGrantedAt()
-	}
-	return u.SetCreditGrantedAt(*value)
+	return u.SetDeletedAt(*value)
 }
 
 func (u *ChargeCreditPurchaseExternalPaymentUpdate) SetOrClearAuthorizedTransactionGroupID(value *string) *ChargeCreditPurchaseExternalPaymentUpdate {

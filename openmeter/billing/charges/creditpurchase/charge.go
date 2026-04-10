@@ -15,18 +15,16 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-var _ meta.ChargeAccessor = (*Charge)(nil)
-
-type Charge struct {
+type ChargeBase struct {
 	meta.ManagedResource
 
-	Status meta.ChargeStatus `json:"status"`
-
 	Intent Intent `json:"intent"`
-	State  State  `json:"state"`
+	Status Status `json:"status"`
+
+	State State `json:"state"`
 }
 
-func (c Charge) Validate() error {
+func (c ChargeBase) Validate() error {
 	var errs []error
 
 	if err := c.ManagedResource.Validate(); err != nil {
@@ -48,19 +46,41 @@ func (c Charge) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (c Charge) GetChargeID() meta.ChargeID {
+func (c ChargeBase) GetChargeID() meta.ChargeID {
 	return meta.ChargeID{
 		Namespace: c.Namespace,
 		ID:        c.ID,
 	}
 }
 
-func (c Charge) ErrorAttributes() models.Attributes {
+func (c ChargeBase) ErrorAttributes() models.Attributes {
 	return models.Attributes{
 		"charge_id":   c.ID,
 		"namespace":   c.Namespace,
 		"charge_type": string(meta.ChargeTypeCreditPurchase),
 	}
+}
+
+var _ meta.ChargeAccessor = (*Charge)(nil)
+
+type Charge struct {
+	ChargeBase
+
+	Realizations Realizations `json:"realizations"`
+}
+
+func (c Charge) Validate() error {
+	var errs []error
+
+	if err := c.ChargeBase.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge base: %w", err))
+	}
+
+	if err := c.Realizations.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("realizations: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type Intent struct {
@@ -115,29 +135,38 @@ func (i Intent) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-type State struct {
+// State holds durable base-row scheduling fields for the credit purchase charge.
+// Currently empty — all lifecycle outcomes live in Realizations.
+type State struct{}
+
+func (s State) Validate() error {
+	return nil
+}
+
+// Realizations holds expand-only data loaded from child tables (edges).
+type Realizations struct {
 	CreditGrantRealization    *ledgertransaction.TimedGroupReference `json:"creditGrantRealization"`
 	ExternalPaymentSettlement *payment.External                      `json:"externalPaymentSettlement"`
 	InvoiceSettlement         *payment.Invoiced                      `json:"invoiceSettlement"`
 }
 
-func (s State) Validate() error {
+func (r Realizations) Validate() error {
 	var errs []error
 
-	if s.CreditGrantRealization != nil {
-		if err := s.CreditGrantRealization.Validate(); err != nil {
+	if r.CreditGrantRealization != nil {
+		if err := r.CreditGrantRealization.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("credit grant realization: %w", err))
 		}
 	}
 
-	if s.ExternalPaymentSettlement != nil {
-		if err := s.ExternalPaymentSettlement.Validate(); err != nil {
+	if r.ExternalPaymentSettlement != nil {
+		if err := r.ExternalPaymentSettlement.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("external payment settlement: %w", err))
 		}
 	}
 
-	if s.InvoiceSettlement != nil {
-		if err := s.InvoiceSettlement.Validate(); err != nil {
+	if r.InvoiceSettlement != nil {
+		if err := r.InvoiceSettlement.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("invoice settlement: %w", err))
 		}
 	}

@@ -40,6 +40,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecreditgrant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
@@ -178,6 +179,7 @@ func checkColumn(t, c string) error {
 			billingworkflowconfig.Table:                            billingworkflowconfig.ValidColumn,
 			charge.Table:                                           charge.ValidColumn,
 			chargecreditpurchase.Table:                             chargecreditpurchase.ValidColumn,
+			chargecreditpurchasecreditgrant.Table:                  chargecreditpurchasecreditgrant.ValidColumn,
 			chargecreditpurchaseexternalpayment.Table:              chargecreditpurchaseexternalpayment.ValidColumn,
 			chargecreditpurchaseinvoicedpayment.Table:              chargecreditpurchaseinvoicedpayment.ValidColumn,
 			chargeflatfee.Table:                                    chargeflatfee.ValidColumn,

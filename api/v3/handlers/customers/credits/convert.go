@@ -61,11 +61,11 @@ func convertFundingMethod(settlement creditpurchase.Settlement) api.BillingCredi
 
 func convertGrantStatus(charge creditpurchase.Charge) api.BillingCreditGrantStatus {
 	switch charge.Status {
-	case meta.ChargeStatusActive, meta.ChargeStatusFinal:
+	case creditpurchase.StatusActive, creditpurchase.StatusFinal:
 		return api.BillingCreditGrantStatusActive
-	case meta.ChargeStatusCreated:
+	case creditpurchase.StatusCreated:
 		return api.BillingCreditGrantStatusPending
-	case meta.ChargeStatusDeleted:
+	case creditpurchase.StatusDeleted:
 		return api.BillingCreditGrantStatusVoided
 	default:
 		return api.BillingCreditGrantStatusActive
@@ -100,8 +100,8 @@ func convertPurchase(charge creditpurchase.Charge) (*creditGrantPurchase, error)
 		purchaseAmount := currencyCalculator.RoundToPrecision(charge.Intent.CreditAmount.Mul(inv.CostBasis))
 		settlementStatus := api.BillingCreditPurchasePaymentSettlementStatusPending
 
-		if charge.State.InvoiceSettlement != nil {
-			settlementStatus = convertPaymentStatus(charge.State.InvoiceSettlement.Status)
+		if charge.Realizations.InvoiceSettlement != nil {
+			settlementStatus = convertPaymentStatus(charge.Realizations.InvoiceSettlement.Status)
 		}
 
 		return &creditGrantPurchase{
@@ -129,8 +129,8 @@ func convertPurchase(charge creditpurchase.Charge) (*creditGrantPurchase, error)
 		}
 		settlementStatus := api.BillingCreditPurchasePaymentSettlementStatusPending
 
-		if charge.State.ExternalPaymentSettlement != nil {
-			settlementStatus = convertPaymentStatus(charge.State.ExternalPaymentSettlement.Status)
+		if charge.Realizations.ExternalPaymentSettlement != nil {
+			settlementStatus = convertPaymentStatus(charge.Realizations.ExternalPaymentSettlement.Status)
 		}
 
 		return &creditGrantPurchase{

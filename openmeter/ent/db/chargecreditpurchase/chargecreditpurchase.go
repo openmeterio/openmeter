@@ -73,14 +73,14 @@ const (
 	FieldPriority = "priority"
 	// FieldSettlement holds the string denoting the settlement field in the database.
 	FieldSettlement = "settlement"
-	// FieldCreditGrantTransactionGroupID holds the string denoting the credit_grant_transaction_group_id field in the database.
-	FieldCreditGrantTransactionGroupID = "credit_grant_transaction_group_id"
-	// FieldCreditGrantedAt holds the string denoting the credit_granted_at field in the database.
-	FieldCreditGrantedAt = "credit_granted_at"
+	// FieldStatusDetailed holds the string denoting the status_detailed field in the database.
+	FieldStatusDetailed = "status_detailed"
 	// EdgeExternalPayment holds the string denoting the external_payment edge name in mutations.
 	EdgeExternalPayment = "external_payment"
 	// EdgeInvoicedPayment holds the string denoting the invoiced_payment edge name in mutations.
 	EdgeInvoicedPayment = "invoiced_payment"
+	// EdgeCreditGrant holds the string denoting the credit_grant edge name in mutations.
+	EdgeCreditGrant = "credit_grant"
 	// EdgeCharge holds the string denoting the charge edge name in mutations.
 	EdgeCharge = "charge"
 	// EdgeSubscription holds the string denoting the subscription edge name in mutations.
@@ -107,6 +107,13 @@ const (
 	InvoicedPaymentInverseTable = "charge_credit_purchase_invoiced_payments"
 	// InvoicedPaymentColumn is the table column denoting the invoiced_payment relation/edge.
 	InvoicedPaymentColumn = "charge_id"
+	// CreditGrantTable is the table that holds the credit_grant relation/edge.
+	CreditGrantTable = "charge_credit_purchase_credit_grants"
+	// CreditGrantInverseTable is the table name for the ChargeCreditPurchaseCreditGrant entity.
+	// It exists in this package in order to avoid circular dependency with the "chargecreditpurchasecreditgrant" package.
+	CreditGrantInverseTable = "charge_credit_purchase_credit_grants"
+	// CreditGrantColumn is the table column denoting the credit_grant relation/edge.
+	CreditGrantColumn = "charge_id"
 	// ChargeTable is the table that holds the charge relation/edge.
 	ChargeTable = "charges"
 	// ChargeInverseTable is the table name for the Charge entity.
@@ -174,8 +181,7 @@ var Columns = []string{
 	FieldEffectiveAt,
 	FieldPriority,
 	FieldSettlement,
-	FieldCreditGrantTransactionGroupID,
-	FieldCreditGrantedAt,
+	FieldStatusDetailed,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -201,8 +207,6 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
-	// CreditGrantTransactionGroupIDValidator is a validator for the "credit_grant_transaction_group_id" field. It is called by the builders before save.
-	CreditGrantTransactionGroupIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// ValueScanner of all ChargeCreditPurchase fields.
@@ -228,6 +232,16 @@ func ManagedByValidator(mb billing.InvoiceLineManagedBy) error {
 		return nil
 	default:
 		return fmt.Errorf("chargecreditpurchase: invalid enum value for managed_by field: %q", mb)
+	}
+}
+
+// StatusDetailedValidator is a validator for the "status_detailed" field enum values. It is called by the builders before save.
+func StatusDetailedValidator(sd creditpurchase.Status) error {
+	switch sd {
+	case "created", "active", "final", "deleted":
+		return nil
+	default:
+		return fmt.Errorf("chargecreditpurchase: invalid enum value for status_detailed field: %q", sd)
 	}
 }
 
@@ -364,14 +378,9 @@ func BySettlement(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSettlement, opts...).ToFunc()
 }
 
-// ByCreditGrantTransactionGroupID orders the results by the credit_grant_transaction_group_id field.
-func ByCreditGrantTransactionGroupID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCreditGrantTransactionGroupID, opts...).ToFunc()
-}
-
-// ByCreditGrantedAt orders the results by the credit_granted_at field.
-func ByCreditGrantedAt(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCreditGrantedAt, opts...).ToFunc()
+// ByStatusDetailed orders the results by the status_detailed field.
+func ByStatusDetailed(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldStatusDetailed, opts...).ToFunc()
 }
 
 // ByExternalPaymentField orders the results by external_payment field.
@@ -385,6 +394,13 @@ func ByExternalPaymentField(field string, opts ...sql.OrderTermOption) OrderOpti
 func ByInvoicedPaymentField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newInvoicedPaymentStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByCreditGrantField orders the results by credit_grant field.
+func ByCreditGrantField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCreditGrantStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -434,6 +450,13 @@ func newInvoicedPaymentStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(InvoicedPaymentInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, InvoicedPaymentTable, InvoicedPaymentColumn),
+	)
+}
+func newCreditGrantStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CreditGrantInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, CreditGrantTable, CreditGrantColumn),
 	)
 }
 func newChargeStep() *sqlgraph.Step {

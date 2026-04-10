@@ -5,7 +5,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -26,10 +25,15 @@ func (s *service) onExternalCreditPurchase(ctx context.Context, charge creditpur
 			return creditpurchase.Charge{}, err
 		}
 
-		charge.State.CreditGrantRealization = &ledgertransaction.TimedGroupReference{
-			GroupReference: ledgerTransactionGroupReference,
-			Time:           clock.Now(),
+		grantRealization, err := s.adapter.CreateCreditGrant(ctx, charge.GetChargeID(), creditpurchase.CreateCreditGrantInput{
+			TransactionGroupID: ledgerTransactionGroupReference.TransactionGroupID,
+			GrantedAt:          clock.Now(),
+		})
+		if err != nil {
+			return creditpurchase.Charge{}, err
 		}
+
+		charge.Realizations.CreditGrantRealization = &grantRealization
 
 		if ledgerTransactionGroupReference.TransactionGroupID != "" {
 			if err := s.lineage.BackfillAdvanceLineageSegments(ctx, lineage.BackfillAdvanceLineageSegmentsInput{
@@ -43,14 +47,16 @@ func (s *service) onExternalCreditPurchase(ctx context.Context, charge creditpur
 			}
 		}
 
-		charge.Status = meta.ChargeStatusActive
+		charge.Status = creditpurchase.StatusActive
 
-		updatedCharge, err := s.adapter.UpdateCharge(ctx, charge)
+		updatedBase, err := s.adapter.UpdateCharge(ctx, charge.ChargeBase)
 		if err != nil {
 			return creditpurchase.Charge{}, err
 		}
 
-		return updatedCharge, nil
+		charge.ChargeBase = updatedBase
+
+		return charge, nil
 	})
 	if err != nil {
 		return creditpurchase.Charge{}, err
@@ -80,10 +86,10 @@ func (s *service) onExternalCreditPurchase(ctx context.Context, charge creditpur
 
 func (s *service) HandleExternalPaymentAuthorized(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.Charge, error) {
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (creditpurchase.Charge, error) {
-		if charge.State.ExternalPaymentSettlement != nil {
+		if charge.Realizations.ExternalPaymentSettlement != nil {
 			return creditpurchase.Charge{}, payment.ErrPaymentAlreadyAuthorized.
 				WithAttrs(charge.ErrorAttributes()).
-				WithAttrs(charge.State.ExternalPaymentSettlement.ErrorAttributes())
+				WithAttrs(charge.Realizations.ExternalPaymentSettlement.ErrorAttributes())
 		}
 
 		ledgerTransactionGroupReference, err := s.handler.OnCreditPurchasePaymentAuthorized(ctx, charge)
@@ -109,12 +115,7 @@ func (s *service) HandleExternalPaymentAuthorized(ctx context.Context, charge cr
 			return creditpurchase.Charge{}, err
 		}
 
-		charge.State.ExternalPaymentSettlement = &paymentSettlement
-
-		charge, err = s.adapter.UpdateCharge(ctx, charge)
-		if err != nil {
-			return creditpurchase.Charge{}, err
-		}
+		charge.Realizations.ExternalPaymentSettlement = &paymentSettlement
 
 		return charge, nil
 	})
@@ -122,12 +123,12 @@ func (s *service) HandleExternalPaymentAuthorized(ctx context.Context, charge cr
 
 func (s *service) HandleExternalPaymentSettled(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.Charge, error) {
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (creditpurchase.Charge, error) {
-		if charge.State.ExternalPaymentSettlement == nil {
+		if charge.Realizations.ExternalPaymentSettlement == nil {
 			return creditpurchase.Charge{}, payment.ErrCannotSettleNotAuthorizedPayment.
 				WithAttrs(charge.ErrorAttributes())
 		}
 
-		paymentSettlement := *charge.State.ExternalPaymentSettlement
+		paymentSettlement := *charge.Realizations.ExternalPaymentSettlement
 
 		if paymentSettlement.Status != payment.StatusAuthorized {
 			return creditpurchase.Charge{}, payment.ErrPaymentAlreadySettled.
@@ -152,15 +153,17 @@ func (s *service) HandleExternalPaymentSettled(ctx context.Context, charge credi
 			return creditpurchase.Charge{}, err
 		}
 
-		charge.State.ExternalPaymentSettlement = &paymentSettlement
+		charge.Realizations.ExternalPaymentSettlement = &paymentSettlement
 
 		// Let's update the charge status to final
-		charge.Status = meta.ChargeStatusFinal
+		charge.Status = creditpurchase.StatusFinal
 
-		charge, err = s.adapter.UpdateCharge(ctx, charge)
+		updatedBase, err := s.adapter.UpdateCharge(ctx, charge.ChargeBase)
 		if err != nil {
 			return creditpurchase.Charge{}, err
 		}
+
+		charge.ChargeBase = updatedBase
 
 		return charge, nil
 	})

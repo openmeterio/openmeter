@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -14,16 +16,32 @@ import (
 )
 
 type Adapter interface {
+	ChargeAdapter
+	CreditGrantAdapter
+	ExternalPaymentAdapter
+	InvoicedPaymentAdapter
+
 	entutils.TxCreator
+}
 
-	UpdateCharge(ctx context.Context, charge Charge) (Charge, error)
+type ChargeAdapter interface {
 	CreateCharge(ctx context.Context, in CreateChargeInput) (Charge, error)
+	UpdateCharge(ctx context.Context, charge ChargeBase) (ChargeBase, error)
 	GetByIDs(ctx context.Context, ids GetByIDsInput) ([]Charge, error)
+	GetByID(ctx context.Context, id GetByIDInput) (Charge, error)
 	ListCharges(ctx context.Context, input ListChargesInput) (pagination.Result[Charge], error)
+}
 
+type ExternalPaymentAdapter interface {
 	CreateExternalPayment(ctx context.Context, chargeID meta.ChargeID, payment payment.ExternalCreateInput) (payment.External, error)
 	UpdateExternalPayment(ctx context.Context, payment payment.External) (payment.External, error)
+}
 
+type CreditGrantAdapter interface {
+	CreateCreditGrant(ctx context.Context, chargeID meta.ChargeID, input CreateCreditGrantInput) (ledgertransaction.TimedGroupReference, error)
+}
+
+type InvoicedPaymentAdapter interface {
 	CreateInvoicedPayment(ctx context.Context, chargeID meta.ChargeID, payment payment.InvoicedCreate) (payment.Invoiced, error)
 	UpdateInvoicedPayment(ctx context.Context, payment payment.Invoiced) (payment.Invoiced, error)
 }
@@ -46,6 +64,24 @@ func (i GetByIDsInput) Validate() error {
 		if id == "" {
 			errs = append(errs, errors.New("id is required"))
 		}
+	}
+
+	if err := i.Expands.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("expands: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type GetByIDInput struct {
+	ChargeID meta.ChargeID
+	Expands  meta.Expands
+}
+
+func (i GetByIDInput) Validate() error {
+	var errs []error
+	if err := i.ChargeID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge ID: %w", err))
 	}
 
 	if err := i.Expands.Validate(); err != nil {
@@ -114,6 +150,25 @@ func (i ListChargesInput) Validate() error {
 
 	if err := i.Expands.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("expands: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type CreateCreditGrantInput struct {
+	TransactionGroupID string
+	GrantedAt          time.Time
+}
+
+func (i CreateCreditGrantInput) Validate() error {
+	var errs []error
+
+	if i.TransactionGroupID == "" {
+		errs = append(errs, errors.New("transaction group ID is required"))
+	}
+
+	if i.GrantedAt.IsZero() {
+		errs = append(errs, errors.New("granted at is required"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

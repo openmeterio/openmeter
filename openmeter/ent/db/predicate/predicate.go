@@ -197,6 +197,9 @@ func ChargeCreditPurchaseOrErr(p ChargeCreditPurchase, err error) ChargeCreditPu
 	}
 }
 
+// ChargeCreditPurchaseCreditGrant is the predicate function for chargecreditpurchasecreditgrant builders.
+type ChargeCreditPurchaseCreditGrant func(*sql.Selector)
+
 // ChargeCreditPurchaseExternalPayment is the predicate function for chargecreditpurchaseexternalpayment builders.
 type ChargeCreditPurchaseExternalPayment func(*sql.Selector)
 

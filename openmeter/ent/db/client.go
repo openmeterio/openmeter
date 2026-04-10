@@ -42,6 +42,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecreditgrant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
@@ -151,6 +152,8 @@ type Client struct {
 	Charge *ChargeClient
 	// ChargeCreditPurchase is the client for interacting with the ChargeCreditPurchase builders.
 	ChargeCreditPurchase *ChargeCreditPurchaseClient
+	// ChargeCreditPurchaseCreditGrant is the client for interacting with the ChargeCreditPurchaseCreditGrant builders.
+	ChargeCreditPurchaseCreditGrant *ChargeCreditPurchaseCreditGrantClient
 	// ChargeCreditPurchaseExternalPayment is the client for interacting with the ChargeCreditPurchaseExternalPayment builders.
 	ChargeCreditPurchaseExternalPayment *ChargeCreditPurchaseExternalPaymentClient
 	// ChargeCreditPurchaseInvoicedPayment is the client for interacting with the ChargeCreditPurchaseInvoicedPayment builders.
@@ -283,6 +286,7 @@ func (c *Client) init() {
 	c.BillingWorkflowConfig = NewBillingWorkflowConfigClient(c.config)
 	c.Charge = NewChargeClient(c.config)
 	c.ChargeCreditPurchase = NewChargeCreditPurchaseClient(c.config)
+	c.ChargeCreditPurchaseCreditGrant = NewChargeCreditPurchaseCreditGrantClient(c.config)
 	c.ChargeCreditPurchaseExternalPayment = NewChargeCreditPurchaseExternalPaymentClient(c.config)
 	c.ChargeCreditPurchaseInvoicedPayment = NewChargeCreditPurchaseInvoicedPaymentClient(c.config)
 	c.ChargeFlatFee = NewChargeFlatFeeClient(c.config)
@@ -449,6 +453,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		BillingWorkflowConfig:                            NewBillingWorkflowConfigClient(cfg),
 		Charge:                                           NewChargeClient(cfg),
 		ChargeCreditPurchase:                             NewChargeCreditPurchaseClient(cfg),
+		ChargeCreditPurchaseCreditGrant:                  NewChargeCreditPurchaseCreditGrantClient(cfg),
 		ChargeCreditPurchaseExternalPayment:              NewChargeCreditPurchaseExternalPaymentClient(cfg),
 		ChargeCreditPurchaseInvoicedPayment:              NewChargeCreditPurchaseInvoicedPaymentClient(cfg),
 		ChargeFlatFee:                                    NewChargeFlatFeeClient(cfg),
@@ -542,6 +547,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		BillingWorkflowConfig:                            NewBillingWorkflowConfigClient(cfg),
 		Charge:                                           NewChargeClient(cfg),
 		ChargeCreditPurchase:                             NewChargeCreditPurchaseClient(cfg),
+		ChargeCreditPurchaseCreditGrant:                  NewChargeCreditPurchaseCreditGrantClient(cfg),
 		ChargeCreditPurchaseExternalPayment:              NewChargeCreditPurchaseExternalPaymentClient(cfg),
 		ChargeCreditPurchaseInvoicedPayment:              NewChargeCreditPurchaseInvoicedPaymentClient(cfg),
 		ChargeFlatFee:                                    NewChargeFlatFeeClient(cfg),
@@ -628,10 +634,10 @@ func (c *Client) Use(hooks ...Hook) {
 		c.BillingProfile, c.BillingSequenceNumbers,
 		c.BillingStandardInvoiceDetailedLine,
 		c.BillingStandardInvoiceDetailedLineAmountDiscount, c.BillingWorkflowConfig,
-		c.Charge, c.ChargeCreditPurchase, c.ChargeCreditPurchaseExternalPayment,
-		c.ChargeCreditPurchaseInvoicedPayment, c.ChargeFlatFee,
-		c.ChargeFlatFeeCreditAllocations, c.ChargeFlatFeeInvoicedUsage,
-		c.ChargeFlatFeePayment, c.ChargeUsageBased,
+		c.Charge, c.ChargeCreditPurchase, c.ChargeCreditPurchaseCreditGrant,
+		c.ChargeCreditPurchaseExternalPayment, c.ChargeCreditPurchaseInvoicedPayment,
+		c.ChargeFlatFee, c.ChargeFlatFeeCreditAllocations,
+		c.ChargeFlatFeeInvoicedUsage, c.ChargeFlatFeePayment, c.ChargeUsageBased,
 		c.ChargeUsageBasedRunCreditAllocations, c.ChargeUsageBasedRunInvoicedUsage,
 		c.ChargeUsageBasedRunPayment, c.ChargeUsageBasedRuns,
 		c.CreditRealizationLineage, c.CreditRealizationLineageSegment,
@@ -663,10 +669,10 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.BillingProfile, c.BillingSequenceNumbers,
 		c.BillingStandardInvoiceDetailedLine,
 		c.BillingStandardInvoiceDetailedLineAmountDiscount, c.BillingWorkflowConfig,
-		c.Charge, c.ChargeCreditPurchase, c.ChargeCreditPurchaseExternalPayment,
-		c.ChargeCreditPurchaseInvoicedPayment, c.ChargeFlatFee,
-		c.ChargeFlatFeeCreditAllocations, c.ChargeFlatFeeInvoicedUsage,
-		c.ChargeFlatFeePayment, c.ChargeUsageBased,
+		c.Charge, c.ChargeCreditPurchase, c.ChargeCreditPurchaseCreditGrant,
+		c.ChargeCreditPurchaseExternalPayment, c.ChargeCreditPurchaseInvoicedPayment,
+		c.ChargeFlatFee, c.ChargeFlatFeeCreditAllocations,
+		c.ChargeFlatFeeInvoicedUsage, c.ChargeFlatFeePayment, c.ChargeUsageBased,
 		c.ChargeUsageBasedRunCreditAllocations, c.ChargeUsageBasedRunInvoicedUsage,
 		c.ChargeUsageBasedRunPayment, c.ChargeUsageBasedRuns, c.ChargesSearchV1,
 		c.CreditRealizationLineage, c.CreditRealizationLineageSegment,
@@ -741,6 +747,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Charge.mutate(ctx, m)
 	case *ChargeCreditPurchaseMutation:
 		return c.ChargeCreditPurchase.mutate(ctx, m)
+	case *ChargeCreditPurchaseCreditGrantMutation:
+		return c.ChargeCreditPurchaseCreditGrant.mutate(ctx, m)
 	case *ChargeCreditPurchaseExternalPaymentMutation:
 		return c.ChargeCreditPurchaseExternalPayment.mutate(ctx, m)
 	case *ChargeCreditPurchaseInvoicedPaymentMutation:
@@ -5764,6 +5772,22 @@ func (c *ChargeCreditPurchaseClient) QueryInvoicedPayment(_m *ChargeCreditPurcha
 	return query
 }
 
+// QueryCreditGrant queries the credit_grant edge of a ChargeCreditPurchase.
+func (c *ChargeCreditPurchaseClient) QueryCreditGrant(_m *ChargeCreditPurchase) *ChargeCreditPurchaseCreditGrantQuery {
+	query := (&ChargeCreditPurchaseCreditGrantClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargecreditpurchase.Table, chargecreditpurchase.FieldID, id),
+			sqlgraph.To(chargecreditpurchasecreditgrant.Table, chargecreditpurchasecreditgrant.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, chargecreditpurchase.CreditGrantTable, chargecreditpurchase.CreditGrantColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryCharge queries the charge edge of a ChargeCreditPurchase.
 func (c *ChargeCreditPurchaseClient) QueryCharge(_m *ChargeCreditPurchase) *ChargeQuery {
 	query := (&ChargeClient{config: c.config}).Query()
@@ -5866,6 +5890,155 @@ func (c *ChargeCreditPurchaseClient) mutate(ctx context.Context, m *ChargeCredit
 		return (&ChargeCreditPurchaseDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown ChargeCreditPurchase mutation op: %q", m.Op())
+	}
+}
+
+// ChargeCreditPurchaseCreditGrantClient is a client for the ChargeCreditPurchaseCreditGrant schema.
+type ChargeCreditPurchaseCreditGrantClient struct {
+	config
+}
+
+// NewChargeCreditPurchaseCreditGrantClient returns a client for the ChargeCreditPurchaseCreditGrant from the given config.
+func NewChargeCreditPurchaseCreditGrantClient(c config) *ChargeCreditPurchaseCreditGrantClient {
+	return &ChargeCreditPurchaseCreditGrantClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `chargecreditpurchasecreditgrant.Hooks(f(g(h())))`.
+func (c *ChargeCreditPurchaseCreditGrantClient) Use(hooks ...Hook) {
+	c.hooks.ChargeCreditPurchaseCreditGrant = append(c.hooks.ChargeCreditPurchaseCreditGrant, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `chargecreditpurchasecreditgrant.Intercept(f(g(h())))`.
+func (c *ChargeCreditPurchaseCreditGrantClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ChargeCreditPurchaseCreditGrant = append(c.inters.ChargeCreditPurchaseCreditGrant, interceptors...)
+}
+
+// Create returns a builder for creating a ChargeCreditPurchaseCreditGrant entity.
+func (c *ChargeCreditPurchaseCreditGrantClient) Create() *ChargeCreditPurchaseCreditGrantCreate {
+	mutation := newChargeCreditPurchaseCreditGrantMutation(c.config, OpCreate)
+	return &ChargeCreditPurchaseCreditGrantCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ChargeCreditPurchaseCreditGrant entities.
+func (c *ChargeCreditPurchaseCreditGrantClient) CreateBulk(builders ...*ChargeCreditPurchaseCreditGrantCreate) *ChargeCreditPurchaseCreditGrantCreateBulk {
+	return &ChargeCreditPurchaseCreditGrantCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ChargeCreditPurchaseCreditGrantClient) MapCreateBulk(slice any, setFunc func(*ChargeCreditPurchaseCreditGrantCreate, int)) *ChargeCreditPurchaseCreditGrantCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ChargeCreditPurchaseCreditGrantCreateBulk{err: fmt.Errorf("calling to ChargeCreditPurchaseCreditGrantClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ChargeCreditPurchaseCreditGrantCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ChargeCreditPurchaseCreditGrantCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ChargeCreditPurchaseCreditGrant.
+func (c *ChargeCreditPurchaseCreditGrantClient) Update() *ChargeCreditPurchaseCreditGrantUpdate {
+	mutation := newChargeCreditPurchaseCreditGrantMutation(c.config, OpUpdate)
+	return &ChargeCreditPurchaseCreditGrantUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ChargeCreditPurchaseCreditGrantClient) UpdateOne(_m *ChargeCreditPurchaseCreditGrant) *ChargeCreditPurchaseCreditGrantUpdateOne {
+	mutation := newChargeCreditPurchaseCreditGrantMutation(c.config, OpUpdateOne, withChargeCreditPurchaseCreditGrant(_m))
+	return &ChargeCreditPurchaseCreditGrantUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ChargeCreditPurchaseCreditGrantClient) UpdateOneID(id string) *ChargeCreditPurchaseCreditGrantUpdateOne {
+	mutation := newChargeCreditPurchaseCreditGrantMutation(c.config, OpUpdateOne, withChargeCreditPurchaseCreditGrantID(id))
+	return &ChargeCreditPurchaseCreditGrantUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ChargeCreditPurchaseCreditGrant.
+func (c *ChargeCreditPurchaseCreditGrantClient) Delete() *ChargeCreditPurchaseCreditGrantDelete {
+	mutation := newChargeCreditPurchaseCreditGrantMutation(c.config, OpDelete)
+	return &ChargeCreditPurchaseCreditGrantDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ChargeCreditPurchaseCreditGrantClient) DeleteOne(_m *ChargeCreditPurchaseCreditGrant) *ChargeCreditPurchaseCreditGrantDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ChargeCreditPurchaseCreditGrantClient) DeleteOneID(id string) *ChargeCreditPurchaseCreditGrantDeleteOne {
+	builder := c.Delete().Where(chargecreditpurchasecreditgrant.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ChargeCreditPurchaseCreditGrantDeleteOne{builder}
+}
+
+// Query returns a query builder for ChargeCreditPurchaseCreditGrant.
+func (c *ChargeCreditPurchaseCreditGrantClient) Query() *ChargeCreditPurchaseCreditGrantQuery {
+	return &ChargeCreditPurchaseCreditGrantQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeChargeCreditPurchaseCreditGrant},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ChargeCreditPurchaseCreditGrant entity by its id.
+func (c *ChargeCreditPurchaseCreditGrantClient) Get(ctx context.Context, id string) (*ChargeCreditPurchaseCreditGrant, error) {
+	return c.Query().Where(chargecreditpurchasecreditgrant.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ChargeCreditPurchaseCreditGrantClient) GetX(ctx context.Context, id string) *ChargeCreditPurchaseCreditGrant {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryCreditPurchase queries the credit_purchase edge of a ChargeCreditPurchaseCreditGrant.
+func (c *ChargeCreditPurchaseCreditGrantClient) QueryCreditPurchase(_m *ChargeCreditPurchaseCreditGrant) *ChargeCreditPurchaseQuery {
+	query := (&ChargeCreditPurchaseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargecreditpurchasecreditgrant.Table, chargecreditpurchasecreditgrant.FieldID, id),
+			sqlgraph.To(chargecreditpurchase.Table, chargecreditpurchase.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, chargecreditpurchasecreditgrant.CreditPurchaseTable, chargecreditpurchasecreditgrant.CreditPurchaseColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ChargeCreditPurchaseCreditGrantClient) Hooks() []Hook {
+	return c.hooks.ChargeCreditPurchaseCreditGrant
+}
+
+// Interceptors returns the client interceptors.
+func (c *ChargeCreditPurchaseCreditGrantClient) Interceptors() []Interceptor {
+	return c.inters.ChargeCreditPurchaseCreditGrant
+}
+
+func (c *ChargeCreditPurchaseCreditGrantClient) mutate(ctx context.Context, m *ChargeCreditPurchaseCreditGrantMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ChargeCreditPurchaseCreditGrantCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ChargeCreditPurchaseCreditGrantUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ChargeCreditPurchaseCreditGrantUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ChargeCreditPurchaseCreditGrantDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown ChargeCreditPurchaseCreditGrant mutation op: %q", m.Op())
 	}
 }
 
@@ -14189,9 +14362,9 @@ type (
 		BillingInvoiceValidationIssue, BillingInvoiceWriteSchemaLevel, BillingProfile,
 		BillingSequenceNumbers, BillingStandardInvoiceDetailedLine,
 		BillingStandardInvoiceDetailedLineAmountDiscount, BillingWorkflowConfig,
-		Charge, ChargeCreditPurchase, ChargeCreditPurchaseExternalPayment,
-		ChargeCreditPurchaseInvoicedPayment, ChargeFlatFee,
-		ChargeFlatFeeCreditAllocations, ChargeFlatFeeInvoicedUsage,
+		Charge, ChargeCreditPurchase, ChargeCreditPurchaseCreditGrant,
+		ChargeCreditPurchaseExternalPayment, ChargeCreditPurchaseInvoicedPayment,
+		ChargeFlatFee, ChargeFlatFeeCreditAllocations, ChargeFlatFeeInvoicedUsage,
 		ChargeFlatFeePayment, ChargeUsageBased, ChargeUsageBasedRunCreditAllocations,
 		ChargeUsageBasedRunInvoicedUsage, ChargeUsageBasedRunPayment,
 		ChargeUsageBasedRuns, CreditRealizationLineage,
@@ -14214,9 +14387,9 @@ type (
 		BillingInvoiceValidationIssue, BillingInvoiceWriteSchemaLevel, BillingProfile,
 		BillingSequenceNumbers, BillingStandardInvoiceDetailedLine,
 		BillingStandardInvoiceDetailedLineAmountDiscount, BillingWorkflowConfig,
-		Charge, ChargeCreditPurchase, ChargeCreditPurchaseExternalPayment,
-		ChargeCreditPurchaseInvoicedPayment, ChargeFlatFee,
-		ChargeFlatFeeCreditAllocations, ChargeFlatFeeInvoicedUsage,
+		Charge, ChargeCreditPurchase, ChargeCreditPurchaseCreditGrant,
+		ChargeCreditPurchaseExternalPayment, ChargeCreditPurchaseInvoicedPayment,
+		ChargeFlatFee, ChargeFlatFeeCreditAllocations, ChargeFlatFeeInvoicedUsage,
 		ChargeFlatFeePayment, ChargeUsageBased, ChargeUsageBasedRunCreditAllocations,
 		ChargeUsageBasedRunInvoicedUsage, ChargeUsageBasedRunPayment,
 		ChargeUsageBasedRuns, ChargesSearchV1, CreditRealizationLineage,

@@ -49,6 +49,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecreditgrant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
@@ -144,6 +145,7 @@ const (
 	TypeBillingWorkflowConfig                            = "BillingWorkflowConfig"
 	TypeCharge                                           = "Charge"
 	TypeChargeCreditPurchase                             = "ChargeCreditPurchase"
+	TypeChargeCreditPurchaseCreditGrant                  = "ChargeCreditPurchaseCreditGrant"
 	TypeChargeCreditPurchaseExternalPayment              = "ChargeCreditPurchaseExternalPayment"
 	TypeChargeCreditPurchaseInvoicedPayment              = "ChargeCreditPurchaseInvoicedPayment"
 	TypeChargeFlatFee                                    = "ChargeFlatFee"
@@ -36624,53 +36626,54 @@ func (m *ChargeMutation) ResetEdge(name string) error {
 // ChargeCreditPurchaseMutation represents an operation that mutates the ChargeCreditPurchase nodes in the graph.
 type ChargeCreditPurchaseMutation struct {
 	config
-	op                                Op
-	typ                               string
-	id                                *string
-	service_period_from               *time.Time
-	service_period_to                 *time.Time
-	billing_period_from               *time.Time
-	billing_period_to                 *time.Time
-	full_service_period_from          *time.Time
-	full_service_period_to            *time.Time
-	status                            *meta.ChargeStatus
-	unique_reference_id               *string
-	currency                          *currencyx.Code
-	managed_by                        *billing.InvoiceLineManagedBy
-	advance_after                     *time.Time
-	annotations                       *models.Annotations
-	namespace                         *string
-	metadata                          *map[string]string
-	created_at                        *time.Time
-	updated_at                        *time.Time
-	deleted_at                        *time.Time
-	name                              *string
-	description                       *string
-	credit_amount                     *alpacadecimal.Decimal
-	effective_at                      *time.Time
-	priority                          *int
-	addpriority                       *int
-	settlement                        *creditpurchase.Settlement
-	credit_grant_transaction_group_id *string
-	credit_granted_at                 *time.Time
-	clearedFields                     map[string]struct{}
-	external_payment                  *string
-	clearedexternal_payment           bool
-	invoiced_payment                  *string
-	clearedinvoiced_payment           bool
-	charge                            *string
-	clearedcharge                     bool
-	subscription                      *string
-	clearedsubscription               bool
-	subscription_phase                *string
-	clearedsubscription_phase         bool
-	subscription_item                 *string
-	clearedsubscription_item          bool
-	customer                          *string
-	clearedcustomer                   bool
-	done                              bool
-	oldValue                          func(context.Context) (*ChargeCreditPurchase, error)
-	predicates                        []predicate.ChargeCreditPurchase
+	op                        Op
+	typ                       string
+	id                        *string
+	service_period_from       *time.Time
+	service_period_to         *time.Time
+	billing_period_from       *time.Time
+	billing_period_to         *time.Time
+	full_service_period_from  *time.Time
+	full_service_period_to    *time.Time
+	status                    *meta.ChargeStatus
+	unique_reference_id       *string
+	currency                  *currencyx.Code
+	managed_by                *billing.InvoiceLineManagedBy
+	advance_after             *time.Time
+	annotations               *models.Annotations
+	namespace                 *string
+	metadata                  *map[string]string
+	created_at                *time.Time
+	updated_at                *time.Time
+	deleted_at                *time.Time
+	name                      *string
+	description               *string
+	credit_amount             *alpacadecimal.Decimal
+	effective_at              *time.Time
+	priority                  *int
+	addpriority               *int
+	settlement                *creditpurchase.Settlement
+	status_detailed           *creditpurchase.Status
+	clearedFields             map[string]struct{}
+	external_payment          *string
+	clearedexternal_payment   bool
+	invoiced_payment          *string
+	clearedinvoiced_payment   bool
+	credit_grant              *string
+	clearedcredit_grant       bool
+	charge                    *string
+	clearedcharge             bool
+	subscription              *string
+	clearedsubscription       bool
+	subscription_phase        *string
+	clearedsubscription_phase bool
+	subscription_item         *string
+	clearedsubscription_item  bool
+	customer                  *string
+	clearedcustomer           bool
+	done                      bool
+	oldValue                  func(context.Context) (*ChargeCreditPurchase, error)
+	predicates                []predicate.ChargeCreditPurchase
 }
 
 var _ ent.Mutation = (*ChargeCreditPurchaseMutation)(nil)
@@ -37913,102 +37916,40 @@ func (m *ChargeCreditPurchaseMutation) ResetSettlement() {
 	m.settlement = nil
 }
 
-// SetCreditGrantTransactionGroupID sets the "credit_grant_transaction_group_id" field.
-func (m *ChargeCreditPurchaseMutation) SetCreditGrantTransactionGroupID(s string) {
-	m.credit_grant_transaction_group_id = &s
+// SetStatusDetailed sets the "status_detailed" field.
+func (m *ChargeCreditPurchaseMutation) SetStatusDetailed(c creditpurchase.Status) {
+	m.status_detailed = &c
 }
 
-// CreditGrantTransactionGroupID returns the value of the "credit_grant_transaction_group_id" field in the mutation.
-func (m *ChargeCreditPurchaseMutation) CreditGrantTransactionGroupID() (r string, exists bool) {
-	v := m.credit_grant_transaction_group_id
+// StatusDetailed returns the value of the "status_detailed" field in the mutation.
+func (m *ChargeCreditPurchaseMutation) StatusDetailed() (r creditpurchase.Status, exists bool) {
+	v := m.status_detailed
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldCreditGrantTransactionGroupID returns the old "credit_grant_transaction_group_id" field's value of the ChargeCreditPurchase entity.
+// OldStatusDetailed returns the old "status_detailed" field's value of the ChargeCreditPurchase entity.
 // If the ChargeCreditPurchase object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeCreditPurchaseMutation) OldCreditGrantTransactionGroupID(ctx context.Context) (v *string, err error) {
+func (m *ChargeCreditPurchaseMutation) OldStatusDetailed(ctx context.Context) (v creditpurchase.Status, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCreditGrantTransactionGroupID is only allowed on UpdateOne operations")
+		return v, errors.New("OldStatusDetailed is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCreditGrantTransactionGroupID requires an ID field in the mutation")
+		return v, errors.New("OldStatusDetailed requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCreditGrantTransactionGroupID: %w", err)
+		return v, fmt.Errorf("querying old value for OldStatusDetailed: %w", err)
 	}
-	return oldValue.CreditGrantTransactionGroupID, nil
+	return oldValue.StatusDetailed, nil
 }
 
-// ClearCreditGrantTransactionGroupID clears the value of the "credit_grant_transaction_group_id" field.
-func (m *ChargeCreditPurchaseMutation) ClearCreditGrantTransactionGroupID() {
-	m.credit_grant_transaction_group_id = nil
-	m.clearedFields[chargecreditpurchase.FieldCreditGrantTransactionGroupID] = struct{}{}
-}
-
-// CreditGrantTransactionGroupIDCleared returns if the "credit_grant_transaction_group_id" field was cleared in this mutation.
-func (m *ChargeCreditPurchaseMutation) CreditGrantTransactionGroupIDCleared() bool {
-	_, ok := m.clearedFields[chargecreditpurchase.FieldCreditGrantTransactionGroupID]
-	return ok
-}
-
-// ResetCreditGrantTransactionGroupID resets all changes to the "credit_grant_transaction_group_id" field.
-func (m *ChargeCreditPurchaseMutation) ResetCreditGrantTransactionGroupID() {
-	m.credit_grant_transaction_group_id = nil
-	delete(m.clearedFields, chargecreditpurchase.FieldCreditGrantTransactionGroupID)
-}
-
-// SetCreditGrantedAt sets the "credit_granted_at" field.
-func (m *ChargeCreditPurchaseMutation) SetCreditGrantedAt(t time.Time) {
-	m.credit_granted_at = &t
-}
-
-// CreditGrantedAt returns the value of the "credit_granted_at" field in the mutation.
-func (m *ChargeCreditPurchaseMutation) CreditGrantedAt() (r time.Time, exists bool) {
-	v := m.credit_granted_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCreditGrantedAt returns the old "credit_granted_at" field's value of the ChargeCreditPurchase entity.
-// If the ChargeCreditPurchase object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeCreditPurchaseMutation) OldCreditGrantedAt(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCreditGrantedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCreditGrantedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCreditGrantedAt: %w", err)
-	}
-	return oldValue.CreditGrantedAt, nil
-}
-
-// ClearCreditGrantedAt clears the value of the "credit_granted_at" field.
-func (m *ChargeCreditPurchaseMutation) ClearCreditGrantedAt() {
-	m.credit_granted_at = nil
-	m.clearedFields[chargecreditpurchase.FieldCreditGrantedAt] = struct{}{}
-}
-
-// CreditGrantedAtCleared returns if the "credit_granted_at" field was cleared in this mutation.
-func (m *ChargeCreditPurchaseMutation) CreditGrantedAtCleared() bool {
-	_, ok := m.clearedFields[chargecreditpurchase.FieldCreditGrantedAt]
-	return ok
-}
-
-// ResetCreditGrantedAt resets all changes to the "credit_granted_at" field.
-func (m *ChargeCreditPurchaseMutation) ResetCreditGrantedAt() {
-	m.credit_granted_at = nil
-	delete(m.clearedFields, chargecreditpurchase.FieldCreditGrantedAt)
+// ResetStatusDetailed resets all changes to the "status_detailed" field.
+func (m *ChargeCreditPurchaseMutation) ResetStatusDetailed() {
+	m.status_detailed = nil
 }
 
 // SetExternalPaymentID sets the "external_payment" edge to the ChargeCreditPurchaseExternalPayment entity by id.
@@ -38087,6 +38028,45 @@ func (m *ChargeCreditPurchaseMutation) InvoicedPaymentIDs() (ids []string) {
 func (m *ChargeCreditPurchaseMutation) ResetInvoicedPayment() {
 	m.invoiced_payment = nil
 	m.clearedinvoiced_payment = false
+}
+
+// SetCreditGrantID sets the "credit_grant" edge to the ChargeCreditPurchaseCreditGrant entity by id.
+func (m *ChargeCreditPurchaseMutation) SetCreditGrantID(id string) {
+	m.credit_grant = &id
+}
+
+// ClearCreditGrant clears the "credit_grant" edge to the ChargeCreditPurchaseCreditGrant entity.
+func (m *ChargeCreditPurchaseMutation) ClearCreditGrant() {
+	m.clearedcredit_grant = true
+}
+
+// CreditGrantCleared reports if the "credit_grant" edge to the ChargeCreditPurchaseCreditGrant entity was cleared.
+func (m *ChargeCreditPurchaseMutation) CreditGrantCleared() bool {
+	return m.clearedcredit_grant
+}
+
+// CreditGrantID returns the "credit_grant" edge ID in the mutation.
+func (m *ChargeCreditPurchaseMutation) CreditGrantID() (id string, exists bool) {
+	if m.credit_grant != nil {
+		return *m.credit_grant, true
+	}
+	return
+}
+
+// CreditGrantIDs returns the "credit_grant" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CreditGrantID instead. It exists only for internal usage by the builders.
+func (m *ChargeCreditPurchaseMutation) CreditGrantIDs() (ids []string) {
+	if id := m.credit_grant; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCreditGrant resets all changes to the "credit_grant" edge.
+func (m *ChargeCreditPurchaseMutation) ResetCreditGrant() {
+	m.credit_grant = nil
+	m.clearedcredit_grant = false
 }
 
 // SetChargeID sets the "charge" edge to the Charge entity by id.
@@ -38270,7 +38250,7 @@ func (m *ChargeCreditPurchaseMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeCreditPurchaseMutation) Fields() []string {
-	fields := make([]string, 0, 29)
+	fields := make([]string, 0, 28)
 	if m.customer != nil {
 		fields = append(fields, chargecreditpurchase.FieldCustomerID)
 	}
@@ -38352,11 +38332,8 @@ func (m *ChargeCreditPurchaseMutation) Fields() []string {
 	if m.settlement != nil {
 		fields = append(fields, chargecreditpurchase.FieldSettlement)
 	}
-	if m.credit_grant_transaction_group_id != nil {
-		fields = append(fields, chargecreditpurchase.FieldCreditGrantTransactionGroupID)
-	}
-	if m.credit_granted_at != nil {
-		fields = append(fields, chargecreditpurchase.FieldCreditGrantedAt)
+	if m.status_detailed != nil {
+		fields = append(fields, chargecreditpurchase.FieldStatusDetailed)
 	}
 	return fields
 }
@@ -38420,10 +38397,8 @@ func (m *ChargeCreditPurchaseMutation) Field(name string) (ent.Value, bool) {
 		return m.Priority()
 	case chargecreditpurchase.FieldSettlement:
 		return m.Settlement()
-	case chargecreditpurchase.FieldCreditGrantTransactionGroupID:
-		return m.CreditGrantTransactionGroupID()
-	case chargecreditpurchase.FieldCreditGrantedAt:
-		return m.CreditGrantedAt()
+	case chargecreditpurchase.FieldStatusDetailed:
+		return m.StatusDetailed()
 	}
 	return nil, false
 }
@@ -38487,10 +38462,8 @@ func (m *ChargeCreditPurchaseMutation) OldField(ctx context.Context, name string
 		return m.OldPriority(ctx)
 	case chargecreditpurchase.FieldSettlement:
 		return m.OldSettlement(ctx)
-	case chargecreditpurchase.FieldCreditGrantTransactionGroupID:
-		return m.OldCreditGrantTransactionGroupID(ctx)
-	case chargecreditpurchase.FieldCreditGrantedAt:
-		return m.OldCreditGrantedAt(ctx)
+	case chargecreditpurchase.FieldStatusDetailed:
+		return m.OldStatusDetailed(ctx)
 	}
 	return nil, fmt.Errorf("unknown ChargeCreditPurchase field %s", name)
 }
@@ -38689,19 +38662,12 @@ func (m *ChargeCreditPurchaseMutation) SetField(name string, value ent.Value) er
 		}
 		m.SetSettlement(v)
 		return nil
-	case chargecreditpurchase.FieldCreditGrantTransactionGroupID:
-		v, ok := value.(string)
+	case chargecreditpurchase.FieldStatusDetailed:
+		v, ok := value.(creditpurchase.Status)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetCreditGrantTransactionGroupID(v)
-		return nil
-	case chargecreditpurchase.FieldCreditGrantedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCreditGrantedAt(v)
+		m.SetStatusDetailed(v)
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeCreditPurchase field %s", name)
@@ -38781,12 +38747,6 @@ func (m *ChargeCreditPurchaseMutation) ClearedFields() []string {
 	if m.FieldCleared(chargecreditpurchase.FieldPriority) {
 		fields = append(fields, chargecreditpurchase.FieldPriority)
 	}
-	if m.FieldCleared(chargecreditpurchase.FieldCreditGrantTransactionGroupID) {
-		fields = append(fields, chargecreditpurchase.FieldCreditGrantTransactionGroupID)
-	}
-	if m.FieldCleared(chargecreditpurchase.FieldCreditGrantedAt) {
-		fields = append(fields, chargecreditpurchase.FieldCreditGrantedAt)
-	}
 	return fields
 }
 
@@ -38833,12 +38793,6 @@ func (m *ChargeCreditPurchaseMutation) ClearField(name string) error {
 		return nil
 	case chargecreditpurchase.FieldPriority:
 		m.ClearPriority()
-		return nil
-	case chargecreditpurchase.FieldCreditGrantTransactionGroupID:
-		m.ClearCreditGrantTransactionGroupID()
-		return nil
-	case chargecreditpurchase.FieldCreditGrantedAt:
-		m.ClearCreditGrantedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeCreditPurchase nullable field %s", name)
@@ -38929,11 +38883,8 @@ func (m *ChargeCreditPurchaseMutation) ResetField(name string) error {
 	case chargecreditpurchase.FieldSettlement:
 		m.ResetSettlement()
 		return nil
-	case chargecreditpurchase.FieldCreditGrantTransactionGroupID:
-		m.ResetCreditGrantTransactionGroupID()
-		return nil
-	case chargecreditpurchase.FieldCreditGrantedAt:
-		m.ResetCreditGrantedAt()
+	case chargecreditpurchase.FieldStatusDetailed:
+		m.ResetStatusDetailed()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeCreditPurchase field %s", name)
@@ -38941,12 +38892,15 @@ func (m *ChargeCreditPurchaseMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeCreditPurchaseMutation) AddedEdges() []string {
-	edges := make([]string, 0, 7)
+	edges := make([]string, 0, 8)
 	if m.external_payment != nil {
 		edges = append(edges, chargecreditpurchase.EdgeExternalPayment)
 	}
 	if m.invoiced_payment != nil {
 		edges = append(edges, chargecreditpurchase.EdgeInvoicedPayment)
+	}
+	if m.credit_grant != nil {
+		edges = append(edges, chargecreditpurchase.EdgeCreditGrant)
 	}
 	if m.charge != nil {
 		edges = append(edges, chargecreditpurchase.EdgeCharge)
@@ -38978,6 +38932,10 @@ func (m *ChargeCreditPurchaseMutation) AddedIDs(name string) []ent.Value {
 		if id := m.invoiced_payment; id != nil {
 			return []ent.Value{*id}
 		}
+	case chargecreditpurchase.EdgeCreditGrant:
+		if id := m.credit_grant; id != nil {
+			return []ent.Value{*id}
+		}
 	case chargecreditpurchase.EdgeCharge:
 		if id := m.charge; id != nil {
 			return []ent.Value{*id}
@@ -39004,7 +38962,7 @@ func (m *ChargeCreditPurchaseMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ChargeCreditPurchaseMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 7)
+	edges := make([]string, 0, 8)
 	return edges
 }
 
@@ -39016,12 +38974,15 @@ func (m *ChargeCreditPurchaseMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeCreditPurchaseMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 7)
+	edges := make([]string, 0, 8)
 	if m.clearedexternal_payment {
 		edges = append(edges, chargecreditpurchase.EdgeExternalPayment)
 	}
 	if m.clearedinvoiced_payment {
 		edges = append(edges, chargecreditpurchase.EdgeInvoicedPayment)
+	}
+	if m.clearedcredit_grant {
+		edges = append(edges, chargecreditpurchase.EdgeCreditGrant)
 	}
 	if m.clearedcharge {
 		edges = append(edges, chargecreditpurchase.EdgeCharge)
@@ -39049,6 +39010,8 @@ func (m *ChargeCreditPurchaseMutation) EdgeCleared(name string) bool {
 		return m.clearedexternal_payment
 	case chargecreditpurchase.EdgeInvoicedPayment:
 		return m.clearedinvoiced_payment
+	case chargecreditpurchase.EdgeCreditGrant:
+		return m.clearedcredit_grant
 	case chargecreditpurchase.EdgeCharge:
 		return m.clearedcharge
 	case chargecreditpurchase.EdgeSubscription:
@@ -39072,6 +39035,9 @@ func (m *ChargeCreditPurchaseMutation) ClearEdge(name string) error {
 		return nil
 	case chargecreditpurchase.EdgeInvoicedPayment:
 		m.ClearInvoicedPayment()
+		return nil
+	case chargecreditpurchase.EdgeCreditGrant:
+		m.ClearCreditGrant()
 		return nil
 	case chargecreditpurchase.EdgeCharge:
 		m.ClearCharge()
@@ -39102,6 +39068,9 @@ func (m *ChargeCreditPurchaseMutation) ResetEdge(name string) error {
 	case chargecreditpurchase.EdgeInvoicedPayment:
 		m.ResetInvoicedPayment()
 		return nil
+	case chargecreditpurchase.EdgeCreditGrant:
+		m.ResetCreditGrant()
+		return nil
 	case chargecreditpurchase.EdgeCharge:
 		m.ResetCharge()
 		return nil
@@ -39119,6 +39088,751 @@ func (m *ChargeCreditPurchaseMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeCreditPurchase edge %s", name)
+}
+
+// ChargeCreditPurchaseCreditGrantMutation represents an operation that mutates the ChargeCreditPurchaseCreditGrant nodes in the graph.
+type ChargeCreditPurchaseCreditGrantMutation struct {
+	config
+	op                     Op
+	typ                    string
+	id                     *string
+	namespace              *string
+	created_at             *time.Time
+	updated_at             *time.Time
+	deleted_at             *time.Time
+	transaction_group_id   *string
+	granted_at             *time.Time
+	clearedFields          map[string]struct{}
+	credit_purchase        *string
+	clearedcredit_purchase bool
+	done                   bool
+	oldValue               func(context.Context) (*ChargeCreditPurchaseCreditGrant, error)
+	predicates             []predicate.ChargeCreditPurchaseCreditGrant
+}
+
+var _ ent.Mutation = (*ChargeCreditPurchaseCreditGrantMutation)(nil)
+
+// chargecreditpurchasecreditgrantOption allows management of the mutation configuration using functional options.
+type chargecreditpurchasecreditgrantOption func(*ChargeCreditPurchaseCreditGrantMutation)
+
+// newChargeCreditPurchaseCreditGrantMutation creates new mutation for the ChargeCreditPurchaseCreditGrant entity.
+func newChargeCreditPurchaseCreditGrantMutation(c config, op Op, opts ...chargecreditpurchasecreditgrantOption) *ChargeCreditPurchaseCreditGrantMutation {
+	m := &ChargeCreditPurchaseCreditGrantMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeChargeCreditPurchaseCreditGrant,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withChargeCreditPurchaseCreditGrantID sets the ID field of the mutation.
+func withChargeCreditPurchaseCreditGrantID(id string) chargecreditpurchasecreditgrantOption {
+	return func(m *ChargeCreditPurchaseCreditGrantMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ChargeCreditPurchaseCreditGrant
+		)
+		m.oldValue = func(ctx context.Context) (*ChargeCreditPurchaseCreditGrant, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ChargeCreditPurchaseCreditGrant.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withChargeCreditPurchaseCreditGrant sets the old ChargeCreditPurchaseCreditGrant of the mutation.
+func withChargeCreditPurchaseCreditGrant(node *ChargeCreditPurchaseCreditGrant) chargecreditpurchasecreditgrantOption {
+	return func(m *ChargeCreditPurchaseCreditGrantMutation) {
+		m.oldValue = func(context.Context) (*ChargeCreditPurchaseCreditGrant, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ChargeCreditPurchaseCreditGrantMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ChargeCreditPurchaseCreditGrantMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ChargeCreditPurchaseCreditGrant entities.
+func (m *ChargeCreditPurchaseCreditGrantMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ChargeCreditPurchaseCreditGrantMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ChargeCreditPurchaseCreditGrantMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ChargeCreditPurchaseCreditGrant.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *ChargeCreditPurchaseCreditGrantMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *ChargeCreditPurchaseCreditGrantMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the ChargeCreditPurchaseCreditGrant entity.
+// If the ChargeCreditPurchaseCreditGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditPurchaseCreditGrantMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *ChargeCreditPurchaseCreditGrantMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ChargeCreditPurchaseCreditGrantMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ChargeCreditPurchaseCreditGrantMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ChargeCreditPurchaseCreditGrant entity.
+// If the ChargeCreditPurchaseCreditGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditPurchaseCreditGrantMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ChargeCreditPurchaseCreditGrantMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ChargeCreditPurchaseCreditGrantMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ChargeCreditPurchaseCreditGrantMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the ChargeCreditPurchaseCreditGrant entity.
+// If the ChargeCreditPurchaseCreditGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditPurchaseCreditGrantMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ChargeCreditPurchaseCreditGrantMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *ChargeCreditPurchaseCreditGrantMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *ChargeCreditPurchaseCreditGrantMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the ChargeCreditPurchaseCreditGrant entity.
+// If the ChargeCreditPurchaseCreditGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditPurchaseCreditGrantMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *ChargeCreditPurchaseCreditGrantMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[chargecreditpurchasecreditgrant.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *ChargeCreditPurchaseCreditGrantMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[chargecreditpurchasecreditgrant.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *ChargeCreditPurchaseCreditGrantMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, chargecreditpurchasecreditgrant.FieldDeletedAt)
+}
+
+// SetChargeID sets the "charge_id" field.
+func (m *ChargeCreditPurchaseCreditGrantMutation) SetChargeID(s string) {
+	m.credit_purchase = &s
+}
+
+// ChargeID returns the value of the "charge_id" field in the mutation.
+func (m *ChargeCreditPurchaseCreditGrantMutation) ChargeID() (r string, exists bool) {
+	v := m.credit_purchase
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChargeID returns the old "charge_id" field's value of the ChargeCreditPurchaseCreditGrant entity.
+// If the ChargeCreditPurchaseCreditGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditPurchaseCreditGrantMutation) OldChargeID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChargeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChargeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChargeID: %w", err)
+	}
+	return oldValue.ChargeID, nil
+}
+
+// ResetChargeID resets all changes to the "charge_id" field.
+func (m *ChargeCreditPurchaseCreditGrantMutation) ResetChargeID() {
+	m.credit_purchase = nil
+}
+
+// SetTransactionGroupID sets the "transaction_group_id" field.
+func (m *ChargeCreditPurchaseCreditGrantMutation) SetTransactionGroupID(s string) {
+	m.transaction_group_id = &s
+}
+
+// TransactionGroupID returns the value of the "transaction_group_id" field in the mutation.
+func (m *ChargeCreditPurchaseCreditGrantMutation) TransactionGroupID() (r string, exists bool) {
+	v := m.transaction_group_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTransactionGroupID returns the old "transaction_group_id" field's value of the ChargeCreditPurchaseCreditGrant entity.
+// If the ChargeCreditPurchaseCreditGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditPurchaseCreditGrantMutation) OldTransactionGroupID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTransactionGroupID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTransactionGroupID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTransactionGroupID: %w", err)
+	}
+	return oldValue.TransactionGroupID, nil
+}
+
+// ResetTransactionGroupID resets all changes to the "transaction_group_id" field.
+func (m *ChargeCreditPurchaseCreditGrantMutation) ResetTransactionGroupID() {
+	m.transaction_group_id = nil
+}
+
+// SetGrantedAt sets the "granted_at" field.
+func (m *ChargeCreditPurchaseCreditGrantMutation) SetGrantedAt(t time.Time) {
+	m.granted_at = &t
+}
+
+// GrantedAt returns the value of the "granted_at" field in the mutation.
+func (m *ChargeCreditPurchaseCreditGrantMutation) GrantedAt() (r time.Time, exists bool) {
+	v := m.granted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGrantedAt returns the old "granted_at" field's value of the ChargeCreditPurchaseCreditGrant entity.
+// If the ChargeCreditPurchaseCreditGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditPurchaseCreditGrantMutation) OldGrantedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGrantedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGrantedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGrantedAt: %w", err)
+	}
+	return oldValue.GrantedAt, nil
+}
+
+// ResetGrantedAt resets all changes to the "granted_at" field.
+func (m *ChargeCreditPurchaseCreditGrantMutation) ResetGrantedAt() {
+	m.granted_at = nil
+}
+
+// SetCreditPurchaseID sets the "credit_purchase" edge to the ChargeCreditPurchase entity by id.
+func (m *ChargeCreditPurchaseCreditGrantMutation) SetCreditPurchaseID(id string) {
+	m.credit_purchase = &id
+}
+
+// ClearCreditPurchase clears the "credit_purchase" edge to the ChargeCreditPurchase entity.
+func (m *ChargeCreditPurchaseCreditGrantMutation) ClearCreditPurchase() {
+	m.clearedcredit_purchase = true
+	m.clearedFields[chargecreditpurchasecreditgrant.FieldChargeID] = struct{}{}
+}
+
+// CreditPurchaseCleared reports if the "credit_purchase" edge to the ChargeCreditPurchase entity was cleared.
+func (m *ChargeCreditPurchaseCreditGrantMutation) CreditPurchaseCleared() bool {
+	return m.clearedcredit_purchase
+}
+
+// CreditPurchaseID returns the "credit_purchase" edge ID in the mutation.
+func (m *ChargeCreditPurchaseCreditGrantMutation) CreditPurchaseID() (id string, exists bool) {
+	if m.credit_purchase != nil {
+		return *m.credit_purchase, true
+	}
+	return
+}
+
+// CreditPurchaseIDs returns the "credit_purchase" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CreditPurchaseID instead. It exists only for internal usage by the builders.
+func (m *ChargeCreditPurchaseCreditGrantMutation) CreditPurchaseIDs() (ids []string) {
+	if id := m.credit_purchase; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCreditPurchase resets all changes to the "credit_purchase" edge.
+func (m *ChargeCreditPurchaseCreditGrantMutation) ResetCreditPurchase() {
+	m.credit_purchase = nil
+	m.clearedcredit_purchase = false
+}
+
+// Where appends a list predicates to the ChargeCreditPurchaseCreditGrantMutation builder.
+func (m *ChargeCreditPurchaseCreditGrantMutation) Where(ps ...predicate.ChargeCreditPurchaseCreditGrant) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ChargeCreditPurchaseCreditGrantMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ChargeCreditPurchaseCreditGrantMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ChargeCreditPurchaseCreditGrant, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ChargeCreditPurchaseCreditGrantMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ChargeCreditPurchaseCreditGrantMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ChargeCreditPurchaseCreditGrant).
+func (m *ChargeCreditPurchaseCreditGrantMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ChargeCreditPurchaseCreditGrantMutation) Fields() []string {
+	fields := make([]string, 0, 7)
+	if m.namespace != nil {
+		fields = append(fields, chargecreditpurchasecreditgrant.FieldNamespace)
+	}
+	if m.created_at != nil {
+		fields = append(fields, chargecreditpurchasecreditgrant.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, chargecreditpurchasecreditgrant.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, chargecreditpurchasecreditgrant.FieldDeletedAt)
+	}
+	if m.credit_purchase != nil {
+		fields = append(fields, chargecreditpurchasecreditgrant.FieldChargeID)
+	}
+	if m.transaction_group_id != nil {
+		fields = append(fields, chargecreditpurchasecreditgrant.FieldTransactionGroupID)
+	}
+	if m.granted_at != nil {
+		fields = append(fields, chargecreditpurchasecreditgrant.FieldGrantedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ChargeCreditPurchaseCreditGrantMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case chargecreditpurchasecreditgrant.FieldNamespace:
+		return m.Namespace()
+	case chargecreditpurchasecreditgrant.FieldCreatedAt:
+		return m.CreatedAt()
+	case chargecreditpurchasecreditgrant.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case chargecreditpurchasecreditgrant.FieldDeletedAt:
+		return m.DeletedAt()
+	case chargecreditpurchasecreditgrant.FieldChargeID:
+		return m.ChargeID()
+	case chargecreditpurchasecreditgrant.FieldTransactionGroupID:
+		return m.TransactionGroupID()
+	case chargecreditpurchasecreditgrant.FieldGrantedAt:
+		return m.GrantedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ChargeCreditPurchaseCreditGrantMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case chargecreditpurchasecreditgrant.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case chargecreditpurchasecreditgrant.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case chargecreditpurchasecreditgrant.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case chargecreditpurchasecreditgrant.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case chargecreditpurchasecreditgrant.FieldChargeID:
+		return m.OldChargeID(ctx)
+	case chargecreditpurchasecreditgrant.FieldTransactionGroupID:
+		return m.OldTransactionGroupID(ctx)
+	case chargecreditpurchasecreditgrant.FieldGrantedAt:
+		return m.OldGrantedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown ChargeCreditPurchaseCreditGrant field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ChargeCreditPurchaseCreditGrantMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case chargecreditpurchasecreditgrant.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case chargecreditpurchasecreditgrant.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case chargecreditpurchasecreditgrant.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case chargecreditpurchasecreditgrant.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case chargecreditpurchasecreditgrant.FieldChargeID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChargeID(v)
+		return nil
+	case chargecreditpurchasecreditgrant.FieldTransactionGroupID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTransactionGroupID(v)
+		return nil
+	case chargecreditpurchasecreditgrant.FieldGrantedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGrantedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeCreditPurchaseCreditGrant field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ChargeCreditPurchaseCreditGrantMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ChargeCreditPurchaseCreditGrantMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ChargeCreditPurchaseCreditGrantMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown ChargeCreditPurchaseCreditGrant numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ChargeCreditPurchaseCreditGrantMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(chargecreditpurchasecreditgrant.FieldDeletedAt) {
+		fields = append(fields, chargecreditpurchasecreditgrant.FieldDeletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ChargeCreditPurchaseCreditGrantMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ChargeCreditPurchaseCreditGrantMutation) ClearField(name string) error {
+	switch name {
+	case chargecreditpurchasecreditgrant.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeCreditPurchaseCreditGrant nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ChargeCreditPurchaseCreditGrantMutation) ResetField(name string) error {
+	switch name {
+	case chargecreditpurchasecreditgrant.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case chargecreditpurchasecreditgrant.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case chargecreditpurchasecreditgrant.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case chargecreditpurchasecreditgrant.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case chargecreditpurchasecreditgrant.FieldChargeID:
+		m.ResetChargeID()
+		return nil
+	case chargecreditpurchasecreditgrant.FieldTransactionGroupID:
+		m.ResetTransactionGroupID()
+		return nil
+	case chargecreditpurchasecreditgrant.FieldGrantedAt:
+		m.ResetGrantedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeCreditPurchaseCreditGrant field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ChargeCreditPurchaseCreditGrantMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.credit_purchase != nil {
+		edges = append(edges, chargecreditpurchasecreditgrant.EdgeCreditPurchase)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ChargeCreditPurchaseCreditGrantMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case chargecreditpurchasecreditgrant.EdgeCreditPurchase:
+		if id := m.credit_purchase; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ChargeCreditPurchaseCreditGrantMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ChargeCreditPurchaseCreditGrantMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ChargeCreditPurchaseCreditGrantMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedcredit_purchase {
+		edges = append(edges, chargecreditpurchasecreditgrant.EdgeCreditPurchase)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ChargeCreditPurchaseCreditGrantMutation) EdgeCleared(name string) bool {
+	switch name {
+	case chargecreditpurchasecreditgrant.EdgeCreditPurchase:
+		return m.clearedcredit_purchase
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ChargeCreditPurchaseCreditGrantMutation) ClearEdge(name string) error {
+	switch name {
+	case chargecreditpurchasecreditgrant.EdgeCreditPurchase:
+		m.ClearCreditPurchase()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeCreditPurchaseCreditGrant unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ChargeCreditPurchaseCreditGrantMutation) ResetEdge(name string) error {
+	switch name {
+	case chargecreditpurchasecreditgrant.EdgeCreditPurchase:
+		m.ResetCreditPurchase()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeCreditPurchaseCreditGrant edge %s", name)
 }
 
 // ChargeCreditPurchaseExternalPaymentMutation represents an operation that mutates the ChargeCreditPurchaseExternalPayment nodes in the graph.

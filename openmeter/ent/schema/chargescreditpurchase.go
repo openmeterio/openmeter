@@ -50,15 +50,8 @@ func (ChargeCreditPurchase) Fields() []ent.Field {
 				dialect.Postgres: "jsonb",
 			}),
 
-		field.String("credit_grant_transaction_group_id").
-			SchemaType(map[string]string{
-				dialect.Postgres: "char(26)",
-			}).
-			Optional().
-			NotEmpty().
-			Nillable(),
-
-		field.Time("credit_granted_at").Optional().Nillable(),
+		field.Enum("status_detailed").
+			GoType(creditpurchase.Status("")),
 	}
 }
 
@@ -68,6 +61,9 @@ func (ChargeCreditPurchase) Edges() []ent.Edge {
 			Unique().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("invoiced_payment", ChargeCreditPurchaseInvoicedPayment.Type).
+			Unique().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("credit_grant", ChargeCreditPurchaseCreditGrant.Type).
 			Unique().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("charge", Charge.Type).
@@ -95,6 +91,54 @@ func (ChargeCreditPurchase) Edges() []ent.Edge {
 			Unique().
 			Required().
 			Immutable(),
+	}
+}
+
+type ChargeCreditPurchaseCreditGrant struct {
+	ent.Schema
+}
+
+func (ChargeCreditPurchaseCreditGrant) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.NamespaceMixin{},
+		entutils.IDMixin{},
+		entutils.TimeMixin{},
+	}
+}
+
+func (ChargeCreditPurchaseCreditGrant) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("charge_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Immutable(),
+
+		field.String("transaction_group_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			NotEmpty(),
+
+		field.Time("granted_at"),
+	}
+}
+
+func (ChargeCreditPurchaseCreditGrant) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("credit_purchase", ChargeCreditPurchase.Type).
+			Ref("credit_grant").
+			Field("charge_id").
+			Unique().
+			Required().
+			Immutable(),
+	}
+}
+
+func (ChargeCreditPurchaseCreditGrant) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "charge_id").
+			Unique(),
 	}
 }
 

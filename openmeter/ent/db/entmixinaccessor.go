@@ -951,6 +951,26 @@ func (e *ChargeCreditPurchase) GetDescription() *string {
 	return e.Description
 }
 
+func (e *ChargeCreditPurchaseCreditGrant) GetID() string {
+	return e.ID
+}
+
+func (e *ChargeCreditPurchaseCreditGrant) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *ChargeCreditPurchaseCreditGrant) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *ChargeCreditPurchaseCreditGrant) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *ChargeCreditPurchaseCreditGrant) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
 func (e *ChargeCreditPurchaseExternalPayment) GetID() string {
 	return e.ID
 }

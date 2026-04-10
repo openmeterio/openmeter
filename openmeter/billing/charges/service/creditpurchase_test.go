@@ -66,8 +66,8 @@ func (s *CreditPurchaseTestSuite) TestPromotionalCreditPurchase() {
 	promotionalCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
 	s.CreditPurchaseTestHandler.onPromotionalCreditPurchase = promotionalCallback.Handler(s.T(), func(t *testing.T, charge creditpurchase.Charge) {
 		assert.Equal(t, charge.Intent.Settlement.Type(), creditpurchase.SettlementTypePromotional)
-		assert.Nil(t, charge.State.CreditGrantRealization, "credit grant realization should not be set")
-		assert.Nil(t, charge.State.ExternalPaymentSettlement, "external payment settlement should not be set")
+		assert.Nil(t, charge.Realizations.CreditGrantRealization, "credit grant realization should not be set")
+		assert.Nil(t, charge.Realizations.ExternalPaymentSettlement, "external payment settlement should not be set")
 	})
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
@@ -83,15 +83,15 @@ func (s *CreditPurchaseTestSuite) TestPromotionalCreditPurchase() {
 	s.Equal(1, promotionalCallback.nrInvocations)
 	cpCharge, err := res[0].AsCreditPurchaseCharge()
 	s.NoError(err)
-	s.NotNil(cpCharge.State.CreditGrantRealization)
-	s.Equal(promotionalCallback.id, cpCharge.State.CreditGrantRealization.GroupReference.TransactionGroupID)
-	s.Equal(meta.ChargeStatusFinal, cpCharge.Status)
+	s.NotNil(cpCharge.Realizations.CreditGrantRealization)
+	s.Equal(promotionalCallback.id, cpCharge.Realizations.CreditGrantRealization.GroupReference.TransactionGroupID)
+	s.Equal(creditpurchase.StatusFinal, cpCharge.Status)
 
 	charge := s.mustGetChargeByID(cpCharge.GetChargeID())
 	updatedCPCharge, err := charge.AsCreditPurchaseCharge()
 	s.NoError(err)
-	s.Equal(promotionalCallback.id, updatedCPCharge.State.CreditGrantRealization.GroupReference.TransactionGroupID)
-	s.Equal(meta.ChargeStatusFinal, updatedCPCharge.Status)
+	s.Equal(promotionalCallback.id, updatedCPCharge.Realizations.CreditGrantRealization.GroupReference.TransactionGroupID)
+	s.Equal(creditpurchase.StatusFinal, updatedCPCharge.Status)
 }
 
 type createCreditPurchaseIntentInput struct {
@@ -176,30 +176,30 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseAutoSettle
 	initiatedCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
 	s.CreditPurchaseTestHandler.onCreditPurchaseInitiated = initiatedCallback.Handler(s.T(), func(t *testing.T, charge creditpurchase.Charge) {
 		assert.Equal(t, charge.Intent.Settlement.Type(), creditpurchase.SettlementTypeExternal)
-		assert.Nil(t, charge.State.CreditGrantRealization, "credit grant realization should not be set")
-		assert.Nil(t, charge.State.ExternalPaymentSettlement, "external payment settlement should not be set")
+		assert.Nil(t, charge.Realizations.CreditGrantRealization, "credit grant realization should not be set")
+		assert.Nil(t, charge.Realizations.ExternalPaymentSettlement, "external payment settlement should not be set")
 	})
 
 	// Then the authorized callback should be called, with a grant realization and no payment settlement
 	authorizedCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
 	s.CreditPurchaseTestHandler.onCreditPurchasePaymentAuthorized = authorizedCallback.Handler(s.T(), func(t *testing.T, charge creditpurchase.Charge) {
 		assert.Equal(t, charge.Intent.Settlement.Type(), creditpurchase.SettlementTypeExternal)
-		assert.NotNil(t, charge.State.CreditGrantRealization, "credit grant realization should be set")
-		assert.Equal(t, initiatedCallback.id, charge.State.CreditGrantRealization.GroupReference.TransactionGroupID)
-		assert.Nil(t, charge.State.ExternalPaymentSettlement)
-		assert.Equal(t, meta.ChargeStatusActive, charge.Status, "charge status should be active")
+		assert.NotNil(t, charge.Realizations.CreditGrantRealization, "credit grant realization should be set")
+		assert.Equal(t, initiatedCallback.id, charge.Realizations.CreditGrantRealization.GroupReference.TransactionGroupID)
+		assert.Nil(t, charge.Realizations.ExternalPaymentSettlement)
+		assert.Equal(t, creditpurchase.StatusActive, charge.Status, "charge status should be active")
 	})
 
 	// Then the settled callback should be called, with a grant realization and a payment settlement
 	settledCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
 	s.CreditPurchaseTestHandler.onCreditPurchasePaymentSettled = settledCallback.Handler(s.T(), func(t *testing.T, charge creditpurchase.Charge) {
 		assert.Equal(t, charge.Intent.Settlement.Type(), creditpurchase.SettlementTypeExternal)
-		assert.NotNil(t, charge.State.ExternalPaymentSettlement, "external payment settlement should be set")
+		assert.NotNil(t, charge.Realizations.ExternalPaymentSettlement, "external payment settlement should be set")
 
 		// Authorized transaction group ID should be set
-		assert.Equal(t, authorizedCallback.id, charge.State.ExternalPaymentSettlement.Authorized.TransactionGroupID)
-		assert.Equal(t, payment.StatusAuthorized, charge.State.ExternalPaymentSettlement.Status)
-		assert.Equal(t, meta.ChargeStatusActive, charge.Status, "charge status should be active")
+		assert.Equal(t, authorizedCallback.id, charge.Realizations.ExternalPaymentSettlement.Authorized.TransactionGroupID)
+		assert.Equal(t, payment.StatusAuthorized, charge.Realizations.ExternalPaymentSettlement.Status)
+		assert.Equal(t, creditpurchase.StatusActive, charge.Status, "charge status should be active")
 	})
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
@@ -231,16 +231,16 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseAutoSettle
 			creditPurchaseCharge, err := tc.charge.AsCreditPurchaseCharge()
 			s.NoError(err)
 			// Credit grant realization should be set
-			s.NotNil(creditPurchaseCharge.State.CreditGrantRealization)
-			s.Equal(initiatedCallback.id, creditPurchaseCharge.State.CreditGrantRealization.GroupReference.TransactionGroupID)
+			s.NotNil(creditPurchaseCharge.Realizations.CreditGrantRealization)
+			s.Equal(initiatedCallback.id, creditPurchaseCharge.Realizations.CreditGrantRealization.GroupReference.TransactionGroupID)
 
 			// Payment settlement should be set
-			s.NotNil(creditPurchaseCharge.State.ExternalPaymentSettlement, "external payment settlement should be set")
-			s.Equal(authorizedCallback.id, creditPurchaseCharge.State.ExternalPaymentSettlement.Authorized.TransactionGroupID, "authorized transaction group ID should be set")
-			s.Equal(settledCallback.id, creditPurchaseCharge.State.ExternalPaymentSettlement.Settled.TransactionGroupID, "settled transaction group ID should be set")
+			s.NotNil(creditPurchaseCharge.Realizations.ExternalPaymentSettlement, "external payment settlement should be set")
+			s.Equal(authorizedCallback.id, creditPurchaseCharge.Realizations.ExternalPaymentSettlement.Authorized.TransactionGroupID, "authorized transaction group ID should be set")
+			s.Equal(settledCallback.id, creditPurchaseCharge.Realizations.ExternalPaymentSettlement.Settled.TransactionGroupID, "settled transaction group ID should be set")
 
 			// The charge should be final
-			s.Equal(meta.ChargeStatusFinal, creditPurchaseCharge.Status)
+			s.Equal(creditpurchase.StatusFinal, creditPurchaseCharge.Status)
 		})
 	}
 }
@@ -282,8 +282,8 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseManuallySe
 		initatedCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
 		s.CreditPurchaseTestHandler.onCreditPurchaseInitiated = initatedCallback.Handler(s.T(), func(t *testing.T, charge creditpurchase.Charge) {
 			assert.Equal(t, charge.Intent.Settlement.Type(), creditpurchase.SettlementTypeExternal)
-			assert.Nil(t, charge.State.CreditGrantRealization, "credit grant realization should not be set")
-			assert.Nil(t, charge.State.ExternalPaymentSettlement, "external payment settlement should not be set")
+			assert.Nil(t, charge.Realizations.CreditGrantRealization, "credit grant realization should not be set")
+			assert.Nil(t, charge.Realizations.ExternalPaymentSettlement, "external payment settlement should not be set")
 		})
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
@@ -299,8 +299,8 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseManuallySe
 		creditPurchaseCharge, err := res[0].AsCreditPurchaseCharge()
 		s.NoError(err)
 		s.Equal(1, initatedCallback.nrInvocations)
-		s.Equal(initatedCallback.id, creditPurchaseCharge.State.CreditGrantRealization.GroupReference.TransactionGroupID)
-		s.Equal(meta.ChargeStatusActive, creditPurchaseCharge.Status)
+		s.Equal(initatedCallback.id, creditPurchaseCharge.Realizations.CreditGrantRealization.GroupReference.TransactionGroupID)
+		s.Equal(creditpurchase.StatusActive, creditPurchaseCharge.Status)
 
 		chargeID = creditPurchaseCharge.GetChargeID()
 		initatedTrnsID = initatedCallback.id
@@ -314,10 +314,10 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseManuallySe
 		authorizedCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
 		s.CreditPurchaseTestHandler.onCreditPurchasePaymentAuthorized = authorizedCallback.Handler(s.T(), func(t *testing.T, charge creditpurchase.Charge) {
 			assert.Equal(t, charge.Intent.Settlement.Type(), creditpurchase.SettlementTypeExternal)
-			assert.NotNil(t, charge.State.CreditGrantRealization, "credit grant realization should be set")
-			assert.Equal(t, initatedTrnsID, charge.State.CreditGrantRealization.GroupReference.TransactionGroupID)
-			assert.Nil(t, charge.State.ExternalPaymentSettlement)
-			assert.Equal(t, meta.ChargeStatusActive, charge.Status, "charge status should be active")
+			assert.NotNil(t, charge.Realizations.CreditGrantRealization, "credit grant realization should be set")
+			assert.Equal(t, initatedTrnsID, charge.Realizations.CreditGrantRealization.GroupReference.TransactionGroupID)
+			assert.Nil(t, charge.Realizations.ExternalPaymentSettlement)
+			assert.Equal(t, creditpurchase.StatusActive, charge.Status, "charge status should be active")
 		})
 
 		res, err := s.Charges.HandleCreditPurchaseExternalPaymentStateTransition(ctx, charges.HandleCreditPurchaseExternalPaymentStateTransitionInput{
@@ -327,9 +327,9 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseManuallySe
 		s.NoError(err)
 
 		s.Equal(1, authorizedCallback.nrInvocations)
-		s.Equal(authorizedCallback.id, res.State.ExternalPaymentSettlement.Authorized.TransactionGroupID)
-		s.Equal(payment.StatusAuthorized, res.State.ExternalPaymentSettlement.Status)
-		s.Equal(meta.ChargeStatusActive, res.Status)
+		s.Equal(authorizedCallback.id, res.Realizations.ExternalPaymentSettlement.Authorized.TransactionGroupID)
+		s.Equal(payment.StatusAuthorized, res.Realizations.ExternalPaymentSettlement.Status)
+		s.Equal(creditpurchase.StatusActive, res.Status)
 
 		authorizedTrnsID = authorizedCallback.id
 	})
@@ -341,12 +341,12 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseManuallySe
 		settledCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
 		s.CreditPurchaseTestHandler.onCreditPurchasePaymentSettled = settledCallback.Handler(s.T(), func(t *testing.T, charge creditpurchase.Charge) {
 			assert.Equal(t, charge.Intent.Settlement.Type(), creditpurchase.SettlementTypeExternal)
-			assert.NotNil(t, charge.State.ExternalPaymentSettlement, "external payment settlement should be set")
+			assert.NotNil(t, charge.Realizations.ExternalPaymentSettlement, "external payment settlement should be set")
 
 			// Authorized transaction group ID should be set
-			assert.Equal(t, authorizedTrnsID, charge.State.ExternalPaymentSettlement.Authorized.TransactionGroupID)
-			assert.Equal(t, payment.StatusAuthorized, charge.State.ExternalPaymentSettlement.Status)
-			assert.Equal(t, meta.ChargeStatusActive, charge.Status, "charge status should be active")
+			assert.Equal(t, authorizedTrnsID, charge.Realizations.ExternalPaymentSettlement.Authorized.TransactionGroupID)
+			assert.Equal(t, payment.StatusAuthorized, charge.Realizations.ExternalPaymentSettlement.Status)
+			assert.Equal(t, creditpurchase.StatusActive, charge.Status, "charge status should be active")
 		})
 		res, err := s.Charges.HandleCreditPurchaseExternalPaymentStateTransition(ctx, charges.HandleCreditPurchaseExternalPaymentStateTransitionInput{
 			ChargeID:           chargeID,
@@ -355,9 +355,9 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseManuallySe
 		s.NoError(err)
 
 		s.Equal(1, settledCallback.nrInvocations)
-		s.Equal(settledCallback.id, res.State.ExternalPaymentSettlement.Settled.TransactionGroupID)
-		s.Equal(payment.StatusSettled, res.State.ExternalPaymentSettlement.Status)
-		s.Equal(meta.ChargeStatusFinal, res.Status)
+		s.Equal(settledCallback.id, res.Realizations.ExternalPaymentSettlement.Settled.TransactionGroupID)
+		s.Equal(payment.StatusSettled, res.Realizations.ExternalPaymentSettlement.Status)
+		s.Equal(creditpurchase.StatusFinal, res.Status)
 	})
 }
 
@@ -425,9 +425,9 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 		charge := s.mustGetChargeByID(chargeID)
 		creditPurchaseCharge, err := charge.AsCreditPurchaseCharge()
 		s.NoError(err)
-		s.Equal(meta.ChargeStatusCreated, creditPurchaseCharge.Status)
-		s.Nil(creditPurchaseCharge.State.CreditGrantRealization)
-		s.Nil(creditPurchaseCharge.State.InvoiceSettlement)
+		s.Equal(creditpurchase.StatusCreated, creditPurchaseCharge.Status)
+		s.Nil(creditPurchaseCharge.Realizations.CreditGrantRealization)
+		s.Nil(creditPurchaseCharge.Realizations.InvoiceSettlement)
 	})
 
 	s.Run("invoice pending lines", func() {
@@ -436,8 +436,8 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 		initatedCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
 		s.CreditPurchaseTestHandler.onCreditPurchaseInitiated = initatedCallback.Handler(s.T(), func(t *testing.T, charge creditpurchase.Charge) {
 			assert.Equal(t, charge.Intent.Settlement.Type(), creditpurchase.SettlementTypeInvoice)
-			assert.Nil(t, charge.State.CreditGrantRealization, "credit grant realization should not be set")
-			assert.Nil(t, charge.State.InvoiceSettlement, "invoice settlement should not be set")
+			assert.Nil(t, charge.Realizations.CreditGrantRealization, "credit grant realization should not be set")
+			assert.Nil(t, charge.Realizations.InvoiceSettlement, "invoice settlement should not be set")
 		})
 
 		clock.FreezeTime(datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime())
@@ -467,8 +467,8 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 		s.NoError(err)
 
 		s.Equal(1, initatedCallback.nrInvocations)
-		s.Equal(initatedCallback.id, creditPurchaseCharge.State.CreditGrantRealization.GroupReference.TransactionGroupID)
-		s.Equal(meta.ChargeStatusActive, creditPurchaseCharge.Status)
+		s.Equal(initatedCallback.id, creditPurchaseCharge.Realizations.CreditGrantRealization.GroupReference.TransactionGroupID)
+		s.Equal(creditpurchase.StatusActive, creditPurchaseCharge.Status)
 
 		chargeID = creditPurchaseCharge.GetChargeID()
 		initatedTrnsID = initatedCallback.id
@@ -484,10 +484,10 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 		authorizedCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
 		s.CreditPurchaseTestHandler.onCreditPurchasePaymentAuthorized = authorizedCallback.Handler(s.T(), func(t *testing.T, charge creditpurchase.Charge) {
 			assert.Equal(t, charge.Intent.Settlement.Type(), creditpurchase.SettlementTypeInvoice)
-			assert.NotNil(t, charge.State.CreditGrantRealization, "credit grant realization should be set")
-			assert.Equal(t, initatedTrnsID, charge.State.CreditGrantRealization.GroupReference.TransactionGroupID)
-			assert.Nil(t, charge.State.InvoiceSettlement)
-			assert.Equal(t, meta.ChargeStatusActive, charge.Status, "charge status should be active")
+			assert.NotNil(t, charge.Realizations.CreditGrantRealization, "credit grant realization should be set")
+			assert.Equal(t, initatedTrnsID, charge.Realizations.CreditGrantRealization.GroupReference.TransactionGroupID)
+			assert.Nil(t, charge.Realizations.InvoiceSettlement)
+			assert.Equal(t, creditpurchase.StatusActive, charge.Status, "charge status should be active")
 		})
 
 		invoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
@@ -516,15 +516,15 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 		s.NoError(err)
 
 		// Invoice settlement should be set
-		s.NotNil(creditPurchaseCharge.State.InvoiceSettlement)
-		lineID := creditPurchaseCharge.State.InvoiceSettlement.LineID
+		s.NotNil(creditPurchaseCharge.Realizations.InvoiceSettlement)
+		lineID := creditPurchaseCharge.Realizations.InvoiceSettlement.LineID
 		s.NotEmpty(lineID)
 
 		s.Equal(1, authorizedCallback.nrInvocations)
-		s.NotNil(creditPurchaseCharge.State.InvoiceSettlement)
-		s.NotNil(creditPurchaseCharge.State.InvoiceSettlement.Authorized)
-		s.Equal(authorizedCallback.id, creditPurchaseCharge.State.InvoiceSettlement.Authorized.TransactionGroupID)
-		s.Equal(meta.ChargeStatusActive, creditPurchaseCharge.Status, "charge status should be active")
+		s.NotNil(creditPurchaseCharge.Realizations.InvoiceSettlement)
+		s.NotNil(creditPurchaseCharge.Realizations.InvoiceSettlement.Authorized)
+		s.Equal(authorizedCallback.id, creditPurchaseCharge.Realizations.InvoiceSettlement.Authorized.TransactionGroupID)
+		s.Equal(creditpurchase.StatusActive, creditPurchaseCharge.Status, "charge status should be active")
 
 		// validate the standard line
 		lines := invoice.Lines.OrEmpty()
@@ -564,11 +564,11 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 		settledCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
 		s.CreditPurchaseTestHandler.onCreditPurchasePaymentSettled = settledCallback.Handler(s.T(), func(t *testing.T, charge creditpurchase.Charge) {
 			assert.Equal(t, charge.Intent.Settlement.Type(), creditpurchase.SettlementTypeInvoice)
-			assert.NotNil(t, charge.State.InvoiceSettlement, "invoice settlement should be set")
+			assert.NotNil(t, charge.Realizations.InvoiceSettlement, "invoice settlement should be set")
 
 			// Authorized transaction group ID should still be set from the authorized phase
-			assert.Equal(t, authorizedTrnsID, charge.State.InvoiceSettlement.Authorized.TransactionGroupID)
-			assert.Equal(t, meta.ChargeStatusActive, charge.Status, "charge status should be active")
+			assert.Equal(t, authorizedTrnsID, charge.Realizations.InvoiceSettlement.Authorized.TransactionGroupID)
+			assert.Equal(t, creditpurchase.StatusActive, charge.Status, "charge status should be active")
 		})
 
 		// First verify the invoice is in the expected state
@@ -594,9 +594,9 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 		creditPurchaseCharge, err := charge.AsCreditPurchaseCharge()
 		s.NoError(err)
 
-		s.Equal(settledCallback.id, creditPurchaseCharge.State.InvoiceSettlement.Settled.TransactionGroupID)
-		s.Equal(payment.StatusSettled, creditPurchaseCharge.State.InvoiceSettlement.Status)
-		s.Equal(meta.ChargeStatusFinal, creditPurchaseCharge.Status)
+		s.Equal(settledCallback.id, creditPurchaseCharge.Realizations.InvoiceSettlement.Settled.TransactionGroupID)
+		s.Equal(payment.StatusSettled, creditPurchaseCharge.Realizations.InvoiceSettlement.Status)
+		s.Equal(creditpurchase.StatusFinal, creditPurchaseCharge.Status)
 	})
 }
 
@@ -656,11 +656,11 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchaseDeferred() {
 
 		creditPurchaseCharge, err := res[0].AsCreditPurchaseCharge()
 		s.NoError(err)
-		s.Equal(meta.ChargeStatusCreated, creditPurchaseCharge.Status)
+		s.Equal(creditpurchase.StatusCreated, creditPurchaseCharge.Status)
 
 		// For deferred invoicing, InvoiceSettlement should be nil at this point
 		// because the invoice hasn't been created yet (InvoiceAt is in the future)
-		assert.Nil(s.T(), creditPurchaseCharge.State.InvoiceSettlement, "invoice settlement should be nil for deferred invoicing")
+		assert.Nil(s.T(), creditPurchaseCharge.Realizations.InvoiceSettlement, "invoice settlement should be nil for deferred invoicing")
 
 		chargeID = creditPurchaseCharge.GetChargeID()
 	})
