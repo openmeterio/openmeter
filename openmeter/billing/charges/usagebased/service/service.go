@@ -2,11 +2,14 @@ package service
 
 import (
 	"errors"
+	"fmt"
+	"log/slog"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -18,6 +21,7 @@ type Config struct {
 	Handler                 usagebased.Handler
 	Lineage                 lineage.Service
 	Locker                  *lockr.Locker
+	Logger                  *slog.Logger
 	MetaAdapter             meta.Adapter
 	CustomerOverrideService billing.CustomerOverrideService
 	FeatureService          feature.FeatureConnector
@@ -65,6 +69,10 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("streaming connector cannot be null"))
 	}
 
+	if c.Logger == nil {
+		errs = append(errs, errors.New("logger cannot be null"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -73,29 +81,38 @@ func New(config Config) (usagebased.Service, error) {
 		return nil, err
 	}
 
+	usageBasedRatingService, err := usagebasedrating.New(usagebasedrating.Config{
+		StreamingConnector: config.StreamingConnector,
+		RatingService:      config.RatingService,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create usage based rating service: %w", err)
+	}
+
 	return &service{
 		adapter:                 config.Adapter,
 		handler:                 config.Handler,
 		lineage:                 config.Lineage,
 		locker:                  config.Locker,
+		logger:                  config.Logger,
 		metaAdapter:             config.MetaAdapter,
 		customerOverrideService: config.CustomerOverrideService,
 		featureService:          config.FeatureService,
-		ratingService:           config.RatingService,
-		streamingConnector:      config.StreamingConnector,
+		usageBasedRatingService: usageBasedRatingService,
 	}, nil
 }
 
 type service struct {
-	streamingConnector      streaming.Connector
 	adapter                 usagebased.Adapter
 	handler                 usagebased.Handler
 	lineage                 lineage.Service
 	locker                  *lockr.Locker
+	logger                  *slog.Logger
 	metaAdapter             meta.Adapter
 	customerOverrideService billing.CustomerOverrideService
 	featureService          feature.FeatureConnector
-	ratingService           rating.Service
+
+	usageBasedRatingService usagebasedrating.Service
 }
 
 func (s *service) GetLineEngine() billing.LineEngine {

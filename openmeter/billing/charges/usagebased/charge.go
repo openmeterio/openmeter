@@ -10,8 +10,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/ref"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 var _ meta.ChargeAccessor = (*ChargeBase)(nil)
@@ -136,6 +138,18 @@ func (c Charges) GetFeatureKeysOrIDs() []ref.IDOrKey {
 	return lo.Uniq(lo.Map(c, func(charge Charge, _ int) ref.IDOrKey {
 		return charge.GetFeatureKeyOrID()
 	}))
+}
+
+func (c Charge) GetIntentServicePeriod() timeutil.ClosedPeriod {
+	return c.Intent.ServicePeriod
+}
+
+func (c ChargeBase) GetCurrency() currencyx.Code {
+	return c.Intent.Currency
+}
+
+func (c ChargeBase) GetInvoiceAt() time.Time {
+	return c.Intent.InvoiceAt
 }
 
 type Intent struct {

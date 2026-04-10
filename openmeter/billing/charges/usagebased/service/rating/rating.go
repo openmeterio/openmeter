@@ -1,4 +1,4 @@
-package service
+package usagebasedrating
 
 import (
 	"context"
@@ -13,19 +13,19 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
 
-type getRatingForUsageResult struct {
+type GetRatingForUsageResult struct {
 	rating.GenerateDetailedLinesResult
 	Quantity alpacadecimal.Decimal
 }
 
-type getRatingForUsageInput struct {
+type GetRatingForUsageInput struct {
 	Charge         usagebased.Charge
 	Customer       billing.CustomerOverrideWithDetails
 	FeatureMeter   feature.FeatureMeter
 	StoredAtOffset time.Time
 }
 
-func (i getRatingForUsageInput) Validate() error {
+func (i GetRatingForUsageInput) Validate() error {
 	if err := i.Charge.Validate(); err != nil {
 		return fmt.Errorf("charge: %w", err)
 	}
@@ -45,19 +45,19 @@ func (i getRatingForUsageInput) Validate() error {
 	return nil
 }
 
-func (s *service) getRatingForUsage(ctx context.Context, in getRatingForUsageInput) (getRatingForUsageResult, error) {
+func (s *service) GetRatingForUsage(ctx context.Context, in GetRatingForUsageInput) (GetRatingForUsageResult, error) {
 	if err := in.Validate(); err != nil {
-		return getRatingForUsageResult{}, err
+		return GetRatingForUsageResult{}, err
 	}
 
-	snapshotQuantity, err := s.snapshotQuantity(ctx, snapshotQuantityInput{
+	snapshotQuantity, err := s.snapshotQuantity(ctx, SnapshotQuantityInput{
 		Customer:       in.Customer.Customer,
 		FeatureMeter:   in.FeatureMeter,
 		ServicePeriod:  in.Charge.Intent.ServicePeriod,
 		StoredAtOffset: in.StoredAtOffset,
 	})
 	if err != nil {
-		return getRatingForUsageResult{}, fmt.Errorf("get snapshot quantity: %w", err)
+		return GetRatingForUsageResult{}, fmt.Errorf("get snapshot quantity: %w", err)
 	}
 
 	ratingResult, err := s.ratingService.GenerateDetailedLines(usagebased.RateableIntent{
@@ -65,10 +65,10 @@ func (s *service) getRatingForUsage(ctx context.Context, in getRatingForUsageInp
 		MeterValue: snapshotQuantity,
 	})
 	if err != nil {
-		return getRatingForUsageResult{}, fmt.Errorf("rating: %w", err)
+		return GetRatingForUsageResult{}, fmt.Errorf("rating: %w", err)
 	}
 
-	return getRatingForUsageResult{
+	return GetRatingForUsageResult{
 		GenerateDetailedLinesResult: ratingResult,
 		Quantity:                    snapshotQuantity,
 	}, nil

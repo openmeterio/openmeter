@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/statemachine"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -25,17 +26,13 @@ func (s *service) AdvanceCharge(ctx context.Context, input usagebased.AdvanceCha
 			return nil, fmt.Errorf("get feature meter: %w", err)
 		}
 
-		currencyCalculator, err := charge.Intent.Currency.Calculator()
-		if err != nil {
-			return nil, fmt.Errorf("get currency calculator: %w", err)
-		}
-
-		stateMachine, err := s.newStateMachine(StateMachineConfig{
-			Charge:             charge,
-			Service:            s,
-			CustomerOverride:   input.CustomerOverride,
-			FeatureMeter:       featureMeter,
-			CurrencyCalculator: currencyCalculator,
+		stateMachine, err := s.newStateMachine(statemachine.Config{
+			Charge:           charge,
+			Service:          s,
+			Adapter:          s.adapter,
+			Logger:           s.logger,
+			CustomerOverride: input.CustomerOverride,
+			FeatureMeter:     featureMeter,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("new state machine: %w", err)
@@ -73,17 +70,17 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 	})
 }
 
-func (s *service) newStateMachine(config StateMachineConfig) (*StateMachine, error) {
+func (s *service) newStateMachine(config statemachine.Config) (statemachine.StateMachine, error) {
 	switch config.Charge.Intent.SettlementMode {
 	case productcatalog.CreditOnlySettlementMode:
-		stateMachine, err := NewCreditsOnlyStateMachine(config)
+		stateMachine, err := statemachine.NewCreditsOnly(config)
 		if err != nil {
 			return nil, err
 		}
 
 		return stateMachine.StateMachine, nil
 	case productcatalog.CreditThenInvoiceSettlementMode:
-		stateMachine, err := NewCreditThenInvoiceStateMachine(config)
+		stateMachine, err := statemachine.NewCreditThenInvoice(config)
 		if err != nil {
 			return nil, err
 		}
@@ -110,31 +107,25 @@ func (s *service) getStateMachineConfigForPatch(ctx context.Context, charge usag
 		},
 	})
 	if err != nil {
-		return StateMachineConfig{}, fmt.Errorf("get customer override: %w", err)
+		return statemachine.Config{}, fmt.Errorf("get customer override: %w", err)
 	}
 
 	featureRef := charge.GetFeatureKeyOrID()
 	featureMeters, err := s.featureService.ResolveFeatureMeters(ctx, charge.Namespace, featureRef)
 	if err != nil {
-		return StateMachineConfig{}, fmt.Errorf("resolve feature meters: %w", err)
+		return statemachine.Config{}, fmt.Errorf("resolve feature meters: %w", err)
 	}
 
 	featureMeter, err := charge.ResolveFeatureMeter(featureMeters)
 	if err != nil {
-		return StateMachineConfig{}, err
+		return statemachine.Config{}, err
 	}
 
-	currencyCalculator, err := charge.Intent.Currency.Calculator()
-	if err != nil {
-		return StateMachineConfig{}, fmt.Errorf("get currency calculator: %w", err)
-	}
-
-	return StateMachineConfig{
-		Charge:             charge,
-		Service:            s,
-		CustomerOverride:   customerOverride,
-		FeatureMeter:       featureMeter,
-		CurrencyCalculator: currencyCalculator,
+	return statemachine.Config{
+		Charge:           charge,
+		Service:          s,
+		CustomerOverride: customerOverride,
+		FeatureMeter:     featureMeter,
 	}, nil
 }
 

@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type ChargeBase struct {
@@ -82,6 +83,10 @@ func (c Charge) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (c Charge) GetIntentServicePeriod() timeutil.ClosedPeriod {
+	return c.Intent.ServicePeriod
 }
 
 type Intent struct {

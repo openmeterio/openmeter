@@ -1,4 +1,4 @@
-package service
+package usagebasedrating
 
 import (
 	"context"
@@ -15,14 +15,14 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-type snapshotQuantityInput struct {
+type SnapshotQuantityInput struct {
 	Customer       streaming.Customer
 	FeatureMeter   feature.FeatureMeter
 	ServicePeriod  timeutil.ClosedPeriod
 	StoredAtOffset time.Time
 }
 
-func (i snapshotQuantityInput) Validate() error {
+func (i SnapshotQuantityInput) Validate() error {
 	if i.FeatureMeter.Meter == nil {
 		return fmt.Errorf("meter is required")
 	}
@@ -38,7 +38,7 @@ func (i snapshotQuantityInput) Validate() error {
 	return nil
 }
 
-func (s *service) snapshotQuantity(ctx context.Context, in snapshotQuantityInput) (alpacadecimal.Decimal, error) {
+func (s *service) snapshotQuantity(ctx context.Context, in SnapshotQuantityInput) (alpacadecimal.Decimal, error) {
 	if err := in.Validate(); err != nil {
 		return alpacadecimal.Zero, billing.ValidationError{
 			Err: err,

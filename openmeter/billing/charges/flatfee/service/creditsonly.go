@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
 
 	"github.com/qmuntal/stateless"
 	"github.com/samber/lo"
@@ -10,16 +12,51 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/statemachine"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/statelessx"
 )
 
-type CreditsOnlyStateMachine struct {
-	*stateless.StateMachine
+var _ statemachine.StateMutator[flatfee.Charge] = (*StateMutator)(nil)
 
-	Charge  flatfee.Charge
+type StateMutator struct {
+	adapter flatfee.Adapter
+}
+
+func (s StateMutator) GetState(_ context.Context, charge flatfee.Charge) (stateless.State, error) {
+	return charge.Status, nil
+}
+
+func (s StateMutator) SetState(_ context.Context, charge *flatfee.Charge, newState stateless.State) error {
+	newStatus := newState.(meta.ChargeStatus)
+	if err := newStatus.Validate(); err != nil {
+		return fmt.Errorf("invalid status: %w", err)
+	}
+
+	charge.Status = newStatus
+	return nil
+}
+
+func (s StateMutator) PersistChargeBase(ctx context.Context, charge flatfee.Charge) (flatfee.Charge, error) {
+	updatedChargeBase, err := s.adapter.UpdateCharge(ctx, charge.ChargeBase)
+	if err != nil {
+		return flatfee.Charge{}, fmt.Errorf("persist charge base: %w", err)
+	}
+
+	charge.ChargeBase = updatedChargeBase
+	return charge, nil
+}
+
+func (s StateMutator) SetOrClearAdvanceAfter(charge flatfee.Charge, advanceAfter *time.Time) flatfee.Charge {
+	charge.State.AdvanceAfter = advanceAfter
+	return charge
+}
+
+type CreditsOnlyStateMachine struct {
+	*statemachine.Base[flatfee.Charge]
+
 	Service *service
 	Adapter flatfee.Adapter
 }
@@ -48,6 +85,17 @@ func NewCreditsOnlyStateMachine(config CreditsOnlyStateMachineConfig) (*CreditsO
 
 	if config.Charge.Intent.SettlementMode != productcatalog.CreditOnlySettlementMode {
 		return nil, fmt.Errorf("charge %s is not credit_only", config.Charge.ID)
+	}
+
+	base, err := statemachine.New[flatfee.Charge](config.Charge, StateMutator{
+		adapter: config.Service.adapter,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("new base: %w", err)
+	}
+
+	if base == nil {
+		return nil, errors.New("base is nil")
 	}
 
 	out := &CreditsOnlyStateMachine{
