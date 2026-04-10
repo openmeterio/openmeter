@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	api "github.com/openmeterio/openmeter/api/v3"
-	chargeshandler "github.com/openmeterio/openmeter/api/v3/handlers/charges"
 	currencieshandler "github.com/openmeterio/openmeter/api/v3/handlers/currencies"
+	chargeshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/charges"
 	customerscreditshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/credits"
 	planaddonshandler "github.com/openmeterio/openmeter/api/v3/handlers/plans/planaddons"
 )

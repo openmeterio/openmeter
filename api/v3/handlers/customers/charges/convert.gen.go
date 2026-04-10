@@ -13,29 +13,28 @@ import (
 func init() {
 	ConvertFlatFeeChargeToAPI = func(source flatfee.Charge) (v3.BillingFlatFeeCharge, error) {
 		var v3BillingFlatFeeCharge v3.BillingFlatFeeCharge
-		v3BillingFlatFeeCharge.AmountAfterProration = ConvertDecimalToCurrencyAmount(source.State.AmountAfterProration)
-		v3BillingFlatFeeCharge.BillingPeriod = ConvertClosedPeriodToAPI(source.Intent.Intent.BillingPeriod)
-		v3BillingFlatFeeCharge.CreatedAt = TimePtrFromTime(source.ManagedResource.ManagedModel.CreatedAt)
-		v3BillingFlatFeeCharge.Currency = ConvertCurrencyCodeToAPI(source.Intent.Intent.Currency)
-		v3BillingFlatFeeCharge.Customer = ConvertCustomerIDToReference(source.Intent.Intent.CustomerID)
-		v3BillingFlatFeeCharge.DeletedAt = source.ManagedResource.ManagedModel.DeletedAt
-		v3BillingFlatFeeCharge.Description = source.Intent.Intent.Description
-		v3BillingFlatFeeCharge.FeatureKey = ConvertFeatureKeyToPtr(source.Intent.FeatureKey)
-		v3BillingFlatFeeCharge.FullServicePeriod = ConvertClosedPeriodToAPI(source.Intent.Intent.FullServicePeriod)
-		v3BillingFlatFeeCharge.Id = source.ManagedResource.ID
-		v3BillingFlatFeeCharge.InvoiceAt = source.Intent.InvoiceAt
-		v3BillingFlatFeeCharge.Labels = ConvertMetadataToLabels(source.Intent.Intent.Metadata)
-		v3BillingFlatFeeCharge.ManagedBy = ConvertManagedByToAPI(source.Intent.Intent.ManagedBy)
-		v3BillingFlatFeeCharge.Name = source.Intent.Intent.Name
-		v3BillingFlatFeeCharge.PaymentTerm = ConvertPaymentTermToAPI(source.Intent.PaymentTerm)
-		v3BillingFlatFeeCharge.Price = ConvertDecimalToCurrencyAmount(source.Intent.AmountBeforeProration)
-		v3BillingFlatFeeCharge.ProrationConfiguration = ConvertProRatingConfigToAPI(source.Intent.ProRating)
-		v3BillingFlatFeeCharge.ServicePeriod = ConvertClosedPeriodToAPI(source.Intent.Intent.ServicePeriod)
-		v3BillingFlatFeeCharge.SettlementMode = ConvertSettlementModeToAPI(source.Intent.SettlementMode)
-		v3BillingFlatFeeCharge.Status = ConvertChargeStatusToAPI(source.Status)
-		v3BillingFlatFeeCharge.Subscription = pMetaSubscriptionReferenceToPV3BillingSubscriptionReference(source.Intent.Intent.Subscription)
-		v3BillingFlatFeeCharge.UniqueReferenceId = source.Intent.Intent.UniqueReferenceID
-		v3BillingFlatFeeCharge.UpdatedAt = TimePtrFromTime(source.ManagedResource.ManagedModel.UpdatedAt)
+		v3BillingFlatFeeCharge.AmountAfterProration = ConvertDecimalToCurrencyAmount(source.ChargeBase.State.AmountAfterProration)
+		v3BillingFlatFeeCharge.BillingPeriod = ConvertClosedPeriodToAPI(source.ChargeBase.Intent.Intent.BillingPeriod)
+		v3BillingFlatFeeCharge.CreatedAt = TimePtrFromTime(source.ChargeBase.ManagedResource.ManagedModel.CreatedAt)
+		v3BillingFlatFeeCharge.Currency = ConvertCurrencyCodeToAPI(source.ChargeBase.Intent.Intent.Currency)
+		v3BillingFlatFeeCharge.Customer = ConvertCustomerIDToReference(source.ChargeBase.Intent.Intent.CustomerID)
+		v3BillingFlatFeeCharge.DeletedAt = source.ChargeBase.ManagedResource.ManagedModel.DeletedAt
+		v3BillingFlatFeeCharge.Description = source.ChargeBase.Intent.Intent.Description
+		v3BillingFlatFeeCharge.FeatureKey = ConvertFeatureKeyToPtr(source.ChargeBase.Intent.FeatureKey)
+		v3BillingFlatFeeCharge.FullServicePeriod = ConvertClosedPeriodToAPI(source.ChargeBase.Intent.Intent.FullServicePeriod)
+		v3BillingFlatFeeCharge.Id = source.ChargeBase.ManagedResource.ID
+		v3BillingFlatFeeCharge.InvoiceAt = source.ChargeBase.Intent.InvoiceAt
+		v3BillingFlatFeeCharge.Labels = ConvertMetadataToLabels(source.ChargeBase.Intent.Intent.Metadata)
+		v3BillingFlatFeeCharge.ManagedBy = ConvertManagedByToAPI(source.ChargeBase.Intent.Intent.ManagedBy)
+		v3BillingFlatFeeCharge.Name = source.ChargeBase.Intent.Intent.Name
+		v3BillingFlatFeeCharge.PaymentTerm = ConvertPaymentTermToAPI(source.ChargeBase.Intent.PaymentTerm)
+		v3BillingFlatFeeCharge.Price = ConvertDecimalToCurrencyAmount(source.ChargeBase.Intent.AmountBeforeProration)
+		v3BillingFlatFeeCharge.ProrationConfiguration = ConvertProRatingConfigToAPI(source.ChargeBase.Intent.ProRating)
+		v3BillingFlatFeeCharge.ServicePeriod = ConvertClosedPeriodToAPI(source.ChargeBase.Intent.Intent.ServicePeriod)
+		v3BillingFlatFeeCharge.SettlementMode = ConvertSettlementModeToAPI(source.ChargeBase.Intent.SettlementMode)
+		v3BillingFlatFeeCharge.Subscription = pMetaSubscriptionReferenceToPV3BillingSubscriptionReference(source.ChargeBase.Intent.Intent.Subscription)
+		v3BillingFlatFeeCharge.UniqueReferenceId = source.ChargeBase.Intent.Intent.UniqueReferenceID
+		v3BillingFlatFeeCharge.UpdatedAt = TimePtrFromTime(source.ChargeBase.ManagedResource.ManagedModel.UpdatedAt)
 		return v3BillingFlatFeeCharge, nil
 	}
 	ConvertUsageBasedChargeToAPI = func(source usagebased.Charge) (v3.BillingUsageBasedCharge, error) {

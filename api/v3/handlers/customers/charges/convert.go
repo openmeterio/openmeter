@@ -40,6 +40,7 @@ var ConvertMetadataToLabels = labels.FromMetadata[models.Metadata]
 // goverter:extend ConvertSubscriptionRefToAPI
 // goverter:extend ConvertFeatureKeyToPtr
 // goverter:extend ConvertUsageBasedStatusToAPI
+// goverter:extend ConvertFlatFeeStatusToMetaChargeStatus
 // goverter:extend ConvertChargeStatusToAPI
 // goverter:extend ConvertSettlementModeToAPI
 // goverter:extend ConvertPaymentTermToAPI
@@ -50,30 +51,32 @@ var (
 	// goverter:ignore Type
 	// goverter:ignore Discounts
 	// goverter:ignore AdvanceAfter
-	// Fields inside meta.Intent (embedded within flatfee.Intent) need Intent.Intent.* paths.
-	// Fields in models.ManagedModel need ManagedResource.ManagedModel.* paths.
-	// goverter:map ManagedResource.ID Id
-	// goverter:map ManagedResource.ManagedModel.CreatedAt CreatedAt
-	// goverter:map ManagedResource.ManagedModel.UpdatedAt UpdatedAt
-	// goverter:map ManagedResource.ManagedModel.DeletedAt DeletedAt
-	// goverter:map Intent.Intent.Name Name
-	// goverter:map Intent.Intent.Description Description
-	// goverter:map Intent.Intent.Metadata Labels
-	// goverter:map Intent.Intent.CustomerID Customer
-	// goverter:map Intent.Intent.Currency Currency
-	// goverter:map Intent.Intent.ManagedBy ManagedBy
-	// goverter:map Intent.InvoiceAt InvoiceAt
-	// goverter:map Intent.SettlementMode SettlementMode
-	// goverter:map Intent.PaymentTerm PaymentTerm
-	// goverter:map Intent.Intent.ServicePeriod ServicePeriod
-	// goverter:map Intent.Intent.FullServicePeriod FullServicePeriod
-	// goverter:map Intent.Intent.BillingPeriod BillingPeriod
-	// goverter:map Intent.Intent.UniqueReferenceID UniqueReferenceId
-	// goverter:map Intent.AmountBeforeProration Price
-	// goverter:map State.AmountAfterProration AmountAfterProration
-	// goverter:map Intent.ProRating ProrationConfiguration
-	// goverter:map Intent.FeatureKey FeatureKey
-	// goverter:map Intent.Intent.Subscription Subscription
+	// goverter:ignore Status
+	// flatfee.Charge embeds ChargeBase; goverter requires the full path.
+	// Fields inside meta.Intent (embedded in flatfee.Intent) need ChargeBase.Intent.Intent.* paths.
+	// Status is converted using ConvertChargeStatusToAPI extend function.
+	// goverter:map ChargeBase.ManagedResource.ID Id
+	// goverter:map ChargeBase.ManagedResource.ManagedModel.CreatedAt CreatedAt
+	// goverter:map ChargeBase.ManagedResource.ManagedModel.UpdatedAt UpdatedAt
+	// goverter:map ChargeBase.ManagedResource.ManagedModel.DeletedAt DeletedAt
+	// goverter:map ChargeBase.Intent.Intent.Name Name
+	// goverter:map ChargeBase.Intent.Intent.Description Description
+	// goverter:map ChargeBase.Intent.Intent.Metadata Labels
+	// goverter:map ChargeBase.Intent.Intent.CustomerID Customer
+	// goverter:map ChargeBase.Intent.Intent.Currency Currency
+	// goverter:map ChargeBase.Intent.Intent.ManagedBy ManagedBy
+	// goverter:map ChargeBase.Intent.InvoiceAt InvoiceAt
+	// goverter:map ChargeBase.Intent.SettlementMode SettlementMode
+	// goverter:map ChargeBase.Intent.PaymentTerm PaymentTerm
+	// goverter:map ChargeBase.Intent.Intent.ServicePeriod ServicePeriod
+	// goverter:map ChargeBase.Intent.Intent.FullServicePeriod FullServicePeriod
+	// goverter:map ChargeBase.Intent.Intent.BillingPeriod BillingPeriod
+	// goverter:map ChargeBase.Intent.Intent.UniqueReferenceID UniqueReferenceId
+	// goverter:map ChargeBase.Intent.AmountBeforeProration Price
+	// goverter:map ChargeBase.State.AmountAfterProration AmountAfterProration
+	// goverter:map ChargeBase.Intent.ProRating ProrationConfiguration
+	// goverter:map ChargeBase.Intent.FeatureKey FeatureKey
+	// goverter:map ChargeBase.Intent.Intent.Subscription Subscription
 	ConvertFlatFeeChargeToAPI func(flatfee.Charge) (api.BillingFlatFeeCharge, error)
 
 	// goverter:ignore Type
@@ -122,6 +125,7 @@ func convertChargeToAPI(charge billingcharges.Charge) (api.BillingCharge, error)
 			return out, fmt.Errorf("converting flat fee charge fields: %w", err)
 		}
 		apiFF.Type = api.BillingFlatFeeChargeTypeFlatFee
+		apiFF.Status = ConvertChargeStatusToAPI(ConvertFlatFeeStatusToMetaChargeStatus(ff.Status))
 		apiFF.AdvanceAfter = TimePtrFromOptional(ff.State.AdvanceAfter)
 		apiFF.Discounts = convertFlatFeeDiscounts(ff.Intent.PercentageDiscounts)
 		if err := out.FromBillingFlatFeeCharge(apiFF); err != nil {
@@ -262,6 +266,12 @@ func ConvertSubscriptionRefToAPI(ref meta.SubscriptionReference) api.BillingSubs
 // This prevents goverter's useZeroValueOnPointerInconsistency from creating non-nil pointers
 // for empty feature key strings on flat fee charges.
 var ConvertFeatureKeyToPtr = lo.ToPtr[string]
+
+// ConvertFlatFeeStatusToMetaChargeStatus converts flatfee.Status to meta.ChargeStatus.
+// flatfee.Status is a string alias wrapping meta.ChargeStatus values.
+func ConvertFlatFeeStatusToMetaChargeStatus(s flatfee.Status) meta.ChargeStatus {
+	return meta.ChargeStatus(s)
+}
 
 // ConvertChargeStatusToAPI casts a meta.ChargeStatus to api.BillingChargeStatus.
 // Hand-written: goverter's enum-name matching requires identical const names across packages,
