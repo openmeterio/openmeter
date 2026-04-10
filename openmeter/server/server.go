@@ -122,6 +122,7 @@ func NewServer(config *Config) (*Server, error) {
 		MeterService:            config.RouterConfig.MeterManageService,
 		StreamingConnector:      config.RouterConfig.StreamingConnector,
 		PlanService:             config.RouterConfig.Plan,
+		PlanAddonService:        config.RouterConfig.PlanAddon,
 		PlanSubscriptionService: config.RouterConfig.PlanSubscriptionService,
 		StripeService:           config.RouterConfig.AppStripe,
 		SubscriptionService:     config.RouterConfig.SubscriptionService,

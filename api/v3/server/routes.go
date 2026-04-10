@@ -299,23 +299,23 @@ func (s *Server) PublishAddon(w http.ResponseWriter, r *http.Request, addonId ap
 // Plan Addons
 
 func (s *Server) ListPlanAddons(w http.ResponseWriter, r *http.Request, planId api.ULID, params api.ListPlanAddonsParams) {
-	unimplemented.ListPlanAddons(w, r, planId, params)
+	s.plansHandler.ListPlanAddons().With(params).ServeHTTP(w, r)
 }
 
 func (s *Server) CreatePlanAddon(w http.ResponseWriter, r *http.Request, planId api.ULID) {
-	unimplemented.CreatePlanAddon(w, r, planId)
+	s.plansHandler.CreatePlanAddon().With(planId).ServeHTTP(w, r)
 }
 
 func (s *Server) GetPlanAddon(w http.ResponseWriter, r *http.Request, planId api.ULID, planAddonId api.ULID) {
-	unimplemented.GetPlanAddon(w, r, planId, planAddonId)
+	s.plansHandler.GetPlanAddon().With(planAddonId).ServeHTTP(w, r)
 }
 
 func (s *Server) UpdatePlanAddon(w http.ResponseWriter, r *http.Request, planId api.ULID, planAddonId api.ULID) {
-	unimplemented.UpdatePlanAddon(w, r, planId, planAddonId)
+	s.plansHandler.UpdatePlanAddon().With(planAddonId).ServeHTTP(w, r)
 }
 
 func (s *Server) DeletePlanAddon(w http.ResponseWriter, r *http.Request, planId api.ULID, planAddonId api.ULID) {
-	unimplemented.DeletePlanAddon(w, r, planId, planAddonId)
+	s.plansHandler.DeletePlanAddon().With(planAddonId).ServeHTTP(w, r)
 }
 
 // Credits
