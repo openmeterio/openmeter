@@ -184,9 +184,10 @@ Placement guidance:
 ## Supported Behavior
 
 - `charges.AdvanceCharges(...)` advances both usage-based and flat-fee credit-only charges
-- `usagebased.Service.AdvanceCharge(...)` supports `CreditOnly` and currently noops for `CreditThenInvoice`
-- `flatfee.Service.AdvanceCharge(...)` only supports `CreditOnly`
+- `usagebased.Service.AdvanceCharge(...)` routes to the settlement-mode-specific state machine: `CreditOnly` uses the credits-only state machine and `CreditThenInvoice` uses `NewCreditThenInvoiceStateMachine(...)`
+- `flatfee.Service.AdvanceCharge(...)` currently only supports `CreditOnly`; it does not have a `CreditThenInvoice` state machine path
 - Both `AdvanceCharge(...)` methods return `*Charge` (nil means noop, non-nil means at least one transition)
+- For invoice-settled flows, invoice creation and collection completion are still billing-triggered downstream events (`invoice_created`, `collection_completed`), not generic advance-loop transitions
 
 ## Create + Auto-Advance Flow
 
