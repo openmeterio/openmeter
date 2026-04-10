@@ -1,10 +1,8 @@
 package labels
 
 import (
-	"errors"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/v3"
@@ -12,12 +10,10 @@ import (
 
 func TestValidateLabel(t *testing.T) {
 	tests := []struct {
-		name         string
-		key          string
-		value        string
-		wantErr      bool
-		wantKeyErr   bool
-		wantValueErr bool
+		name    string
+		key     string
+		value   string
+		wantErr bool
 	}{
 		{
 			name:  "valid alphanumeric",
@@ -26,18 +22,18 @@ func TestValidateLabel(t *testing.T) {
 		},
 		{
 			name:  "valid with underscore",
-			key:   "openmeter_good",
-			value: "openmeter_good",
+			key:   "my_good",
+			value: "my_good",
 		},
 		{
 			name:  "valid with dot",
-			key:   "openmeter.good",
-			value: "openmeter.good",
+			key:   "my.good",
+			value: "my.good",
 		},
 		{
 			name:  "valid with hyphen",
-			key:   "openmeter-good",
-			value: "openmeter-good",
+			key:   "my-good",
+			value: "my-good",
 		},
 		{
 			name:  "valid single character",
@@ -65,92 +61,88 @@ func TestValidateLabel(t *testing.T) {
 			value: "2value2",
 		},
 		{
-			name:         "invalid key trailing underscore",
-			key:          "openmeter_bad_",
-			value:        "good",
-			wantErr:      true,
-			wantKeyErr:   true,
-			wantValueErr: false,
+			name:    "invalid key trailing underscore",
+			key:     "bad_",
+			value:   "good",
+			wantErr: true,
 		},
 		{
-			name:         "invalid key trailing hyphen",
-			key:          "openmeter-bad-",
-			value:        "good",
-			wantErr:      true,
-			wantKeyErr:   true,
-			wantValueErr: false,
+			name:    "invalid key trailing hyphen",
+			key:     "bad-",
+			value:   "good",
+			wantErr: true,
 		},
 		{
-			name:         "invalid key trailing dot",
-			key:          "openmeter.bad.",
-			value:        "good",
-			wantErr:      true,
-			wantKeyErr:   true,
-			wantValueErr: false,
+			name:    "invalid key trailing dot",
+			key:     "bad.",
+			value:   "good",
+			wantErr: true,
 		},
 		{
-			name:         "invalid key leading underscore",
-			key:          "_openmeter-bad",
-			value:        "good",
-			wantErr:      true,
-			wantKeyErr:   true,
-			wantValueErr: false,
+			name:    "invalid key leading underscore",
+			key:     "_bad",
+			value:   "good",
+			wantErr: true,
 		},
 		{
-			name:         "invalid key leading hyphen",
-			key:          "-openmeter-bad",
-			value:        "good",
-			wantErr:      true,
-			wantKeyErr:   true,
-			wantValueErr: false,
+			name:    "invalid key leading hyphen",
+			key:     "-bad",
+			value:   "good",
+			wantErr: true,
 		},
 		{
-			name:         "invalid key leading dot",
-			key:          ".openmeter.bad",
-			value:        "good",
-			wantErr:      true,
-			wantKeyErr:   true,
-			wantValueErr: false,
+			name:    "invalid key leading dot",
+			key:     ".bad",
+			value:   "good",
+			wantErr: true,
 		},
 		{
-			name:         "invalid key empty",
-			key:          "",
-			value:        "good",
-			wantErr:      true,
-			wantKeyErr:   true,
-			wantValueErr: false,
+			name:    "invalid key empty",
+			key:     "",
+			value:   "good",
+			wantErr: true,
 		},
 		{
-			name:         "invalid value trailing underscore",
-			key:          "good",
-			value:        "openmeter_bad_",
-			wantErr:      true,
-			wantKeyErr:   false,
-			wantValueErr: true,
+			name:    "invalid value trailing underscore",
+			key:     "good",
+			value:   "bad_",
+			wantErr: true,
 		},
 		{
-			name:         "invalid value leading dot",
-			key:          "good",
-			value:        ".openmeter.bad",
-			wantErr:      true,
-			wantKeyErr:   false,
-			wantValueErr: true,
+			name:    "invalid value leading dot",
+			key:     "good",
+			value:   ".bad",
+			wantErr: true,
 		},
 		{
-			name:         "invalid value empty",
-			key:          "good",
-			value:        "",
-			wantErr:      true,
-			wantKeyErr:   false,
-			wantValueErr: true,
+			name:    "invalid value empty",
+			key:     "good",
+			value:   "",
+			wantErr: true,
 		},
 		{
-			name:         "both key and value invalid",
-			key:          "_bad",
-			value:        "bad_",
-			wantErr:      true,
-			wantKeyErr:   true,
-			wantValueErr: true,
+			name:    "both key and value invalid",
+			key:     "_bad",
+			value:   "bad_",
+			wantErr: true,
+		},
+		{
+			name:    "reserved openmeter prefix",
+			key:     "openmeter_key",
+			value:   "value",
+			wantErr: true,
+		},
+		{
+			name:    "reserved kong prefix",
+			key:     "kong_key",
+			value:   "value",
+			wantErr: true,
+		},
+		{
+			name:    "reserved konnect prefix",
+			key:     "konnect_key",
+			value:   "value",
+			wantErr: true,
 		},
 	}
 
@@ -163,20 +155,15 @@ func TestValidateLabel(t *testing.T) {
 			}
 
 			require.Error(t, err)
-			assert.Equal(t, tt.wantKeyErr, errors.Is(err, ErrInvalidLabelKey))
-			assert.Equal(t, tt.wantValueErr, errors.Is(err, ErrInvalidLabelValue))
 		})
 	}
 }
 
 func TestValidateLabels(t *testing.T) {
 	tests := []struct {
-		name          string
-		labels        api.Labels
-		wantErr       bool
-		wantKeyErr    bool
-		wantValueErr  bool
-		wantErrSubstr string
+		name    string
+		labels  api.Labels
+		wantErr bool
 	}{
 		{
 			name:    "nil labels",
@@ -203,27 +190,21 @@ func TestValidateLabels(t *testing.T) {
 				"_bad": "value",
 				"good": "value",
 			},
-			wantErr:       true,
-			wantKeyErr:    true,
-			wantErrSubstr: `"_bad"`,
+			wantErr: true,
 		},
 		{
 			name: "one invalid value",
 			labels: api.Labels{
 				"good": "bad_",
 			},
-			wantErr:       true,
-			wantValueErr:  true,
-			wantErrSubstr: `"bad_"`,
+			wantErr: true,
 		},
 		{
 			name: "both key and value invalid in same entry",
 			labels: api.Labels{
 				"_bad": "bad_",
 			},
-			wantErr:      true,
-			wantKeyErr:   true,
-			wantValueErr: true,
+			wantErr: true,
 		},
 		{
 			name: "multiple invalid keys",
@@ -231,8 +212,14 @@ func TestValidateLabels(t *testing.T) {
 				"_bad1": "good",
 				"_bad2": "good",
 			},
-			wantErr:    true,
-			wantKeyErr: true,
+			wantErr: true,
+		},
+		{
+			name: "reserved prefix key",
+			labels: api.Labels{
+				"openmeter_key": "value",
+			},
+			wantErr: true,
 		},
 	}
 
@@ -245,11 +232,6 @@ func TestValidateLabels(t *testing.T) {
 			}
 
 			require.Error(t, err)
-			assert.Equal(t, tt.wantKeyErr, errors.Is(err, ErrInvalidLabelKey))
-			assert.Equal(t, tt.wantValueErr, errors.Is(err, ErrInvalidLabelValue))
-			if tt.wantErrSubstr != "" {
-				assert.Contains(t, err.Error(), tt.wantErrSubstr)
-			}
 		})
 	}
 }

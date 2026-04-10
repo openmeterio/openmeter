@@ -38,12 +38,17 @@ func (h *handler) UpsertCustomer() UpsertCustomerHandler {
 				return UpsertCustomerRequest{}, err
 			}
 
+			customerMutate, err := ConvertUpsertCustomerRequestToCustomerMutate(body)
+			if err != nil {
+				return UpsertCustomerRequest{}, err
+			}
+
 			req := UpsertCustomerRequest{
 				Namespace:  ns,
 				CustomerID: customerID,
 				// Key cannot be updated according to api.UpsertCustomerRequest.
 				// Therefore, at this point we don't have a key yet. It is ignored in this conversion.
-				CustomerMutate: ConvertUpsertCustomerRequestToCustomerMutate(body),
+				CustomerMutate: customerMutate,
 			}
 
 			return req, nil

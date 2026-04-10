@@ -54,13 +54,18 @@ func convertFeatureToAPI(f feature.Feature) (api.Feature, error) {
 }
 
 func convertCreateRequestToDomain(ns string, body api.CreateFeatureRequest, meterID *string) (feature.CreateFeatureInputs, error) {
+	metadata, err := labels.ToMetadata(body.Labels)
+	if err != nil {
+		return feature.CreateFeatureInputs{}, fmt.Errorf("failed to convert labels: %w", err)
+	}
+
 	inputs := feature.CreateFeatureInputs{
 		Namespace:   ns,
 		Name:        body.Name,
 		Description: body.Description,
 		Key:         body.Key,
 		MeterID:     meterID,
-		Metadata:    labels.ToMetadata(body.Labels),
+		Metadata:    metadata,
 	}
 
 	if body.Meter != nil {

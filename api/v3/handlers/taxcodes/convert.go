@@ -18,6 +18,7 @@ import (
 // goverter:extend ConvertAPIAppTypeToDomainAppType
 // goverter:extend ConvertDomainAppTypeToAPIAppType
 // goverter:extend ConvertAppMappingsToAPIAppMappings
+// goverter:extend ConvertLabelsToMetadata
 var (
 	// goverter:context namespace
 	// goverter:map Namespace | NamespaceFromContext
@@ -39,6 +40,8 @@ var (
 	// goverter:map AppMappings | ConvertAppMappingsToAPIAppMappings
 	ConvertTaxCodeToAPITaxCode func(taxcode.TaxCode) (api.BillingTaxCode, error)
 )
+
+var ConvertLabelsToMetadata = labels.ToMetadata
 
 func ConvertMetadataAnnotationsToLabels(source taxcode.TaxCode) *api.Labels {
 	return labels.FromMetadataAnnotations(source.Metadata, source.Annotations)

@@ -538,12 +538,14 @@ func TestConvertMetadataLabels(t *testing.T) {
 
 	t.Run("labels to metadata", func(t *testing.T) {
 		l := api.Labels{"x": "y"}
-		meta := labels.ToMetadata(&l)
+		meta, err := labels.ToMetadata(&l)
+		assert.NoError(t, err)
 		assert.Equal(t, "y", meta["x"])
 	})
 
 	t.Run("nil labels returns nil metadata", func(t *testing.T) {
-		meta := labels.ToMetadata(nil)
+		meta, err := labels.ToMetadata(nil)
+		assert.NoError(t, err)
 		assert.Nil(t, meta)
 	})
 }

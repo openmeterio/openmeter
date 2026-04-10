@@ -18,7 +18,11 @@ func init() {
 		taxcodeCreateTaxCodeInput.Name = source.Name
 		taxcodeCreateTaxCodeInput.Description = source.Description
 		taxcodeCreateTaxCodeInput.AppMappings = v3BillingTaxCodeAppMappingListToTaxcodeTaxCodeAppMappings(source.AppMappings)
-		taxcodeCreateTaxCodeInput.Metadata = pV3LabelsToModelsMetadata(source.Labels)
+		modelsMetadata, err := ConvertLabelsToMetadata(source.Labels)
+		if err != nil {
+			return taxcodeCreateTaxCodeInput, err
+		}
+		taxcodeCreateTaxCodeInput.Metadata = modelsMetadata
 		return taxcodeCreateTaxCodeInput, nil
 	}
 	ConvertFromUpsertTaxCodeRequestToUpdateTaxCodeInput = func(context models.NamespacedID, source v3.UpsertTaxCodeRequest) (taxcode.UpdateTaxCodeInput, error) {
@@ -27,7 +31,11 @@ func init() {
 		taxcodeUpdateTaxCodeInput.Name = source.Name
 		taxcodeUpdateTaxCodeInput.Description = source.Description
 		taxcodeUpdateTaxCodeInput.AppMappings = v3BillingTaxCodeAppMappingListToTaxcodeTaxCodeAppMappings(source.AppMappings)
-		taxcodeUpdateTaxCodeInput.Metadata = pV3LabelsToModelsMetadata(source.Labels)
+		modelsMetadata, err := ConvertLabelsToMetadata(source.Labels)
+		if err != nil {
+			return taxcodeUpdateTaxCodeInput, err
+		}
+		taxcodeUpdateTaxCodeInput.Metadata = modelsMetadata
 		return taxcodeUpdateTaxCodeInput, nil
 	}
 	ConvertTaxCodeToAPITaxCode = func(source taxcode.TaxCode) (v3.BillingTaxCode, error) {
@@ -43,13 +51,6 @@ func init() {
 		v3BillingTaxCode.UpdatedAt = timeTimeToPTimeTime(source.ManagedModel.UpdatedAt)
 		return v3BillingTaxCode, nil
 	}
-}
-func pV3LabelsToModelsMetadata(source *v3.Labels) models.Metadata {
-	var modelsMetadata models.Metadata
-	if source != nil {
-		modelsMetadata = v3LabelsToModelsMetadata((*source))
-	}
-	return modelsMetadata
 }
 func timeTimeToPTimeTime(source time.Time) *time.Time {
 	return &source
@@ -69,14 +70,4 @@ func v3BillingTaxCodeAppMappingToTaxcodeTaxCodeAppMapping(source v3.BillingTaxCo
 	taxcodeTaxCodeAppMapping.AppType = ConvertAPIAppTypeToDomainAppType(source.AppType)
 	taxcodeTaxCodeAppMapping.TaxCode = source.TaxCode
 	return taxcodeTaxCodeAppMapping
-}
-func v3LabelsToModelsMetadata(source v3.Labels) models.Metadata {
-	var modelsMetadata models.Metadata
-	if source != nil {
-		modelsMetadata = make(models.Metadata, len(source))
-		for key, value := range source {
-			modelsMetadata[key] = value
-		}
-	}
-	return modelsMetadata
 }

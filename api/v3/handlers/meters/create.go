@@ -7,7 +7,7 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/request"
-	meter "github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
@@ -38,9 +38,7 @@ func (h *handler) CreateMeter() CreateMeterHandler {
 				return CreateMeterRequest{}, err
 			}
 
-			req := ConvertFromCreateMeterRequestToCreateMeterInput(ns, body)
-
-			return req, nil
+			return ConvertFromCreateMeterRequestToCreateMeterInput(ns, body)
 		},
 		func(ctx context.Context, request CreateMeterRequest) (CreateMeterResponse, error) {
 			m, err := h.service.CreateMeter(ctx, request)

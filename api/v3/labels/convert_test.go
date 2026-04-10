@@ -39,6 +39,7 @@ func TestToMetadataAnnotations(t *testing.T) {
 		labels          *api.Labels
 		wantMetadata    models.Metadata
 		wantAnnotations models.Annotations
+		wantErr         bool
 	}{
 		{
 			name:            "nil labels",
@@ -65,19 +66,17 @@ func TestToMetadataAnnotations(t *testing.T) {
 			wantAnnotations: nil,
 		},
 		{
-			name: "annotations only",
+			name: "reserved openmeter prefix is rejected",
 			labels: &api.Labels{
 				"openmeter_region": "us-east-1",
 				"openmeter_tier":   "standard",
 			},
-			wantMetadata: nil,
-			wantAnnotations: models.Annotations{
-				"region": "us-east-1",
-				"tier":   "standard",
-			},
+			wantMetadata:    nil,
+			wantAnnotations: nil,
+			wantErr:         true,
 		},
 		{
-			name: "mixed metadata and annotations",
+			name: "mixed metadata and reserved prefix",
 			labels: &api.Labels{
 				"env":              "production",
 				"openmeter_region": "us-east-1",
@@ -85,27 +84,30 @@ func TestToMetadataAnnotations(t *testing.T) {
 			wantMetadata: models.Metadata{
 				"env": "production",
 			},
-			wantAnnotations: models.Annotations{
-				"region": "us-east-1",
-			},
+			wantAnnotations: nil,
+			wantErr:         true,
 		},
 		{
-			name: "annotation prefix is stripped",
+			name: "reserved prefix label is rejected",
 			labels: &api.Labels{
 				"openmeter_key": "value",
 			},
-			wantMetadata: nil,
-			wantAnnotations: models.Annotations{
-				"key": "value",
-			},
+			wantMetadata:    nil,
+			wantAnnotations: nil,
+			wantErr:         true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			metadata, annotations := ToMetadataAnnotations(tt.labels)
-			assert.Equal(t, tt.wantMetadata, metadata)
-			assert.Equal(t, tt.wantAnnotations, annotations)
+			result, err := ToMetadataAnnotations(tt.labels)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.wantMetadata, result.Metadata)
+			assert.Equal(t, tt.wantAnnotations, result.Annotations)
 		})
 	}
 }
@@ -152,14 +154,12 @@ func TestFromMetadataAnnotations(t *testing.T) {
 			},
 		},
 		{
-			name:     "annotation already has prefix",
+			name:     "annotation already has prefix is skipped due to reserved prefix validation",
 			metadata: nil,
 			annotations: models.Annotations{
 				"openmeter_region": "us-east-1",
 			},
-			wantLabels: &api.Labels{
-				"openmeter_region": "us-east-1",
-			},
+			wantLabels: &api.Labels{},
 		},
 		{
 			name:     "annotation stringer value",

@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // goverter:variables
@@ -18,11 +19,12 @@ import (
 // goverter:matchIgnoreCase
 // goverter:extend IntToFloat32
 // goverter:extend ConvertMetadataAnnotationsToLabels
+// goverter:extend ConvertLabelsToMetadata
 var (
 	// goverter:context namespace
 	// goverter:map Namespace | NamespaceFromContext
 	// goverter:map . CustomerMutate
-	ConvertFromCreateCustomerRequestToCreateCustomerInput func(namespace string, createCustomerRequest api.CreateCustomerRequest) customer.CreateCustomerInput
+	ConvertFromCreateCustomerRequestToCreateCustomerInput func(namespace string, createCustomerRequest api.CreateCustomerRequest) (customer.CreateCustomerInput, error)
 	// goverter:map . Labels | ConvertMetadataAnnotationsToLabels
 	// goverter:map ManagedResource.ID Id
 	// goverter:map ManagedResource.Description Description
@@ -33,13 +35,19 @@ var (
 	ConvertCustomerRequestToBillingCustomer func(customer.Customer) api.BillingCustomer
 	// goverter:map Labels Metadata
 	// goverter:ignore Annotation
-	ConvertCreateCustomerRequestToCustomerMutate func(createCustomerRequest api.CreateCustomerRequest) customer.CustomerMutate
+	ConvertCreateCustomerRequestToCustomerMutate func(createCustomerRequest api.CreateCustomerRequest) (customer.CustomerMutate, error)
 	// goverter:map Labels Metadata
 	// goverter:ignore Annotation
 	// goverter:ignore Key
-	ConvertUpsertCustomerRequestToCustomerMutate func(updateCustomerRequest api.UpsertCustomerRequest) customer.CustomerMutate
+	ConvertUpsertCustomerRequestToCustomerMutate func(updateCustomerRequest api.UpsertCustomerRequest) (customer.CustomerMutate, error)
 	ConvertCustomerListResponse                  func(customers response.PagePaginationResponse[customer.Customer]) api.CustomerPagePaginatedResponse
 )
+
+func ConvertLabelsToMetadata(l *api.Labels) (*models.Metadata, error) {
+	m, err := labels.ToMetadata(l)
+
+	return &m, err
+}
 
 //goverter:context namespace
 func NamespaceFromContext(namespace string) string {

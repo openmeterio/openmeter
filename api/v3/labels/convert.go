@@ -2,6 +2,7 @@ package labels
 
 import (
 	"encoding"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -11,18 +12,26 @@ import (
 
 const AnnotationsPrefix = "openmeter_"
 
-func ToMetadataAnnotations(labels *api.Labels) (models.Metadata, models.Annotations) {
+type MetadataAnnotations struct {
+	Metadata    models.Metadata
+	Annotations models.Annotations
+}
+
+func ToMetadataAnnotations(labels *api.Labels) (MetadataAnnotations, error) {
 	if labels == nil || len(*labels) == 0 {
-		return nil, nil
+		return MetadataAnnotations{}, nil
 	}
 
 	var (
 		metadata    models.Metadata
 		annotations models.Annotations
+		errs        []error
 	)
 
 	for k, v := range *labels {
 		if err := ValidateLabel(k, v); err != nil {
+			errs = append(errs, err)
+
 			continue
 		}
 
@@ -41,7 +50,7 @@ func ToMetadataAnnotations(labels *api.Labels) (models.Metadata, models.Annotati
 		}
 	}
 
-	return metadata, annotations
+	return MetadataAnnotations{metadata, annotations}, models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func FromMetadataAnnotations(metadata models.Metadata, annotations models.Annotations) *api.Labels {
@@ -56,10 +65,6 @@ func FromMetadataAnnotations(metadata models.Metadata, annotations models.Annota
 	}
 
 	for k, v := range annotations {
-		if !strings.HasPrefix(k, AnnotationsPrefix) {
-			k = AnnotationsPrefix + k
-		}
-
 		var val string
 
 		switch vv := v.(type) {
@@ -80,6 +85,10 @@ func FromMetadataAnnotations(metadata models.Metadata, annotations models.Annota
 			continue
 		}
 
+		if !strings.HasPrefix(k, AnnotationsPrefix) {
+			k = AnnotationsPrefix + k
+		}
+
 		labels[k] = val
 	}
 
@@ -90,8 +99,8 @@ func FromMetadata[T ~map[string]string](metadata T) *api.Labels {
 	return FromMetadataAnnotations(models.Metadata(metadata), nil)
 }
 
-func ToMetadata(labels *api.Labels) models.Metadata {
-	m, _ := ToMetadataAnnotations(labels)
+func ToMetadata(labels *api.Labels) (models.Metadata, error) {
+	m, err := ToMetadataAnnotations(labels)
 
-	return m
+	return m.Metadata, err
 }
