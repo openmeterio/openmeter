@@ -646,6 +646,21 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 			return nil, fmt.Errorf("validating build standard invoice lines output for engine %s: %w", item.Engine.GetLineEngineType(), err)
 		}
 
+		expectedIDs := lo.Map(item.Lines, func(line billing.GatheringLine, _ int) string {
+			return line.ID
+		})
+		actualIDs := lo.Map(stdLines, func(line *billing.StandardLine, _ int) string {
+			return line.ID
+		})
+		if !lo.ElementsMatch(expectedIDs, actualIDs) {
+			return nil, fmt.Errorf(
+				"build standard invoice lines ids mismatch for engine %s: expected %v, got %v",
+				item.Engine.GetLineEngineType(),
+				expectedIDs,
+				actualIDs,
+			)
+		}
+
 		invoice.Lines.Append(stdLines...)
 	}
 

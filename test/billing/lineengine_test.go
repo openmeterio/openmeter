@@ -2,6 +2,7 @@ package billing
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -10,7 +11,6 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
 	ombilling "github.com/openmeterio/openmeter/openmeter/billing"
@@ -34,8 +34,10 @@ func TestLineEngine(t *testing.T) {
 }
 
 type mockCollectionCompletedLineEngine struct {
-	mock.Mock
 	engineType ombilling.LineEngineType
+
+	buildStandardInvoiceLines func(ctx context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error)
+	onCollectionCompleted     func(ctx context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error)
 }
 
 func mustAsNewStandardLines(input ombilling.BuildStandardInvoiceLinesInput) ombilling.StandardLines {
@@ -68,22 +70,30 @@ func (m *mockCollectionCompletedLineEngine) SplitGatheringLine(_ context.Context
 	return ombilling.SplitGatheringLineResult{}, fmt.Errorf("split is not supported")
 }
 
-func (m *mockCollectionCompletedLineEngine) BuildStandardInvoiceLines(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
-	args := m.Called(input.Invoice, input.GatheringLines)
-	lines := args.Get(0)
+func (m *mockCollectionCompletedLineEngine) BuildStandardInvoiceLines(ctx context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+	if m.buildStandardInvoiceLines == nil {
+		return nil, errors.New("buildStandardInvoiceLines is not set")
+	}
 
-	return lines.(ombilling.StandardLines), args.Error(1)
+	return m.buildStandardInvoiceLines(ctx, input)
 }
 
-func (m *mockCollectionCompletedLineEngine) OnCollectionCompleted(_ context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
-	args := m.Called(input.Invoice, input.Lines)
-	lines := args.Get(0)
+func (m *mockCollectionCompletedLineEngine) OnCollectionCompleted(ctx context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
+	if m.onCollectionCompleted == nil {
+		return nil, errors.New("onCollectionCompleted is not set")
+	}
 
-	return lines.(ombilling.StandardLines), args.Error(1)
+	return m.onCollectionCompleted(ctx, input)
 }
 
 func (m *mockCollectionCompletedLineEngine) CalculateLines(input ombilling.CalculateLinesInput) (ombilling.StandardLines, error) {
 	return input.Lines, nil
+}
+
+func (m *mockCollectionCompletedLineEngine) Reset() {
+	*m = mockCollectionCompletedLineEngine{
+		engineType: m.engineType,
+	}
 }
 
 func (s *LineEngineTestSuite) registerMockLineEngine(t *testing.T, engine ombilling.LineEngine) {
@@ -193,20 +203,18 @@ func (s *LineEngineTestSuite) TestCollectionCompletedErrorsBecomeValidationIssue
 	defer clock.ResetTime()
 	defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
 	defer s.MockStreamingConnector.Reset()
-	defer mockEngine.AssertExpectations(s.T())
 	s.registerMockLineEngine(s.T(), mockEngine)
 	defer s.unregisterLineEngine(s.T(), mockEngine)
 
 	s.Run("Given a draft invoice waiting for collection with a failing collection-completed engine", func() {
-		mockEngine.On("BuildStandardInvoiceLines", mock.Anything, mock.Anything).Return(
-			func(invoice ombilling.StandardInvoice, gatheringLines ombilling.GatheringLines) ombilling.StandardLines {
-				return mustAsNewStandardLines(ombilling.BuildStandardInvoiceLinesInput{
-					Invoice:        invoice,
-					GatheringLines: gatheringLines,
-				})
-			},
-			nil,
-		).Once()
+		defer mockEngine.Reset()
+
+		mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+			return mustAsNewStandardLines(ombilling.BuildStandardInvoiceLinesInput{
+				Invoice:        input.Invoice,
+				GatheringLines: input.GatheringLines,
+			}), nil
+		}
 
 		invoice, collectionAt = s.createMeteredDraftInvoiceWaitingForCollection(
 			ctx,
@@ -217,7 +225,11 @@ func (s *LineEngineTestSuite) TestCollectionCompletedErrorsBecomeValidationIssue
 	})
 
 	s.Run("When collection is completed", func() {
-		mockEngine.On("OnCollectionCompleted", mock.Anything, mock.Anything).Return(ombilling.StandardLines(nil), fmt.Errorf("mock collection completed failure")).Once()
+		defer mockEngine.Reset()
+
+		mockEngine.onCollectionCompleted = func(_ context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
+			return nil, fmt.Errorf("mock collection completed failure")
+		}
 
 		clock.SetTime(collectionAt.Add(time.Minute))
 		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
@@ -248,20 +260,18 @@ func (s *LineEngineTestSuite) TestCollectionCompletedCustomSnapshotIsPreserved()
 	defer clock.ResetTime()
 	defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
 	defer s.MockStreamingConnector.Reset()
-	defer mockEngine.AssertExpectations(s.T())
 	s.registerMockLineEngine(s.T(), mockEngine)
 	defer s.unregisterLineEngine(s.T(), mockEngine)
 
 	s.Run("Given a draft invoice waiting for collection with a custom collection-completed engine", func() {
-		mockEngine.On("BuildStandardInvoiceLines", mock.Anything, mock.Anything).Return(
-			func(invoice ombilling.StandardInvoice, gatheringLines ombilling.GatheringLines) ombilling.StandardLines {
-				return mustAsNewStandardLines(ombilling.BuildStandardInvoiceLinesInput{
-					Invoice:        invoice,
-					GatheringLines: gatheringLines,
-				})
-			},
-			nil,
-		).Once()
+		defer mockEngine.Reset()
+
+		mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+			return mustAsNewStandardLines(ombilling.BuildStandardInvoiceLinesInput{
+				Invoice:        input.Invoice,
+				GatheringLines: input.GatheringLines,
+			}), nil
+		}
 
 		invoice, collectionAt = s.createMeteredDraftInvoiceWaitingForCollection(
 			ctx,
@@ -272,8 +282,10 @@ func (s *LineEngineTestSuite) TestCollectionCompletedCustomSnapshotIsPreserved()
 	})
 
 	s.Run("When collection is completed", func() {
-		mockEngine.On("OnCollectionCompleted", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			lines := args.Get(1).(ombilling.StandardLines)
+		defer mockEngine.Reset()
+
+		mockEngine.onCollectionCompleted = func(_ context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
+			lines := input.Lines
 			for _, stdLine := range lines {
 				if stdLine.UsageBased == nil {
 					stdLine.UsageBased = &ombilling.UsageBasedLine{}
@@ -284,9 +296,9 @@ func (s *LineEngineTestSuite) TestCollectionCompletedCustomSnapshotIsPreserved()
 				stdLine.UsageBased.PreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
 				stdLine.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
 			}
-		}).Return(func(_ ombilling.StandardInvoice, lines ombilling.StandardLines) ombilling.StandardLines {
-			return lines
-		}, nil).Once()
+
+			return lines, nil
+		}
 
 		clock.FreezeTime(collectionAt.Add(time.Minute).UTC())
 		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())

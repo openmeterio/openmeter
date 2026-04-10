@@ -87,6 +87,11 @@ type BaseSuite struct {
 	TaxCodeService taxcode.Service
 }
 
+func (s *BaseSuite) TearDownTest() {
+	clock.UnFreeze()
+	clock.ResetTime()
+}
+
 // GetUniqueNamespace returns a unique namespace with the given prefix
 func (s *BaseSuite) GetUniqueNamespace(prefix string) string {
 	return fmt.Sprintf("%s_%s", prefix, ulid.Make().String())

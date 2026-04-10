@@ -203,6 +203,7 @@ type LineEngine interface {
 	// SplitGatheringLine splits a gathering line on an engine-specific boundary if required.
 	SplitGatheringLine(ctx context.Context, input SplitGatheringLineInput) (SplitGatheringLineResult, error)
 	// BuildStandardInvoiceLines materializes gathering lines into standard lines for a target invoice.
+	// Returned standard lines must reuse the exact same line IDs as the input gathering lines.
 	BuildStandardInvoiceLines(ctx context.Context, input BuildStandardInvoiceLinesInput) (StandardLines, error)
 	// OnCollectionCompleted is invoked when a standard invoice collection window closes.
 	OnCollectionCompleted(ctx context.Context, input OnCollectionCompletedInput) (StandardLines, error)

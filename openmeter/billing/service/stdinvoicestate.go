@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
-	"strings"
 	"sync"
 	"time"
 
@@ -823,9 +822,11 @@ func (m *InvoiceStateMachine) onCollectionCompleted(ctx context.Context) error {
 		return fmt.Errorf("grouping standard lines by engine: %w", err)
 	}
 
-	var validationErrs []error
+	var hadValidationErr bool
 
 	for _, grouped := range groupedLines {
+		component := billing.LineEngineValidationComponent(grouped.Engine.GetLineEngineType())
+
 		input := billing.OnCollectionCompletedInput{
 			Invoice: m.Invoice,
 			Lines:   grouped.Lines,
@@ -836,7 +837,10 @@ func (m *InvoiceStateMachine) onCollectionCompleted(ctx context.Context) error {
 
 		lines, err := grouped.Engine.OnCollectionCompleted(ctx, input)
 		if err != nil {
-			validationErrs = append(validationErrs, billing.NewLineEngineValidationError(grouped.Engine, err))
+			hadValidationErr = true
+			if err := m.Invoice.MergeValidationIssues(billing.NewLineEngineValidationError(grouped.Engine, err), component); err != nil {
+				return err
+			}
 			continue
 		}
 
@@ -853,30 +857,12 @@ func (m *InvoiceStateMachine) onCollectionCompleted(ctx context.Context) error {
 		}
 	}
 
-	if len(validationErrs) > 0 {
-		if err := m.mergeLineEngineValidationIssues(errors.Join(validationErrs...)); err != nil {
-			return err
-		}
-	}
-
-	if len(groupedLines) > 0 {
+	if len(groupedLines) > 0 && !hadValidationErr {
 		now := clock.Now().UTC()
 		m.Invoice.QuantitySnapshotedAt = &now
 	}
 
 	return nil
-}
-
-func (m *InvoiceStateMachine) mergeLineEngineValidationIssues(err error) error {
-	if err == nil {
-		return nil
-	}
-
-	m.Invoice.ValidationIssues = lo.Filter(m.Invoice.ValidationIssues, func(issue billing.ValidationIssue, _ int) bool {
-		return !strings.HasPrefix(string(issue.Component), "openmeter.lineengine.")
-	})
-
-	return m.Invoice.MergeValidationIssues(err, "")
 }
 
 func (m *InvoiceStateMachine) canDraftSyncAdvance() bool {
