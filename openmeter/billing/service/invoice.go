@@ -253,6 +253,7 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 		FeatureMeters: featureMeters,
 		RatingService: s.ratingService,
 		TaxCodes:      taxCodes,
+		LineEngines:   s.lineEngines,
 	}); err != nil {
 		return nil, fmt.Errorf("calculating invoice: %w", err)
 	}
@@ -861,6 +862,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 		FeatureMeters: featureMeters,
 		RatingService: s.ratingService,
 		TaxCodes:      taxCodes,
+		LineEngines:   s.lineEngines,
 	}); err != nil {
 		return billing.StandardInvoice{}, err
 	}

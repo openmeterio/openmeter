@@ -18,6 +18,8 @@ const (
 
 	ValidationComponentOpenMeter         = "openmeter"
 	ValidationComponentOpenMeterMetering = "openmeter.metering"
+
+	ValidationIssueCodeLineEngineCollectionCompletedFailed = "line_engine_collection_completed_failed"
 )
 
 func (ValidationIssueSeverity) Values() []string {

@@ -44,22 +44,37 @@ func (e *Engine) BuildStandardInvoiceLines(ctx context.Context, input billing.Bu
 		return nil, fmt.Errorf("snapshotting line quantities: %w", err)
 	}
 
-	for _, line := range stdLines {
-		generatedDetailedLines, err := e.ratingService.GenerateDetailedLines(line)
+	return e.CalculateLines(billing.CalculateLinesInput{
+		Invoice: input.Invoice,
+		Lines:   stdLines,
+	})
+}
+
+func (e *Engine) CalculateLines(input billing.CalculateLinesInput) (billing.StandardLines, error) {
+	if input.Invoice.ID == "" {
+		return nil, fmt.Errorf("invoice id is required")
+	}
+
+	if len(input.Lines) == 0 {
+		return nil, fmt.Errorf("lines are required")
+	}
+
+	for _, stdLine := range input.Lines {
+		generatedDetailedLines, err := e.ratingService.GenerateDetailedLines(stdLine)
 		if err != nil {
-			return nil, fmt.Errorf("generating detailed lines for line[%s]: %w", line.ID, err)
+			return nil, fmt.Errorf("generating detailed lines for line[%s]: %w", stdLine.ID, err)
 		}
 
-		if err := invoicecalc.MergeGeneratedDetailedLines(line, generatedDetailedLines); err != nil {
-			return nil, fmt.Errorf("merging generated detailed lines for line[%s]: %w", line.ID, err)
+		if err := invoicecalc.MergeGeneratedDetailedLines(stdLine, generatedDetailedLines); err != nil {
+			return nil, fmt.Errorf("merging generated detailed lines for line[%s]: %w", stdLine.ID, err)
 		}
 
-		if err := line.Validate(); err != nil {
-			return nil, fmt.Errorf("validating standard line[%s]: %w", line.ID, err)
+		if err := stdLine.Validate(); err != nil {
+			return nil, fmt.Errorf("validating standard line[%s]: %w", stdLine.ID, err)
 		}
 	}
 
-	return stdLines, nil
+	return input.Lines, nil
 }
 
 func (e *Engine) IsLineBillableAsOf(_ context.Context, input billing.IsLineBillableAsOfInput) (bool, error) {

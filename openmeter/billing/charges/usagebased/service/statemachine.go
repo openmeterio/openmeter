@@ -191,7 +191,7 @@ func (s *StateMachine) getCurrentRunCollectionEnd() (time.Time, error) {
 	return meta.NormalizeTimestamp(currentRun.CollectionEnd), nil
 }
 
-func (s *CreditsOnlyStateMachine) FireAndActivate(ctx context.Context, trigger meta.Trigger, args ...any) error {
+func (s *StateMachine) FireAndActivate(ctx context.Context, trigger meta.Trigger, args ...any) error {
 	if err := s.StateMachine.FireCtx(ctx, trigger, args...); err != nil {
 		return err
 	}
@@ -199,7 +199,7 @@ func (s *CreditsOnlyStateMachine) FireAndActivate(ctx context.Context, trigger m
 	return s.StateMachine.ActivateCtx(ctx)
 }
 
-func (s *CreditsOnlyStateMachine) AdvanceUntilStateStable(ctx context.Context) (*usagebased.Charge, error) {
+func (s *StateMachine) AdvanceUntilStateStable(ctx context.Context) (*usagebased.Charge, error) {
 	var advanced bool
 
 	for {

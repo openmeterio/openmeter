@@ -97,3 +97,9 @@ type service struct {
 	featureService          feature.FeatureConnector
 	ratingService           rating.Service
 }
+
+func (s *service) GetLineEngine() billing.LineEngine {
+	return &LineEngine{
+		service: s,
+	}
+}

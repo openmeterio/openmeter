@@ -14,6 +14,7 @@ import (
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
@@ -825,6 +826,158 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 		s.Equal(creditrealization.TypeCorrection, finalRun.CreditsAllocated[1].Type)
 		s.Equal(float64(-9), finalRun.CreditsAllocated[1].Amount.InexactFloat64())
 		s.Equal(finalRun.CreditsAllocated[0].ID, lo.FromPtr(finalRun.CreditsAllocated[1].CorrectsRealizationID))
+	})
+}
+
+func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() {
+	ctx := context.Background()
+	ns := s.GetUniqueNamespace("charges-service-usage-based-credit-then-invoice")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	createAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-01T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+	meterSlug := apiRequestsTotal.Feature.Key
+
+	clock.FreezeTime(createAt)
+	defer clock.UnFreeze()
+
+	var (
+		usageBasedChargeID meta.ChargeID
+		invoice            billing.StandardInvoice
+	)
+
+	s.Run("#1 grant promotional credits", func() {
+		promotionalCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
+		s.CreditPurchaseTestHandler.onPromotionalCreditPurchase = promotionalCallback.Handler(s.T())
+
+		intent := CreateCreditPurchaseIntent(s.T(),
+			createCreditPurchaseIntentInput{
+				customer: cust.GetID(),
+				currency: USD,
+				amount:   alpacadecimal.NewFromFloat(5),
+				servicePeriod: timeutil.ClosedPeriod{
+					From: createAt,
+					To:   createAt,
+				},
+				settlement: creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+			},
+		)
+
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				intent,
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+		s.Equal(meta.ChargeTypeCreditPurchase, res[0].Type())
+		s.Equal(1, promotionalCallback.nrInvocations)
+	})
+
+	s.Run("#2 create future credit-then-invoice usage-based charge", func() {
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: []charges.ChargeIntent{
+				s.createMockChargeIntent(createMockChargeIntentInput{
+					customer:          cust.GetID(),
+					currency:          USD,
+					servicePeriod:     servicePeriod,
+					settlementMode:    productcatalog.CreditThenInvoiceSettlementMode,
+					price:             productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(0.1)}),
+					name:              "usage-based-credit-then-invoice",
+					managedBy:         billing.SubscriptionManagedLine,
+					uniqueReferenceID: "usage-based-credit-then-invoice",
+					featureKey:        meterSlug,
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+
+		usageBasedCharge, err := res[0].AsUsageBasedCharge()
+		s.NoError(err)
+		usageBasedChargeID = usageBasedCharge.GetChargeID()
+
+		fetched := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+		s.Equal(meta.ChargeStatusCreated, meta.ChargeStatus(fetched.Status))
+		s.Empty(fetched.Realizations)
+		s.Nil(fetched.State.AdvanceAfter)
+	})
+
+	s.Run("#4 invoice pending lines at service period end", func() {
+		s.MockStreamingConnector.AddSimpleEvent(
+			meterSlug,
+			100,
+			datetime.MustParseTimeInLocation(s.T(), "2026-01-15T00:00:00Z", time.UTC).AsTime(),
+		)
+
+		clock.FreezeTime(servicePeriod.To)
+
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(servicePeriod.To),
+		})
+		s.NoError(err)
+		s.Len(invoices, 1)
+
+		invoice = invoices[0]
+		s.Len(invoice.Lines.OrEmpty(), 1)
+
+		stdLine := invoice.Lines.OrEmpty()[0]
+		s.NotNil(stdLine.UsageBased)
+		s.NotNil(stdLine.UsageBased.Quantity)
+		s.NotNil(stdLine.UsageBased.MeteredQuantity)
+		s.Equal(float64(100), lo.FromPtr(stdLine.UsageBased.Quantity).InexactFloat64())
+		s.Equal(float64(100), lo.FromPtr(stdLine.UsageBased.MeteredQuantity).InexactFloat64())
+		s.Equal(usageBasedChargeID.ID, lo.FromPtr(stdLine.ChargeID))
+
+		usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+		s.Equal(usagebased.StatusActiveFinalRealizationWaitingForCollection, usageBasedCharge.Status)
+		s.NotNil(usageBasedCharge.State.CurrentRealizationRunID)
+		s.Len(usageBasedCharge.Realizations, 1)
+
+		currentRun, err := usageBasedCharge.GetCurrentRealizationRun()
+		s.NoError(err)
+		s.Equal(float64(100), currentRun.MeterValue.InexactFloat64())
+	})
+
+	s.Run("#5 advance invoice at collection period end", func() {
+		s.MockStreamingConnector.AddSimpleEvent(
+			meterSlug,
+			25,
+			datetime.MustParseTimeInLocation(s.T(), "2026-01-20T00:00:00Z", time.UTC).AsTime(),
+			streamingtestutils.WithStoredAt(datetime.MustParseTimeInLocation(s.T(), "2026-02-02T12:00:00Z", time.UTC).AsTime()),
+		)
+		clock.FreezeTime(invoice.DefaultCollectionAtForStandardInvoice())
+
+		var err error
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.NoError(err)
+
+		usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+		s.Equal(usagebased.StatusActiveFinalRealizationCompleted, usageBasedCharge.Status)
+		s.NotNil(usageBasedCharge.State.CurrentRealizationRunID)
+		s.Len(usageBasedCharge.Realizations, 1)
+
+		currentRun, err := usageBasedCharge.GetCurrentRealizationRun()
+		s.NoError(err)
+		s.Equal(float64(125), currentRun.MeterValue.InexactFloat64())
+		s.True(currentRun.CollectionEnd.Equal(invoice.DefaultCollectionAtForStandardInvoice()))
 	})
 }
 

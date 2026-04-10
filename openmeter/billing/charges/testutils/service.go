@@ -183,6 +183,10 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		return nil, fmt.Errorf("creating usage based service: %w", err)
 	}
 
+	if err := config.BillingService.RegisterLineEngine(usageBasedService.GetLineEngine()); err != nil {
+		return nil, fmt.Errorf("registering usage based line engine: %w", err)
+	}
+
 	creditPurchaseAdapter, err := creditpurchaseadapter.New(creditpurchaseadapter.Config{
 		Client:      config.Client,
 		Logger:      logger,
