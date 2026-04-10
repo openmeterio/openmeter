@@ -1733,7 +1733,7 @@ func (n NoopBillingService) DeregisterLineEngine(engineType billing.LineEngineTy
 	return nil
 }
 
-func (n NoopBillingService) GetRegisterdLineEngines() []billing.LineEngineType {
+func (n NoopBillingService) GetRegisteredLineEngines() []billing.LineEngineType {
 	return nil
 }
 

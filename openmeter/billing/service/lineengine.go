@@ -163,6 +163,6 @@ func (s *Service) DeregisterLineEngine(engineType billing.LineEngineType) error 
 	return s.lineEngines.Deregister(engineType)
 }
 
-func (s *Service) GetRegisterdLineEngines() []billing.LineEngineType {
+func (s *Service) GetRegisteredLineEngines() []billing.LineEngineType {
 	return s.lineEngines.List()
 }

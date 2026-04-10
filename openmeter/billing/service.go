@@ -63,7 +63,7 @@ type InvoiceLineService interface {
 type LineEngineService interface {
 	RegisterLineEngine(engine LineEngine) error
 	DeregisterLineEngine(engineType LineEngineType) error
-	GetRegisterdLineEngines() []LineEngineType
+	GetRegisteredLineEngines() []LineEngineType
 }
 
 type SplitLineGroupService interface {
