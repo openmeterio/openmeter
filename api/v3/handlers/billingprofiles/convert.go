@@ -43,7 +43,7 @@ var (
 	ConvertProfilesToBillingProfiles func(profiles []billing.Profile) ([]api.BillingProfile, error)
 	// goverter:context namespace
 	// goverter:map Namespace | NamespaceFromContext
-	// goverter:map Labels Metadata
+	// goverter:map Labels Metadata | ConvertLabelsToMetadata
 	// goverter:map Workflow WorkflowConfig | ConvertBillingWorkflowToWorkflowConfig
 	ConvertCreateBillingProfileRequestToCreateProfileInput func(namespace string, req api.CreateBillingProfileRequest) (billing.CreateProfileInput, error)
 	// goverter:context namespacedID

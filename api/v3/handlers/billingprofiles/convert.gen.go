@@ -93,7 +93,11 @@ func init() {
 		billingCreateProfileInput.Namespace = NamespaceFromContext(context)
 		billingCreateProfileInput.Name = source.Name
 		billingCreateProfileInput.Description = source.Description
-		billingCreateProfileInput.Metadata = pV3LabelsToMapStringString(source.Labels)
+		mapStringString, err := ConvertLabelsToMetadata(source.Labels)
+		if err != nil {
+			return billingCreateProfileInput, err
+		}
+		billingCreateProfileInput.Metadata = mapStringString
 		billingCreateProfileInput.Supplier = ConvertBillingPartyToSupplierContact(source.Supplier)
 		billingCreateProfileInput.Default = source.Default
 		billingWorkflowConfig, err := ConvertBillingWorkflowToWorkflowConfig(source.Workflow)
@@ -232,23 +236,6 @@ func pV3BillingTaxConfigStripeToPProductcatalogStripeTaxConfig(source *v3.Billin
 	}
 	return pProductcatalogStripeTaxConfig
 }
-func pV3LabelsToMapStringString(source *v3.Labels) map[string]string {
-	var mapStringString map[string]string
-	if source != nil {
-		mapStringString = v3LabelsToMapStringString((*source))
-	}
-	return mapStringString
-}
 func timeTimeToPTimeTime(source time.Time) *time.Time {
 	return &source
-}
-func v3LabelsToMapStringString(source v3.Labels) map[string]string {
-	var mapStringString map[string]string
-	if source != nil {
-		mapStringString = make(map[string]string, len(source))
-		for key, value := range source {
-			mapStringString[key] = value
-		}
-	}
-	return mapStringString
 }
