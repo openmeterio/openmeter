@@ -675,7 +675,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		charge := s.mustGetChargeByID(flatFeeChargeID)
 		updatedFlatFeeCharge, err := charge.AsFlatFeeCharge()
 		s.NoError(err)
-		s.Equal(meta.ChargeStatusFinal, updatedFlatFeeCharge.Status)
+		s.Equal(flatfee.StatusFinal, updatedFlatFeeCharge.Status)
 
 		assertDelta("promo receivable after payment settlement", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen))
 		assertDelta("external receivable after payment settlement", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen))
@@ -915,7 +915,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		s.NoError(err)
 
 		flatFeeChargeID = flatFeeCharge.GetChargeID()
-		s.Equal(meta.ChargeStatusCreated, flatFeeCharge.Status)
+		s.Equal(flatfee.StatusCreated, flatFeeCharge.Status)
 
 		gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 			Namespaces: []string{ns},
@@ -948,7 +948,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		advancedFlatFee, err := advancedCharges[0].AsFlatFeeCharge()
 		s.NoError(err)
 		s.Equal(flatFeeChargeID.ID, advancedFlatFee.ID)
-		s.Equal(meta.ChargeStatusFinal, advancedFlatFee.Status)
+		s.Equal(flatfee.StatusFinal, advancedFlatFee.Status)
 		// We expect three realizations here: promotional credit, purchased credit, and the synthetic shortfall coverage.
 		s.Len(advancedFlatFee.Realizations.CreditRealizations, 3)
 
