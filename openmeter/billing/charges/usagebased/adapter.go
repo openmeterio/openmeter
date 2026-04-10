@@ -22,7 +22,6 @@ type ChargeAdapter interface {
 	DeleteCharge(ctx context.Context, charge Charge) error
 	GetByIDs(ctx context.Context, input GetByIDsInput) ([]Charge, error)
 	GetByID(ctx context.Context, input GetByIDInput) (Charge, error)
-	UpdateStatus(ctx context.Context, input UpdateStatusInput) (ChargeBase, error)
 }
 
 type RealizationRunAdapter interface {

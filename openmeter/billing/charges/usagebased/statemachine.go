@@ -1,7 +1,6 @@
 package usagebased
 
 import (
-	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -63,23 +62,4 @@ func (s Status) ToMetaChargeStatus() (meta.ChargeStatus, error) {
 	}
 
 	return metaStatus, nil
-}
-
-type UpdateStatusInput struct {
-	Charge ChargeBase
-	Status Status
-}
-
-func (i UpdateStatusInput) Validate() error {
-	var errs []error
-
-	if err := i.Charge.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("charge ID: %w", err))
-	}
-
-	if err := i.Status.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("new status: %w", err))
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

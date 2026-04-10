@@ -208,8 +208,8 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, charge flatfee
 	}
 
 	receivableReplenishment := alpacadecimal.NewFromInt(0)
-	if charge.State.AccruedUsage != nil {
-		receivableReplenishment = charge.State.AccruedUsage.Totals.Total
+	if charge.Realizations.AccruedUsage != nil {
+		receivableReplenishment = charge.Realizations.AccruedUsage.Totals.Total
 	}
 
 	if receivableReplenishment.IsZero() {
@@ -262,7 +262,7 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, charge flatfee.Ch
 		return ledgertransaction.GroupReference{}, err
 	}
 
-	if charge.State.AccruedUsage == nil || !charge.State.AccruedUsage.Totals.Total.IsPositive() {
+	if charge.Realizations.AccruedUsage == nil || !charge.Realizations.AccruedUsage.Totals.Total.IsPositive() {
 		return ledgertransaction.GroupReference{}, nil
 	}
 
@@ -284,7 +284,7 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, charge flatfee.Ch
 		},
 		transactions.SettleCustomerReceivablePaymentTemplate{
 			At:        charge.Intent.InvoiceAt,
-			Amount:    charge.State.AccruedUsage.Totals.Total,
+			Amount:    charge.Realizations.AccruedUsage.Totals.Total,
 			Currency:  charge.Intent.Currency,
 			CostBasis: invoiceCostBasis,
 		},

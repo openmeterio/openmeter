@@ -1776,6 +1776,36 @@ func AmountAfterProrationLTE(v alpacadecimal.Decimal) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldLTE(FieldAmountAfterProration, v))
 }
 
+// StatusDetailedEQ applies the EQ predicate on the "status_detailed" field.
+func StatusDetailedEQ(v flatfee.Status) predicate.ChargeFlatFee {
+	vc := v
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldStatusDetailed, vc))
+}
+
+// StatusDetailedNEQ applies the NEQ predicate on the "status_detailed" field.
+func StatusDetailedNEQ(v flatfee.Status) predicate.ChargeFlatFee {
+	vc := v
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldStatusDetailed, vc))
+}
+
+// StatusDetailedIn applies the In predicate on the "status_detailed" field.
+func StatusDetailedIn(vs ...flatfee.Status) predicate.ChargeFlatFee {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldStatusDetailed, v...))
+}
+
+// StatusDetailedNotIn applies the NotIn predicate on the "status_detailed" field.
+func StatusDetailedNotIn(vs ...flatfee.Status) predicate.ChargeFlatFee {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldStatusDetailed, v...))
+}
+
 // HasCreditAllocations applies the HasEdge predicate on the "credit_allocations" edge.
 func HasCreditAllocations() predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(func(s *sql.Selector) {

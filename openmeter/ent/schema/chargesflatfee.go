@@ -72,6 +72,9 @@ func (ChargeFlatFee) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "numeric",
 			}),
+
+		field.Enum("status_detailed").
+			GoType(flatfee.Status("")),
 	}
 }
 

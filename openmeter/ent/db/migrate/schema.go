@@ -1885,6 +1885,7 @@ var (
 		{Name: "feature_key", Type: field.TypeString, Nullable: true},
 		{Name: "amount_before_proration", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "amount_after_proration", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "status_detailed", Type: field.TypeEnum, Enums: []string{"created", "active", "final", "deleted"}},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "feature_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -1899,31 +1900,31 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_flat_fees_customers_charges_flat_fee",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[28]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[29]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "charge_flat_fees_features_flat_fee_charges",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[29]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[30]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_flat_fees_subscriptions_charges_flat_fee",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[30]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[31]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_flat_fees_subscription_items_charges_flat_fee",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[31]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[32]},
 				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_flat_fees_subscription_phases_charges_flat_fee",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[32]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[33]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -1932,7 +1933,7 @@ var (
 			{
 				Name:    "chargeflatfee_namespace_customer_id_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeFlatFeesColumns[13], ChargeFlatFeesColumns[28], ChargeFlatFeesColumns[8]},
+				Columns: []*schema.Column{ChargeFlatFeesColumns[13], ChargeFlatFeesColumns[29], ChargeFlatFeesColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},

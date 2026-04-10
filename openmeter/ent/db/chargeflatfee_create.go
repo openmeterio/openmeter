@@ -319,6 +319,12 @@ func (_c *ChargeFlatFeeCreate) SetAmountAfterProration(v alpacadecimal.Decimal) 
 	return _c
 }
 
+// SetStatusDetailed sets the "status_detailed" field.
+func (_c *ChargeFlatFeeCreate) SetStatusDetailed(v flatfee.Status) *ChargeFlatFeeCreate {
+	_c.mutation.SetStatusDetailed(v)
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *ChargeFlatFeeCreate) SetID(v string) *ChargeFlatFeeCreate {
 	_c.mutation.SetID(v)
@@ -591,6 +597,14 @@ func (_c *ChargeFlatFeeCreate) check() error {
 	if _, ok := _c.mutation.AmountAfterProration(); !ok {
 		return &ValidationError{Name: "amount_after_proration", err: errors.New(`db: missing required field "ChargeFlatFee.amount_after_proration"`)}
 	}
+	if _, ok := _c.mutation.StatusDetailed(); !ok {
+		return &ValidationError{Name: "status_detailed", err: errors.New(`db: missing required field "ChargeFlatFee.status_detailed"`)}
+	}
+	if v, ok := _c.mutation.StatusDetailed(); ok {
+		if err := chargeflatfee.StatusDetailedValidator(v); err != nil {
+			return &ValidationError{Name: "status_detailed", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.status_detailed": %w`, err)}
+		}
+	}
 	if len(_c.mutation.CustomerIDs()) == 0 {
 		return &ValidationError{Name: "customer", err: errors.New(`db: missing required edge "ChargeFlatFee.customer"`)}
 	}
@@ -744,6 +758,10 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.AmountAfterProration(); ok {
 		_spec.SetField(chargeflatfee.FieldAmountAfterProration, field.TypeOther, value)
 		_node.AmountAfterProration = value
+	}
+	if value, ok := _c.mutation.StatusDetailed(); ok {
+		_spec.SetField(chargeflatfee.FieldStatusDetailed, field.TypeEnum, value)
+		_node.StatusDetailed = value
 	}
 	if nodes := _c.mutation.CreditAllocationsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -1270,6 +1288,18 @@ func (u *ChargeFlatFeeUpsert) UpdateAmountAfterProration() *ChargeFlatFeeUpsert 
 	return u
 }
 
+// SetStatusDetailed sets the "status_detailed" field.
+func (u *ChargeFlatFeeUpsert) SetStatusDetailed(v flatfee.Status) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldStatusDetailed, v)
+	return u
+}
+
+// UpdateStatusDetailed sets the "status_detailed" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateStatusDetailed() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldStatusDetailed)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -1720,6 +1750,20 @@ func (u *ChargeFlatFeeUpsertOne) SetAmountAfterProration(v alpacadecimal.Decimal
 func (u *ChargeFlatFeeUpsertOne) UpdateAmountAfterProration() *ChargeFlatFeeUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.UpdateAmountAfterProration()
+	})
+}
+
+// SetStatusDetailed sets the "status_detailed" field.
+func (u *ChargeFlatFeeUpsertOne) SetStatusDetailed(v flatfee.Status) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetStatusDetailed(v)
+	})
+}
+
+// UpdateStatusDetailed sets the "status_detailed" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateStatusDetailed() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateStatusDetailed()
 	})
 }
 
@@ -2343,6 +2387,20 @@ func (u *ChargeFlatFeeUpsertBulk) SetAmountAfterProration(v alpacadecimal.Decima
 func (u *ChargeFlatFeeUpsertBulk) UpdateAmountAfterProration() *ChargeFlatFeeUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.UpdateAmountAfterProration()
+	})
+}
+
+// SetStatusDetailed sets the "status_detailed" field.
+func (u *ChargeFlatFeeUpsertBulk) SetStatusDetailed(v flatfee.Status) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetStatusDetailed(v)
+	})
+}
+
+// UpdateStatusDetailed sets the "status_detailed" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateStatusDetailed() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateStatusDetailed()
 	})
 }
 

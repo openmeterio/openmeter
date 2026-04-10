@@ -16,26 +16,39 @@ import (
 )
 
 type Adapter interface {
+	ChargeAdapter
+	ChargeCreditAllocationAdapter
+	ChargeInvoicedUsageAdapter
+	ChargePaymentAdapter
+
+	entutils.TxCreator
+}
+
+type ChargeAdapter interface {
 	CreateCharges(ctx context.Context, charges CreateChargesInput) ([]Charge, error)
-	UpdateCharge(ctx context.Context, charge Charge) error
+	UpdateCharge(ctx context.Context, charge ChargeBase) (ChargeBase, error)
 	DeleteCharge(ctx context.Context, charge Charge) error
 	GetByIDs(ctx context.Context, ids GetByIDsInput) ([]Charge, error)
 	GetByID(ctx context.Context, id GetByIDInput) (Charge, error)
+}
 
+type ChargeInvoicedUsageAdapter interface {
 	CreateInvoicedUsage(ctx context.Context, chargeID meta.ChargeID, invoicedUsage invoicedusage.AccruedUsage) (invoicedusage.AccruedUsage, error)
+}
 
+type ChargeCreditAllocationAdapter interface {
 	CreateCreditAllocations(ctx context.Context, chargeID meta.ChargeID, creditAllocations creditrealization.CreateInputs) (creditrealization.Realizations, error)
+}
 
+type ChargePaymentAdapter interface {
 	CreatePayment(ctx context.Context, chargeID meta.ChargeID, paymentSettlement payment.InvoicedCreate) (payment.Invoiced, error)
 	UpdatePayment(ctx context.Context, paymentSettlement payment.Invoiced) (payment.Invoiced, error)
-
-	entutils.TxCreator
 }
 
 type IntentWithInitialStatus struct {
 	Intent
 	FeatureID            *string
-	InitialStatus        meta.ChargeStatus
+	InitialStatus        Status
 	AmountAfterProration alpacadecimal.Decimal
 }
 
@@ -55,6 +68,7 @@ func (i IntentWithInitialStatus) Validate() error {
 			errs = append(errs, fmt.Errorf("initial status: %w", err))
 		}
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 

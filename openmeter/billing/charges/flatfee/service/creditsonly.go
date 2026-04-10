@@ -61,7 +61,7 @@ func NewCreditsOnlyStateMachine(config CreditsOnlyStateMachineConfig) (*CreditsO
 			return out.Charge.Status, nil
 		},
 		func(ctx context.Context, state stateless.State) error {
-			newStatus := state.(meta.ChargeStatus)
+			newStatus := state.(flatfee.Status)
 			if err := newStatus.Validate(); err != nil {
 				return fmt.Errorf("invalid status: %w", err)
 			}
@@ -79,25 +79,25 @@ func NewCreditsOnlyStateMachine(config CreditsOnlyStateMachineConfig) (*CreditsO
 }
 
 func (s *CreditsOnlyStateMachine) configureStates() {
-	s.Configure(meta.ChargeStatusCreated).
-		Permit(meta.TriggerNext, meta.ChargeStatusActive, statelessx.BoolFn(s.IsAfterInvoiceAt)).
-		Permit(meta.TriggerDelete, meta.ChargeStatusDeleted).
+	s.Configure(flatfee.StatusCreated).
+		Permit(meta.TriggerNext, flatfee.StatusActive, statelessx.BoolFn(s.IsAfterInvoiceAt)).
+		Permit(meta.TriggerDelete, flatfee.StatusDeleted).
 		OnActive(
 			s.SetAdvanceAfterInvoiceAt,
 		)
 
-	s.Configure(meta.ChargeStatusActive).
-		Permit(meta.TriggerNext, meta.ChargeStatusFinal).
-		Permit(meta.TriggerDelete, meta.ChargeStatusDeleted).
+	s.Configure(flatfee.StatusActive).
+		Permit(meta.TriggerNext, flatfee.StatusFinal).
+		Permit(meta.TriggerDelete, flatfee.StatusDeleted).
 		OnActive(
 			s.AllocateCredits,
 		)
 
-	s.Configure(meta.ChargeStatusFinal).
-		Permit(meta.TriggerDelete, meta.ChargeStatusDeleted).
+	s.Configure(flatfee.StatusFinal).
+		Permit(meta.TriggerDelete, flatfee.StatusDeleted).
 		OnActive(s.ClearAdvanceAfter)
 
-	s.Configure(meta.ChargeStatusDeleted).
+	s.Configure(flatfee.StatusDeleted).
 		OnEntry(statelessx.WithParameters(s.DeleteCharge))
 }
 
@@ -158,7 +158,7 @@ func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
 			return fmt.Errorf("create credit allocations: %w", err)
 		}
 
-		s.Charge.State.CreditRealizations = append(s.Charge.State.CreditRealizations, realizations...)
+		s.Charge.Realizations.CreditRealizations = append(s.Charge.Realizations.CreditRealizations, realizations...)
 	}
 
 	return nil
@@ -207,9 +207,12 @@ func (s *CreditsOnlyStateMachine) AdvanceUntilStateStable(ctx context.Context) (
 			return nil, fmt.Errorf("cannot transition to the next status [current_status=%s]: %w", s.Charge.Status, err)
 		}
 
-		if err := s.Adapter.UpdateCharge(ctx, s.Charge); err != nil {
+		updatedChargeBase, err := s.Adapter.UpdateCharge(ctx, s.Charge.ChargeBase)
+		if err != nil {
 			return nil, fmt.Errorf("persist charge: %w", err)
 		}
+
+		s.Charge.ChargeBase = updatedChargeBase
 
 		advanced = true
 	}
@@ -222,7 +225,7 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, policy meta.
 			return fmt.Errorf("get currency calculator: %w", err)
 		}
 
-		realizationIDs := lo.Map(s.Charge.State.CreditRealizations, func(realization creditrealization.Realization, _ int) string {
+		realizationIDs := lo.Map(s.Charge.Realizations.CreditRealizations, func(realization creditrealization.Realization, _ int) string {
 			return realization.ID
 		})
 		lineageSegmentsByRealization, err := s.Service.lineage.LoadActiveSegmentsByRealizationID(ctx, s.Charge.Namespace, realizationIDs)
@@ -231,7 +234,7 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, policy meta.
 		}
 
 		// Let's reverse the credit allocations
-		corrections, err := s.Charge.State.CreditRealizations.CorrectAll(currencyCalculator, func(req creditrealization.CorrectionRequest) (creditrealization.CreateCorrectionInputs, error) {
+		corrections, err := s.Charge.Realizations.CreditRealizations.CorrectAll(currencyCalculator, func(req creditrealization.CorrectionRequest) (creditrealization.CreateCorrectionInputs, error) {
 			return s.Service.handler.OnCreditsOnlyUsageAccruedCorrection(ctx, flatfee.CreditsOnlyUsageAccruedCorrectionInput{
 				Charge:                       s.Charge,
 				AllocateAt:                   clock.Now(),

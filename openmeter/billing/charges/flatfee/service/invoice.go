@@ -55,7 +55,7 @@ func (s *service) PostLineAssignedToInvoice(ctx context.Context, charge flatfee.
 
 func (s *service) PostInvoiceIssued(ctx context.Context, charge flatfee.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
-		if charge.State.AccruedUsage != nil {
+		if charge.Realizations.AccruedUsage != nil {
 			// Lifecycle violation: this should not happen as we should not be able to issue an invoice if the charge already has an accrued usage.
 			return fmt.Errorf("accrued invoice usage already exists for charge %s", charge.GetChargeID())
 		}

@@ -167,8 +167,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 
 		// Validate the credit realizations
 		// The charge should have $30 realized as credits
-		s.Len(updatedFlatFeeCharge.State.CreditRealizations, 1)
-		creditRealization := updatedFlatFeeCharge.State.CreditRealizations[0]
+		s.Len(updatedFlatFeeCharge.Realizations.CreditRealizations, 1)
+		creditRealization := updatedFlatFeeCharge.Realizations.CreditRealizations[0]
 		s.Equal(testTrnsGroupID, creditRealization.LedgerTransaction.TransactionGroupID)
 		s.Equal(servicePeriod.From, creditRealization.ServicePeriod.From)
 		s.Equal(servicePeriod.To, creditRealization.ServicePeriod.To)
@@ -228,7 +228,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		s.NoError(err)
 
 		// Invoice usage accrued callback should have been invoked
-		accruedUsage := updatedFlatFeeCharge.State.AccruedUsage
+		accruedUsage := updatedFlatFeeCharge.Realizations.AccruedUsage
 		s.NotNil(accruedUsage)
 		s.Equal(invoiceUsageAccruedCallback.id, accruedUsage.LedgerTransaction.TransactionGroupID, "ledger transaction gets recorded")
 		s.Equal(servicePeriod, accruedUsage.ServicePeriod, "service period should be the same as the input")
@@ -239,8 +239,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		s.Equal(float64(30), accruedUsage.Totals.CreditsTotal.InexactFloat64(), "totals should be the same as the input")
 
 		// Authorization callback should have been invoked
-		s.Equal(authorizedCallback.id, updatedFlatFeeCharge.State.Payment.Authorized.TransactionGroupID)
-		s.Equal(meta.ChargeStatusActive, updatedFlatFeeCharge.Status)
+		s.Equal(authorizedCallback.id, updatedFlatFeeCharge.Realizations.Payment.Authorized.TransactionGroupID)
+		s.Equal(flatfee.StatusActive, updatedFlatFeeCharge.Status)
 	})
 
 	s.Run("payment is settled", func() {
@@ -259,8 +259,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		charge := s.mustGetChargeByID(flatFeeChargeID)
 		updatedFlatFeeCharge, err := charge.AsFlatFeeCharge()
 		s.NoError(err)
-		s.Equal(settledCallback.id, updatedFlatFeeCharge.State.Payment.Settled.TransactionGroupID)
-		s.Equal(meta.ChargeStatusFinal, updatedFlatFeeCharge.Status)
+		s.Equal(settledCallback.id, updatedFlatFeeCharge.Realizations.Payment.Settled.TransactionGroupID)
+		s.Equal(flatfee.StatusFinal, updatedFlatFeeCharge.Status)
 	})
 }
 
@@ -1238,8 +1238,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 
 		flatFeeChargeID = flatFeeCharge.GetChargeID()
 
-		s.Equal(meta.ChargeStatusCreated, fetchedFF.Status)
-		s.Empty(fetchedFF.State.CreditRealizations)
+		s.Equal(flatfee.StatusCreated, fetchedFF.Status)
+		s.Empty(fetchedFF.Realizations.CreditRealizations)
 		s.Nil(fetchedFF.State.AdvanceAfter)
 
 		// Advancing is a noop (clock is before InvoiceAt).
@@ -1250,7 +1250,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 		fetchedCharge = s.mustGetChargeByID(flatFeeChargeID)
 		fetchedFF, err = fetchedCharge.AsFlatFeeCharge()
 		s.NoError(err)
-		s.Equal(meta.ChargeStatusCreated, fetchedFF.Status)
+		s.Equal(flatfee.StatusCreated, fetchedFF.Status)
 	})
 
 	s.NotEmpty(flatFeeChargeID)
@@ -1288,13 +1288,13 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 		s.Len(advancedCharges, 1)
 		advancedFF, err := advancedCharges[0].AsFlatFeeCharge()
 		s.NoError(err)
-		s.Equal(meta.ChargeStatusFinal, advancedFF.Status)
+		s.Equal(flatfee.StatusFinal, advancedFF.Status)
 
 		// Verify DB state matches.
 		fetchedCharge := s.mustGetChargeByID(flatFeeChargeID)
 		fetchedFF, err := fetchedCharge.AsFlatFeeCharge()
 		s.NoError(err)
-		s.Equal(meta.ChargeStatusFinal, fetchedFF.Status)
+		s.Equal(flatfee.StatusFinal, fetchedFF.Status)
 		s.Nil(fetchedFF.State.AdvanceAfter)
 
 		// The handler was called exactly once with the correct amount.
@@ -1302,8 +1302,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 		s.Equal(float64(100), callbacks[0].Input.AmountToAllocate.InexactFloat64())
 
 		// Credit realizations were persisted.
-		s.Len(fetchedFF.State.CreditRealizations, 1)
-		s.Equal(float64(100), fetchedFF.State.CreditRealizations[0].Amount.InexactFloat64())
+		s.Len(fetchedFF.Realizations.CreditRealizations, 1)
+		s.Equal(float64(100), fetchedFF.Realizations.CreditRealizations[0].Amount.InexactFloat64())
 	})
 
 	s.Run("#3 final charge advance is noop", func() {
@@ -1317,7 +1317,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 		fetchedCharge := s.mustGetChargeByID(flatFeeChargeID)
 		fetchedFF, err := fetchedCharge.AsFlatFeeCharge()
 		s.NoError(err)
-		s.Equal(meta.ChargeStatusFinal, fetchedFF.Status)
+		s.Equal(flatfee.StatusFinal, fetchedFF.Status)
 	})
 }
 
@@ -1385,19 +1385,19 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyCreateImmediatelyFinal
 	s.Equal(meta.ChargeTypeFlatFee, res[0].Type())
 	returnedCharge, err := res[0].AsFlatFeeCharge()
 	s.NoError(err)
-	s.Equal(meta.ChargeStatusFinal, returnedCharge.Status)
+	s.Equal(flatfee.StatusFinal, returnedCharge.Status)
 	s.Nil(returnedCharge.State.AdvanceAfter)
-	s.Len(returnedCharge.State.CreditRealizations, 1)
-	s.Equal(float64(50), returnedCharge.State.CreditRealizations[0].Amount.InexactFloat64())
+	s.Len(returnedCharge.Realizations.CreditRealizations, 1)
+	s.Equal(float64(50), returnedCharge.Realizations.CreditRealizations[0].Amount.InexactFloat64())
 
 	// And the DB state matches.
 	dbCharge := s.mustGetChargeByID(returnedCharge.GetChargeID())
 	dbFF, err := dbCharge.AsFlatFeeCharge()
 	s.NoError(err)
-	s.Equal(meta.ChargeStatusFinal, dbFF.Status)
+	s.Equal(flatfee.StatusFinal, dbFF.Status)
 	s.Nil(dbFF.State.AdvanceAfter)
-	s.Len(dbFF.State.CreditRealizations, 1)
-	s.Equal(float64(50), dbFF.State.CreditRealizations[0].Amount.InexactFloat64())
+	s.Len(dbFF.Realizations.CreditRealizations, 1)
+	s.Equal(float64(50), dbFF.Realizations.CreditRealizations[0].Amount.InexactFloat64())
 }
 
 func (s *InvoicableChargesTestSuite) mustAdvanceFlatFeeCharges(ctx context.Context, customerID customer.CustomerID) charges.Charges {

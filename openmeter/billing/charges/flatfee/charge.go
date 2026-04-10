@@ -16,18 +16,16 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-var _ meta.ChargeAccessor = (*Charge)(nil)
-
-type Charge struct {
+type ChargeBase struct {
 	meta.ManagedResource
 
-	Intent Intent            `json:"intent"`
-	Status meta.ChargeStatus `json:"status"`
+	Intent Intent `json:"intent"`
+	Status Status `json:"status"`
 
 	State State `json:"state"`
 }
 
-func (c Charge) Validate() error {
+func (c ChargeBase) Validate() error {
 	var errs []error
 
 	if err := c.ManagedResource.Validate(); err != nil {
@@ -49,11 +47,41 @@ func (c Charge) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (c Charge) GetChargeID() meta.ChargeID {
+func (c ChargeBase) GetChargeID() meta.ChargeID {
 	return meta.ChargeID{
 		Namespace: c.Namespace,
 		ID:        c.ID,
 	}
+}
+
+func (c ChargeBase) ErrorAttributes() models.Attributes {
+	return models.Attributes{
+		"charge_id":   c.ID,
+		"namespace":   c.Namespace,
+		"charge_type": string(meta.ChargeTypeFlatFee),
+	}
+}
+
+var _ meta.ChargeAccessor = (*Charge)(nil)
+
+type Charge struct {
+	ChargeBase
+
+	Realizations Realizations `json:"realizations"`
+}
+
+func (c Charge) Validate() error {
+	var errs []error
+
+	if err := c.ChargeBase.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge base: %w", err))
+	}
+
+	if err := c.Realizations.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("realizations: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type Intent struct {
@@ -150,21 +178,10 @@ func (i Intent) CalculateAmountAfterProration() (alpacadecimal.Decimal, error) {
 	return calc.RoundToPrecision(amount), nil
 }
 
-func (c Charge) ErrorAttributes() models.Attributes {
-	return models.Attributes{
-		"charge_id":   c.ID,
-		"namespace":   c.Namespace,
-		"charge_type": string(meta.ChargeTypeFlatFee),
-	}
-}
-
 type State struct {
-	AdvanceAfter         *time.Time                     `json:"advanceAfter,omitempty"`
-	FeatureID            *string                        `json:"featureId,omitempty"`
-	AmountAfterProration alpacadecimal.Decimal          `json:"amountAfterProration"`
-	CreditRealizations   creditrealization.Realizations `json:"creditRealizations"`
-	AccruedUsage         *invoicedusage.AccruedUsage    `json:"accruedUsage"`
-	Payment              *payment.Invoiced              `json:"payment"`
+	AdvanceAfter         *time.Time            `json:"advanceAfter,omitempty"`
+	FeatureID            *string               `json:"featureId,omitempty"`
+	AmountAfterProration alpacadecimal.Decimal `json:"amountAfterProration"`
 }
 
 func (s State) Normalized() State {
@@ -176,27 +193,43 @@ func (s State) Normalized() State {
 func (s State) Validate() error {
 	var errs []error
 
-	for _, realization := range s.CreditRealizations {
+	if s.AdvanceAfter != nil {
+		if s.AdvanceAfter.IsZero() {
+			errs = append(errs, fmt.Errorf("advance after is required"))
+		}
+	}
+
+	if s.AmountAfterProration.IsNegative() {
+		errs = append(errs, fmt.Errorf("amount after proration cannot be negative"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type Realizations struct {
+	CreditRealizations creditrealization.Realizations `json:"creditRealizations"`
+	AccruedUsage       *invoicedusage.AccruedUsage    `json:"accruedUsage"`
+	Payment            *payment.Invoiced              `json:"payment"`
+}
+
+func (r Realizations) Validate() error {
+	var errs []error
+
+	for _, realization := range r.CreditRealizations {
 		if err := realization.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("credit realization[id=%s]: %w", realization.ID, err))
 		}
 	}
 
-	if s.Payment != nil {
-		if err := s.Payment.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("payment[id=%s]: %w", s.Payment.ID, err))
+	if r.Payment != nil {
+		if err := r.Payment.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("payment[id=%s]: %w", r.Payment.ID, err))
 		}
 	}
 
-	if s.AccruedUsage != nil {
-		if err := s.AccruedUsage.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("accrued usage[id=%s]: %w", s.AccruedUsage.ID, err))
-		}
-	}
-
-	if s.AdvanceAfter != nil {
-		if s.AdvanceAfter.IsZero() {
-			errs = append(errs, fmt.Errorf("advance after is required"))
+	if r.AccruedUsage != nil {
+		if err := r.AccruedUsage.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("accrued usage[id=%s]: %w", r.AccruedUsage.ID, err))
 		}
 	}
 

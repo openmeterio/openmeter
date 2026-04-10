@@ -41757,6 +41757,7 @@ type ChargeFlatFeeMutation struct {
 	feature_key               *string
 	amount_before_proration   *alpacadecimal.Decimal
 	amount_after_proration    *alpacadecimal.Decimal
+	status_detailed           *flatfee.Status
 	clearedFields             map[string]struct{}
 	credit_allocations        map[string]struct{}
 	removedcredit_allocations map[string]struct{}
@@ -43194,6 +43195,42 @@ func (m *ChargeFlatFeeMutation) ResetAmountAfterProration() {
 	m.amount_after_proration = nil
 }
 
+// SetStatusDetailed sets the "status_detailed" field.
+func (m *ChargeFlatFeeMutation) SetStatusDetailed(f flatfee.Status) {
+	m.status_detailed = &f
+}
+
+// StatusDetailed returns the value of the "status_detailed" field in the mutation.
+func (m *ChargeFlatFeeMutation) StatusDetailed() (r flatfee.Status, exists bool) {
+	v := m.status_detailed
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatusDetailed returns the old "status_detailed" field's value of the ChargeFlatFee entity.
+// If the ChargeFlatFee object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeMutation) OldStatusDetailed(ctx context.Context) (v flatfee.Status, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatusDetailed is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatusDetailed requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatusDetailed: %w", err)
+	}
+	return oldValue.StatusDetailed, nil
+}
+
+// ResetStatusDetailed resets all changes to the "status_detailed" field.
+func (m *ChargeFlatFeeMutation) ResetStatusDetailed() {
+	m.status_detailed = nil
+}
+
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeFlatFeeCreditAllocations entity by ids.
 func (m *ChargeFlatFeeMutation) AddCreditAllocationIDs(ids ...string) {
 	if m.credit_allocations == nil {
@@ -43534,7 +43571,7 @@ func (m *ChargeFlatFeeMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeFlatFeeMutation) Fields() []string {
-	fields := make([]string, 0, 32)
+	fields := make([]string, 0, 33)
 	if m.customer != nil {
 		fields = append(fields, chargeflatfee.FieldCustomerID)
 	}
@@ -43631,6 +43668,9 @@ func (m *ChargeFlatFeeMutation) Fields() []string {
 	if m.amount_after_proration != nil {
 		fields = append(fields, chargeflatfee.FieldAmountAfterProration)
 	}
+	if m.status_detailed != nil {
+		fields = append(fields, chargeflatfee.FieldStatusDetailed)
+	}
 	return fields
 }
 
@@ -43703,6 +43743,8 @@ func (m *ChargeFlatFeeMutation) Field(name string) (ent.Value, bool) {
 		return m.AmountBeforeProration()
 	case chargeflatfee.FieldAmountAfterProration:
 		return m.AmountAfterProration()
+	case chargeflatfee.FieldStatusDetailed:
+		return m.StatusDetailed()
 	}
 	return nil, false
 }
@@ -43776,6 +43818,8 @@ func (m *ChargeFlatFeeMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldAmountBeforeProration(ctx)
 	case chargeflatfee.FieldAmountAfterProration:
 		return m.OldAmountAfterProration(ctx)
+	case chargeflatfee.FieldStatusDetailed:
+		return m.OldStatusDetailed(ctx)
 	}
 	return nil, fmt.Errorf("unknown ChargeFlatFee field %s", name)
 }
@@ -44009,6 +44053,13 @@ func (m *ChargeFlatFeeMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetAmountAfterProration(v)
 		return nil
+	case chargeflatfee.FieldStatusDetailed:
+		v, ok := value.(flatfee.Status)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatusDetailed(v)
+		return nil
 	}
 	return fmt.Errorf("unknown ChargeFlatFee field %s", name)
 }
@@ -44228,6 +44279,9 @@ func (m *ChargeFlatFeeMutation) ResetField(name string) error {
 		return nil
 	case chargeflatfee.FieldAmountAfterProration:
 		m.ResetAmountAfterProration()
+		return nil
+	case chargeflatfee.FieldStatusDetailed:
+		m.ResetStatusDetailed()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeFlatFee field %s", name)

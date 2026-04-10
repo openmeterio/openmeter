@@ -19,16 +19,23 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.Charge) error {
+var _ flatfee.ChargeAdapter = (*adapter)(nil)
+
+func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.ChargeBase) (flatfee.ChargeBase, error) {
 	if err := charge.ManagedModel.Validate(); err != nil {
-		return err
+		return flatfee.ChargeBase{}, err
 	}
 
 	if err := charge.Validate(); err != nil {
-		return err
+		return flatfee.ChargeBase{}, err
 	}
 
-	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (flatfee.ChargeBase, error) {
+		metaStatus, err := charge.Status.ToMetaChargeStatus()
+		if err != nil {
+			return flatfee.ChargeBase{}, err
+		}
+
 		intent := charge.Intent
 
 		var discounts *productcatalog.Discounts
@@ -38,7 +45,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.Charge) error
 
 		proRating, err := proRatingConfigToDB(intent.ProRating)
 		if err != nil {
-			return err
+			return flatfee.ChargeBase{}, err
 		}
 
 		update := tx.db.ChargeFlatFee.UpdateOneID(charge.ID).
@@ -48,25 +55,26 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.Charge) error
 			SetDiscounts(discounts).
 			SetOrClearFeatureID(charge.State.FeatureID).
 			SetProRating(proRating).
+			SetStatusDetailed(charge.Status).
 			SetAmountBeforeProration(intent.AmountBeforeProration).
 			SetAmountAfterProration(charge.State.AmountAfterProration)
 
 		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
 			ManagedResource: charge.ManagedResource,
 			Intent:          intent.Intent,
-			Status:          charge.Status,
+			Status:          metaStatus,
 			AdvanceAfter:    meta.NormalizeOptionalTimestamp(charge.State.AdvanceAfter),
 		})
 		if err != nil {
-			return err
+			return flatfee.ChargeBase{}, err
 		}
 
-		_, err = update.Save(ctx)
+		dbUpdatedChargeBase, err := update.Save(ctx)
 		if err != nil {
-			return err
+			return flatfee.ChargeBase{}, err
 		}
 
-		return nil
+		return MapChargeBaseFromDB(dbUpdatedChargeBase), nil
 	})
 }
 
@@ -84,12 +92,19 @@ func (a *adapter) DeleteCharge(ctx context.Context, charge flatfee.Charge) error
 			Where(dbchargeflatfee.NamespaceEQ(charge.Namespace))
 
 		charge.DeletedAt = lo.ToPtr(clock.Now())
-		charge.Status = meta.ChargeStatusDeleted
+		charge.Status = flatfee.StatusDeleted
 
-		update, err := chargemeta.Update(update, chargemeta.UpdateInput{
+		metaStatus, err := charge.Status.ToMetaChargeStatus()
+		if err != nil {
+			return err
+		}
+
+		update = update.SetStatusDetailed(charge.Status)
+
+		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
 			ManagedResource: charge.ManagedResource,
 			Intent:          charge.Intent.Intent,
-			Status:          charge.Status,
+			Status:          metaStatus,
 		})
 		if err != nil {
 			return err
@@ -223,6 +238,11 @@ func expandRealizations(query *db.ChargeFlatFeeQuery) *db.ChargeFlatFeeQuery {
 }
 
 func (a *adapter) buildCreateFlatFeeCharge(ns string, intent flatfee.IntentWithInitialStatus) (*db.ChargeFlatFeeCreate, error) {
+	metaStatus, err := intent.InitialStatus.ToMetaChargeStatus()
+	if err != nil {
+		return nil, err
+	}
+
 	var discounts *productcatalog.Discounts
 	if intent.PercentageDiscounts != nil {
 		discounts = &productcatalog.Discounts{Percentage: intent.PercentageDiscounts}
@@ -240,6 +260,7 @@ func (a *adapter) buildCreateFlatFeeCharge(ns string, intent flatfee.IntentWithI
 		SetSettlementMode(intent.SettlementMode).
 		SetNillableFeatureID(intent.FeatureID).
 		SetNillableFeatureKey(lo.EmptyableToPtr(intent.FeatureKey)).
+		SetStatusDetailed(intent.InitialStatus).
 		SetProRating(proRating).
 		SetAmountBeforeProration(intent.AmountBeforeProration).
 		SetAmountAfterProration(intent.AmountAfterProration)
@@ -251,7 +272,7 @@ func (a *adapter) buildCreateFlatFeeCharge(ns string, intent flatfee.IntentWithI
 	create, err = chargemeta.Create[*db.ChargeFlatFeeCreate](create, chargemeta.CreateInput{
 		Namespace: ns,
 		Intent:    intent.Intent.Intent,
-		Status:    intent.InitialStatus,
+		Status:    metaStatus,
 	})
 	if err != nil {
 		return nil, err

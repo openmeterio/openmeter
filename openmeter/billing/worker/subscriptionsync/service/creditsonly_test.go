@@ -360,7 +360,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeCancella
 
 		deletedCharge, err := deletedChargeRes.AsFlatFeeCharge()
 		s.NoError(err)
-		s.Equal(chargesmeta.ChargeStatusDeleted, deletedCharge.Status)
+		s.Equal(flatfee.StatusDeleted, deletedCharge.Status)
 		s.NotNil(deletedCharge.DeletedAt)
 		s.Equal(expectedCharges[0].ChildUniqueReferenceIDs[1], lo.FromPtr(deletedCharge.Intent.UniqueReferenceID))
 	})
@@ -515,7 +515,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeMidPerio
 
 		deletedCharge, err := deletedChargeRes.AsFlatFeeCharge()
 		s.NoError(err)
-		s.Equal(chargesmeta.ChargeStatusDeleted, deletedCharge.Status)
+		s.Equal(flatfee.StatusDeleted, deletedCharge.Status)
 		s.NotNil(deletedCharge.DeletedAt)
 		s.Equal(expectedCharges[0].ChildUniqueReferenceIDs[1], lo.FromPtr(deletedCharge.Intent.UniqueReferenceID))
 	})

@@ -17,6 +17,45 @@ import (
 
 // MapFlatFeeChargeFromDB converts a DB Charge entity (with loaded FlatFee edge) to a FlatFeeCharge.
 func MapChargeFlatFeeFromDB(entity *entdb.ChargeFlatFee, expands meta.Expands) (flatfee.Charge, error) {
+	chargeBase := MapChargeBaseFromDB(entity)
+
+	charge := flatfee.Charge{
+		ChargeBase: chargeBase,
+	}
+
+	if expands.Has(meta.ExpandRealizations) {
+		dbCreditRealizations, err := entity.Edges.CreditAllocationsOrErr()
+		if err != nil {
+			return flatfee.Charge{}, fmt.Errorf("mapping flat fee charge [id=%s]: %w", entity.ID, err)
+		}
+
+		charge.Realizations.CreditRealizations = lo.Map(dbCreditRealizations, func(entity *entdb.ChargeFlatFeeCreditAllocations, _ int) creditrealization.Realization {
+			return creditrealization.MapFromDB(entity)
+		})
+
+		dbPaymentState, err := entity.Edges.PaymentOrErr()
+		if _, ok := lo.ErrorsAs[*entdb.NotLoadedError](err); ok {
+			return flatfee.Charge{}, fmt.Errorf("payment state not loaded for flat fee charge [id=%s]", entity.ID)
+		}
+
+		if dbPaymentState != nil {
+			charge.Realizations.Payment = lo.ToPtr(payment.MapInvoicedFromDB(dbPaymentState))
+		}
+
+		dbAccruedUsage, err := entity.Edges.InvoicedUsageOrErr()
+		if _, ok := lo.ErrorsAs[*entdb.NotLoadedError](err); ok {
+			return flatfee.Charge{}, fmt.Errorf("accrued usage not loaded for flat fee charge [id=%s]", entity.ID)
+		}
+
+		if dbAccruedUsage != nil {
+			charge.Realizations.AccruedUsage = lo.ToPtr(invoicedusage.MapAccruedUsageFromDB(dbAccruedUsage))
+		}
+	}
+
+	return charge, nil
+}
+
+func MapChargeBaseFromDB(entity *entdb.ChargeFlatFee) flatfee.ChargeBase {
 	var percentageDiscounts *productcatalog.PercentageDiscount
 	if entity.Discounts != nil {
 		percentageDiscounts = entity.Discounts.Percentage
@@ -24,9 +63,9 @@ func MapChargeFlatFeeFromDB(entity *entdb.ChargeFlatFee, expands meta.Expands) (
 
 	mappedMeta := chargemeta.MapFromDB(entity)
 
-	charge := flatfee.Charge{
+	return flatfee.ChargeBase{
 		ManagedResource: mappedMeta.ManagedResource,
-		Status:          mappedMeta.Status,
+		Status:          entity.StatusDetailed,
 		State: flatfee.State{
 			AdvanceAfter:         mappedMeta.AdvanceAfter,
 			FeatureID:            entity.FeatureID,
@@ -43,37 +82,6 @@ func MapChargeFlatFeeFromDB(entity *entdb.ChargeFlatFee, expands meta.Expands) (
 			AmountBeforeProration: entity.AmountBeforeProration,
 		},
 	}
-
-	if expands.Has(meta.ExpandRealizations) {
-		dbCreditRealizations, err := entity.Edges.CreditAllocationsOrErr()
-		if err != nil {
-			return flatfee.Charge{}, fmt.Errorf("mapping flat fee charge [id=%s]: %w", entity.ID, err)
-		}
-
-		charge.State.CreditRealizations = lo.Map(dbCreditRealizations, func(entity *entdb.ChargeFlatFeeCreditAllocations, _ int) creditrealization.Realization {
-			return creditrealization.MapFromDB(entity)
-		})
-
-		dbPaymentState, err := entity.Edges.PaymentOrErr()
-		if _, ok := lo.ErrorsAs[*entdb.NotLoadedError](err); ok {
-			return flatfee.Charge{}, fmt.Errorf("payment state not loaded for flat fee charge [id=%s]", entity.ID)
-		}
-
-		if dbPaymentState != nil {
-			charge.State.Payment = lo.ToPtr(payment.MapInvoicedFromDB(dbPaymentState))
-		}
-
-		dbAccruedUsage, err := entity.Edges.InvoicedUsageOrErr()
-		if _, ok := lo.ErrorsAs[*entdb.NotLoadedError](err); ok {
-			return flatfee.Charge{}, fmt.Errorf("accrued usage not loaded for flat fee charge [id=%s]", entity.ID)
-		}
-
-		if dbAccruedUsage != nil {
-			charge.State.AccruedUsage = lo.ToPtr(invoicedusage.MapAccruedUsageFromDB(dbAccruedUsage))
-		}
-	}
-
-	return charge, nil
 }
 
 // proRatingConfigFromDB converts a DB ProRatingModeAdapterEnum to a ProRatingConfig.

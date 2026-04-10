@@ -216,7 +216,7 @@ func (s *ChargeTimestampTruncationTestSuite) TestTmpApplyPatchToCreateIntentTrun
 	}{
 		{
 			name:   "flat fee",
-			charge: charges.NewCharge(flatfee.Charge{Intent: flatFeeIntent}),
+			charge: charges.NewCharge(flatfee.Charge{ChargeBase: flatfee.ChargeBase{Intent: flatFeeIntent}}),
 			assert: func(intent charges.ChargeIntent) {
 				typed, err := intent.AsFlatFeeIntent()
 				s.NoError(err)

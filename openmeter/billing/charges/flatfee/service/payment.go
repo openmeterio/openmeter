@@ -6,7 +6,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -15,10 +14,10 @@ import (
 
 func (s *service) PostInvoicePaymentAuthorized(ctx context.Context, charge flatfee.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
-		if charge.State.Payment != nil {
+		if charge.Realizations.Payment != nil {
 			return payment.ErrPaymentAlreadyAuthorized.
 				WithAttrs(charge.ErrorAttributes()).
-				WithAttrs(charge.State.Payment.ErrorAttributes())
+				WithAttrs(charge.Realizations.Payment.ErrorAttributes())
 		}
 
 		ledgerTransactionGroupReference, err := s.handler.OnPaymentAuthorized(ctx, charge)
@@ -48,20 +47,19 @@ func (s *service) PostInvoicePaymentAuthorized(ctx context.Context, charge flatf
 			return err
 		}
 
-		charge.State.Payment = &paymentSettlement
-		err = s.adapter.UpdateCharge(ctx, charge)
+		charge.Realizations.Payment = &paymentSettlement
 
-		return err
+		return nil
 	})
 }
 
 func (s *service) PostInvoicePaymentSettled(ctx context.Context, charge flatfee.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
-		if charge.State.Payment == nil {
+		if charge.Realizations.Payment == nil {
 			return payment.ErrCannotSettleNotAuthorizedPayment.WithAttrs(charge.ErrorAttributes())
 		}
 
-		paymentSettlement := *charge.State.Payment
+		paymentSettlement := *charge.Realizations.Payment
 
 		if paymentSettlement.LineID != lineWithHeader.Line.ID {
 			return fmt.Errorf("payment settlement line ID does not match the line ID: %s != %s", paymentSettlement.LineID, lineWithHeader.Line.ID)
@@ -90,10 +88,10 @@ func (s *service) PostInvoicePaymentSettled(ctx context.Context, charge flatfee.
 			return err
 		}
 
-		charge.State.Payment = &paymentSettlement
-		charge.Status = meta.ChargeStatusFinal
+		charge.Realizations.Payment = &paymentSettlement
+		charge.Status = flatfee.StatusFinal
 
-		err = s.adapter.UpdateCharge(ctx, charge)
+		_, err = s.adapter.UpdateCharge(ctx, charge.ChargeBase)
 		if err != nil {
 			return err
 		}
