@@ -533,14 +533,14 @@ func (s *CreditsTestSuite) mustSettleExternalCreditPurchase(ctx context.Context,
 		TargetPaymentState: payment.StatusAuthorized,
 	})
 	s.NoError(err)
-	s.Equal(payment.StatusAuthorized, updatedCharge.State.ExternalPaymentSettlement.Status)
+	s.Equal(payment.StatusAuthorized, updatedCharge.Realizations.ExternalPaymentSettlement.Status)
 
 	updatedCharge, err = s.Charges.HandleCreditPurchaseExternalPaymentStateTransition(ctx, charges.HandleCreditPurchaseExternalPaymentStateTransitionInput{
 		ChargeID:           chargeID,
 		TargetPaymentState: payment.StatusSettled,
 	})
 	s.NoError(err)
-	s.Equal(payment.StatusSettled, updatedCharge.State.ExternalPaymentSettlement.Status)
+	s.Equal(payment.StatusSettled, updatedCharge.Realizations.ExternalPaymentSettlement.Status)
 }
 
 // Use this helper when the test wants to delete a charge through the real

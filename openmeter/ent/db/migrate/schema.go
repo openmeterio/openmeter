@@ -1660,8 +1660,7 @@ var (
 		{Name: "effective_at", Type: field.TypeTime, Nullable: true},
 		{Name: "priority", Type: field.TypeInt, Nullable: true},
 		{Name: "settlement", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "credit_grant_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "credit_granted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "status_detailed", Type: field.TypeEnum, Enums: []string{"created", "active", "final", "deleted"}},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_item_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -1675,25 +1674,25 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_credit_purchases_customers_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[26]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[25]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "charge_credit_purchases_subscriptions_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[27]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[26]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_credit_purchases_subscription_items_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[28]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[27]},
 				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_credit_purchases_subscription_phases_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[29]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[28]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -1702,7 +1701,7 @@ var (
 			{
 				Name:    "chargecreditpurchase_namespace_customer_id_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeCreditPurchasesColumns[13], ChargeCreditPurchasesColumns[26], ChargeCreditPurchasesColumns[8]},
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[13], ChargeCreditPurchasesColumns[25], ChargeCreditPurchasesColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -1731,6 +1730,48 @@ var (
 				Name:    "chargecreditpurchase_namespace_id",
 				Unique:  true,
 				Columns: []*schema.Column{ChargeCreditPurchasesColumns[13], ChargeCreditPurchasesColumns[0]},
+			},
+		},
+	}
+	// ChargeCreditPurchaseCreditGrantsColumns holds the columns for the "charge_credit_purchase_credit_grants" table.
+	ChargeCreditPurchaseCreditGrantsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "transaction_group_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "granted_at", Type: field.TypeTime},
+		{Name: "charge_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// ChargeCreditPurchaseCreditGrantsTable holds the schema information for the "charge_credit_purchase_credit_grants" table.
+	ChargeCreditPurchaseCreditGrantsTable = &schema.Table{
+		Name:       "charge_credit_purchase_credit_grants",
+		Columns:    ChargeCreditPurchaseCreditGrantsColumns,
+		PrimaryKey: []*schema.Column{ChargeCreditPurchaseCreditGrantsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "charge_credit_purchase_credit_grants_charge_credit_purchases_credit_grant",
+				Columns:    []*schema.Column{ChargeCreditPurchaseCreditGrantsColumns[7]},
+				RefColumns: []*schema.Column{ChargeCreditPurchasesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "chargecreditpurchasecreditgrant_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeCreditPurchaseCreditGrantsColumns[1]},
+			},
+			{
+				Name:    "chargecreditpurchasecreditgrant_id",
+				Unique:  true,
+				Columns: []*schema.Column{ChargeCreditPurchaseCreditGrantsColumns[0]},
+			},
+			{
+				Name:    "chargecreditpurchasecreditgrant_namespace_charge_id",
+				Unique:  true,
+				Columns: []*schema.Column{ChargeCreditPurchaseCreditGrantsColumns[1], ChargeCreditPurchaseCreditGrantsColumns[7]},
 			},
 		},
 	}
@@ -4674,6 +4715,7 @@ var (
 		BillingWorkflowConfigsTable,
 		ChargesTable,
 		ChargeCreditPurchasesTable,
+		ChargeCreditPurchaseCreditGrantsTable,
 		ChargeCreditPurchaseExternalPaymentsTable,
 		ChargeCreditPurchaseInvoicedPaymentsTable,
 		ChargeFlatFeesTable,
@@ -4781,6 +4823,7 @@ func init() {
 	ChargeCreditPurchasesTable.ForeignKeys[1].RefTable = SubscriptionsTable
 	ChargeCreditPurchasesTable.ForeignKeys[2].RefTable = SubscriptionItemsTable
 	ChargeCreditPurchasesTable.ForeignKeys[3].RefTable = SubscriptionPhasesTable
+	ChargeCreditPurchaseCreditGrantsTable.ForeignKeys[0].RefTable = ChargeCreditPurchasesTable
 	ChargeCreditPurchaseExternalPaymentsTable.ForeignKeys[0].RefTable = ChargeCreditPurchasesTable
 	ChargeCreditPurchaseInvoicedPaymentsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
 	ChargeCreditPurchaseInvoicedPaymentsTable.ForeignKeys[1].RefTable = ChargeCreditPurchasesTable

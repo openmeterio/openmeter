@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecreditgrant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
@@ -286,31 +287,9 @@ func (_c *ChargeCreditPurchaseCreate) SetSettlement(v creditpurchase.Settlement)
 	return _c
 }
 
-// SetCreditGrantTransactionGroupID sets the "credit_grant_transaction_group_id" field.
-func (_c *ChargeCreditPurchaseCreate) SetCreditGrantTransactionGroupID(v string) *ChargeCreditPurchaseCreate {
-	_c.mutation.SetCreditGrantTransactionGroupID(v)
-	return _c
-}
-
-// SetNillableCreditGrantTransactionGroupID sets the "credit_grant_transaction_group_id" field if the given value is not nil.
-func (_c *ChargeCreditPurchaseCreate) SetNillableCreditGrantTransactionGroupID(v *string) *ChargeCreditPurchaseCreate {
-	if v != nil {
-		_c.SetCreditGrantTransactionGroupID(*v)
-	}
-	return _c
-}
-
-// SetCreditGrantedAt sets the "credit_granted_at" field.
-func (_c *ChargeCreditPurchaseCreate) SetCreditGrantedAt(v time.Time) *ChargeCreditPurchaseCreate {
-	_c.mutation.SetCreditGrantedAt(v)
-	return _c
-}
-
-// SetNillableCreditGrantedAt sets the "credit_granted_at" field if the given value is not nil.
-func (_c *ChargeCreditPurchaseCreate) SetNillableCreditGrantedAt(v *time.Time) *ChargeCreditPurchaseCreate {
-	if v != nil {
-		_c.SetCreditGrantedAt(*v)
-	}
+// SetStatusDetailed sets the "status_detailed" field.
+func (_c *ChargeCreditPurchaseCreate) SetStatusDetailed(v creditpurchase.Status) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetStatusDetailed(v)
 	return _c
 }
 
@@ -364,6 +343,25 @@ func (_c *ChargeCreditPurchaseCreate) SetNillableInvoicedPaymentID(id *string) *
 // SetInvoicedPayment sets the "invoiced_payment" edge to the ChargeCreditPurchaseInvoicedPayment entity.
 func (_c *ChargeCreditPurchaseCreate) SetInvoicedPayment(v *ChargeCreditPurchaseInvoicedPayment) *ChargeCreditPurchaseCreate {
 	return _c.SetInvoicedPaymentID(v.ID)
+}
+
+// SetCreditGrantID sets the "credit_grant" edge to the ChargeCreditPurchaseCreditGrant entity by ID.
+func (_c *ChargeCreditPurchaseCreate) SetCreditGrantID(id string) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetCreditGrantID(id)
+	return _c
+}
+
+// SetNillableCreditGrantID sets the "credit_grant" edge to the ChargeCreditPurchaseCreditGrant entity by ID if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableCreditGrantID(id *string) *ChargeCreditPurchaseCreate {
+	if id != nil {
+		_c = _c.SetCreditGrantID(*id)
+	}
+	return _c
+}
+
+// SetCreditGrant sets the "credit_grant" edge to the ChargeCreditPurchaseCreditGrant entity.
+func (_c *ChargeCreditPurchaseCreate) SetCreditGrant(v *ChargeCreditPurchaseCreditGrant) *ChargeCreditPurchaseCreate {
+	return _c.SetCreditGrantID(v.ID)
 }
 
 // SetChargeID sets the "charge" edge to the Charge entity by ID.
@@ -534,9 +532,12 @@ func (_c *ChargeCreditPurchaseCreate) check() error {
 			return &ValidationError{Name: "settlement", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.settlement": %w`, err)}
 		}
 	}
-	if v, ok := _c.mutation.CreditGrantTransactionGroupID(); ok {
-		if err := chargecreditpurchase.CreditGrantTransactionGroupIDValidator(v); err != nil {
-			return &ValidationError{Name: "credit_grant_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.credit_grant_transaction_group_id": %w`, err)}
+	if _, ok := _c.mutation.StatusDetailed(); !ok {
+		return &ValidationError{Name: "status_detailed", err: errors.New(`db: missing required field "ChargeCreditPurchase.status_detailed"`)}
+	}
+	if v, ok := _c.mutation.StatusDetailed(); ok {
+		if err := chargecreditpurchase.StatusDetailedValidator(v); err != nil {
+			return &ValidationError{Name: "status_detailed", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.status_detailed": %w`, err)}
 		}
 	}
 	if len(_c.mutation.CustomerIDs()) == 0 {
@@ -677,13 +678,9 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 		_spec.SetField(chargecreditpurchase.FieldSettlement, field.TypeString, vv)
 		_node.Settlement = value
 	}
-	if value, ok := _c.mutation.CreditGrantTransactionGroupID(); ok {
-		_spec.SetField(chargecreditpurchase.FieldCreditGrantTransactionGroupID, field.TypeString, value)
-		_node.CreditGrantTransactionGroupID = &value
-	}
-	if value, ok := _c.mutation.CreditGrantedAt(); ok {
-		_spec.SetField(chargecreditpurchase.FieldCreditGrantedAt, field.TypeTime, value)
-		_node.CreditGrantedAt = &value
+	if value, ok := _c.mutation.StatusDetailed(); ok {
+		_spec.SetField(chargecreditpurchase.FieldStatusDetailed, field.TypeEnum, value)
+		_node.StatusDetailed = value
 	}
 	if nodes := _c.mutation.ExternalPaymentIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -710,6 +707,22 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchaseinvoicedpayment.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CreditGrantIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargecreditpurchase.CreditGrantTable,
+			Columns: []string{chargecreditpurchase.CreditGrantColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchasecreditgrant.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1087,39 +1100,15 @@ func (u *ChargeCreditPurchaseUpsert) UpdateSettlement() *ChargeCreditPurchaseUps
 	return u
 }
 
-// SetCreditGrantTransactionGroupID sets the "credit_grant_transaction_group_id" field.
-func (u *ChargeCreditPurchaseUpsert) SetCreditGrantTransactionGroupID(v string) *ChargeCreditPurchaseUpsert {
-	u.Set(chargecreditpurchase.FieldCreditGrantTransactionGroupID, v)
+// SetStatusDetailed sets the "status_detailed" field.
+func (u *ChargeCreditPurchaseUpsert) SetStatusDetailed(v creditpurchase.Status) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldStatusDetailed, v)
 	return u
 }
 
-// UpdateCreditGrantTransactionGroupID sets the "credit_grant_transaction_group_id" field to the value that was provided on create.
-func (u *ChargeCreditPurchaseUpsert) UpdateCreditGrantTransactionGroupID() *ChargeCreditPurchaseUpsert {
-	u.SetExcluded(chargecreditpurchase.FieldCreditGrantTransactionGroupID)
-	return u
-}
-
-// ClearCreditGrantTransactionGroupID clears the value of the "credit_grant_transaction_group_id" field.
-func (u *ChargeCreditPurchaseUpsert) ClearCreditGrantTransactionGroupID() *ChargeCreditPurchaseUpsert {
-	u.SetNull(chargecreditpurchase.FieldCreditGrantTransactionGroupID)
-	return u
-}
-
-// SetCreditGrantedAt sets the "credit_granted_at" field.
-func (u *ChargeCreditPurchaseUpsert) SetCreditGrantedAt(v time.Time) *ChargeCreditPurchaseUpsert {
-	u.Set(chargecreditpurchase.FieldCreditGrantedAt, v)
-	return u
-}
-
-// UpdateCreditGrantedAt sets the "credit_granted_at" field to the value that was provided on create.
-func (u *ChargeCreditPurchaseUpsert) UpdateCreditGrantedAt() *ChargeCreditPurchaseUpsert {
-	u.SetExcluded(chargecreditpurchase.FieldCreditGrantedAt)
-	return u
-}
-
-// ClearCreditGrantedAt clears the value of the "credit_granted_at" field.
-func (u *ChargeCreditPurchaseUpsert) ClearCreditGrantedAt() *ChargeCreditPurchaseUpsert {
-	u.SetNull(chargecreditpurchase.FieldCreditGrantedAt)
+// UpdateStatusDetailed sets the "status_detailed" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateStatusDetailed() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldStatusDetailed)
 	return u
 }
 
@@ -1474,45 +1463,17 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateSettlement() *ChargeCreditPurchase
 	})
 }
 
-// SetCreditGrantTransactionGroupID sets the "credit_grant_transaction_group_id" field.
-func (u *ChargeCreditPurchaseUpsertOne) SetCreditGrantTransactionGroupID(v string) *ChargeCreditPurchaseUpsertOne {
+// SetStatusDetailed sets the "status_detailed" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetStatusDetailed(v creditpurchase.Status) *ChargeCreditPurchaseUpsertOne {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.SetCreditGrantTransactionGroupID(v)
+		s.SetStatusDetailed(v)
 	})
 }
 
-// UpdateCreditGrantTransactionGroupID sets the "credit_grant_transaction_group_id" field to the value that was provided on create.
-func (u *ChargeCreditPurchaseUpsertOne) UpdateCreditGrantTransactionGroupID() *ChargeCreditPurchaseUpsertOne {
+// UpdateStatusDetailed sets the "status_detailed" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateStatusDetailed() *ChargeCreditPurchaseUpsertOne {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.UpdateCreditGrantTransactionGroupID()
-	})
-}
-
-// ClearCreditGrantTransactionGroupID clears the value of the "credit_grant_transaction_group_id" field.
-func (u *ChargeCreditPurchaseUpsertOne) ClearCreditGrantTransactionGroupID() *ChargeCreditPurchaseUpsertOne {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.ClearCreditGrantTransactionGroupID()
-	})
-}
-
-// SetCreditGrantedAt sets the "credit_granted_at" field.
-func (u *ChargeCreditPurchaseUpsertOne) SetCreditGrantedAt(v time.Time) *ChargeCreditPurchaseUpsertOne {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.SetCreditGrantedAt(v)
-	})
-}
-
-// UpdateCreditGrantedAt sets the "credit_granted_at" field to the value that was provided on create.
-func (u *ChargeCreditPurchaseUpsertOne) UpdateCreditGrantedAt() *ChargeCreditPurchaseUpsertOne {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.UpdateCreditGrantedAt()
-	})
-}
-
-// ClearCreditGrantedAt clears the value of the "credit_granted_at" field.
-func (u *ChargeCreditPurchaseUpsertOne) ClearCreditGrantedAt() *ChargeCreditPurchaseUpsertOne {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.ClearCreditGrantedAt()
+		s.UpdateStatusDetailed()
 	})
 }
 
@@ -2037,45 +1998,17 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateSettlement() *ChargeCreditPurchas
 	})
 }
 
-// SetCreditGrantTransactionGroupID sets the "credit_grant_transaction_group_id" field.
-func (u *ChargeCreditPurchaseUpsertBulk) SetCreditGrantTransactionGroupID(v string) *ChargeCreditPurchaseUpsertBulk {
+// SetStatusDetailed sets the "status_detailed" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetStatusDetailed(v creditpurchase.Status) *ChargeCreditPurchaseUpsertBulk {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.SetCreditGrantTransactionGroupID(v)
+		s.SetStatusDetailed(v)
 	})
 }
 
-// UpdateCreditGrantTransactionGroupID sets the "credit_grant_transaction_group_id" field to the value that was provided on create.
-func (u *ChargeCreditPurchaseUpsertBulk) UpdateCreditGrantTransactionGroupID() *ChargeCreditPurchaseUpsertBulk {
+// UpdateStatusDetailed sets the "status_detailed" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateStatusDetailed() *ChargeCreditPurchaseUpsertBulk {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.UpdateCreditGrantTransactionGroupID()
-	})
-}
-
-// ClearCreditGrantTransactionGroupID clears the value of the "credit_grant_transaction_group_id" field.
-func (u *ChargeCreditPurchaseUpsertBulk) ClearCreditGrantTransactionGroupID() *ChargeCreditPurchaseUpsertBulk {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.ClearCreditGrantTransactionGroupID()
-	})
-}
-
-// SetCreditGrantedAt sets the "credit_granted_at" field.
-func (u *ChargeCreditPurchaseUpsertBulk) SetCreditGrantedAt(v time.Time) *ChargeCreditPurchaseUpsertBulk {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.SetCreditGrantedAt(v)
-	})
-}
-
-// UpdateCreditGrantedAt sets the "credit_granted_at" field to the value that was provided on create.
-func (u *ChargeCreditPurchaseUpsertBulk) UpdateCreditGrantedAt() *ChargeCreditPurchaseUpsertBulk {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.UpdateCreditGrantedAt()
-	})
-}
-
-// ClearCreditGrantedAt clears the value of the "credit_granted_at" field.
-func (u *ChargeCreditPurchaseUpsertBulk) ClearCreditGrantedAt() *ChargeCreditPurchaseUpsertBulk {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.ClearCreditGrantedAt()
+		s.UpdateStatusDetailed()
 	})
 }
 

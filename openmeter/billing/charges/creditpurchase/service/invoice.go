@@ -7,7 +7,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -21,9 +20,11 @@ func (s *service) PostInvoiceDraftCreated(ctx context.Context, charge creditpurc
 			return err
 		}
 
-		charge.State.CreditGrantRealization = &ledgertransaction.TimedGroupReference{
-			GroupReference: ledgerTransactionGroupReference,
-			Time:           clock.Now(),
+		if _, err := s.adapter.CreateCreditGrant(ctx, charge.GetChargeID(), creditpurchase.CreateCreditGrantInput{
+			TransactionGroupID: ledgerTransactionGroupReference.TransactionGroupID,
+			GrantedAt:          clock.Now(),
+		}); err != nil {
+			return err
 		}
 
 		if ledgerTransactionGroupReference.TransactionGroupID != "" {
@@ -38,9 +39,9 @@ func (s *service) PostInvoiceDraftCreated(ctx context.Context, charge creditpurc
 			}
 		}
 
-		charge.Status = meta.ChargeStatusActive
+		charge.Status = creditpurchase.StatusActive
 
-		_, err = s.adapter.UpdateCharge(ctx, charge)
+		_, err = s.adapter.UpdateCharge(ctx, charge.ChargeBase)
 		return err
 	})
 }
@@ -48,8 +49,8 @@ func (s *service) PostInvoiceDraftCreated(ctx context.Context, charge creditpurc
 // PostInvoicePaymentAuthorized is called when the invoice is approved/issued.
 // It's invoked from the billing service's PostUpdate hook, already within a transaction.
 func (s *service) PostInvoicePaymentAuthorized(ctx context.Context, charge creditpurchase.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
-	if charge.State.InvoiceSettlement != nil {
-		return fmt.Errorf("invoice settlement already already authorized - settlement already exists: %s", charge.State.InvoiceSettlement.InvoiceID)
+	if charge.Realizations.InvoiceSettlement != nil {
+		return fmt.Errorf("invoice settlement already authorized - settlement already exists: %s", charge.Realizations.InvoiceSettlement.InvoiceID)
 	}
 
 	ledgerTransactionGroupReference, err := s.handler.OnCreditPurchasePaymentAuthorized(ctx, charge)
@@ -72,30 +73,27 @@ func (s *service) PostInvoicePaymentAuthorized(ctx context.Context, charge credi
 		LineID:    lineWithHeader.Line.ID,
 	}
 
-	paymentSettlement, err := s.adapter.CreateInvoicedPayment(ctx, charge.GetChargeID(), newPaymentSettlement)
+	_, err = s.adapter.CreateInvoicedPayment(ctx, charge.GetChargeID(), newPaymentSettlement)
 	if err != nil {
 		return err
 	}
 
-	charge.State.InvoiceSettlement = &paymentSettlement
-
-	_, err = s.adapter.UpdateCharge(ctx, charge)
-	return err
+	return nil
 }
 
 // PostInvoicePaymentSettled is called when the invoice is paid.
 // It's invoked from the billing service's PostUpdate hook, already within a transaction.
 func (s *service) PostInvoicePaymentSettled(ctx context.Context, charge creditpurchase.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
 	// Idempotency check: if already settled, skip processing
-	if charge.State.InvoiceSettlement == nil {
+	if charge.Realizations.InvoiceSettlement == nil {
 		return fmt.Errorf("invoice settlement not found")
 	}
 
-	if charge.State.InvoiceSettlement.Settled != nil {
+	if charge.Realizations.InvoiceSettlement.Settled != nil {
 		return fmt.Errorf("invoice settlement already settled")
 	}
 
-	paymentSettlement := *charge.State.InvoiceSettlement
+	paymentSettlement := *charge.Realizations.InvoiceSettlement
 
 	ledgerTransactionGroupReference, err := s.handler.OnCreditPurchasePaymentSettled(ctx, charge)
 	if err != nil {
@@ -109,17 +107,14 @@ func (s *service) PostInvoicePaymentSettled(ctx context.Context, charge creditpu
 
 	paymentSettlement.Status = payment.StatusSettled
 
-	updatedPayment, err := s.adapter.UpdateInvoicedPayment(ctx, paymentSettlement)
-	if err != nil {
+	if _, err := s.adapter.UpdateInvoicedPayment(ctx, paymentSettlement); err != nil {
 		return err
 	}
 
-	charge.State.InvoiceSettlement = &updatedPayment
-
 	// Update charge status to final
-	charge.Status = meta.ChargeStatusFinal
+	charge.Status = creditpurchase.StatusFinal
 
-	if _, err := s.adapter.UpdateCharge(ctx, charge); err != nil {
+	if _, err := s.adapter.UpdateCharge(ctx, charge.ChargeBase); err != nil {
 		return err
 	}
 

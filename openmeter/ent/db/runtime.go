@@ -35,6 +35,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecreditgrant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
@@ -965,14 +966,41 @@ func init() {
 	// chargecreditpurchaseDescSettlement is the schema descriptor for settlement field.
 	chargecreditpurchaseDescSettlement := chargecreditpurchaseFields[3].Descriptor()
 	chargecreditpurchase.ValueScanner.Settlement = chargecreditpurchaseDescSettlement.ValueScanner.(field.TypeValueScanner[creditpurchase.Settlement])
-	// chargecreditpurchaseDescCreditGrantTransactionGroupID is the schema descriptor for credit_grant_transaction_group_id field.
-	chargecreditpurchaseDescCreditGrantTransactionGroupID := chargecreditpurchaseFields[4].Descriptor()
-	// chargecreditpurchase.CreditGrantTransactionGroupIDValidator is a validator for the "credit_grant_transaction_group_id" field. It is called by the builders before save.
-	chargecreditpurchase.CreditGrantTransactionGroupIDValidator = chargecreditpurchaseDescCreditGrantTransactionGroupID.Validators[0].(func(string) error)
 	// chargecreditpurchaseDescID is the schema descriptor for id field.
 	chargecreditpurchaseDescID := chargecreditpurchaseMixinFields0[16].Descriptor()
 	// chargecreditpurchase.DefaultID holds the default value on creation for the id field.
 	chargecreditpurchase.DefaultID = chargecreditpurchaseDescID.Default.(func() string)
+	chargecreditpurchasecreditgrantMixin := schema.ChargeCreditPurchaseCreditGrant{}.Mixin()
+	chargecreditpurchasecreditgrantMixinFields0 := chargecreditpurchasecreditgrantMixin[0].Fields()
+	_ = chargecreditpurchasecreditgrantMixinFields0
+	chargecreditpurchasecreditgrantMixinFields1 := chargecreditpurchasecreditgrantMixin[1].Fields()
+	_ = chargecreditpurchasecreditgrantMixinFields1
+	chargecreditpurchasecreditgrantMixinFields2 := chargecreditpurchasecreditgrantMixin[2].Fields()
+	_ = chargecreditpurchasecreditgrantMixinFields2
+	chargecreditpurchasecreditgrantFields := schema.ChargeCreditPurchaseCreditGrant{}.Fields()
+	_ = chargecreditpurchasecreditgrantFields
+	// chargecreditpurchasecreditgrantDescNamespace is the schema descriptor for namespace field.
+	chargecreditpurchasecreditgrantDescNamespace := chargecreditpurchasecreditgrantMixinFields0[0].Descriptor()
+	// chargecreditpurchasecreditgrant.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	chargecreditpurchasecreditgrant.NamespaceValidator = chargecreditpurchasecreditgrantDescNamespace.Validators[0].(func(string) error)
+	// chargecreditpurchasecreditgrantDescCreatedAt is the schema descriptor for created_at field.
+	chargecreditpurchasecreditgrantDescCreatedAt := chargecreditpurchasecreditgrantMixinFields2[0].Descriptor()
+	// chargecreditpurchasecreditgrant.DefaultCreatedAt holds the default value on creation for the created_at field.
+	chargecreditpurchasecreditgrant.DefaultCreatedAt = chargecreditpurchasecreditgrantDescCreatedAt.Default.(func() time.Time)
+	// chargecreditpurchasecreditgrantDescUpdatedAt is the schema descriptor for updated_at field.
+	chargecreditpurchasecreditgrantDescUpdatedAt := chargecreditpurchasecreditgrantMixinFields2[1].Descriptor()
+	// chargecreditpurchasecreditgrant.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	chargecreditpurchasecreditgrant.DefaultUpdatedAt = chargecreditpurchasecreditgrantDescUpdatedAt.Default.(func() time.Time)
+	// chargecreditpurchasecreditgrant.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	chargecreditpurchasecreditgrant.UpdateDefaultUpdatedAt = chargecreditpurchasecreditgrantDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// chargecreditpurchasecreditgrantDescTransactionGroupID is the schema descriptor for transaction_group_id field.
+	chargecreditpurchasecreditgrantDescTransactionGroupID := chargecreditpurchasecreditgrantFields[1].Descriptor()
+	// chargecreditpurchasecreditgrant.TransactionGroupIDValidator is a validator for the "transaction_group_id" field. It is called by the builders before save.
+	chargecreditpurchasecreditgrant.TransactionGroupIDValidator = chargecreditpurchasecreditgrantDescTransactionGroupID.Validators[0].(func(string) error)
+	// chargecreditpurchasecreditgrantDescID is the schema descriptor for id field.
+	chargecreditpurchasecreditgrantDescID := chargecreditpurchasecreditgrantMixinFields1[0].Descriptor()
+	// chargecreditpurchasecreditgrant.DefaultID holds the default value on creation for the id field.
+	chargecreditpurchasecreditgrant.DefaultID = chargecreditpurchasecreditgrantDescID.Default.(func() string)
 	chargecreditpurchaseexternalpaymentMixin := schema.ChargeCreditPurchaseExternalPayment{}.Mixin()
 	chargecreditpurchaseexternalpaymentMixinFields0 := chargecreditpurchaseexternalpaymentMixin[0].Fields()
 	_ = chargecreditpurchaseexternalpaymentMixinFields0

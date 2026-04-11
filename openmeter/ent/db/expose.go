@@ -143,6 +143,8 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		ChargeCreditPurchase: NewChargeCreditPurchaseClient(config),
 
+		ChargeCreditPurchaseCreditGrant: NewChargeCreditPurchaseCreditGrantClient(config),
+
 		ChargeCreditPurchaseExternalPayment: NewChargeCreditPurchaseExternalPaymentClient(config),
 
 		ChargeCreditPurchaseInvoicedPayment: NewChargeCreditPurchaseInvoicedPaymentClient(config),

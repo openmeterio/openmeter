@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -178,16 +179,6 @@ func EffectiveAt(v time.Time) predicate.ChargeCreditPurchase {
 // Priority applies equality check predicate on the "priority" field. It's identical to PriorityEQ.
 func Priority(v int) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldPriority, v))
-}
-
-// CreditGrantTransactionGroupID applies equality check predicate on the "credit_grant_transaction_group_id" field. It's identical to CreditGrantTransactionGroupIDEQ.
-func CreditGrantTransactionGroupID(v string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldCreditGrantTransactionGroupID, v))
-}
-
-// CreditGrantedAt applies equality check predicate on the "credit_granted_at" field. It's identical to CreditGrantedAtEQ.
-func CreditGrantedAt(v time.Time) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldCreditGrantedAt, v))
 }
 
 // CustomerIDEQ applies the EQ predicate on the "customer_id" field.
@@ -1484,129 +1475,34 @@ func PriorityNotNil() predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldNotNull(FieldPriority))
 }
 
-// CreditGrantTransactionGroupIDEQ applies the EQ predicate on the "credit_grant_transaction_group_id" field.
-func CreditGrantTransactionGroupIDEQ(v string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldCreditGrantTransactionGroupID, v))
+// StatusDetailedEQ applies the EQ predicate on the "status_detailed" field.
+func StatusDetailedEQ(v creditpurchase.Status) predicate.ChargeCreditPurchase {
+	vc := v
+	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldStatusDetailed, vc))
 }
 
-// CreditGrantTransactionGroupIDNEQ applies the NEQ predicate on the "credit_grant_transaction_group_id" field.
-func CreditGrantTransactionGroupIDNEQ(v string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldNEQ(FieldCreditGrantTransactionGroupID, v))
+// StatusDetailedNEQ applies the NEQ predicate on the "status_detailed" field.
+func StatusDetailedNEQ(v creditpurchase.Status) predicate.ChargeCreditPurchase {
+	vc := v
+	return predicate.ChargeCreditPurchase(sql.FieldNEQ(FieldStatusDetailed, vc))
 }
 
-// CreditGrantTransactionGroupIDIn applies the In predicate on the "credit_grant_transaction_group_id" field.
-func CreditGrantTransactionGroupIDIn(vs ...string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldIn(FieldCreditGrantTransactionGroupID, vs...))
+// StatusDetailedIn applies the In predicate on the "status_detailed" field.
+func StatusDetailedIn(vs ...creditpurchase.Status) predicate.ChargeCreditPurchase {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeCreditPurchase(sql.FieldIn(FieldStatusDetailed, v...))
 }
 
-// CreditGrantTransactionGroupIDNotIn applies the NotIn predicate on the "credit_grant_transaction_group_id" field.
-func CreditGrantTransactionGroupIDNotIn(vs ...string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldNotIn(FieldCreditGrantTransactionGroupID, vs...))
-}
-
-// CreditGrantTransactionGroupIDGT applies the GT predicate on the "credit_grant_transaction_group_id" field.
-func CreditGrantTransactionGroupIDGT(v string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldGT(FieldCreditGrantTransactionGroupID, v))
-}
-
-// CreditGrantTransactionGroupIDGTE applies the GTE predicate on the "credit_grant_transaction_group_id" field.
-func CreditGrantTransactionGroupIDGTE(v string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldGTE(FieldCreditGrantTransactionGroupID, v))
-}
-
-// CreditGrantTransactionGroupIDLT applies the LT predicate on the "credit_grant_transaction_group_id" field.
-func CreditGrantTransactionGroupIDLT(v string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldLT(FieldCreditGrantTransactionGroupID, v))
-}
-
-// CreditGrantTransactionGroupIDLTE applies the LTE predicate on the "credit_grant_transaction_group_id" field.
-func CreditGrantTransactionGroupIDLTE(v string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldLTE(FieldCreditGrantTransactionGroupID, v))
-}
-
-// CreditGrantTransactionGroupIDContains applies the Contains predicate on the "credit_grant_transaction_group_id" field.
-func CreditGrantTransactionGroupIDContains(v string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldContains(FieldCreditGrantTransactionGroupID, v))
-}
-
-// CreditGrantTransactionGroupIDHasPrefix applies the HasPrefix predicate on the "credit_grant_transaction_group_id" field.
-func CreditGrantTransactionGroupIDHasPrefix(v string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldHasPrefix(FieldCreditGrantTransactionGroupID, v))
-}
-
-// CreditGrantTransactionGroupIDHasSuffix applies the HasSuffix predicate on the "credit_grant_transaction_group_id" field.
-func CreditGrantTransactionGroupIDHasSuffix(v string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldHasSuffix(FieldCreditGrantTransactionGroupID, v))
-}
-
-// CreditGrantTransactionGroupIDIsNil applies the IsNil predicate on the "credit_grant_transaction_group_id" field.
-func CreditGrantTransactionGroupIDIsNil() predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldIsNull(FieldCreditGrantTransactionGroupID))
-}
-
-// CreditGrantTransactionGroupIDNotNil applies the NotNil predicate on the "credit_grant_transaction_group_id" field.
-func CreditGrantTransactionGroupIDNotNil() predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldNotNull(FieldCreditGrantTransactionGroupID))
-}
-
-// CreditGrantTransactionGroupIDEqualFold applies the EqualFold predicate on the "credit_grant_transaction_group_id" field.
-func CreditGrantTransactionGroupIDEqualFold(v string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldEqualFold(FieldCreditGrantTransactionGroupID, v))
-}
-
-// CreditGrantTransactionGroupIDContainsFold applies the ContainsFold predicate on the "credit_grant_transaction_group_id" field.
-func CreditGrantTransactionGroupIDContainsFold(v string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldContainsFold(FieldCreditGrantTransactionGroupID, v))
-}
-
-// CreditGrantedAtEQ applies the EQ predicate on the "credit_granted_at" field.
-func CreditGrantedAtEQ(v time.Time) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldCreditGrantedAt, v))
-}
-
-// CreditGrantedAtNEQ applies the NEQ predicate on the "credit_granted_at" field.
-func CreditGrantedAtNEQ(v time.Time) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldNEQ(FieldCreditGrantedAt, v))
-}
-
-// CreditGrantedAtIn applies the In predicate on the "credit_granted_at" field.
-func CreditGrantedAtIn(vs ...time.Time) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldIn(FieldCreditGrantedAt, vs...))
-}
-
-// CreditGrantedAtNotIn applies the NotIn predicate on the "credit_granted_at" field.
-func CreditGrantedAtNotIn(vs ...time.Time) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldNotIn(FieldCreditGrantedAt, vs...))
-}
-
-// CreditGrantedAtGT applies the GT predicate on the "credit_granted_at" field.
-func CreditGrantedAtGT(v time.Time) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldGT(FieldCreditGrantedAt, v))
-}
-
-// CreditGrantedAtGTE applies the GTE predicate on the "credit_granted_at" field.
-func CreditGrantedAtGTE(v time.Time) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldGTE(FieldCreditGrantedAt, v))
-}
-
-// CreditGrantedAtLT applies the LT predicate on the "credit_granted_at" field.
-func CreditGrantedAtLT(v time.Time) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldLT(FieldCreditGrantedAt, v))
-}
-
-// CreditGrantedAtLTE applies the LTE predicate on the "credit_granted_at" field.
-func CreditGrantedAtLTE(v time.Time) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldLTE(FieldCreditGrantedAt, v))
-}
-
-// CreditGrantedAtIsNil applies the IsNil predicate on the "credit_granted_at" field.
-func CreditGrantedAtIsNil() predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldIsNull(FieldCreditGrantedAt))
-}
-
-// CreditGrantedAtNotNil applies the NotNil predicate on the "credit_granted_at" field.
-func CreditGrantedAtNotNil() predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldNotNull(FieldCreditGrantedAt))
+// StatusDetailedNotIn applies the NotIn predicate on the "status_detailed" field.
+func StatusDetailedNotIn(vs ...creditpurchase.Status) predicate.ChargeCreditPurchase {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeCreditPurchase(sql.FieldNotIn(FieldStatusDetailed, v...))
 }
 
 // HasExternalPayment applies the HasEdge predicate on the "external_payment" edge.
@@ -1647,6 +1543,29 @@ func HasInvoicedPayment() predicate.ChargeCreditPurchase {
 func HasInvoicedPaymentWith(preds ...predicate.ChargeCreditPurchaseInvoicedPayment) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(func(s *sql.Selector) {
 		step := newInvoicedPaymentStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCreditGrant applies the HasEdge predicate on the "credit_grant" edge.
+func HasCreditGrant() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, CreditGrantTable, CreditGrantColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCreditGrantWith applies the HasEdge predicate on the "credit_grant" edge with a given conditions (other predicates).
+func HasCreditGrantWith(preds ...predicate.ChargeCreditPurchaseCreditGrant) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(func(s *sql.Selector) {
+		step := newCreditGrantStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

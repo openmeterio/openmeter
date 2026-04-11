@@ -158,30 +158,32 @@ func (e *creditPurchaseHandlerTestEnv) newPromotionalCharge(amount alpacadecimal
 	}
 
 	return chargecreditpurchase.Charge{
-		ManagedResource: meta.ManagedResource{
-			NamespacedModel: models.NamespacedModel{
-				Namespace: e.Namespace,
+		ChargeBase: chargecreditpurchase.ChargeBase{
+			ManagedResource: meta.ManagedResource{
+				NamespacedModel: models.NamespacedModel{
+					Namespace: e.Namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: now,
+					UpdatedAt: now,
+				},
+				ID: "credit-purchase-charge",
 			},
-			ManagedModel: models.ManagedModel{
-				CreatedAt: now,
-				UpdatedAt: now,
+			Intent: chargecreditpurchase.Intent{
+				Intent: meta.Intent{
+					Name:              "Promotional Credit Purchase",
+					ManagedBy:         billing.SystemManagedLine,
+					CustomerID:        e.CustomerID.ID,
+					Currency:          currencyx.Code("USD"),
+					ServicePeriod:     servicePeriod,
+					FullServicePeriod: servicePeriod,
+					BillingPeriod:     servicePeriod,
+				},
+				CreditAmount: amount,
+				Settlement:   chargecreditpurchase.NewSettlement(chargecreditpurchase.PromotionalSettlement{}),
 			},
-			ID: "credit-purchase-charge",
+			Status: chargecreditpurchase.StatusCreated,
 		},
-		Intent: chargecreditpurchase.Intent{
-			Intent: meta.Intent{
-				Name:              "Promotional Credit Purchase",
-				ManagedBy:         billing.SystemManagedLine,
-				CustomerID:        e.CustomerID.ID,
-				Currency:          currencyx.Code("USD"),
-				ServicePeriod:     servicePeriod,
-				FullServicePeriod: servicePeriod,
-				BillingPeriod:     servicePeriod,
-			},
-			CreditAmount: amount,
-			Settlement:   chargecreditpurchase.NewSettlement(chargecreditpurchase.PromotionalSettlement{}),
-		},
-		Status: meta.ChargeStatusCreated,
 	}
 }
 
@@ -193,36 +195,38 @@ func (e *creditPurchaseHandlerTestEnv) newExternalCharge(amount, costBasis alpac
 	}
 
 	return chargecreditpurchase.Charge{
-		ManagedResource: meta.ManagedResource{
-			NamespacedModel: models.NamespacedModel{
-				Namespace: e.Namespace,
-			},
-			ManagedModel: models.ManagedModel{
-				CreatedAt: now,
-				UpdatedAt: now,
-			},
-			ID: "credit-purchase-charge",
-		},
-		Intent: chargecreditpurchase.Intent{
-			Intent: meta.Intent{
-				Name:              "External Credit Purchase",
-				ManagedBy:         billing.SystemManagedLine,
-				CustomerID:        e.CustomerID.ID,
-				Currency:          currencyx.Code("USD"),
-				ServicePeriod:     servicePeriod,
-				FullServicePeriod: servicePeriod,
-				BillingPeriod:     servicePeriod,
-			},
-			CreditAmount: amount,
-			Settlement: chargecreditpurchase.NewSettlement(chargecreditpurchase.ExternalSettlement{
-				InitialStatus: chargecreditpurchase.CreatedInitialPaymentSettlementStatus,
-				GenericSettlement: chargecreditpurchase.GenericSettlement{
-					Currency:  currencyx.Code("USD"),
-					CostBasis: costBasis,
+		ChargeBase: chargecreditpurchase.ChargeBase{
+			ManagedResource: meta.ManagedResource{
+				NamespacedModel: models.NamespacedModel{
+					Namespace: e.Namespace,
 				},
-			}),
+				ManagedModel: models.ManagedModel{
+					CreatedAt: now,
+					UpdatedAt: now,
+				},
+				ID: "credit-purchase-charge",
+			},
+			Intent: chargecreditpurchase.Intent{
+				Intent: meta.Intent{
+					Name:              "External Credit Purchase",
+					ManagedBy:         billing.SystemManagedLine,
+					CustomerID:        e.CustomerID.ID,
+					Currency:          currencyx.Code("USD"),
+					ServicePeriod:     servicePeriod,
+					FullServicePeriod: servicePeriod,
+					BillingPeriod:     servicePeriod,
+				},
+				CreditAmount: amount,
+				Settlement: chargecreditpurchase.NewSettlement(chargecreditpurchase.ExternalSettlement{
+					InitialStatus: chargecreditpurchase.CreatedInitialPaymentSettlementStatus,
+					GenericSettlement: chargecreditpurchase.GenericSettlement{
+						Currency:  currencyx.Code("USD"),
+						CostBasis: costBasis,
+					},
+				}),
+			},
+			Status: chargecreditpurchase.StatusCreated,
 		},
-		Status: meta.ChargeStatusCreated,
 	}
 }
 

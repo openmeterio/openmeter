@@ -103,6 +103,7 @@ func (s *service) Get(ctx context.Context, input creditgrant.GetInput) (creditpu
 			Namespace: input.Namespace,
 			ID:        input.ChargeID,
 		},
+		Expands: meta.Expands{meta.ExpandRealizations},
 	})
 	if err != nil {
 		return creditpurchase.Charge{}, fmt.Errorf("get charge: %w", err)

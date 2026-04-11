@@ -9,7 +9,7 @@ allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent
 
 Guidance for working with OpenMeter billing charges.
 
-This skill describes the charges package generically. Lifecycle state machines exist for both usage-based and flat-fee credit-only branches. The credit-purchase branch follows a different pattern.
+This skill describes the charges package generically. Lifecycle state machines exist for both usage-based and flat-fee credit-only branches. All three charge types (usage-based, flat-fee, credit-purchase) follow the same structural pattern: `ChargeBase`/`Charge` with `Realizations`, own `Status` type, `status_detailed` DB column, and composite adapter interfaces.
 
 ## Scope
 
@@ -25,6 +25,9 @@ Primary packages:
 - `openmeter/billing/charges/flatfee/`
 - `openmeter/billing/charges/flatfee/service/`
 - `openmeter/billing/charges/flatfee/adapter/`
+- `openmeter/billing/charges/creditpurchase/`
+- `openmeter/billing/charges/creditpurchase/service/`
+- `openmeter/billing/charges/creditpurchase/adapter/`
 - `openmeter/billing/charges/service/invoicable_test.go`
 - `openmeter/billing/charges/service/advance_test.go`
 
@@ -338,7 +341,7 @@ Service construction requires a `*lockr.Locker` (same as usage-based).
 
 Handler interface: `OnCreditsOnlyUsageAccrued(ctx, OnCreditsOnlyUsageAccruedInput)` returns `creditrealization.CreateAllocationInputs`. The production implementation in `ledger/chargeadapter/flatfee.go` is stubbed as not-implemented; the test handler is in `charges/service/handlers_test.go`.
 
-Flat fee credit-only charges start with `InitialStatus: meta.ChargeStatusCreated` (not `Active`). The invoiced path still starts as `Active`.
+Flat fee credit-only charges start with `InitialStatus: flatfee.StatusCreated` (not `Active`). The invoiced path still starts as `flatfee.StatusActive`.
 
 ## Collection Period Semantics
 
@@ -396,14 +399,14 @@ Charge status persistence is split across:
 - the shared meta charge row
 - the charge-type-specific row
 
-For usage-based and flat-fee charges:
+For all three charge types (usage-based, flat-fee, credit-purchase):
 
 When status changes:
 
 - update the meta charge status to the short/meta status
 - update the type-specific charge `status_detailed` to the full type-specific status
 
-`usagebased.Status.ToMetaChargeStatus()` and `flatfee.Status.ToMetaChargeStatus()` are the bridges between the full state-machine status and the root charge meta status.
+`usagebased.Status.ToMetaChargeStatus()`, `flatfee.Status.ToMetaChargeStatus()`, and `creditpurchase.Status.ToMetaChargeStatus()` are the bridges between the full state-machine status and the root charge meta status.
 
 ## Testing Guidance
 
@@ -480,13 +483,37 @@ When changing flat-fee charges:
 - `flatfee.Charge.Realizations` is expand-only data loaded from child tables; tests and service code should read payment/accrued-usage/credit-allocation state there, not from `flatfee.State`
 - `charge_flat_fees.status_detailed` mirrors `status` today; schema changes or migrations that introduce new flat-fee statuses must keep both columns consistent through `ToMetaChargeStatus()`
 - the `flatfee.Handler` interface has both invoiced-path methods and credits-only methods — implementors must satisfy all of them
-- adding new `Handler` methods requires updating: `ledger/chargeadapter/flatfee.go`, `test/credits/mockledger.go`, `charges/service/handlers_test.go`
-- the same applies to `usagebased.Handler` — new methods must be added to `UnimplementedHandler`, the ledger adapter, and the test handler
+- adding new `Handler` methods requires updating: `ledger/chargeadapter/flatfee.go`, `charges/service/handlers_test.go`
+- the same applies to `usagebased.Handler` — new methods must be added to `UnimplementedHandler`, the ledger adapter (`ledger/chargeadapter/usagebased.go`), and the test handler
+- the same applies to `creditpurchase.Handler` — new methods must be added to `ledger/chargeadapter/creditpurchase.go` and the test handler
 
 Usage-based handler interface (`usagebased.Handler`):
 - `OnCreditsOnlyUsageAccrued(ctx, CreditsOnlyUsageAccruedInput)` → `creditrealization.CreateAllocationInputs` — allocate credits for a realization run
 - `OnCreditsOnlyUsageAccruedCorrection(ctx, CreditsOnlyUsageAccruedCorrectionInput)` → `creditrealization.CreateCorrectionInputs` — correct (partially revert) existing credit allocations when finalization discovers usage decreased
-- `flatfee/service/service.go` Config requires a `*lockr.Locker` — when constructing in tests, create the locker before the flat fee service
+
+Credit purchase handler interface (`creditpurchase.Handler`):
+- `OnPromotionalCreditPurchase(ctx, Charge)` → `ledgertransaction.GroupReference`
+- `OnCreditPurchaseInitiated(ctx, Charge)` → `ledgertransaction.GroupReference`
+- `OnCreditPurchasePaymentAuthorized(ctx, Charge)` → `ledgertransaction.GroupReference`
+- `OnCreditPurchasePaymentSettled(ctx, Charge)` → `ledgertransaction.GroupReference`
+
+`flatfee/service/service.go` Config requires a `*lockr.Locker` — when constructing in tests, create the locker before the flat fee service
+
+When changing credit purchase charges:
+
+- `creditpurchase.ChargeBase` stores base-row data: `ManagedResource`, `Intent`, `Status` (own `creditpurchase.Status` type); `State` exists but is an empty struct
+- `creditpurchase.Charge` embeds `ChargeBase` + `Realizations` — all lifecycle outcomes live in `Realizations`, not `State`
+- `creditpurchase.Realizations` holds `CreditGrantRealization`, `ExternalPaymentSettlement`, and `InvoiceSettlement` (all loaded from edge tables)
+- `CreditGrantRealization` is stored in its own `charge_credit_purchase_credit_grants` table, not on the base row
+- `creditpurchase.Status` mirrors the flatfee pattern: `StatusCreated`, `StatusActive`, `StatusFinal`, `StatusDeleted` with `ToMetaChargeStatus()` bridge
+- `charge_credit_purchases.status_detailed` column mirrors `status` and is set via `SetStatusDetailed(...)` on create/update
+- `UpdateCharge(ctx, ChargeBase) (ChargeBase, error)` only updates base-row fields — do not call it just because realization edges changed
+- Realization edges are created/updated through dedicated adapter methods: `CreateCreditGrant`, `CreateExternalPayment`, `UpdateExternalPayment`, `CreateInvoicedPayment`, `UpdateInvoicedPayment`
+- Adapter interface is composite: `ChargeAdapter` + `CreditGrantAdapter` + `ExternalPaymentAdapter` + `InvoicedPaymentAdapter`
+- The `withExpands` helper in `creditpurchase/adapter/charge.go` adds `.WithCreditGrant().WithExternalPayment().WithInvoicedPayment()` to queries when `ExpandRealizations` is requested — use this helper instead of repeating the expand chain
+- Service methods that only change edge data (e.g., `HandleExternalPaymentAuthorized`) update `charge.Realizations` in memory and return the full `Charge` without calling `UpdateCharge`
+- Service methods that change status (e.g., `HandleExternalPaymentSettled`, `onPromotionalCreditPurchase`) call `UpdateCharge(ctx, charge.ChargeBase)` and merge the result back: `charge.ChargeBase = updatedBase`
+- Credit grant creation must go through `adapter.CreateCreditGrant(...)` — do not write credit grant data through `UpdateCharge`
 
 ## Credit Realization Model
 

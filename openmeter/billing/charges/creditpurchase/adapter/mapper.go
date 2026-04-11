@@ -15,20 +15,43 @@ import (
 	"github.com/openmeterio/openmeter/pkg/convert"
 )
 
-func MapCreditPurchaseChargeFromDB(dbEntity *entdb.ChargeCreditPurchase, expands meta.Expands) (creditpurchase.Charge, error) {
-	var grantLedgerTransactionReference *ledgertransaction.TimedGroupReference
-	if dbEntity.CreditGrantTransactionGroupID != nil && dbEntity.CreditGrantedAt != nil {
-		grantLedgerTransactionReference = &ledgertransaction.TimedGroupReference{
-			GroupReference: ledgertransaction.GroupReference{
-				TransactionGroupID: *dbEntity.CreditGrantTransactionGroupID,
-			},
-			Time: dbEntity.CreditGrantedAt.In(time.UTC),
-		}
-	}
+func MapChargeBaseFromDB(dbEntity *entdb.ChargeCreditPurchase) creditpurchase.ChargeBase {
+	mappedMeta := chargemeta.MapFromDB(dbEntity)
 
+	return creditpurchase.ChargeBase{
+		ManagedResource: mappedMeta.ManagedResource,
+		Status:          dbEntity.StatusDetailed,
+		Intent: creditpurchase.Intent{
+			Intent:       mappedMeta.Intent,
+			CreditAmount: dbEntity.CreditAmount,
+			EffectiveAt:  convert.SafeToUTC(dbEntity.EffectiveAt),
+			Priority:     dbEntity.Priority,
+			Settlement:   dbEntity.Settlement,
+		},
+	}
+}
+
+func MapCreditPurchaseChargeFromDB(dbEntity *entdb.ChargeCreditPurchase, expands meta.Expands) (creditpurchase.Charge, error) {
+	chargeBase := MapChargeBaseFromDB(dbEntity)
+
+	var creditGrantRealization *ledgertransaction.TimedGroupReference
 	var externalPaymentSettlement *payment.External
 	var invoiceSettlement *payment.Invoiced
 	if expands.Has(meta.ExpandRealizations) {
+		dbCreditGrant, err := dbEntity.Edges.CreditGrantOrErr()
+		if _, ok := lo.ErrorsAs[*entdb.NotLoadedError](err); ok {
+			return creditpurchase.Charge{}, fmt.Errorf("credit grant not loaded for credit purchase charge [id=%s]: %w", dbEntity.ID, err)
+		}
+
+		if dbCreditGrant != nil {
+			creditGrantRealization = &ledgertransaction.TimedGroupReference{
+				GroupReference: ledgertransaction.GroupReference{
+					TransactionGroupID: dbCreditGrant.TransactionGroupID,
+				},
+				Time: dbCreditGrant.GrantedAt.In(time.UTC),
+			}
+		}
+
 		dbExternalPaymentSettlement, err := dbEntity.Edges.ExternalPaymentOrErr()
 		if _, ok := lo.ErrorsAs[*entdb.NotLoadedError](err); ok {
 			return creditpurchase.Charge{}, fmt.Errorf("external payment settlement not loaded for credit purchase charge [id=%s]: %w", dbEntity.ID, err)
@@ -48,20 +71,10 @@ func MapCreditPurchaseChargeFromDB(dbEntity *entdb.ChargeCreditPurchase, expands
 		}
 	}
 
-	mappedMeta := chargemeta.MapFromDB(dbEntity)
-
 	return creditpurchase.Charge{
-		ManagedResource: mappedMeta.ManagedResource,
-		Status:          mappedMeta.Status,
-		Intent: creditpurchase.Intent{
-			Intent:       mappedMeta.Intent,
-			CreditAmount: dbEntity.CreditAmount,
-			EffectiveAt:  convert.SafeToUTC(dbEntity.EffectiveAt),
-			Priority:     dbEntity.Priority,
-			Settlement:   dbEntity.Settlement,
-		},
-		State: creditpurchase.State{
-			CreditGrantRealization:    grantLedgerTransactionReference,
+		ChargeBase: chargeBase,
+		Realizations: creditpurchase.Realizations{
+			CreditGrantRealization:    creditGrantRealization,
 			ExternalPaymentSettlement: externalPaymentSettlement,
 			InvoiceSettlement:         invoiceSettlement,
 		},

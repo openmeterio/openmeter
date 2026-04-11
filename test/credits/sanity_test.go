@@ -331,7 +331,7 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBa
 	costBasis := alpacadecimal.NewFromFloat(0.5)
 	backingGroup, err := s.Ledger.GetTransactionGroup(ctx, models.NamespacedID{
 		Namespace: ns,
-		ID:        creditPurchaseCharge.State.CreditGrantRealization.TransactionGroupID,
+		ID:        creditPurchaseCharge.Realizations.CreditGrantRealization.TransactionGroupID,
 	})
 	s.NoError(err)
 	s.Len(backingGroup.Transactions(), 2)
@@ -415,7 +415,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		s.NoError(err)
 
 		// This should match the ledger's transaction group ID
-		s.NotEmpty(cpCharge.State.CreditGrantRealization.TransactionGroupID)
+		s.NotEmpty(cpCharge.Realizations.CreditGrantRealization.TransactionGroupID)
 
 		// LEDGER[galexi]:
 		// - OnPromotionalCreditPurchase is called
@@ -461,7 +461,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		s.NoError(err)
 
 		// This should match the ledger's transaction group ID
-		s.NotEmpty(cpCharge.State.CreditGrantRealization.TransactionGroupID)
+		s.NotEmpty(cpCharge.Realizations.CreditGrantRealization.TransactionGroupID)
 
 		// LEDGER[galexi]:
 		// - OnCreditPurchaseInitiated is called
@@ -486,7 +486,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		// - OnCreditPurchasePaymentAuthorized is called
 
 		costBasis := alpacadecimal.NewFromFloat(0.5)
-		s.Equal(payment.StatusAuthorized, updatedCharge.State.ExternalPaymentSettlement.Status)
+		s.Equal(payment.StatusAuthorized, updatedCharge.Realizations.ExternalPaymentSettlement.Status)
 		s.Equal(float64(-50), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
 	})
 
@@ -501,7 +501,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		// - OnCreditPurchasePaymentSettled is called
 
 		costBasis := alpacadecimal.NewFromFloat(0.5)
-		s.Equal(payment.StatusSettled, updatedCharge.State.ExternalPaymentSettlement.Status)
+		s.Equal(payment.StatusSettled, updatedCharge.Realizations.ExternalPaymentSettlement.Status)
 		s.Equal(float64(0), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
 	})
 
@@ -718,7 +718,7 @@ func (s *CreditsTestSuite) TestCreditPurchasePersistsPriority() {
 
 	cpCharge, err := res[0].AsCreditPurchaseCharge()
 	s.NoError(err)
-	s.NotNil(cpCharge.State.CreditGrantRealization)
+	s.NotNil(cpCharge.Realizations.CreditGrantRealization)
 
 	fetchedCharge, err := s.mustGetChargeByID(cpCharge.GetChargeID()).AsCreditPurchaseCharge()
 	s.NoError(err)
@@ -781,7 +781,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		s.Equal(meta.ChargeTypeCreditPurchase, res[0].Type())
 		cpCharge, err := res[0].AsCreditPurchaseCharge()
 		s.NoError(err)
-		s.NotEmpty(cpCharge.State.CreditGrantRealization.TransactionGroupID)
+		s.NotEmpty(cpCharge.Realizations.CreditGrantRealization.TransactionGroupID)
 
 		zeroCostBasis := alpacadecimal.Zero
 		purchasedCostBasis := alpacadecimal.NewFromFloat(0.5)
@@ -820,7 +820,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		s.Equal(meta.ChargeTypeCreditPurchase, res[0].Type())
 		cpCharge, err := res[0].AsCreditPurchaseCharge()
 		s.NoError(err)
-		s.NotEmpty(cpCharge.State.CreditGrantRealization.TransactionGroupID)
+		s.NotEmpty(cpCharge.Realizations.CreditGrantRealization.TransactionGroupID)
 
 		costBasis := alpacadecimal.NewFromFloat(0.5)
 		s.Equal(float64(50), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)).InexactFloat64())
@@ -837,7 +837,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		s.NoError(err)
 
 		costBasis := alpacadecimal.NewFromFloat(0.5)
-		s.Equal(payment.StatusAuthorized, updatedCharge.State.ExternalPaymentSettlement.Status)
+		s.Equal(payment.StatusAuthorized, updatedCharge.Realizations.ExternalPaymentSettlement.Status)
 		s.Equal(float64(-50), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
 	})
 
@@ -849,7 +849,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		s.NoError(err)
 
 		costBasis := alpacadecimal.NewFromFloat(0.5)
-		s.Equal(payment.StatusSettled, updatedCharge.State.ExternalPaymentSettlement.Status)
+		s.Equal(payment.StatusSettled, updatedCharge.Realizations.ExternalPaymentSettlement.Status)
 		s.Equal(float64(0), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
 	})
 
@@ -1047,7 +1047,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 
 		charge, err := res[0].AsCreditPurchaseCharge()
 		s.NoError(err)
-		s.NotEmpty(charge.State.CreditGrantRealization.TransactionGroupID)
+		s.NotEmpty(charge.Realizations.CreditGrantRealization.TransactionGroupID)
 
 		// Purchase initiation performs the whole attribution decision up front:
 		// - the prior advance receivable is re-attributed into the purchased cost-basis bucket
@@ -1076,7 +1076,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 			TargetPaymentState: payment.StatusAuthorized,
 		})
 		s.NoError(err)
-		s.Equal(payment.StatusAuthorized, updatedCharge.State.ExternalPaymentSettlement.Status)
+		s.Equal(payment.StatusAuthorized, updatedCharge.Realizations.ExternalPaymentSettlement.Status)
 
 		// Authorization now only stages settlement funding; attribution already happened during purchase initiation.
 		s.True(
@@ -1093,7 +1093,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 			TargetPaymentState: payment.StatusSettled,
 		})
 		s.NoError(err)
-		s.Equal(payment.StatusSettled, updatedCharge.State.ExternalPaymentSettlement.Status)
+		s.Equal(payment.StatusSettled, updatedCharge.Realizations.ExternalPaymentSettlement.Status)
 
 		// Settlement is now just the normal authorized -> open move in the purchased cost-basis bucket.
 		// The earlier attribution stays intact, and the purchased receivable fully nets out here.

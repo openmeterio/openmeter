@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecreditgrant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
@@ -33,6 +34,7 @@ type ChargeCreditPurchaseQuery struct {
 	predicates            []predicate.ChargeCreditPurchase
 	withExternalPayment   *ChargeCreditPurchaseExternalPaymentQuery
 	withInvoicedPayment   *ChargeCreditPurchaseInvoicedPaymentQuery
+	withCreditGrant       *ChargeCreditPurchaseCreditGrantQuery
 	withCharge            *ChargeQuery
 	withSubscription      *SubscriptionQuery
 	withSubscriptionPhase *SubscriptionPhaseQuery
@@ -112,6 +114,28 @@ func (_q *ChargeCreditPurchaseQuery) QueryInvoicedPayment() *ChargeCreditPurchas
 			sqlgraph.From(chargecreditpurchase.Table, chargecreditpurchase.FieldID, selector),
 			sqlgraph.To(chargecreditpurchaseinvoicedpayment.Table, chargecreditpurchaseinvoicedpayment.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, chargecreditpurchase.InvoicedPaymentTable, chargecreditpurchase.InvoicedPaymentColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCreditGrant chains the current query on the "credit_grant" edge.
+func (_q *ChargeCreditPurchaseQuery) QueryCreditGrant() *ChargeCreditPurchaseCreditGrantQuery {
+	query := (&ChargeCreditPurchaseCreditGrantClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargecreditpurchase.Table, chargecreditpurchase.FieldID, selector),
+			sqlgraph.To(chargecreditpurchasecreditgrant.Table, chargecreditpurchasecreditgrant.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, chargecreditpurchase.CreditGrantTable, chargecreditpurchase.CreditGrantColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -423,6 +447,7 @@ func (_q *ChargeCreditPurchaseQuery) Clone() *ChargeCreditPurchaseQuery {
 		predicates:            append([]predicate.ChargeCreditPurchase{}, _q.predicates...),
 		withExternalPayment:   _q.withExternalPayment.Clone(),
 		withInvoicedPayment:   _q.withInvoicedPayment.Clone(),
+		withCreditGrant:       _q.withCreditGrant.Clone(),
 		withCharge:            _q.withCharge.Clone(),
 		withSubscription:      _q.withSubscription.Clone(),
 		withSubscriptionPhase: _q.withSubscriptionPhase.Clone(),
@@ -453,6 +478,17 @@ func (_q *ChargeCreditPurchaseQuery) WithInvoicedPayment(opts ...func(*ChargeCre
 		opt(query)
 	}
 	_q.withInvoicedPayment = query
+	return _q
+}
+
+// WithCreditGrant tells the query-builder to eager-load the nodes that are connected to
+// the "credit_grant" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeCreditPurchaseQuery) WithCreditGrant(opts ...func(*ChargeCreditPurchaseCreditGrantQuery)) *ChargeCreditPurchaseQuery {
+	query := (&ChargeCreditPurchaseCreditGrantClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withCreditGrant = query
 	return _q
 }
 
@@ -589,9 +625,10 @@ func (_q *ChargeCreditPurchaseQuery) sqlAll(ctx context.Context, hooks ...queryH
 	var (
 		nodes       = []*ChargeCreditPurchase{}
 		_spec       = _q.querySpec()
-		loadedTypes = [7]bool{
+		loadedTypes = [8]bool{
 			_q.withExternalPayment != nil,
 			_q.withInvoicedPayment != nil,
+			_q.withCreditGrant != nil,
 			_q.withCharge != nil,
 			_q.withSubscription != nil,
 			_q.withSubscriptionPhase != nil,
@@ -629,6 +666,12 @@ func (_q *ChargeCreditPurchaseQuery) sqlAll(ctx context.Context, hooks ...queryH
 	if query := _q.withInvoicedPayment; query != nil {
 		if err := _q.loadInvoicedPayment(ctx, query, nodes, nil,
 			func(n *ChargeCreditPurchase, e *ChargeCreditPurchaseInvoicedPayment) { n.Edges.InvoicedPayment = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withCreditGrant; query != nil {
+		if err := _q.loadCreditGrant(ctx, query, nodes, nil,
+			func(n *ChargeCreditPurchase, e *ChargeCreditPurchaseCreditGrant) { n.Edges.CreditGrant = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -704,6 +747,33 @@ func (_q *ChargeCreditPurchaseQuery) loadInvoicedPayment(ctx context.Context, qu
 	}
 	query.Where(predicate.ChargeCreditPurchaseInvoicedPayment(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(chargecreditpurchase.InvoicedPaymentColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.ChargeID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "charge_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *ChargeCreditPurchaseQuery) loadCreditGrant(ctx context.Context, query *ChargeCreditPurchaseCreditGrantQuery, nodes []*ChargeCreditPurchase, init func(*ChargeCreditPurchase), assign func(*ChargeCreditPurchase, *ChargeCreditPurchaseCreditGrant)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*ChargeCreditPurchase)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargecreditpurchasecreditgrant.FieldChargeID)
+	}
+	query.Where(predicate.ChargeCreditPurchaseCreditGrant(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(chargecreditpurchase.CreditGrantColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
