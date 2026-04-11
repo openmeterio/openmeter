@@ -28,5 +28,8 @@ openmeter.log
 .claude/worktrees
 CLAUDE.local.md
 
+# oapi-codegen patched templates (generated from patch files)
+api/v3/templates/chi-middleware.tmpl
+
 # CodeGraph
 .codegraph/

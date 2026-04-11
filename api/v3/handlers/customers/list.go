@@ -9,6 +9,7 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/api/v3/filters"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -68,17 +69,35 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 				order = sort.Order.ToSortxOrder()
 			}
 
-			var filterKey *string
-			if params.Filter != nil {
-				filterKey = params.Filter.Key
-			}
-
 			req := ListCustomersRequest{
 				Namespace: ns,
 				Page:      page,
 				OrderBy:   orderBy,
 				Order:     order,
-				Key:       filterKey,
+			}
+
+			if params.Filter != nil {
+				key, err := filters.FromAPIFilterString(params.Filter.Key)
+				if err != nil {
+					return ListCustomersRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[key]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.Key = key
+				name, err := filters.FromAPIFilterString(params.Filter.Name)
+				if err != nil {
+					return ListCustomersRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[name]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.Name = name
+				primaryEmail, err := filters.FromAPIFilterString(params.Filter.PrimaryEmail)
+				if err != nil {
+					return ListCustomersRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[primary_email]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.PrimaryEmail = primaryEmail
 			}
 
 			return req, nil

@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/api/v3/filters"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -128,7 +128,7 @@ func TestListPrices_SourceFilterOverlay(t *testing.T) {
 		result, err := svc.ListPrices(context.Background(), llmcost.ListPricesInput{
 			Namespace: ns,
 			Page:      pagination.NewPage(1, 20),
-			Source:    &filters.StringFilter{Eq: lo.ToPtr("system")},
+			Source:    &filter.FilterString{Eq: lo.ToPtr("system")},
 		})
 		require.NoError(t, err)
 		require.Len(t, result.Items, 1)
@@ -147,7 +147,7 @@ func TestListPrices_SourceFilterOverlay(t *testing.T) {
 		result, err := svc.ListPrices(context.Background(), llmcost.ListPricesInput{
 			Namespace: ns,
 			Page:      pagination.NewPage(1, 20),
-			Source:    &filters.StringFilter{Neq: lo.ToPtr("manual")},
+			Source:    &filter.FilterString{Ne: lo.ToPtr("manual")},
 		})
 		require.NoError(t, err)
 		require.Len(t, result.Items, 1)
@@ -166,7 +166,7 @@ func TestListPrices_SourceFilterOverlay(t *testing.T) {
 		result, err := svc.ListPrices(context.Background(), llmcost.ListPricesInput{
 			Namespace: ns,
 			Page:      pagination.NewPage(1, 20),
-			Source:    &filters.StringFilter{Eq: lo.ToPtr("manual")},
+			Source:    &filter.FilterString{Eq: lo.ToPtr("manual")},
 		})
 		require.NoError(t, err)
 		require.Len(t, result.Items, 1)
@@ -217,31 +217,31 @@ func TestSourceFilterExcludesManual(t *testing.T) {
 	})
 
 	t.Run("eq=system excludes manual", func(t *testing.T) {
-		assert.True(t, sourceFilterExcludesManual(&filters.StringFilter{
+		assert.True(t, sourceFilterExcludesManual(&filter.FilterString{
 			Eq: lo.ToPtr("system"),
 		}))
 	})
 
 	t.Run("eq=manual does not exclude", func(t *testing.T) {
-		assert.False(t, sourceFilterExcludesManual(&filters.StringFilter{
+		assert.False(t, sourceFilterExcludesManual(&filter.FilterString{
 			Eq: lo.ToPtr("manual"),
 		}))
 	})
 
 	t.Run("neq=manual excludes manual", func(t *testing.T) {
-		assert.True(t, sourceFilterExcludesManual(&filters.StringFilter{
-			Neq: lo.ToPtr("manual"),
+		assert.True(t, sourceFilterExcludesManual(&filter.FilterString{
+			Ne: lo.ToPtr("manual"),
 		}))
 	})
 
 	t.Run("neq=system does not exclude", func(t *testing.T) {
-		assert.False(t, sourceFilterExcludesManual(&filters.StringFilter{
-			Neq: lo.ToPtr("system"),
+		assert.False(t, sourceFilterExcludesManual(&filter.FilterString{
+			Ne: lo.ToPtr("system"),
 		}))
 	})
 
 	t.Run("contains filter does not exclude", func(t *testing.T) {
-		assert.False(t, sourceFilterExcludesManual(&filters.StringFilter{
+		assert.False(t, sourceFilterExcludesManual(&filter.FilterString{
 			Contains: lo.ToPtr("sys"),
 		}))
 	})
