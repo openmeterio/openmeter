@@ -8,6 +8,18 @@ components:
       schema:
         $ref: '#/components/schemas/OrganizationId'
   schemas:
+    UUID:
+      type: string
+      format: uuid
+      example: 5f9fd312-a987-4628-b4c5-bb4f4fddd5f7
+      description: Contains a unique identifier used for this resource.
+      readOnly: true
+    # UUID_RW defines a ReadWrite UUID, as UUID defines a UUID readonly
+    UUID_RW:
+      type: string
+      format: uuid
+      example: 5f9fd312-a987-4628-b4c5-bb4f4fddd5f7
+      description: Contains a unique identifier used for this resource.
     CreatedAt:
       type: string
       format: date-time
@@ -22,10 +34,40 @@ components:
       description: An ISO-8601 timestamp representation of entity update date.
       readOnly: true
       x-speakeasy-param-suppress-computed-diff: true
-    DeletedAt:
+    ExpiresAt:
       type: string
       format: date-time
       example: '2022-11-04T20:10:06.927Z'
-      description: An ISO-8601 timestamp representation of entity deletion date.
-      readOnly: true
-      x-speakeasy-param-suppress-computed-diff: true
+      description: An ISO-8601 timestamp representation of entity expiration date.
+      nullable: true
+    ExpiresAtNullable:
+      type: string
+      format: date-time
+      example: '2022-11-04T20:10:06.927Z'
+      nullable: true
+      description: An ISO-8601 timestamp representation of entity expiration date.
+    NullableTimestamp:
+      x-flatten-allOf: true
+      allOf:
+        - $ref: 'properties.yaml#/components/schemas/UpdatedAt'
+        - nullable: true
+    UserId:
+      x-flatten-allOf: true
+      allOf:
+        - $ref: 'properties.yaml#/components/schemas/UUID'
+        - description: Contains a unique identifier used for a user.
+    PrincipalId:
+      x-flatten-allOf: true
+      allOf:
+        - $ref: 'properties.yaml#/components/schemas/UUID'
+        - description: Contains a unique identifier used for a principal (user, system account, portal developer, etc.).
+    TeamId:
+      x-flatten-allOf: true
+      allOf:
+        - $ref: 'properties.yaml#/components/schemas/UUID'
+        - description: Contains a unique identifier used for a team.
+    OrganizationId:
+      x-flatten-allOf: true
+      allOf:
+        - $ref: 'properties.yaml#/components/schemas/UUID'
+        - description: UUID representing an organization.

@@ -236,7 +236,7 @@ components:
           title: DateTimeFieldGTFilter
           additionalProperties: false
           properties:
-            lt:
+            gt:
               type: string
               format: date-time
               description: Value is greater than the given RFC-3339 formatted timestamp in UTC
@@ -246,7 +246,7 @@ components:
           title: DateTimeFieldGTEFilter
           additionalProperties: false
           properties:
-            lte:
+            gte:
               type: string
               format: date-time
               description: Value is greater than or equal to the given RFC-3339 formatted timestamp in UTC
