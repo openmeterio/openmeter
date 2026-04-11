@@ -7,7 +7,7 @@ import (
 	"slices"
 	"time"
 
-	"github.com/openmeterio/openmeter/api/v3/filters"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -60,19 +60,19 @@ type ListPricesInput struct {
 	Order sortx.Order `json:"order,omitempty"`
 
 	// Provider filters by LLM vendor.
-	Provider *filters.StringFilter `json:"provider,omitempty"`
+	Provider *filter.FilterString `json:"provider,omitempty"`
 
 	// ModelID filters by model identifier.
-	ModelID *filters.StringFilter `json:"model_id,omitempty"`
+	ModelID *filter.FilterString `json:"model_id,omitempty"`
 
 	// ModelName filters by model display name.
-	ModelName *filters.StringFilter `json:"model_name,omitempty"`
+	ModelName *filter.FilterString `json:"model_name,omitempty"`
 
 	// Currency filters by currency code.
-	Currency *filters.StringFilter `json:"currency,omitempty"`
+	Currency *filter.FilterString `json:"currency,omitempty"`
 
 	// Source filters by price source (e.g., "manual", "system").
-	Source *filters.StringFilter `json:"source,omitempty"`
+	Source *filter.FilterString `json:"source,omitempty"`
 }
 
 var allowedOrderBy = []string{"id", "provider.id", "model.id", "effective_from", "effective_to"}
@@ -92,6 +92,36 @@ func (i ListPricesInput) Validate() error {
 
 	if i.Order != sortx.OrderNone && i.Order != sortx.OrderAsc && i.Order != sortx.OrderDesc {
 		errs = append(errs, fmt.Errorf("invalid order: %q (allowed: ASC, DESC)", i.Order))
+	}
+
+	if i.Provider != nil {
+		if err := i.Provider.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid provider filter: %w", err))
+		}
+	}
+
+	if i.ModelID != nil {
+		if err := i.ModelID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid model_id filter: %w", err))
+		}
+	}
+
+	if i.ModelName != nil {
+		if err := i.ModelName.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid model_name filter: %w", err))
+		}
+	}
+
+	if i.Currency != nil {
+		if err := i.Currency.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid currency filter: %w", err))
+		}
+	}
+
+	if i.Source != nil {
+		if err := i.Source.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid source filter: %w", err))
+		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -204,10 +234,10 @@ type ListOverridesInput struct {
 	Namespace string
 	pagination.Page
 
-	Provider  *filters.StringFilter `json:"provider,omitempty"`
-	ModelID   *filters.StringFilter `json:"model_id,omitempty"`
-	ModelName *filters.StringFilter `json:"model_name,omitempty"`
-	Currency  *filters.StringFilter `json:"currency,omitempty"`
+	Provider  *filter.FilterString `json:"provider,omitempty"`
+	ModelID   *filter.FilterString `json:"model_id,omitempty"`
+	ModelName *filter.FilterString `json:"model_name,omitempty"`
+	Currency  *filter.FilterString `json:"currency,omitempty"`
 }
 
 func (i ListOverridesInput) Validate() error {
@@ -220,6 +250,30 @@ func (i ListOverridesInput) Validate() error {
 	if !i.Page.IsZero() {
 		if err := i.Page.Validate(); err != nil {
 			errs = append(errs, err)
+		}
+	}
+
+	if i.Provider != nil {
+		if err := i.Provider.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid provider filter: %w", err))
+		}
+	}
+
+	if i.ModelID != nil {
+		if err := i.ModelID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid model_id filter: %w", err))
+		}
+	}
+
+	if i.ModelName != nil {
+		if err := i.ModelName.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid model_name filter: %w", err))
+		}
+	}
+
+	if i.Currency != nil {
+		if err := i.Currency.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid currency filter: %w", err))
 		}
 	}
 

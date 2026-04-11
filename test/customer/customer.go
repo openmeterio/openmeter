@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -548,49 +549,113 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 	require.Equal(t, "Customer 2", list.Items[1].Name, "Customer name must match")
 	require.Equal(t, []string{"subject-2"}, list.Items[1].UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must match")
 
-	// List customers with key filter
+	// List customers with key filter (contains, partial match)
 	list, err = service.ListCustomers(ctx, customer.ListCustomersInput{
 		Namespace: s.namespace,
 		Page:      page,
-		Key:       lo.ToPtr("customer-1"),
+		Key:       &filter.FilterString{Contains: lo.ToPtr("customer-1")},
 	})
 
 	require.NoError(t, err, "Listing customers with key filter must not return error")
 	require.Equal(t, 1, list.TotalCount, "Customers total count must be 1")
 	require.Equal(t, createCustomer1.ID, list.Items[0].ID, "Customer ID must match")
 
-	// List customers with name filter
+	// List customers with name filter (exact match via eq)
 	list, err = service.ListCustomers(ctx, customer.ListCustomersInput{
 		Namespace: s.namespace,
 		Page:      page,
-		Name:      &createCustomer2.Name,
+		Name:      &filter.FilterString{Eq: &createCustomer2.Name},
 	})
 
 	require.NoError(t, err, "Listing customers with name filter must not return error")
 	require.Equal(t, 1, list.TotalCount, "Customers total count must be 1")
 	require.Equal(t, createCustomer2.ID, list.Items[0].ID, "Customer ID must match")
 
-	// List customers with partial name filter
+	// List customers with partial name filter (contains)
 	list, err = service.ListCustomers(ctx, customer.ListCustomersInput{
 		Namespace: s.namespace,
 		Page:      page,
-		Name:      lo.ToPtr("2"),
+		Name:      &filter.FilterString{Contains: lo.ToPtr("2")},
 	})
 
 	require.NoError(t, err, "Listing customers with partial name filter must not return error")
 	require.Equal(t, 1, list.TotalCount, "Customers total count must be 1")
 	require.Equal(t, createCustomer2.ID, list.Items[0].ID, "Customer ID must match")
 
-	// List customers with primary email filter
+	// List customers with primary email filter (exact match via eq)
 	list, err = service.ListCustomers(ctx, customer.ListCustomersInput{
 		Namespace:    s.namespace,
 		Page:         page,
-		PrimaryEmail: createCustomer2.PrimaryEmail,
+		PrimaryEmail: &filter.FilterString{Eq: createCustomer2.PrimaryEmail},
 	})
 
 	require.NoError(t, err, "Listing customers with primary email filter must not return error")
 	require.Equal(t, 1, list.TotalCount, "Customers total count must be 1")
 	require.Equal(t, createCustomer2.ID, list.Items[0].ID, "Customer ID must match")
+
+	// List customers with name filter (ne — exclude the matching customer)
+	list, err = service.ListCustomers(ctx, customer.ListCustomersInput{
+		Namespace: s.namespace,
+		Page:      page,
+		Name:      &filter.FilterString{Ne: &createCustomer1.Name},
+	})
+
+	require.NoError(t, err, "Listing customers with name ne filter must not return error")
+	require.Equal(t, 1, list.TotalCount, "ne filter must return the non-matching customer")
+	require.Equal(t, createCustomer2.ID, list.Items[0].ID, "ne filter must return customer 2")
+
+	// List customers with ncontains filter (partial non-match)
+	list, err = service.ListCustomers(ctx, customer.ListCustomersInput{
+		Namespace: s.namespace,
+		Page:      page,
+		Name:      &filter.FilterString{Ncontains: lo.ToPtr("2")},
+	})
+
+	require.NoError(t, err, "Listing customers with ncontains filter must not return error")
+	require.Equal(t, 1, list.TotalCount, "ncontains filter must exclude matching customer")
+	require.Equal(t, createCustomer1.ID, list.Items[0].ID, "ncontains filter must return customer 1")
+
+	// List customers with In (oeq) filter on PrimaryEmail (both customers have
+	// emails, and unlike Key, both emails are guaranteed non-nil).
+	list, err = service.ListCustomers(ctx, customer.ListCustomersInput{
+		Namespace: s.namespace,
+		Page:      page,
+		PrimaryEmail: &filter.FilterString{In: &[]string{
+			*createCustomer1.PrimaryEmail,
+			*createCustomer2.PrimaryEmail,
+		}},
+	})
+
+	require.NoError(t, err, "Listing customers with primary email In filter must not return error")
+	require.Equal(t, 2, list.TotalCount, "In filter must return both customers")
+
+	// List customers with Exists=true on PrimaryEmail (both customers have an email)
+	list, err = service.ListCustomers(ctx, customer.ListCustomersInput{
+		Namespace:    s.namespace,
+		Page:         page,
+		PrimaryEmail: &filter.FilterString{Exists: lo.ToPtr(true)},
+	})
+
+	require.NoError(t, err, "Listing customers with Exists filter must not return error")
+	require.Equal(t, 2, list.TotalCount, "Exists=true must return customers with a non-null email")
+
+	// List customers with And combining a lower and upper bound on Name (range).
+	// This mirrors the shape that the api/v3 converter produces from
+	// filter[name][gte]=Customer 1&filter[name][lte]=Customer 2 after splitting
+	// the range into an $and.
+	list, err = service.ListCustomers(ctx, customer.ListCustomersInput{
+		Namespace: s.namespace,
+		Page:      page,
+		Name: &filter.FilterString{
+			And: &[]filter.FilterString{
+				{Gte: lo.ToPtr("Customer 1")},
+				{Lte: lo.ToPtr("Customer 2")},
+			},
+		},
+	})
+
+	require.NoError(t, err, "Listing customers with And range filter must not return error")
+	require.Equal(t, 2, list.TotalCount, "And range must include both customers")
 
 	// Order by name descending
 	list, err = service.ListCustomers(ctx, customer.ListCustomersInput{

@@ -9,6 +9,7 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/api/v3/filters"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
@@ -73,33 +74,39 @@ func (h *handler) ListPrices() ListPricesHandler {
 
 			// Filters
 			if params.Filter != nil {
-				provider, err := filterSingleStringToDomain(params.Filter.Provider)
+				provider, err := filters.FromAPIFilterString(params.Filter.Provider)
 				if err != nil {
-					return req, err
+					return ListPricesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[provider]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
 				}
 				req.Provider = provider
-
-				modelID, err := filterSingleStringToDomain(params.Filter.ModelId)
+				modelID, err := filters.FromAPIFilterString(params.Filter.ModelId)
 				if err != nil {
-					return req, err
+					return ListPricesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[model_id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
 				}
 				req.ModelID = modelID
-
-				modelName, err := filterSingleStringToDomain(params.Filter.ModelName)
+				modelName, err := filters.FromAPIFilterString(params.Filter.ModelName)
 				if err != nil {
-					return req, err
+					return ListPricesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[model_name]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
 				}
 				req.ModelName = modelName
-
-				currency, err := filterSingleStringToDomain(params.Filter.Currency)
+				currency, err := filters.FromAPIFilterString(params.Filter.Currency)
 				if err != nil {
-					return req, err
+					return ListPricesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[currency]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
 				}
 				req.Currency = currency
-
-				source, err := filterSingleStringToDomain(params.Filter.Source)
+				source, err := filters.FromAPIFilterString(params.Filter.Source)
 				if err != nil {
-					return req, err
+					return ListPricesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[source]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
 				}
 				req.Source = source
 			}

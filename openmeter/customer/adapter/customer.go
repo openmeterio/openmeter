@@ -50,15 +50,21 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 
 		// Filters
 		if input.Key != nil {
-			query = query.Where(customerdb.KeyContainsFold(*input.Key))
+			if p := input.Key.Select(customerdb.FieldKey); p != nil {
+				query = query.Where(p)
+			}
 		}
 
 		if input.Name != nil {
-			query = query.Where(customerdb.NameContainsFold(*input.Name))
+			if p := input.Name.Select(customerdb.FieldName); p != nil {
+				query = query.Where(p)
+			}
 		}
 
 		if input.PrimaryEmail != nil {
-			query = query.Where(customerdb.PrimaryEmailContainsFold(*input.PrimaryEmail))
+			if p := input.PrimaryEmail.Select(customerdb.FieldPrimaryEmail); p != nil {
+				query = query.Where(p)
+			}
 		}
 
 		if input.Subject != nil {

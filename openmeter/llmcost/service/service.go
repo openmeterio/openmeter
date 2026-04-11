@@ -4,8 +4,8 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/openmeterio/openmeter/api/v3/filters"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -138,16 +138,18 @@ func (s *service) ListOverrides(ctx context.Context, input llmcost.ListOverrides
 // sourceFilterExcludesManual returns true when the source filter would exclude
 // manual prices. Since namespace overrides are always source=manual, the overlay
 // must be skipped when manual is excluded to avoid violating the filter.
-func sourceFilterExcludesManual(source *filters.StringFilter) bool {
+func sourceFilterExcludesManual(source *filter.FilterString) bool {
 	if source == nil {
 		return false
 	}
 
-	if source.Eq != nil && *source.Eq != string(llmcost.PriceSourceManual) {
+	manual := string(llmcost.PriceSourceManual)
+
+	if source.Eq != nil && *source.Eq != manual {
 		return true
 	}
 
-	if source.Neq != nil && *source.Neq == string(llmcost.PriceSourceManual) {
+	if source.Ne != nil && *source.Ne == manual {
 		return true
 	}
 

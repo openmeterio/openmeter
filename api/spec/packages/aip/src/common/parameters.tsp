@@ -8,6 +8,9 @@ namespace Common;
 
 /**
  * Sort query.
+ *
+ * The `asc` suffix is optional as the default sort order is ascending.
+ * The `desc` suffix is used to specify a descending order.
  */
 @useRef("../../../../common/definitions/aip_filters.yaml#/components/schemas/SortQuery")
 @friendlyName("SortQuery")
@@ -17,69 +20,179 @@ model SortQuery {}
  * Filter by a boolean value (true/false).
  */
 @friendlyName("BooleanFieldFilter")
-@useRef("../../../../common/definitions/aip_filters.yaml#/components/schemas/BooleanFieldFilter")
-model BooleanFieldFilter {}
+@extension("x-go-type", "filters.FilterBoolean")
+@extension(
+  "x-go-type-import",
+  #{ path: "github.com/openmeterio/openmeter/api/v3/filters" }
+)
+union BooleanFieldFilter {
+  boolean: boolean,
+  object: {
+    /** Value strictly equals the given boolean value. */
+    eq?: boolean,
+  },
+}
 
 /**
  * Filter by a numeric value.
+ * All properties are optional; provide exactly one to specify the comparison.
  */
 @friendlyName("NumericFieldFilter")
-@useRef("../../../../common/definitions/aip_filters.yaml#/components/schemas/NumericFieldFilter")
-model NumericFieldFilter {}
+@extension("x-go-type", "filters.FilterNumeric")
+@extension(
+  "x-go-type-import",
+  #{ path: "github.com/openmeterio/openmeter/api/v3/filters" }
+)
+model NumericFieldFilter {
+  /** Value strictly equals the given numeric value. */
+  eq?: float64;
+
+  /** Value does not equal the given numeric value. */
+  neq?: float64;
+
+  /** Returns entities that match any of the comma-delimited numeric values. */
+  @encode(ArrayEncoding.commaDelimited)
+  oeq?: float64[];
+
+  /** Value is less than the given numeric value. */
+  lt?: float64;
+
+  /** Value is less than or equal to the given numeric value. */
+  lte?: float64;
+
+  /** Value is greater than the given numeric value. */
+  gt?: float64;
+
+  /** Value is greater than or equal to the given numeric value. */
+  gte?: float64;
+}
 
 /**
  * Filters on the given string field value by either exact or fuzzy match.
+ * All properties are optional; provide exactly one to specify the comparison.
  */
 @friendlyName("StringFieldFilter")
-@useRef("../../../../common/definitions/aip_filters.yaml#/components/schemas/StringFieldFilter")
-model StringFieldFilter {}
+@extension("x-go-type", "filters.FilterString")
+@extension(
+  "x-go-type-import",
+  #{ path: "github.com/openmeterio/openmeter/api/v3/filters" }
+)
+union StringFieldFilter {
+  string: string,
+  object: {
+    /** Value strictly equals the given string value. */
+    eq?: string,
+
+    /** Value does not equal the given string value. */
+    neq?: string,
+
+    /** Value contains the given string value (fuzzy match). */
+    contains?: string,
+
+    /** Returns entities that fuzzy-match any of the comma-delimited phrases in the filter string. */
+    @encode(ArrayEncoding.commaDelimited)
+    ocontains?: string[],
+
+    /** Returns entities that exact match any of the comma-delimited phrases in the filter string. */
+    @encode(ArrayEncoding.commaDelimited)
+    oeq?: string[],
+
+    /** Value is greater than the given string value (lexicographic compare). */
+    gt?: string,
+
+    /** Value is greater than or equal to the given string value (lexicographic compare). */
+    gte?: string,
+
+    /** Value is less than the given string value (lexicographic compare). */
+    lt?: string,
+
+    /** Value is less than or equal to the given string value (lexicographic compare). */
+    lte?: string,
+
+    /** When true, the field must be present (non-null); when false, the field must be absent (null). */
+    exists?: boolean,
+  },
+}
 
 /**
  * Filters on the given string field value by exact match.
+ * All properties are optional; provide exactly one to specify the comparison.
  */
 @friendlyName("StringFieldFilterExact")
-@useRef("../../../../common/definitions/aip_filters.yaml#/components/schemas/StringFieldFilterExact")
-model StringFieldFilterExact {}
+@extension("x-go-type", "filters.FilterStringExact")
+@extension(
+  "x-go-type-import",
+  #{ path: "github.com/openmeterio/openmeter/api/v3/filters" }
+)
+model StringFieldFilterExact {
+  /** Value strictly equals the given string value. */
+  eq?: string;
+
+  /** Returns entities that exact match any of the comma-delimited phrases in the filter string. */
+  @encode(ArrayEncoding.commaDelimited)
+  oeq?: string[];
+
+  /** Value does not equal the given string value. */
+  neq?: string;
+}
 
 /**
  * Filters on the given datetime (RFC-3339) field value.
+ * All properties are optional; provide exactly one to specify the comparison.
  */
 @friendlyName("DateTimeFieldFilter")
-@useRef("../../../../common/definitions/aip_filters.yaml#/components/schemas/DateTimeFieldFilter")
-model DateTimeFieldFilter {}
+@extension("x-go-type", "filters.FilterDateTime")
+@extension(
+  "x-go-type-import",
+  #{ path: "github.com/openmeterio/openmeter/api/v3/filters" }
+)
+union DateTimeFieldFilter {
+  string: string,
+  object: {
+    /** Value strictly equals given RFC-3339 formatted timestamp in UTC. */
+    eq?: Shared.DateTime,
+
+    /** Value is less than the given RFC-3339 formatted timestamp in UTC. */
+    lt?: Shared.DateTime,
+
+    /** Value is less than or equal to the given RFC-3339 formatted timestamp in UTC. */
+    lte?: Shared.DateTime,
+
+    /** Value is greater than the given RFC-3339 formatted timestamp in UTC. */
+    gt?: Shared.DateTime,
+
+    /** Value is greater than or equal to the given RFC-3339 formatted timestamp in UTC. */
+    gte?: Shared.DateTime,
+  },
+}
 
 /**
- * Filters on the resource's `labels` field. Filters must use dot-notation to identify
- * the label key that will be used to filter the results. For example:
- *  - `filter[labels.owner]`
- *  - `filter[labels.owner][neq]=kong`
- *  - `filter[labels.env]=dev`
- *  - `filter[labels.env][ocontains]=dev,test`
+ * Filters on the resource's `labels` field.
  */
 @friendlyName("LabelsFieldFilter")
-@useRef("../../../../common/definitions/aip_filters.yaml#/components/schemas/LabelsFieldFilter")
-model LabelsFieldFilter {}
+@extension("x-go-type", "filters.FilterLabels")
+@extension(
+  "x-go-type-import",
+  #{ path: "github.com/openmeterio/openmeter/api/v3/filters" }
+)
+union LabelsFieldFilter {
+  string: string,
+  object: {
+    /** Value strictly equals the given string value. */
+    eq?: string,
 
-/**
- * Filters on the resource's `public_labels` field. Filters must use dot-notation to identify
- * the label key that will be used to filter the results. For example:
- *  - `filter[public_labels.owner]`
- *  - `filter[public_labels.owner][neq]=kong`
- *  - `filter[public_labels.env]=dev`
- *  - `filter[public_labels.env][ocontains]=dev,test`
- */
-@friendlyName("PublicLabelsFieldFilter")
-@useRef("../../../../common/definitions/aip_filters.yaml#/components/schemas/PublicLabelsFieldFilter")
-model PublicLabelsFieldFilter {}
+    /** Value contains the given string value (fuzzy match). */
+    contains?: string,
 
-/**
- * Filters on the resource's `attributes` field. Filters must use dot-notation to identify
- * the attribute key that will be used to filter the results. For example:
- *  - `filter[attributes.owner]`
- *  - `filter[attributes.owner][neq]=kong`
- *  - `filter[attributes.env]=dev`
- *  - `filter[attributes.env][ocontains]=dev,test`
- */
-@friendlyName("AttributesFieldFilter")
-@useRef("../../../../common/definitions/aip_filters.yaml#/components/schemas/AttributesFieldFilter")
-model AttributesFieldFilter {}
+    /** Returns entities that fuzzy-match any of the comma-delimited phrases in the filter string. */
+    @encode(ArrayEncoding.commaDelimited)
+    ocontains?: string[],
+
+    /** Returns entities that exact match any of the comma-delimited phrases in the filter string. */
+    @encode(ArrayEncoding.commaDelimited)
+    oeq?: string[],
+
+    /** Value does not equal the given string value. */
+    neq?: string,
+  },
+}

@@ -15,12 +15,22 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
+
+// containsFilter wraps a *string query parameter in a FilterString with a
+// Contains operator, preserving the v1 "case-insensitive partial match" semantics.
+func containsFilter(value *string) *filter.FilterString {
+	if value == nil {
+		return nil
+	}
+	return &filter.FilterString{Contains: value}
+}
 
 type (
 	ListCustomersResponse = pagination.Result[api.Customer]
@@ -52,9 +62,9 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 				Order:   sortx.Order(defaultx.WithDefault(params.Order, api.SortOrderASC)),
 
 				// Filters
-				Key:          params.Key,
-				Name:         params.Name,
-				PrimaryEmail: params.PrimaryEmail,
+				Key:          containsFilter(params.Key),
+				Name:         containsFilter(params.Name),
+				PrimaryEmail: containsFilter(params.PrimaryEmail),
 				Subject:      params.Subject,
 				PlanKey:      params.PlanKey,
 
