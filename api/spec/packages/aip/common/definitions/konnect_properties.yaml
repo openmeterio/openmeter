@@ -1,5 +1,11 @@
 components:
   schemas:
+    NullableUUID:
+      type: string
+      format: uuid
+      example: 5f9fd312-a987-4628-b4c5-bb4f4fddd5f7
+      description: Contains a unique identifier for a resource.
+      nullable: true
     Labels:
       title: Labels
       type: object
@@ -15,6 +21,25 @@ components:
         pattern: '^[a-z0-9A-Z]{1}([a-z0-9A-Z-._]*[a-z0-9A-Z]+)?$'
         minLength: 1
         maxLength: 63
+    LabelsUpdate:
+      type: object
+      nullable: true
+      description: |
+        Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types. 
+
+        Labels are intended to store **INTERNAL** metadata.
+
+        Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+      example:
+        env: test
+      maxProperties: 50
+      additionalProperties:
+        type: string
+        pattern: '^[a-z0-9A-Z]{1}([a-z0-9A-Z-._]*[a-z0-9A-Z]+)?$'
+        minLength: 1
+        maxLength: 63
+        nullable: true
+      writeOnly: true
     PublicLabels:
       title: PublicLabels
       type: object
@@ -32,3 +57,49 @@ components:
         pattern: '^[a-z0-9A-Z]{1}([a-z0-9A-Z-._]*[a-z0-9A-Z]+)?$'
         minLength: 1
         maxLength: 63
+    PublicLabelsUpdate:
+      title: PublicLabelsUpdate
+      type: object
+      example:
+        category: finance
+      maxProperties: 50
+      description: |
+        Public labels store information about an entity that can be used for filtering a list of objects.
+
+        Public labels are intended to store **PUBLIC** metadata.
+
+        Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+      additionalProperties:
+        type: string
+        pattern: '^[a-z0-9A-Z]{1}([a-z0-9A-Z-._]*[a-z0-9A-Z]+)?$'
+        minLength: 1
+        maxLength: 63
+        nullable: true
+      writeOnly: true
+    EntityType:
+      title: Entity Type
+      type: string
+      enum:
+        - api
+        - api_package
+      description: The type of entity that is being published. Can be either an API or an API Package.
+      example: api
+  parameters:
+    AuditLogDestinationId:
+      schema:
+        type: string
+        format: uuid
+      name: auditLogDestinationId
+      in: path
+      required: true
+      description: ID of the Audit Log Destination.
+      x-speakeasy-match: id
+    Workspace:
+      description: The name of the workspace
+      in: path
+      name: workspace
+      required: true
+      schema:
+        type: string
+        format: string
+        example: team-payments
