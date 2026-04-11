@@ -21,7 +21,5 @@ Legacy specs follow OpenMeter’s existing TypeSpec conventions. See [`packages/
 
 The AIP package defines v3 metering and billing APIs in line with [Kong’s AIP (API Improvement Proposals)](https://kong-aip.netlify.app/list/).
 
-- **OpenMeter** (`openmeter.tsp`): OpenMeter v3 API (events, meters, customers, subscriptions, billing, etc.).
+- **OpenMeter** (`openmeter.tsp`): OpenMeter v3 API.
 - **Konnect** (`konnect.tsp`): Konnect metering & billing API, same surface with Konnect-specific auth and servers.
-
-See [`packages/aip/README.md`](packages/aip/README.md) for patterns and guidelines.
