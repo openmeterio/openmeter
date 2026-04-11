@@ -50,7 +50,7 @@ func (s *service) PostInvoiceDraftCreated(ctx context.Context, charge creditpurc
 // It's invoked from the billing service's PostUpdate hook, already within a transaction.
 func (s *service) PostInvoicePaymentAuthorized(ctx context.Context, charge creditpurchase.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
 	if charge.Realizations.InvoiceSettlement != nil {
-		return fmt.Errorf("invoice settlement already already authorized - settlement already exists: %s", charge.Realizations.InvoiceSettlement.InvoiceID)
+		return fmt.Errorf("invoice settlement already authorized - settlement already exists: %s", charge.Realizations.InvoiceSettlement.InvoiceID)
 	}
 
 	ledgerTransactionGroupReference, err := s.handler.OnCreditPurchasePaymentAuthorized(ctx, charge)
