@@ -126,15 +126,6 @@ func filterFieldName(key string) (string, bool) {
 	return rest[:end], true
 }
 
-var (
-	filterStringType      = reflect.TypeFor[*FilterString]()
-	filterStringExactType = reflect.TypeFor[*FilterStringExact]()
-	filterNumericType     = reflect.TypeFor[*FilterNumeric]()
-	filterDateTimeType    = reflect.TypeFor[*FilterDateTime]()
-	filterBooleanType     = reflect.TypeFor[*FilterBoolean]()
-	stringPtrType         = reflect.TypeFor[*string]()
-)
-
 func parseFiltersValue(qs url.Values, v reflect.Value) error {
 	t := v.Type()
 
@@ -164,89 +155,131 @@ func parseFiltersValue(qs url.Values, v reflect.Value) error {
 			continue
 		}
 
-		switch fieldVal.Type() {
-		case filterStringType:
-			parsed, err := parseFilterString(qs, name)
-			if err != nil {
-				return err
-			}
-			fieldVal.Set(reflect.ValueOf(&parsed))
+		if !fieldVal.CanAddr() {
+			return fmt.Errorf("filter[%s]: target field is not addressable", name)
+		}
 
-		case filterStringExactType:
-			parsed, err := parseFilterStringExact(qs, name)
-			if err != nil {
-				return err
-			}
-			fieldVal.Set(reflect.ValueOf(&parsed))
-
-		case filterNumericType:
-			parsed, err := parseFilterNumeric(qs, name)
-			if err != nil {
-				return err
-			}
-			fieldVal.Set(reflect.ValueOf(&parsed))
-
-		case filterDateTimeType:
-			parsed, err := parseFilterDateTime(qs, name)
-			if err != nil {
-				return err
-			}
-			fieldVal.Set(reflect.ValueOf(&parsed))
-
-		case filterBooleanType:
-			parsed, err := parseFilterBoolean(qs, name)
-			if err != nil {
-				return err
-			}
-			fieldVal.Set(reflect.ValueOf(&parsed))
-
-		case stringPtrType:
-			// Simple string field: filter[field]=value
-			prefix := fmt.Sprintf("filter[%s]", name)
-			for key, values := range qs {
-				if key != prefix {
-					continue
-				}
-				val, err := singleValue(key, values)
-				if err != nil {
-					return err
-				}
-				if val == "" {
-					break
-				}
-				fieldVal.Set(reflect.ValueOf(&val))
-				break
-			}
-
-		default:
-			// For unknown types, build a JSON object from the query params and unmarshal.
-			obj, err := buildFilterJSON(qs, name)
-			if err != nil {
-				return err
-			}
-			if obj == nil {
-				continue
-			}
-
-			data, err := json.Marshal(obj)
-			if err != nil {
-				return fmt.Errorf("filter[%s]: %w", name, err)
-			}
-
-			target := fieldVal
-			if fieldVal.Kind() == reflect.Pointer {
-				target = reflect.New(fieldVal.Type().Elem())
-			}
-			iface := target.Interface()
-			if unmarshaler, ok := iface.(json.Unmarshaler); ok {
-				if err := unmarshaler.UnmarshalJSON(data); err != nil {
-					return fmt.Errorf("filter[%s]: %w", name, err)
-				}
-				fieldVal.Set(target)
-			}
+		if err := dispatchFieldParse(qs, name, fieldVal.Addr().Interface()); err != nil {
+			return err
 		}
 	}
 
+	return nil
+}
+
+// dispatchFieldParse populates a single target field from filter query
+// parameters. fieldPtr is always a pointer to the addressable field (e.g.
+// **FilterString, **string, *SomeUnion). The type switch handles every
+// known filter type statically; reflect is only used for the generic
+// json.Unmarshaler fallback, which exists to support generated union types
+// (TypeSpec-produced oneOf fields) that cannot be enumerated at compile time.
+//
+// Adding a new filter type means adding a case here — the compiler will not
+// force it, but parseUnknownField's fallback will silently ignore unknown
+// concrete types, so test coverage must catch the miss.
+func dispatchFieldParse(qs url.Values, name string, fieldPtr any) error {
+	switch p := fieldPtr.(type) {
+	case **FilterString:
+		parsed, err := parseFilterString(qs, name)
+		if err != nil {
+			return err
+		}
+		*p = &parsed
+		return nil
+
+	case **FilterStringExact:
+		parsed, err := parseFilterStringExact(qs, name)
+		if err != nil {
+			return err
+		}
+		*p = &parsed
+		return nil
+
+	case **FilterNumeric:
+		parsed, err := parseFilterNumeric(qs, name)
+		if err != nil {
+			return err
+		}
+		*p = &parsed
+		return nil
+
+	case **FilterDateTime:
+		parsed, err := parseFilterDateTime(qs, name)
+		if err != nil {
+			return err
+		}
+		*p = &parsed
+		return nil
+
+	case **FilterBoolean:
+		parsed, err := parseFilterBoolean(qs, name)
+		if err != nil {
+			return err
+		}
+		*p = &parsed
+		return nil
+
+	case **string:
+		// Simple string field: filter[field]=value (shorthand eq).
+		prefix := fmt.Sprintf("filter[%s]", name)
+		for key, values := range qs {
+			if key != prefix {
+				continue
+			}
+			val, err := singleValue(key, values)
+			if err != nil {
+				return err
+			}
+			if val == "" {
+				return nil
+			}
+			*p = &val
+			return nil
+		}
+		return nil
+
+	default:
+		return parseUnknownField(qs, name, fieldPtr)
+	}
+}
+
+// parseUnknownField is the reflect-based escape hatch for filter types not
+// covered by dispatchFieldParse's static cases. It builds a JSON object from
+// the query params and delegates to json.Unmarshaler if the field type
+// implements it. This path exists to support generated union types
+// (TypeSpec-produced oneOf fields) whose concrete type is not known at
+// compile time and therefore cannot be added to the type switch.
+func parseUnknownField(qs url.Values, name string, fieldPtr any) error {
+	obj, err := buildFilterJSON(qs, name)
+	if err != nil {
+		return err
+	}
+	if obj == nil {
+		return nil
+	}
+
+	data, err := json.Marshal(obj)
+	if err != nil {
+		return fmt.Errorf("filter[%s]: %w", name, err)
+	}
+
+	// fieldPtr is a pointer to the field; the field itself may already be a
+	// pointer (fieldPtr is then a pointer-to-pointer). Unwrap one level to get
+	// the value we want to unmarshal into, and allocate it if the inner
+	// pointer is nil.
+	fieldVal := reflect.ValueOf(fieldPtr).Elem()
+	target := fieldVal
+	if fieldVal.Kind() == reflect.Pointer {
+		target = reflect.New(fieldVal.Type().Elem())
+	}
+	unmarshaler, ok := target.Interface().(json.Unmarshaler)
+	if !ok {
+		return nil
+	}
+	if err := unmarshaler.UnmarshalJSON(data); err != nil {
+		return fmt.Errorf("filter[%s]: %w", name, err)
+	}
+	fieldVal.Set(target)
 	return nil
 }
 
