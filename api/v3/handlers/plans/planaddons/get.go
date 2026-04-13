@@ -1,4 +1,4 @@
-package plans
+package planaddons
 
 import (
 	"context"
@@ -13,15 +13,18 @@ import (
 )
 
 type (
-	GetPlanAddonRequest  = planaddon.GetPlanAddonInput
+	GetPlanAddonRequest = planaddon.GetPlanAddonInput
+	GetPlanAddonParams  struct {
+		PlanID      string
+		PlanAddonID string
+	}
 	GetPlanAddonResponse = api.PlanAddon
-	GetPlanAddonParams   = string
 	GetPlanAddonHandler  httptransport.HandlerWithArgs[GetPlanAddonRequest, GetPlanAddonResponse, GetPlanAddonParams]
 )
 
 func (h *handler) GetPlanAddon() GetPlanAddonHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, planAddonID GetPlanAddonParams) (GetPlanAddonRequest, error) {
+		func(ctx context.Context, r *http.Request, params GetPlanAddonParams) (GetPlanAddonRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return GetPlanAddonRequest{}, err
@@ -31,7 +34,7 @@ func (h *handler) GetPlanAddon() GetPlanAddonHandler {
 				NamespacedModel: models.NamespacedModel{
 					Namespace: ns,
 				},
-				ID: planAddonID,
+				ID: params.PlanAddonID,
 			}, nil
 		},
 		func(ctx context.Context, request GetPlanAddonRequest) (GetPlanAddonResponse, error) {

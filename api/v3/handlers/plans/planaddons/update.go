@@ -1,11 +1,9 @@
-package plans
+package planaddons
 
 import (
 	"context"
 	"fmt"
 	"net/http"
-
-	"github.com/go-chi/chi/v5"
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
@@ -18,15 +16,18 @@ import (
 )
 
 type (
-	UpdatePlanAddonRequest  = planaddon.UpdatePlanAddonInput
+	UpdatePlanAddonRequest = planaddon.UpdatePlanAddonInput
+	UpdatePlanAddonParams  struct {
+		PlanID      string
+		PlanAddonID string
+	}
 	UpdatePlanAddonResponse = api.PlanAddon
-	UpdatePlanAddonParams   = string
 	UpdatePlanAddonHandler  httptransport.HandlerWithArgs[UpdatePlanAddonRequest, UpdatePlanAddonResponse, UpdatePlanAddonParams]
 )
 
 func (h *handler) UpdatePlanAddon() UpdatePlanAddonHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, planAddonID UpdatePlanAddonParams) (UpdatePlanAddonRequest, error) {
+		func(ctx context.Context, r *http.Request, params UpdatePlanAddonParams) (UpdatePlanAddonRequest, error) {
 			body := api.UpsertPlanAddonRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return UpdatePlanAddonRequest{}, err
@@ -37,14 +38,12 @@ func (h *handler) UpdatePlanAddon() UpdatePlanAddonHandler {
 				return UpdatePlanAddonRequest{}, err
 			}
 
-			planID := chi.URLParam(r, "planId")
-
 			req := UpdatePlanAddonRequest{
 				NamespacedModel: models.NamespacedModel{
 					Namespace: ns,
 				},
-				ID:            planAddonID,
-				PlanID:        planID,
+				ID:            params.PlanAddonID,
+				PlanID:        params.PlanID,
 				FromPlanPhase: &body.FromPlanPhase,
 				MaxQuantity:   body.MaxQuantity,
 			}
