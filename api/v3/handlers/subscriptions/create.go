@@ -105,7 +105,7 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 
 			// Convert the request to a create subscription workflow input
 			subscriptionName := fmt.Sprintf("%s v%d", planEntity.Key, planEntity.Version)
-			workflowInput, err := ConvertFromCreateSubscriptionRequestToCreateSubscriptionWorkflowInput(
+			workflowInput, err := FromAPIBillingSubscriptionCreate(
 				ns,
 				customerEntity.GetID(),
 				subscriptionName,
@@ -128,7 +128,7 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 			}
 
 			// Convert the subscription to an API subscription
-			return ConvertSubscriptionToAPISubscription(m), nil
+			return ToAPIBillingSubscription(m), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateSubscriptionResponse](http.StatusCreated),
 		httptransport.AppendOptions(

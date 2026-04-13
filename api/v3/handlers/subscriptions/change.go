@@ -86,7 +86,7 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 				Version: &planEntity.Version,
 			})
 
-			timing, err := ConvertBillingSubscriptionEditTimingToSubscriptionTiming(body.Timing)
+			timing, err := FromAPIBillingSubscriptionEditTiming(body.Timing)
 			if err != nil {
 				return ChangeSubscriptionRequest{}, err
 			}
@@ -123,8 +123,8 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 			}
 
 			return ChangeSubscriptionResponse{
-				Current: ConvertSubscriptionToAPISubscription(resp.Current),
-				Next:    ConvertSubscriptionToAPISubscription(resp.Next.Subscription),
+				Current: ToAPIBillingSubscription(resp.Current),
+				Next:    ToAPIBillingSubscription(resp.Next.Subscription),
 			}, nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[ChangeSubscriptionResponse](http.StatusOK),

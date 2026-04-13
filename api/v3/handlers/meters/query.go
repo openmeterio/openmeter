@@ -64,7 +64,7 @@ func (h *handler) QueryMeter() QueryMeterHandler {
 				return QueryMeterResponse{}, err
 			}
 
-			return ConvertMeterQueryResultToAPI(req.Body.From, req.Body.To, rows), nil
+			return ToAPIMeterQueryResult(req.Body.From, req.Body.To, rows), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[QueryMeterResponse](http.StatusOK),
 		httptransport.AppendOptions(

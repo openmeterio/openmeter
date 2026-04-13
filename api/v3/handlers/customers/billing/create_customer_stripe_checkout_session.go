@@ -61,7 +61,7 @@ func (h *handler) CreateCustomerStripeCheckoutSession() CreateCustomerStripeChec
 				return CreateCustomerStripeCheckoutSessionRequest{}, err
 			}
 
-			options, err := ConvertToCreateStripeCheckoutSessionRequestOptions(body.StripeOptions)
+			options, err := FromAPIBillingAppStripeCreateCheckoutSessionRequestOptions(body.StripeOptions)
 			if err != nil {
 				return CreateCustomerStripeCheckoutSessionRequest{}, err
 			}
@@ -82,7 +82,7 @@ func (h *handler) CreateCustomerStripeCheckoutSession() CreateCustomerStripeChec
 				return CreateCustomerStripeCheckoutSessionResponse{}, err
 			}
 
-			response := ConvertCreateCheckoutSessionOutputToBillingAppStripeCreateCheckoutSessionResult(out)
+			response := ToAPIBillingAppStripeCreateCheckoutSessionResult(out)
 
 			return response, nil
 		},

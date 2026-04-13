@@ -9,8 +9,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/cost"
 )
 
-// ConvertCostQueryResultToAPI converts a domain CostQueryResult to the v3 API response.
-func ConvertCostQueryResultToAPI(result *cost.CostQueryResult, body api.MeterQueryRequest) api.FeatureCostQueryResult {
+// ToAPIFeatureCostQueryResult converts a domain CostQueryResult to the v3 API response.
+func ToAPIFeatureCostQueryResult(result *cost.CostQueryResult, body api.MeterQueryRequest) api.FeatureCostQueryResult {
 	if result == nil {
 		return api.FeatureCostQueryResult{
 			From: body.From,
@@ -22,12 +22,12 @@ func ConvertCostQueryResultToAPI(result *cost.CostQueryResult, body api.MeterQue
 		From: body.From,
 		To:   body.To,
 		Data: lo.Map(result.Rows, func(row cost.CostQueryRow, _ int) api.FeatureCostQueryRow {
-			return convertCostQueryRowToAPI(row)
+			return toAPIFeatureCostQueryRow(row)
 		}),
 	}
 }
 
-func convertCostQueryRowToAPI(row cost.CostQueryRow) api.FeatureCostQueryRow {
+func toAPIFeatureCostQueryRow(row cost.CostQueryRow) api.FeatureCostQueryRow {
 	dimensions := make(map[string]string)
 
 	if row.Subject != nil {

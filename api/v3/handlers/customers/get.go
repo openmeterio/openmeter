@@ -41,7 +41,7 @@ func (h *handler) GetCustomer() GetCustomerHandler {
 				return GetCustomerResponse{}, err
 			}
 
-			return ConvertCustomerRequestToBillingCustomer(*cus), nil
+			return ToAPIBillingCustomer(*cus), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetCustomerResponse](http.StatusOK),
 		httptransport.AppendOptions(

@@ -41,7 +41,7 @@ func (h *handler) GetTaxCode() GetTaxCodeHandler {
 				return GetTaxCodeResponse{}, err
 			}
 			// Convert to API response type
-			return ConvertTaxCodeToAPITaxCode(taxCode)
+			return ToAPIBillingTaxCode(taxCode)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetTaxCodeResponse](http.StatusOK),
 		httptransport.AppendOptions(

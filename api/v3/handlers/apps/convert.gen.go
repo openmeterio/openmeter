@@ -11,7 +11,24 @@ import (
 )
 
 func init() {
-	ConvertAppTypeToV3Api = func(source app.AppType) (v3.BillingAppType, error) {
+	ToAPIAppPagePaginatedResponse = func(source response.PagePaginationResponse[v3.BillingApp]) v3.AppPagePaginatedResponse {
+		var v3AppPagePaginatedResponse v3.AppPagePaginatedResponse
+		v3AppPagePaginatedResponse.Data = source.Data
+		v3AppPagePaginatedResponse.Meta = responsePageMetaToV3PaginatedMeta(source.Meta)
+		return v3AppPagePaginatedResponse
+	}
+	ToAPIBillingAppCatalogItem = func(source app.MarketplaceListing) (v3.BillingAppCatalogItem, error) {
+		var v3BillingAppCatalogItem v3.BillingAppCatalogItem
+		v3BillingAppCatalogItem.Description = source.Description
+		v3BillingAppCatalogItem.Name = source.Name
+		v3BillingAppType, err := ToAPIBillingAppTypeFromDomain(source.Type)
+		if err != nil {
+			return v3BillingAppCatalogItem, err
+		}
+		v3BillingAppCatalogItem.Type = v3BillingAppType
+		return v3BillingAppCatalogItem, nil
+	}
+	ToAPIBillingAppTypeFromDomain = func(source app.AppType) (v3.BillingAppType, error) {
 		var v3BillingAppType v3.BillingAppType
 		switch source {
 		case app.AppTypeCustomInvoicing:
@@ -25,12 +42,12 @@ func init() {
 		}
 		return v3BillingAppType, nil
 	}
-	ConvertAppsToBillingApps = func(source []app.App) ([]v3.BillingApp, error) {
+	ToAPIBillingApps = func(source []app.App) ([]v3.BillingApp, error) {
 		var v3BillingAppList []v3.BillingApp
 		if source != nil {
 			v3BillingAppList = make([]v3.BillingApp, len(source))
 			for i := 0; i < len(source); i++ {
-				v3BillingApp, err := MapAppToAPI(source[i])
+				v3BillingApp, err := ToAPIBillingApp(source[i])
 				if err != nil {
 					return nil, err
 				}
@@ -38,23 +55,6 @@ func init() {
 			}
 		}
 		return v3BillingAppList, nil
-	}
-	ConvertMarketplaceListingToV3Api = func(source app.MarketplaceListing) (v3.BillingAppCatalogItem, error) {
-		var v3BillingAppCatalogItem v3.BillingAppCatalogItem
-		v3BillingAppCatalogItem.Description = source.Description
-		v3BillingAppCatalogItem.Name = source.Name
-		v3BillingAppType, err := ConvertAppTypeToV3Api(source.Type)
-		if err != nil {
-			return v3BillingAppCatalogItem, err
-		}
-		v3BillingAppCatalogItem.Type = v3BillingAppType
-		return v3BillingAppCatalogItem, nil
-	}
-	ConvertToListAppResponse = func(source response.PagePaginationResponse[v3.BillingApp]) v3.AppPagePaginatedResponse {
-		var v3AppPagePaginatedResponse v3.AppPagePaginatedResponse
-		v3AppPagePaginatedResponse.Data = source.Data
-		v3AppPagePaginatedResponse.Meta = responsePageMetaToV3PaginatedMeta(source.Meta)
-		return v3AppPagePaginatedResponse
 	}
 }
 func responsePageMetaPageToV3PageMeta(source response.PageMetaPage) v3.PageMeta {

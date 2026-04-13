@@ -51,7 +51,7 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 
 			var filterType *currencies.CurrencyType
 			if params.Filter != nil && params.Filter.Type != nil {
-				ft := MapCurrencyTypeFromAPI(*params.Filter.Type)
+				ft := FromAPIBillingCurrencyType(*params.Filter.Type)
 				filterType = &ft
 			}
 
@@ -69,7 +69,7 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 
 			items := make([]v3.BillingCurrency, 0, len(result.Items))
 			for _, c := range result.Items {
-				item, err := CurrencyToAPI(c)
+				item, err := ToAPIBillingCurrency(c)
 				if err != nil {
 					return ListCurrenciesResponse{}, err
 				}

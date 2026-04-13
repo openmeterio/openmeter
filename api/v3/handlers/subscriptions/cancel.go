@@ -45,7 +45,7 @@ func (h *handler) CancelSubscription() CancelSubscriptionHandler {
 			if body.Timing == nil {
 				timing.Enum = lo.ToPtr(subscription.TimingImmediate)
 			} else {
-				timing, err = ConvertBillingSubscriptionEditTimingToSubscriptionTiming(*body.Timing)
+				timing, err = FromAPIBillingSubscriptionEditTiming(*body.Timing)
 				if err != nil {
 					return CancelSubscriptionRequest{}, err
 				}
@@ -65,7 +65,7 @@ func (h *handler) CancelSubscription() CancelSubscriptionHandler {
 				return CancelSubscriptionResponse{}, err
 			}
 
-			return ConvertSubscriptionToAPISubscription(sub), nil
+			return ToAPIBillingSubscription(sub), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CancelSubscriptionResponse](http.StatusOK),
 		httptransport.AppendOptions(

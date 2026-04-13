@@ -20,58 +20,58 @@ import (
 // goverter:useZeroValueOnPointerInconsistency
 // goverter:useUnderlyingTypeMethods
 // goverter:matchIgnoreCase
-// goverter:extend ConvertWorkflowConfigToBillingWorkflow
-// goverter:extend ConvertSupplierContactToBillingParty
-// goverter:extend ConvertAppToBillingAppReference
-// goverter:extend ConvertBillingPartyToSupplierContact
+// goverter:extend ToAPIBillingWorkflow
+// goverter:extend ToAPIBillingParty
+// goverter:extend ToAPIBillingAppReference
+// goverter:extend FromAPIBillingParty
 // goverter:extend ConvertMetadataToLabels
 // goverter:extend ConvertLabelsToMetadata
 var (
-	ConvertAddressToAPIAddress                               func(address models.Address) api.Address
-	ConvertAPIAddressToAddress                               func(address api.Address) models.Address
-	ConvertProfileAppReferencesToBillingProfileAppReferences func(refs *billing.ProfileAppReferences) api.BillingProfileAppReferences
+	ToAPIAddress                     func(address models.Address) api.Address
+	FromAPIAddress                   func(address api.Address) models.Address
+	ToAPIBillingProfileAppReferences func(refs *billing.ProfileAppReferences) api.BillingProfileAppReferences
 	// goverter:context namespace
-	ConvertBillingProfileAppReferencesToProfileAppReferences func(namespace string, refs api.BillingProfileAppReferences) billing.ProfileAppReferences
+	FromAPIBillingProfileAppReferences func(namespace string, refs api.BillingProfileAppReferences) billing.ProfileAppReferences
 	// goverter:context namespace
 	// goverter:map Namespace | NamespaceFromContext
-	ConvertBillingAppReferenceToAppID func(namespace string, ref api.BillingAppReference) app.AppID
-	ConvertAppIDToBillingAppReference func(appID app.AppID) api.BillingAppReference
+	FromAPIBillingAppReferenceToAppID func(namespace string, ref api.BillingAppReference) app.AppID
+	ToAPIBillingAppReferenceFromAppID func(appID app.AppID) api.BillingAppReference
 	// goverter:autoMap BaseProfile
 	// goverter:map BaseProfile.Metadata Labels
 	// goverter:map BaseProfile.WorkflowConfig Workflow
-	ConvertProfileToBillingProfile   func(profile billing.Profile) (api.BillingProfile, error)
-	ConvertProfilesToBillingProfiles func(profiles []billing.Profile) ([]api.BillingProfile, error)
+	ToAPIBillingProfile  func(profile billing.Profile) (api.BillingProfile, error)
+	ToAPIBillingProfiles func(profiles []billing.Profile) ([]api.BillingProfile, error)
 	// goverter:context namespace
 	// goverter:map Namespace | NamespaceFromContext
 	// goverter:map Labels Metadata | ConvertLabelsToMetadata
-	// goverter:map Workflow WorkflowConfig | ConvertBillingWorkflowToWorkflowConfig
-	ConvertCreateBillingProfileRequestToCreateProfileInput func(namespace string, req api.CreateBillingProfileRequest) (billing.CreateProfileInput, error)
+	// goverter:map Workflow WorkflowConfig | FromAPIBillingWorkflow
+	FromAPICreateBillingProfileRequest func(namespace string, req api.CreateBillingProfileRequest) (billing.CreateProfileInput, error)
 	// goverter:context namespacedID
 	// goverter:map Namespace | ResolveNamespaceFromContext
 	// goverter:map ID | ResolveIDFromContext
-	// goverter:map Workflow WorkflowConfig | ConvertBillingWorkflowToWorkflowConfig
+	// goverter:map Workflow WorkflowConfig | FromAPIBillingWorkflow
 	// goverter:map Labels Metadata
 	// goverter:ignore CreatedAt
 	// goverter:ignore UpdatedAt
 	// goverter:ignore DeletedAt
 	// goverter:ignore AppReferences
-	ConvertUpsertBillingProfileRequestToUpdateProfileInput func(namespacedID models.NamespacedID, req api.UpsertBillingProfileRequest) (billing.UpdateProfileInput, error)
+	FromAPIUpsertBillingProfileRequest func(namespacedID models.NamespacedID, req api.UpsertBillingProfileRequest) (billing.UpdateProfileInput, error)
 	// goverter:enum:unknown @error
 	// goverter:enum:map InclusiveTaxBehavior BillingTaxBehaviorInclusive
 	// goverter:enum:map ExclusiveTaxBehavior BillingTaxBehaviorExclusive
-	ConvertBillingTaxBehaviorToTaxBehavior func(behavior productcatalog.TaxBehavior) (api.BillingTaxBehavior, error)
+	ToAPIBillingTaxBehavior func(behavior productcatalog.TaxBehavior) (api.BillingTaxBehavior, error)
 	// goverter:enum:unknown @error
 	// goverter:enum:map BillingTaxBehaviorInclusive InclusiveTaxBehavior
 	// goverter:enum:map BillingTaxBehaviorExclusive ExclusiveTaxBehavior
-	ConvertTaxBehaviorBillingToTaxBehavior func(behavior api.BillingTaxBehavior) (productcatalog.TaxBehavior, error)
+	FromAPIBillingTaxBehavior func(behavior api.BillingTaxBehavior) (productcatalog.TaxBehavior, error)
 	// goverter:map Stripe ExternalInvoicing
 	// goverter:map Stripe Stripe
-	ConvertTaxConfigToBillingTaxConfig func(config *productcatalog.TaxConfig) (*api.BillingTaxConfig, error)
+	ToAPIBillingTaxConfig func(config *productcatalog.TaxConfig) (*api.BillingTaxConfig, error)
 	// goverter:map Stripe Stripe
 	// FIXME: Remove ignore from TaxCodeID once openapi is updated
 	// goverter:ignore TaxCodeID
 	// goverter:ignore TaxCode
-	ConvertBillingTaxConfigToTaxConfig func(config *api.BillingTaxConfig) (*productcatalog.TaxConfig, error)
+	FromAPIBillingTaxConfig func(config *api.BillingTaxConfig) (*productcatalog.TaxConfig, error)
 )
 
 var (
@@ -103,14 +103,15 @@ func ResolveIDFromContext(namespacedID models.NamespacedID) string {
 	return namespacedID.ID
 }
 
-func ConvertAppToBillingAppReference(app app.App) api.BillingAppReference {
+// ToAPIBillingAppReference converts app.App to API BillingAppReference
+func ToAPIBillingAppReference(app app.App) api.BillingAppReference {
 	return api.BillingAppReference{
 		Id: app.GetID().ID,
 	}
 }
 
-// ConvertSupplierContactToBillingParty converts billing.SupplierContact to API BillingParty
-func ConvertSupplierContactToBillingParty(supplier billing.SupplierContact) api.BillingParty {
+// ToAPIBillingParty converts billing.SupplierContact to API BillingParty
+func ToAPIBillingParty(supplier billing.SupplierContact) api.BillingParty {
 	party := api.BillingParty{
 		Id:   &supplier.ID,
 		Name: &supplier.Name,
@@ -118,7 +119,7 @@ func ConvertSupplierContactToBillingParty(supplier billing.SupplierContact) api.
 
 	if supplier.Address.Country != nil {
 		party.Addresses = &api.BillingPartyAddresses{
-			BillingAddress: ConvertAddressToAPIAddress(supplier.Address),
+			BillingAddress: ToAPIAddress(supplier.Address),
 		}
 	}
 
@@ -131,8 +132,8 @@ func ConvertSupplierContactToBillingParty(supplier billing.SupplierContact) api.
 	return party
 }
 
-// ConvertBillingPartyToSupplierContact converts API BillingParty to billing.SupplierContact
-func ConvertBillingPartyToSupplierContact(party api.BillingParty) billing.SupplierContact {
+// FromAPIBillingParty converts API BillingParty to billing.SupplierContact
+func FromAPIBillingParty(party api.BillingParty) billing.SupplierContact {
 	supplier := billing.SupplierContact{
 		ID:   lo.FromPtrOr(party.Id, ""),
 		Name: lo.FromPtrOr(party.Name, ""),
@@ -140,7 +141,7 @@ func ConvertBillingPartyToSupplierContact(party api.BillingParty) billing.Suppli
 
 	if party.Addresses != nil {
 		addr := party.Addresses.BillingAddress
-		supplier.Address = ConvertAPIAddressToAddress(addr)
+		supplier.Address = FromAPIAddress(addr)
 	}
 
 	if party.TaxId != nil && party.TaxId.Code != nil {
@@ -150,8 +151,8 @@ func ConvertBillingPartyToSupplierContact(party api.BillingParty) billing.Suppli
 	return supplier
 }
 
-// ConvertWorkflowConfigToBillingWorkflow converts billing.WorkflowConfig to API BillingWorkflow
-func ConvertWorkflowConfigToBillingWorkflow(config billing.WorkflowConfig) (api.BillingWorkflow, error) {
+// ToAPIBillingWorkflow converts billing.WorkflowConfig to API BillingWorkflow
+func ToAPIBillingWorkflow(config billing.WorkflowConfig) (api.BillingWorkflow, error) {
 	workflow := api.BillingWorkflow{}
 
 	// Collection settings
@@ -195,7 +196,7 @@ func ConvertWorkflowConfigToBillingWorkflow(config billing.WorkflowConfig) (api.
 	}
 
 	// Tax settings
-	defaultTaxConfig, err := ConvertTaxConfigToBillingTaxConfig(config.Invoicing.DefaultTaxConfig)
+	defaultTaxConfig, err := ToAPIBillingTaxConfig(config.Invoicing.DefaultTaxConfig)
 	if err != nil {
 		return api.BillingWorkflow{}, err
 	}
@@ -231,8 +232,8 @@ func ConvertWorkflowConfigToBillingWorkflow(config billing.WorkflowConfig) (api.
 	return workflow, nil
 }
 
-// ConvertBillingWorkflowToWorkflowConfig converts API BillingWorkflow to billing.WorkflowConfig
-func ConvertBillingWorkflowToWorkflowConfig(workflow api.BillingWorkflow) (billing.WorkflowConfig, error) {
+// FromAPIBillingWorkflow converts API BillingWorkflow to billing.WorkflowConfig
+func FromAPIBillingWorkflow(workflow api.BillingWorkflow) (billing.WorkflowConfig, error) {
 	// Start with default configuration
 	def := billing.DefaultWorkflowConfig
 
@@ -315,7 +316,7 @@ func ConvertBillingWorkflowToWorkflowConfig(workflow api.BillingWorkflow) (billi
 	defaultTaxConfig := def.Invoicing.DefaultTaxConfig
 	if workflow.Tax.DefaultTaxConfig != nil {
 		var err error
-		defaultTaxConfig, err = ConvertBillingTaxConfigToTaxConfig(workflow.Tax.DefaultTaxConfig)
+		defaultTaxConfig, err = FromAPIBillingTaxConfig(workflow.Tax.DefaultTaxConfig)
 		if err != nil {
 			return billing.WorkflowConfig{}, err
 		}

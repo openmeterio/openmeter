@@ -32,7 +32,7 @@ func (h *handler) CreateBillingProfile() CreateBillingProfileHandler {
 				return CreateBillingProfileRequest{}, err
 			}
 
-			return ConvertCreateBillingProfileRequestToCreateProfileInput(ns, body)
+			return FromAPICreateBillingProfileRequest(ns, body)
 		},
 		func(ctx context.Context, request CreateBillingProfileRequest) (CreateBillingProfileResponse, error) {
 			profile, err := h.service.CreateProfile(ctx, request)
@@ -44,7 +44,7 @@ func (h *handler) CreateBillingProfile() CreateBillingProfileHandler {
 				return CreateBillingProfileResponse{}, fmt.Errorf("failed to create billing profile")
 			}
 
-			return ConvertProfileToBillingProfile(*profile)
+			return ToAPIBillingProfile(*profile)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateBillingProfileResponse](http.StatusCreated),
 		httptransport.AppendOptions(

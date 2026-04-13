@@ -19,8 +19,8 @@ import (
 // goverter:useZeroValueOnPointerInconsistency
 // goverter:useUnderlyingTypeMethods
 // goverter:matchIgnoreCase
-// goverter:extend ConvertAPIMeterAggregationToMeterAggregation
-// goverter:extend ConvertMeterAggregationToAPIMeterAggregation
+// goverter:extend FromAPIMeterAggregation
+// goverter:extend ToAPIMeterAggregation
 // goverter:extend ConvertMetadataAnnotationsToLabels
 // goverter:extend ConvertLabelsToMetadata
 // goverter:extend IntToFloat32
@@ -32,7 +32,7 @@ var (
 	// goverter:map EventsFrom EventFrom
 	// goverter:ignore Annotations
 	// goverter:ignore inputOptions
-	ConvertFromCreateMeterRequestToCreateMeterInput func(namespace string, createMeterRequest api.CreateMeterRequest) (meter.CreateMeterInput, error)
+	FromAPICreateMeterRequest func(namespace string, createMeterRequest api.CreateMeterRequest) (meter.CreateMeterInput, error)
 	// goverter:map GroupBy Dimensions
 	// goverter:map EventFrom EventsFrom
 	// goverter:map ManagedResource.ID Id
@@ -42,8 +42,8 @@ var (
 	// goverter:map ManagedResource.ManagedModel.UpdatedAt UpdatedAt
 	// goverter:map ManagedResource.ManagedModel.DeletedAt DeletedAt
 	// goverter:map . Labels | ConvertMetadataAnnotationsToLabels
-	ConvertMeterToAPIMeter   func(meter.Meter) api.Meter
-	ConvertMeterListResponse func(meters response.PagePaginationResponse[meter.Meter]) api.MeterPagePaginatedResponse
+	ToAPIMeter                      func(meter.Meter) api.Meter
+	ToAPIMeterPagePaginatedResponse func(meters response.PagePaginationResponse[meter.Meter]) api.MeterPagePaginatedResponse
 )
 
 var ConvertLabelsToMetadata = labels.ToMetadata
@@ -57,7 +57,7 @@ func NamespaceFromContext(namespace string) string {
 	return namespace
 }
 
-func ConvertMeterAggregationToAPIMeterAggregation(aggregation meter.MeterAggregation) api.MeterAggregation {
+func ToAPIMeterAggregation(aggregation meter.MeterAggregation) api.MeterAggregation {
 	switch aggregation {
 	case meter.MeterAggregationSum:
 		return api.MeterAggregationSum
@@ -78,7 +78,7 @@ func ConvertMeterAggregationToAPIMeterAggregation(aggregation meter.MeterAggrega
 	return api.MeterAggregation("")
 }
 
-func ConvertAPIMeterAggregationToMeterAggregation(aggregation api.MeterAggregation) meter.MeterAggregation {
+func FromAPIMeterAggregation(aggregation api.MeterAggregation) meter.MeterAggregation {
 	switch aggregation {
 	case api.MeterAggregationSum:
 		return meter.MeterAggregationSum
@@ -113,7 +113,7 @@ func ConvertMetadataToLabels(source models.Metadata) *api.Labels {
 	return &labels
 }
 
-func ConvertMeterQueryRowToAPI(row meter.MeterQueryRow) api.MeterQueryRow {
+func ToAPIMeterQueryRow(row meter.MeterQueryRow) api.MeterQueryRow {
 	dimensions := make(map[string]string)
 
 	if row.Subject != nil {
@@ -141,12 +141,12 @@ func ConvertMeterQueryRowToAPI(row meter.MeterQueryRow) api.MeterQueryRow {
 	}
 }
 
-func ConvertMeterQueryResultToAPI(from *api.DateTime, to *api.DateTime, rows []meter.MeterQueryRow) api.MeterQueryResult {
+func ToAPIMeterQueryResult(from *api.DateTime, to *api.DateTime, rows []meter.MeterQueryRow) api.MeterQueryResult {
 	return api.MeterQueryResult{
 		From: from,
 		To:   to,
 		Data: lo.Map(rows, func(row meter.MeterQueryRow, _ int) api.MeterQueryRow {
-			return ConvertMeterQueryRowToAPI(row)
+			return ToAPIMeterQueryRow(row)
 		}),
 	}
 }

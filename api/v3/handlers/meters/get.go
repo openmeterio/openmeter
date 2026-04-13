@@ -39,7 +39,7 @@ func (h *handler) GetMeter() GetMeterHandler {
 				return GetMeterResponse{}, err
 			}
 
-			return ConvertMeterToAPIMeter(m), nil
+			return ToAPIMeter(m), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetMeterResponse](http.StatusOK),
 		httptransport.AppendOptions(

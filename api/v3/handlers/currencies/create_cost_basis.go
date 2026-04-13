@@ -41,7 +41,7 @@ func (h *handler) CreateCostBasis() CreateCostBasisHandler {
 			if err != nil {
 				return CreateCostBasisResponse{}, err
 			}
-			return CostBasisToAPI(resp), nil
+			return ToAPIBillingCostBasis(resp), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateCostBasisResponse](http.StatusCreated),
 		httptransport.AppendOptions(

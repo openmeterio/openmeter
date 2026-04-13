@@ -23,27 +23,27 @@ import (
 // goverter:useUnderlyingTypeMethods
 // goverter:matchIgnoreCase
 // goverter:extend IntToFloat32
-// goverter:extend MapAppToAPI
+// goverter:extend ToAPIBillingApp
 // goverter:enum:unknown @error
 var (
-	ConvertToListAppResponse func(source response.PagePaginationResponse[api.BillingApp]) api.AppPagePaginatedResponse
+	ToAPIAppPagePaginatedResponse func(source response.PagePaginationResponse[api.BillingApp]) api.AppPagePaginatedResponse
 
-	ConvertMarketplaceListingToV3Api func(source app.MarketplaceListing) (api.BillingAppCatalogItem, error)
+	ToAPIBillingAppCatalogItem func(source app.MarketplaceListing) (api.BillingAppCatalogItem, error)
 
 	// goverter:enum:map AppTypeStripe BillingAppTypeStripe
 	// goverter:enum:map AppTypeSandbox BillingAppTypeSandbox
 	// goverter:enum:map AppTypeCustomInvoicing BillingAppTypeExternalInvoicing
-	ConvertAppTypeToV3Api func(source app.AppType) (api.BillingAppType, error)
+	ToAPIBillingAppTypeFromDomain func(source app.AppType) (api.BillingAppType, error)
 
-	ConvertAppsToBillingApps func(source []app.App) ([]api.BillingApp, error)
+	ToAPIBillingApps func(source []app.App) ([]api.BillingApp, error)
 )
 
 func IntToFloat32(i int) float32 {
 	return float32(i)
 }
 
-// MapAppToAPI maps an app to an v3 API app
-func MapAppToAPI(item app.App) (api.BillingApp, error) {
+// ToAPIBillingApp maps an app to a v3 API app
+func ToAPIBillingApp(item app.App) (api.BillingApp, error) {
 	if item == nil {
 		return api.BillingApp{}, errors.New("invalid app: nil")
 	}
@@ -55,7 +55,7 @@ func MapAppToAPI(item app.App) (api.BillingApp, error) {
 			return api.BillingApp{}, fmt.Errorf("expected stripe app, got %T", item)
 		}
 
-		billingAppStripe, err := mapStripeAppToAPI(stripeApp.Meta)
+		billingAppStripe, err := toAPIBillingAppStripe(stripeApp.Meta)
 		if err != nil {
 			return api.BillingApp{}, fmt.Errorf("failed to map stripe app to API: %w", err)
 		}
@@ -72,7 +72,7 @@ func MapAppToAPI(item app.App) (api.BillingApp, error) {
 			return api.BillingApp{}, fmt.Errorf("expected sandbox app, got %T", item)
 		}
 
-		billingAppSandbox, err := mapSandboxAppToAPI(sandboxApp.Meta)
+		billingAppSandbox, err := toAPIBillingAppSandbox(sandboxApp.Meta)
 		if err != nil {
 			return api.BillingApp{}, fmt.Errorf("failed to map sandbox app to API: %w", err)
 		}
@@ -89,7 +89,7 @@ func MapAppToAPI(item app.App) (api.BillingApp, error) {
 			return api.BillingApp{}, fmt.Errorf("expected custom invoicing app, got %T", item)
 		}
 
-		billingAppExternalInvoicing, err := mapCustomInvoicingAppToAPI(customInvoicingApp.Meta)
+		billingAppExternalInvoicing, err := toAPIBillingAppExternalInvoicing(customInvoicingApp.Meta)
 		if err != nil {
 			return api.BillingApp{}, fmt.Errorf("failed to map custom invoicing app to API: %w", err)
 		}
@@ -105,8 +105,8 @@ func MapAppToAPI(item app.App) (api.BillingApp, error) {
 	}
 }
 
-func mapSandboxAppToAPI(sandboxApp appsandbox.Meta) (api.BillingAppSandbox, error) {
-	definition, err := ConvertMarketplaceListingToV3Api(sandboxApp.GetListing())
+func toAPIBillingAppSandbox(sandboxApp appsandbox.Meta) (api.BillingAppSandbox, error) {
+	definition, err := ToAPIBillingAppCatalogItem(sandboxApp.GetListing())
 	if err != nil {
 		return api.BillingAppSandbox{}, err
 	}
@@ -125,10 +125,10 @@ func mapSandboxAppToAPI(sandboxApp appsandbox.Meta) (api.BillingAppSandbox, erro
 	}, nil
 }
 
-func mapStripeAppToAPI(
+func toAPIBillingAppStripe(
 	stripeApp appstripeentityapp.Meta,
 ) (api.BillingAppStripe, error) {
-	definition, err := ConvertMarketplaceListingToV3Api(stripeApp.GetListing())
+	definition, err := ToAPIBillingAppCatalogItem(stripeApp.GetListing())
 	if err != nil {
 		return api.BillingAppStripe{}, err
 	}
@@ -153,8 +153,8 @@ func mapStripeAppToAPI(
 	return apiStripeApp, nil
 }
 
-func mapCustomInvoicingAppToAPI(customInvoicingApp appcustominvoicing.Meta) (api.BillingAppExternalInvoicing, error) {
-	definition, err := ConvertMarketplaceListingToV3Api(customInvoicingApp.GetListing())
+func toAPIBillingAppExternalInvoicing(customInvoicingApp appcustominvoicing.Meta) (api.BillingAppExternalInvoicing, error) {
+	definition, err := ToAPIBillingAppCatalogItem(customInvoicingApp.GetListing())
 	if err != nil {
 		return api.BillingAppExternalInvoicing{}, err
 	}

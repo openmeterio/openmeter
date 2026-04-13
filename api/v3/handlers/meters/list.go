@@ -65,7 +65,7 @@ func (h *handler) ListMeters() ListMetersHandler {
 			}
 
 			meters := lo.Map(resp.Items, func(item meter.Meter, _ int) api.Meter {
-				return ConvertMeterToAPIMeter(item)
+				return ToAPIMeter(item)
 			})
 
 			r := response.NewPagePaginationResponse(meters, response.PageMetaPage{

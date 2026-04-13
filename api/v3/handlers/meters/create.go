@@ -38,7 +38,7 @@ func (h *handler) CreateMeter() CreateMeterHandler {
 				return CreateMeterRequest{}, err
 			}
 
-			return ConvertFromCreateMeterRequestToCreateMeterInput(ns, body)
+			return FromAPICreateMeterRequest(ns, body)
 		},
 		func(ctx context.Context, request CreateMeterRequest) (CreateMeterResponse, error) {
 			m, err := h.service.CreateMeter(ctx, request)
@@ -46,7 +46,7 @@ func (h *handler) CreateMeter() CreateMeterHandler {
 				return CreateMeterResponse{}, err
 			}
 
-			return ConvertMeterToAPIMeter(m), nil
+			return ToAPIMeter(m), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateMeterResponse](http.StatusCreated),
 		httptransport.AppendOptions(

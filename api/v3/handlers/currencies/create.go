@@ -39,7 +39,7 @@ func (h *handler) CreateCurrency() CreateCurrencyHandler {
 			if err != nil {
 				return CreateCurrencyResponse{}, apierrors.NewConflictError(ctx, err, "Currency already exists")
 			}
-			return CurrencyToAPI(resp)
+			return ToAPIBillingCurrency(resp)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateCurrencyResponse](http.StatusCreated),
 		httptransport.AppendOptions(

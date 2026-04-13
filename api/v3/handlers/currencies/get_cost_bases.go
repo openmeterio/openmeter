@@ -74,7 +74,7 @@ func (h *handler) ListCostBases() ListCostBasesHandler {
 			}
 
 			items := lo.Map(result.Items, func(cb currencies.CostBasis, _ int) v3.BillingCostBasis {
-				return CostBasisToAPI(cb)
+				return ToAPIBillingCostBasis(cb)
 			})
 
 			return response.NewPagePaginationResponse(

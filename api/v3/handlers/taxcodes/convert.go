@@ -15,30 +15,30 @@ import (
 // goverter:useZeroValueOnPointerInconsistency
 // goverter:useUnderlyingTypeMethods
 // goverter:matchIgnoreCase
-// goverter:extend ConvertAPIAppTypeToDomainAppType
-// goverter:extend ConvertDomainAppTypeToAPIAppType
-// goverter:extend ConvertAppMappingsToAPIAppMappings
+// goverter:extend FromAPIBillingAppType
+// goverter:extend ToAPIBillingAppType
+// goverter:extend ToAPIBillingTaxCodeAppMappings
 // goverter:extend ConvertLabelsToMetadata
 var (
 	// goverter:context namespace
 	// goverter:map Namespace | NamespaceFromContext
 	// goverter:map Labels Metadata
 	// goverter:ignore Annotations
-	ConvertFromCreateTaxCodeRequestToCreateTaxCodeInput func(namespace string, createTaxCodeRequest api.CreateTaxCodeRequest) (taxcode.CreateTaxCodeInput, error)
+	FromAPICreateTaxCodeRequest func(namespace string, createTaxCodeRequest api.CreateTaxCodeRequest) (taxcode.CreateTaxCodeInput, error)
 
 	// goverter:context namespacedID
 	// goverter:map NamespacedID | ResolveNamespacedIDFromContext
 	// goverter:map Labels Metadata
 	// goverter:ignore Annotations
-	ConvertFromUpsertTaxCodeRequestToUpdateTaxCodeInput func(namespacedID models.NamespacedID, upsertTaxCodeRequest api.UpsertTaxCodeRequest) (taxcode.UpdateTaxCodeInput, error)
+	FromAPIUpsertTaxCodeRequest func(namespacedID models.NamespacedID, upsertTaxCodeRequest api.UpsertTaxCodeRequest) (taxcode.UpdateTaxCodeInput, error)
 
 	// goverter:map . Labels | ConvertMetadataAnnotationsToLabels
 	// goverter:map NamespacedID.ID Id
 	// goverter:map ManagedModel.CreatedAt CreatedAt
 	// goverter:map ManagedModel.UpdatedAt UpdatedAt
 	// goverter:map ManagedModel.DeletedAt DeletedAt
-	// goverter:map AppMappings | ConvertAppMappingsToAPIAppMappings
-	ConvertTaxCodeToAPITaxCode func(taxcode.TaxCode) (api.BillingTaxCode, error)
+	// goverter:map AppMappings | ToAPIBillingTaxCodeAppMappings
+	ToAPIBillingTaxCode func(taxcode.TaxCode) (api.BillingTaxCode, error)
 )
 
 var ConvertLabelsToMetadata = labels.ToMetadata
@@ -57,27 +57,27 @@ func ResolveNamespacedIDFromContext(namespacedID models.NamespacedID) models.Nam
 	return namespacedID
 }
 
-// ConvertAPIAppTypeToDomainAppType maps API app types to domain app types.
+// FromAPIBillingAppType maps API app types to domain app types.
 // Maps external_invoicing to custom_invoicing for backwards compatibility.
-func ConvertAPIAppTypeToDomainAppType(source api.BillingAppType) app.AppType {
+func FromAPIBillingAppType(source api.BillingAppType) app.AppType {
 	if source == "external_invoicing" {
 		return app.AppTypeCustomInvoicing
 	}
 	return app.AppType(source)
 }
 
-// ConvertDomainAppTypeToAPIAppType maps domain app types to API app types.
+// ToAPIBillingAppType maps domain app types to API app types.
 // Maps custom_invoicing to external_invoicing for API responses.
-func ConvertDomainAppTypeToAPIAppType(source app.AppType) api.BillingAppType {
+func ToAPIBillingAppType(source app.AppType) api.BillingAppType {
 	if source == app.AppTypeCustomInvoicing {
 		return "external_invoicing"
 	}
 	return api.BillingAppType(source)
 }
 
-// ConvertAppMappingsToAPIAppMappings converts domain app mappings to API app mappings.
+// ToAPIBillingTaxCodeAppMappings converts domain app mappings to API app mappings.
 // Ensures that nil is converted to an empty array instead of null.
-func ConvertAppMappingsToAPIAppMappings(source taxcode.TaxCodeAppMappings) []api.BillingTaxCodeAppMapping {
+func ToAPIBillingTaxCodeAppMappings(source taxcode.TaxCodeAppMappings) []api.BillingTaxCodeAppMapping {
 	if source == nil {
 		return []api.BillingTaxCodeAppMapping{}
 	}
@@ -85,7 +85,7 @@ func ConvertAppMappingsToAPIAppMappings(source taxcode.TaxCodeAppMappings) []api
 	result := make([]api.BillingTaxCodeAppMapping, len(source))
 	for i, mapping := range source {
 		result[i] = api.BillingTaxCodeAppMapping{
-			AppType: ConvertDomainAppTypeToAPIAppType(mapping.AppType),
+			AppType: ToAPIBillingAppType(mapping.AppType),
 			TaxCode: mapping.TaxCode,
 		}
 	}

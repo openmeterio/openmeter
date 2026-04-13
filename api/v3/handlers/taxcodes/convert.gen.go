@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	ConvertFromCreateTaxCodeRequestToCreateTaxCodeInput = func(context string, source v3.CreateTaxCodeRequest) (taxcode.CreateTaxCodeInput, error) {
+	FromAPICreateTaxCodeRequest = func(context string, source v3.CreateTaxCodeRequest) (taxcode.CreateTaxCodeInput, error) {
 		var taxcodeCreateTaxCodeInput taxcode.CreateTaxCodeInput
 		taxcodeCreateTaxCodeInput.Namespace = NamespaceFromContext(context)
 		taxcodeCreateTaxCodeInput.Key = source.Key
@@ -25,7 +25,7 @@ func init() {
 		taxcodeCreateTaxCodeInput.Metadata = modelsMetadata
 		return taxcodeCreateTaxCodeInput, nil
 	}
-	ConvertFromUpsertTaxCodeRequestToUpdateTaxCodeInput = func(context models.NamespacedID, source v3.UpsertTaxCodeRequest) (taxcode.UpdateTaxCodeInput, error) {
+	FromAPIUpsertTaxCodeRequest = func(context models.NamespacedID, source v3.UpsertTaxCodeRequest) (taxcode.UpdateTaxCodeInput, error) {
 		var taxcodeUpdateTaxCodeInput taxcode.UpdateTaxCodeInput
 		taxcodeUpdateTaxCodeInput.NamespacedID = ResolveNamespacedIDFromContext(context)
 		taxcodeUpdateTaxCodeInput.Name = source.Name
@@ -38,9 +38,9 @@ func init() {
 		taxcodeUpdateTaxCodeInput.Metadata = modelsMetadata
 		return taxcodeUpdateTaxCodeInput, nil
 	}
-	ConvertTaxCodeToAPITaxCode = func(source taxcode.TaxCode) (v3.BillingTaxCode, error) {
+	ToAPIBillingTaxCode = func(source taxcode.TaxCode) (v3.BillingTaxCode, error) {
 		var v3BillingTaxCode v3.BillingTaxCode
-		v3BillingTaxCode.AppMappings = ConvertAppMappingsToAPIAppMappings(source.AppMappings)
+		v3BillingTaxCode.AppMappings = ToAPIBillingTaxCodeAppMappings(source.AppMappings)
 		v3BillingTaxCode.CreatedAt = timeTimeToPTimeTime(source.ManagedModel.CreatedAt)
 		v3BillingTaxCode.DeletedAt = source.ManagedModel.DeletedAt
 		v3BillingTaxCode.Description = source.Description
@@ -67,7 +67,7 @@ func v3BillingTaxCodeAppMappingListToTaxcodeTaxCodeAppMappings(source []v3.Billi
 }
 func v3BillingTaxCodeAppMappingToTaxcodeTaxCodeAppMapping(source v3.BillingTaxCodeAppMapping) taxcode.TaxCodeAppMapping {
 	var taxcodeTaxCodeAppMapping taxcode.TaxCodeAppMapping
-	taxcodeTaxCodeAppMapping.AppType = ConvertAPIAppTypeToDomainAppType(source.AppType)
+	taxcodeTaxCodeAppMapping.AppType = FromAPIBillingAppType(source.AppType)
 	taxcodeTaxCodeAppMapping.TaxCode = source.TaxCode
 	return taxcodeTaxCodeAppMapping
 }

@@ -40,7 +40,7 @@ func (h *handler) GetApp() GetAppHandler {
 				return GetAppResponse{}, fmt.Errorf("failed to get app: %w", err)
 			}
 
-			return MapAppToAPI(app)
+			return ToAPIBillingApp(app)
 		},
 		commonhttp.JSONResponseEncoder[GetAppResponse],
 		httptransport.AppendOptions(

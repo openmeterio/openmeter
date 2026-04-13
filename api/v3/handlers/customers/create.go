@@ -33,7 +33,7 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 				return CreateCustomerRequest{}, err
 			}
 
-			return ConvertFromCreateCustomerRequestToCreateCustomerInput(ns, body)
+			return FromAPICreateCustomerRequest(ns, body)
 		},
 		func(ctx context.Context, request CreateCustomerRequest) (CreateCustomerResponse, error) {
 			customer, err := h.service.CreateCustomer(ctx, request)
@@ -45,7 +45,7 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 				return CreateCustomerResponse{}, fmt.Errorf("failed to create customer")
 			}
 
-			return ConvertCustomerRequestToBillingCustomer(*customer), nil
+			return ToAPIBillingCustomer(*customer), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateCustomerResponse](http.StatusCreated),
 		httptransport.AppendOptions(

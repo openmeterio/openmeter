@@ -32,7 +32,7 @@ func (h *handler) CreateTaxCode() CreateTaxCodeHandler {
 				return CreateTaxCodeRequest{}, err
 			}
 
-			req, err := ConvertFromCreateTaxCodeRequestToCreateTaxCodeInput(ns, body)
+			req, err := FromAPICreateTaxCodeRequest(ns, body)
 			if err != nil {
 				return CreateTaxCodeRequest{}, err
 			}
@@ -44,7 +44,7 @@ func (h *handler) CreateTaxCode() CreateTaxCodeHandler {
 				return CreateTaxCodeResponse{}, err
 			}
 
-			return ConvertTaxCodeToAPITaxCode(t)
+			return ToAPIBillingTaxCode(t)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateTaxCodeResponse](http.StatusCreated),
 		httptransport.AppendOptions(

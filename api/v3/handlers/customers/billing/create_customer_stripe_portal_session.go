@@ -97,7 +97,7 @@ func (h *handler) CreateCustomerStripePortalSession() CreateCustomerStripePortal
 				return CreateCustomerStripePortalSessionResponse{}, err
 			}
 
-			return ConvertToApiStripePortalSession(portalSession), nil
+			return ToAPIBillingAppStripeCreateCustomerPortalSessionResult(portalSession), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateCustomerStripePortalSessionResponse](http.StatusCreated),
 		httptransport.AppendOptions(
