@@ -148,6 +148,8 @@ Each operation file uses `httptransport.NewHandlerWithArgs` with 4 arguments:
 3. **Response encoder** — `commonhttp.JSONResponseEncoderWithStatus[T](http.StatusXxx)`
 4. **Options** — `httptransport.AppendOptions(h.options, httptransport.WithOperationName("..."), httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()))`
 
+> **List endpoints with filtering:** if the operation supports `?filter[...]` query parameters, use the `/api-filters` skill for the decoder and adapter wiring. It covers `api/v3/filters.Parse`, the typed filter structs, `Convert*` helpers, range splitting, and the Ent `.Select(field)` application — everything this skill does not cover.
+
 Type alias convention at top of file:
 
 ```go
@@ -325,7 +327,31 @@ Reference: `api/v3/server/server.go:138-218`, `api/v3/server/routes.go`
 
 ## AIP Standards (Kong AIP)
 
-Follow the API design standards in `api/spec/packages/aip/README.md` (symlinked as `AIP.md` next to this file). That document is the single source of truth for all AIP conventions including naming, enums, resources, visibility, CRUD templates, pagination, filtering, labels, errors, time/duration, content-type, bulk operations, versioning, and empty fields.
+OpenMeter v3 APIs follow [Kong's AIP](https://kong-aip.netlify.app/list/) conventions. Each rule lives in its own file under `rules/` next to this SKILL — open the rule file you need for the task at hand.
+
+### Rule index
+
+| File                              | Covers                                                                           |
+| --------------------------------- | -------------------------------------------------------------------------------- |
+| `rules/aip-122-naming.md`         | Naming conventions + base resource models (`Shared.Resource`)                    |
+| `rules/aip-126-enums.md`          | Enum wire values, `unknown` zero member, prefer-enum-over-bool                   |
+| `rules/aip-visibility.md`         | `@visibility` + `Lifecycle.Read/Create/Update`                                   |
+| `rules/aip-134-135-crud.md`       | Create/Get/Update/Upsert/Delete templates, PATCH rules, DELETE rules             |
+| `rules/aip-132-list.md`           | List endpoints, sort, trailing slash                                             |
+| `rules/aip-158-pagination.md`     | Page-based and cursor-based pagination                                           |
+| `rules/aip-160-filtering.md`      | Filter query syntax, `Common.*FieldFilter` types, label dot-notation             |
+| `rules/aip-129-labels.md`         | Label key constraints, PATCH-with-null semantics                                 |
+| `rules/aip-193-errors.md`         | RFC-7807 error responses, `Common.ErrorResponses`, 403-before-404 rule           |
+| `rules/aip-composition.md`        | Composition-over-inheritance (spread, `model is`, `@discriminator`)              |
+| `rules/aip-docs.md`               | `@doc`/`/** */` requirements, `@operationId`, `@summary`                         |
+| `rules/aip-181-stability.md`      | `x-private` / `x-unstable` / `x-internal` stability markers                      |
+| `rules/aip-142-time.md`           | RFC-3339 timestamps, ISO-8601 duration deviation                                 |
+| `rules/aip-137-content-type.md`   | `Content-Type` validation, 415 on unsupported                                    |
+| `rules/aip-235-bulk-delete.md`    | `POST .../bulk-delete` transactional vs 207 partial                              |
+| `rules/aip-3101-versioning.md`    | URL-path versioning, per-resource versioning                                     |
+| `rules/aip-3106-empty-fields.md`  | Always return all fields, `null` / `[]` / `{}` for empty                         |
+
+For filtering specifically, `rules/aip-160-filtering.md` covers the **TypeSpec side** (which `Common.*FieldFilter` to pick, `Shared.ResourceFilters`, label dot-notation, `deepObject` exposure). The **Go implementation side** — parsing deepObject query params into typed filters, converting to `pkg/filter`, and applying Ent predicates — is in the `/api-filters` skill.
 
 ## Important Reminders
 

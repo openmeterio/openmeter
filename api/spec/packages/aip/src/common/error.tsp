@@ -62,6 +62,16 @@ model Gone {
 }
 
 /**
+ * Payload Too Large.
+ */
+@friendlyName("PayloadTooLarge")
+@useRef("../../../../common/definitions/errors.yaml#/components/responses/PayloadTooLarge")
+@friendlyName("PayloadTooLarge")
+model PayloadTooLarge {
+  @statusCode _: 413;
+}
+
+/**
  * Unsupported Media Type.
  */
 @friendlyName("UnsupportedMediaType")
