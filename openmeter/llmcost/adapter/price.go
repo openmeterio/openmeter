@@ -27,11 +27,11 @@ func (a *adapter) ListPrices(ctx context.Context, input llmcost.ListPricesInput)
 			Where(pricedb.DeletedAtIsNil()).
 			Where(pricedb.NamespaceIsNil()) // Global prices only
 
-		applyStringFilter(input.Provider, pricedb.FieldProvider, &query)
-		applyStringFilter(input.ModelID, pricedb.FieldModelID, &query)
-		applyStringFilter(input.ModelName, pricedb.FieldModelName, &query)
-		applyStringFilter(input.Currency, pricedb.FieldCurrency, &query)
-		applyStringFilter(input.Source, pricedb.FieldSource, &query)
+		query = filter.ApplyToQuery(query, input.Provider, pricedb.FieldProvider)
+		query = filter.ApplyToQuery(query, input.ModelID, pricedb.FieldModelID)
+		query = filter.ApplyToQuery(query, input.ModelName, pricedb.FieldModelName)
+		query = filter.ApplyToQuery(query, input.Currency, pricedb.FieldCurrency)
+		query = filter.ApplyToQuery(query, input.Source, pricedb.FieldSource)
 
 		// Order
 		order := entutils.GetOrdering(sortx.OrderDefault)
@@ -225,10 +225,10 @@ func (a *adapter) ListOverrides(ctx context.Context, input llmcost.ListOverrides
 			Where(pricedb.NamespaceEQ(input.Namespace)).
 			Where(pricedb.SourceEQ(string(llmcost.PriceSourceManual)))
 
-		applyStringFilter(input.Provider, pricedb.FieldProvider, &query)
-		applyStringFilter(input.ModelID, pricedb.FieldModelID, &query)
-		applyStringFilter(input.ModelName, pricedb.FieldModelName, &query)
-		applyStringFilter(input.Currency, pricedb.FieldCurrency, &query)
+		query = filter.ApplyToQuery(query, input.Provider, pricedb.FieldProvider)
+		query = filter.ApplyToQuery(query, input.ModelID, pricedb.FieldModelID)
+		query = filter.ApplyToQuery(query, input.ModelName, pricedb.FieldModelName)
+		query = filter.ApplyToQuery(query, input.Currency, pricedb.FieldCurrency)
 		// Source filter is not applied here because ListOverrides already
 		// constrains to source = "manual" (line above). Adding a user-supplied
 		// source filter would create contradictory WHERE clauses.
@@ -300,15 +300,4 @@ func (a *adapter) UpsertGlobalPrice(ctx context.Context, price llmcost.Price) er
 
 		return nil
 	})
-}
-
-// applyStringFilter applies a filter.FilterString to an ent query on the given field.
-func applyStringFilter(f *filter.FilterString, field string, query **entdb.LLMCostPriceQuery) {
-	if f == nil {
-		return
-	}
-
-	if p := f.Select(field); p != nil {
-		*query = (*query).Where(p)
-	}
 }

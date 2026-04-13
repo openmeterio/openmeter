@@ -714,6 +714,44 @@ func (f FilterBoolean) Select(field string) func(*sql.Selector) {
 	}
 }
 
+// SelectPredicate converts a Filter to a typed Ent predicate.
+func SelectPredicate[P ~func(*sql.Selector)](f Filter, field string) *P {
+	if f == nil || f.IsEmpty() {
+		return nil
+	}
+
+	if s := f.Select(field); s != nil {
+		p := P(s)
+		return &p
+	}
+
+	return nil
+}
+
+// Predicate is a constraint matching any Ent predicate type (named function types
+// whose underlying type is func(*sql.Selector)).
+type Predicate interface {
+	~func(*sql.Selector)
+}
+
+// EntQuery is a constraint for Ent query types that support Where predicates.
+type EntQuery[Q any, P Predicate] interface {
+	Where(ps ...P) Q
+}
+
+// ApplyToQuery applies a filter to an Ent query if the filter is non-nil and non-empty.
+func ApplyToQuery[F Filter, Q EntQuery[Q, P], P Predicate](q Q, f *F, field string) Q {
+	if f == nil {
+		return q
+	}
+
+	if p := SelectPredicate[P](Filter(*f), field); p != nil {
+		return q.Where(*p)
+	}
+
+	return q
+}
+
 // validateSingleOperator checks that at most one operator field is set on a
 // filter struct. To combine operators, use the And or Or fields.
 func validateSingleOperator(v Filter) error {

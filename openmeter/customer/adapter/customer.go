@@ -18,6 +18,7 @@ import (
 	subscriptiondb "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -49,23 +50,9 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 		}
 
 		// Filters
-		if input.Key != nil {
-			if p := input.Key.Select(customerdb.FieldKey); p != nil {
-				query = query.Where(p)
-			}
-		}
-
-		if input.Name != nil {
-			if p := input.Name.Select(customerdb.FieldName); p != nil {
-				query = query.Where(p)
-			}
-		}
-
-		if input.PrimaryEmail != nil {
-			if p := input.PrimaryEmail.Select(customerdb.FieldPrimaryEmail); p != nil {
-				query = query.Where(p)
-			}
-		}
+		query = filter.ApplyToQuery(query, input.Key, customerdb.FieldKey)
+		query = filter.ApplyToQuery(query, input.Name, customerdb.FieldName)
+		query = filter.ApplyToQuery(query, input.PrimaryEmail, customerdb.FieldPrimaryEmail)
 
 		if input.Subject != nil {
 			query = query.Where(customerdb.HasSubjectsWith(
