@@ -39,7 +39,7 @@ func (h *handler) GetSubscription() GetSubscriptionHandler {
 				return GetSubscriptionResponse{}, err
 			}
 
-			return ConvertSubscriptionToAPISubscription(m), nil
+			return ToAPIBillingSubscription(m), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetSubscriptionResponse](http.StatusOK),
 		httptransport.AppendOptions(

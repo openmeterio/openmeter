@@ -38,7 +38,7 @@ func (h *handler) UpdateBillingProfile() UpdateBillingProfileHandler {
 				return UpdateBillingProfileRequest{}, err
 			}
 
-			profile, err := ConvertUpsertBillingProfileRequestToUpdateProfileInput(models.NamespacedID{
+			profile, err := FromAPIUpsertBillingProfileRequest(models.NamespacedID{
 				Namespace: ns,
 				ID:        profileID,
 			}, body)
@@ -64,7 +64,7 @@ func (h *handler) UpdateBillingProfile() UpdateBillingProfileHandler {
 				return UpdateBillingProfileResponse{}, errors.New("failed to update billing profile")
 			}
 
-			return ConvertProfileToBillingProfile(*updatedProfile)
+			return ToAPIBillingProfile(*updatedProfile)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdateBillingProfileResponse](http.StatusOK),
 		httptransport.AppendOptions(

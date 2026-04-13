@@ -37,7 +37,7 @@ func (h *handler) UnscheduleCancelation() UnscheduleCancelationHandler {
 				return UnscheduleCancelationResponse{}, err
 			}
 
-			return ConvertSubscriptionToAPISubscription(sub), nil
+			return ToAPIBillingSubscription(sub), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UnscheduleCancelationResponse](http.StatusOK),
 		httptransport.AppendOptions(

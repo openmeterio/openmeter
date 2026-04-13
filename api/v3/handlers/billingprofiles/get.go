@@ -48,7 +48,7 @@ func (h *handler) GetBillingProfile() GetBillingProfileHandler {
 				return GetBillingProfileResponse{}, apierrors.NewNotFoundError(ctx, errors.New("billing profile not found"), "billing profile")
 			}
 
-			return ConvertProfileToBillingProfile(*profile)
+			return ToAPIBillingProfile(*profile)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetBillingProfileResponse](http.StatusOK),
 		httptransport.AppendOptions(

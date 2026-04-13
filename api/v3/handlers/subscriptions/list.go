@@ -74,7 +74,7 @@ func (h *handler) ListSubscriptions() ListSubscriptionsHandler {
 			}
 
 			subscriptions := lo.Map(resp.Items, func(item subscription.Subscription, _ int) api.BillingSubscription {
-				return ConvertSubscriptionToAPISubscription(item)
+				return ToAPIBillingSubscription(item)
 			})
 
 			r := response.NewPagePaginationResponse(subscriptions, response.PageMetaPage{

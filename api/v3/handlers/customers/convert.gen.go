@@ -13,7 +13,17 @@ import (
 )
 
 func init() {
-	ConvertCreateCustomerRequestToCustomerMutate = func(source v3.CreateCustomerRequest) (customer.CustomerMutate, error) {
+	FromAPICreateCustomerRequest = func(context string, source v3.CreateCustomerRequest) (customer.CreateCustomerInput, error) {
+		var customerCreateCustomerInput customer.CreateCustomerInput
+		customerCreateCustomerInput.Namespace = NamespaceFromContext(context)
+		customerCustomerMutate, err := FromAPICreateCustomerRequestToMutate(source)
+		if err != nil {
+			return customerCreateCustomerInput, err
+		}
+		customerCreateCustomerInput.CustomerMutate = customerCustomerMutate
+		return customerCreateCustomerInput, nil
+	}
+	FromAPICreateCustomerRequestToMutate = func(source v3.CreateCustomerRequest) (customer.CustomerMutate, error) {
 		var customerCustomerMutate customer.CustomerMutate
 		pString := source.Key
 		customerCustomerMutate.Key = &pString
@@ -33,18 +43,25 @@ func init() {
 		customerCustomerMutate.Metadata = pModelsMetadata
 		return customerCustomerMutate, nil
 	}
-	ConvertCustomerListResponse = func(source response.PagePaginationResponse[customer.Customer]) v3.CustomerPagePaginatedResponse {
-		var v3CustomerPagePaginatedResponse v3.CustomerPagePaginatedResponse
-		if source.Data != nil {
-			v3CustomerPagePaginatedResponse.Data = make([]v3.BillingCustomer, len(source.Data))
-			for i := 0; i < len(source.Data); i++ {
-				v3CustomerPagePaginatedResponse.Data[i] = ConvertCustomerRequestToBillingCustomer(source.Data[i])
-			}
+	FromAPIUpsertCustomerRequest = func(source v3.UpsertCustomerRequest) (customer.CustomerMutate, error) {
+		var customerCustomerMutate customer.CustomerMutate
+		customerCustomerMutate.Name = source.Name
+		customerCustomerMutate.Description = source.Description
+		customerCustomerMutate.UsageAttribution = pV3BillingCustomerUsageAttributionToPCustomerCustomerUsageAttribution(source.UsageAttribution)
+		customerCustomerMutate.PrimaryEmail = source.PrimaryEmail
+		if source.Currency != nil {
+			currencyxCode := currencyx.Code(*source.Currency)
+			customerCustomerMutate.Currency = &currencyxCode
 		}
-		v3CustomerPagePaginatedResponse.Meta = responsePageMetaToV3PaginatedMeta(source.Meta)
-		return v3CustomerPagePaginatedResponse
+		customerCustomerMutate.BillingAddress = pV3BillingAddressToPModelsAddress(source.BillingAddress)
+		pModelsMetadata, err := ConvertLabelsToMetadata(source.Labels)
+		if err != nil {
+			return customerCustomerMutate, err
+		}
+		customerCustomerMutate.Metadata = pModelsMetadata
+		return customerCustomerMutate, nil
 	}
-	ConvertCustomerRequestToBillingCustomer = func(source customer.Customer) v3.BillingCustomer {
+	ToAPIBillingCustomer = func(source customer.Customer) v3.BillingCustomer {
 		var v3BillingCustomer v3.BillingCustomer
 		v3BillingCustomer.BillingAddress = pModelsAddressToPV3BillingAddress(source.BillingAddress)
 		v3BillingCustomer.CreatedAt = timeTimeToPTimeTime(source.ManagedResource.ManagedModel.CreatedAt)
@@ -65,33 +82,16 @@ func init() {
 		v3BillingCustomer.UsageAttribution = pCustomerCustomerUsageAttributionToPV3BillingCustomerUsageAttribution(source.UsageAttribution)
 		return v3BillingCustomer
 	}
-	ConvertFromCreateCustomerRequestToCreateCustomerInput = func(context string, source v3.CreateCustomerRequest) (customer.CreateCustomerInput, error) {
-		var customerCreateCustomerInput customer.CreateCustomerInput
-		customerCreateCustomerInput.Namespace = NamespaceFromContext(context)
-		customerCustomerMutate, err := ConvertCreateCustomerRequestToCustomerMutate(source)
-		if err != nil {
-			return customerCreateCustomerInput, err
+	ToAPICustomerPagePaginatedResponse = func(source response.PagePaginationResponse[customer.Customer]) v3.CustomerPagePaginatedResponse {
+		var v3CustomerPagePaginatedResponse v3.CustomerPagePaginatedResponse
+		if source.Data != nil {
+			v3CustomerPagePaginatedResponse.Data = make([]v3.BillingCustomer, len(source.Data))
+			for i := 0; i < len(source.Data); i++ {
+				v3CustomerPagePaginatedResponse.Data[i] = ToAPIBillingCustomer(source.Data[i])
+			}
 		}
-		customerCreateCustomerInput.CustomerMutate = customerCustomerMutate
-		return customerCreateCustomerInput, nil
-	}
-	ConvertUpsertCustomerRequestToCustomerMutate = func(source v3.UpsertCustomerRequest) (customer.CustomerMutate, error) {
-		var customerCustomerMutate customer.CustomerMutate
-		customerCustomerMutate.Name = source.Name
-		customerCustomerMutate.Description = source.Description
-		customerCustomerMutate.UsageAttribution = pV3BillingCustomerUsageAttributionToPCustomerCustomerUsageAttribution(source.UsageAttribution)
-		customerCustomerMutate.PrimaryEmail = source.PrimaryEmail
-		if source.Currency != nil {
-			currencyxCode := currencyx.Code(*source.Currency)
-			customerCustomerMutate.Currency = &currencyxCode
-		}
-		customerCustomerMutate.BillingAddress = pV3BillingAddressToPModelsAddress(source.BillingAddress)
-		pModelsMetadata, err := ConvertLabelsToMetadata(source.Labels)
-		if err != nil {
-			return customerCustomerMutate, err
-		}
-		customerCustomerMutate.Metadata = pModelsMetadata
-		return customerCustomerMutate, nil
+		v3CustomerPagePaginatedResponse.Meta = responsePageMetaToV3PaginatedMeta(source.Meta)
+		return v3CustomerPagePaginatedResponse
 	}
 }
 func pCustomerCustomerUsageAttributionToPV3BillingCustomerUsageAttribution(source *customer.CustomerUsageAttribution) *v3.BillingCustomerUsageAttribution {

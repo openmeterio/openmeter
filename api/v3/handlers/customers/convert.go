@@ -24,7 +24,7 @@ var (
 	// goverter:context namespace
 	// goverter:map Namespace | NamespaceFromContext
 	// goverter:map . CustomerMutate
-	ConvertFromCreateCustomerRequestToCreateCustomerInput func(namespace string, createCustomerRequest api.CreateCustomerRequest) (customer.CreateCustomerInput, error)
+	FromAPICreateCustomerRequest func(namespace string, createCustomerRequest api.CreateCustomerRequest) (customer.CreateCustomerInput, error)
 	// goverter:map . Labels | ConvertMetadataAnnotationsToLabels
 	// goverter:map ManagedResource.ID Id
 	// goverter:map ManagedResource.Description Description
@@ -32,15 +32,15 @@ var (
 	// goverter:map ManagedResource.ManagedModel.CreatedAt CreatedAt
 	// goverter:map ManagedResource.ManagedModel.UpdatedAt UpdatedAt
 	// goverter:map ManagedResource.ManagedModel.DeletedAt DeletedAt
-	ConvertCustomerRequestToBillingCustomer func(customer.Customer) api.BillingCustomer
+	ToAPIBillingCustomer func(customer.Customer) api.BillingCustomer
 	// goverter:map Labels Metadata
 	// goverter:ignore Annotation
-	ConvertCreateCustomerRequestToCustomerMutate func(createCustomerRequest api.CreateCustomerRequest) (customer.CustomerMutate, error)
+	FromAPICreateCustomerRequestToMutate func(createCustomerRequest api.CreateCustomerRequest) (customer.CustomerMutate, error)
 	// goverter:map Labels Metadata
 	// goverter:ignore Annotation
 	// goverter:ignore Key
-	ConvertUpsertCustomerRequestToCustomerMutate func(updateCustomerRequest api.UpsertCustomerRequest) (customer.CustomerMutate, error)
-	ConvertCustomerListResponse                  func(customers response.PagePaginationResponse[customer.Customer]) api.CustomerPagePaginatedResponse
+	FromAPIUpsertCustomerRequest       func(updateCustomerRequest api.UpsertCustomerRequest) (customer.CustomerMutate, error)
+	ToAPICustomerPagePaginatedResponse func(customers response.PagePaginationResponse[customer.Customer]) api.CustomerPagePaginatedResponse
 )
 
 func ConvertLabelsToMetadata(l *api.Labels) (*models.Metadata, error) {

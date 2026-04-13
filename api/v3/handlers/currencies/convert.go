@@ -7,7 +7,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 )
 
-func MapCurrencyTypeFromAPI(t v3.BillingCurrencyType) currencies.CurrencyType {
+func FromAPIBillingCurrencyType(t v3.BillingCurrencyType) currencies.CurrencyType {
 	switch t {
 	case v3.BillingCurrencyTypeCustom:
 		return currencies.CurrencyTypeCustom
@@ -33,7 +33,7 @@ func NewBillingCurrencyFrom[T v3.BillingCurrencyCustom | v3.BillingCurrencyFiat]
 	return c, nil
 }
 
-func CurrencyToAPI(c currencies.Currency) (v3.BillingCurrency, error) {
+func ToAPIBillingCurrency(c currencies.Currency) (v3.BillingCurrency, error) {
 	if c.ID != "" {
 		return NewBillingCurrencyFrom(v3.BillingCurrencyCustom{
 			Id:        c.ID,
@@ -52,7 +52,7 @@ func CurrencyToAPI(c currencies.Currency) (v3.BillingCurrency, error) {
 	})
 }
 
-func CostBasisToAPI(cb currencies.CostBasis) v3.BillingCostBasis {
+func ToAPIBillingCostBasis(cb currencies.CostBasis) v3.BillingCostBasis {
 	return v3.BillingCostBasis{
 		Id:            cb.ID,
 		FiatCode:      cb.FiatCode,

@@ -38,7 +38,7 @@ func (h *handler) UpsertCustomer() UpsertCustomerHandler {
 				return UpsertCustomerRequest{}, err
 			}
 
-			customerMutate, err := ConvertUpsertCustomerRequestToCustomerMutate(body)
+			customerMutate, err := FromAPIUpsertCustomerRequest(body)
 			if err != nil {
 				return UpsertCustomerRequest{}, err
 			}
@@ -94,7 +94,7 @@ func (h *handler) UpsertCustomer() UpsertCustomerHandler {
 				return UpsertCustomerResponse{}, errors.New("failed to update customer")
 			}
 
-			return ConvertCustomerRequestToBillingCustomer(*updatedCustomer), nil
+			return ToAPIBillingCustomer(*updatedCustomer), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpsertCustomerResponse](http.StatusOK),
 		httptransport.AppendOptions(

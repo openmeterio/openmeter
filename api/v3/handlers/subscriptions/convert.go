@@ -14,7 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func ConvertSubscriptionToAPISubscription(subscription subscription.Subscription) api.BillingSubscription {
+func ToAPIBillingSubscription(subscription subscription.Subscription) api.BillingSubscription {
 	subscriptionAPI := api.BillingSubscription{
 		Id:            subscription.ID,
 		CustomerId:    subscription.CustomerId,
@@ -34,7 +34,7 @@ func ConvertSubscriptionToAPISubscription(subscription subscription.Subscription
 	return subscriptionAPI
 }
 
-func ConvertBillingSubscriptionEditTimingEnumToSubscriptionTiming(t api.BillingSubscriptionEditTimingEnum) (subscription.Timing, error) {
+func FromAPIBillingSubscriptionEditTimingEnum(t api.BillingSubscriptionEditTimingEnum) (subscription.Timing, error) {
 	switch string(t) {
 	case "immediate":
 		return subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)}, nil
@@ -45,7 +45,7 @@ func ConvertBillingSubscriptionEditTimingEnumToSubscriptionTiming(t api.BillingS
 	}
 }
 
-func ConvertBillingSubscriptionEditTimingToSubscriptionTiming(t api.BillingSubscriptionEditTiming) (subscription.Timing, error) {
+func FromAPIBillingSubscriptionEditTiming(t api.BillingSubscriptionEditTiming) (subscription.Timing, error) {
 	// Try decoding as a custom RFC3339 datetime first, otherwise it would also decode as a "string enum"
 	// and we'd never be able to distinguish enum vs datetime.
 	if custom, err := t.AsDateTime(); err == nil {
@@ -57,11 +57,11 @@ func ConvertBillingSubscriptionEditTimingToSubscriptionTiming(t api.BillingSubsc
 		return subscription.Timing{}, models.NewGenericValidationError(fmt.Errorf("invalid timing"))
 	}
 
-	return ConvertBillingSubscriptionEditTimingEnumToSubscriptionTiming(enum)
+	return FromAPIBillingSubscriptionEditTimingEnum(enum)
 }
 
-// ConvertFromCreateSubscriptionRequestToCreateSubscriptionWorkflowInput converts a create subscription request to a create subscription workflow input
-func ConvertFromCreateSubscriptionRequestToCreateSubscriptionWorkflowInput(
+// FromAPIBillingSubscriptionCreate converts a create subscription request to a create subscription workflow input.
+func FromAPIBillingSubscriptionCreate(
 	namespace string,
 	customerID customer.CustomerID,
 	subscriptionName string,

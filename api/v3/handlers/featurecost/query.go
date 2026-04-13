@@ -85,7 +85,7 @@ func (h *handler) QueryFeatureCost() QueryFeatureCostHandler {
 				return QueryFeatureCostResponse{}, err
 			}
 
-			return ConvertCostQueryResultToAPI(result, req.Body), nil
+			return ToAPIFeatureCostQueryResult(result, req.Body), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[QueryFeatureCostResponse](http.StatusOK),
 		httptransport.AppendOptions(

@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	ConvertAPIAddressToAddress = func(source v3.Address) models.Address {
+	FromAPIAddress = func(source v3.Address) models.Address {
 		var modelsAddress models.Address
 		if source.Country != nil {
 			modelsCountryCode := models.CountryCode(*source.Country)
@@ -28,7 +28,88 @@ func init() {
 		modelsAddress.PhoneNumber = source.PhoneNumber
 		return modelsAddress
 	}
-	ConvertAddressToAPIAddress = func(source models.Address) v3.Address {
+	FromAPIBillingAppReferenceToAppID = func(context string, source v3.BillingAppReference) app.AppID {
+		var appAppID app.AppID
+		appAppID.Namespace = NamespaceFromContext(context)
+		appAppID.ID = source.Id
+		return appAppID
+	}
+	FromAPIBillingProfileAppReferences = func(context string, source v3.BillingProfileAppReferences) billing.ProfileAppReferences {
+		var billingProfileAppReferences billing.ProfileAppReferences
+		billingProfileAppReferences.Tax = FromAPIBillingAppReferenceToAppID(context, source.Tax)
+		billingProfileAppReferences.Invoicing = FromAPIBillingAppReferenceToAppID(context, source.Invoicing)
+		billingProfileAppReferences.Payment = FromAPIBillingAppReferenceToAppID(context, source.Payment)
+		return billingProfileAppReferences
+	}
+	FromAPIBillingTaxBehavior = func(source v3.BillingTaxBehavior) (productcatalog.TaxBehavior, error) {
+		var productcatalogTaxBehavior productcatalog.TaxBehavior
+		switch source {
+		case v3.BillingTaxBehaviorExclusive:
+			productcatalogTaxBehavior = productcatalog.ExclusiveTaxBehavior
+		case v3.BillingTaxBehaviorInclusive:
+			productcatalogTaxBehavior = productcatalog.InclusiveTaxBehavior
+		default:
+			return productcatalogTaxBehavior, fmt.Errorf("unexpected enum element: %v", source)
+		}
+		return productcatalogTaxBehavior, nil
+	}
+	FromAPIBillingTaxConfig = func(source *v3.BillingTaxConfig) (*productcatalog.TaxConfig, error) {
+		var pProductcatalogTaxConfig *productcatalog.TaxConfig
+		if source != nil {
+			var productcatalogTaxConfig productcatalog.TaxConfig
+			if (*source).Behavior != nil {
+				productcatalogTaxBehavior, err := FromAPIBillingTaxBehavior(*(*source).Behavior)
+				if err != nil {
+					return nil, err
+				}
+				productcatalogTaxConfig.Behavior = &productcatalogTaxBehavior
+			}
+			productcatalogTaxConfig.Stripe = pV3BillingTaxConfigStripeToPProductcatalogStripeTaxConfig((*source).Stripe)
+			pProductcatalogTaxConfig = &productcatalogTaxConfig
+		}
+		return pProductcatalogTaxConfig, nil
+	}
+	FromAPICreateBillingProfileRequest = func(context string, source v3.CreateBillingProfileRequest) (billing.CreateProfileInput, error) {
+		var billingCreateProfileInput billing.CreateProfileInput
+		billingCreateProfileInput.Namespace = NamespaceFromContext(context)
+		billingCreateProfileInput.Name = source.Name
+		billingCreateProfileInput.Description = source.Description
+		mapStringString, err := ConvertLabelsToMetadata(source.Labels)
+		if err != nil {
+			return billingCreateProfileInput, err
+		}
+		billingCreateProfileInput.Metadata = mapStringString
+		billingCreateProfileInput.Supplier = FromAPIBillingParty(source.Supplier)
+		billingCreateProfileInput.Default = source.Default
+		billingWorkflowConfig, err := FromAPIBillingWorkflow(source.Workflow)
+		if err != nil {
+			return billingCreateProfileInput, err
+		}
+		billingCreateProfileInput.WorkflowConfig = billingWorkflowConfig
+		billingCreateProfileInput.Apps = FromAPIBillingProfileAppReferences(context, source.Apps)
+		return billingCreateProfileInput, nil
+	}
+	FromAPIUpsertBillingProfileRequest = func(context models.NamespacedID, source v3.UpsertBillingProfileRequest) (billing.UpdateProfileInput, error) {
+		var billingUpdateProfileInput billing.UpdateProfileInput
+		billingUpdateProfileInput.ID = ResolveIDFromContext(context)
+		billingUpdateProfileInput.Namespace = ResolveNamespaceFromContext(context)
+		billingUpdateProfileInput.Name = source.Name
+		billingUpdateProfileInput.Description = source.Description
+		billingWorkflowConfig, err := FromAPIBillingWorkflow(source.Workflow)
+		if err != nil {
+			return billingUpdateProfileInput, err
+		}
+		billingUpdateProfileInput.WorkflowConfig = billingWorkflowConfig
+		billingUpdateProfileInput.Supplier = FromAPIBillingParty(source.Supplier)
+		billingUpdateProfileInput.Default = source.Default
+		billingMetadata, err := ConvertLabelsToMetadata(source.Labels)
+		if err != nil {
+			return billingUpdateProfileInput, err
+		}
+		billingUpdateProfileInput.Metadata = billingMetadata
+		return billingUpdateProfileInput, nil
+	}
+	ToAPIAddress = func(source models.Address) v3.Address {
 		var v3Address v3.Address
 		v3Address.City = source.City
 		if source.Country != nil {
@@ -42,25 +123,54 @@ func init() {
 		v3Address.State = source.State
 		return v3Address
 	}
-	ConvertAppIDToBillingAppReference = func(source app.AppID) v3.BillingAppReference {
+	ToAPIBillingAppReferenceFromAppID = func(source app.AppID) v3.BillingAppReference {
 		var v3BillingAppReference v3.BillingAppReference
 		v3BillingAppReference.Id = source.ID
 		return v3BillingAppReference
 	}
-	ConvertBillingAppReferenceToAppID = func(context string, source v3.BillingAppReference) app.AppID {
-		var appAppID app.AppID
-		appAppID.Namespace = NamespaceFromContext(context)
-		appAppID.ID = source.Id
-		return appAppID
+	ToAPIBillingProfile = func(source billing.Profile) (v3.BillingProfile, error) {
+		var v3BillingProfile v3.BillingProfile
+		v3BillingProfile.Apps = pBillingProfileAppsToV3BillingProfileAppReferences(source.Apps)
+		v3BillingProfile.CreatedAt = timeTimeToPTimeTime(source.BaseProfile.CreatedAt)
+		v3BillingProfile.Default = source.BaseProfile.Default
+		v3BillingProfile.DeletedAt = source.BaseProfile.DeletedAt
+		v3BillingProfile.Description = source.BaseProfile.Description
+		v3BillingProfile.Id = source.BaseProfile.ID
+		v3BillingProfile.Labels = ConvertMetadataToLabels(source.BaseProfile.Metadata)
+		v3BillingProfile.Name = source.BaseProfile.Name
+		v3BillingProfile.Supplier = ToAPIBillingParty(source.BaseProfile.Supplier)
+		v3BillingProfile.UpdatedAt = timeTimeToPTimeTime(source.BaseProfile.UpdatedAt)
+		v3BillingWorkflow, err := ToAPIBillingWorkflow(source.BaseProfile.WorkflowConfig)
+		if err != nil {
+			return v3BillingProfile, err
+		}
+		v3BillingProfile.Workflow = v3BillingWorkflow
+		return v3BillingProfile, nil
 	}
-	ConvertBillingProfileAppReferencesToProfileAppReferences = func(context string, source v3.BillingProfileAppReferences) billing.ProfileAppReferences {
-		var billingProfileAppReferences billing.ProfileAppReferences
-		billingProfileAppReferences.Tax = ConvertBillingAppReferenceToAppID(context, source.Tax)
-		billingProfileAppReferences.Invoicing = ConvertBillingAppReferenceToAppID(context, source.Invoicing)
-		billingProfileAppReferences.Payment = ConvertBillingAppReferenceToAppID(context, source.Payment)
-		return billingProfileAppReferences
+	ToAPIBillingProfileAppReferences = func(source *billing.ProfileAppReferences) v3.BillingProfileAppReferences {
+		var v3BillingProfileAppReferences v3.BillingProfileAppReferences
+		if source != nil {
+			v3BillingProfileAppReferences.Invoicing = ToAPIBillingAppReferenceFromAppID((*source).Invoicing)
+			v3BillingProfileAppReferences.Payment = ToAPIBillingAppReferenceFromAppID((*source).Payment)
+			v3BillingProfileAppReferences.Tax = ToAPIBillingAppReferenceFromAppID((*source).Tax)
+		}
+		return v3BillingProfileAppReferences
 	}
-	ConvertBillingTaxBehaviorToTaxBehavior = func(source productcatalog.TaxBehavior) (v3.BillingTaxBehavior, error) {
+	ToAPIBillingProfiles = func(source []billing.Profile) ([]v3.BillingProfile, error) {
+		var v3BillingProfileList []v3.BillingProfile
+		if source != nil {
+			v3BillingProfileList = make([]v3.BillingProfile, len(source))
+			for i := 0; i < len(source); i++ {
+				v3BillingProfile, err := ToAPIBillingProfile(source[i])
+				if err != nil {
+					return nil, err
+				}
+				v3BillingProfileList[i] = v3BillingProfile
+			}
+		}
+		return v3BillingProfileList, nil
+	}
+	ToAPIBillingTaxBehavior = func(source productcatalog.TaxBehavior) (v3.BillingTaxBehavior, error) {
 		var v3BillingTaxBehavior v3.BillingTaxBehavior
 		switch source {
 		case productcatalog.ExclusiveTaxBehavior:
@@ -72,102 +182,12 @@ func init() {
 		}
 		return v3BillingTaxBehavior, nil
 	}
-	ConvertBillingTaxConfigToTaxConfig = func(source *v3.BillingTaxConfig) (*productcatalog.TaxConfig, error) {
-		var pProductcatalogTaxConfig *productcatalog.TaxConfig
-		if source != nil {
-			var productcatalogTaxConfig productcatalog.TaxConfig
-			if (*source).Behavior != nil {
-				productcatalogTaxBehavior, err := ConvertTaxBehaviorBillingToTaxBehavior(*(*source).Behavior)
-				if err != nil {
-					return nil, err
-				}
-				productcatalogTaxConfig.Behavior = &productcatalogTaxBehavior
-			}
-			productcatalogTaxConfig.Stripe = pV3BillingTaxConfigStripeToPProductcatalogStripeTaxConfig((*source).Stripe)
-			pProductcatalogTaxConfig = &productcatalogTaxConfig
-		}
-		return pProductcatalogTaxConfig, nil
-	}
-	ConvertCreateBillingProfileRequestToCreateProfileInput = func(context string, source v3.CreateBillingProfileRequest) (billing.CreateProfileInput, error) {
-		var billingCreateProfileInput billing.CreateProfileInput
-		billingCreateProfileInput.Namespace = NamespaceFromContext(context)
-		billingCreateProfileInput.Name = source.Name
-		billingCreateProfileInput.Description = source.Description
-		mapStringString, err := ConvertLabelsToMetadata(source.Labels)
-		if err != nil {
-			return billingCreateProfileInput, err
-		}
-		billingCreateProfileInput.Metadata = mapStringString
-		billingCreateProfileInput.Supplier = ConvertBillingPartyToSupplierContact(source.Supplier)
-		billingCreateProfileInput.Default = source.Default
-		billingWorkflowConfig, err := ConvertBillingWorkflowToWorkflowConfig(source.Workflow)
-		if err != nil {
-			return billingCreateProfileInput, err
-		}
-		billingCreateProfileInput.WorkflowConfig = billingWorkflowConfig
-		billingCreateProfileInput.Apps = ConvertBillingProfileAppReferencesToProfileAppReferences(context, source.Apps)
-		return billingCreateProfileInput, nil
-	}
-	ConvertProfileAppReferencesToBillingProfileAppReferences = func(source *billing.ProfileAppReferences) v3.BillingProfileAppReferences {
-		var v3BillingProfileAppReferences v3.BillingProfileAppReferences
-		if source != nil {
-			v3BillingProfileAppReferences.Invoicing = ConvertAppIDToBillingAppReference((*source).Invoicing)
-			v3BillingProfileAppReferences.Payment = ConvertAppIDToBillingAppReference((*source).Payment)
-			v3BillingProfileAppReferences.Tax = ConvertAppIDToBillingAppReference((*source).Tax)
-		}
-		return v3BillingProfileAppReferences
-	}
-	ConvertProfileToBillingProfile = func(source billing.Profile) (v3.BillingProfile, error) {
-		var v3BillingProfile v3.BillingProfile
-		v3BillingProfile.Apps = pBillingProfileAppsToV3BillingProfileAppReferences(source.Apps)
-		v3BillingProfile.CreatedAt = timeTimeToPTimeTime(source.BaseProfile.CreatedAt)
-		v3BillingProfile.Default = source.BaseProfile.Default
-		v3BillingProfile.DeletedAt = source.BaseProfile.DeletedAt
-		v3BillingProfile.Description = source.BaseProfile.Description
-		v3BillingProfile.Id = source.BaseProfile.ID
-		v3BillingProfile.Labels = ConvertMetadataToLabels(source.BaseProfile.Metadata)
-		v3BillingProfile.Name = source.BaseProfile.Name
-		v3BillingProfile.Supplier = ConvertSupplierContactToBillingParty(source.BaseProfile.Supplier)
-		v3BillingProfile.UpdatedAt = timeTimeToPTimeTime(source.BaseProfile.UpdatedAt)
-		v3BillingWorkflow, err := ConvertWorkflowConfigToBillingWorkflow(source.BaseProfile.WorkflowConfig)
-		if err != nil {
-			return v3BillingProfile, err
-		}
-		v3BillingProfile.Workflow = v3BillingWorkflow
-		return v3BillingProfile, nil
-	}
-	ConvertProfilesToBillingProfiles = func(source []billing.Profile) ([]v3.BillingProfile, error) {
-		var v3BillingProfileList []v3.BillingProfile
-		if source != nil {
-			v3BillingProfileList = make([]v3.BillingProfile, len(source))
-			for i := 0; i < len(source); i++ {
-				v3BillingProfile, err := ConvertProfileToBillingProfile(source[i])
-				if err != nil {
-					return nil, err
-				}
-				v3BillingProfileList[i] = v3BillingProfile
-			}
-		}
-		return v3BillingProfileList, nil
-	}
-	ConvertTaxBehaviorBillingToTaxBehavior = func(source v3.BillingTaxBehavior) (productcatalog.TaxBehavior, error) {
-		var productcatalogTaxBehavior productcatalog.TaxBehavior
-		switch source {
-		case v3.BillingTaxBehaviorExclusive:
-			productcatalogTaxBehavior = productcatalog.ExclusiveTaxBehavior
-		case v3.BillingTaxBehaviorInclusive:
-			productcatalogTaxBehavior = productcatalog.InclusiveTaxBehavior
-		default:
-			return productcatalogTaxBehavior, fmt.Errorf("unexpected enum element: %v", source)
-		}
-		return productcatalogTaxBehavior, nil
-	}
-	ConvertTaxConfigToBillingTaxConfig = func(source *productcatalog.TaxConfig) (*v3.BillingTaxConfig, error) {
+	ToAPIBillingTaxConfig = func(source *productcatalog.TaxConfig) (*v3.BillingTaxConfig, error) {
 		var pV3BillingTaxConfig *v3.BillingTaxConfig
 		if source != nil {
 			var v3BillingTaxConfig v3.BillingTaxConfig
 			if (*source).Behavior != nil {
-				v3BillingTaxBehavior, err := ConvertBillingTaxBehaviorToTaxBehavior(*(*source).Behavior)
+				v3BillingTaxBehavior, err := ToAPIBillingTaxBehavior(*(*source).Behavior)
 				if err != nil {
 					return nil, err
 				}
@@ -179,33 +199,13 @@ func init() {
 		}
 		return pV3BillingTaxConfig, nil
 	}
-	ConvertUpsertBillingProfileRequestToUpdateProfileInput = func(context models.NamespacedID, source v3.UpsertBillingProfileRequest) (billing.UpdateProfileInput, error) {
-		var billingUpdateProfileInput billing.UpdateProfileInput
-		billingUpdateProfileInput.ID = ResolveIDFromContext(context)
-		billingUpdateProfileInput.Namespace = ResolveNamespaceFromContext(context)
-		billingUpdateProfileInput.Name = source.Name
-		billingUpdateProfileInput.Description = source.Description
-		billingWorkflowConfig, err := ConvertBillingWorkflowToWorkflowConfig(source.Workflow)
-		if err != nil {
-			return billingUpdateProfileInput, err
-		}
-		billingUpdateProfileInput.WorkflowConfig = billingWorkflowConfig
-		billingUpdateProfileInput.Supplier = ConvertBillingPartyToSupplierContact(source.Supplier)
-		billingUpdateProfileInput.Default = source.Default
-		billingMetadata, err := ConvertLabelsToMetadata(source.Labels)
-		if err != nil {
-			return billingUpdateProfileInput, err
-		}
-		billingUpdateProfileInput.Metadata = billingMetadata
-		return billingUpdateProfileInput, nil
-	}
 }
 func pBillingProfileAppsToV3BillingProfileAppReferences(source *billing.ProfileApps) v3.BillingProfileAppReferences {
 	var v3BillingProfileAppReferences v3.BillingProfileAppReferences
 	if source != nil {
-		v3BillingProfileAppReferences.Invoicing = ConvertAppToBillingAppReference((*source).Invoicing)
-		v3BillingProfileAppReferences.Payment = ConvertAppToBillingAppReference((*source).Payment)
-		v3BillingProfileAppReferences.Tax = ConvertAppToBillingAppReference((*source).Tax)
+		v3BillingProfileAppReferences.Invoicing = ToAPIBillingAppReference((*source).Invoicing)
+		v3BillingProfileAppReferences.Payment = ToAPIBillingAppReference((*source).Payment)
+		v3BillingProfileAppReferences.Tax = ToAPIBillingAppReference((*source).Tax)
 	}
 	return v3BillingProfileAppReferences
 }

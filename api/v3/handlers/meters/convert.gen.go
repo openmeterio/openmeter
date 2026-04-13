@@ -11,13 +11,13 @@ import (
 )
 
 func init() {
-	ConvertFromCreateMeterRequestToCreateMeterInput = func(context string, source v3.CreateMeterRequest) (meter.CreateMeterInput, error) {
+	FromAPICreateMeterRequest = func(context string, source v3.CreateMeterRequest) (meter.CreateMeterInput, error) {
 		var meterCreateMeterInput meter.CreateMeterInput
 		meterCreateMeterInput.Namespace = NamespaceFromContext(context)
 		meterCreateMeterInput.Name = source.Name
 		meterCreateMeterInput.Key = source.Key
 		meterCreateMeterInput.Description = source.Description
-		meterCreateMeterInput.Aggregation = ConvertAPIMeterAggregationToMeterAggregation(source.Aggregation)
+		meterCreateMeterInput.Aggregation = FromAPIMeterAggregation(source.Aggregation)
 		meterCreateMeterInput.EventType = source.EventType
 		meterCreateMeterInput.EventFrom = source.EventsFrom
 		meterCreateMeterInput.ValueProperty = source.ValueProperty
@@ -31,20 +31,9 @@ func init() {
 		meterCreateMeterInput.Metadata = modelsMetadata
 		return meterCreateMeterInput, nil
 	}
-	ConvertMeterListResponse = func(source response.PagePaginationResponse[meter.Meter]) v3.MeterPagePaginatedResponse {
-		var v3MeterPagePaginatedResponse v3.MeterPagePaginatedResponse
-		if source.Data != nil {
-			v3MeterPagePaginatedResponse.Data = make([]v3.Meter, len(source.Data))
-			for i := 0; i < len(source.Data); i++ {
-				v3MeterPagePaginatedResponse.Data[i] = ConvertMeterToAPIMeter(source.Data[i])
-			}
-		}
-		v3MeterPagePaginatedResponse.Meta = responsePageMetaToV3PaginatedMeta(source.Meta)
-		return v3MeterPagePaginatedResponse
-	}
-	ConvertMeterToAPIMeter = func(source meter.Meter) v3.Meter {
+	ToAPIMeter = func(source meter.Meter) v3.Meter {
 		var v3Meter v3.Meter
-		v3Meter.Aggregation = ConvertMeterAggregationToAPIMeterAggregation(source.Aggregation)
+		v3Meter.Aggregation = ToAPIMeterAggregation(source.Aggregation)
 		v3Meter.CreatedAt = timeTimeToPTimeTime(source.ManagedResource.ManagedModel.CreatedAt)
 		v3Meter.DeletedAt = source.ManagedResource.ManagedModel.DeletedAt
 		v3Meter.Description = source.ManagedResource.Description
@@ -58,6 +47,17 @@ func init() {
 		v3Meter.UpdatedAt = timeTimeToPTimeTime(source.ManagedResource.ManagedModel.UpdatedAt)
 		v3Meter.ValueProperty = source.ValueProperty
 		return v3Meter
+	}
+	ToAPIMeterPagePaginatedResponse = func(source response.PagePaginationResponse[meter.Meter]) v3.MeterPagePaginatedResponse {
+		var v3MeterPagePaginatedResponse v3.MeterPagePaginatedResponse
+		if source.Data != nil {
+			v3MeterPagePaginatedResponse.Data = make([]v3.Meter, len(source.Data))
+			for i := 0; i < len(source.Data); i++ {
+				v3MeterPagePaginatedResponse.Data[i] = ToAPIMeter(source.Data[i])
+			}
+		}
+		v3MeterPagePaginatedResponse.Meta = responsePageMetaToV3PaginatedMeta(source.Meta)
+		return v3MeterPagePaginatedResponse
 	}
 }
 func responsePageMetaPageToV3PageMeta(source response.PageMetaPage) v3.PageMeta {

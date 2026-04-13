@@ -109,7 +109,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 			}
 
 			customers := lo.Map(resp.Items, func(item customer.Customer, _ int) api.BillingCustomer {
-				return ConvertCustomerRequestToBillingCustomer(item)
+				return ToAPIBillingCustomer(item)
 			})
 
 			r := response.NewPagePaginationResponse(customers, response.PageMetaPage{

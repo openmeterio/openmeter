@@ -64,7 +64,7 @@ func (h *handler) ListTaxCodes() ListTaxCodesHandler {
 
 			taxcodes := make([]api.BillingTaxCode, 0, len(resp.Items))
 			for _, item := range resp.Items {
-				apiTaxCode, err := ConvertTaxCodeToAPITaxCode(item)
+				apiTaxCode, err := ToAPIBillingTaxCode(item)
 				if err != nil {
 					return ListTaxCodesResponse{}, err
 				}

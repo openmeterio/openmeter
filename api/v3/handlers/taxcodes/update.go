@@ -34,7 +34,7 @@ func (h *handler) UpdateTaxCode() UpdateTaxCodeHandler {
 				return UpdateTaxCodeRequest{}, err
 			}
 
-			req, err := ConvertFromUpsertTaxCodeRequestToUpdateTaxCodeInput(models.NamespacedID{
+			req, err := FromAPIUpsertTaxCodeRequest(models.NamespacedID{
 				Namespace: ns,
 				ID:        taxCodeID,
 			}, body)
@@ -50,7 +50,7 @@ func (h *handler) UpdateTaxCode() UpdateTaxCodeHandler {
 				return UpdateTaxCodeResponse{}, err
 			}
 
-			return ConvertTaxCodeToAPITaxCode(t)
+			return ToAPIBillingTaxCode(t)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdateTaxCodeResponse](http.StatusOK),
 		httptransport.AppendOptions(

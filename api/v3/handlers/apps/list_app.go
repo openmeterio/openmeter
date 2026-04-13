@@ -63,7 +63,7 @@ func (h *handler) ListApps() ListAppsHandler {
 				return ListAppsResponse{}, fmt.Errorf("failed to list apps: %w", err)
 			}
 
-			items, err := ConvertAppsToBillingApps(result.Items)
+			items, err := ToAPIBillingApps(result.Items)
 			if err != nil {
 				return ListAppsResponse{}, fmt.Errorf("failed to convert Apps to BillingApps: %w", err)
 			}
@@ -74,7 +74,7 @@ func (h *handler) ListApps() ListAppsHandler {
 				Total:  lo.ToPtr(result.TotalCount),
 			})
 
-			response := ConvertToListAppResponse(r)
+			response := ToAPIAppPagePaginatedResponse(r)
 
 			return response, nil
 		},

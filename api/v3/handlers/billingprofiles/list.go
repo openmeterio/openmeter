@@ -65,7 +65,7 @@ func (h *handler) ListBillingProfiles() ListBillingProfilesHandler {
 				return ListBillingProfilesResponse{}, fmt.Errorf("failed to list billing profiles: %w", err)
 			}
 
-			profiles, err := ConvertProfilesToBillingProfiles(resp.Items)
+			profiles, err := ToAPIBillingProfiles(resp.Items)
 			if err != nil {
 				return ListBillingProfilesResponse{}, fmt.Errorf("failed to convert billing profiles: %w", err)
 			}
