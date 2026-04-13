@@ -50,7 +50,10 @@ func (h *handler) UpdatePlanAddon() UpdatePlanAddonHandler {
 			}
 
 			if body.Labels != nil {
-				m := labels.ToMetadata(body.Labels)
+				m, err := labels.ToMetadata(body.Labels)
+				if err != nil {
+					return UpdatePlanAddonRequest{}, err
+				}
 				req.Metadata = &m
 			}
 
