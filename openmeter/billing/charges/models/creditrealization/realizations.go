@@ -9,6 +9,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/samber/lo/mutable"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -45,6 +46,27 @@ func (r Realizations) AllocationsByID() map[string]Realization {
 			return realization.ID
 		},
 	)
+}
+
+func (r Realizations) AsCreditsApplied() (billing.CreditsApplied, error) {
+	allocationsWithCorrections, err := r.allocationsWithCorrections()
+	if err != nil {
+		return nil, err
+	}
+
+	creditsApplied := make(billing.CreditsApplied, 0, len(allocationsWithCorrections))
+	for _, allocationWithCorrections := range allocationsWithCorrections {
+		if !allocationWithCorrections.RemainingAmount.IsPositive() {
+			continue
+		}
+
+		creditsApplied = append(creditsApplied, billing.CreditApplied{
+			Amount:              allocationWithCorrections.RemainingAmount,
+			CreditRealizationID: allocationWithCorrections.Allocation.ID,
+		})
+	}
+
+	return creditsApplied, nil
 }
 
 var ErrInsufficientFunds = models.NewGenericValidationError(errors.New("insufficient funds"))

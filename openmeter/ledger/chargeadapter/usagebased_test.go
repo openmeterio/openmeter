@@ -65,6 +65,27 @@ func TestOnUsageBasedCreditsOnlyUsageAccrued(t *testing.T) {
 		require.True(t, env.sumBalance(t, env.unknownAccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(10)))
 	})
 
+	t.Run("credit_then_invoice collects available credits", func(t *testing.T) {
+		env := newUsageBasedHandlerTestEnv(t)
+
+		priorityOne := env.fundPriority(t, 1, 20)
+
+		realizations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedInput{
+			Charge:           env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
+			Run:              env.newRun(),
+			AllocateAt:       env.Now(),
+			AmountToAllocate: alpacadecimal.NewFromInt(30),
+		})
+		require.NoError(t, err)
+		require.Len(t, realizations, 1)
+		require.True(t, realizations[0].Amount.Equal(alpacadecimal.NewFromInt(20)))
+
+		require.True(t, env.sumBalance(t, priorityOne).Equal(alpacadecimal.Zero))
+		require.True(t, env.sumBalance(t, env.unknownReceivableSubAccount(t)).Equal(alpacadecimal.Zero))
+		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(20)))
+		require.True(t, env.sumBalance(t, env.unknownAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
+	})
+
 	t.Run("zero amount is rejected by input validation", func(t *testing.T) {
 		env := newUsageBasedHandlerTestEnv(t)
 
@@ -116,6 +137,43 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		require.True(t, env.sumBalance(t, env.unknownFboSubAccount(t)).Equal(alpacadecimal.Zero))
 		require.True(t, env.sumBalance(t, env.unknownAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
 	})
+
+	t.Run("credit_then_invoice reverses accrual", func(t *testing.T) {
+		env := newUsageBasedHandlerTestEnv(t)
+		_ = env.fundPriority(t, 1, 20)
+
+		run := env.newRun()
+		allocations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedInput{
+			Charge:           env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
+			Run:              run,
+			AllocateAt:       env.Now(),
+			AmountToAllocate: alpacadecimal.NewFromInt(20),
+		})
+		require.NoError(t, err)
+		require.Len(t, allocations, 1)
+
+		run.CreditsAllocated = env.realizationsFromAllocations(allocations)
+
+		currencyCalculator, err := env.Currency.Calculator()
+		require.NoError(t, err)
+
+		correctionsRequest, err := run.CreditsAllocated.CreateCorrectionRequest(alpacadecimal.NewFromInt(-20), currencyCalculator)
+		require.NoError(t, err)
+
+		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedCorrectionInput{
+			Charge:      env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
+			Run:         run,
+			AllocateAt:  env.Now(),
+			Corrections: correctionsRequest,
+		})
+		require.NoError(t, err)
+		require.Len(t, corrections, 1)
+		require.True(t, corrections[0].Amount.Equal(alpacadecimal.NewFromInt(-20)))
+
+		require.True(t, env.sumBalance(t, env.unknownReceivableSubAccount(t)).Equal(alpacadecimal.Zero))
+		require.True(t, env.sumBalance(t, env.unknownFboSubAccount(t)).Equal(alpacadecimal.Zero))
+		require.True(t, env.sumBalance(t, env.unknownAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
+	})
 }
 
 type usageBasedHandlerTestEnv struct {
@@ -140,6 +198,10 @@ func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
 }
 
 func (e *usageBasedHandlerTestEnv) newCreditsOnlyCharge() chargeusagebased.Charge {
+	return e.newCharge(productcatalog.CreditOnlySettlementMode)
+}
+
+func (e *usageBasedHandlerTestEnv) newCharge(settlementMode productcatalog.SettlementMode) chargeusagebased.Charge {
 	now := time.Now().UTC()
 	featureID := "feature-api-requests"
 	servicePeriod := timeutil.ClosedPeriod{
@@ -169,7 +231,7 @@ func (e *usageBasedHandlerTestEnv) newCreditsOnlyCharge() chargeusagebased.Charg
 					BillingPeriod: servicePeriod,
 				},
 				InvoiceAt:      now,
-				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				SettlementMode: settlementMode,
 				FeatureKey:     "api_requests",
 				Price:          *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
 			},

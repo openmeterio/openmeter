@@ -165,17 +165,19 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceCreatedRun(ctx context.Co
 		targetCreditsTotal = currentTotals.Total
 	}
 
-	if _, err := s.Runs.ReconcileCredits(ctx, usagebasedrun.ReconcileCreditRealizationsInput{
+	reconcileResult, err := s.Runs.ReconcileCredits(ctx, usagebasedrun.ReconcileCreditRealizationsInput{
 		Charge:             s.Charge,
 		Run:                currentRun,
 		AllocateAt:         storedAtOffset,
 		TargetAmount:       targetCreditsTotal,
 		CurrencyCalculator: s.CurrencyCalculator,
 		ExactAllocation:    false,
-	}); err != nil {
+	})
+	if err != nil {
 		return fmt.Errorf("reconcile lifecycle: %w", err)
 	}
 
+	currentRun.CreditsAllocated = append(currentRun.CreditsAllocated, reconcileResult.Realizations...)
 	currentTotals.CreditsTotal = currentTotals.CreditsTotal.Add(targetCreditsTotal)
 	currentTotals.Total = s.CurrencyCalculator.RoundToPrecision(currentTotals.Total.Sub(targetCreditsTotal))
 

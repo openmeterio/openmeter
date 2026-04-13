@@ -970,6 +970,12 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		s.NotNil(stdLine.UsageBased.MeteredQuantity)
 		s.Equal(float64(100), lo.FromPtr(stdLine.UsageBased.Quantity).InexactFloat64())
 		s.Equal(float64(100), lo.FromPtr(stdLine.UsageBased.MeteredQuantity).InexactFloat64())
+		s.Len(stdLine.CreditsApplied, 1)
+		s.Equal(float64(5), stdLine.CreditsApplied[0].Amount.InexactFloat64())
+		s.Equal(float64(5), stdLine.Totals.CreditsTotal.InexactFloat64())
+		s.Equal(float64(5), stdLine.Totals.Total.InexactFloat64())
+		s.Equal(float64(5), invoice.Totals.CreditsTotal.InexactFloat64())
+		s.Equal(float64(5), invoice.Totals.Total.InexactFloat64())
 		s.Equal(usageBasedChargeID.ID, lo.FromPtr(stdLine.ChargeID))
 
 		usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
@@ -980,6 +986,8 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		currentRun, err := usageBasedCharge.GetCurrentRealizationRun()
 		s.NoError(err)
 		s.Equal(float64(100), currentRun.MeterValue.InexactFloat64())
+		s.Len(currentRun.CreditsAllocated, 1)
+		s.Equal(float64(5), currentRun.CreditsAllocated[0].Amount.InexactFloat64())
 	})
 
 	s.Run("#5 advance invoice at collection period end", func() {
@@ -994,6 +1002,15 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		var err error
 		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
 		s.NoError(err)
+		s.Len(invoice.Lines.OrEmpty(), 1)
+
+		stdLine := invoice.Lines.OrEmpty()[0]
+		s.Len(stdLine.CreditsApplied, 1)
+		s.Equal(float64(5), stdLine.CreditsApplied[0].Amount.InexactFloat64())
+		s.Equal(float64(5), stdLine.Totals.CreditsTotal.InexactFloat64())
+		s.Equal(float64(7.5), stdLine.Totals.Total.InexactFloat64())
+		s.Equal(float64(5), invoice.Totals.CreditsTotal.InexactFloat64())
+		s.Equal(float64(7.5), invoice.Totals.Total.InexactFloat64())
 
 		usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
 		s.Equal(usagebased.StatusActiveFinalRealizationCompleted, usageBasedCharge.Status)
@@ -1004,6 +1021,8 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		s.NoError(err)
 		s.Equal(float64(125), currentRun.MeterValue.InexactFloat64())
 		s.True(currentRun.CollectionEnd.Equal(invoice.DefaultCollectionAtForStandardInvoice()))
+		s.Len(currentRun.CreditsAllocated, 1)
+		s.Equal(float64(5), currentRun.CreditsAllocated[0].Amount.InexactFloat64())
 	})
 }
 
