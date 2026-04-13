@@ -6,12 +6,11 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 
-	"github.com/openmeterio/openmeter/api/v3/filters"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	pricedb "github.com/openmeterio/openmeter/openmeter/ent/db/llmcostprice"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -28,21 +27,11 @@ func (a *adapter) ListPrices(ctx context.Context, input llmcost.ListPricesInput)
 			Where(pricedb.DeletedAtIsNil()).
 			Where(pricedb.NamespaceIsNil()) // Global prices only
 
-		applyStringFilter(input.Provider, &query,
-			pricedb.ProviderEqualFold, pricedb.ProviderNEQ, pricedb.ProviderContainsFold,
-		)
-		applyStringFilter(input.ModelID, &query,
-			pricedb.ModelIDEqualFold, pricedb.ModelIDNEQ, pricedb.ModelIDContainsFold,
-		)
-		applyStringFilter(input.ModelName, &query,
-			pricedb.ModelNameEqualFold, pricedb.ModelNameNEQ, pricedb.ModelNameContainsFold,
-		)
-		applyStringFilter(input.Currency, &query,
-			pricedb.CurrencyEqualFold, pricedb.CurrencyNEQ, pricedb.CurrencyContainsFold,
-		)
-		applyStringFilter(input.Source, &query,
-			pricedb.SourceEqualFold, pricedb.SourceNEQ, pricedb.SourceContainsFold,
-		)
+		query = filter.ApplyToQuery(query, input.Provider, pricedb.FieldProvider)
+		query = filter.ApplyToQuery(query, input.ModelID, pricedb.FieldModelID)
+		query = filter.ApplyToQuery(query, input.ModelName, pricedb.FieldModelName)
+		query = filter.ApplyToQuery(query, input.Currency, pricedb.FieldCurrency)
+		query = filter.ApplyToQuery(query, input.Source, pricedb.FieldSource)
 
 		// Order
 		order := entutils.GetOrdering(sortx.OrderDefault)
@@ -236,18 +225,10 @@ func (a *adapter) ListOverrides(ctx context.Context, input llmcost.ListOverrides
 			Where(pricedb.NamespaceEQ(input.Namespace)).
 			Where(pricedb.SourceEQ(string(llmcost.PriceSourceManual)))
 
-		applyStringFilter(input.Provider, &query,
-			pricedb.ProviderEqualFold, pricedb.ProviderNEQ, pricedb.ProviderContainsFold,
-		)
-		applyStringFilter(input.ModelID, &query,
-			pricedb.ModelIDEqualFold, pricedb.ModelIDNEQ, pricedb.ModelIDContainsFold,
-		)
-		applyStringFilter(input.ModelName, &query,
-			pricedb.ModelNameEqualFold, pricedb.ModelNameNEQ, pricedb.ModelNameContainsFold,
-		)
-		applyStringFilter(input.Currency, &query,
-			pricedb.CurrencyEqualFold, pricedb.CurrencyNEQ, pricedb.CurrencyContainsFold,
-		)
+		query = filter.ApplyToQuery(query, input.Provider, pricedb.FieldProvider)
+		query = filter.ApplyToQuery(query, input.ModelID, pricedb.FieldModelID)
+		query = filter.ApplyToQuery(query, input.ModelName, pricedb.FieldModelName)
+		query = filter.ApplyToQuery(query, input.Currency, pricedb.FieldCurrency)
 		// Source filter is not applied here because ListOverrides already
 		// constrains to source = "manual" (line above). Adding a user-supplied
 		// source filter would create contradictory WHERE clauses.
@@ -319,26 +300,4 @@ func (a *adapter) UpsertGlobalPrice(ctx context.Context, price llmcost.Price) er
 
 		return nil
 	})
-}
-
-// applyStringFilter applies a StringFilter to an ent query using the provided predicate functions.
-func applyStringFilter(
-	f *filters.StringFilter,
-	query **entdb.LLMCostPriceQuery,
-	eqFold func(string) predicate.LLMCostPrice,
-	neq func(string) predicate.LLMCostPrice,
-	containsFold func(string) predicate.LLMCostPrice,
-) {
-	if f == nil {
-		return
-	}
-
-	switch {
-	case f.Eq != nil:
-		*query = (*query).Where(eqFold(*f.Eq))
-	case f.Neq != nil:
-		*query = (*query).Where(neq(*f.Neq))
-	case f.Contains != nil:
-		*query = (*query).Where(containsFold(*f.Contains))
-	}
 }

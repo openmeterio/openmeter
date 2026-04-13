@@ -28,9 +28,7 @@ model ListCustomerChargesParamsFilter {
    *
    * If omitted, all statuses are returned except for `deleted`.
    */
-  status?: {
-    oeq: string;
-  };
+  status?: Common.StringFieldFilterExact;
 }
 
 interface CustomerChargesOperations {

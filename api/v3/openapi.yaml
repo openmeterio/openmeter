@@ -7042,24 +7042,6 @@ components:
         id:
           $ref: '#/components/schemas/ULID'
       description: Feature reference.
-    FilterSingleString:
-      type: object
-      properties:
-        eq:
-          type: string
-          description: The field must match the provided value.
-          x-omitempty: true
-        neq:
-          type: string
-          description: The field must not match the provided value.
-          x-omitempty: true
-        contains:
-          type: string
-          description: The field must contain the provided value.
-          x-omitempty: true
-      description: |-
-        A filter for a single string field.
-        TODO: This is a temporary solution to support the filter API.
     GetCreditBalanceParamsFilter:
       type: object
       properties:
@@ -7245,12 +7227,8 @@ components:
       type: object
       properties:
         status:
-          type: object
-          properties:
-            oeq:
-              type: string
-          required:
-            - oeq
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilterExact'
           description: |-
             Filter charges by status.
 
@@ -7319,33 +7297,39 @@ components:
       properties:
         key:
           allOf:
-            - $ref: '#/components/schemas/ExternalResourceKey'
-          description: |-
-            Filter customers by key.
-            Case-insensitive partial match.
+            - $ref: '#/components/schemas/StringFieldFilter'
+          description: Filter customers by key.
+        name:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilter'
+          description: Filter customers by name.
+        primary_email:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilter'
+          description: Filter customers by primary email.
       description: Filter options for listing customers.
     ListLLMCostPricesParamsFilter:
       type: object
       properties:
         provider:
           allOf:
-            - $ref: '#/components/schemas/FilterSingleString'
+            - $ref: '#/components/schemas/StringFieldFilter'
           description: Filter by provider. e.g. ?filter[provider][eq]=openai
         model_id:
           allOf:
-            - $ref: '#/components/schemas/FilterSingleString'
+            - $ref: '#/components/schemas/StringFieldFilter'
           description: Filter by model ID. e.g. ?filter[model_id][eq]=gpt-4
         model_name:
           allOf:
-            - $ref: '#/components/schemas/FilterSingleString'
+            - $ref: '#/components/schemas/StringFieldFilter'
           description: Filter by model name. e.g. ?filter[model_name][contains]=gpt
         currency:
           allOf:
-            - $ref: '#/components/schemas/FilterSingleString'
+            - $ref: '#/components/schemas/StringFieldFilter'
           description: Filter by currency code. e.g. ?filter[currency][eq]=USD
         source:
           allOf:
-            - $ref: '#/components/schemas/FilterSingleString'
+            - $ref: '#/components/schemas/StringFieldFilter'
           description: Filter by source. e.g. ?filter[source][eq]=system
       description: Filter options for listing LLM cost prices.
     Meter:
@@ -7971,6 +7955,74 @@ components:
         - `system`: The resource is managed by the system.
         - `subscription`: The resource is managed by the subscription.
       title: Resource managed by
+    StringFieldFilter:
+      anyOf:
+        - type: string
+        - type: object
+          properties:
+            eq:
+              type: string
+              description: Value strictly equals the given string value.
+            neq:
+              type: string
+              description: Value does not equal the given string value.
+            contains:
+              type: string
+              description: Value contains the given string value (fuzzy match).
+            ocontains:
+              type: string
+              items:
+                type: string
+              format: ArrayEncoding.commaDelimited
+              description: Returns entities that fuzzy-match any of the comma-delimited phrases in the filter string.
+            oeq:
+              type: string
+              items:
+                type: string
+              format: ArrayEncoding.commaDelimited
+              description: Returns entities that exact match any of the comma-delimited phrases in the filter string.
+            gt:
+              type: string
+              description: Value is greater than the given string value (lexicographic compare).
+            gte:
+              type: string
+              description: Value is greater than or equal to the given string value (lexicographic compare).
+            lt:
+              type: string
+              description: Value is less than the given string value (lexicographic compare).
+            lte:
+              type: string
+              description: Value is less than or equal to the given string value (lexicographic compare).
+            exists:
+              type: boolean
+              description: When true, the field must be present (non-null); when false, the field must be absent (null).
+      description: |-
+        Filters on the given string field value by either exact or fuzzy match.
+        All properties are optional; provide exactly one to specify the comparison.
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/api/v3/filters
+      x-go-type: filters.FilterString
+    StringFieldFilterExact:
+      type: object
+      properties:
+        eq:
+          type: string
+          description: Value strictly equals the given string value.
+        oeq:
+          type: string
+          items:
+            type: string
+          format: ArrayEncoding.commaDelimited
+          description: Returns entities that exact match any of the comma-delimited phrases in the filter string.
+        neq:
+          type: string
+          description: Value does not equal the given string value.
+      description: |-
+        Filters on the given string field value by exact match.
+        All properties are optional; provide exactly one to specify the comparison.
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/api/v3/filters
+      x-go-type: filters.FilterStringExact
     SubscriptionPagePaginatedResponse:
       type: object
       required:

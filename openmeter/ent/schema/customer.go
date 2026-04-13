@@ -39,6 +39,20 @@ func (Customer) Fields() []ent.Field {
 }
 
 func (Customer) Indexes() []ent.Index {
+	// TODO(DoS hardening): the public v3 filter API exposes case-insensitive
+	// `contains`/`ocontains` operators on `name`, `primary_email`, and `key`
+	// (see api/v3/filters/filter.go and api/v3/handlers/customers/list.go).
+	// Those compile to `ILIKE '%value%'` (leading wildcard), which cannot use
+	// the plain btree indexes below \u2014 every matching request runs a full
+	// sequential scan of the customers table plus a second sequential scan
+	// from query.Paginate's COUNT(*). Before exposing the v3 customers list
+	// handler in the server, add pg_trgm GIN indexes on lower(name),
+	// lower(primary_email), and lower(key) via a custom SQL migration
+	// (CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE INDEX ... USING gin
+	// (lower(col) gin_trgm_ops) WHERE deleted_at IS NULL). The parser-side
+	// caps in api/v3/filters/parse.go (maxCommaSeparatedItems,
+	// maxFilterValueLength) bound the amplification from a single request
+	// but don't remove the seq-scan cost per ILIKE term.
 	return []ent.Index{
 		// Indexes because of API filters
 		index.Fields("namespace", "key").

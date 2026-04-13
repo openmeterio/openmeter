@@ -14,3 +14,5 @@ output: ./api.gen.go
 output-options:
   nullable-type: true
   skip-prune: true
+  user-templates:
+    chi/chi-middleware.tmpl: ./templates/chi-middleware.tmpl

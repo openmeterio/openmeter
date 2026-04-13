@@ -121,6 +121,13 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/GoneError'
+    # 413
+    PayloadTooLarge:
+      description: Payload Too Large
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/PayloadTooLargeError'
     # 415
     UnsupportedMediaType:
       description: Unsupported Media Type
@@ -536,6 +543,21 @@ components:
           properties:
             message:
               example: Conflict
+    PayloadTooLargeError:
+      allOf:
+        - $ref: '#/components/schemas/BaseError'
+        - type: object
+          properties:
+            status:
+              example: 413
+            title:
+              example: Payload Too Large
+            type:
+              example: https://httpstatuses.com/413
+            instance:
+              example: kong:trace:1234567890
+            detail:
+              example: Payload Too Large
     UnsupportedMediaTypeError:
       allOf:
         - $ref: '#/components/schemas/BaseError'

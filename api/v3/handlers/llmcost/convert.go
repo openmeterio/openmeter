@@ -8,7 +8,6 @@ import (
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
-	"github.com/openmeterio/openmeter/api/v3/filters"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -213,28 +212,4 @@ func validPriceSortField(field string) bool {
 	default:
 		return false
 	}
-}
-
-// filterSingleStringToDomain converts an API FilterSingleString to the domain StringFilter.
-// Returns nil if the input is nil or empty.
-func filterSingleStringToDomain(f *api.FilterSingleString) (*filters.StringFilter, error) {
-	if f == nil {
-		return nil, nil
-	}
-
-	out := &filters.StringFilter{
-		Eq:       f.Eq,
-		Neq:      f.Neq,
-		Contains: f.Contains,
-	}
-
-	if err := out.Validate(); err != nil {
-		return nil, models.NewGenericValidationError(err)
-	}
-
-	if out.IsEmpty() {
-		return nil, nil
-	}
-
-	return out, nil
 }

@@ -21,9 +21,18 @@ namespace Customers;
 model ListCustomersParamsFilter {
   /**
    * Filter customers by key.
-   * Case-insensitive partial match.
    */
-  key?: Shared.ExternalResourceKey;
+  key?: Common.StringFieldFilter;
+
+  /**
+   * Filter customers by name.
+   */
+  name?: Common.StringFieldFilter;
+
+  /**
+   * Filter customers by primary email.
+   */
+  primary_email?: Common.StringFieldFilter;
 }
 
 interface CustomersOperations {

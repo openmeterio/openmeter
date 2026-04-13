@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -303,9 +304,9 @@ type ListCustomersInput struct {
 	Order   sortx.Order
 
 	// Filters
-	Key          *string
-	Name         *string
-	PrimaryEmail *string
+	Key          *filter.FilterString
+	Name         *filter.FilterString
+	PrimaryEmail *filter.FilterString
 	Subject      *string
 	PlanKey      *string
 	CustomerIDs  []string
@@ -315,15 +316,35 @@ type ListCustomersInput struct {
 }
 
 func (i ListCustomersInput) Validate() error {
+	var errs []error
+
 	if i.Namespace == "" {
-		return models.NewGenericValidationError(errors.New("namespace is required"))
+		errs = append(errs, models.NewGenericValidationError(errors.New("namespace is required")))
 	}
 
 	if err := i.Expands.Validate(); err != nil {
-		return models.NewGenericValidationError(err)
+		errs = append(errs, models.NewGenericValidationError(err))
 	}
 
-	return nil
+	if i.Key != nil {
+		if err := i.Key.Validate(); err != nil {
+			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid key filter: %w", err)))
+		}
+	}
+
+	if i.Name != nil {
+		if err := i.Name.Validate(); err != nil {
+			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid name filter: %w", err)))
+		}
+	}
+
+	if i.PrimaryEmail != nil {
+		if err := i.PrimaryEmail.Validate(); err != nil {
+			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid primary email filter: %w", err)))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // ListCustomerUsageAttributionsInput represents the input for the ListCustomerUsageAttributions method

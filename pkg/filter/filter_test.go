@@ -1,15 +1,41 @@
 package filter_test
 
 import (
+	"errors"
 	"testing"
 	"time"
 
+	"entgo.io/ent/dialect"
+	entsql "entgo.io/ent/dialect/sql"
 	"github.com/huandu/go-sqlbuilder"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/pkg/filter"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+// newSelectBuilder returns an in-memory Ent dialect selector configured for
+// Postgres. It is only an SQL builder (analogous to sqlbuilder.SelectBuilder).
+func newSelectBuilder() *entsql.Selector {
+	return entsql.Dialect(dialect.Postgres).Select("*").From(entsql.Table("test_table"))
+}
+
+// assertValidationError asserts on the result of a filter Validate call.
+// If wantErr is non-nil, err must be a models.GenericValidationError whose
+// underlying cause matches wantErr.
+func assertValidationError(t *testing.T, err error, wantErr error) {
+	t.Helper()
+	if wantErr == nil {
+		assert.NoError(t, err)
+		return
+	}
+	if !assert.Error(t, err) {
+		return
+	}
+	assert.True(t, models.IsGenericValidationError(err), "expected a models.GenericValidationError, got %T: %v", err, err)
+	assert.True(t, errors.Is(err, wantErr), "expected error to wrap %v, got %v", wantErr, err)
+}
 
 func TestEscapeLikePattern(t *testing.T) {
 	assert.Equal(t, "", filter.EscapeLikePattern(""))
@@ -24,43 +50,37 @@ func TestContainsPattern(t *testing.T) {
 
 func TestFilterString_Validate(t *testing.T) {
 	tests := []struct {
-		name       string
-		filter     filter.FilterString
-		wantErr    bool
-		errMessage string
+		name    string
+		filter  filter.FilterString
+		wantErr error
 	}{
 		{
-			name:    "nil filter",
-			filter:  filter.FilterString{},
-			wantErr: false,
+			name:   "nil filter",
+			filter: filter.FilterString{},
 		},
 		{
 			name: "valid eq filter",
 			filter: filter.FilterString{
 				Eq: lo.ToPtr("test"),
 			},
-			wantErr: false,
 		},
 		{
 			name: "valid ne filter",
 			filter: filter.FilterString{
 				Ne: lo.ToPtr("test"),
 			},
-			wantErr: false,
 		},
 		{
 			name: "valid exists filter",
 			filter: filter.FilterString{
 				Exists: lo.ToPtr(true),
 			},
-			wantErr: false,
 		},
 		{
 			name: "valid exists filter false",
 			filter: filter.FilterString{
 				Exists: lo.ToPtr(false),
 			},
-			wantErr: false,
 		},
 		{
 			name: "exists with eq filter",
@@ -68,43 +88,37 @@ func TestFilterString_Validate(t *testing.T) {
 				Exists: lo.ToPtr(true),
 				Eq:     lo.ToPtr("test"),
 			},
-			wantErr:    true,
-			errMessage: "only one filter can be set",
+			wantErr: filter.ErrFilterMultipleOperators,
 		},
 		{
 			name: "valid in filter",
 			filter: filter.FilterString{
 				In: &[]string{"test1", "test2"},
 			},
-			wantErr: false,
 		},
 		{
 			name: "valid nin filter",
 			filter: filter.FilterString{
 				Nin: &[]string{"test1", "test2"},
 			},
-			wantErr: false,
 		},
 		{
 			name: "valid like filter",
 			filter: filter.FilterString{
 				Like: lo.ToPtr("%test%"),
 			},
-			wantErr: false,
 		},
 		{
 			name: "valid ilike filter",
 			filter: filter.FilterString{
 				Ilike: lo.ToPtr("%test%"),
 			},
-			wantErr: false,
 		},
 		{
 			name: "valid gt filter",
 			filter: filter.FilterString{
 				Gt: lo.ToPtr("test"),
 			},
-			wantErr: false,
 		},
 		{
 			name: "valid And filter",
@@ -114,7 +128,6 @@ func TestFilterString_Validate(t *testing.T) {
 					{Eq: lo.ToPtr("test2")},
 				},
 			},
-			wantErr: false,
 		},
 		{
 			name: "valid Or filter",
@@ -124,7 +137,6 @@ func TestFilterString_Validate(t *testing.T) {
 					{Eq: lo.ToPtr("test2")},
 				},
 			},
-			wantErr: false,
 		},
 		{
 			name: "nested And filter",
@@ -137,7 +149,6 @@ func TestFilterString_Validate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
 		},
 		{
 			name: "nested Or filter",
@@ -150,7 +161,6 @@ func TestFilterString_Validate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
 		},
 		{
 			name: "multiple filters set",
@@ -162,34 +172,27 @@ func TestFilterString_Validate(t *testing.T) {
 				Lt:  lo.ToPtr("test"),
 				Lte: lo.ToPtr("test"),
 			},
-			wantErr:    true,
-			errMessage: "only one filter can be set",
+			wantErr: filter.ErrFilterMultipleOperators,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.filter.Validate()
-			if tt.wantErr {
-				assert.Error(t, err)
-				if tt.errMessage != "" {
-					assert.EqualError(t, err, tt.errMessage)
-				}
-			} else {
-				assert.NoError(t, err)
-			}
+			assertValidationError(t, tt.filter.Validate(), tt.wantErr)
 		})
 	}
 }
 
-func TestFilterString_SelectWhereExpr(t *testing.T) {
+func TestFilterString_SelectAndSelectWhereExpr(t *testing.T) {
 	tests := []struct {
-		name      string
-		filter    filter.FilterString
-		field     string
-		wantEmpty bool
-		wantSQL   string
-		wantArgs  []interface{}
+		name         string
+		filter       filter.FilterString
+		field        string
+		wantEmpty    bool
+		wantExprSQL  string
+		wantExprArgs []any
+		wantEntSQL   string
+		wantEntArgs  []any
 	}{
 		{
 			name:      "nil filter",
@@ -198,94 +201,184 @@ func TestFilterString_SelectWhereExpr(t *testing.T) {
 			wantEmpty: true,
 		},
 		{
-			name: "eq filter",
-			filter: filter.FilterString{
-				Eq: lo.ToPtr("test"),
-			},
-			field:     "test_field",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE test_field = ?",
-			wantArgs:  []interface{}{"test"},
+			name:         "eq filter",
+			filter:       filter.FilterString{Eq: lo.ToPtr("test")},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field = ?",
+			wantExprArgs: []any{"test"},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" = $1`,
+			wantEntArgs:  []any{"test"},
 		},
 		{
-			name: "ne filter",
-			filter: filter.FilterString{
-				Ne: lo.ToPtr("test"),
-			},
-			field:     "test_field",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE test_field <> ?",
-			wantArgs:  []interface{}{"test"},
+			name:         "ne filter",
+			filter:       filter.FilterString{Ne: lo.ToPtr("test")},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field <> ?",
+			wantExprArgs: []any{"test"},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" <> $1`,
+			wantEntArgs:  []any{"test"},
 		},
 		{
-			name: "exists filter",
-			filter: filter.FilterString{
-				Exists: lo.ToPtr(true),
-			},
-			field:     "test_field",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE test_field IS NOT NULL",
-			wantArgs:  nil,
+			name:         "exists filter",
+			filter:       filter.FilterString{Exists: lo.ToPtr(true)},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field IS NOT NULL",
+			wantExprArgs: nil,
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" IS NOT NULL`,
+			wantEntArgs:  nil,
 		},
 		{
-			name: "not exists filter",
-			filter: filter.FilterString{
-				Exists: lo.ToPtr(false),
-			},
-			field:     "test_field",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE test_field IS NULL",
-			wantArgs:  nil,
+			name:         "not exists filter",
+			filter:       filter.FilterString{Exists: lo.ToPtr(false)},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field IS NULL",
+			wantExprArgs: nil,
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" IS NULL`,
+			wantEntArgs:  nil,
 		},
 		{
-			name: "in filter",
-			filter: filter.FilterString{
-				In: &[]string{"test1", "test2"},
-			},
-			field:     "test_field",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE test_field IN (?)",
-			wantArgs:  []interface{}{[]string{"test1", "test2"}},
+			name:         "in filter",
+			filter:       filter.FilterString{In: &[]string{"test1", "test2"}},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field IN (?)",
+			wantExprArgs: []any{[]string{"test1", "test2"}},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" IN ($1, $2)`,
+			wantEntArgs:  []any{"test1", "test2"},
 		},
 		{
-			name: "nin filter",
-			filter: filter.FilterString{
-				Nin: &[]string{"test1", "test2"},
-			},
-			field:     "test_field",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE test_field NOT IN (?)",
-			wantArgs:  []interface{}{[]string{"test1", "test2"}},
+			name:         "in with single element",
+			filter:       filter.FilterString{In: &[]string{"only"}},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field IN (?)",
+			wantExprArgs: []any{[]string{"only"}},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" IN ($1)`,
+			wantEntArgs:  []any{"only"},
 		},
 		{
-			name: "like filter",
-			filter: filter.FilterString{
-				Like: lo.ToPtr("%test%"),
-			},
-			field:     "test_field",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE test_field LIKE ?",
-			wantArgs:  []interface{}{"%test%"},
+			name:         "nin filter",
+			filter:       filter.FilterString{Nin: &[]string{"test1", "test2"}},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field NOT IN (?)",
+			wantExprArgs: []any{[]string{"test1", "test2"}},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" NOT IN ($1, $2)`,
+			wantEntArgs:  []any{"test1", "test2"},
 		},
 		{
-			name: "ilike filter",
-			filter: filter.FilterString{
-				Ilike: lo.ToPtr("%test%"),
-			},
-			field:     "test_field",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE LOWER(test_field) LIKE LOWER(?)",
-			wantArgs:  []interface{}{"%test%"},
+			name:         "like filter",
+			filter:       filter.FilterString{Like: lo.ToPtr("%test%")},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field LIKE ?",
+			wantExprArgs: []any{"%test%"},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" LIKE $1`,
+			wantEntArgs:  []any{"%test%"},
 		},
 		{
-			name: "gt filter",
-			filter: filter.FilterString{
-				Gt: lo.ToPtr("test"),
-			},
-			field:     "test_field",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE test_field > ?",
-			wantArgs:  []interface{}{"test"},
+			name:         "nlike filter",
+			filter:       filter.FilterString{Nlike: lo.ToPtr("%test%")},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field NOT LIKE ?",
+			wantExprArgs: []any{"%test%"},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" NOT LIKE $1`,
+			wantEntArgs:  []any{"%test%"},
+		},
+		{
+			name:         "ilike filter",
+			filter:       filter.FilterString{Ilike: lo.ToPtr("%test%")},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE LOWER(test_field) LIKE LOWER(?)",
+			wantExprArgs: []any{"%test%"},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" ILIKE $1`,
+			wantEntArgs:  []any{"%test%"},
+		},
+		{
+			name:         "nilike filter",
+			filter:       filter.FilterString{Nilike: lo.ToPtr("%test%")},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE LOWER(test_field) NOT LIKE LOWER(?)",
+			wantExprArgs: []any{"%test%"},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" NOT ILIKE $1`,
+			wantEntArgs:  []any{"%test%"},
+		},
+		{
+			name:         "contains filter",
+			filter:       filter.FilterString{Contains: lo.ToPtr("needle")},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE LOWER(test_field) LIKE LOWER(?)",
+			wantExprArgs: []any{"%needle%"},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" ILIKE $1`,
+			wantEntArgs:  []any{"%needle%"},
+		},
+		{
+			name:         "contains filter escapes like metacharacters",
+			filter:       filter.FilterString{Contains: lo.ToPtr(`100%_path\name`)},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE LOWER(test_field) LIKE LOWER(?)",
+			wantExprArgs: []any{`%100\%\_path\\name%`},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" ILIKE $1`,
+			wantEntArgs:  []any{`%100\%\_path\\name%`},
+		},
+		{
+			name:         "ncontains filter",
+			filter:       filter.FilterString{Ncontains: lo.ToPtr("needle")},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE LOWER(test_field) NOT LIKE LOWER(?)",
+			wantExprArgs: []any{"%needle%"},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" NOT ILIKE $1`,
+			wantEntArgs:  []any{"%needle%"},
+		},
+		{
+			name:         "ncontains filter escapes like metacharacters",
+			filter:       filter.FilterString{Ncontains: lo.ToPtr(`50%`)},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE LOWER(test_field) NOT LIKE LOWER(?)",
+			wantExprArgs: []any{`%50\%%`},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" NOT ILIKE $1`,
+			wantEntArgs:  []any{`%50\%%`},
+		},
+		{
+			name:         "gt filter",
+			filter:       filter.FilterString{Gt: lo.ToPtr("test")},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field > ?",
+			wantExprArgs: []any{"test"},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" > $1`,
+			wantEntArgs:  []any{"test"},
+		},
+		{
+			name:         "gte filter",
+			filter:       filter.FilterString{Gte: lo.ToPtr("test")},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field >= ?",
+			wantExprArgs: []any{"test"},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" >= $1`,
+			wantEntArgs:  []any{"test"},
+		},
+		{
+			name:         "lt filter",
+			filter:       filter.FilterString{Lt: lo.ToPtr("test")},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field < ?",
+			wantExprArgs: []any{"test"},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" < $1`,
+			wantEntArgs:  []any{"test"},
+		},
+		{
+			name:         "lte filter",
+			filter:       filter.FilterString{Lte: lo.ToPtr("test")},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field <= ?",
+			wantExprArgs: []any{"test"},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" <= $1`,
+			wantEntArgs:  []any{"test"},
+		},
+		{
+			name:         "eq with empty string",
+			filter:       filter.FilterString{Eq: lo.ToPtr("")},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field = ?",
+			wantExprArgs: []any{""},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" = $1`,
+			wantEntArgs:  []any{""},
 		},
 		{
 			name: "and filter",
@@ -295,10 +388,11 @@ func TestFilterString_SelectWhereExpr(t *testing.T) {
 					{Eq: lo.ToPtr("test2")},
 				},
 			},
-			field:     "test_field",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE (test_field = ? AND test_field = ?)",
-			wantArgs:  []interface{}{"test1", "test2"},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE (test_field = ? AND test_field = ?)",
+			wantExprArgs: []any{"test1", "test2"},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" = $1 AND "test_table"."test_field" = $2`,
+			wantEntArgs:  []any{"test1", "test2"},
 		},
 		{
 			name: "or filter",
@@ -308,42 +402,63 @@ func TestFilterString_SelectWhereExpr(t *testing.T) {
 					{Eq: lo.ToPtr("test2")},
 				},
 			},
-			field:     "test_field",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE (test_field = ? OR test_field = ?)",
-			wantArgs:  []interface{}{"test1", "test2"},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE (test_field = ? OR test_field = ?)",
+			wantExprArgs: []any{"test1", "test2"},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" = $1 OR "test_table"."test_field" = $2`,
+			wantEntArgs:  []any{"test1", "test2"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// SelectWhereExpr (go-sqlbuilder) branch.
 			q := sqlbuilder.Select("*").From("table")
 			expr := tt.filter.SelectWhereExpr(tt.field, q)
 
 			if tt.wantEmpty {
 				assert.Empty(t, expr, "SQL expression should be empty")
+			} else {
+				assert.NotEmpty(t, expr, "SQL expression should not be empty")
+
+				q.Where(expr)
+				sql, args := q.Build()
+
+				assert.Equal(t, tt.wantExprSQL, sql, "go-sqlbuilder SQL statement should match expected value")
+				assert.Equal(t, tt.wantExprArgs, args, "go-sqlbuilder SQL arguments should match expected values")
+			}
+
+			// Select (Ent) branch.
+			predicate := tt.filter.Select(tt.field)
+
+			if tt.wantEmpty {
+				assert.Nil(t, predicate, "predicate should be nil for empty filter")
 				return
 			}
 
-			assert.NotEmpty(t, expr, "SQL expression should not be empty")
+			if !assert.NotNil(t, predicate, "predicate should not be nil") {
+				return
+			}
 
-			q.Where(expr)
-			sql, args := q.Build()
+			s := newSelectBuilder()
+			predicate(s)
+			sql, args := s.Query()
 
-			assert.Equal(t, tt.wantSQL, sql, "SQL statement should match expected value")
-			assert.Equal(t, tt.wantArgs, args, "SQL arguments should match expected values")
+			assert.Equal(t, tt.wantEntSQL, sql, "Ent SQL statement should match expected value")
+			assert.Equal(t, tt.wantEntArgs, args, "Ent SQL arguments should match expected values")
 		})
 	}
 }
 
-func TestFilterString_SelectWhereExpr_NestedOperators(t *testing.T) {
+func TestFilterString_SelectAndSelectWhereExpr_NestedOperators(t *testing.T) {
 	tests := []struct {
-		name      string
-		filter    filter.FilterString
-		field     string
-		wantEmpty bool
-		wantSQL   string
-		wantArgs  []interface{}
+		name         string
+		filter       filter.FilterString
+		field        string
+		wantExprSQL  string
+		wantExprArgs []any
+		wantEntSQL   string
+		wantEntArgs  []any
 	}{
 		{
 			name: "deeply nested And filter",
@@ -361,10 +476,11 @@ func TestFilterString_SelectWhereExpr_NestedOperators(t *testing.T) {
 					},
 				},
 			},
-			field:     "test_field",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE (((test_field = ? AND test_field = ?)))",
-			wantArgs:  []interface{}{"test1", "test2"},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE (((test_field = ? AND test_field = ?)))",
+			wantExprArgs: []any{"test1", "test2"},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" = $1 AND "test_table"."test_field" = $2`,
+			wantEntArgs:  []any{"test1", "test2"},
 		},
 		{
 			name: "mixed nested And/Or filter",
@@ -383,66 +499,135 @@ func TestFilterString_SelectWhereExpr_NestedOperators(t *testing.T) {
 					},
 				},
 			},
-			field:     "test_field",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE (((test_field = ? AND test_field <> ?) OR test_field = ?))",
-			wantArgs:  []interface{}{"test1", "test2", "test3"},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE (((test_field = ? AND test_field <> ?) OR test_field = ?))",
+			wantExprArgs: []any{"test1", "test2", "test3"},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE ("test_table"."test_field" = $1 AND "test_table"."test_field" <> $2) OR "test_table"."test_field" = $3`,
+			wantEntArgs:  []any{"test1", "test2", "test3"},
+		},
+		{
+			name: "Or of Ands",
+			filter: filter.FilterString{
+				Or: &[]filter.FilterString{
+					{
+						And: &[]filter.FilterString{
+							{Eq: lo.ToPtr("a")},
+							{Ne: lo.ToPtr("b")},
+						},
+					},
+					{
+						And: &[]filter.FilterString{
+							{Gte: lo.ToPtr("m")},
+							{Lte: lo.ToPtr("z")},
+						},
+					},
+				},
+			},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE ((test_field = ? AND test_field <> ?) OR (test_field >= ? AND test_field <= ?))",
+			wantExprArgs: []any{"a", "b", "m", "z"},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE ("test_table"."test_field" = $1 AND "test_table"."test_field" <> $2) OR ("test_table"."test_field" >= $3 AND "test_table"."test_field" <= $4)`,
+			wantEntArgs:  []any{"a", "b", "m", "z"},
+		},
+		{
+			name: "Or combining ilike and in",
+			filter: filter.FilterString{
+				Or: &[]filter.FilterString{
+					{Ilike: lo.ToPtr("%foo%")},
+					{In: &[]string{"bar", "baz"}},
+				},
+			},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE (LOWER(test_field) LIKE LOWER(?) OR test_field IN (?))",
+			wantExprArgs: []any{"%foo%", []string{"bar", "baz"}},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" ILIKE $1 OR "test_table"."test_field" IN ($2, $3)`,
+			wantEntArgs:  []any{"%foo%", "bar", "baz"},
+		},
+		{
+			name: "And of nested Or filters with contains",
+			filter: filter.FilterString{
+				And: &[]filter.FilterString{
+					{
+						Or: &[]filter.FilterString{
+							{Eq: lo.ToPtr("a")},
+							{Eq: lo.ToPtr("b")},
+						},
+					},
+					{
+						Or: &[]filter.FilterString{
+							{Contains: lo.ToPtr("x")},
+							{Contains: lo.ToPtr("y")},
+						},
+					},
+				},
+			},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE ((test_field = ? OR test_field = ?) AND (LOWER(test_field) LIKE LOWER(?) OR LOWER(test_field) LIKE LOWER(?)))",
+			wantExprArgs: []any{"a", "b", "%x%", "%y%"},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE ("test_table"."test_field" = $1 OR "test_table"."test_field" = $2) AND ("test_table"."test_field" ILIKE $3 OR "test_table"."test_field" ILIKE $4)`,
+			wantEntArgs:  []any{"a", "b", "%x%", "%y%"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// SelectWhereExpr (go-sqlbuilder) branch.
 			q := sqlbuilder.Select("*").From("table")
 			expr := tt.filter.SelectWhereExpr(tt.field, q)
 
-			if tt.wantEmpty {
-				assert.Empty(t, expr, "SQL expression should be empty")
+			if !assert.NotEmpty(t, expr, "SQL expression should not be empty") {
 				return
 			}
 
-			assert.NotEmpty(t, expr, "SQL expression should not be empty")
-
 			q.Where(expr)
-			sql, args := q.Build()
+			exprSQL, exprArgs := q.Build()
 
-			assert.Equal(t, tt.wantSQL, sql, "SQL statement should match expected value")
-			assert.Equal(t, tt.wantArgs, args, "SQL arguments should match expected values")
+			assert.Equal(t, tt.wantExprSQL, exprSQL, "go-sqlbuilder SQL statement should match expected value")
+			assert.Equal(t, tt.wantExprArgs, exprArgs, "go-sqlbuilder SQL arguments should match expected values")
+
+			// Select (Ent) branch.
+			predicate := tt.filter.Select(tt.field)
+			if !assert.NotNil(t, predicate, "predicate should not be nil") {
+				return
+			}
+
+			s := newSelectBuilder()
+			predicate(s)
+			entSQL, entArgs := s.Query()
+
+			assert.Equal(t, tt.wantEntSQL, entSQL, "Ent SQL statement should match expected value")
+			assert.Equal(t, tt.wantEntArgs, entArgs, "Ent SQL arguments should match expected values")
 		})
 	}
 }
 
 func TestFilterInteger_Validate(t *testing.T) {
 	tests := []struct {
-		name       string
-		filter     filter.FilterInteger
-		wantErr    bool
-		errMessage string
+		name    string
+		filter  filter.FilterInteger
+		wantErr error
 	}{
 		{
-			name:    "nil filter",
-			filter:  filter.FilterInteger{},
-			wantErr: false,
+			name:   "nil filter",
+			filter: filter.FilterInteger{},
 		},
 		{
 			name: "valid eq filter",
 			filter: filter.FilterInteger{
 				Eq: lo.ToPtr(42),
 			},
-			wantErr: false,
 		},
 		{
 			name: "valid ne filter",
 			filter: filter.FilterInteger{
 				Ne: lo.ToPtr(42),
 			},
-			wantErr: false,
 		},
 		{
 			name: "valid gt filter",
 			filter: filter.FilterInteger{
 				Gt: lo.ToPtr(42),
 			},
-			wantErr: false,
 		},
 		{
 			name: "valid And filter",
@@ -452,7 +637,6 @@ func TestFilterInteger_Validate(t *testing.T) {
 					{Gt: lo.ToPtr(10)},
 				},
 			},
-			wantErr: false,
 		},
 		{
 			name: "valid Or filter",
@@ -462,7 +646,6 @@ func TestFilterInteger_Validate(t *testing.T) {
 					{Lt: lo.ToPtr(100)},
 				},
 			},
-			wantErr: false,
 		},
 		{
 			name: "nested And filter",
@@ -475,7 +658,6 @@ func TestFilterInteger_Validate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
 		},
 		{
 			name: "multiple filters set",
@@ -487,34 +669,27 @@ func TestFilterInteger_Validate(t *testing.T) {
 				Lt:  lo.ToPtr(42),
 				Lte: lo.ToPtr(42),
 			},
-			wantErr:    true,
-			errMessage: "only one filter can be set",
+			wantErr: filter.ErrFilterMultipleOperators,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.filter.Validate()
-			if tt.wantErr {
-				assert.Error(t, err)
-				if tt.errMessage != "" {
-					assert.EqualError(t, err, tt.errMessage)
-				}
-			} else {
-				assert.NoError(t, err)
-			}
+			assertValidationError(t, tt.filter.Validate(), tt.wantErr)
 		})
 	}
 }
 
-func TestFilterInteger_SelectWhereExpr(t *testing.T) {
+func TestFilterInteger_SelectAndSelectWhereExpr(t *testing.T) {
 	tests := []struct {
-		name      string
-		filter    filter.FilterInteger
-		field     string
-		wantEmpty bool
-		wantSQL   string
-		wantArgs  []interface{}
+		name         string
+		filter       filter.FilterInteger
+		field        string
+		wantEmpty    bool
+		wantExprSQL  string
+		wantExprArgs []any
+		wantEntSQL   string
+		wantEntArgs  []any
 	}{
 		{
 			name:      "nil filter",
@@ -523,34 +698,76 @@ func TestFilterInteger_SelectWhereExpr(t *testing.T) {
 			wantEmpty: true,
 		},
 		{
-			name: "eq filter",
-			filter: filter.FilterInteger{
-				Eq: lo.ToPtr(42),
-			},
-			field:     "test_field",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE test_field = ?",
-			wantArgs:  []interface{}{42},
+			name:         "eq filter",
+			filter:       filter.FilterInteger{Eq: lo.ToPtr(42)},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field = ?",
+			wantExprArgs: []any{42},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" = $1`,
+			wantEntArgs:  []any{42},
 		},
 		{
-			name: "ne filter",
-			filter: filter.FilterInteger{
-				Ne: lo.ToPtr(42),
-			},
-			field:     "test_field",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE test_field <> ?",
-			wantArgs:  []interface{}{42},
+			name:         "ne filter",
+			filter:       filter.FilterInteger{Ne: lo.ToPtr(42)},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field <> ?",
+			wantExprArgs: []any{42},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" <> $1`,
+			wantEntArgs:  []any{42},
 		},
 		{
-			name: "gt filter",
-			filter: filter.FilterInteger{
-				Gt: lo.ToPtr(42),
-			},
-			field:     "test_field",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE test_field > ?",
-			wantArgs:  []interface{}{42},
+			name:         "gt filter",
+			filter:       filter.FilterInteger{Gt: lo.ToPtr(42)},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field > ?",
+			wantExprArgs: []any{42},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" > $1`,
+			wantEntArgs:  []any{42},
+		},
+		{
+			name:         "gte filter",
+			filter:       filter.FilterInteger{Gte: lo.ToPtr(42)},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field >= ?",
+			wantExprArgs: []any{42},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" >= $1`,
+			wantEntArgs:  []any{42},
+		},
+		{
+			name:         "lt filter",
+			filter:       filter.FilterInteger{Lt: lo.ToPtr(42)},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field < ?",
+			wantExprArgs: []any{42},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" < $1`,
+			wantEntArgs:  []any{42},
+		},
+		{
+			name:         "lte filter",
+			filter:       filter.FilterInteger{Lte: lo.ToPtr(42)},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field <= ?",
+			wantExprArgs: []any{42},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" <= $1`,
+			wantEntArgs:  []any{42},
+		},
+		{
+			name:         "eq filter with zero",
+			filter:       filter.FilterInteger{Eq: lo.ToPtr(0)},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field = ?",
+			wantExprArgs: []any{0},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" = $1`,
+			wantEntArgs:  []any{0},
+		},
+		{
+			name:         "eq filter with negative value",
+			filter:       filter.FilterInteger{Eq: lo.ToPtr(-7)},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field = ?",
+			wantExprArgs: []any{-7},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" = $1`,
+			wantEntArgs:  []any{-7},
 		},
 		{
 			name: "and filter",
@@ -560,10 +777,11 @@ func TestFilterInteger_SelectWhereExpr(t *testing.T) {
 					{Gt: lo.ToPtr(10)},
 				},
 			},
-			field:     "test_field",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE (test_field = ? AND test_field > ?)",
-			wantArgs:  []interface{}{42, 10},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE (test_field = ? AND test_field > ?)",
+			wantExprArgs: []any{42, 10},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" = $1 AND "test_table"."test_field" > $2`,
+			wantEntArgs:  []any{42, 10},
 		},
 		{
 			name: "or filter",
@@ -573,66 +791,114 @@ func TestFilterInteger_SelectWhereExpr(t *testing.T) {
 					{Lt: lo.ToPtr(100)},
 				},
 			},
-			field:     "test_field",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE (test_field = ? OR test_field < ?)",
-			wantArgs:  []interface{}{42, 100},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE (test_field = ? OR test_field < ?)",
+			wantExprArgs: []any{42, 100},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" = $1 OR "test_table"."test_field" < $2`,
+			wantEntArgs:  []any{42, 100},
+		},
+		{
+			name: "range via and (gte/lte)",
+			filter: filter.FilterInteger{
+				And: &[]filter.FilterInteger{
+					{Gte: lo.ToPtr(1)},
+					{Lte: lo.ToPtr(100)},
+				},
+			},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE (test_field >= ? AND test_field <= ?)",
+			wantExprArgs: []any{1, 100},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" >= $1 AND "test_table"."test_field" <= $2`,
+			wantEntArgs:  []any{1, 100},
+		},
+		{
+			name: "nested And of Or",
+			filter: filter.FilterInteger{
+				And: &[]filter.FilterInteger{
+					{
+						Or: &[]filter.FilterInteger{
+							{Eq: lo.ToPtr(1)},
+							{Eq: lo.ToPtr(2)},
+						},
+					},
+					{Ne: lo.ToPtr(99)},
+				},
+			},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE ((test_field = ? OR test_field = ?) AND test_field <> ?)",
+			wantExprArgs: []any{1, 2, 99},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE ("test_table"."test_field" = $1 OR "test_table"."test_field" = $2) AND "test_table"."test_field" <> $3`,
+			wantEntArgs:  []any{1, 2, 99},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// SelectWhereExpr (go-sqlbuilder) branch.
 			q := sqlbuilder.Select("*").From("table")
 			expr := tt.filter.SelectWhereExpr(tt.field, q)
 
 			if tt.wantEmpty {
 				assert.Empty(t, expr, "SQL expression should be empty")
+			} else {
+				assert.NotEmpty(t, expr, "SQL expression should not be empty")
+
+				q.Where(expr)
+				sql, args := q.Build()
+
+				assert.Equal(t, tt.wantExprSQL, sql, "go-sqlbuilder SQL statement should match expected value")
+				assert.Equal(t, tt.wantExprArgs, args, "go-sqlbuilder SQL arguments should match expected values")
+			}
+
+			// Select (Ent) branch.
+			predicate := tt.filter.Select(tt.field)
+
+			if tt.wantEmpty {
+				assert.Nil(t, predicate, "predicate should be nil for empty filter")
 				return
 			}
 
-			assert.NotEmpty(t, expr, "SQL expression should not be empty")
+			if !assert.NotNil(t, predicate, "predicate should not be nil") {
+				return
+			}
 
-			q.Where(expr)
-			sql, args := q.Build()
+			s := newSelectBuilder()
+			predicate(s)
+			sql, args := s.Query()
 
-			assert.Equal(t, tt.wantSQL, sql, "SQL statement should match expected value")
-			assert.Equal(t, tt.wantArgs, args, "SQL arguments should match expected values")
+			assert.Equal(t, tt.wantEntSQL, sql, "Ent SQL statement should match expected value")
+			assert.Equal(t, tt.wantEntArgs, args, "Ent SQL arguments should match expected values")
 		})
 	}
 }
 
 func TestFilterFloat_Validate(t *testing.T) {
 	tests := []struct {
-		name       string
-		filter     filter.FilterFloat
-		wantErr    bool
-		errMessage string
+		name    string
+		filter  filter.FilterFloat
+		wantErr error
 	}{
 		{
-			name:    "nil filter",
-			filter:  filter.FilterFloat{},
-			wantErr: false,
+			name:   "nil filter",
+			filter: filter.FilterFloat{},
 		},
 		{
 			name: "valid eq filter",
 			filter: filter.FilterFloat{
 				Eq: lo.ToPtr(42.5),
 			},
-			wantErr: false,
 		},
 		{
 			name: "valid ne filter",
 			filter: filter.FilterFloat{
 				Ne: lo.ToPtr(42.5),
 			},
-			wantErr: false,
 		},
 		{
 			name: "valid gt filter",
 			filter: filter.FilterFloat{
 				Gt: lo.ToPtr(42.5),
 			},
-			wantErr: false,
 		},
 		{
 			name: "valid And filter",
@@ -642,7 +908,6 @@ func TestFilterFloat_Validate(t *testing.T) {
 					{Gt: lo.ToPtr(10.5)},
 				},
 			},
-			wantErr: false,
 		},
 		{
 			name: "valid Or filter",
@@ -652,7 +917,6 @@ func TestFilterFloat_Validate(t *testing.T) {
 					{Lt: lo.ToPtr(100.5)},
 				},
 			},
-			wantErr: false,
 		},
 		{
 			name: "nested And filter",
@@ -665,7 +929,6 @@ func TestFilterFloat_Validate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
 		},
 		{
 			name: "multiple filters set",
@@ -677,34 +940,27 @@ func TestFilterFloat_Validate(t *testing.T) {
 				Lt:  lo.ToPtr(42.5),
 				Lte: lo.ToPtr(42.5),
 			},
-			wantErr:    true,
-			errMessage: "only one filter can be set",
+			wantErr: filter.ErrFilterMultipleOperators,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.filter.Validate()
-			if tt.wantErr {
-				assert.Error(t, err)
-				if tt.errMessage != "" {
-					assert.EqualError(t, err, tt.errMessage)
-				}
-			} else {
-				assert.NoError(t, err)
-			}
+			assertValidationError(t, tt.filter.Validate(), tt.wantErr)
 		})
 	}
 }
 
-func TestFilterFloat_SelectWhereExpr(t *testing.T) {
+func TestFilterFloat_SelectAndSelectWhereExpr(t *testing.T) {
 	tests := []struct {
-		name      string
-		filter    filter.FilterFloat
-		field     string
-		wantEmpty bool
-		wantSQL   string
-		wantArgs  []interface{}
+		name         string
+		filter       filter.FilterFloat
+		field        string
+		wantEmpty    bool
+		wantExprSQL  string
+		wantExprArgs []any
+		wantEntSQL   string
+		wantEntArgs  []any
 	}{
 		{
 			name:      "nil filter",
@@ -713,34 +969,76 @@ func TestFilterFloat_SelectWhereExpr(t *testing.T) {
 			wantEmpty: true,
 		},
 		{
-			name: "eq filter",
-			filter: filter.FilterFloat{
-				Eq: lo.ToPtr(42.5),
-			},
-			field:     "test_field",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE test_field = ?",
-			wantArgs:  []interface{}{42.5},
+			name:         "eq filter",
+			filter:       filter.FilterFloat{Eq: lo.ToPtr(42.5)},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field = ?",
+			wantExprArgs: []any{42.5},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" = $1`,
+			wantEntArgs:  []any{42.5},
 		},
 		{
-			name: "ne filter",
-			filter: filter.FilterFloat{
-				Ne: lo.ToPtr(42.5),
-			},
-			field:     "test_field",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE test_field <> ?",
-			wantArgs:  []interface{}{42.5},
+			name:         "ne filter",
+			filter:       filter.FilterFloat{Ne: lo.ToPtr(42.5)},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field <> ?",
+			wantExprArgs: []any{42.5},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" <> $1`,
+			wantEntArgs:  []any{42.5},
 		},
 		{
-			name: "gt filter",
-			filter: filter.FilterFloat{
-				Gt: lo.ToPtr(42.5),
-			},
-			field:     "test_field",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE test_field > ?",
-			wantArgs:  []interface{}{42.5},
+			name:         "gt filter",
+			filter:       filter.FilterFloat{Gt: lo.ToPtr(42.5)},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field > ?",
+			wantExprArgs: []any{42.5},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" > $1`,
+			wantEntArgs:  []any{42.5},
+		},
+		{
+			name:         "gte filter",
+			filter:       filter.FilterFloat{Gte: lo.ToPtr(42.5)},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field >= ?",
+			wantExprArgs: []any{42.5},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" >= $1`,
+			wantEntArgs:  []any{42.5},
+		},
+		{
+			name:         "lt filter",
+			filter:       filter.FilterFloat{Lt: lo.ToPtr(42.5)},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field < ?",
+			wantExprArgs: []any{42.5},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" < $1`,
+			wantEntArgs:  []any{42.5},
+		},
+		{
+			name:         "lte filter",
+			filter:       filter.FilterFloat{Lte: lo.ToPtr(42.5)},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field <= ?",
+			wantExprArgs: []any{42.5},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" <= $1`,
+			wantEntArgs:  []any{42.5},
+		},
+		{
+			name:         "eq filter with zero",
+			filter:       filter.FilterFloat{Eq: lo.ToPtr(0.0)},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field = ?",
+			wantExprArgs: []any{0.0},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" = $1`,
+			wantEntArgs:  []any{0.0},
+		},
+		{
+			name:         "eq filter with negative value",
+			filter:       filter.FilterFloat{Eq: lo.ToPtr(-3.14)},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field = ?",
+			wantExprArgs: []any{-3.14},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" = $1`,
+			wantEntArgs:  []any{-3.14},
 		},
 		{
 			name: "and filter",
@@ -750,10 +1048,11 @@ func TestFilterFloat_SelectWhereExpr(t *testing.T) {
 					{Gt: lo.ToPtr(10.5)},
 				},
 			},
-			field:     "test_field",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE (test_field = ? AND test_field > ?)",
-			wantArgs:  []interface{}{42.5, 10.5},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE (test_field = ? AND test_field > ?)",
+			wantExprArgs: []any{42.5, 10.5},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" = $1 AND "test_table"."test_field" > $2`,
+			wantEntArgs:  []any{42.5, 10.5},
 		},
 		{
 			name: "or filter",
@@ -763,78 +1062,122 @@ func TestFilterFloat_SelectWhereExpr(t *testing.T) {
 					{Lt: lo.ToPtr(100.5)},
 				},
 			},
-			field:     "test_field",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE (test_field = ? OR test_field < ?)",
-			wantArgs:  []interface{}{42.5, 100.5},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE (test_field = ? OR test_field < ?)",
+			wantExprArgs: []any{42.5, 100.5},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" = $1 OR "test_table"."test_field" < $2`,
+			wantEntArgs:  []any{42.5, 100.5},
+		},
+		{
+			name: "range via and (gte/lte)",
+			filter: filter.FilterFloat{
+				And: &[]filter.FilterFloat{
+					{Gte: lo.ToPtr(0.0)},
+					{Lte: lo.ToPtr(1.0)},
+				},
+			},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE (test_field >= ? AND test_field <= ?)",
+			wantExprArgs: []any{0.0, 1.0},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" >= $1 AND "test_table"."test_field" <= $2`,
+			wantEntArgs:  []any{0.0, 1.0},
+		},
+		{
+			name: "nested And of Or",
+			filter: filter.FilterFloat{
+				And: &[]filter.FilterFloat{
+					{
+						Or: &[]filter.FilterFloat{
+							{Eq: lo.ToPtr(1.5)},
+							{Eq: lo.ToPtr(2.5)},
+						},
+					},
+					{Ne: lo.ToPtr(99.0)},
+				},
+			},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE ((test_field = ? OR test_field = ?) AND test_field <> ?)",
+			wantExprArgs: []any{1.5, 2.5, 99.0},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE ("test_table"."test_field" = $1 OR "test_table"."test_field" = $2) AND "test_table"."test_field" <> $3`,
+			wantEntArgs:  []any{1.5, 2.5, 99.0},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// SelectWhereExpr (go-sqlbuilder) branch.
 			q := sqlbuilder.Select("*").From("table")
 			expr := tt.filter.SelectWhereExpr(tt.field, q)
 
 			if tt.wantEmpty {
 				assert.Empty(t, expr, "SQL expression should be empty")
+			} else {
+				assert.NotEmpty(t, expr, "SQL expression should not be empty")
+
+				q.Where(expr)
+				sql, args := q.Build()
+
+				assert.Equal(t, tt.wantExprSQL, sql, "go-sqlbuilder SQL statement should match expected value")
+				assert.Equal(t, tt.wantExprArgs, args, "go-sqlbuilder SQL arguments should match expected values")
+			}
+
+			// Select (Ent) branch.
+			predicate := tt.filter.Select(tt.field)
+
+			if tt.wantEmpty {
+				assert.Nil(t, predicate, "predicate should be nil for empty filter")
 				return
 			}
 
-			assert.NotEmpty(t, expr, "SQL expression should not be empty")
+			if !assert.NotNil(t, predicate, "predicate should not be nil") {
+				return
+			}
 
-			q.Where(expr)
-			sql, args := q.Build()
+			s := newSelectBuilder()
+			predicate(s)
+			sql, args := s.Query()
 
-			assert.Equal(t, tt.wantSQL, sql, "SQL statement should match expected value")
-			assert.Equal(t, tt.wantArgs, args, "SQL arguments should match expected values")
+			assert.Equal(t, tt.wantEntSQL, sql, "Ent SQL statement should match expected value")
+			assert.Equal(t, tt.wantEntArgs, args, "Ent SQL arguments should match expected values")
 		})
 	}
 }
 
 func TestFilterBoolean_Validate(t *testing.T) {
 	tests := []struct {
-		name       string
-		filter     filter.FilterBoolean
-		wantErr    bool
-		errMessage string
+		name    string
+		filter  filter.FilterBoolean
+		wantErr error
 	}{
 		{
-			name:    "nil filter",
-			filter:  filter.FilterBoolean{},
-			wantErr: false,
+			name:   "nil filter",
+			filter: filter.FilterBoolean{},
 		},
 		{
 			name: "valid eq filter",
 			filter: filter.FilterBoolean{
 				Eq: lo.ToPtr(true),
 			},
-			wantErr: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.filter.Validate()
-			if tt.wantErr {
-				assert.Error(t, err)
-				if tt.errMessage != "" {
-					assert.EqualError(t, err, tt.errMessage)
-				}
-			} else {
-				assert.NoError(t, err)
-			}
+			assertValidationError(t, tt.filter.Validate(), tt.wantErr)
 		})
 	}
 }
 
-func TestFilterBoolean_SelectWhereExpr(t *testing.T) {
+func TestFilterBoolean_SelectAndSelectWhereExpr(t *testing.T) {
 	tests := []struct {
-		name      string
-		filter    filter.FilterBoolean
-		field     string
-		wantEmpty bool
-		wantSQL   string
-		wantArgs  []interface{}
+		name         string
+		filter       filter.FilterBoolean
+		field        string
+		wantEmpty    bool
+		wantExprSQL  string
+		wantExprArgs []any
+		wantEntSQL   string
+		wantEntArgs  []any
 	}{
 		{
 			name:      "nil filter",
@@ -843,44 +1186,61 @@ func TestFilterBoolean_SelectWhereExpr(t *testing.T) {
 			wantEmpty: true,
 		},
 		{
-			name: "eq filter true",
-			filter: filter.FilterBoolean{
-				Eq: lo.ToPtr(true),
-			},
-			field:     "test_field",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE test_field = ?",
-			wantArgs:  []interface{}{true},
+			name:         "eq filter true",
+			filter:       filter.FilterBoolean{Eq: lo.ToPtr(true)},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field = ?",
+			wantExprArgs: []any{true},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field"`,
+			wantEntArgs:  nil,
 		},
 		{
-			name: "eq filter false",
-			filter: filter.FilterBoolean{
-				Eq: lo.ToPtr(false),
-			},
-			field:     "test_field",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE test_field = ?",
-			wantArgs:  []interface{}{false},
+			name:         "eq filter false",
+			filter:       filter.FilterBoolean{Eq: lo.ToPtr(false)},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE test_field = ?",
+			wantExprArgs: []any{false},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE NOT "test_table"."test_field"`,
+			wantEntArgs:  nil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// SelectWhereExpr (go-sqlbuilder) branch.
 			q := sqlbuilder.Select("*").From("table")
 			expr := tt.filter.SelectWhereExpr(tt.field, q)
 
 			if tt.wantEmpty {
 				assert.Empty(t, expr, "SQL expression should be empty")
+			} else {
+				assert.NotEmpty(t, expr, "SQL expression should not be empty")
+
+				q.Where(expr)
+				sql, args := q.Build()
+
+				assert.Equal(t, tt.wantExprSQL, sql, "go-sqlbuilder SQL statement should match expected value")
+				assert.Equal(t, tt.wantExprArgs, args, "go-sqlbuilder SQL arguments should match expected values")
+			}
+
+			// Select (Ent) branch.
+			predicate := tt.filter.Select(tt.field)
+
+			if tt.wantEmpty {
+				assert.Nil(t, predicate, "predicate should be nil for empty filter")
 				return
 			}
 
-			assert.NotEmpty(t, expr, "SQL expression should not be empty")
+			if !assert.NotNil(t, predicate, "predicate should not be nil") {
+				return
+			}
 
-			q.Where(expr)
-			sql, args := q.Build()
+			s := newSelectBuilder()
+			predicate(s)
+			sql, args := s.Query()
 
-			assert.Equal(t, tt.wantSQL, sql, "SQL statement should match expected value")
-			assert.Equal(t, tt.wantArgs, args, "SQL arguments should match expected values")
+			assert.Equal(t, tt.wantEntSQL, sql, "Ent SQL statement should match expected value")
+			assert.Equal(t, tt.wantEntArgs, args, "Ent SQL arguments should match expected values")
 		})
 	}
 }
@@ -889,14 +1249,13 @@ func TestFilterTime_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
 		filter  filter.FilterTime
-		wantErr bool
+		wantErr error
 	}{
 		{
 			name: "valid single filter",
 			filter: filter.FilterTime{
 				Gt: lo.ToPtr(time.Now()),
 			},
-			wantErr: false,
 		},
 		{
 			name: "valid AND filter",
@@ -906,7 +1265,6 @@ func TestFilterTime_Validate(t *testing.T) {
 					{Lt: lo.ToPtr(time.Now().Add(24 * time.Hour))},
 				},
 			},
-			wantErr: false,
 		},
 		{
 			name: "valid OR filter",
@@ -916,7 +1274,6 @@ func TestFilterTime_Validate(t *testing.T) {
 					{Lt: lo.ToPtr(time.Now().Add(24 * time.Hour))},
 				},
 			},
-			wantErr: false,
 		},
 		{
 			name: "invalid multiple filters",
@@ -924,7 +1281,7 @@ func TestFilterTime_Validate(t *testing.T) {
 				Gt:  lo.ToPtr(time.Now()),
 				Gte: lo.ToPtr(time.Now()),
 			},
-			wantErr: true,
+			wantErr: filter.ErrFilterMultipleOperators,
 		},
 		{
 			name: "invalid nested AND filter",
@@ -936,32 +1293,30 @@ func TestFilterTime_Validate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: filter.ErrFilterMultipleOperators,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.filter.Validate()
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
+			assertValidationError(t, tt.filter.Validate(), tt.wantErr)
 		})
 	}
 }
 
-func TestFilterTime_SelectWhereExpr(t *testing.T) {
-	now := time.Now()
+func TestFilterTime_SelectAndSelectWhereExpr(t *testing.T) {
+	now := time.Date(2024, time.January, 2, 3, 4, 5, 0, time.UTC)
+	later := now.Add(24 * time.Hour)
 
 	tests := []struct {
-		name      string
-		filter    filter.FilterTime
-		field     string
-		wantEmpty bool
-		wantSQL   string
-		wantArgs  []interface{}
+		name         string
+		filter       filter.FilterTime
+		field        string
+		wantEmpty    bool
+		wantExprSQL  string
+		wantExprArgs []any
+		wantEntSQL   string
+		wantEntArgs  []any
 	}{
 		{
 			name:      "nil filter",
@@ -970,110 +1325,303 @@ func TestFilterTime_SelectWhereExpr(t *testing.T) {
 			wantEmpty: true,
 		},
 		{
-			name: "greater than",
-			filter: filter.FilterTime{
-				Gt: lo.ToPtr(now),
-			},
-			field:     "created_at",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE created_at > ?",
-			wantArgs:  []interface{}{now},
+			name:         "eq filter",
+			filter:       filter.FilterTime{Eq: lo.ToPtr(now)},
+			field:        "created_at",
+			wantExprSQL:  "SELECT * FROM table WHERE created_at = ?",
+			wantExprArgs: []any{now},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."created_at" = $1`,
+			wantEntArgs:  []any{now},
 		},
 		{
-			name: "greater than or equal",
-			filter: filter.FilterTime{
-				Gte: lo.ToPtr(now),
-			},
-			field:     "created_at",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE created_at >= ?",
-			wantArgs:  []interface{}{now},
+			name:         "gt filter",
+			filter:       filter.FilterTime{Gt: lo.ToPtr(now)},
+			field:        "created_at",
+			wantExprSQL:  "SELECT * FROM table WHERE created_at > ?",
+			wantExprArgs: []any{now},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."created_at" > $1`,
+			wantEntArgs:  []any{now},
 		},
 		{
-			name: "less than",
-			filter: filter.FilterTime{
-				Lt: lo.ToPtr(now),
-			},
-			field:     "created_at",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE created_at < ?",
-			wantArgs:  []interface{}{now},
+			name:         "gte filter",
+			filter:       filter.FilterTime{Gte: lo.ToPtr(now)},
+			field:        "created_at",
+			wantExprSQL:  "SELECT * FROM table WHERE created_at >= ?",
+			wantExprArgs: []any{now},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."created_at" >= $1`,
+			wantEntArgs:  []any{now},
 		},
 		{
-			name: "less than or equal",
-			filter: filter.FilterTime{
-				Lte: lo.ToPtr(now),
-			},
-			field:     "created_at",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE created_at <= ?",
-			wantArgs:  []interface{}{now},
+			name:         "lt filter",
+			filter:       filter.FilterTime{Lt: lo.ToPtr(now)},
+			field:        "created_at",
+			wantExprSQL:  "SELECT * FROM table WHERE created_at < ?",
+			wantExprArgs: []any{now},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."created_at" < $1`,
+			wantEntArgs:  []any{now},
 		},
 		{
-			name: "AND combination",
+			name:         "lte filter",
+			filter:       filter.FilterTime{Lte: lo.ToPtr(now)},
+			field:        "created_at",
+			wantExprSQL:  "SELECT * FROM table WHERE created_at <= ?",
+			wantExprArgs: []any{now},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."created_at" <= $1`,
+			wantEntArgs:  []any{now},
+		},
+		{
+			name: "and filter",
 			filter: filter.FilterTime{
 				And: &[]filter.FilterTime{
 					{Gt: lo.ToPtr(now)},
-					{Lt: lo.ToPtr(now.Add(24 * time.Hour))},
+					{Lt: lo.ToPtr(later)},
 				},
 			},
-			field:     "created_at",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE (created_at > ? AND created_at < ?)",
-			wantArgs:  []interface{}{now, now.Add(24 * time.Hour)},
+			field:        "created_at",
+			wantExprSQL:  "SELECT * FROM table WHERE (created_at > ? AND created_at < ?)",
+			wantExprArgs: []any{now, later},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."created_at" > $1 AND "test_table"."created_at" < $2`,
+			wantEntArgs:  []any{now, later},
 		},
 		{
-			name: "OR combination",
+			name: "or filter",
 			filter: filter.FilterTime{
 				Or: &[]filter.FilterTime{
-					{Gt: lo.ToPtr(now)},
-					{Lt: lo.ToPtr(now.Add(24 * time.Hour))},
+					{Lt: lo.ToPtr(now)},
+					{Gt: lo.ToPtr(later)},
 				},
 			},
-			field:     "created_at",
-			wantEmpty: false,
-			wantSQL:   "SELECT * FROM table WHERE (created_at > ? OR created_at < ?)",
-			wantArgs:  []interface{}{now, now.Add(24 * time.Hour)},
+			field:        "created_at",
+			wantExprSQL:  "SELECT * FROM table WHERE (created_at < ? OR created_at > ?)",
+			wantExprArgs: []any{now, later},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."created_at" < $1 OR "test_table"."created_at" > $2`,
+			wantEntArgs:  []any{now, later},
+		},
+		{
+			name: "range via and (gte/lt)",
+			filter: filter.FilterTime{
+				And: &[]filter.FilterTime{
+					{Gte: lo.ToPtr(now)},
+					{Lt: lo.ToPtr(later)},
+				},
+			},
+			field:        "created_at",
+			wantExprSQL:  "SELECT * FROM table WHERE (created_at >= ? AND created_at < ?)",
+			wantExprArgs: []any{now, later},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."created_at" >= $1 AND "test_table"."created_at" < $2`,
+			wantEntArgs:  []any{now, later},
+		},
+		{
+			name: "nested And of Or",
+			filter: filter.FilterTime{
+				And: &[]filter.FilterTime{
+					{
+						Or: &[]filter.FilterTime{
+							{Lt: lo.ToPtr(now)},
+							{Gt: lo.ToPtr(later.Add(24 * time.Hour))},
+						},
+					},
+					{Gte: lo.ToPtr(now.Add(-24 * time.Hour))},
+				},
+			},
+			field:        "created_at",
+			wantExprSQL:  "SELECT * FROM table WHERE ((created_at < ? OR created_at > ?) AND created_at >= ?)",
+			wantExprArgs: []any{now, later.Add(24 * time.Hour), now.Add(-24 * time.Hour)},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE ("test_table"."created_at" < $1 OR "test_table"."created_at" > $2) AND "test_table"."created_at" >= $3`,
+			wantEntArgs:  []any{now, later.Add(24 * time.Hour), now.Add(-24 * time.Hour)},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			builder := sqlbuilder.NewSelectBuilder()
-			builder.Select("*").From("table")
-
-			result := tt.filter.SelectWhereExpr(tt.field, builder)
+			// SelectWhereExpr (go-sqlbuilder) branch.
+			q := sqlbuilder.Select("*").From("table")
+			expr := tt.filter.SelectWhereExpr(tt.field, q)
 
 			if tt.wantEmpty {
-				assert.Empty(t, result)
+				assert.Empty(t, expr, "SQL expression should be empty")
 			} else {
-				if !assert.NotEmpty(t, result) {
-					return
-				}
+				assert.NotEmpty(t, expr, "SQL expression should not be empty")
 
-				builder.Where(result)
-				sql, args := builder.Build()
+				q.Where(expr)
+				sql, args := q.Build()
 
-				assert.Equal(t, tt.wantSQL, sql)
-				assert.Equal(t, tt.wantArgs, args)
+				assert.Equal(t, tt.wantExprSQL, sql, "go-sqlbuilder SQL statement should match expected value")
+				assert.Equal(t, tt.wantExprArgs, args, "go-sqlbuilder SQL arguments should match expected values")
 			}
+
+			// Select (Ent) branch.
+			predicate := tt.filter.Select(tt.field)
+
+			if tt.wantEmpty {
+				assert.Nil(t, predicate, "predicate should be nil for empty filter")
+				return
+			}
+
+			if !assert.NotNil(t, predicate, "predicate should not be nil") {
+				return
+			}
+
+			s := newSelectBuilder()
+			predicate(s)
+			sql, args := s.Query()
+
+			assert.Equal(t, tt.wantEntSQL, sql, "Ent SQL statement should match expected value")
+			assert.Equal(t, tt.wantEntArgs, args, "Ent SQL arguments should match expected values")
+		})
+	}
+}
+
+func TestFilterTimeUnix_SelectAndSelectWhereExpr(t *testing.T) {
+	now := time.Date(2024, time.January, 2, 3, 4, 5, 0, time.UTC)
+	later := now.Add(time.Hour)
+
+	tests := []struct {
+		name         string
+		filter       filter.FilterTimeUnix
+		field        string
+		wantEmpty    bool
+		wantExprSQL  string
+		wantExprArgs []any
+		wantEntSQL   string
+		wantEntArgs  []any
+	}{
+		{
+			name:      "nil filter",
+			filter:    filter.FilterTimeUnix{},
+			field:     "created_at",
+			wantEmpty: true,
+		},
+		{
+			name:         "eq filter uses unix seconds",
+			filter:       filter.FilterTimeUnix{FilterTime: filter.FilterTime{Eq: lo.ToPtr(now)}},
+			field:        "created_at",
+			wantExprSQL:  "SELECT * FROM table WHERE created_at = ?",
+			wantExprArgs: []any{now.Unix()},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."created_at" = $1`,
+			wantEntArgs:  []any{now.Unix()},
+		},
+		{
+			name:         "gt filter uses unix seconds",
+			filter:       filter.FilterTimeUnix{FilterTime: filter.FilterTime{Gt: lo.ToPtr(now)}},
+			field:        "created_at",
+			wantExprSQL:  "SELECT * FROM table WHERE created_at > ?",
+			wantExprArgs: []any{now.Unix()},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."created_at" > $1`,
+			wantEntArgs:  []any{now.Unix()},
+		},
+		{
+			name:         "gte filter uses unix seconds",
+			filter:       filter.FilterTimeUnix{FilterTime: filter.FilterTime{Gte: lo.ToPtr(now)}},
+			field:        "created_at",
+			wantExprSQL:  "SELECT * FROM table WHERE created_at >= ?",
+			wantExprArgs: []any{now.Unix()},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."created_at" >= $1`,
+			wantEntArgs:  []any{now.Unix()},
+		},
+		{
+			name:         "lt filter uses unix seconds",
+			filter:       filter.FilterTimeUnix{FilterTime: filter.FilterTime{Lt: lo.ToPtr(now)}},
+			field:        "created_at",
+			wantExprSQL:  "SELECT * FROM table WHERE created_at < ?",
+			wantExprArgs: []any{now.Unix()},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."created_at" < $1`,
+			wantEntArgs:  []any{now.Unix()},
+		},
+		{
+			name:         "lte filter uses unix seconds",
+			filter:       filter.FilterTimeUnix{FilterTime: filter.FilterTime{Lte: lo.ToPtr(now)}},
+			field:        "created_at",
+			wantExprSQL:  "SELECT * FROM table WHERE created_at <= ?",
+			wantExprArgs: []any{now.Unix()},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."created_at" <= $1`,
+			wantEntArgs:  []any{now.Unix()},
+		},
+		{
+			name: "and filter uses unix seconds",
+			filter: filter.FilterTimeUnix{
+				FilterTime: filter.FilterTime{
+					And: &[]filter.FilterTime{
+						{Gte: lo.ToPtr(now)},
+						{Lt: lo.ToPtr(later)},
+					},
+				},
+			},
+			field:        "created_at",
+			wantExprSQL:  "SELECT * FROM table WHERE (created_at >= ? AND created_at < ?)",
+			wantExprArgs: []any{now.Unix(), later.Unix()},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."created_at" >= $1 AND "test_table"."created_at" < $2`,
+			wantEntArgs:  []any{now.Unix(), later.Unix()},
+		},
+		{
+			name: "or filter uses unix seconds",
+			filter: filter.FilterTimeUnix{
+				FilterTime: filter.FilterTime{
+					Or: &[]filter.FilterTime{
+						{Lt: lo.ToPtr(now)},
+						{Gt: lo.ToPtr(later)},
+					},
+				},
+			},
+			field:        "created_at",
+			wantExprSQL:  "SELECT * FROM table WHERE (created_at < ? OR created_at > ?)",
+			wantExprArgs: []any{now.Unix(), later.Unix()},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."created_at" < $1 OR "test_table"."created_at" > $2`,
+			wantEntArgs:  []any{now.Unix(), later.Unix()},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// SelectWhereExpr (go-sqlbuilder) branch.
+			q := sqlbuilder.Select("*").From("table")
+			expr := tt.filter.SelectWhereExpr(tt.field, q)
+
+			if tt.wantEmpty {
+				assert.Empty(t, expr, "SQL expression should be empty")
+			} else {
+				assert.NotEmpty(t, expr, "SQL expression should not be empty")
+
+				q.Where(expr)
+				sql, args := q.Build()
+
+				assert.Equal(t, tt.wantExprSQL, sql, "go-sqlbuilder SQL statement should match expected value")
+				assert.Equal(t, tt.wantExprArgs, args, "go-sqlbuilder SQL arguments should match expected values")
+			}
+
+			// Select (Ent) branch.
+			predicate := tt.filter.Select(tt.field)
+
+			if tt.wantEmpty {
+				assert.Nil(t, predicate, "predicate should be nil for empty filter")
+				return
+			}
+
+			if !assert.NotNil(t, predicate, "predicate should not be nil") {
+				return
+			}
+
+			s := newSelectBuilder()
+			predicate(s)
+			sql, args := s.Query()
+
+			assert.Equal(t, tt.wantEntSQL, sql, "Ent SQL statement should match expected value")
+			assert.Equal(t, tt.wantEntArgs, args, "Ent SQL arguments should match expected values")
 		})
 	}
 }
 
 func TestFilterString_ValidateWithComplexity(t *testing.T) {
 	tests := []struct {
-		name       string
-		filter     filter.FilterString
-		maxDepth   int
-		wantErr    bool
-		errMessage string
+		name     string
+		filter   filter.FilterString
+		maxDepth int
+		wantErr  error
 	}{
 		{
 			name:     "nil filter",
 			filter:   filter.FilterString{},
 			maxDepth: 3,
-			wantErr:  false,
 		},
 		{
 			name: "simple filter within depth limit",
@@ -1081,7 +1629,6 @@ func TestFilterString_ValidateWithComplexity(t *testing.T) {
 				Eq: lo.ToPtr("test"),
 			},
 			maxDepth: 3,
-			wantErr:  false,
 		},
 		{
 			name: "one level nested AND filter within depth limit",
@@ -1092,7 +1639,6 @@ func TestFilterString_ValidateWithComplexity(t *testing.T) {
 				},
 			},
 			maxDepth: 3,
-			wantErr:  false,
 		},
 		{
 			name: "one level nested OR filter within depth limit",
@@ -1103,7 +1649,6 @@ func TestFilterString_ValidateWithComplexity(t *testing.T) {
 				},
 			},
 			maxDepth: 3,
-			wantErr:  false,
 		},
 		{
 			name: "two level nested AND filter within depth limit",
@@ -1118,7 +1663,6 @@ func TestFilterString_ValidateWithComplexity(t *testing.T) {
 				},
 			},
 			maxDepth: 3,
-			wantErr:  false,
 		},
 		{
 			name: "deep nested filter exceeding depth limit",
@@ -1139,9 +1683,8 @@ func TestFilterString_ValidateWithComplexity(t *testing.T) {
 					},
 				},
 			},
-			maxDepth:   2,
-			wantErr:    true,
-			errMessage: "filter complexity exceeds maximum allowed depth",
+			maxDepth: 2,
+			wantErr:  filter.ErrFilterComplexityExceeded,
 		},
 		{
 			name: "mixed nested AND/OR filter within depth limit",
@@ -1156,7 +1699,6 @@ func TestFilterString_ValidateWithComplexity(t *testing.T) {
 				},
 			},
 			maxDepth: 3,
-			wantErr:  false,
 		},
 		{
 			name: "mixed nested AND/OR filter exceeding depth limit",
@@ -1174,9 +1716,8 @@ func TestFilterString_ValidateWithComplexity(t *testing.T) {
 					},
 				},
 			},
-			maxDepth:   2,
-			wantErr:    true,
-			errMessage: "filter complexity exceeds maximum allowed depth",
+			maxDepth: 2,
+			wantErr:  filter.ErrFilterComplexityExceeded,
 		},
 		{
 			name: "filter with validation error",
@@ -1184,40 +1725,29 @@ func TestFilterString_ValidateWithComplexity(t *testing.T) {
 				Eq: lo.ToPtr("test"),
 				Ne: lo.ToPtr("test"),
 			},
-			maxDepth:   3,
-			wantErr:    true,
-			errMessage: "only one filter can be set",
+			maxDepth: 3,
+			wantErr:  filter.ErrFilterMultipleOperators,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.filter.ValidateWithComplexity(tt.maxDepth)
-			if tt.wantErr {
-				assert.Error(t, err)
-				if tt.errMessage != "" {
-					assert.ErrorContains(t, err, tt.errMessage)
-				}
-			} else {
-				assert.NoError(t, err)
-			}
+			assertValidationError(t, tt.filter.ValidateWithComplexity(tt.maxDepth), tt.wantErr)
 		})
 	}
 }
 
 func TestFilterInteger_ValidateWithComplexity(t *testing.T) {
 	tests := []struct {
-		name       string
-		filter     filter.FilterInteger
-		maxDepth   int
-		wantErr    bool
-		errMessage string
+		name     string
+		filter   filter.FilterInteger
+		maxDepth int
+		wantErr  error
 	}{
 		{
 			name:     "nil filter",
 			filter:   filter.FilterInteger{},
 			maxDepth: 3,
-			wantErr:  false,
 		},
 		{
 			name: "simple filter within depth limit",
@@ -1225,7 +1755,6 @@ func TestFilterInteger_ValidateWithComplexity(t *testing.T) {
 				Eq: lo.ToPtr(42),
 			},
 			maxDepth: 3,
-			wantErr:  false,
 		},
 		{
 			name: "one level nested AND filter within depth limit",
@@ -1236,7 +1765,6 @@ func TestFilterInteger_ValidateWithComplexity(t *testing.T) {
 				},
 			},
 			maxDepth: 3,
-			wantErr:  false,
 		},
 		{
 			name: "one level nested OR filter within depth limit",
@@ -1247,7 +1775,6 @@ func TestFilterInteger_ValidateWithComplexity(t *testing.T) {
 				},
 			},
 			maxDepth: 3,
-			wantErr:  false,
 		},
 		{
 			name: "two level nested AND filter within depth limit",
@@ -1262,7 +1789,6 @@ func TestFilterInteger_ValidateWithComplexity(t *testing.T) {
 				},
 			},
 			maxDepth: 3,
-			wantErr:  false,
 		},
 		{
 			name: "deep nested filter exceeding depth limit",
@@ -1283,9 +1809,8 @@ func TestFilterInteger_ValidateWithComplexity(t *testing.T) {
 					},
 				},
 			},
-			maxDepth:   2,
-			wantErr:    true,
-			errMessage: "filter complexity exceeds maximum allowed depth",
+			maxDepth: 2,
+			wantErr:  filter.ErrFilterComplexityExceeded,
 		},
 		{
 			name: "mixed nested AND/OR filter within depth limit",
@@ -1300,7 +1825,6 @@ func TestFilterInteger_ValidateWithComplexity(t *testing.T) {
 				},
 			},
 			maxDepth: 3,
-			wantErr:  false,
 		},
 		{
 			name: "filter with validation error",
@@ -1308,40 +1832,29 @@ func TestFilterInteger_ValidateWithComplexity(t *testing.T) {
 				Eq: lo.ToPtr(42),
 				Ne: lo.ToPtr(42),
 			},
-			maxDepth:   3,
-			wantErr:    true,
-			errMessage: "only one filter can be set",
+			maxDepth: 3,
+			wantErr:  filter.ErrFilterMultipleOperators,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.filter.ValidateWithComplexity(tt.maxDepth)
-			if tt.wantErr {
-				assert.Error(t, err)
-				if tt.errMessage != "" {
-					assert.ErrorContains(t, err, tt.errMessage)
-				}
-			} else {
-				assert.NoError(t, err)
-			}
+			assertValidationError(t, tt.filter.ValidateWithComplexity(tt.maxDepth), tt.wantErr)
 		})
 	}
 }
 
 func TestFilterFloat_ValidateWithComplexity(t *testing.T) {
 	tests := []struct {
-		name       string
-		filter     filter.FilterFloat
-		maxDepth   int
-		wantErr    bool
-		errMessage string
+		name     string
+		filter   filter.FilterFloat
+		maxDepth int
+		wantErr  error
 	}{
 		{
 			name:     "nil filter",
 			filter:   filter.FilterFloat{},
 			maxDepth: 3,
-			wantErr:  false,
 		},
 		{
 			name: "simple filter within depth limit",
@@ -1349,7 +1862,6 @@ func TestFilterFloat_ValidateWithComplexity(t *testing.T) {
 				Eq: lo.ToPtr(42.5),
 			},
 			maxDepth: 3,
-			wantErr:  false,
 		},
 		{
 			name: "one level nested AND filter within depth limit",
@@ -1360,7 +1872,6 @@ func TestFilterFloat_ValidateWithComplexity(t *testing.T) {
 				},
 			},
 			maxDepth: 3,
-			wantErr:  false,
 		},
 		{
 			name: "two level nested AND filter within depth limit",
@@ -1375,7 +1886,6 @@ func TestFilterFloat_ValidateWithComplexity(t *testing.T) {
 				},
 			},
 			maxDepth: 3,
-			wantErr:  false,
 		},
 		{
 			name: "deep nested filter exceeding depth limit",
@@ -1396,9 +1906,8 @@ func TestFilterFloat_ValidateWithComplexity(t *testing.T) {
 					},
 				},
 			},
-			maxDepth:   2,
-			wantErr:    true,
-			errMessage: "filter complexity exceeds maximum allowed depth",
+			maxDepth: 2,
+			wantErr:  filter.ErrFilterComplexityExceeded,
 		},
 		{
 			name: "filter with validation error",
@@ -1406,23 +1915,14 @@ func TestFilterFloat_ValidateWithComplexity(t *testing.T) {
 				Eq: lo.ToPtr(42.5),
 				Ne: lo.ToPtr(42.5),
 			},
-			maxDepth:   3,
-			wantErr:    true,
-			errMessage: "only one filter can be set",
+			maxDepth: 3,
+			wantErr:  filter.ErrFilterMultipleOperators,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.filter.ValidateWithComplexity(tt.maxDepth)
-			if tt.wantErr {
-				assert.Error(t, err)
-				if tt.errMessage != "" {
-					assert.ErrorContains(t, err, tt.errMessage)
-				}
-			} else {
-				assert.NoError(t, err)
-			}
+			assertValidationError(t, tt.filter.ValidateWithComplexity(tt.maxDepth), tt.wantErr)
 		})
 	}
 }
@@ -1432,13 +1932,12 @@ func TestFilterBoolean_ValidateWithComplexity(t *testing.T) {
 		name     string
 		filter   filter.FilterBoolean
 		maxDepth int
-		wantErr  bool
+		wantErr  error
 	}{
 		{
 			name:     "nil filter",
 			filter:   filter.FilterBoolean{},
 			maxDepth: 3,
-			wantErr:  false,
 		},
 		{
 			name: "simple filter",
@@ -1446,18 +1945,12 @@ func TestFilterBoolean_ValidateWithComplexity(t *testing.T) {
 				Eq: lo.ToPtr(true),
 			},
 			maxDepth: 3,
-			wantErr:  false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.filter.ValidateWithComplexity(tt.maxDepth)
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
+			assertValidationError(t, tt.filter.ValidateWithComplexity(tt.maxDepth), tt.wantErr)
 		})
 	}
 }
@@ -1466,17 +1959,15 @@ func TestFilterTime_ValidateWithComplexity(t *testing.T) {
 	now := time.Now()
 
 	tests := []struct {
-		name       string
-		filter     filter.FilterTime
-		maxDepth   int
-		wantErr    bool
-		errMessage string
+		name     string
+		filter   filter.FilterTime
+		maxDepth int
+		wantErr  error
 	}{
 		{
 			name:     "nil filter",
 			filter:   filter.FilterTime{},
 			maxDepth: 3,
-			wantErr:  false,
 		},
 		{
 			name: "simple filter within depth limit",
@@ -1484,7 +1975,6 @@ func TestFilterTime_ValidateWithComplexity(t *testing.T) {
 				Gt: lo.ToPtr(now),
 			},
 			maxDepth: 3,
-			wantErr:  false,
 		},
 		{
 			name: "one level nested AND filter within depth limit",
@@ -1495,7 +1985,6 @@ func TestFilterTime_ValidateWithComplexity(t *testing.T) {
 				},
 			},
 			maxDepth: 3,
-			wantErr:  false,
 		},
 		{
 			name: "two level nested AND filter within depth limit",
@@ -1510,7 +1999,6 @@ func TestFilterTime_ValidateWithComplexity(t *testing.T) {
 				},
 			},
 			maxDepth: 3,
-			wantErr:  false,
 		},
 		{
 			name: "deep nested filter exceeding depth limit",
@@ -1531,9 +2019,8 @@ func TestFilterTime_ValidateWithComplexity(t *testing.T) {
 					},
 				},
 			},
-			maxDepth:   2,
-			wantErr:    true,
-			errMessage: "filter complexity exceeds maximum allowed depth",
+			maxDepth: 2,
+			wantErr:  filter.ErrFilterComplexityExceeded,
 		},
 		{
 			name: "filter with validation error",
@@ -1541,23 +2028,14 @@ func TestFilterTime_ValidateWithComplexity(t *testing.T) {
 				Gt:  lo.ToPtr(now),
 				Gte: lo.ToPtr(now),
 			},
-			maxDepth:   3,
-			wantErr:    true,
-			errMessage: "only one filter can be set",
+			maxDepth: 3,
+			wantErr:  filter.ErrFilterMultipleOperators,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.filter.ValidateWithComplexity(tt.maxDepth)
-			if tt.wantErr {
-				assert.Error(t, err)
-				if tt.errMessage != "" {
-					assert.ErrorContains(t, err, tt.errMessage)
-				}
-			} else {
-				assert.NoError(t, err)
-			}
+			assertValidationError(t, tt.filter.ValidateWithComplexity(tt.maxDepth), tt.wantErr)
 		})
 	}
 }

@@ -1,0 +1,23 @@
+--- a/chi-middleware.tmpl
++++ b/chi-middleware.tmpl
+@@ -77,11 +77,21 @@
+         }{{end}}
+       {{end}}
+       {{if .IsStyled}}
++      {{- /* For "filter" deepObject params, use the custom filter parser which
++             correctly handles all filter types including union types. */ -}}
++      {{- if and (eq .ParamName "filter") (eq .Style "deepObject") }}
++      err = filters.Parse(r.URL.Query(), &params.{{.GoName}})
++      if err != nil {
++        siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "{{.ParamName}}", Err: err})
++        return
++      }
++      {{- else }}
+       err = runtime.BindQueryParameterWithOptions("{{.Style}}", {{.Explode}}, {{.Required}}, "{{.ParamName}}", r.URL.Query(), &params.{{.GoName}}, runtime.BindQueryParameterOptions{Type: "{{.SchemaType}}", Format: "{{.SchemaFormat}}"})
+       if err != nil {
+         siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "{{.ParamName}}", Err: err})
+         return
+       }
++      {{- end }}
+       {{end}}
+   {{end}}
