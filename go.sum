@@ -1514,8 +1514,8 @@ github.com/pusher/pusher-http-go v4.0.1+incompatible h1:4u6tomPG1WhHaST7Wi9mw83Y
 github.com/pusher/pusher-http-go v4.0.1+incompatible/go.mod h1:XAv1fxRmVTI++2xsfofDhg7whapsLRG/gH/DXbF3a18=
 github.com/qdrant/go-client v1.14.1 h1:i+QVAWoOOBiSrxSOdK9gunLYJPhnznFjXE59PBy5nJI=
 github.com/qdrant/go-client v1.14.1/go.mod h1:iO8ts78jL4x6LDHFOViyYWELVtIBDTjOykBmiOTHLnQ=
-github.com/qmuntal/stateless v1.7.2 h1:FqCErOP+Hf+/FByJt/S4UOLHFJeTf8CbMrEE0AkYT8k=
-github.com/qmuntal/stateless v1.7.2/go.mod h1:n1HjRBM/cq4uCr3rfUjaMkgeGcd+ykAZwkjLje6jGBM=
+github.com/qmuntal/stateless v1.8.0 h1:9+Eg/7bWLKxUxs/vysNYAelFAh85kTyueC3ee6v8im8=
+github.com/qmuntal/stateless v1.8.0/go.mod h1:KWa8KVzIBD/ZS0EdzL5oU79sGq7fKwH9WEFijTC5AWw=
 github.com/questdb/go-questdb-client/v3 v3.2.0 h1:rFlkc3tD+vNucd4dkNv2xN5xqcFJGwqxt3F5p2H8zrg=
 github.com/questdb/go-questdb-client/v3 v3.2.0/go.mod h1:kXoftTVQZlksdJ9tsHQRWfdWO5Kyl4bZuKotyyeWa3c=
 github.com/quipo/dependencysolver v0.0.0-20170801134659-2b009cb4ddcc h1:hK577yxEJ2f5s8w2iy2KimZmgrdAUZUNftE1ESmg2/Q=
