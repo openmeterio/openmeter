@@ -32,7 +32,9 @@ func (s *service) AdvanceCharge(ctx context.Context, input usagebased.AdvanceCha
 
 		stateMachine, err := s.newStateMachine(StateMachineConfig{
 			Charge:             charge,
-			Service:            s,
+			Adapter:            s.adapter,
+			Rater:              s.rater,
+			Runs:               s.runs,
 			CustomerOverride:   input.CustomerOverride,
 			FeatureMeter:       featureMeter,
 			CurrencyCalculator: currencyCalculator,
@@ -69,11 +71,12 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 			return nil, err
 		}
 
-		return &stateMachine.Charge, nil
+		charge = stateMachine.GetCharge()
+		return &charge, nil
 	})
 }
 
-func (s *service) newStateMachine(config StateMachineConfig) (*StateMachine, error) {
+func (s *service) newStateMachine(config StateMachineConfig) (StateMachine, error) {
 	switch config.Charge.Intent.SettlementMode {
 	case productcatalog.CreditOnlySettlementMode:
 		stateMachine, err := NewCreditsOnlyStateMachine(config)
@@ -81,14 +84,14 @@ func (s *service) newStateMachine(config StateMachineConfig) (*StateMachine, err
 			return nil, err
 		}
 
-		return stateMachine.StateMachine, nil
+		return stateMachine, nil
 	case productcatalog.CreditThenInvoiceSettlementMode:
 		stateMachine, err := NewCreditThenInvoiceStateMachine(config)
 		if err != nil {
 			return nil, err
 		}
 
-		return stateMachine.StateMachine, nil
+		return stateMachine, nil
 	default:
 		return nil, models.NewGenericNotImplementedError(
 			fmt.Errorf("unsupported settlement mode %s for usage based charge %s", config.Charge.Intent.SettlementMode, config.Charge.ID),
@@ -131,7 +134,9 @@ func (s *service) getStateMachineConfigForPatch(ctx context.Context, charge usag
 
 	return StateMachineConfig{
 		Charge:             charge,
-		Service:            s,
+		Adapter:            s.adapter,
+		Rater:              s.rater,
+		Runs:               s.runs,
 		CustomerOverride:   customerOverride,
 		FeatureMeter:       featureMeter,
 		CurrencyCalculator: currencyCalculator,

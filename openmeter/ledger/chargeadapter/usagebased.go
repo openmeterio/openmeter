@@ -10,7 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
-// usageBasedHandler maps usage-based credit-only lifecycle events to ledger transaction templates.
+// usageBasedHandler maps usage-based credit lifecycle events to ledger transaction templates.
 type usageBasedHandler struct {
 	collector collector.Service
 }
@@ -32,7 +32,11 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input
 		return nil, nil
 	}
 
-	if err := validateSettlementMode(input.Charge.Intent.SettlementMode, productcatalog.CreditOnlySettlementMode); err != nil {
+	if err := validateSettlementMode(
+		input.Charge.Intent.SettlementMode,
+		productcatalog.CreditOnlySettlementMode,
+		productcatalog.CreditThenInvoiceSettlementMode,
+	); err != nil {
 		return nil, fmt.Errorf("credits only usage accrued: %w", err)
 	}
 
@@ -69,7 +73,11 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccruedCorrection(ctx context.Cont
 		return nil, fmt.Errorf("allocate at is required")
 	}
 
-	if err := validateSettlementMode(input.Charge.Intent.SettlementMode, productcatalog.CreditOnlySettlementMode); err != nil {
+	if err := validateSettlementMode(
+		input.Charge.Intent.SettlementMode,
+		productcatalog.CreditOnlySettlementMode,
+		productcatalog.CreditThenInvoiceSettlementMode,
+	); err != nil {
 		return nil, fmt.Errorf("credits only usage accrued correction: %w", err)
 	}
 

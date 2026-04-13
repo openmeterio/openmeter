@@ -96,12 +96,14 @@ func (e *LineEngine) BuildStandardInvoiceLines(ctx context.Context, input billin
 			return nil, fmt.Errorf("advancing usage based charge[%s] after invoice_created: %w", charge.ID, err)
 		}
 
-		currentRun, err := stateMachine.Charge.GetCurrentRealizationRun()
+		currentRun, err := stateMachine.GetCharge().GetCurrentRealizationRun()
 		if err != nil {
 			return nil, fmt.Errorf("getting current realization run for charge[%s]: %w", charge.ID, err)
 		}
 
-		populateUsageBasedStandardLineFromRun(stdLine, currentRun)
+		if err := populateUsageBasedStandardLineFromRun(stdLine, currentRun); err != nil {
+			return nil, fmt.Errorf("populating standard line from run for charge[%s]: %w", charge.ID, err)
+		}
 
 		if err := stdLine.Validate(); err != nil {
 			return nil, fmt.Errorf("validating standard line[%s]: %w", stdLine.ID, err)
@@ -150,7 +152,7 @@ func (e *LineEngine) OnCollectionCompleted(ctx context.Context, input billing.On
 			return nil, fmt.Errorf("creating state machine for line[%s]: %w", stdLine.ID, err)
 		}
 
-		canFire, err := stateMachine.StateMachine.CanFireCtx(ctx, meta.TriggerCollectionCompleted)
+		canFire, err := stateMachine.CanFire(ctx, meta.TriggerCollectionCompleted)
 		if err != nil {
 			return nil, fmt.Errorf("checking collection_completed for charge[%s]: %w", charge.ID, err)
 		}
@@ -167,12 +169,14 @@ func (e *LineEngine) OnCollectionCompleted(ctx context.Context, input billing.On
 			return nil, fmt.Errorf("advancing usage based charge[%s] after collection_completed: %w", charge.ID, err)
 		}
 
-		currentRun, err := stateMachine.Charge.GetCurrentRealizationRun()
+		currentRun, err := stateMachine.GetCharge().GetCurrentRealizationRun()
 		if err != nil {
 			return nil, fmt.Errorf("getting current realization run for charge[%s]: %w", charge.ID, err)
 		}
 
-		populateUsageBasedStandardLineFromRun(stdLine, currentRun)
+		if err := populateUsageBasedStandardLineFromRun(stdLine, currentRun); err != nil {
+			return nil, fmt.Errorf("populating standard line from run for charge[%s]: %w", charge.ID, err)
+		}
 	}
 
 	return input.Lines, nil
@@ -209,7 +213,7 @@ func (e *LineEngine) CalculateLines(input billing.CalculateLinesInput) (billing.
 	return input.Lines, nil
 }
 
-func populateUsageBasedStandardLineFromRun(stdLine *billing.StandardLine, run usagebased.RealizationRun) {
+func populateUsageBasedStandardLineFromRun(stdLine *billing.StandardLine, run usagebased.RealizationRun) error {
 	if stdLine.UsageBased == nil {
 		stdLine.UsageBased = &billing.UsageBasedLine{}
 	}
@@ -218,4 +222,13 @@ func populateUsageBasedStandardLineFromRun(stdLine *billing.StandardLine, run us
 	stdLine.UsageBased.MeteredQuantity = lo.ToPtr(run.MeterValue)
 	stdLine.UsageBased.PreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
 	stdLine.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+
+	creditsApplied, err := run.CreditsAllocated.AsCreditsApplied()
+	if err != nil {
+		return err
+	}
+
+	stdLine.CreditsApplied = creditsApplied
+
+	return nil
 }

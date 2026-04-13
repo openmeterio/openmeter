@@ -7,6 +7,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
 )
@@ -47,7 +48,7 @@ func (s *service) GetCurrentTotals(ctx context.Context, input usagebased.GetCurr
 		return usagebased.GetCurrentTotalsResult{}, err
 	}
 
-	ratingResult, err := s.getRatingForUsage(ctx, getRatingForUsageInput{
+	ratingResult, err := s.rater.GetRatingForUsage(ctx, usagebasedrating.GetRatingForUsageInput{
 		Charge:         charge,
 		Customer:       customerOverride,
 		FeatureMeter:   featureMeter,

@@ -13,29 +13,41 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
+	usagebasedrun "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
-type StateMachine struct {
+type stateMachine struct {
 	*stateless.StateMachine
 
 	Charge usagebased.Charge
 
 	Logger *slog.Logger
 
-	Service *service
 	Adapter usagebased.Adapter
+	Rater   *usagebasedrating.Service
+	Runs    *usagebasedrun.Service
 
 	CustomerOverride   billing.CustomerOverrideWithDetails
 	FeatureMeter       feature.FeatureMeter
 	CurrencyCalculator currencyx.Calculator
 }
 
+type StateMachine interface {
+	AdvanceUntilStateStable(ctx context.Context) (*usagebased.Charge, error)
+	CanFire(ctx context.Context, trigger meta.Trigger) (bool, error)
+	FireAndActivate(ctx context.Context, trigger meta.Trigger, args ...any) error
+	GetCharge() usagebased.Charge
+}
+
 type StateMachineConfig struct {
 	Charge             usagebased.Charge
-	Service            *service
+	Adapter            usagebased.Adapter
+	Rater              *usagebasedrating.Service
+	Runs               *usagebasedrun.Service
 	Logger             *slog.Logger
 	CustomerOverride   billing.CustomerOverrideWithDetails
 	FeatureMeter       feature.FeatureMeter
@@ -49,8 +61,16 @@ func (c StateMachineConfig) Validate() error {
 		errs = append(errs, fmt.Errorf("charge: %w", err))
 	}
 
-	if c.Service == nil {
-		errs = append(errs, errors.New("service is required"))
+	if c.Adapter == nil {
+		errs = append(errs, errors.New("adapter is required"))
+	}
+
+	if c.Rater == nil {
+		errs = append(errs, errors.New("rater is required"))
+	}
+
+	if c.Runs == nil {
+		errs = append(errs, errors.New("run service is required"))
 	}
 
 	if c.CustomerOverride.Customer == nil {
@@ -72,16 +92,17 @@ func (c StateMachineConfig) Validate() error {
 	return errors.Join(errs...)
 }
 
-func NewStateMachine(config StateMachineConfig) (*StateMachine, error) {
+func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("config: %w", err)
 	}
 
-	out := &StateMachine{
+	out := &stateMachine{
 		Charge:             config.Charge,
-		Service:            config.Service,
 		Logger:             lo.CoalesceOrEmpty(config.Logger, slog.Default()),
-		Adapter:            config.Service.adapter,
+		Adapter:            config.Adapter,
+		Rater:              config.Rater,
+		Runs:               config.Runs,
 		CustomerOverride:   config.CustomerOverride,
 		FeatureMeter:       config.FeatureMeter,
 		CurrencyCalculator: config.CurrencyCalculator,
@@ -110,12 +131,12 @@ func NewStateMachine(config StateMachineConfig) (*StateMachine, error) {
 
 // refetchCharge refetches the charge from the database and updates the state machine's charge.
 // The adapter's modification functions should properly support updating the charge in memory, as
-// a yearly charge with daily realization runs will have a lot of realizations thus a lot of data
+// a yearly charge with daily realization lifecycle will have a lot of realizations thus a lot of data
 // should be loaded.
 //
 // Use this where the final implementation is uncertain for now.
-func (s *StateMachine) refetchCharge(ctx context.Context) error {
-	charge, err := s.Service.GetByID(ctx, usagebased.GetByIDInput{
+func (s *stateMachine) refetchCharge(ctx context.Context) error {
+	charge, err := s.Adapter.GetByID(ctx, usagebased.GetByIDInput{
 		ChargeID: s.Charge.GetChargeID(),
 		Expands:  meta.Expands{meta.ExpandRealizations},
 	})
@@ -128,30 +149,34 @@ func (s *StateMachine) refetchCharge(ctx context.Context) error {
 	return nil
 }
 
-func (s *StateMachine) IsInsideServicePeriod() bool {
+func (s *stateMachine) GetCharge() usagebased.Charge {
+	return s.Charge
+}
+
+func (s *stateMachine) IsInsideServicePeriod() bool {
 	return !clock.Now().Before(s.Charge.Intent.ServicePeriod.From)
 }
 
-func (s *StateMachine) IsAfterServicePeriod() bool {
+func (s *stateMachine) IsAfterServicePeriod() bool {
 	return !clock.Now().Before(s.Charge.Intent.ServicePeriod.To)
 }
 
-func (s *StateMachine) AdvanceAfterServicePeriodTo(ctx context.Context) error {
+func (s *stateMachine) AdvanceAfterServicePeriodTo(ctx context.Context) error {
 	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.To))
 	return nil
 }
 
-func (s *StateMachine) SyncFeatureIDFromFeatureMeter(ctx context.Context) error {
+func (s *stateMachine) SyncFeatureIDFromFeatureMeter(ctx context.Context) error {
 	s.Charge.State.FeatureID = s.FeatureMeter.Feature.ID
 	return nil
 }
 
-func (s *StateMachine) AdvanceAfterServicePeriodFrom(ctx context.Context) error {
+func (s *stateMachine) AdvanceAfterServicePeriodFrom(ctx context.Context) error {
 	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.From))
 	return nil
 }
 
-func (s *StateMachine) AdvanceAfterCollectionPeriodEnd(ctx context.Context) error {
+func (s *stateMachine) AdvanceAfterCollectionPeriodEnd(ctx context.Context) error {
 	collectionPeriodEnd, err := s.getCurrentRunCollectionEnd()
 	if err != nil {
 		return err
@@ -162,7 +187,7 @@ func (s *StateMachine) AdvanceAfterCollectionPeriodEnd(ctx context.Context) erro
 	return nil
 }
 
-func (s *StateMachine) IsAfterCollectionPeriod(ctx context.Context, _ ...any) bool {
+func (s *stateMachine) IsAfterCollectionPeriod(ctx context.Context, _ ...any) bool {
 	collectionPeriodEnd, err := s.getCurrentRunCollectionEnd()
 	if err != nil {
 		s.Logger.ErrorContext(ctx, "failed to get collection period end", "error", err, "customerID", s.Charge.Intent.CustomerID)
@@ -172,13 +197,13 @@ func (s *StateMachine) IsAfterCollectionPeriod(ctx context.Context, _ ...any) bo
 	return !clock.Now().Before(collectionPeriodEnd.Add(usagebased.InternalCollectionPeriod))
 }
 
-func (s *StateMachine) GetCollectionPeriodEnd(_ context.Context) (time.Time, error) {
+func (s *stateMachine) GetCollectionPeriodEnd(_ context.Context) (time.Time, error) {
 	collectionPeriod := s.CustomerOverride.MergedProfile.WorkflowConfig.Collection.Interval
 	collectionPeriodEnd, _ := collectionPeriod.AddTo(s.Charge.Intent.ServicePeriod.To)
 	return meta.NormalizeTimestamp(collectionPeriodEnd), nil
 }
 
-func (s *StateMachine) getCurrentRunCollectionEnd() (time.Time, error) {
+func (s *stateMachine) getCurrentRunCollectionEnd() (time.Time, error) {
 	if s.Charge.State.CurrentRealizationRunID == nil {
 		return time.Time{}, fmt.Errorf("no realization run in progress [charge_id=%s]", s.Charge.ID)
 	}
@@ -191,7 +216,7 @@ func (s *StateMachine) getCurrentRunCollectionEnd() (time.Time, error) {
 	return meta.NormalizeTimestamp(currentRun.CollectionEnd), nil
 }
 
-func (s *StateMachine) FireAndActivate(ctx context.Context, trigger meta.Trigger, args ...any) error {
+func (s *stateMachine) FireAndActivate(ctx context.Context, trigger meta.Trigger, args ...any) error {
 	if err := s.StateMachine.FireCtx(ctx, trigger, args...); err != nil {
 		return err
 	}
@@ -199,7 +224,11 @@ func (s *StateMachine) FireAndActivate(ctx context.Context, trigger meta.Trigger
 	return s.StateMachine.ActivateCtx(ctx)
 }
 
-func (s *StateMachine) AdvanceUntilStateStable(ctx context.Context) (*usagebased.Charge, error) {
+func (s *stateMachine) CanFire(ctx context.Context, trigger meta.Trigger) (bool, error) {
+	return s.StateMachine.CanFireCtx(ctx, trigger)
+}
+
+func (s *stateMachine) AdvanceUntilStateStable(ctx context.Context) (*usagebased.Charge, error) {
 	var advanced bool
 
 	for {

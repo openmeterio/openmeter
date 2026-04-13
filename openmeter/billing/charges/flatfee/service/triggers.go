@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func (s *service) AdvanceCharge(ctx context.Context, input flatfee.AdvanceChargeInput) (*flatfee.Charge, error) {
@@ -17,12 +18,13 @@ func (s *service) AdvanceCharge(ctx context.Context, input flatfee.AdvanceCharge
 	}
 
 	return s.withLockedCharge(ctx, input.ChargeID, func(ctx context.Context, charge flatfee.Charge) (*flatfee.Charge, error) {
-		stateMachine, err := NewCreditsOnlyStateMachine(CreditsOnlyStateMachineConfig{
-			Charge:  charge,
-			Service: s,
+		stateMachine, err := s.newStateMachine(StateMachineConfig{
+			Charge:       charge,
+			Adapter:      s.adapter,
+			Realizations: s.realizations,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("new credits only state machine: %w", err)
+			return nil, fmt.Errorf("new state machine: %w", err)
 		}
 
 		return stateMachine.AdvanceUntilStateStable(ctx)
@@ -39,12 +41,13 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 	}
 
 	return s.withLockedCharge(ctx, chargeID, func(ctx context.Context, charge flatfee.Charge) (*flatfee.Charge, error) {
-		stateMachine, err := NewCreditsOnlyStateMachine(CreditsOnlyStateMachineConfig{
-			Charge:  charge,
-			Service: s,
+		stateMachine, err := s.newStateMachine(StateMachineConfig{
+			Charge:       charge,
+			Adapter:      s.adapter,
+			Realizations: s.realizations,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("new credits only state machine: %w", err)
+			return nil, fmt.Errorf("new state machine: %w", err)
 		}
 
 		err = stateMachine.FireAndActivate(ctx, patch.Trigger(), patch.TriggerParams())
@@ -52,8 +55,25 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 			return nil, err
 		}
 
-		return &stateMachine.Charge, nil
+		charge = stateMachine.GetCharge()
+		return &charge, nil
 	})
+}
+
+func (s *service) newStateMachine(config StateMachineConfig) (StateMachine, error) {
+	switch config.Charge.Intent.SettlementMode {
+	case productcatalog.CreditOnlySettlementMode:
+		stateMachine, err := NewCreditsOnlyStateMachine(config)
+		if err != nil {
+			return nil, err
+		}
+
+		return stateMachine, nil
+	default:
+		return nil, models.NewGenericNotImplementedError(
+			fmt.Errorf("unsupported settlement mode %s for flat fee charge %s", config.Charge.Intent.SettlementMode, config.Charge.ID),
+		)
+	}
 }
 
 func (s *service) withLockedCharge(ctx context.Context, chargeID meta.ChargeID, fn func(ctx context.Context, charge flatfee.Charge) (*flatfee.Charge, error)) (*flatfee.Charge, error) {
