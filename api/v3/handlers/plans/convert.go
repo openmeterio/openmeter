@@ -362,8 +362,13 @@ func toUpdatePlanInput(ns string, planID string, body api.UpsertPlanRequest) (pl
 		ProRatingConfig: lo.ToPtr(toProRatingConfig(body.ProRatingEnabled)),
 	}
 
+	meta, err := labels.ToMetadata(body.Labels)
+	if err != nil {
+		return req, fmt.Errorf("failed to convert label metadata %w", err)
+	}
+
 	if body.Labels != nil {
-		m := labels.ToMetadata(body.Labels)
+		m := meta
 		req.Metadata = &m
 	}
 
@@ -383,6 +388,11 @@ func toUpdatePlanInput(ns string, planID string, body api.UpsertPlanRequest) (pl
 }
 
 func toCreatePlanInput(ns string, body api.CreatePlanRequest) (plan.CreatePlanInput, error) {
+	meta, err := labels.ToMetadata(body.Labels)
+	if err != nil {
+		return plan.CreatePlanInput{}, fmt.Errorf("failed to convert label metadata: %w", err)
+	}
+
 	req := plan.CreatePlanInput{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: ns,
@@ -392,7 +402,7 @@ func toCreatePlanInput(ns string, body api.CreatePlanRequest) (plan.CreatePlanIn
 				Key:             body.Key,
 				Name:            body.Name,
 				Description:     body.Description,
-				Metadata:        labels.ToMetadata(body.Labels),
+				Metadata:        meta,
 				ProRatingConfig: toProRatingConfig(body.ProRatingEnabled),
 			},
 		},
@@ -442,12 +452,18 @@ func toProRatingConfig(enabled *bool) productcatalog.ProRatingConfig {
 }
 
 func toPlanPhase(p api.BillingPlanPhase) (productcatalog.Phase, error) {
+	meta, labelErr := labels.ToMetadata(p.Labels)
+
+	if labelErr != nil {
+		return productcatalog.Phase{}, fmt.Errorf("failed to convert label metadata %w", labelErr)
+	}
+
 	phase := productcatalog.Phase{
 		PhaseMeta: productcatalog.PhaseMeta{
 			Key:         p.Key,
 			Name:        p.Name,
 			Description: p.Description,
-			Metadata:    labels.ToMetadata(p.Labels),
+			Metadata:    meta,
 		},
 	}
 
@@ -480,11 +496,16 @@ func toRateCard(rc api.BillingRateCard) (productcatalog.RateCard, error) {
 		return nil, fmt.Errorf("failed to read price type: %w", err)
 	}
 
+	labelMeta, err := labels.ToMetadata(rc.Labels)
+	if err != nil {
+		return nil, fmt.Errorf("faled to convert metadata %w", err)
+	}
+
 	meta := productcatalog.RateCardMeta{
 		Key:         rc.Key,
 		Name:        rc.Name,
 		Description: rc.Description,
-		Metadata:    labels.ToMetadata(rc.Labels),
+		Metadata:    labelMeta,
 	}
 
 	if rc.Feature != nil {

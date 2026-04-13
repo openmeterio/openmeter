@@ -35,6 +35,11 @@ func (h *handler) CreatePlanAddon() CreatePlanAddonHandler {
 				return CreatePlanAddonRequest{}, err
 			}
 
+			meta, err := labels.ToMetadata(body.Labels)
+			if err != nil {
+				return CreatePlanAddonRequest{}, err
+			}
+
 			return CreatePlanAddonRequest{
 				NamespacedModel: models.NamespacedModel{
 					Namespace: ns,
@@ -43,7 +48,7 @@ func (h *handler) CreatePlanAddon() CreatePlanAddonHandler {
 				AddonID:       body.Addon.Id,
 				FromPlanPhase: body.FromPlanPhase,
 				MaxQuantity:   body.MaxQuantity,
-				Metadata:      labels.ToMetadata(body.Labels),
+				Metadata:      meta,
 			}, nil
 		},
 		func(ctx context.Context, request CreatePlanAddonRequest) (CreatePlanAddonResponse, error) {
