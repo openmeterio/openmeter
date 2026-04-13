@@ -6,6 +6,7 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	currencieshandler "github.com/openmeterio/openmeter/api/v3/handlers/currencies"
 	customerscreditshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/credits"
+	planaddonshandler "github.com/openmeterio/openmeter/api/v3/handlers/plans/planaddons"
 )
 
 // Meters
@@ -299,23 +300,35 @@ func (s *Server) PublishAddon(w http.ResponseWriter, r *http.Request, addonId ap
 // Plan Addons
 
 func (s *Server) ListPlanAddons(w http.ResponseWriter, r *http.Request, planId api.ULID, params api.ListPlanAddonsParams) {
-	s.plansHandler.ListPlanAddons().With(params).ServeHTTP(w, r)
+	s.planAddonsHandler.ListPlanAddons().With(planaddonshandler.ListPlanAddonsParams{
+		PlanID: planId,
+		Params: params,
+	}).ServeHTTP(w, r)
 }
 
 func (s *Server) CreatePlanAddon(w http.ResponseWriter, r *http.Request, planId api.ULID) {
-	s.plansHandler.CreatePlanAddon().With(planId).ServeHTTP(w, r)
+	s.planAddonsHandler.CreatePlanAddon().With(planId).ServeHTTP(w, r)
 }
 
 func (s *Server) GetPlanAddon(w http.ResponseWriter, r *http.Request, planId api.ULID, planAddonId api.ULID) {
-	s.plansHandler.GetPlanAddon().With(planAddonId).ServeHTTP(w, r)
+	s.planAddonsHandler.GetPlanAddon().With(planaddonshandler.GetPlanAddonParams{
+		PlanID:      planId,
+		PlanAddonID: planAddonId,
+	}).ServeHTTP(w, r)
 }
 
 func (s *Server) UpdatePlanAddon(w http.ResponseWriter, r *http.Request, planId api.ULID, planAddonId api.ULID) {
-	s.plansHandler.UpdatePlanAddon().With(planAddonId).ServeHTTP(w, r)
+	s.planAddonsHandler.UpdatePlanAddon().With(planaddonshandler.UpdatePlanAddonParams{
+		PlanID:      planId,
+		PlanAddonID: planAddonId,
+	}).ServeHTTP(w, r)
 }
 
 func (s *Server) DeletePlanAddon(w http.ResponseWriter, r *http.Request, planId api.ULID, planAddonId api.ULID) {
-	s.plansHandler.DeletePlanAddon().With(planAddonId).ServeHTTP(w, r)
+	s.planAddonsHandler.DeletePlanAddon().With(planaddonshandler.DeletePlanAddonParams{
+		PlanID:      planId,
+		PlanAddonID: planAddonId,
+	}).ServeHTTP(w, r)
 }
 
 // Credits

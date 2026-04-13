@@ -1,10 +1,8 @@
-package plans
+package planaddons
 
 import (
 	"context"
 	"net/http"
-
-	"github.com/go-chi/chi/v5"
 
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
@@ -14,28 +12,29 @@ import (
 )
 
 type (
-	DeletePlanAddonRequest  = planaddon.DeletePlanAddonInput
+	DeletePlanAddonRequest = planaddon.DeletePlanAddonInput
+	DeletePlanAddonParams  struct {
+		PlanID      string
+		PlanAddonID string
+	}
 	DeletePlanAddonResponse = any
-	DeletePlanAddonParams   = string
 	DeletePlanAddonHandler  httptransport.HandlerWithArgs[DeletePlanAddonRequest, DeletePlanAddonResponse, DeletePlanAddonParams]
 )
 
 func (h *handler) DeletePlanAddon() DeletePlanAddonHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, planAddonID DeletePlanAddonParams) (DeletePlanAddonRequest, error) {
+		func(ctx context.Context, r *http.Request, params DeletePlanAddonParams) (DeletePlanAddonRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return DeletePlanAddonRequest{}, err
 			}
 
-			planID := chi.URLParam(r, "planId")
-
 			return DeletePlanAddonRequest{
 				NamespacedModel: models.NamespacedModel{
 					Namespace: ns,
 				},
-				ID:     planAddonID,
-				PlanID: planID,
+				ID:     params.PlanAddonID,
+				PlanID: params.PlanID,
 			}, nil
 		},
 		func(ctx context.Context, request DeletePlanAddonRequest) (DeletePlanAddonResponse, error) {

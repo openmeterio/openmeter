@@ -1,10 +1,9 @@
-package plans
+package planaddons
 
 import (
 	"context"
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
@@ -17,9 +16,12 @@ import (
 )
 
 type (
-	ListPlanAddonsRequest  = planaddon.ListPlanAddonsInput
+	ListPlanAddonsRequest = planaddon.ListPlanAddonsInput
+	ListPlanAddonsParams  struct {
+		PlanID string
+		Params api.ListPlanAddonsParams
+	}
 	ListPlanAddonsResponse = response.PagePaginationResponse[api.PlanAddon]
-	ListPlanAddonsParams   = api.ListPlanAddonsParams
 	ListPlanAddonsHandler  httptransport.HandlerWithArgs[ListPlanAddonsRequest, ListPlanAddonsResponse, ListPlanAddonsParams]
 )
 
@@ -31,13 +33,11 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 				return ListPlanAddonsRequest{}, err
 			}
 
-			planID := chi.URLParam(r, "planId")
-
 			page := pagination.NewPage(1, 20)
-			if params.Page != nil {
+			if params.Params.Page != nil {
 				page = pagination.NewPage(
-					lo.FromPtrOr(params.Page.Number, 1),
-					lo.FromPtrOr(params.Page.Size, 20),
+					lo.FromPtrOr(params.Params.Page.Number, 1),
+					lo.FromPtrOr(params.Params.Page.Size, 20),
 				)
 			}
 
@@ -53,7 +53,7 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 
 			return ListPlanAddonsRequest{
 				Namespaces: []string{ns},
-				PlanIDs:    []string{planID},
+				PlanIDs:    []string{params.PlanID},
 				Page:       page,
 			}, nil
 		},
