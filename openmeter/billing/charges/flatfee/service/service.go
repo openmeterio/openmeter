@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	flatfeerealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service/realizations"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
@@ -48,19 +49,28 @@ func New(config Config) (flatfee.Service, error) {
 		return nil, err
 	}
 
+	realizations, err := flatfeerealizations.New(flatfeerealizations.Config{
+		Adapter: config.Adapter,
+		Handler: config.Handler,
+		Lineage: config.Lineage,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &service{
-		adapter:     config.Adapter,
-		handler:     config.Handler,
-		lineage:     config.Lineage,
-		metaAdapter: config.MetaAdapter,
-		locker:      config.Locker,
+		adapter:      config.Adapter,
+		handler:      config.Handler,
+		metaAdapter:  config.MetaAdapter,
+		locker:       config.Locker,
+		realizations: realizations,
 	}, nil
 }
 
 type service struct {
-	adapter     flatfee.Adapter
-	handler     flatfee.Handler
-	lineage     lineage.Service
-	metaAdapter meta.Adapter
-	locker      *lockr.Locker
+	adapter      flatfee.Adapter
+	handler      flatfee.Handler
+	metaAdapter  meta.Adapter
+	locker       *lockr.Locker
+	realizations *flatfeerealizations.Service
 }

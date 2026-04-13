@@ -4,44 +4,21 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/qmuntal/stateless"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	flatfeerealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service/realizations"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/statelessx"
 )
 
 type CreditsOnlyStateMachine struct {
-	*stateless.StateMachine
-
-	Charge  flatfee.Charge
-	Service *service
-	Adapter flatfee.Adapter
+	*stateMachine
 }
 
-type CreditsOnlyStateMachineConfig struct {
-	Charge  flatfee.Charge
-	Service *service
-}
-
-func (c CreditsOnlyStateMachineConfig) Validate() error {
-	if err := c.Charge.Validate(); err != nil {
-		return fmt.Errorf("charge: %w", err)
-	}
-
-	if c.Service == nil {
-		return fmt.Errorf("service is required")
-	}
-
-	return nil
-}
-
-func NewCreditsOnlyStateMachine(config CreditsOnlyStateMachineConfig) (*CreditsOnlyStateMachine, error) {
+func NewCreditsOnlyStateMachine(config StateMachineConfig) (*CreditsOnlyStateMachine, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("validate: %w", err)
 	}
@@ -50,29 +27,14 @@ func NewCreditsOnlyStateMachine(config CreditsOnlyStateMachineConfig) (*CreditsO
 		return nil, fmt.Errorf("charge %s is not credit_only", config.Charge.ID)
 	}
 
-	out := &CreditsOnlyStateMachine{
-		Charge:  config.Charge,
-		Service: config.Service,
-		Adapter: config.Service.adapter,
+	stateMachine, err := newStateMachineBase(config)
+	if err != nil {
+		return nil, fmt.Errorf("new state machine: %w", err)
 	}
 
-	sm := stateless.NewStateMachineWithExternalStorage(
-		func(ctx context.Context) (stateless.State, error) {
-			return out.Charge.Status, nil
-		},
-		func(ctx context.Context, state stateless.State) error {
-			newStatus := state.(flatfee.Status)
-			if err := newStatus.Validate(); err != nil {
-				return fmt.Errorf("invalid status: %w", err)
-			}
-
-			out.Charge.Status = newStatus
-			return nil
-		},
-		stateless.FiringImmediate,
-	)
-
-	out.StateMachine = sm
+	out := &CreditsOnlyStateMachine{
+		stateMachine: stateMachine,
+	}
 	out.configureStates()
 
 	return out, nil
@@ -127,95 +89,17 @@ func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
 		return fmt.Errorf("charge total is negative [charge_id=%s, amount=%s]", s.Charge.ID, amount.String())
 	}
 
-	var creditAllocations creditrealization.CreateAllocationInputs
-	if !amount.IsZero() {
-		input := flatfee.OnCreditsOnlyUsageAccruedInput{
-			Charge:           s.Charge,
-			AmountToAllocate: amount,
-		}
-
-		if err := input.Validate(); err != nil {
-			return fmt.Errorf("validate input: %w", err)
-		}
-
-		var err error
-		creditAllocations, err = s.Service.handler.OnCreditsOnlyUsageAccrued(ctx, input)
-		if err != nil {
-			return fmt.Errorf("on credits only usage accrued: %w", err)
-		}
-
-		if !creditAllocations.Sum().Equal(amount) {
-			return models.NewGenericValidationError(
-				fmt.Errorf("credit allocations do not match total [charge_id=%s, total=%s, allocations_sum=%s]",
-					s.Charge.ID, amount.String(), creditAllocations.Sum().String()),
-			)
-		}
-	}
-
-	if len(creditAllocations) > 0 {
-		realizations, err := s.Service.createCreditAllocations(ctx, s.Charge, creditAllocations.AsCreateInputs())
-		if err != nil {
-			return fmt.Errorf("create credit allocations: %w", err)
-		}
-
-		s.Charge.Realizations.CreditRealizations = append(s.Charge.Realizations.CreditRealizations, realizations...)
-	}
-
-	return nil
-}
-
-// TODO: Move these into some helper base package
-
-var ErrUnsupportedOperation = models.NewGenericPreConditionFailedError(fmt.Errorf("unsupported operation"))
-
-func (s *CreditsOnlyStateMachine) FireAndActivate(ctx context.Context, trigger meta.Trigger, args ...any) error {
-	canFire, err := s.StateMachine.CanFireCtx(ctx, trigger)
+	result, err := s.Realizations.AllocateCreditsOnly(ctx, flatfeerealizations.AllocateCreditsOnlyInput{
+		Charge:             s.Charge,
+		Amount:             amount,
+		CurrencyCalculator: currencyCalculator,
+	})
 	if err != nil {
-		return err
+		return fmt.Errorf("allocate credits: %w", err)
 	}
 
-	if !canFire {
-		return fmt.Errorf("%w: %s [status=%s,id=%s]", ErrUnsupportedOperation, trigger, s.Charge.Status, s.Charge.ID)
-	}
-
-	if err := s.StateMachine.FireCtx(ctx, trigger, args...); err != nil {
-		return err
-	}
-
-	return s.StateMachine.ActivateCtx(ctx)
-}
-
-func (s *CreditsOnlyStateMachine) AdvanceUntilStateStable(ctx context.Context) (*flatfee.Charge, error) {
-	var advanced bool
-
-	for {
-		canFire, err := s.StateMachine.CanFireCtx(ctx, meta.TriggerNext)
-		if err != nil {
-			return nil, err
-		}
-
-		if !canFire {
-			if !advanced {
-				return nil, nil
-			}
-
-			charge := s.Charge
-			return &charge, nil
-		}
-
-		if err := s.FireAndActivate(ctx, meta.TriggerNext); err != nil {
-			return nil, fmt.Errorf("cannot transition to the next status [current_status=%s]: %w", s.Charge.Status, err)
-		}
-
-		updatedChargeBase, err := s.Adapter.UpdateCharge(ctx, s.Charge.ChargeBase)
-		if err != nil {
-			return nil, fmt.Errorf("persist charge: %w", err)
-		}
-
-		s.Charge.ChargeBase = updatedChargeBase
-
-		advanced = true
-	}
+	s.Charge.Realizations.CreditRealizations = append(s.Charge.Realizations.CreditRealizations, result.Realizations...)
+	return nil
 }
 
 func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, policy meta.PatchDeletePolicy) error {
@@ -225,31 +109,12 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, policy meta.
 			return fmt.Errorf("get currency calculator: %w", err)
 		}
 
-		realizationIDs := lo.Map(s.Charge.Realizations.CreditRealizations, func(realization creditrealization.Realization, _ int) string {
-			return realization.ID
-		})
-		lineageSegmentsByRealization, err := s.Service.lineage.LoadActiveSegmentsByRealizationID(ctx, s.Charge.Namespace, realizationIDs)
-		if err != nil {
-			return fmt.Errorf("load active lineage segments: %w", err)
-		}
-
-		// Let's reverse the credit allocations
-		corrections, err := s.Charge.Realizations.CreditRealizations.CorrectAll(currencyCalculator, func(req creditrealization.CorrectionRequest) (creditrealization.CreateCorrectionInputs, error) {
-			return s.Service.handler.OnCreditsOnlyUsageAccruedCorrection(ctx, flatfee.CreditsOnlyUsageAccruedCorrectionInput{
-				Charge:                       s.Charge,
-				AllocateAt:                   clock.Now(),
-				Corrections:                  req,
-				LineageSegmentsByRealization: lineageSegmentsByRealization,
-			})
-		})
-		if err != nil {
+		if _, err := s.Realizations.CorrectAllCredits(ctx, flatfeerealizations.CorrectAllCreditRealizationsInput{
+			Charge:             s.Charge,
+			AllocateAt:         clock.Now(),
+			CurrencyCalculator: currencyCalculator,
+		}); err != nil {
 			return fmt.Errorf("correct credits: %w", err)
-		}
-
-		if len(corrections) > 0 {
-			if _, err := s.Service.createCreditAllocations(ctx, s.Charge, corrections); err != nil {
-				return fmt.Errorf("create credit corrections: %w", err)
-			}
 		}
 	}
 
@@ -258,16 +123,4 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, policy meta.
 	}
 
 	return s.refetchCharge(ctx)
-}
-
-func (s *CreditsOnlyStateMachine) refetchCharge(ctx context.Context) error {
-	charge, err := s.Service.GetByID(ctx, flatfee.GetByIDInput{
-		ChargeID: s.Charge.GetChargeID(),
-	})
-	if err != nil {
-		return fmt.Errorf("get charge: %w", err)
-	}
-
-	s.Charge = charge
-	return nil
 }

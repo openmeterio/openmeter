@@ -7,6 +7,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
+	usagebasedrun "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -73,29 +75,46 @@ func New(config Config) (usagebased.Service, error) {
 		return nil, err
 	}
 
+	rater, err := usagebasedrating.New(usagebasedrating.Config{
+		StreamingConnector: config.StreamingConnector,
+		RatingService:      config.RatingService,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	runs, err := usagebasedrun.New(usagebasedrun.Config{
+		Adapter: config.Adapter,
+		Rater:   rater,
+		Handler: config.Handler,
+		Lineage: config.Lineage,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &service{
 		adapter:                 config.Adapter,
-		handler:                 config.Handler,
-		lineage:                 config.Lineage,
 		locker:                  config.Locker,
 		metaAdapter:             config.MetaAdapter,
 		customerOverrideService: config.CustomerOverrideService,
 		featureService:          config.FeatureService,
 		ratingService:           config.RatingService,
-		streamingConnector:      config.StreamingConnector,
+		rater:                   rater,
+		runs:                    runs,
 	}, nil
 }
 
 type service struct {
-	streamingConnector      streaming.Connector
 	adapter                 usagebased.Adapter
-	handler                 usagebased.Handler
-	lineage                 lineage.Service
 	locker                  *lockr.Locker
 	metaAdapter             meta.Adapter
 	customerOverrideService billing.CustomerOverrideService
 	featureService          feature.FeatureConnector
 	ratingService           rating.Service
+
+	rater *usagebasedrating.Service
+	runs  *usagebasedrun.Service
 }
 
 func (s *service) GetLineEngine() billing.LineEngine {

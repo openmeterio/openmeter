@@ -920,6 +920,32 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 	})
 
 	s.Run("#4 invoice pending lines at service period end", func() {
+		defer s.UsageBasedTestHandler.Reset()
+
+		availableCredits := alpacadecimal.NewFromFloat(5)
+		s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
+			amount := input.AmountToAllocate
+			if amount.GreaterThan(availableCredits) {
+				amount = availableCredits
+			}
+
+			if amount.IsZero() {
+				return nil, nil
+			}
+
+			availableCredits = availableCredits.Sub(amount)
+
+			return creditrealization.CreateAllocationInputs{
+				{
+					ServicePeriod: input.Charge.Intent.ServicePeriod,
+					Amount:        amount,
+					LedgerTransaction: ledgertransaction.GroupReference{
+						TransactionGroupID: ulid.Make().String(),
+					},
+				},
+			}, nil
+		}
+
 		s.MockStreamingConnector.AddSimpleEvent(
 			meterSlug,
 			100,

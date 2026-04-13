@@ -44,7 +44,7 @@ func (s *service) PostLineAssignedToInvoice(ctx context.Context, charge flatfee.
 		}
 
 		// TODO: If we want we can bulk insert these into the database for better performance (for now it's fine)
-		realizations, err := s.createCreditAllocations(ctx, charge, creditAllocations.AsCreateInputs())
+		realizations, err := s.realizations.CreateCreditAllocations(ctx, charge, creditAllocations.AsCreateInputs())
 		if err != nil {
 			return nil, fmt.Errorf("creating credit realizations: %w", err)
 		}

@@ -53,6 +53,7 @@ The generic rule is:
 - the root charges package owns cross-type orchestration
 - type-specific packages own type-specific lifecycle and persistence
 - `AdvanceCharges(...)` is a facade method, not the state machine itself
+- type-specific service subpackages may own reusable realization mechanics when the parent service becomes too broad; keep state-machine decisions in the lifecycle files and move only mechanical operations such as rating snapshots, realization persistence, credit allocation/correction, and realization lineage persistence into these helpers
 
 Important types:
 
@@ -191,6 +192,28 @@ Placement guidance:
 - prefer shared normalization in `creditrealization` helpers for correction flows instead of repeating callback-local normalization at each callsite
 - do not mutate whole intents inside adapters just to normalize currency; if an adapter needs a persistence backstop, keep it local to the `Set*` write
 - when ledger logic derives monetary values from balances, entries, or its own calculations, round those values in ledger code as well; do not rely only on upstream callers
+
+## Realization Helper Subpackages
+
+Use small type-specific realization helper subpackages to keep charge services and state machines from becoming kitchen-sink orchestration layers.
+
+The purpose of these subpackages is to separate reusable realization mechanics from lifecycle decisions:
+
+- state-machine files decide which trigger/status/action applies for a settlement mode
+- realization helper packages execute reusable mechanics once that decision has already been made
+- helper packages must not decide which trigger to fire, which status to enter, or whether a charge lifecycle event should advance
+
+Naming should describe the charge-domain unit being manipulated rather than the current ledger operation. Prefer `realizations` for flat-fee helpers because flat fees have credit realizations today and will also support invoiced/payment realization flows. For usage-based charges, a `run` helper is appropriate when the helper owns realization-run mechanics such as rated run creation, run persistence, credit allocation/correction, and run credit-realization lineage.
+
+Keep these helpers type-specific instead of forcing a generic cross-charge state machine. Flat-fee and usage-based lifecycles share some mechanics, but their durable state and lifecycle semantics differ: usage-based has realization runs, collection cutoffs, and `CurrentRealizationRunID`; flat-fee has charge-level realizations, proration, invoice hooks, and payment hooks.
+
+When extracting helpers:
+
+- inject only the dependencies the helper needs, usually adapter, handler, lineage, and any rating helper
+- expose struct-returning methods for multi-value outcomes
+- keep credit allocation/correction exactness explicit at the call site, because `credit_only` and `credit_then_invoice` can differ
+- keep lineage persistence next to realization creation so allocation and correction paths do not duplicate lineage bookkeeping
+- keep the parent service responsible for transactions, locking, and building settlement-mode-specific state machines
 
 ## Supported Behavior
 

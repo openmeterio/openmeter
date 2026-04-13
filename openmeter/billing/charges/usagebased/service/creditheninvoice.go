@@ -6,13 +6,15 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
+	usagebasedrun "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/statelessx"
 )
 
 type CreditThenInvoiceStateMachine struct {
-	*StateMachine
+	*stateMachine
 }
 
 func NewCreditThenInvoiceStateMachine(config StateMachineConfig) (*CreditThenInvoiceStateMachine, error) {
@@ -24,13 +26,13 @@ func NewCreditThenInvoiceStateMachine(config StateMachineConfig) (*CreditThenInv
 		return nil, fmt.Errorf("charge %s is not credit_then_invoice", config.Charge.ID)
 	}
 
-	stateMachine, err := NewStateMachine(config)
+	stateMachine, err := newStateMachineBase(config)
 	if err != nil {
 		return nil, fmt.Errorf("new state machine: %w", err)
 	}
 
 	out := CreditThenInvoiceStateMachine{
-		StateMachine: stateMachine,
+		stateMachine: stateMachine,
 	}
 
 	out.configureStates()
@@ -117,32 +119,21 @@ func (s *CreditThenInvoiceStateMachine) StartInvoiceCreatedRun(ctx context.Conte
 		return fmt.Errorf("get collection period end: %w", err)
 	}
 
-	ratingResult, err := s.Service.getRatingForUsage(ctx, getRatingForUsageInput{
-		Charge:         s.Charge,
-		Customer:       s.CustomerOverride,
-		FeatureMeter:   s.FeatureMeter,
-		StoredAtOffset: storedAtOffset,
+	result, err := s.Runs.CreateRatedRun(ctx, usagebasedrun.CreateRatedRunInput{
+		Charge:             s.Charge,
+		CustomerOverride:   s.CustomerOverride,
+		FeatureMeter:       s.FeatureMeter,
+		Type:               usagebased.RealizationRunTypeFinalRealization,
+		AsOf:               storedAtOffset,
+		CollectionEnd:      collectionEnd,
+		CreditAllocation:   usagebasedrun.CreditAllocationAvailable,
+		CurrencyCalculator: s.CurrencyCalculator,
 	})
 	if err != nil {
-		return fmt.Errorf("get rating for usage: %w", err)
+		return err
 	}
 
-	totals := ratingResult.Totals.RoundToPrecision(s.CurrencyCalculator)
-
-	updatedCharge, err := s.Service.createNewRealizationRun(ctx, s.Charge, usagebased.CreateRealizationRunInput{
-		FeatureID:     s.Charge.State.FeatureID,
-		Type:          usagebased.RealizationRunTypeFinalRealization,
-		AsOf:          storedAtOffset,
-		CollectionEnd: collectionEnd,
-		MeterValue:    ratingResult.Quantity,
-		Totals:        totals,
-	})
-	if err != nil {
-		return fmt.Errorf("create new realization run: %w", err)
-	}
-
-	s.Charge = updatedCharge
-
+	s.Charge = result.Charge
 	return nil
 }
 
@@ -158,7 +149,7 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceCreatedRun(ctx context.Co
 
 	storedAtOffset := meta.NormalizeTimestamp(currentRun.CollectionEnd)
 
-	ratingResult, err := s.Service.getRatingForUsage(ctx, getRatingForUsageInput{
+	ratingResult, err := s.Rater.GetRatingForUsage(ctx, usagebasedrating.GetRatingForUsageInput{
 		Charge:         s.Charge,
 		Customer:       s.CustomerOverride,
 		FeatureMeter:   s.FeatureMeter,
@@ -169,6 +160,24 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceCreatedRun(ctx context.Co
 	}
 
 	currentTotals := ratingResult.Totals.RoundToPrecision(s.CurrencyCalculator)
+	targetCreditsTotal := currentRun.Totals.CreditsTotal
+	if targetCreditsTotal.GreaterThan(currentTotals.Total) {
+		targetCreditsTotal = currentTotals.Total
+	}
+
+	if _, err := s.Runs.ReconcileCredits(ctx, usagebasedrun.ReconcileCreditRealizationsInput{
+		Charge:             s.Charge,
+		Run:                currentRun,
+		AllocateAt:         storedAtOffset,
+		TargetAmount:       targetCreditsTotal,
+		CurrencyCalculator: s.CurrencyCalculator,
+		ExactAllocation:    false,
+	}); err != nil {
+		return fmt.Errorf("reconcile lifecycle: %w", err)
+	}
+
+	currentTotals.CreditsTotal = currentTotals.CreditsTotal.Add(targetCreditsTotal)
+	currentTotals.Total = s.CurrencyCalculator.RoundToPrecision(currentTotals.Total.Sub(targetCreditsTotal))
 
 	currentRunBase, err := s.Adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
 		ID:         currentRun.ID,
