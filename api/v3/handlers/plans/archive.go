@@ -47,7 +47,7 @@ func (h *handler) ArchivePlan() ArchivePlanHandler {
 				return ArchivePlanResponse{}, fmt.Errorf("failed to archive plan")
 			}
 
-			return FromPlan(*p)
+			return ToAPIBillingPlan(*p)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[ArchivePlanResponse](http.StatusOK),
 		httptransport.AppendOptions(

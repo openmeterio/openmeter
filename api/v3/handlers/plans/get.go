@@ -40,7 +40,7 @@ func (h *handler) GetPlan() GetPlanHandler {
 				return GetPlanResponse{}, err
 			}
 
-			return FromPlan(*p)
+			return ToAPIBillingPlan(*p)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetPlanResponse](http.StatusOK),
 		httptransport.AppendOptions(

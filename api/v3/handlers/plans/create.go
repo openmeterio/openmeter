@@ -32,7 +32,7 @@ func (h *handler) CreatePlan() CreatePlanHandler {
 				return CreatePlanRequest{}, err
 			}
 
-			req, err := toCreatePlanInput(ns, body)
+			req, err := FromAPICreatePlanRequest(ns, body)
 			if err != nil {
 				return CreatePlanRequest{}, err
 			}
@@ -51,7 +51,7 @@ func (h *handler) CreatePlan() CreatePlanHandler {
 				return CreatePlanResponse{}, fmt.Errorf("failed to create plan")
 			}
 
-			return FromPlan(*p)
+			return ToAPIBillingPlan(*p)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreatePlanResponse](http.StatusCreated),
 		httptransport.AppendOptions(

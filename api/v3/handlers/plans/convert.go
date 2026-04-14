@@ -38,7 +38,7 @@ func hasUnsupportedV3Price(p plan.Plan) bool {
 	return false
 }
 
-func FromPlan(p plan.Plan) (api.BillingPlan, error) {
+func ToAPIBillingPlan(p plan.Plan) (api.BillingPlan, error) {
 	validationIssues, _ := p.AsProductCatalogPlan().ValidationErrors()
 
 	resp := api.BillingPlan{
@@ -55,7 +55,7 @@ func FromPlan(p plan.Plan) (api.BillingPlan, error) {
 		UpdatedAt:        lo.ToPtr(p.UpdatedAt),
 		Version:          p.Version,
 		ProRatingEnabled: lo.ToPtr(p.ProRatingConfig.Enabled),
-		ValidationErrors: fromValidationErrors(validationIssues),
+		ValidationErrors: toAPIProductCatalogValidationErrors(validationIssues),
 	}
 
 	var status api.BillingPlanStatus
@@ -76,7 +76,7 @@ func FromPlan(p plan.Plan) (api.BillingPlan, error) {
 
 	resp.Phases = make([]api.BillingPlanPhase, 0, len(p.Phases))
 	for _, phase := range p.Phases {
-		billingPhase, err := fromPlanPhase(phase)
+		billingPhase, err := toAPIBillingPlanPhase(phase)
 		if err != nil {
 			return resp, fmt.Errorf("failed to convert plan phase: %w", err)
 		}
@@ -87,7 +87,7 @@ func FromPlan(p plan.Plan) (api.BillingPlan, error) {
 	return resp, nil
 }
 
-func fromPlanPhase(p plan.Phase) (api.BillingPlanPhase, error) {
+func toAPIBillingPlanPhase(p plan.Phase) (api.BillingPlanPhase, error) {
 	phase := api.BillingPlanPhase{
 		Description: p.Description,
 		Duration:    (*api.ISO8601Duration)(p.Duration.ISOStringPtrOrNil()),
@@ -97,7 +97,7 @@ func fromPlanPhase(p plan.Phase) (api.BillingPlanPhase, error) {
 	}
 
 	for _, rc := range p.RateCards {
-		billingRC, err := fromRateCard(rc)
+		billingRC, err := toAPIBillingRateCard(rc)
 		if err != nil {
 			return phase, fmt.Errorf("failed to convert rate card %q: %w", rc.Key(), err)
 		}
@@ -108,15 +108,15 @@ func fromPlanPhase(p plan.Phase) (api.BillingPlanPhase, error) {
 	return phase, nil
 }
 
-func fromRateCard(rc productcatalog.RateCard) (api.BillingRateCard, error) {
+func toAPIBillingRateCard(rc productcatalog.RateCard) (api.BillingRateCard, error) {
 	meta := rc.AsMeta()
 
 	result := api.BillingRateCard{
 		Key:         meta.Key,
 		Name:        meta.Name,
 		Description: meta.Description,
-		Discounts:   fromBillingDiscounts(meta.Discounts),
-		TaxConfig:   fromBillingTaxConfig(meta.TaxConfig, meta.TaxCode),
+		Discounts:   toAPIBillingRateCardDiscount(meta.Discounts),
+		TaxConfig:   toAPIBillingRateCardTaxConfi(meta.TaxConfig, meta.TaxCode),
 	}
 
 	if meta.FeatureID != nil {
@@ -149,14 +149,14 @@ func fromRateCard(rc productcatalog.RateCard) (api.BillingRateCard, error) {
 		result.BillingCadence = lo.ToPtr(bc.ISOString().String())
 
 		if meta.Price != nil {
-			result.Commitments = fromBillingCommitments(meta.Price.GetCommitments())
+			result.Commitments = toAPIBillingSpendCommitments(meta.Price.GetCommitments())
 		}
 
 	default:
 		return result, fmt.Errorf("unknown rate card type: %s", rc.Type())
 	}
 
-	price, err := fromBillingPrice(meta.Price)
+	price, err := toAPIBillingPrice(meta.Price)
 	if err != nil {
 		return result, fmt.Errorf("failed to convert price: %w", err)
 	}
@@ -166,7 +166,7 @@ func fromRateCard(rc productcatalog.RateCard) (api.BillingRateCard, error) {
 	return result, nil
 }
 
-func fromBillingPrice(p *productcatalog.Price) (api.BillingPrice, error) {
+func toAPIBillingPrice(p *productcatalog.Price) (api.BillingPrice, error) {
 	var result api.BillingPrice
 
 	if p == nil {
@@ -212,7 +212,7 @@ func fromBillingPrice(p *productcatalog.Price) (api.BillingPrice, error) {
 			return result, fmt.Errorf("failed to read tiered price: %w", err)
 		}
 
-		tiers := fromBillingPriceTiers(tiered.Tiers)
+		tiers := toAPIBillingPriceTiers(tiered.Tiers)
 
 		switch tiered.Mode {
 		case productcatalog.GraduatedTieredPrice:
@@ -248,7 +248,7 @@ func fromBillingPrice(p *productcatalog.Price) (api.BillingPrice, error) {
 	return result, nil
 }
 
-func fromBillingPriceTiers(tiers []productcatalog.PriceTier) []api.BillingPriceTier {
+func toAPIBillingPriceTiers(tiers []productcatalog.PriceTier) []api.BillingPriceTier {
 	result := make([]api.BillingPriceTier, 0, len(tiers))
 
 	for _, t := range tiers {
@@ -278,7 +278,7 @@ func fromBillingPriceTiers(tiers []productcatalog.PriceTier) []api.BillingPriceT
 	return result
 }
 
-func fromBillingTaxConfig(c *productcatalog.TaxConfig, tc *taxcode.TaxCode) *api.BillingRateCardTaxConfig {
+func toAPIBillingRateCardTaxConfi(c *productcatalog.TaxConfig, tc *taxcode.TaxCode) *api.BillingRateCardTaxConfig {
 	if c == nil || tc == nil {
 		return nil
 	}
@@ -296,7 +296,7 @@ func fromBillingTaxConfig(c *productcatalog.TaxConfig, tc *taxcode.TaxCode) *api
 	return result
 }
 
-func fromBillingDiscounts(d productcatalog.Discounts) *api.BillingRateCardDiscounts {
+func toAPIBillingRateCardDiscount(d productcatalog.Discounts) *api.BillingRateCardDiscounts {
 	if d.Percentage == nil && d.Usage == nil {
 		return nil
 	}
@@ -315,7 +315,7 @@ func fromBillingDiscounts(d productcatalog.Discounts) *api.BillingRateCardDiscou
 	return result
 }
 
-func fromBillingCommitments(c productcatalog.Commitments) *api.BillingSpendCommitments {
+func toAPIBillingSpendCommitments(c productcatalog.Commitments) *api.BillingSpendCommitments {
 	if c.MinimumAmount == nil && c.MaximumAmount == nil {
 		return nil
 	}
@@ -333,7 +333,7 @@ func fromBillingCommitments(c productcatalog.Commitments) *api.BillingSpendCommi
 	return result
 }
 
-func fromValidationErrors(issues models.ValidationIssues) *[]api.ProductCatalogValidationError {
+func toAPIProductCatalogValidationErrors(issues models.ValidationIssues) *[]api.ProductCatalogValidationError {
 	if len(issues) == 0 {
 		return nil
 	}
@@ -350,7 +350,7 @@ func fromValidationErrors(issues models.ValidationIssues) *[]api.ProductCatalogV
 	return &result
 }
 
-func toUpdatePlanInput(ns string, planID string, body api.UpsertPlanRequest) (plan.UpdatePlanInput, error) {
+func FromAPIUpsertPlanRequest(ns string, planID string, body api.UpsertPlanRequest) (plan.UpdatePlanInput, error) {
 	req := plan.UpdatePlanInput{
 		NamespacedID: models.NamespacedID{
 			Namespace: ns,
@@ -373,7 +373,7 @@ func toUpdatePlanInput(ns string, planID string, body api.UpsertPlanRequest) (pl
 
 	phases := make([]productcatalog.Phase, 0, len(body.Phases))
 	for _, phase := range body.Phases {
-		p, err := toPlanPhase(phase)
+		p, err := fromAPIBillingPlanPhase(phase)
 		if err != nil {
 			return req, fmt.Errorf("failed to convert phase: %w", err)
 		}
@@ -386,7 +386,7 @@ func toUpdatePlanInput(ns string, planID string, body api.UpsertPlanRequest) (pl
 	return req, nil
 }
 
-func toCreatePlanInput(ns string, body api.CreatePlanRequest) (plan.CreatePlanInput, error) {
+func FromAPICreatePlanRequest(ns string, body api.CreatePlanRequest) (plan.CreatePlanInput, error) {
 	meta, err := labels.ToMetadata(body.Labels)
 	if err != nil {
 		return plan.CreatePlanInput{}, fmt.Errorf("failed to convert label metadata: %w", err)
@@ -425,7 +425,7 @@ func toCreatePlanInput(ns string, body api.CreatePlanRequest) (plan.CreatePlanIn
 		req.Phases = make([]productcatalog.Phase, 0, len(body.Phases))
 
 		for _, phase := range body.Phases {
-			p, err := toPlanPhase(phase)
+			p, err := fromAPIBillingPlanPhase(phase)
 			if err != nil {
 				return req, fmt.Errorf("failed to convert phase: %w", err)
 			}
@@ -450,7 +450,7 @@ func toProRatingConfig(enabled *bool) productcatalog.ProRatingConfig {
 	}
 }
 
-func toPlanPhase(p api.BillingPlanPhase) (productcatalog.Phase, error) {
+func fromAPIBillingPlanPhase(p api.BillingPlanPhase) (productcatalog.Phase, error) {
 	meta, labelErr := labels.ToMetadata(p.Labels)
 
 	if labelErr != nil {
@@ -477,7 +477,7 @@ func toPlanPhase(p api.BillingPlanPhase) (productcatalog.Phase, error) {
 		phase.RateCards = make(productcatalog.RateCards, 0, len(p.RateCards))
 
 		for _, rc := range p.RateCards {
-			rateCard, err := toRateCard(rc)
+			rateCard, err := fromAPIBillingRateCard(rc)
 			if err != nil {
 				return phase, fmt.Errorf("failed to convert rate card %q: %w", rc.Key, err)
 			}
@@ -489,7 +489,7 @@ func toPlanPhase(p api.BillingPlanPhase) (productcatalog.Phase, error) {
 	return phase, nil
 }
 
-func toRateCard(rc api.BillingRateCard) (productcatalog.RateCard, error) {
+func fromAPIBillingRateCard(rc api.BillingRateCard) (productcatalog.RateCard, error) {
 	priceType, err := rc.Price.Discriminator()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read price type: %w", err)
@@ -512,11 +512,11 @@ func toRateCard(rc api.BillingRateCard) (productcatalog.RateCard, error) {
 	}
 
 	if rc.TaxConfig != nil {
-		meta.TaxConfig = toBillingTaxConfig(*rc.TaxConfig)
+		meta.TaxConfig = fromAPIBillingRateCardTaxConfig(*rc.TaxConfig)
 	}
 
 	if rc.Discounts != nil {
-		discounts, err := toBillingDiscounts(*rc.Discounts)
+		discounts, err := fromAPIBillingRateCardDiscounts(*rc.Discounts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert discounts: %w", err)
 		}
@@ -526,7 +526,7 @@ func toRateCard(rc api.BillingRateCard) (productcatalog.RateCard, error) {
 
 	switch priceType {
 	case "free", "flat":
-		price, err := toBillingPrice(rc.Price, rc.PaymentTerm)
+		price, err := fromAPIBillingPrice(rc.Price, rc.PaymentTerm)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert price: %w", err)
 		}
@@ -558,7 +558,7 @@ func toRateCard(rc api.BillingRateCard) (productcatalog.RateCard, error) {
 			return nil, fmt.Errorf("invalid billing cadence: %w", err)
 		}
 
-		price, err := toBillingPriceWithCommitments(rc.Price, rc.Commitments)
+		price, err := fromAPIBillingPriceWithCommitments(rc.Price, rc.Commitments)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert price: %w", err)
 		}
@@ -575,7 +575,7 @@ func toRateCard(rc api.BillingRateCard) (productcatalog.RateCard, error) {
 	}
 }
 
-func toBillingPrice(p api.BillingPrice, paymentTerm *api.BillingPricePaymentTerm) (*productcatalog.Price, error) {
+func fromAPIBillingPrice(p api.BillingPrice, paymentTerm *api.BillingPricePaymentTerm) (*productcatalog.Price, error) {
 	disc, err := p.Discriminator()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read price type: %w", err)
@@ -611,7 +611,7 @@ func toBillingPrice(p api.BillingPrice, paymentTerm *api.BillingPricePaymentTerm
 	}
 }
 
-func toBillingPriceWithCommitments(p api.BillingPrice, commitments *api.BillingSpendCommitments) (*productcatalog.Price, error) {
+func fromAPIBillingPriceWithCommitments(p api.BillingPrice, commitments *api.BillingSpendCommitments) (*productcatalog.Price, error) {
 	disc, err := p.Discriminator()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read price type: %w", err)
@@ -645,7 +645,7 @@ func toBillingPriceWithCommitments(p api.BillingPrice, commitments *api.BillingS
 			return nil, fmt.Errorf("failed to read graduated price: %w", err)
 		}
 
-		tiers, err := toBillingPriceTiers(grad.Tiers)
+		tiers, err := fromAPIBillingPriceTiers(grad.Tiers)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert graduated tiers: %w", err)
 		}
@@ -662,7 +662,7 @@ func toBillingPriceWithCommitments(p api.BillingPrice, commitments *api.BillingS
 			return nil, fmt.Errorf("failed to read volume price: %w", err)
 		}
 
-		tiers, err := toBillingPriceTiers(vol.Tiers)
+		tiers, err := fromAPIBillingPriceTiers(vol.Tiers)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert volume tiers: %w", err)
 		}
@@ -706,7 +706,7 @@ func parseCommitments(c *api.BillingSpendCommitments) (productcatalog.Commitment
 	return result, nil
 }
 
-func toBillingPriceTiers(tiers []api.BillingPriceTier) ([]productcatalog.PriceTier, error) {
+func fromAPIBillingPriceTiers(tiers []api.BillingPriceTier) ([]productcatalog.PriceTier, error) {
 	result := make([]productcatalog.PriceTier, 0, len(tiers))
 
 	for _, t := range tiers {
@@ -745,7 +745,7 @@ func toBillingPriceTiers(tiers []api.BillingPriceTier) ([]productcatalog.PriceTi
 	return result, nil
 }
 
-func toBillingTaxConfig(tc api.BillingRateCardTaxConfig) *productcatalog.TaxConfig {
+func fromAPIBillingRateCardTaxConfig(tc api.BillingRateCardTaxConfig) *productcatalog.TaxConfig {
 	result := &productcatalog.TaxConfig{
 		TaxCodeID: &tc.Code.Id,
 	}
@@ -757,7 +757,7 @@ func toBillingTaxConfig(tc api.BillingRateCardTaxConfig) *productcatalog.TaxConf
 	return result
 }
 
-func toBillingDiscounts(d api.BillingRateCardDiscounts) (productcatalog.Discounts, error) {
+func fromAPIBillingRateCardDiscounts(d api.BillingRateCardDiscounts) (productcatalog.Discounts, error) {
 	result := productcatalog.Discounts{}
 
 	if d.Percentage != nil {
