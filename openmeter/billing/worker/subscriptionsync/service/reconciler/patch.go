@@ -60,23 +60,44 @@ type patchCollectionRouter struct {
 	hierarchyCollection        *lineHierarchyPatchCollection
 	flatFeeChargeCollection    *flatFeeChargeCollection
 	usageBasedChargeCollection *usageBasedChargeCollection
+	creditThenInvoiceEnabled   bool
+	creditsEnabled             bool
 }
 
-func newPatchCollectionRouter(capacity int, invoices persistedstate.Invoices) (*patchCollectionRouter, error) {
-	if invoices == nil {
-		return nil, fmt.Errorf("invoices is required")
+type patchCollectionRouterConfig struct {
+	capacity                 int
+	invoices                 persistedstate.Invoices
+	creditThenInvoiceEnabled bool
+	creditsEnabled           bool
+}
+
+func (c patchCollectionRouterConfig) Validate() error {
+	if c.capacity <= 0 {
+		return fmt.Errorf("capacity is required")
+	}
+	if c.invoices == nil {
+		return fmt.Errorf("invoices is required")
+	}
+	return nil
+}
+
+func newPatchCollectionRouter(cfg patchCollectionRouterConfig) (*patchCollectionRouter, error) {
+	if err := cfg.Validate(); err != nil {
+		return nil, err
 	}
 
-	lineCollection, err := newLineInvoicePatchCollection(invoices, capacity)
+	lineCollection, err := newLineInvoicePatchCollection(cfg.invoices, cfg.capacity)
 	if err != nil {
 		return nil, fmt.Errorf("creating line collection: %w", err)
 	}
 
 	return &patchCollectionRouter{
 		lineCollection:             lineCollection,
-		hierarchyCollection:        newLineHierarchyPatchCollection(capacity),
-		flatFeeChargeCollection:    newFlatFeeChargeCollection(capacity),
-		usageBasedChargeCollection: newUsageBasedChargeCollection(capacity),
+		hierarchyCollection:        newLineHierarchyPatchCollection(cfg.capacity),
+		flatFeeChargeCollection:    newFlatFeeChargeCollection(cfg.capacity),
+		usageBasedChargeCollection: newUsageBasedChargeCollection(cfg.capacity),
+		creditThenInvoiceEnabled:   cfg.creditThenInvoiceEnabled,
+		creditsEnabled:             cfg.creditsEnabled,
 	}, nil
 }
 
@@ -96,7 +117,12 @@ func (c patchCollectionRouter) GetCollectionFor(item persistedstate.Item) (Patch
 }
 
 func (c patchCollectionRouter) ResolveDefaultCollection(target targetstate.StateItem) (PatchCollection, error) {
-	if target.Subscription.SettlementMode != productcatalog.CreditOnlySettlementMode {
+	if !c.creditsEnabled {
+		return c.lineCollection, nil
+	}
+
+	// If credit then invoice is not enabled, we return the lineCollection which is generally an invoice_only settlement mode implementation.
+	if target.Subscription.SettlementMode == productcatalog.CreditThenInvoiceSettlementMode && !c.creditThenInvoiceEnabled {
 		return c.lineCollection, nil
 	}
 

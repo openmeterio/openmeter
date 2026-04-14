@@ -28,25 +28,33 @@ type Reconciler interface {
 }
 
 type Config struct {
-	BillingService billing.Service
-	ChargesService charges.Service
-	Logger         *slog.Logger
+	BillingService          billing.Service
+	ChargesService          charges.Service
+	EnableCreditThenInvoice bool
+	Logger                  *slog.Logger
 }
 
 func (c Config) Validate() error {
 	if c.BillingService == nil {
 		return fmt.Errorf("billing service is required")
 	}
+
 	if c.Logger == nil {
 		return fmt.Errorf("logger is required")
 	}
+
+	if c.EnableCreditThenInvoice && c.ChargesService == nil {
+		return fmt.Errorf("charges service is required when credit then invoice is enabled")
+	}
+
 	return nil
 }
 
 type Service struct {
-	billingService billing.Service
-	chargesService charges.Service
-	logger         *slog.Logger
+	billingService          billing.Service
+	chargesService          charges.Service
+	logger                  *slog.Logger
+	enableCreditThenInvoice bool
 
 	invoiceUpdater *invoiceupdater.Updater
 }
@@ -57,10 +65,11 @@ func New(config Config) (*Service, error) {
 	}
 
 	return &Service{
-		billingService: config.BillingService,
-		logger:         config.Logger,
-		invoiceUpdater: invoiceupdater.New(config.BillingService, config.Logger),
-		chargesService: config.ChargesService,
+		billingService:          config.BillingService,
+		logger:                  config.Logger,
+		invoiceUpdater:          invoiceupdater.New(config.BillingService, config.Logger),
+		chargesService:          config.ChargesService,
+		enableCreditThenInvoice: config.EnableCreditThenInvoice && config.ChargesService != nil,
 	}, nil
 }
 
@@ -205,7 +214,13 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 		return nil, fmt.Errorf("credit only settlement mode is not supported without charges service enabled")
 	}
 
-	patchCollections, err := newPatchCollectionRouter(len(input.Target.Items)+len(input.Persisted.ByUniqueID), input.Persisted.Invoices)
+	patchCollections, err := newPatchCollectionRouter(
+		patchCollectionRouterConfig{
+			capacity:                 len(input.Target.Items) + len(input.Persisted.ByUniqueID),
+			invoices:                 input.Persisted.Invoices,
+			creditThenInvoiceEnabled: s.enableCreditThenInvoice,
+			creditsEnabled:           s.chargesService != nil,
+		})
 	if err != nil {
 		return nil, fmt.Errorf("creating collection by type: %w", err)
 	}

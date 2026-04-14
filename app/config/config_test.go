@@ -188,7 +188,8 @@ func TestComplete(t *testing.T) {
 			},
 		},
 		Credits: CreditsConfiguration{
-			Enabled: false,
+			Enabled:                 false,
+			EnableCreditThenInvoice: false,
 		},
 		Sink: SinkConfiguration{
 			GroupId:                 "openmeter-sink-worker",
