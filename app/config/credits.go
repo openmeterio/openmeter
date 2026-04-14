@@ -7,7 +7,8 @@ import (
 )
 
 type CreditsConfiguration struct {
-	Enabled bool `yaml:"enabled"`
+	Enabled                 bool `yaml:"enabled"`
+	EnableCreditThenInvoice bool `yaml:"enable_credit_then_invoice"`
 }
 
 func (c CreditsConfiguration) Validate() error {
@@ -20,4 +21,5 @@ func (c CreditsConfiguration) Validate() error {
 
 func ConfigureCredits(v *viper.Viper) {
 	v.SetDefault("credits.enabled", false)
+	v.SetDefault("credits.enable_credit_then_invoice", false)
 }

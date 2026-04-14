@@ -18,6 +18,7 @@ import (
 type FeatureFlags struct {
 	EnableFlatFeeInAdvanceProrating bool
 	EnableFlatFeeInArrearsProrating bool
+	EnableCreditThenInvoice         bool
 }
 
 type Config struct {
@@ -73,9 +74,10 @@ func New(config Config) (*Service, error) {
 		return nil, err
 	}
 	reconcilerSvc, err := reconciler.New(reconciler.Config{
-		BillingService: config.BillingService,
-		ChargesService: config.ChargesService,
-		Logger:         config.Logger,
+		BillingService:          config.BillingService,
+		ChargesService:          config.ChargesService,
+		EnableCreditThenInvoice: config.FeatureFlags.EnableCreditThenInvoice,
+		Logger:                  config.Logger,
 	})
 	if err != nil {
 		return nil, err

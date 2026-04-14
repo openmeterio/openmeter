@@ -45,6 +45,7 @@ postgres:
 # to verify that credit_only settlement mode is rejected when credits are disabled.
 credits:
   enabled: false
+  enable_credit_then_invoice: false
 
 meters:
   - slug: ingest
