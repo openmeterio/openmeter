@@ -74,6 +74,19 @@ func (a *adapter) ListCharges(ctx context.Context, input charges.ListChargesInpu
 			query = query.Where(dbchargessearchv1.StatusNotIn(input.StatusNotIn...))
 		}
 
+		// Apply ordering: default to created_at asc with id as tie-breaker.
+		ord := entutils.GetOrdering(input.Order)
+		switch input.OrderBy {
+		case "id":
+			query = query.Order(dbchargessearchv1.ByID(ord...))
+		case "service_period.from":
+			query = query.Order(dbchargessearchv1.ByServicePeriodFrom(ord...), dbchargessearchv1.ByID(ord...))
+		case "billing_period.from":
+			query = query.Order(dbchargessearchv1.ByBillingPeriodFrom(ord...), dbchargessearchv1.ByID(ord...))
+		default: // "created_at" or empty
+			query = query.Order(dbchargessearchv1.ByCreatedAt(ord...), dbchargessearchv1.ByID(ord...))
+		}
+
 		dbEntities, err := query.Paginate(ctx, input.Page)
 		if err != nil {
 			return pagination.Result[charges.ChargeSearchItem]{}, err

@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 type Service interface {
@@ -150,6 +151,12 @@ type ListChargesInput struct {
 	StatusIn       []meta.ChargeStatus
 	StatusNotIn    []meta.ChargeStatus
 	IncludeDeleted bool
+
+	// OrderBy is the field to sort by. Supported values: id, created_at,
+	// service_period.from, billing_period.from.
+	// Defaults to created_at when empty.
+	OrderBy string
+	Order   sortx.Order
 
 	Expands meta.Expands
 }

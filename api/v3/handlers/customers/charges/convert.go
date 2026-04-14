@@ -262,9 +262,7 @@ func ConvertSubscriptionRefToAPI(ref meta.SubscriptionReference) api.BillingSubs
 	}
 }
 
-// ConvertFeatureKeyToPtr converts a feature key string to a pointer, returning nil when empty.
-// This prevents goverter's useZeroValueOnPointerInconsistency from creating non-nil pointers
-// for empty feature key strings on flat fee charges.
+// ConvertFeatureKeyToPtr converts a feature key string to a pointer, returning nil for empty strings.
 var ConvertFeatureKeyToPtr = lo.ToPtr[string]
 
 // ConvertFlatFeeStatusToMetaChargeStatus converts flatfee.Status to meta.ChargeStatus.

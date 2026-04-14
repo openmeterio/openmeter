@@ -10,6 +10,7 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -61,6 +62,32 @@ func (h *handler) ListCustomerCharges() ListCustomerChargesHandler {
 				CustomerIDs: []string{args.CustomerID},
 				// Credit purchases are served by the credit grants API; exclude them here.
 				ChargeTypes: []meta.ChargeType{meta.ChargeTypeFlatFee, meta.ChargeTypeUsageBased},
+			}
+
+			// Parse sort. When omitted, the service defaults to created_at ascending
+			// with id as a tie-breaker (AIP-132 deterministic default order).
+			if args.Params.Sort != nil {
+				sort, err := request.ParseSortBy(*args.Params.Sort)
+				if err != nil {
+					return ListCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{
+							Field:  "sort",
+							Reason: err.Error(),
+							Source: apierrors.InvalidParamSourceQuery,
+						},
+					})
+				}
+				if !validChargesSortField(sort.Field) {
+					return ListCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, fmt.Errorf("unsupported sort field: %s", sort.Field), apierrors.InvalidParameters{
+						{
+							Field:  "sort",
+							Reason: fmt.Sprintf("unsupported sort field %q, supported fields: id, created_at, service_period.from, billing_period.from", sort.Field),
+							Source: apierrors.InvalidParamSourceQuery,
+						},
+					})
+				}
+				req.OrderBy = sort.Field
+				req.Order = sort.Order.ToSortxOrder()
 			}
 
 			// Parse status filter
@@ -123,7 +150,11 @@ func parseChargeStatusFilterSlice(values []string) ([]meta.ChargeStatus, error) 
 	statuses := make([]meta.ChargeStatus, 0, len(values))
 
 	for _, value := range values {
-		s, err := convertAPIChargeStatus(strings.TrimSpace(value))
+		trimmed := strings.TrimSpace(value)
+		if trimmed == "" {
+			return nil, fmt.Errorf("status filter value must not be empty or whitespace-only")
+		}
+		s, err := convertAPIChargeStatus(trimmed)
 		if err != nil {
 			return nil, err
 		}
@@ -131,4 +162,14 @@ func parseChargeStatusFilterSlice(values []string) ([]meta.ChargeStatus, error) 
 	}
 
 	return statuses, nil
+}
+
+// validChargesSortField reports whether field is a supported sort attribute for charges.
+func validChargesSortField(field string) bool {
+	switch field {
+	case "id", "created_at", "service_period.from", "billing_period.from":
+		return true
+	default:
+		return false
+	}
 }
