@@ -52,7 +52,7 @@ func (h *handler) PublishPlan() PublishPlanHandler {
 				return PublishPlanResponse{}, fmt.Errorf("failed to publish plan")
 			}
 
-			return FromPlan(*p)
+			return ToAPIBillingPlan(*p)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[PublishPlanResponse](http.StatusOK),
 		httptransport.AppendOptions(

@@ -66,7 +66,7 @@ func (h *handler) ListPlans() ListPlansHandler {
 					continue
 				}
 
-				billingPlan, err := FromPlan(p)
+				billingPlan, err := ToAPIBillingPlan(p)
 				if err != nil {
 					return ListPlansResponse{}, err
 				}

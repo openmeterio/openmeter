@@ -43,7 +43,7 @@ func (h *handler) GetPlanAddon() GetPlanAddonHandler {
 				return GetPlanAddonResponse{}, err
 			}
 
-			return fromPlanAddon(*a)
+			return toAPIPlanAddon(*a)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetPlanAddonResponse](http.StatusOK),
 		httptransport.AppendOptions(

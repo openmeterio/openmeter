@@ -33,7 +33,7 @@ func (h *handler) UpdatePlan() UpdatePlanHandler {
 				return UpdatePlanRequest{}, err
 			}
 
-			req, err := toUpdatePlanInput(ns, planID, body)
+			req, err := FromAPIUpsertPlanRequest(ns, planID, body)
 			if err != nil {
 				return UpdatePlanRequest{}, err
 			}
@@ -52,7 +52,7 @@ func (h *handler) UpdatePlan() UpdatePlanHandler {
 				return UpdatePlanResponse{}, fmt.Errorf("failed to update plan")
 			}
 
-			return FromPlan(*p)
+			return ToAPIBillingPlan(*p)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdatePlanResponse](http.StatusOK),
 		httptransport.AppendOptions(
