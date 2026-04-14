@@ -64,8 +64,8 @@ func (h *handler) ListCustomerCharges() ListCustomerChargesHandler {
 			}
 
 			// Parse status filter
-			if args.Params.Filter != nil && args.Params.Filter.Status != nil {
-				statuses, err := parseChargeStatusFilter(args.Params.Filter.Status.Oeq)
+			if args.Params.Filter != nil && args.Params.Filter.Status != nil && len(args.Params.Filter.Status.Oeq) > 0 {
+				statuses, err := parseChargeStatusFilterSlice(args.Params.Filter.Status.Oeq)
 				if err != nil {
 					return ListCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 						{
@@ -116,19 +116,14 @@ func (h *handler) ListCustomerCharges() ListCustomerChargesHandler {
 	)
 }
 
-// parseChargeStatusFilter parses a comma-separated list of charge statuses.
+// parseChargeStatusFilterSlice converts a slice of status strings to meta.ChargeStatus values.
 // Each token is validated with a type-safe switch so that unknown values are
 // rejected with an explicit error message rather than caught by a generic validator.
-func parseChargeStatusFilter(oeq string) ([]meta.ChargeStatus, error) {
-	if oeq == "" {
-		return nil, fmt.Errorf("empty status filter")
-	}
+func parseChargeStatusFilterSlice(values []string) ([]meta.ChargeStatus, error) {
+	statuses := make([]meta.ChargeStatus, 0, len(values))
 
-	parts := strings.Split(oeq, ",")
-	statuses := make([]meta.ChargeStatus, 0, len(parts))
-
-	for _, part := range parts {
-		s, err := convertAPIChargeStatus(strings.TrimSpace(part))
+	for _, value := range values {
+		s, err := convertAPIChargeStatus(strings.TrimSpace(value))
 		if err != nil {
 			return nil, err
 		}
