@@ -38,6 +38,17 @@ enum ChargeStatus {
 }
 
 /**
+ * Discounts applicable to flat fee charges.
+ *
+ * This is the same as `ProductCatalog.Discounts` but without the `usage` field, which is not applicable to flat fee charges.
+ */
+@friendlyName("BillingFlatFeeDiscounts")
+@summary("Flat fee charge discounts")
+model FlatFeeDiscounts {
+  ...OmitProperties<ProductCatalog.Discounts, "usage">;
+}
+
+/**
  * Shared fields present on all customer charge responses.
  */
 #suppress "@openmeter/api-spec-aip/repeated-prefix-grouping" "charge temporal fields should remain flat"
@@ -165,7 +176,7 @@ model FlatFeeCharge {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Discounts")
-  discounts?: OmitProperties<ProductCatalog.Discounts, "usage">;
+  discounts?: FlatFeeDiscounts;
 
   /**
    * The feature associated with the charge, when applicable.

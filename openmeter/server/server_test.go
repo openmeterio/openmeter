@@ -25,6 +25,7 @@ import (
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	costpkg "github.com/openmeterio/openmeter/openmeter/cost"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
@@ -838,6 +839,10 @@ func (n NoopChargeService) ListCharges(_ context.Context, input billingcharges.L
 		TotalCount: 0,
 		Page:       input.Page,
 	}, nil
+}
+
+func (n NoopChargeService) GetCurrentTotals(_ context.Context, _ usagebased.GetCurrentTotalsInput) (usagebased.GetCurrentTotalsResult, error) {
+	return usagebased.GetCurrentTotalsResult{}, nil
 }
 
 var _ billingcharges.ChargeService = NoopChargeService{}

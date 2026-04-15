@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -34,6 +35,7 @@ type ChargeService interface {
 	// going through the temporary delete+create remap.
 	ApplyPatches(ctx context.Context, input ApplyPatchesInput) error
 	ListCharges(ctx context.Context, input ListChargesInput) (pagination.Result[Charge], error)
+	GetCurrentTotals(ctx context.Context, input usagebased.GetCurrentTotalsInput) (usagebased.GetCurrentTotalsResult, error)
 }
 
 type CreditPurchaseFacadeService interface {
