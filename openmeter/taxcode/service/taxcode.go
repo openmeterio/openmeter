@@ -44,7 +44,7 @@ func (s *service) UpdateTaxCode(ctx context.Context, input taxcode.UpdateTaxCode
 			return taxcode.TaxCode{}, err
 		}
 
-		if existing.IsManagedBySystem() {
+		if existing.IsManagedBySystem() && !input.AllowAnnotations {
 			return taxcode.TaxCode{}, models.NewGenericConflictError(taxcode.ErrTaxCodeManagedBySystem)
 		}
 
@@ -130,12 +130,12 @@ func (s *service) DeleteTaxCode(ctx context.Context, input taxcode.DeleteTaxCode
 	}
 
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
-		existing, err := s.adapter.GetTaxCode(ctx, taxcode.GetTaxCodeInput(input))
+		existing, err := s.adapter.GetTaxCode(ctx, taxcode.GetTaxCodeInput{NamespacedID: input.NamespacedID})
 		if err != nil {
 			return err
 		}
 
-		if existing.IsManagedBySystem() {
+		if existing.IsManagedBySystem() && !input.AllowAnnotations {
 			return models.NewGenericConflictError(taxcode.ErrTaxCodeManagedBySystem)
 		}
 
