@@ -68,7 +68,7 @@ func (h *handler) UpdatePlanAddon() UpdatePlanAddonHandler {
 				return UpdatePlanAddonResponse{}, fmt.Errorf("failed to update plan addon")
 			}
 
-			return toAPIPlanAddon(*a)
+			return ToAPIPlanAddon(*a)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdatePlanAddonResponse](http.StatusOK),
 		httptransport.AppendOptions(

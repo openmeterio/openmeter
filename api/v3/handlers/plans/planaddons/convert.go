@@ -9,7 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func toAPIPlanAddon(a planaddon.PlanAddon) (api.PlanAddon, error) {
+func ToAPIPlanAddon(a planaddon.PlanAddon) (api.PlanAddon, error) {
 	validationIssues, _ := a.AsProductCatalogPlanAddon().ValidationErrors()
 
 	return api.PlanAddon{
@@ -21,11 +21,11 @@ func toAPIPlanAddon(a planaddon.PlanAddon) (api.PlanAddon, error) {
 		UpdatedAt:        lo.ToPtr(a.UpdatedAt),
 		DeletedAt:        a.DeletedAt,
 		Labels:           labels.FromMetadata(a.Metadata),
-		ValidationErrors: toAPIProductCatalogValidationErrors(validationIssues),
+		ValidationErrors: ToAPIProductCatalogValidationErrors(validationIssues),
 	}, nil
 }
 
-func toAPIProductCatalogValidationErrors(issues models.ValidationIssues) *[]api.ProductCatalogValidationError {
+func ToAPIProductCatalogValidationErrors(issues models.ValidationIssues) *[]api.ProductCatalogValidationError {
 	if len(issues) == 0 {
 		return nil
 	}
