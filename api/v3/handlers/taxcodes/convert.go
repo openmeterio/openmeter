@@ -30,6 +30,7 @@ var (
 	// goverter:map NamespacedID | ResolveNamespacedIDFromContext
 	// goverter:map Labels Metadata
 	// goverter:ignore Annotations
+	// goverter:ignore inputOptions
 	FromAPIUpsertTaxCodeRequest func(namespacedID models.NamespacedID, upsertTaxCodeRequest api.UpsertTaxCodeRequest) (taxcode.UpdateTaxCodeInput, error)
 
 	// goverter:map . Labels | ConvertMetadataAnnotationsToLabels
