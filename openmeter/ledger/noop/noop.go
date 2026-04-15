@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	pagepagination "github.com/openmeterio/openmeter/pkg/pagination"
 	pagination "github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
@@ -81,6 +82,10 @@ func (Ledger) GetTransactionGroup(context.Context, models.NamespacedID) (ledger.
 
 func (Ledger) ListTransactions(context.Context, ledger.ListTransactionsInput) (pagination.Result[ledger.Transaction], error) {
 	return pagination.Result[ledger.Transaction]{}, nil
+}
+
+func (Ledger) ListTransactionsByPage(context.Context, ledger.ListTransactionsByPageInput) (pagepagination.Result[ledger.Transaction], error) {
+	return pagepagination.Result[ledger.Transaction]{}, nil
 }
 
 func (Ledger) SumEntries(context.Context, ledger.Query) (ledger.QuerySummedResult, error) {
@@ -155,7 +160,7 @@ type customerAccount struct {
 	accountType ledger.AccountType
 }
 
-func (customerAccount) GetBalance(context.Context, ledger.RouteFilter) (ledger.Balance, error) {
+func (customerAccount) GetBalance(context.Context, ledger.RouteFilter, *ledger.TransactionCursor) (ledger.Balance, error) {
 	return balance{}, nil
 }
 
@@ -191,7 +196,7 @@ type businessAccount struct {
 	accountType ledger.AccountType
 }
 
-func (businessAccount) GetBalance(context.Context, ledger.RouteFilter) (ledger.Balance, error) {
+func (businessAccount) GetBalance(context.Context, ledger.RouteFilter, *ledger.TransactionCursor) (ledger.Balance, error) {
 	return balance{}, nil
 }
 

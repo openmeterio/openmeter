@@ -40,6 +40,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -72,6 +73,8 @@ type Config struct {
 	IngestService           ingest.Service
 	CustomerService         customer.Service
 	CreditGrantService      creditgrant.Service
+	Ledger                  ledger.Ledger
+	AccountResolver         ledger.AccountResolver
 	CustomerBalanceFacade   *customerbalance.Facade
 	EntitlementService      entitlement.Service
 	PlanService             plan.Service
@@ -217,7 +220,7 @@ func NewServer(config *Config) (*Server, error) {
 	customersBillingHandler := customersbillinghandler.New(resolveNamespace, config.BillingService, config.CustomerService, config.StripeService, httptransport.WithErrorHandler(config.ErrorHandler))
 	var customersCreditsHandler customerscreditshandler.Handler
 	if config.CustomerBalanceFacade != nil && config.Credits.Enabled {
-		customersCreditsHandler = customerscreditshandler.New(resolveNamespace, config.CustomerService, config.CustomerBalanceFacade, config.CreditGrantService, httptransport.WithErrorHandler(config.ErrorHandler))
+		customersCreditsHandler = customerscreditshandler.New(resolveNamespace, config.CustomerService, config.CustomerBalanceFacade, config.CreditGrantService, config.Ledger, config.AccountResolver, httptransport.WithErrorHandler(config.ErrorHandler))
 	}
 	customersEntitlementHandler := customersentitlementhandler.New(resolveNamespace, config.CustomerService, config.EntitlementService, httptransport.WithErrorHandler(config.ErrorHandler))
 	metersHandler := metershandler.New(resolveNamespace, config.MeterService, config.StreamingConnector, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))

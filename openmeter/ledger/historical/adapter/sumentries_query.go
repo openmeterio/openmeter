@@ -68,6 +68,25 @@ func (b *sumEntriesQuery) entryPredicates() ([]predicate.LedgerEntry, error) {
 		}
 	}
 
+	if b.query.Filters.After != nil {
+		after := b.query.Filters.After
+		entryPredicates = append(entryPredicates, ledgerentrydb.HasTransactionWith(func(s *sql.Selector) {
+			s.Where(sql.Or(
+				sql.LT(s.C(ledgertransactiondb.FieldBookedAt), after.BookedAt),
+				sql.And(
+					sql.EQ(s.C(ledgertransactiondb.FieldBookedAt), after.BookedAt),
+					sql.Or(
+						sql.LT(s.C(ledgertransactiondb.FieldCreatedAt), after.CreatedAt),
+						sql.And(
+							sql.EQ(s.C(ledgertransactiondb.FieldCreatedAt), after.CreatedAt),
+							sql.LTE(s.C(ledgertransactiondb.FieldID), after.ID.ID),
+						),
+					),
+				),
+			))
+		}))
+	}
+
 	subAccountPredicates, err := b.subAccountPredicates()
 	if err != nil {
 		return nil, err

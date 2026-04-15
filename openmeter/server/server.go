@@ -114,6 +114,8 @@ func NewServer(config *Config) (*Server, error) {
 		BillingService:          config.RouterConfig.Billing,
 		CustomerService:         config.RouterConfig.Customer,
 		CreditGrantService:      config.RouterConfig.CreditGrantService,
+		Ledger:                  config.RouterConfig.Ledger,
+		AccountResolver:         config.RouterConfig.AccountResolver,
 		CustomerBalanceFacade:   config.RouterConfig.CustomerBalanceFacade,
 		CurrencyService:         config.RouterConfig.CurrencyService,
 		EntitlementService:      config.RouterConfig.EntitlementConnector,

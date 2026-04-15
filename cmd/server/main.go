@@ -158,6 +158,8 @@ func main() {
 			CurrencyService:             app.CurrencyService,
 			CostService:                 app.CostService,
 			CreditGrantService:          app.CreditGrantService,
+			Ledger:                      app.Ledger,
+			AccountResolver:             app.AccountResolver,
 			Customer:                    app.Customer,
 			CustomerBalanceFacade:       app.CustomerBalanceFacade,
 			DebugConnector:              debugConnector,

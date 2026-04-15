@@ -5,17 +5,24 @@ import (
 	stdsql "database/sql"
 	"fmt"
 
+	entsql "entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	ledgeraccountdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
 	ledgerentrydb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
+	ledgersubaccountdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
+	ledgersubaccountroutedb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	ledgertransactiongroupdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	pagepagination "github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -268,6 +275,24 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 		query = query.Where(ledgertransactiondb.ID(input.TransactionID.ID))
 	}
 
+	// Scope to specific accounts.
+	if len(input.AccountIDs) > 0 {
+		query = query.Where(
+			ledgertransactiondb.HasEntriesWith(
+				ledgerentrydb.HasSubAccountWith(
+					ledgersubaccountdb.AccountIDIn(input.AccountIDs...),
+				),
+			),
+		)
+	}
+
+	// Filter by annotation key-value matches.
+	for key, value := range input.AnnotationFilters {
+		query = query.Where(func(s *entsql.Selector) {
+			s.Where(sqljson.ValueEQ(ledgertransactiondb.FieldAnnotations, value, sqljson.Path(key)))
+		})
+	}
+
 	if input.Limit > 0 {
 		query = query.Limit(input.Limit)
 	}
@@ -293,4 +318,149 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 		Items:      items,
 		NextCursor: paged.NextCursor,
 	}, nil
+}
+
+func (r *repo) ListTransactionsByPage(ctx context.Context, input ledger.ListTransactionsByPageInput) (pagepagination.Result[*ledgerhistorical.Transaction], error) {
+	entryPredicates := listTransactionsEntryPredicates(input)
+
+	query := r.db.LedgerTransaction.Query().
+		Where(ledgertransactiondb.Namespace(input.Namespace)).
+		WithEntries(func(q *db.LedgerEntryQuery) {
+			if len(entryPredicates) > 0 {
+				q.Where(entryPredicates...)
+			}
+			q.Order(
+				ledgerentrydb.ByCreatedAt(),
+				ledgerentrydb.ByID(),
+			)
+			q.WithSubAccount(func(sq *db.LedgerSubAccountQuery) {
+				sq.WithAccount()
+				sq.WithRoute()
+			})
+		}).
+		Order(
+			ledgertransactiondb.ByBookedAt(entsql.OrderDesc()),
+			ledgertransactiondb.ByCreatedAt(entsql.OrderDesc()),
+			ledgertransactiondb.ByID(entsql.OrderDesc()),
+		)
+
+	if len(input.AccountIDs) > 0 {
+		query = query.Where(
+			ledgertransactiondb.HasEntriesWith(
+				ledgerentrydb.HasSubAccountWith(
+					ledgersubaccountdb.AccountIDIn(input.AccountIDs...),
+				),
+			),
+		)
+	}
+
+	if input.Currency != nil {
+		query = query.Where(
+			ledgertransactiondb.HasEntriesWith(
+				ledgerentrydb.HasSubAccountWith(
+					ledgersubaccountdb.HasRouteWith(
+						ledgersubaccountroutedb.Currency(string(*input.Currency)),
+					),
+				),
+			),
+		)
+	}
+
+	for key, value := range input.AnnotationFilters {
+		query = query.Where(func(s *entsql.Selector) {
+			s.Where(sqljson.ValueEQ(ledgertransactiondb.FieldAnnotations, value, sqljson.Path(key)))
+		})
+	}
+
+	if input.CreditMovement != ledger.ListTransactionsCreditMovementUnspecified {
+		pred, err := ledgerTransactionCreditMovementPredicate(input.AccountIDs, input.Currency, input.CreditMovement)
+		if err != nil {
+			return pagepagination.Result[*ledgerhistorical.Transaction]{}, err
+		}
+		if pred != nil {
+			query = query.Where(pred)
+		}
+	}
+
+	paged, err := query.Paginate(ctx, input.Page)
+	if err != nil {
+		return pagepagination.Result[*ledgerhistorical.Transaction]{}, fmt.Errorf("list transactions by page: %w", err)
+	}
+
+	items, err := slicesx.MapWithErr(paged.Items, func(tx *db.LedgerTransaction) (*ledgerhistorical.Transaction, error) {
+		return hydrateHistoricalTransaction(tx)
+	})
+	if err != nil {
+		return pagepagination.Result[*ledgerhistorical.Transaction]{}, fmt.Errorf("hydrate listed transactions: %w", err)
+	}
+
+	return pagepagination.Result[*ledgerhistorical.Transaction]{
+		Page:       paged.Page,
+		TotalCount: paged.TotalCount,
+		Items:      items,
+	}, nil
+}
+
+func listTransactionsEntryPredicates(input ledger.ListTransactionsByPageInput) []predicate.LedgerEntry {
+	entryPredicates := make([]predicate.LedgerEntry, 0, 2)
+	subAccountPredicates := make([]predicate.LedgerSubAccount, 0, 2)
+
+	if len(input.AccountIDs) > 0 {
+		subAccountPredicates = append(subAccountPredicates, ledgersubaccountdb.AccountIDIn(input.AccountIDs...))
+	}
+
+	if input.Currency != nil {
+		subAccountPredicates = append(subAccountPredicates,
+			ledgersubaccountdb.HasRouteWith(
+				ledgersubaccountroutedb.Currency(string(*input.Currency)),
+			),
+		)
+	}
+
+	if len(subAccountPredicates) > 0 {
+		entryPredicates = append(entryPredicates, ledgerentrydb.HasSubAccountWith(subAccountPredicates...))
+	}
+
+	return entryPredicates
+}
+
+func ledgerTransactionCreditMovementPredicate(
+	accountIDs []string,
+	currency *currencyx.Code,
+	movement ledger.ListTransactionsCreditMovement,
+) (predicate.LedgerTransaction, error) {
+	subAccountPredicates := []predicate.LedgerSubAccount{
+		ledgersubaccountdb.HasAccountWith(
+			ledgeraccountdb.AccountType(ledger.AccountTypeCustomerFBO),
+		),
+	}
+
+	if len(accountIDs) > 0 {
+		subAccountPredicates = append(subAccountPredicates, ledgersubaccountdb.AccountIDIn(accountIDs...))
+	}
+
+	if currency != nil {
+		subAccountPredicates = append(subAccountPredicates,
+			ledgersubaccountdb.HasRouteWith(
+				ledgersubaccountroutedb.Currency(string(*currency)),
+			),
+		)
+	}
+
+	entryPredicates := []predicate.LedgerEntry{
+		ledgerentrydb.HasSubAccountWith(subAccountPredicates...),
+	}
+
+	switch movement {
+	case ledger.ListTransactionsCreditMovementPositive:
+		entryPredicates = append(entryPredicates, ledgerentrydb.AmountGT(alpacadecimal.Zero))
+	case ledger.ListTransactionsCreditMovementNegative:
+		entryPredicates = append(entryPredicates, ledgerentrydb.AmountLT(alpacadecimal.Zero))
+	case ledger.ListTransactionsCreditMovementUnspecified:
+		return nil, nil
+	default:
+		return nil, fmt.Errorf("unsupported credit movement filter: %d", movement)
+	}
+
+	return ledgertransactiondb.HasEntriesWith(entryPredicates...), nil
 }

@@ -378,7 +378,15 @@ func (s *Server) UpdateCreditGrantExternalSettlement(w http.ResponseWriter, r *h
 }
 
 func (s *Server) ListCreditTransactions(w http.ResponseWriter, r *http.Request, customerId api.ULID, params api.ListCreditTransactionsParams) {
-	unimplemented.ListCreditTransactions(w, r, customerId, params)
+	if s.customersCreditsHandler == nil || s.Ledger == nil {
+		unimplemented.ListCreditTransactions(w, r, customerId, params)
+		return
+	}
+
+	s.customersCreditsHandler.ListCreditTransactions().With(customerscreditshandler.ListCreditTransactionsParams{
+		CustomerID: customerId,
+		Params:     params,
+	}).ServeHTTP(w, r)
 }
 
 // Charges

@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // flatFeeHandler maps charge lifecycle events to ledger transaction templates
@@ -67,6 +66,7 @@ func (h *flatFeeHandler) OnAssignedToInvoice(ctx context.Context, input flatfee.
 		Namespace:      input.Charge.Namespace,
 		ChargeID:       input.Charge.ID,
 		CustomerID:     input.Charge.Intent.CustomerID,
+		Annotations:    chargeAnnotationsForFlatFeeCharge(input.Charge),
 		At:             input.Charge.Intent.InvoiceAt,
 		Currency:       input.Charge.Intent.Currency,
 		SettlementMode: input.Charge.Intent.SettlementMode,
@@ -108,10 +108,7 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 		Namespace: input.Charge.Namespace,
 		ID:        input.Charge.Intent.CustomerID,
 	}
-	annotations := ledger.ChargeAnnotations(models.NamespacedID{
-		Namespace: input.Charge.Namespace,
-		ID:        input.Charge.ID,
-	})
+	annotations := chargeAnnotationsForFlatFeeCharge(input.Charge)
 
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
@@ -129,6 +126,12 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 	)
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("resolve transactions: %w", err)
+	}
+
+	for i, txInput := range inputs {
+		if txInput != nil {
+			inputs[i] = transactions.WithAnnotations(txInput, annotations)
+		}
 	}
 
 	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
@@ -164,6 +167,7 @@ func (h *flatFeeHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input fl
 		Namespace:      input.Charge.Namespace,
 		ChargeID:       input.Charge.ID,
 		CustomerID:     input.Charge.Intent.CustomerID,
+		Annotations:    chargeAnnotationsForFlatFeeCharge(input.Charge),
 		At:             input.Charge.Intent.InvoiceAt,
 		Currency:       input.Charge.Intent.Currency,
 		SettlementMode: input.Charge.Intent.SettlementMode,
@@ -194,6 +198,7 @@ func (h *flatFeeHandler) OnCreditsOnlyUsageAccruedCorrection(ctx context.Context
 		Namespace:                    input.Charge.Namespace,
 		ChargeID:                     input.Charge.ID,
 		CustomerID:                   input.Charge.Intent.CustomerID,
+		Annotations:                  chargeAnnotationsForFlatFeeCharge(input.Charge),
 		AllocateAt:                   input.AllocateAt,
 		Corrections:                  input.Corrections,
 		LineageSegmentsByRealization: input.LineageSegmentsByRealization,
@@ -220,10 +225,7 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, charge flatfee
 		Namespace: charge.Namespace,
 		ID:        charge.Intent.CustomerID,
 	}
-	annotations := ledger.ChargeAnnotations(models.NamespacedID{
-		Namespace: charge.Namespace,
-		ID:        charge.ID,
-	})
+	annotations := chargeAnnotationsForFlatFeeCharge(charge)
 
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
@@ -241,6 +243,12 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, charge flatfee
 	)
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("resolve transactions: %w", err)
+	}
+
+	for i, txInput := range inputs {
+		if txInput != nil {
+			inputs[i] = transactions.WithAnnotations(txInput, annotations)
+		}
 	}
 
 	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
@@ -270,10 +278,7 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, charge flatfee.Ch
 		Namespace: charge.Namespace,
 		ID:        charge.Intent.CustomerID,
 	}
-	annotations := ledger.ChargeAnnotations(models.NamespacedID{
-		Namespace: charge.Namespace,
-		ID:        charge.ID,
-	})
+	annotations := chargeAnnotationsForFlatFeeCharge(charge)
 
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
@@ -291,6 +296,12 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, charge flatfee.Ch
 	)
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("resolve transactions: %w", err)
+	}
+
+	for i, txInput := range inputs {
+		if txInput != nil {
+			inputs[i] = transactions.WithAnnotations(txInput, annotations)
+		}
 	}
 
 	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(

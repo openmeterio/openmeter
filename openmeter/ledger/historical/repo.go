@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
+	pagepagination "github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
@@ -29,6 +30,9 @@ type Repo interface {
 
 	// List transactions with pagination
 	ListTransactions(ctx context.Context, input ledger.ListTransactionsInput) (pagination.Result[*Transaction], error)
+
+	// ListTransactionsByPage lists transactions using page-based pagination.
+	ListTransactionsByPage(ctx context.Context, input ledger.ListTransactionsByPageInput) (pagepagination.Result[*Transaction], error)
 }
 
 // ----------------------------------------------------------------------------

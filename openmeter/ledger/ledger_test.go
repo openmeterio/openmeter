@@ -102,7 +102,7 @@ func TestGetAccountBalance(t *testing.T) {
 
 	balance, err := acc.GetBalance(t.Context(), ledger.RouteFilter{
 		Currency: currencyx.Code("USD"),
-	})
+	}, nil)
 	require.NoError(t, err)
 	require.NotNil(t, balance)
 }

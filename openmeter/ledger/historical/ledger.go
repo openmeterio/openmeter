@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
+	pagepagination "github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
@@ -54,6 +55,21 @@ func (l *Ledger) ListTransactions(ctx context.Context, params ledger.ListTransac
 			return item
 		}),
 		NextCursor: res.NextCursor,
+	}, nil
+}
+
+func (l *Ledger) ListTransactionsByPage(ctx context.Context, params ledger.ListTransactionsByPageInput) (pagepagination.Result[ledger.Transaction], error) {
+	res, err := l.repo.ListTransactionsByPage(ctx, params)
+	if err != nil {
+		return pagepagination.Result[ledger.Transaction]{}, fmt.Errorf("list transactions by page: %w", err)
+	}
+
+	return pagepagination.Result[ledger.Transaction]{
+		Page:       res.Page,
+		TotalCount: res.TotalCount,
+		Items: lo.Map(res.Items, func(item *Transaction, _ int) ledger.Transaction {
+			return item
+		}),
 	}, nil
 }
 

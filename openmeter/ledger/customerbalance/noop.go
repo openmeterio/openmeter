@@ -24,7 +24,7 @@ type NoopService struct{}
 
 var _ FacadeService = NoopService{}
 
-func (NoopService) GetBalance(context.Context, customer.CustomerID, ledger.RouteFilter) (ledger.Balance, error) {
+func (NoopService) GetBalance(context.Context, customer.CustomerID, ledger.RouteFilter, *ledger.TransactionCursor) (ledger.Balance, error) {
 	return noopBalance{}, nil
 }
 

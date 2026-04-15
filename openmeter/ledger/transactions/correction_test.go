@@ -35,6 +35,14 @@ func (t *correctionTestTransaction) Annotations() models.Annotations {
 	return t.annotations
 }
 
+func (t *correctionTestTransaction) Cursor() ledger.TransactionCursor {
+	return ledger.TransactionCursor{
+		BookedAt:  t.bookedAt,
+		CreatedAt: t.bookedAt,
+		ID:        t.id,
+	}
+}
+
 func TestCorrectTransactionRejectsCorrectionDirection(t *testing.T) {
 	t.Parallel()
 
