@@ -51,7 +51,7 @@ func (s Service) CreateEvent(ctx context.Context, params notification.CreateEven
 			return nil, fmt.Errorf("failed to get rule: %w", err)
 		}
 
-		if rule.DeletedAt != nil {
+		if rule.IsDeletedAt(clock.Now()) {
 			return nil, notification.NotFoundError{
 				NamespacedID: models.NamespacedID{
 					Namespace: params.Namespace,
