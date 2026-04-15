@@ -134,6 +134,8 @@ const (
 	EdgeChargeFlatFeeCreditAllocations = "charge_flat_fee_credit_allocations"
 	// EdgeChargeFlatFeeInvoicedUsage holds the string denoting the charge_flat_fee_invoiced_usage edge name in mutations.
 	EdgeChargeFlatFeeInvoicedUsage = "charge_flat_fee_invoiced_usage"
+	// EdgeChargeUsageBasedRun holds the string denoting the charge_usage_based_run edge name in mutations.
+	EdgeChargeUsageBasedRun = "charge_usage_based_run"
 	// EdgeChargeCreditPurchaseInvoicedPayment holds the string denoting the charge_credit_purchase_invoiced_payment edge name in mutations.
 	EdgeChargeCreditPurchaseInvoicedPayment = "charge_credit_purchase_invoiced_payment"
 	// EdgeTaxCode holds the string denoting the tax_code edge name in mutations.
@@ -246,6 +248,13 @@ const (
 	ChargeFlatFeeInvoicedUsageInverseTable = "charge_flat_fee_invoiced_usages"
 	// ChargeFlatFeeInvoicedUsageColumn is the table column denoting the charge_flat_fee_invoiced_usage relation/edge.
 	ChargeFlatFeeInvoicedUsageColumn = "line_id"
+	// ChargeUsageBasedRunTable is the table that holds the charge_usage_based_run relation/edge.
+	ChargeUsageBasedRunTable = "charge_usage_based_runs"
+	// ChargeUsageBasedRunInverseTable is the table name for the ChargeUsageBasedRuns entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeusagebasedruns" package.
+	ChargeUsageBasedRunInverseTable = "charge_usage_based_runs"
+	// ChargeUsageBasedRunColumn is the table column denoting the charge_usage_based_run relation/edge.
+	ChargeUsageBasedRunColumn = "line_id"
 	// ChargeCreditPurchaseInvoicedPaymentTable is the table that holds the charge_credit_purchase_invoiced_payment relation/edge.
 	ChargeCreditPurchaseInvoicedPaymentTable = "charge_credit_purchase_invoiced_payments"
 	// ChargeCreditPurchaseInvoicedPaymentInverseTable is the table name for the ChargeCreditPurchaseInvoicedPayment entity.
@@ -764,6 +773,13 @@ func ByChargeFlatFeeInvoicedUsage(term sql.OrderTerm, terms ...sql.OrderTerm) Or
 	}
 }
 
+// ByChargeUsageBasedRunField orders the results by charge_usage_based_run field.
+func ByChargeUsageBasedRunField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newChargeUsageBasedRunStep(), sql.OrderByField(field, opts...))
+	}
+}
+
 // ByChargeCreditPurchaseInvoicedPaymentField orders the results by charge_credit_purchase_invoiced_payment field.
 func ByChargeCreditPurchaseInvoicedPaymentField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -887,6 +903,13 @@ func newChargeFlatFeeInvoicedUsageStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ChargeFlatFeeInvoicedUsageInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, ChargeFlatFeeInvoicedUsageTable, ChargeFlatFeeInvoicedUsageColumn),
+	)
+}
+func newChargeUsageBasedRunStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ChargeUsageBasedRunInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, ChargeUsageBasedRunTable, ChargeUsageBasedRunColumn),
 	)
 }
 func newChargeCreditPurchaseInvoicedPaymentStep() *sqlgraph.Step {

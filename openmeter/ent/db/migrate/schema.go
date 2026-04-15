@@ -2512,6 +2512,7 @@ var (
 		{Name: "asof", Type: field.TypeTime},
 		{Name: "collection_end", Type: field.TypeTime},
 		{Name: "meter_value", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "line_id", Type: field.TypeString, Unique: true, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "charge_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "feature_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
@@ -2522,14 +2523,20 @@ var (
 		PrimaryKey: []*schema.Column{ChargeUsageBasedRunsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "charge_usage_based_runs_charge_usage_based_runs",
+				Symbol:     "charge_usage_based_runs_billing_invoice_lines_charge_usage_based_run",
 				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[17]},
+				RefColumns: []*schema.Column{BillingInvoiceLinesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "charge_usage_based_runs_charge_usage_based_runs",
+				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[18]},
 				RefColumns: []*schema.Column{ChargeUsageBasedColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "charge_usage_based_runs_features_usage_based_runs",
-				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[18]},
+				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[19]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -2548,7 +2555,7 @@ var (
 			{
 				Name:    "chargeusagebasedruns_namespace_charge_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedRunsColumns[1], ChargeUsageBasedRunsColumns[17]},
+				Columns: []*schema.Column{ChargeUsageBasedRunsColumns[1], ChargeUsageBasedRunsColumns[18]},
 			},
 		},
 	}
@@ -4852,8 +4859,9 @@ func init() {
 	ChargeUsageBasedRunCreditAllocationsTable.ForeignKeys[1].RefTable = ChargeUsageBasedRunsTable
 	ChargeUsageBasedRunInvoicedUsagesTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunsTable
 	ChargeUsageBasedRunPaymentsTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunsTable
-	ChargeUsageBasedRunsTable.ForeignKeys[0].RefTable = ChargeUsageBasedTable
-	ChargeUsageBasedRunsTable.ForeignKeys[1].RefTable = FeaturesTable
+	ChargeUsageBasedRunsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
+	ChargeUsageBasedRunsTable.ForeignKeys[1].RefTable = ChargeUsageBasedTable
+	ChargeUsageBasedRunsTable.ForeignKeys[2].RefTable = FeaturesTable
 	CreditRealizationLineagesTable.ForeignKeys[0].RefTable = ChargesTable
 	CreditRealizationLineageSegmentsTable.ForeignKeys[0].RefTable = CreditRealizationLineagesTable
 	CurrencyCostBasesTable.ForeignKeys[0].RefTable = CustomCurrenciesTable

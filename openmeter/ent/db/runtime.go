@@ -1371,6 +1371,10 @@ func init() {
 	chargeusagebasedrunsDescFeatureID := chargeusagebasedrunsFields[1].Descriptor()
 	// chargeusagebasedruns.FeatureIDValidator is a validator for the "feature_id" field. It is called by the builders before save.
 	chargeusagebasedruns.FeatureIDValidator = chargeusagebasedrunsDescFeatureID.Validators[0].(func(string) error)
+	// chargeusagebasedrunsDescLineID is the schema descriptor for line_id field.
+	chargeusagebasedrunsDescLineID := chargeusagebasedrunsFields[5].Descriptor()
+	// chargeusagebasedruns.LineIDValidator is a validator for the "line_id" field. It is called by the builders before save.
+	chargeusagebasedruns.LineIDValidator = chargeusagebasedrunsDescLineID.Validators[0].(func(string) error)
 	// chargeusagebasedrunsDescID is the schema descriptor for id field.
 	chargeusagebasedrunsDescID := chargeusagebasedrunsMixinFields1[0].Descriptor()
 	// chargeusagebasedruns.DefaultID holds the default value on creation for the id field.

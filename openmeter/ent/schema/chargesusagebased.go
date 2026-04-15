@@ -166,6 +166,14 @@ func (ChargeUsageBasedRuns) Fields() []ent.Field {
 		field.Time("collection_end").
 			Immutable(),
 
+		field.String("line_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			NotEmpty().
+			Nillable(),
+
 		field.Other("meter_value", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
 				dialect.Postgres: "numeric",
@@ -187,6 +195,11 @@ func (ChargeUsageBasedRuns) Edges() []ent.Edge {
 			Unique().
 			Required().
 			Immutable(),
+		edge.From("billing_invoice_line", BillingInvoiceLine.Type).
+			Ref("charge_usage_based_run").
+			Field("line_id").
+			Unique().
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 		edge.To("credit_allocations", ChargeUsageBasedRunCreditAllocations.Type).
 			StorageKey(edge.Symbol("charge_ub_run_credit_alloc_run")).
 			Annotations(entsql.OnDelete(entsql.Cascade)),

@@ -103,14 +103,14 @@ func (i CalculateLinesInput) Validate() error {
 	return errors.Join(errs...)
 }
 
-type OnCollectionCompletedInput struct {
-	// Invoice is the standard invoice whose collection has just completed.
+type StandardLineEventInput struct {
+	// Invoice is the standard invoice whose lines are being processed for a lifecycle event.
 	Invoice StandardInvoice
 	// Lines are the standard invoice lines already assigned to this engine.
 	Lines StandardLines
 }
 
-func (i OnCollectionCompletedInput) Validate() error {
+func (i StandardLineEventInput) Validate() error {
 	var errs []error
 
 	if i.Invoice.ID == "" {
@@ -127,6 +127,11 @@ func (i OnCollectionCompletedInput) Validate() error {
 
 	return errors.Join(errs...)
 }
+
+type (
+	OnStandardInvoiceCreatedInput = StandardLineEventInput
+	OnCollectionCompletedInput    = StandardLineEventInput
+)
 
 type IsLineBillableAsOfInput struct {
 	Line                   GatheringLine
@@ -205,6 +210,8 @@ type LineEngine interface {
 	// BuildStandardInvoiceLines materializes gathering lines into standard lines for a target invoice.
 	// Returned standard lines must reuse the exact same line IDs as the input gathering lines.
 	BuildStandardInvoiceLines(ctx context.Context, input BuildStandardInvoiceLinesInput) (StandardLines, error)
+	// OnStandardInvoiceCreated is invoked after the standard invoice and its standard lines have been persisted.
+	OnStandardInvoiceCreated(ctx context.Context, input OnStandardInvoiceCreatedInput) (StandardLines, error)
 	// OnCollectionCompleted is invoked when a standard invoice collection window closes.
 	OnCollectionCompleted(ctx context.Context, input OnCollectionCompletedInput) (StandardLines, error)
 	// CalculateLines recalculates detailed lines and totals for standard-invoice lines owned by this engine.

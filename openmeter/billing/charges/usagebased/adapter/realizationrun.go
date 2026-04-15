@@ -29,6 +29,7 @@ func (a *adapter) CreateRealizationRun(ctx context.Context, chargeID meta.Charge
 			SetType(input.Type).
 			SetAsof(meta.NormalizeTimestamp(input.AsOf)).
 			SetCollectionEnd(meta.NormalizeTimestamp(input.CollectionEnd)).
+			SetNillableBillingInvoiceLineID(input.LineID).
 			SetMeterValue(input.MeterValue)
 
 		create = totals.Set(create, input.Totals)
