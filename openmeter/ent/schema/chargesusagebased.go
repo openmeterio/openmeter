@@ -198,7 +198,8 @@ func (ChargeUsageBasedRuns) Edges() []ent.Edge {
 		edge.From("billing_invoice_line", BillingInvoiceLine.Type).
 			Ref("charge_usage_based_run").
 			Field("line_id").
-			Unique(),
+			Unique().
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 		edge.To("credit_allocations", ChargeUsageBasedRunCreditAllocations.Type).
 			StorageKey(edge.Symbol("charge_ub_run_credit_alloc_run")).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
