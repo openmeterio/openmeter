@@ -275,6 +275,31 @@ func main() {
 		group.Add(apiServerRun, apiServerShutdown)
 	}
 
+	// Set notification event handler
+	{
+		defer func() {
+			if err = app.NotificationEventHandler.Close(); err != nil {
+				logger.Warn("failed to close notification event handler", "error", err)
+			}
+		}()
+
+		eventHandlerStart := func() error {
+			logger.Info("starting notification event handler")
+
+			return app.NotificationEventHandler.Start()
+		}
+
+		eventHandleStop := func(err error) {
+			logger.Debug("shutting down notification event handler gracefully...", "error", err)
+
+			if err = app.NotificationEventHandler.Close(); err != nil {
+				logger.Warn("failed to shutdown notification event handler", "error", err)
+			}
+		}
+
+		group.Add(eventHandlerStart, eventHandleStop)
+	}
+
 	// Add service termination checker
 	{
 		terminationCheckerRun, terminationCheckerShutdown, err := common.NewTerminationCheckerActor(app.TerminationChecker, app.Logger)

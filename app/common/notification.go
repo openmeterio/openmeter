@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	notificationadapter "github.com/openmeterio/openmeter/openmeter/notification/adapter"
 	"github.com/openmeterio/openmeter/openmeter/notification/eventhandler"
-	eventhandlernoop "github.com/openmeterio/openmeter/openmeter/notification/eventhandler/noop"
 	notificationservice "github.com/openmeterio/openmeter/openmeter/notification/service"
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	webhooknoop "github.com/openmeterio/openmeter/openmeter/notification/webhook/noop"
@@ -34,7 +33,6 @@ var NotificationService = wire.NewSet(
 	NewNotificationAdapter,
 	NewNotificationService,
 	NewNoopNotificationWebhookHandler,
-	NewNoopNotificationEventHandler,
 )
 
 func NewNotificationAdapter(
@@ -52,24 +50,13 @@ func NewNotificationAdapter(
 	return adapter, nil
 }
 
-func NewNoopNotificationEventHandler() (notification.EventHandler, func(), error) {
-	handler, err := eventhandlernoop.New()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return handler, func() {}, nil
-}
-
 func NewNotificationEventHandler(
 	config config.NotificationConfiguration,
 	logger *slog.Logger,
 	tracer trace.Tracer,
 	adapter notification.Repository,
 	webhook notificationwebhook.Handler,
-) (notification.EventHandler, func(), error) {
-	closeFn := func() {}
-
+) (notification.EventHandler, error) {
 	eventHandler, err := eventhandler.New(eventhandler.Config{
 		Repository:        adapter,
 		Webhook:           webhook,
@@ -80,33 +67,21 @@ func NewNotificationEventHandler(
 		PendingTimeout:    config.PendingTimeout,
 	})
 	if err != nil {
-		return nil, closeFn, fmt.Errorf("failed to initialize notification event handler: %w", err)
+		return nil, fmt.Errorf("failed to initialize notification event handler: %w", err)
 	}
 
-	if err = eventHandler.Start(); err != nil {
-		return nil, closeFn, fmt.Errorf("failed to initialize notification event handler: %w", err)
-	}
-
-	closeFn = func() {
-		if err = eventHandler.Close(); err != nil {
-			logger.Error("failed to close notification event handler", "error", err)
-		}
-	}
-
-	return eventHandler, closeFn, nil
+	return eventHandler, nil
 }
 
 func NewNotificationService(
 	logger *slog.Logger,
 	adapter notification.Repository,
 	webhook notificationwebhook.Handler,
-	eventHandler notification.EventHandler,
 	featureConnector feature.FeatureConnector,
 ) (notification.Service, error) {
 	notificationService, err := notificationservice.New(notificationservice.Config{
 		Adapter:          adapter,
 		Webhook:          webhook,
-		EventHandler:     eventHandler,
 		FeatureConnector: featureConnector,
 		Logger:           logger.With(slog.String("subsystem", "notification")),
 	})

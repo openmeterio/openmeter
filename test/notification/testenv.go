@@ -195,15 +195,14 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 		return nil, fmt.Errorf("failed to initialize notification event handler: %w", err)
 	}
 
-	if err = eventHandler.Start(); err != nil {
-		return nil, fmt.Errorf("failed to initialize notification event handler: %w", err)
-	}
+	go func() {
+		_ = eventHandler.Start()
+	}()
 
 	service, err := notificationservice.New(notificationservice.Config{
 		Adapter:          adapter,
 		FeatureConnector: featureConnector,
 		Webhook:          webhook,
-		EventHandler:     eventHandler,
 		Logger:           logger.With(slog.String("subsystem", "notification")),
 	})
 	if err != nil {

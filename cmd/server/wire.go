@@ -79,6 +79,7 @@ type Application struct {
 	MeterEventService                meterevent.Service
 	NamespaceManager                 *namespace.Manager
 	Notification                     notification.Service
+	NotificationEventHandler         notification.EventHandler
 	Plan                             plan.Service
 	PlanAddon                        planaddon.Service
 	Portal                           portal.Service

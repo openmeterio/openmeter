@@ -23,17 +23,14 @@ type Service struct {
 	adapter notification.Repository
 	webhook webhook.Handler
 
-	eventHandler notification.EventHandler
-
 	logger *slog.Logger
 }
 
 type Config struct {
 	FeatureConnector feature.FeatureConnector
 
-	Adapter      notification.Repository
-	Webhook      webhook.Handler
-	EventHandler notification.EventHandler
+	Adapter notification.Repository
+	Webhook webhook.Handler
 
 	Logger *slog.Logger
 }
@@ -55,16 +52,11 @@ func New(config Config) (*Service, error) {
 		return nil, errors.New("missing logger")
 	}
 
-	if config.EventHandler == nil {
-		return nil, errors.New("missing event handler")
-	}
-
 	return &Service{
-		adapter:      config.Adapter,
-		feature:      config.FeatureConnector,
-		webhook:      config.Webhook,
-		eventHandler: config.EventHandler,
-		logger:       config.Logger,
+		adapter: config.Adapter,
+		feature: config.FeatureConnector,
+		webhook: config.Webhook,
+		logger:  config.Logger,
 	}, nil
 }
 

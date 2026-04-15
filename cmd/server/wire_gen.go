@@ -646,7 +646,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	eventHandler, cleanup9, err := common.NewNotificationEventHandler(notificationConfiguration, logger, tracer, notificationRepository, webhookHandler)
+	notificationService, err := common.NewNotificationService(logger, notificationRepository, webhookHandler, featureConnector)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -658,9 +658,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	notificationService, err := common.NewNotificationService(logger, notificationRepository, webhookHandler, eventHandler, featureConnector)
+	eventHandler, err := common.NewNotificationEventHandler(notificationConfiguration, logger, tracer, notificationRepository, webhookHandler)
 	if err != nil {
-		cleanup9()
 		cleanup8()
 		cleanup7()
 		cleanup6()
@@ -674,7 +673,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	portalConfiguration := conf.Portal
 	portalService, err := common.NewPortalService(portalConfiguration)
 	if err != nil {
-		cleanup9()
 		cleanup8()
 		cleanup7()
 		cleanup6()
@@ -693,7 +691,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	postAuthMiddlewares := common.NewPostAuthMiddlewares(ffxConfigContextMiddleware)
 	v9, err := common.NewSubjectCustomerHook(subjectService, customerService, logger, tracer)
 	if err != nil {
-		cleanup9()
 		cleanup8()
 		cleanup7()
 		cleanup6()
@@ -706,11 +703,10 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	health := common.NewHealthChecker(logger)
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, logger)
-	v10, cleanup10 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	v10, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	terminationConfig := conf.Termination
 	terminationChecker, err := common.NewTerminationChecker(terminationConfig, health)
 	if err != nil {
-		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -724,7 +720,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, logger)
 	if err != nil {
-		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -769,6 +764,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		MeterEventService:                metereventService,
 		NamespaceManager:                 manager,
 		Notification:                     notificationService,
+		NotificationEventHandler:         eventHandler,
 		Plan:                             planService,
 		PlanAddon:                        planaddonService,
 		Portal:                           portalService,
@@ -787,7 +783,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Tracer:                           tracer,
 	}
 	return application, func() {
-		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -836,6 +831,7 @@ type Application struct {
 	MeterEventService                meterevent.Service
 	NamespaceManager                 *namespace.Manager
 	Notification                     notification.Service
+	NotificationEventHandler         notification.EventHandler
 	Plan                             plan.Service
 	PlanAddon                        planaddon.Service
 	Portal                           portal.Service
