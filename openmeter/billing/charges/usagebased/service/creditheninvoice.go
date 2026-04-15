@@ -116,7 +116,11 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, _ meta
 		return fmt.Errorf("delete charge: %w", err)
 	}
 
-	return s.refetchCharge(ctx)
+	if err := s.RefetchCharge(ctx); err != nil {
+		return fmt.Errorf("get charge: %w", err)
+	}
+
+	return nil
 }
 
 type invoiceCreatedInput struct {

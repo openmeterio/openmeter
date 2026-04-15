@@ -122,5 +122,9 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, policy meta.
 		return fmt.Errorf("delete charge: %w", err)
 	}
 
-	return s.refetchCharge(ctx)
+	if err := s.RefetchCharge(ctx); err != nil {
+		return fmt.Errorf("get charge: %w", err)
+	}
+
+	return nil
 }
