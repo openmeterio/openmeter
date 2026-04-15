@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -55,54 +56,52 @@ func (e *LineEngine) BuildStandardInvoiceLines(ctx context.Context, input billin
 		return nil, err
 	}
 
-	stdLines, err = slicesx.MapWithErr(stdLines, func(stdLine *billing.StandardLine) (*billing.StandardLine, error) {
-		if stdLine.ChargeID == nil {
-			return nil, fmt.Errorf("usage based standard line[%s]: charge id is required", stdLine.ID)
+	return stdLines, nil
+}
+
+func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing.OnStandardInvoiceCreatedInput) (billing.StandardLines, error) {
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("validating input: %w", err)
+	}
+
+	stdLines, err := slicesx.MapWithErr(input.Lines, func(stdLine *billing.StandardLine) (*billing.StandardLine, error) {
+		stateMachine, err := e.newStateMachineForStandardLine(ctx, stdLine)
+		if err != nil {
+			return nil, err
 		}
 
-		charge, err := e.service.GetByID(ctx, usagebased.GetByIDInput{
-			ChargeID: meta.ChargeID{
-				Namespace: stdLine.Namespace,
-				ID:        *stdLine.ChargeID,
-			},
-			Expands: meta.Expands{meta.ExpandRealizations},
-		})
-		if err != nil {
-			return nil, fmt.Errorf("getting usage based charge for line[%s]: %w", stdLine.ID, err)
-		}
-
-		stateMachineConfig, err := e.service.getStateMachineConfigForPatch(ctx, charge)
-		if err != nil {
-			return nil, fmt.Errorf("getting state machine config for line[%s]: %w", stdLine.ID, err)
-		}
-
-		stateMachine, err := e.service.newStateMachine(stateMachineConfig)
-		if err != nil {
-			return nil, fmt.Errorf("creating state machine for line[%s]: %w", stdLine.ID, err)
+		if stateMachine.GetCharge().Intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
+			return nil, fmt.Errorf(
+				"usage based standard line[%s]: unsupported settlement mode for standard invoice creation: %s",
+				stdLine.ID,
+				stateMachine.GetCharge().Intent.SettlementMode,
+			)
 		}
 
 		// Becoming active after the service period starts is not an invoice lifecycle event, so we
 		// still rely on the generic TriggerNext/AdvanceUntilStateStable flow before invoice-created
 		// lifecycle transitions take over.
 		if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
-			return nil, fmt.Errorf("advancing usage based charge[%s]: %w", charge.ID, err)
+			return nil, fmt.Errorf("advancing usage based charge[%s]: %w", stateMachine.GetCharge().ID, err)
 		}
 
-		if err := stateMachine.FireAndActivate(ctx, meta.TriggerInvoiceCreated); err != nil {
-			return nil, fmt.Errorf("triggering invoice_created for charge[%s]: %w", charge.ID, err)
+		if err := stateMachine.FireAndActivate(ctx, meta.TriggerInvoiceCreated, invoiceCreatedInput{
+			LineID: stdLine.ID,
+		}); err != nil {
+			return nil, fmt.Errorf("triggering invoice_created for charge[%s]: %w", stateMachine.GetCharge().ID, err)
 		}
 
 		if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
-			return nil, fmt.Errorf("advancing usage based charge[%s] after invoice_created: %w", charge.ID, err)
+			return nil, fmt.Errorf("advancing usage based charge[%s] after invoice_created: %w", stateMachine.GetCharge().ID, err)
 		}
 
 		currentRun, err := stateMachine.GetCharge().GetCurrentRealizationRun()
 		if err != nil {
-			return nil, fmt.Errorf("getting current realization run for charge[%s]: %w", charge.ID, err)
+			return nil, fmt.Errorf("getting current realization run for charge[%s]: %w", stateMachine.GetCharge().ID, err)
 		}
 
 		if err := populateUsageBasedStandardLineFromRun(stdLine, currentRun); err != nil {
-			return nil, fmt.Errorf("populating standard line from run for charge[%s]: %w", charge.ID, err)
+			return nil, fmt.Errorf("populating standard line from run for charge[%s]: %w", stateMachine.GetCharge().ID, err)
 		}
 
 		if err := stdLine.Validate(); err != nil {
@@ -122,39 +121,19 @@ func (e *LineEngine) BuildStandardInvoiceLines(ctx context.Context, input billin
 }
 
 func (e *LineEngine) OnCollectionCompleted(ctx context.Context, input billing.OnCollectionCompletedInput) (billing.StandardLines, error) {
-	if input.Invoice.ID == "" {
-		return nil, fmt.Errorf("invoice is required")
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("validating input: %w", err)
 	}
 
 	for _, stdLine := range input.Lines {
-		if stdLine.ChargeID == nil {
-			return nil, fmt.Errorf("usage based standard line[%s]: charge id is required", stdLine.ID)
-		}
-
-		charge, err := e.service.GetByID(ctx, usagebased.GetByIDInput{
-			ChargeID: meta.ChargeID{
-				Namespace: stdLine.Namespace,
-				ID:        *stdLine.ChargeID,
-			},
-			Expands: meta.Expands{meta.ExpandRealizations},
-		})
+		stateMachine, err := e.newStateMachineForStandardLine(ctx, stdLine)
 		if err != nil {
-			return nil, fmt.Errorf("getting usage based charge for line[%s]: %w", stdLine.ID, err)
-		}
-
-		stateMachineConfig, err := e.service.getStateMachineConfigForPatch(ctx, charge)
-		if err != nil {
-			return nil, fmt.Errorf("getting state machine config for line[%s]: %w", stdLine.ID, err)
-		}
-
-		stateMachine, err := e.service.newStateMachine(stateMachineConfig)
-		if err != nil {
-			return nil, fmt.Errorf("creating state machine for line[%s]: %w", stdLine.ID, err)
+			return nil, err
 		}
 
 		canFire, err := stateMachine.CanFire(ctx, meta.TriggerCollectionCompleted)
 		if err != nil {
-			return nil, fmt.Errorf("checking collection_completed for charge[%s]: %w", charge.ID, err)
+			return nil, fmt.Errorf("checking collection_completed for charge[%s]: %w", stateMachine.GetCharge().ID, err)
 		}
 
 		if !canFire {
@@ -162,24 +141,63 @@ func (e *LineEngine) OnCollectionCompleted(ctx context.Context, input billing.On
 		}
 
 		if err := stateMachine.FireAndActivate(ctx, meta.TriggerCollectionCompleted); err != nil {
-			return nil, fmt.Errorf("triggering collection_completed for charge[%s]: %w", charge.ID, err)
+			return nil, fmt.Errorf("triggering collection_completed for charge[%s]: %w", stateMachine.GetCharge().ID, err)
 		}
 
 		if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
-			return nil, fmt.Errorf("advancing usage based charge[%s] after collection_completed: %w", charge.ID, err)
+			return nil, fmt.Errorf("advancing usage based charge[%s] after collection_completed: %w", stateMachine.GetCharge().ID, err)
 		}
 
 		currentRun, err := stateMachine.GetCharge().GetCurrentRealizationRun()
 		if err != nil {
-			return nil, fmt.Errorf("getting current realization run for charge[%s]: %w", charge.ID, err)
+			return nil, fmt.Errorf("getting current realization run for charge[%s]: %w", stateMachine.GetCharge().ID, err)
 		}
 
 		if err := populateUsageBasedStandardLineFromRun(stdLine, currentRun); err != nil {
-			return nil, fmt.Errorf("populating standard line from run for charge[%s]: %w", charge.ID, err)
+			return nil, fmt.Errorf("populating standard line from run for charge[%s]: %w", stateMachine.GetCharge().ID, err)
 		}
 	}
 
 	return input.Lines, nil
+}
+
+func (e *LineEngine) OnInvoiceIssued(ctx context.Context, input billing.OnInvoiceIssuedInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("validating input: %w", err)
+	}
+
+	for _, stdLine := range input.Lines {
+		stateMachine, err := e.newStateMachineForStandardLine(ctx, stdLine)
+		if err != nil {
+			return err
+		}
+
+		canFire, err := stateMachine.CanFire(ctx, meta.TriggerInvoiceIssued)
+		if err != nil {
+			return fmt.Errorf("checking invoice_issued for charge[%s]: %w", stateMachine.GetCharge().ID, err)
+		}
+
+		if !canFire {
+			return fmt.Errorf(
+				"charge[%s] in status %s cannot handle invoice_issued for standard line[%s]",
+				stateMachine.GetCharge().ID,
+				stateMachine.GetCharge().Status,
+				stdLine.ID,
+			)
+		}
+
+		if err := stateMachine.FireAndActivate(ctx, meta.TriggerInvoiceIssued, invoiceIssuedInput{
+			Line: stdLine,
+		}); err != nil {
+			return fmt.Errorf("triggering invoice_issued for charge[%s]: %w", stateMachine.GetCharge().ID, err)
+		}
+
+		if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
+			return fmt.Errorf("advancing usage based charge[%s] after invoice_issued: %w", stateMachine.GetCharge().ID, err)
+		}
+	}
+
+	return nil
 }
 
 func (e *LineEngine) CalculateLines(input billing.CalculateLinesInput) (billing.StandardLines, error) {
@@ -231,4 +249,33 @@ func populateUsageBasedStandardLineFromRun(stdLine *billing.StandardLine, run us
 	stdLine.CreditsApplied = creditsApplied
 
 	return nil
+}
+
+func (e *LineEngine) newStateMachineForStandardLine(ctx context.Context, stdLine *billing.StandardLine) (StateMachine, error) {
+	if stdLine.ChargeID == nil {
+		return nil, fmt.Errorf("usage based standard line[%s]: charge id is required", stdLine.ID)
+	}
+
+	charge, err := e.service.GetByID(ctx, usagebased.GetByIDInput{
+		ChargeID: meta.ChargeID{
+			Namespace: stdLine.Namespace,
+			ID:        *stdLine.ChargeID,
+		},
+		Expands: meta.Expands{meta.ExpandRealizations},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("getting usage based charge for line[%s]: %w", stdLine.ID, err)
+	}
+
+	stateMachineConfig, err := e.service.getStateMachineConfigForPatch(ctx, charge)
+	if err != nil {
+		return nil, fmt.Errorf("getting state machine config for line[%s]: %w", stdLine.ID, err)
+	}
+
+	stateMachine, err := e.service.newStateMachine(stateMachineConfig)
+	if err != nil {
+		return nil, fmt.Errorf("creating state machine for line[%s]: %w", stdLine.ID, err)
+	}
+
+	return stateMachine, nil
 }

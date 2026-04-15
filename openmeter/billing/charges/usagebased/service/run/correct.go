@@ -13,13 +13,22 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
+// ReconcileCreditRealizationsInput describes the target credited amount for a run.
+// The reconciler compares TargetAmount with the run's currently realized credits and
+// allocates or corrects the delta at AllocateAt.
 type ReconcileCreditRealizationsInput struct {
-	Charge             usagebased.Charge
-	Run                usagebased.RealizationRun
-	AllocateAt         time.Time
-	TargetAmount       alpacadecimal.Decimal
+	// Charge is the parent charge that owns the run being reconciled.
+	Charge usagebased.Charge
+	// Run is the realization run whose credited amount should match TargetAmount.
+	Run usagebased.RealizationRun
+	// AllocateAt is the effective timestamp used for any new allocations or corrections on the ledger side.
+	AllocateAt time.Time
+	// TargetAmount is the desired credited total for the run after reconciliation.
+	TargetAmount alpacadecimal.Decimal
+	// CurrencyCalculator defines the rounding rules applied to target/current amounts and deltas.
 	CurrencyCalculator currencyx.Calculator
-	ExactAllocation    bool
+	// ExactAllocation requires the positive-delta allocation path to satisfy the requested amount exactly.
+	ExactAllocation bool
 }
 
 func (i ReconcileCreditRealizationsInput) Validate() error {
@@ -51,6 +60,9 @@ type ReconcileCreditRealizationsResult struct {
 	Realizations creditrealization.Realizations
 }
 
+// ReconcileCredits brings a run's realized credits to TargetAmount.
+// Positive deltas allocate additional credits, negative deltas create
+// correction realizations, and zero delta is a no-op.
 func (s *Service) ReconcileCredits(ctx context.Context, in ReconcileCreditRealizationsInput) (ReconcileCreditRealizationsResult, error) {
 	in.TargetAmount = in.CurrencyCalculator.RoundToPrecision(in.TargetAmount)
 
@@ -58,7 +70,7 @@ func (s *Service) ReconcileCredits(ctx context.Context, in ReconcileCreditRealiz
 		return ReconcileCreditRealizationsResult{}, err
 	}
 
-	currentAmount := in.CurrencyCalculator.RoundToPrecision(in.Run.Totals.CreditsTotal)
+	currentAmount := in.CurrencyCalculator.RoundToPrecision(in.Run.CreditsAllocated.Sum())
 	delta := in.CurrencyCalculator.RoundToPrecision(in.TargetAmount.Sub(currentAmount))
 
 	result := ReconcileCreditRealizationsResult{

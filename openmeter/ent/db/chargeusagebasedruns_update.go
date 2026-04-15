@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrunpayment"
@@ -184,6 +185,26 @@ func (_u *ChargeUsageBasedRunsUpdate) SetNillableAsof(v *time.Time) *ChargeUsage
 	return _u
 }
 
+// SetLineID sets the "line_id" field.
+func (_u *ChargeUsageBasedRunsUpdate) SetLineID(v string) *ChargeUsageBasedRunsUpdate {
+	_u.mutation.SetLineID(v)
+	return _u
+}
+
+// SetNillableLineID sets the "line_id" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdate) SetNillableLineID(v *string) *ChargeUsageBasedRunsUpdate {
+	if v != nil {
+		_u.SetLineID(*v)
+	}
+	return _u
+}
+
+// ClearLineID clears the value of the "line_id" field.
+func (_u *ChargeUsageBasedRunsUpdate) ClearLineID() *ChargeUsageBasedRunsUpdate {
+	_u.mutation.ClearLineID()
+	return _u
+}
+
 // SetMeterValue sets the "meter_value" field.
 func (_u *ChargeUsageBasedRunsUpdate) SetMeterValue(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdate {
 	_u.mutation.SetMeterValue(v)
@@ -196,6 +217,25 @@ func (_u *ChargeUsageBasedRunsUpdate) SetNillableMeterValue(v *alpacadecimal.Dec
 		_u.SetMeterValue(*v)
 	}
 	return _u
+}
+
+// SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
+func (_u *ChargeUsageBasedRunsUpdate) SetBillingInvoiceLineID(id string) *ChargeUsageBasedRunsUpdate {
+	_u.mutation.SetBillingInvoiceLineID(id)
+	return _u
+}
+
+// SetNillableBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdate) SetNillableBillingInvoiceLineID(id *string) *ChargeUsageBasedRunsUpdate {
+	if id != nil {
+		_u = _u.SetBillingInvoiceLineID(*id)
+	}
+	return _u
+}
+
+// SetBillingInvoiceLine sets the "billing_invoice_line" edge to the BillingInvoiceLine entity.
+func (_u *ChargeUsageBasedRunsUpdate) SetBillingInvoiceLine(v *BillingInvoiceLine) *ChargeUsageBasedRunsUpdate {
+	return _u.SetBillingInvoiceLineID(v.ID)
 }
 
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeUsageBasedRunCreditAllocations entity by IDs.
@@ -254,6 +294,12 @@ func (_u *ChargeUsageBasedRunsUpdate) SetPayment(v *ChargeUsageBasedRunPayment) 
 // Mutation returns the ChargeUsageBasedRunsMutation object of the builder.
 func (_u *ChargeUsageBasedRunsUpdate) Mutation() *ChargeUsageBasedRunsMutation {
 	return _u.mutation
+}
+
+// ClearBillingInvoiceLine clears the "billing_invoice_line" edge to the BillingInvoiceLine entity.
+func (_u *ChargeUsageBasedRunsUpdate) ClearBillingInvoiceLine() *ChargeUsageBasedRunsUpdate {
+	_u.mutation.ClearBillingInvoiceLine()
+	return _u
 }
 
 // ClearCreditAllocations clears all "credit_allocations" edges to the ChargeUsageBasedRunCreditAllocations entity.
@@ -327,6 +373,11 @@ func (_u *ChargeUsageBasedRunsUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *ChargeUsageBasedRunsUpdate) check() error {
+	if v, ok := _u.mutation.LineID(); ok {
+		if err := chargeusagebasedruns.LineIDValidator(v); err != nil {
+			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRuns.line_id": %w`, err)}
+		}
+	}
 	if _u.mutation.UsageBasedCleared() && len(_u.mutation.UsageBasedIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeUsageBasedRuns.usage_based"`)
 	}
@@ -386,6 +437,35 @@ func (_u *ChargeUsageBasedRunsUpdate) sqlSave(ctx context.Context) (_node int, e
 	}
 	if value, ok := _u.mutation.MeterValue(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldMeterValue, field.TypeOther, value)
+	}
+	if _u.mutation.BillingInvoiceLineCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   chargeusagebasedruns.BillingInvoiceLineTable,
+			Columns: []string{chargeusagebasedruns.BillingInvoiceLineColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.BillingInvoiceLineIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   chargeusagebasedruns.BillingInvoiceLineTable,
+			Columns: []string{chargeusagebasedruns.BillingInvoiceLineColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.CreditAllocationsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -662,6 +742,26 @@ func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableAsof(v *time.Time) *ChargeUs
 	return _u
 }
 
+// SetLineID sets the "line_id" field.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetLineID(v string) *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.SetLineID(v)
+	return _u
+}
+
+// SetNillableLineID sets the "line_id" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableLineID(v *string) *ChargeUsageBasedRunsUpdateOne {
+	if v != nil {
+		_u.SetLineID(*v)
+	}
+	return _u
+}
+
+// ClearLineID clears the value of the "line_id" field.
+func (_u *ChargeUsageBasedRunsUpdateOne) ClearLineID() *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.ClearLineID()
+	return _u
+}
+
 // SetMeterValue sets the "meter_value" field.
 func (_u *ChargeUsageBasedRunsUpdateOne) SetMeterValue(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdateOne {
 	_u.mutation.SetMeterValue(v)
@@ -674,6 +774,25 @@ func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableMeterValue(v *alpacadecimal.
 		_u.SetMeterValue(*v)
 	}
 	return _u
+}
+
+// SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetBillingInvoiceLineID(id string) *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.SetBillingInvoiceLineID(id)
+	return _u
+}
+
+// SetNillableBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableBillingInvoiceLineID(id *string) *ChargeUsageBasedRunsUpdateOne {
+	if id != nil {
+		_u = _u.SetBillingInvoiceLineID(*id)
+	}
+	return _u
+}
+
+// SetBillingInvoiceLine sets the "billing_invoice_line" edge to the BillingInvoiceLine entity.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetBillingInvoiceLine(v *BillingInvoiceLine) *ChargeUsageBasedRunsUpdateOne {
+	return _u.SetBillingInvoiceLineID(v.ID)
 }
 
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeUsageBasedRunCreditAllocations entity by IDs.
@@ -732,6 +851,12 @@ func (_u *ChargeUsageBasedRunsUpdateOne) SetPayment(v *ChargeUsageBasedRunPaymen
 // Mutation returns the ChargeUsageBasedRunsMutation object of the builder.
 func (_u *ChargeUsageBasedRunsUpdateOne) Mutation() *ChargeUsageBasedRunsMutation {
 	return _u.mutation
+}
+
+// ClearBillingInvoiceLine clears the "billing_invoice_line" edge to the BillingInvoiceLine entity.
+func (_u *ChargeUsageBasedRunsUpdateOne) ClearBillingInvoiceLine() *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.ClearBillingInvoiceLine()
+	return _u
 }
 
 // ClearCreditAllocations clears all "credit_allocations" edges to the ChargeUsageBasedRunCreditAllocations entity.
@@ -818,6 +943,11 @@ func (_u *ChargeUsageBasedRunsUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *ChargeUsageBasedRunsUpdateOne) check() error {
+	if v, ok := _u.mutation.LineID(); ok {
+		if err := chargeusagebasedruns.LineIDValidator(v); err != nil {
+			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRuns.line_id": %w`, err)}
+		}
+	}
 	if _u.mutation.UsageBasedCleared() && len(_u.mutation.UsageBasedIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeUsageBasedRuns.usage_based"`)
 	}
@@ -894,6 +1024,35 @@ func (_u *ChargeUsageBasedRunsUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 	}
 	if value, ok := _u.mutation.MeterValue(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldMeterValue, field.TypeOther, value)
+	}
+	if _u.mutation.BillingInvoiceLineCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   chargeusagebasedruns.BillingInvoiceLineTable,
+			Columns: []string{chargeusagebasedruns.BillingInvoiceLineColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.BillingInvoiceLineIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   chargeusagebasedruns.BillingInvoiceLineTable,
+			Columns: []string{chargeusagebasedruns.BillingInvoiceLineColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.CreditAllocationsCleared() {
 		edge := &sqlgraph.EdgeSpec{

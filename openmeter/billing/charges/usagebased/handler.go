@@ -10,7 +10,9 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type CreditsOnlyUsageAccruedInput struct {
@@ -51,7 +53,39 @@ type CreditsOnlyUsageAccruedCorrectionInput struct {
 	LineageSegmentsByRealization lineage.ActiveSegmentsByRealizationID `json:"-"`
 }
 
+type OnInvoiceUsageAccruedInput struct {
+	Charge        Charge                `json:"charge"`
+	Run           RealizationRun        `json:"run"`
+	ServicePeriod timeutil.ClosedPeriod `json:"servicePeriod"`
+	Amount        alpacadecimal.Decimal `json:"amount"`
+}
+
+func (i OnInvoiceUsageAccruedInput) Validate() error {
+	var errs []error
+
+	if err := i.Charge.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge: %w", err))
+	}
+
+	if err := i.Run.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("run: %w", err))
+	}
+
+	if err := i.ServicePeriod.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("service period: %w", err))
+	}
+
+	if i.Amount.IsNegative() {
+		errs = append(errs, fmt.Errorf("amount cannot be negative"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 type Handler interface {
+	// OnInvoiceUsageAccrued is called when invoice-settled usage-based usage is sent to the customer.
+	OnInvoiceUsageAccrued(ctx context.Context, input OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error)
+
 	// OnCreditsOnlyUsageAccrued is called when a credit-only usage-based charge needs to be allocated as credits fully.
 	OnCreditsOnlyUsageAccrued(ctx context.Context, input CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error)
 
@@ -62,6 +96,10 @@ type Handler interface {
 type UnimplementedHandler struct{}
 
 var _ Handler = (*UnimplementedHandler)(nil)
+
+func (h UnimplementedHandler) OnInvoiceUsageAccrued(ctx context.Context, input OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error) {
+	return ledgertransaction.GroupReference{}, errors.New("not implemented")
+}
 
 func (h UnimplementedHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
 	return nil, errors.New("not implemented")

@@ -37,7 +37,9 @@ type mockCollectionCompletedLineEngine struct {
 	engineType ombilling.LineEngineType
 
 	buildStandardInvoiceLines func(ctx context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error)
+	onStandardInvoiceCreated  func(ctx context.Context, input ombilling.OnStandardInvoiceCreatedInput) (ombilling.StandardLines, error)
 	onCollectionCompleted     func(ctx context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error)
+	onInvoiceIssued           func(ctx context.Context, input ombilling.OnInvoiceIssuedInput) error
 }
 
 func mustAsNewStandardLines(input ombilling.BuildStandardInvoiceLinesInput) ombilling.StandardLines {
@@ -84,6 +86,22 @@ func (m *mockCollectionCompletedLineEngine) OnCollectionCompleted(ctx context.Co
 	}
 
 	return m.onCollectionCompleted(ctx, input)
+}
+
+func (m *mockCollectionCompletedLineEngine) OnStandardInvoiceCreated(ctx context.Context, input ombilling.OnStandardInvoiceCreatedInput) (ombilling.StandardLines, error) {
+	if m.onStandardInvoiceCreated == nil {
+		return input.Lines, nil
+	}
+
+	return m.onStandardInvoiceCreated(ctx, input)
+}
+
+func (m *mockCollectionCompletedLineEngine) OnInvoiceIssued(ctx context.Context, input ombilling.OnInvoiceIssuedInput) error {
+	if m.onInvoiceIssued == nil {
+		return fmt.Errorf("onInvoiceIssued is not set")
+	}
+
+	return m.onInvoiceIssued(ctx, input)
 }
 
 func (m *mockCollectionCompletedLineEngine) CalculateLines(input ombilling.CalculateLinesInput) (ombilling.StandardLines, error) {
@@ -312,5 +330,90 @@ func (s *LineEngineTestSuite) TestCollectionCompletedCustomSnapshotIsPreserved()
 		s.NotNil(invoice.Lines.OrEmpty()[0].UsageBased)
 		s.Equal(alpacadecimal.NewFromInt(7), lo.FromPtr(invoice.Lines.OrEmpty()[0].UsageBased.Quantity))
 		s.Equal(alpacadecimal.NewFromInt(7), lo.FromPtr(invoice.Lines.OrEmpty()[0].UsageBased.MeteredQuantity))
+	})
+}
+
+func (s *LineEngineTestSuite) TestOnInvoiceIssuedIsCalled() {
+	var (
+		ctx                = context.Background()
+		namespace          = s.GetUniqueNamespace("ns-line-engine-on-invoice-issued")
+		mockEngine         = &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeCreditPurchase}
+		invoice            ombilling.StandardInvoice
+		collectionAt       time.Time
+		onInvoiceIssuedCnt int
+	)
+
+	clockBase := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
+	clock.SetTime(clockBase)
+	defer clock.ResetTime()
+	defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
+	defer s.MockStreamingConnector.Reset()
+	s.registerMockLineEngine(s.T(), mockEngine)
+	defer s.unregisterLineEngine(s.T(), mockEngine)
+
+	s.Run("Given a draft invoice waiting for collection with an issued hook", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+			return mustAsNewStandardLines(input), nil
+		}
+
+		invoice, collectionAt = s.createMeteredDraftInvoiceWaitingForCollection(
+			ctx,
+			namespace,
+			mockEngine.GetLineEngineType(),
+			"UBP - invoice issued hook",
+		)
+	})
+
+	s.Run("When the invoice is collected and then issued", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.onCollectionCompleted = func(_ context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
+			lines := input.Lines
+			for _, stdLine := range lines {
+				if stdLine.UsageBased == nil {
+					stdLine.UsageBased = &ombilling.UsageBasedLine{}
+				}
+
+				stdLine.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.PreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+				stdLine.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+			}
+
+			return lines, nil
+		}
+
+		mockEngine.onInvoiceIssued = func(_ context.Context, input ombilling.OnInvoiceIssuedInput) error {
+			onInvoiceIssuedCnt++
+			s.Equal(input.Invoice.ID, invoice.ID)
+			s.Len(input.Lines, 1)
+			s.Equal(input.Invoice.ID, input.Lines[0].InvoiceID)
+			s.Equal(mockEngine.GetLineEngineType(), input.Lines[0].Engine)
+			return nil
+		}
+
+		clock.SetTime(collectionAt.Add(time.Minute))
+
+		var err error
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+
+		if invoice.Status != ombilling.StandardInvoiceStatusPaymentProcessingPending {
+			invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+			s.Require().NoError(err)
+		}
+	})
+
+	s.Run("Then the issued hook is called once", func() {
+		s.Equal(1, onInvoiceIssuedCnt)
+		s.Contains(
+			[]ombilling.StandardInvoiceStatus{
+				ombilling.StandardInvoiceStatusPaymentProcessingPending,
+				ombilling.StandardInvoiceStatusPaid,
+			},
+			invoice.Status,
+		)
 	})
 }

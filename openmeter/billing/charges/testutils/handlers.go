@@ -95,6 +95,10 @@ type mockUsageBasedHandler struct{}
 
 var _ usagebased.Handler = (*mockUsageBasedHandler)(nil)
 
+func (mockUsageBasedHandler) OnInvoiceUsageAccrued(context.Context, usagebased.OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error) {
+	return newMockLedgerTransactionGroupReference(), nil
+}
+
 func (mockUsageBasedHandler) OnCreditsOnlyUsageAccrued(_ context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
 	return creditrealization.CreateAllocationInputs{
 		{

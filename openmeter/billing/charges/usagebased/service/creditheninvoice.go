@@ -4,6 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
+	"github.com/samber/mo"
+
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
@@ -72,9 +76,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 			usagebased.StatusActiveFinalRealizationWaitingForCollection,
 		).
 		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
-		OnActive(
-			s.StartInvoiceCreatedRun,
-		)
+		OnEntry(statelessx.WithParameters(s.StartInvoiceCreatedRun))
 
 	s.Configure(usagebased.StatusActiveFinalRealizationWaitingForCollection).
 		Permit(
@@ -91,14 +93,19 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		).
 		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
 		OnActive(
-			s.FinalizeInvoiceCreatedRun,
+			s.SnapshotInvoiceUsage,
 		)
 
 	s.Configure(usagebased.StatusActiveFinalRealizationCompleted).
+		Permit(
+			meta.TriggerInvoiceIssued,
+			usagebased.StatusFinal,
+		).
 		Permit(meta.TriggerDelete, usagebased.StatusDeleted)
 
 	s.Configure(usagebased.StatusFinal).
-		Permit(meta.TriggerDelete, usagebased.StatusDeleted)
+		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
+		OnEntry(statelessx.WithParameters(s.FinalizeInvoiceRun))
 
 	s.Configure(usagebased.StatusDeleted).
 		OnEntry(statelessx.WithParameters(s.DeleteCharge))
@@ -112,7 +119,19 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, _ meta
 	return s.refetchCharge(ctx)
 }
 
-func (s *CreditThenInvoiceStateMachine) StartInvoiceCreatedRun(ctx context.Context) error {
+type invoiceCreatedInput struct {
+	LineID string
+}
+
+func (i invoiceCreatedInput) Validate() error {
+	if i.LineID == "" {
+		return fmt.Errorf("line id is required")
+	}
+
+	return nil
+}
+
+func (s *CreditThenInvoiceStateMachine) StartInvoiceCreatedRun(ctx context.Context, input invoiceCreatedInput) error {
 	storedAtOffset := meta.NormalizeTimestamp(clock.Now())
 	collectionEnd, err := s.GetCollectionPeriodEnd(ctx)
 	if err != nil {
@@ -126,6 +145,7 @@ func (s *CreditThenInvoiceStateMachine) StartInvoiceCreatedRun(ctx context.Conte
 		Type:               usagebased.RealizationRunTypeFinalRealization,
 		AsOf:               storedAtOffset,
 		CollectionEnd:      collectionEnd,
+		LineID:             lo.ToPtr(input.LineID),
 		CreditAllocation:   usagebasedrun.CreditAllocationAvailable,
 		CurrencyCalculator: s.CurrencyCalculator,
 	})
@@ -137,7 +157,7 @@ func (s *CreditThenInvoiceStateMachine) StartInvoiceCreatedRun(ctx context.Conte
 	return nil
 }
 
-func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceCreatedRun(ctx context.Context) error {
+func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context) error {
 	if s.Charge.State.CurrentRealizationRunID == nil {
 		return fmt.Errorf("no realization run in progress [charge_id=%s]", s.Charge.ID)
 	}
@@ -160,16 +180,12 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceCreatedRun(ctx context.Co
 	}
 
 	currentTotals := ratingResult.Totals.RoundToPrecision(s.CurrencyCalculator)
-	targetCreditsTotal := currentRun.Totals.CreditsTotal
-	if targetCreditsTotal.GreaterThan(currentTotals.Total) {
-		targetCreditsTotal = currentTotals.Total
-	}
 
 	reconcileResult, err := s.Runs.ReconcileCredits(ctx, usagebasedrun.ReconcileCreditRealizationsInput{
 		Charge:             s.Charge,
 		Run:                currentRun,
 		AllocateAt:         storedAtOffset,
-		TargetAmount:       targetCreditsTotal,
+		TargetAmount:       currentTotals.Total,
 		CurrencyCalculator: s.CurrencyCalculator,
 		ExactAllocation:    false,
 	})
@@ -178,14 +194,14 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceCreatedRun(ctx context.Co
 	}
 
 	currentRun.CreditsAllocated = append(currentRun.CreditsAllocated, reconcileResult.Realizations...)
-	currentTotals.CreditsTotal = currentTotals.CreditsTotal.Add(targetCreditsTotal)
-	currentTotals.Total = s.CurrencyCalculator.RoundToPrecision(currentTotals.Total.Sub(targetCreditsTotal))
+	currentTotals.CreditsTotal = s.CurrencyCalculator.RoundToPrecision(currentRun.CreditsAllocated.Sum())
+	currentTotals.Total = s.CurrencyCalculator.RoundToPrecision(currentTotals.Total.Sub(currentTotals.CreditsTotal))
 
 	currentRunBase, err := s.Adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
 		ID:         currentRun.ID,
-		AsOf:       storedAtOffset,
-		MeterValue: ratingResult.Quantity,
-		Totals:     currentTotals,
+		AsOf:       mo.Some(storedAtOffset),
+		MeterValue: mo.Some(ratingResult.Quantity),
+		Totals:     mo.Some(currentTotals),
 	})
 	if err != nil {
 		return fmt.Errorf("update realization run: %w", err)
@@ -196,6 +212,59 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceCreatedRun(ctx context.Co
 	if err := s.Charge.Realizations.SetRealizationRun(currentRun); err != nil {
 		return fmt.Errorf("update realization run: %w", err)
 	}
+
+	return nil
+}
+
+type invoiceIssuedInput struct {
+	Line *billing.StandardLine
+}
+
+func (i invoiceIssuedInput) Validate() error {
+	if i.Line == nil {
+		return fmt.Errorf("line is required")
+	}
+
+	return i.Line.Validate()
+}
+
+func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceRun(ctx context.Context, input invoiceIssuedInput) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
+	if s.Charge.State.CurrentRealizationRunID == nil {
+		return fmt.Errorf("no realization run in progress [charge_id=%s]", s.Charge.ID)
+	}
+
+	currentRun, err := s.Charge.GetCurrentRealizationRun()
+	if err != nil {
+		return fmt.Errorf("get current realization run: %w", err)
+	}
+
+	accrueResult, err := s.Runs.BookAccruedInvoiceUsage(ctx, usagebasedrun.BookAccruedInvoiceUsageInput{
+		Charge: s.Charge,
+		Run:    currentRun,
+		Line:   *input.Line,
+	})
+	if err != nil {
+		return fmt.Errorf("accrue invoice usage: %w", err)
+	}
+	currentRun = accrueResult.Run
+
+	if err := s.Charge.Realizations.SetRealizationRun(currentRun); err != nil {
+		return fmt.Errorf("update realization run: %w", err)
+	}
+
+	s.Charge.State.CurrentRealizationRunID = nil
+	s.Charge.State.AdvanceAfter = nil
+
+	updatedChargeBase, err := s.Adapter.UpdateCharge(ctx, s.Charge.ChargeBase)
+	if err != nil {
+		return fmt.Errorf("update charge: %w", err)
+	}
+
+	s.Charge.ChargeBase = updatedChargeBase
 
 	return nil
 }

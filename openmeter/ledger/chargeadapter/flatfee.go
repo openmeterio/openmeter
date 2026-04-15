@@ -93,7 +93,7 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 
 	amount := input.Totals.Total
 	if amount.IsZero() {
-		return ledgertransaction.GroupReference{}, nil
+		return ledgertransaction.GroupReference{}, fmt.Errorf("amount is zero")
 	}
 
 	if err := validateSettlementMode(

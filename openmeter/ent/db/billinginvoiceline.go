@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
@@ -162,13 +163,15 @@ type BillingInvoiceLineEdges struct {
 	ChargeFlatFeeCreditAllocations []*ChargeFlatFeeCreditAllocations `json:"charge_flat_fee_credit_allocations,omitempty"`
 	// ChargeFlatFeeInvoicedUsage holds the value of the charge_flat_fee_invoiced_usage edge.
 	ChargeFlatFeeInvoicedUsage []*ChargeFlatFeeInvoicedUsage `json:"charge_flat_fee_invoiced_usage,omitempty"`
+	// ChargeUsageBasedRun holds the value of the charge_usage_based_run edge.
+	ChargeUsageBasedRun *ChargeUsageBasedRuns `json:"charge_usage_based_run,omitempty"`
 	// ChargeCreditPurchaseInvoicedPayment holds the value of the charge_credit_purchase_invoiced_payment edge.
 	ChargeCreditPurchaseInvoicedPayment *ChargeCreditPurchaseInvoicedPayment `json:"charge_credit_purchase_invoiced_payment,omitempty"`
 	// TaxCode holds the value of the tax_code edge.
 	TaxCode *TaxCode `json:"tax_code,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [18]bool
+	loadedTypes [19]bool
 }
 
 // BillingInvoiceOrErr returns the BillingInvoice value or an error if the edge
@@ -335,12 +338,23 @@ func (e BillingInvoiceLineEdges) ChargeFlatFeeInvoicedUsageOrErr() ([]*ChargeFla
 	return nil, &NotLoadedError{edge: "charge_flat_fee_invoiced_usage"}
 }
 
+// ChargeUsageBasedRunOrErr returns the ChargeUsageBasedRun value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingInvoiceLineEdges) ChargeUsageBasedRunOrErr() (*ChargeUsageBasedRuns, error) {
+	if e.ChargeUsageBasedRun != nil {
+		return e.ChargeUsageBasedRun, nil
+	} else if e.loadedTypes[16] {
+		return nil, &NotFoundError{label: chargeusagebasedruns.Label}
+	}
+	return nil, &NotLoadedError{edge: "charge_usage_based_run"}
+}
+
 // ChargeCreditPurchaseInvoicedPaymentOrErr returns the ChargeCreditPurchaseInvoicedPayment value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e BillingInvoiceLineEdges) ChargeCreditPurchaseInvoicedPaymentOrErr() (*ChargeCreditPurchaseInvoicedPayment, error) {
 	if e.ChargeCreditPurchaseInvoicedPayment != nil {
 		return e.ChargeCreditPurchaseInvoicedPayment, nil
-	} else if e.loadedTypes[16] {
+	} else if e.loadedTypes[17] {
 		return nil, &NotFoundError{label: chargecreditpurchaseinvoicedpayment.Label}
 	}
 	return nil, &NotLoadedError{edge: "charge_credit_purchase_invoiced_payment"}
@@ -351,7 +365,7 @@ func (e BillingInvoiceLineEdges) ChargeCreditPurchaseInvoicedPaymentOrErr() (*Ch
 func (e BillingInvoiceLineEdges) TaxCodeOrErr() (*TaxCode, error) {
 	if e.TaxCode != nil {
 		return e.TaxCode, nil
-	} else if e.loadedTypes[17] {
+	} else if e.loadedTypes[18] {
 		return nil, &NotFoundError{label: dbtaxcode.Label}
 	}
 	return nil, &NotLoadedError{edge: "tax_code"}
@@ -780,6 +794,11 @@ func (_m *BillingInvoiceLine) QueryChargeFlatFeeCreditAllocations() *ChargeFlatF
 // QueryChargeFlatFeeInvoicedUsage queries the "charge_flat_fee_invoiced_usage" edge of the BillingInvoiceLine entity.
 func (_m *BillingInvoiceLine) QueryChargeFlatFeeInvoicedUsage() *ChargeFlatFeeInvoicedUsageQuery {
 	return NewBillingInvoiceLineClient(_m.config).QueryChargeFlatFeeInvoicedUsage(_m)
+}
+
+// QueryChargeUsageBasedRun queries the "charge_usage_based_run" edge of the BillingInvoiceLine entity.
+func (_m *BillingInvoiceLine) QueryChargeUsageBasedRun() *ChargeUsageBasedRunsQuery {
+	return NewBillingInvoiceLineClient(_m.config).QueryChargeUsageBasedRun(_m)
 }
 
 // QueryChargeCreditPurchaseInvoicedPayment queries the "charge_credit_purchase_invoiced_payment" edge of the BillingInvoiceLine entity.

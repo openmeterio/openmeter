@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -22,6 +23,7 @@ type CreateRatedRunInput struct {
 	Type               usagebased.RealizationRunType
 	AsOf               time.Time
 	CollectionEnd      time.Time
+	LineID             *string
 	CreditAllocation   CreditAllocationMode
 	CurrencyCalculator currencyx.Calculator
 }
@@ -49,6 +51,10 @@ func (i CreateRatedRunInput) Validate() error {
 
 	if i.CollectionEnd.IsZero() {
 		return fmt.Errorf("collection end is required")
+	}
+
+	if i.LineID != nil && *i.LineID == "" {
+		return fmt.Errorf("line id if set, must be non-empty")
 	}
 
 	if err := i.CreditAllocation.Validate(); err != nil {
@@ -127,6 +133,7 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 		Type:          in.Type,
 		AsOf:          in.AsOf,
 		CollectionEnd: in.CollectionEnd,
+		LineID:        in.LineID,
 		MeterValue:    ratingResult.Quantity,
 		Totals:        runTotals,
 	})
@@ -158,9 +165,9 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 
 		currentRunBase, err := s.adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
 			ID:         currentRun.ID,
-			AsOf:       in.AsOf,
-			MeterValue: ratingResult.Quantity,
-			Totals:     runTotals,
+			AsOf:       mo.Some(in.AsOf),
+			MeterValue: mo.Some(ratingResult.Quantity),
+			Totals:     mo.Some(runTotals),
 		})
 		if err != nil {
 			return CreateRatedRunResult{}, fmt.Errorf("update realization run: %w", err)

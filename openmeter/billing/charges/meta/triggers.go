@@ -8,4 +8,5 @@ var (
 	TriggerNext                Trigger = "next"
 	TriggerInvoiceCreated      Trigger = "invoice_created"
 	TriggerCollectionCompleted Trigger = "collection_completed"
+	TriggerInvoiceIssued       Trigger = "invoice_issued"
 )

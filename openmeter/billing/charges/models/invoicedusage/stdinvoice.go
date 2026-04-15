@@ -14,7 +14,8 @@ type AccruedUsage struct {
 	models.NamespacedID
 	models.ManagedModel
 
-	Annotations       models.Annotations                `json:"annotations"`
+	Annotations models.Annotations `json:"annotations"`
+	// TODO: Remove LineID from accrued usage once flat-fee stores line assignment on its own realization state too.
 	LineID            *string                           `json:"lineID"`
 	ServicePeriod     timeutil.ClosedPeriod             `json:"servicePeriod"`
 	Mutable           bool                              `json:"mutable"`

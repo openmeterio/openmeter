@@ -193,7 +193,10 @@ func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
 
 	return &usageBasedHandlerTestEnv{
 		IntegrationEnv: base,
-		handler:        chargeadapter.NewUsageBasedHandler(collectorService),
+		handler: chargeadapter.NewUsageBasedHandler(base.Deps.HistoricalLedger, transactions.ResolverDependencies{
+			AccountService:    base.Deps.ResolversService,
+			SubAccountService: base.Deps.AccountService,
+		}, collectorService),
 	}
 }
 
