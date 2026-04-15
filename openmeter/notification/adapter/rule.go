@@ -3,6 +3,7 @@ package adapter
 import (
 	"context"
 	"fmt"
+	"time"
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	channeldb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
@@ -15,10 +16,28 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
+func EagerLoadActiveChannels(at time.Time) func(query *entdb.NotificationChannelQuery) {
+	return func(query *entdb.NotificationChannelQuery) {
+		query.Where(
+			channeldb.Disabled(false),
+			channeldb.Or(
+				channeldb.DeletedAtIsNil(),
+				channeldb.DeletedAtGT(at),
+			),
+		)
+	}
+}
+
 func (a *adapter) ListRules(ctx context.Context, params notification.ListRulesInput) (pagination.Result[notification.Rule], error) {
 	fn := func(ctx context.Context, a *adapter) (pagination.Result[notification.Rule], error) {
+		now := clock.Now()
+
 		query := a.db.NotificationRule.Query().
-			Where(ruledb.DeletedAtIsNil()) // Do not return deleted Rules
+			Where(ruledb.Or(
+				ruledb.DeletedAtIsNil(),
+				ruledb.DeletedAtGT(now),
+			)).                                        // Do not return deleted Rules
+			WithChannels(EagerLoadActiveChannels(now)) // Eager load active Channels
 
 		if len(params.Namespaces) > 0 {
 			query = query.Where(ruledb.NamespaceIn(params.Namespaces...))
@@ -39,9 +58,6 @@ func (a *adapter) ListRules(ctx context.Context, params notification.ListRulesIn
 		if len(params.Channels) > 0 {
 			query = query.Where(ruledb.HasChannelsWith(channeldb.IDIn(params.Channels...)))
 		}
-
-		// Eager load Channels
-		query = query.WithChannels()
 
 		order := entutils.GetOrdering(sortx.OrderDefault)
 		if !params.Order.IsDefaultValue() {
@@ -159,7 +175,7 @@ func (a *adapter) GetRule(ctx context.Context, params notification.GetRuleInput)
 		query := a.db.NotificationRule.Query().
 			Where(ruledb.ID(params.ID)).
 			Where(ruledb.Namespace(params.Namespace)).
-			WithChannels()
+			WithChannels(EagerLoadActiveChannels(clock.Now()))
 
 		ruleRow, err := query.First(ctx)
 		if err != nil {

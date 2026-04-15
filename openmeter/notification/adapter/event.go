@@ -20,9 +20,25 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
+func EagerLoadRulesWithActiveChannels(at time.Time) func(query *entdb.NotificationRuleQuery) {
+	return func(query *entdb.NotificationRuleQuery) {
+		query.WithChannels(func(cq *entdb.NotificationChannelQuery) {
+			cq.Where(
+				channeldb.Disabled(false),
+				channeldb.Or(
+					channeldb.DeletedAtIsNil(),
+					channeldb.DeletedAtGT(at),
+				),
+			)
+		})
+	}
+}
+
 func (a *adapter) ListEvents(ctx context.Context, params notification.ListEventsInput) (pagination.Result[notification.Event], error) {
 	fn := func(ctx context.Context, a *adapter) (pagination.Result[notification.Event], error) {
-		query := a.db.NotificationEvent.Query()
+		query := a.db.NotificationEvent.Query().
+			WithRules(EagerLoadRulesWithActiveChannels(clock.Now())).
+			WithDeliveryStatuses()
 
 		if len(params.Namespaces) > 0 {
 			query = query.Where(eventdb.NamespaceIn(params.Namespaces...))
@@ -86,12 +102,6 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 			query = query.Where(eventdb.HasRulesWith(ruledb.HasChannelsWith(channeldb.IDIn(params.Channels...))))
 		}
 
-		query = query.
-			WithRules(func(query *entdb.NotificationRuleQuery) {
-				query.WithChannels()
-			}).
-			WithDeliveryStatuses()
-
 		order := entutils.GetOrdering(sortx.OrderDesc)
 		if !params.Order.IsDefaultValue() {
 			order = entutils.GetOrdering(params.Order)
@@ -145,7 +155,7 @@ func (a *adapter) GetEvent(ctx context.Context, params notification.GetEventInpu
 			Where(eventdb.Namespace(params.Namespace)).
 			Where(eventdb.ID(params.ID)).
 			WithDeliveryStatuses().
-			WithRules(RulesEagerLoadChannels(clock.Now()))
+			WithRules(EagerLoadRulesWithActiveChannels(clock.Now()))
 
 		eventRow, err := query.First(ctx)
 		if err != nil {
@@ -176,17 +186,6 @@ func (a *adapter) GetEvent(ctx context.Context, params notification.GetEventInpu
 	return entutils.TransactingRepo(ctx, a, fn)
 }
 
-func RulesEagerLoadChannels(at time.Time) func(q *entdb.NotificationRuleQuery) {
-	return func(q *entdb.NotificationRuleQuery) {
-		q.WithChannels(func(cq *entdb.NotificationChannelQuery) {
-			cq.Where(channeldb.Or(
-				channeldb.DeletedAtIsNil(),
-				channeldb.DeletedAtGT(at),
-			))
-		})
-	}
-}
-
 func (a *adapter) CreateEvent(ctx context.Context, params notification.CreateEventInput) (*notification.Event, error) {
 	fn := func(ctx context.Context, a *adapter) (*notification.Event, error) {
 		payloadJSON, err := json.Marshal(params.Payload)
@@ -213,8 +212,11 @@ func (a *adapter) CreateEvent(ctx context.Context, params notification.CreateEve
 		ruleQuery := a.db.NotificationRule.Query().
 			Where(ruledb.Namespace(params.Namespace)).
 			Where(ruledb.ID(params.RuleID)).
-			Where(ruledb.DeletedAtIsNil()).
-			WithChannels()
+			Where(ruledb.Or(
+				ruledb.DeletedAtIsNil(),
+				ruledb.DeletedAtGT(clock.Now()),
+			)).
+			WithChannels(EagerLoadActiveChannels(clock.Now()))
 
 		ruleRow, err := ruleQuery.First(ctx)
 		if err != nil {
@@ -229,41 +231,46 @@ func (a *adapter) CreateEvent(ctx context.Context, params notification.CreateEve
 
 			return nil, fmt.Errorf("failed to fetch notification rule: %w", err)
 		}
+
 		if ruleRow == nil {
 			return nil, errors.New("invalid query result: nil notification rule received")
 		}
+
+		eventRow.Edges.Rules = ruleRow
 
 		if _, err = ruleRow.Edges.ChannelsOrErr(); err != nil {
 			return nil, fmt.Errorf("invalid query result: failed to load notification channels for rule: %w", err)
 		}
 
-		eventRow.Edges.Rules = ruleRow
+		// Create delivery statuses for each channel
+		if len(ruleRow.Edges.Channels) > 0 {
+			statusBulkQuery := make([]*entdb.NotificationEventDeliveryStatusCreate, 0, len(ruleRow.Edges.Channels))
 
-		statusBulkQuery := make([]*entdb.NotificationEventDeliveryStatusCreate, 0, len(ruleRow.Edges.Channels))
-		for _, channel := range ruleRow.Edges.Channels {
-			if channel == nil {
-				a.logger.WarnContext(ctx, "invalid query result: nil channel received")
-				continue
+			for _, channel := range ruleRow.Edges.Channels {
+				if channel == nil {
+					a.logger.WarnContext(ctx, "invalid query result: nil channel received")
+					continue
+				}
+
+				q := a.db.NotificationEventDeliveryStatus.Create().
+					SetNamespace(params.Namespace).
+					SetEventID(eventRow.ID).
+					SetChannelID(channel.ID).
+					SetState(notification.EventDeliveryStatusStatePending).
+					AddEvents(eventRow)
+
+				statusBulkQuery = append(statusBulkQuery, q)
 			}
 
-			q := a.db.NotificationEventDeliveryStatus.Create().
-				SetNamespace(params.Namespace).
-				SetEventID(eventRow.ID).
-				SetChannelID(channel.ID).
-				SetState(notification.EventDeliveryStatusStatePending).
-				AddEvents(eventRow)
+			statusQuery := a.db.NotificationEventDeliveryStatus.CreateBulk(statusBulkQuery...)
 
-			statusBulkQuery = append(statusBulkQuery, q)
+			statusRows, err := statusQuery.Save(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to save notification event: %w", err)
+			}
+
+			eventRow.Edges.DeliveryStatuses = statusRows
 		}
-
-		statusQuery := a.db.NotificationEventDeliveryStatus.CreateBulk(statusBulkQuery...)
-
-		statusRows, err := statusQuery.Save(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to save notification event: %w", err)
-		}
-
-		eventRow.Edges.DeliveryStatuses = statusRows
 
 		event, err := EventFromDBEntity(*eventRow)
 		if err != nil {

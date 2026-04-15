@@ -71,37 +71,34 @@ type Handler struct {
 }
 
 func (h *Handler) Start() error {
-	go func() {
-		defer func() {
-			if err := recover(); err != nil {
-				h.logger.Error("notification event handler panicked",
-					"error", err,
-					"code.stacktrace", string(debug.Stack()))
+	defer func() {
+		if err := recover(); err != nil {
+			h.logger.Error("notification event handler panicked",
+				"error", err,
+				"code.stacktrace", string(debug.Stack()))
 
-				h.stopChClose()
-			}
-		}()
-
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
-		ticker := time.NewTicker(h.reconcileInterval)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-h.stopCh:
-				h.logger.Debug("close event received: stopping reconciler")
-				return
-			case <-ticker.C:
-				if err := h.Reconcile(ctx); err != nil {
-					h.logger.ErrorContext(ctx, "failed to reconcile event(s)", "error", err)
-				}
-			}
+			h.stopChClose()
 		}
 	}()
 
-	return nil
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	ticker := time.NewTicker(h.reconcileInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-h.stopCh:
+			h.logger.DebugContext(ctx, "close event received: stopping event reconciler")
+
+			return nil
+		case <-ticker.C:
+			if err := h.Reconcile(ctx); err != nil {
+				h.logger.ErrorContext(ctx, "failed to reconcile event(s)", "error", err)
+			}
+		}
+	}
 }
 
 func (h *Handler) Close() error {

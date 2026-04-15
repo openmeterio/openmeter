@@ -61,10 +61,6 @@ func (b *EntitlementSnapshotHandler) handleAsSnapshotEvent(ctx context.Context, 
 	var errs []error
 
 	for _, rule := range affectedRules {
-		if !rule.HasEnabledChannels() {
-			continue
-		}
-
 		if err = b.handleRule(ctx, event, rule); err != nil {
 			errs = append(
 				errs,

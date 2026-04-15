@@ -159,19 +159,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	eventHandler, cleanup7, err := common.NewNotificationEventHandler(notificationConfiguration, logger, tracer, repository, handler)
+	notificationService, err := common.NewNotificationService(logger, repository, handler, featureConnector)
 	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	notificationService, err := common.NewNotificationService(logger, repository, handler, eventHandler, featureConnector)
-	if err != nil {
-		cleanup7()
 		cleanup6()
 		cleanup5()
 		cleanup4()
@@ -182,7 +171,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, logger)
 	if err != nil {
-		cleanup7()
 		cleanup6()
 		cleanup5()
 		cleanup4()
@@ -193,9 +181,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
-	v4, cleanup8, err := common.NewClickHouse(ctx, clickHouseAggregationConfiguration, tracer, meter, logger)
+	v4, cleanup7, err := common.NewClickHouse(ctx, clickHouseAggregationConfiguration, tracer, meter, logger)
 	if err != nil {
-		cleanup7()
 		cleanup6()
 		cleanup5()
 		cleanup4()
@@ -207,7 +194,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	progressManagerConfiguration := conf.ProgressManager
 	progressmanagerService, err := common.NewProgressManager(logger, progressManagerConfiguration)
 	if err != nil {
-		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -220,7 +206,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	namespaceConfiguration := conf.Namespace
 	manager, err := common.NewNamespaceManager(namespaceConfiguration)
 	if err != nil {
-		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -232,7 +217,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v4, logger, progressmanagerService, manager)
 	if err != nil {
-		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -244,7 +228,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	health := common.NewHealthChecker(logger)
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, logger)
-	v5, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	v5, cleanup8 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	application := Application{
 		GlobalInitializer:       globalInitializer,
 		Migrator:                migrator,
@@ -264,7 +248,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		TelemetryServer:         v5,
 	}
 	return application, func() {
-		cleanup9()
 		cleanup8()
 		cleanup7()
 		cleanup6()

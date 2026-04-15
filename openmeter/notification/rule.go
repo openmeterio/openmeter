@@ -58,16 +58,6 @@ func (r Rule) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (r Rule) HasEnabledChannels() bool {
-	for _, channel := range r.Channels {
-		if !channel.Disabled {
-			return true
-		}
-	}
-
-	return false
-}
-
 var (
 	_ models.Validator                       = (*RuleConfigMeta)(nil)
 	_ models.CustomValidator[RuleConfigMeta] = (*RuleConfigMeta)(nil)
