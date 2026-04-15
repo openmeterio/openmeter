@@ -79,12 +79,18 @@ func (e *Engine) BuildStandardInvoiceLines(ctx context.Context, input billing.Bu
 		return nil, err
 	}
 
-	gatheringLinesByID := make(map[string]billing.GatheringLine, len(input.GatheringLines))
-	for _, gatheringLine := range input.GatheringLines {
-		gatheringLinesByID[gatheringLine.ID] = gatheringLine
+	return e.CalculateLines(billing.CalculateLinesInput{
+		Invoice: input.Invoice,
+		Lines:   stdLines,
+	})
+}
+
+func (e *Engine) OnStandardInvoiceCreated(ctx context.Context, input billing.OnStandardInvoiceCreatedInput) (billing.StandardLines, error) {
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("validating input: %w", err)
 	}
 
-	for _, stdLine := range stdLines {
+	for _, stdLine := range input.Lines {
 		chargeID := stdLine.ChargeID
 		if chargeID == nil {
 			return nil, fmt.Errorf("flat fee standard line[%s]: charge id is required", stdLine.ID)
@@ -103,12 +109,7 @@ func (e *Engine) BuildStandardInvoiceLines(ctx context.Context, input billing.Bu
 			return nil, fmt.Errorf("getting flat fee charge for line[%s]: %w", stdLine.ID, err)
 		}
 
-		sourceGatheringLine, ok := gatheringLinesByID[stdLine.ID]
-		if !ok {
-			return nil, fmt.Errorf("flat fee standard line[%s]: source gathering line not found", stdLine.ID)
-		}
-
-		realizations, err := e.flatFeeService.PostLineAssignedToInvoice(ctx, charge, sourceGatheringLine)
+		realizations, err := e.flatFeeService.PostLineAssignedToInvoice(ctx, charge, *stdLine)
 		if err != nil {
 			return nil, fmt.Errorf("allocating credits for line[%s]: %w", stdLine.ID, err)
 		}
@@ -118,18 +119,15 @@ func (e *Engine) BuildStandardInvoiceLines(ctx context.Context, input billing.Bu
 		}
 	}
 
-	return e.CalculateLines(billing.CalculateLinesInput{
-		Invoice: input.Invoice,
-		Lines:   stdLines,
-	})
+	return e.CalculateLines(billing.CalculateLinesInput(input))
 }
 
 func (e *Engine) OnCollectionCompleted(_ context.Context, input billing.OnCollectionCompletedInput) (billing.StandardLines, error) {
 	return input.Lines, nil
 }
 
-func (e *Engine) OnStandardInvoiceCreated(_ context.Context, input billing.OnStandardInvoiceCreatedInput) (billing.StandardLines, error) {
-	return input.Lines, nil
+func (e *Engine) OnInvoiceIssued(_ context.Context, _ billing.OnInvoiceIssuedInput) error {
+	return nil
 }
 
 func (e *Engine) CalculateLines(input billing.CalculateLinesInput) (billing.StandardLines, error) {

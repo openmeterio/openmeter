@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -69,6 +70,17 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 			return nil, err
 		}
 
+		if stateMachine.GetCharge().Intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
+			return nil, fmt.Errorf(
+				"usage based standard line[%s]: unsupported settlement mode for standard invoice creation: %s",
+				stdLine.ID,
+				stateMachine.GetCharge().Intent.SettlementMode,
+			)
+		}
+
+		// Becoming active after the service period starts is not an invoice lifecycle event, so we
+		// still rely on the generic TriggerNext/AdvanceUntilStateStable flow before invoice-created
+		// lifecycle transitions take over.
 		if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
 			return nil, fmt.Errorf("advancing usage based charge[%s]: %w", stateMachine.GetCharge().ID, err)
 		}
@@ -102,7 +114,10 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 		return nil, err
 	}
 
-	return stdLines, nil
+	return e.CalculateLines(billing.CalculateLinesInput{
+		Invoice: input.Invoice,
+		Lines:   stdLines,
+	})
 }
 
 func (e *LineEngine) OnCollectionCompleted(ctx context.Context, input billing.OnCollectionCompletedInput) (billing.StandardLines, error) {
@@ -144,6 +159,45 @@ func (e *LineEngine) OnCollectionCompleted(ctx context.Context, input billing.On
 	}
 
 	return input.Lines, nil
+}
+
+func (e *LineEngine) OnInvoiceIssued(ctx context.Context, input billing.OnInvoiceIssuedInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("validating input: %w", err)
+	}
+
+	for _, stdLine := range input.Lines {
+		stateMachine, err := e.newStateMachineForStandardLine(ctx, stdLine)
+		if err != nil {
+			return err
+		}
+
+		canFire, err := stateMachine.CanFire(ctx, meta.TriggerInvoiceIssued)
+		if err != nil {
+			return fmt.Errorf("checking invoice_issued for charge[%s]: %w", stateMachine.GetCharge().ID, err)
+		}
+
+		if !canFire {
+			return fmt.Errorf(
+				"charge[%s] in status %s cannot handle invoice_issued for standard line[%s]",
+				stateMachine.GetCharge().ID,
+				stateMachine.GetCharge().Status,
+				stdLine.ID,
+			)
+		}
+
+		if err := stateMachine.FireAndActivate(ctx, meta.TriggerInvoiceIssued, invoiceIssuedInput{
+			Line: stdLine,
+		}); err != nil {
+			return fmt.Errorf("triggering invoice_issued for charge[%s]: %w", stateMachine.GetCharge().ID, err)
+		}
+
+		if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
+			return fmt.Errorf("advancing usage based charge[%s] after invoice_issued: %w", stateMachine.GetCharge().ID, err)
+		}
+	}
+
+	return nil
 }
 
 func (e *LineEngine) CalculateLines(input billing.CalculateLinesInput) (billing.StandardLines, error) {

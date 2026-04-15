@@ -828,7 +828,8 @@ func (s *Service) recalculateStandardInvoice(ctx context.Context, invoice billin
 	taxCodes, err := s.resolveTaxCodes(ctx, resolveTaxCodesInput{
 		Namespace: invoice.Namespace,
 		Invoice:   &invoice,
-		ReadOnly:  false,
+		// At this point the invoice is still mutable, so we can properly resolve/backfill the tax codes.
+		ReadOnly: false,
 	})
 	if err != nil {
 		return billing.StandardInvoice{}, fmt.Errorf("resolving tax codes: %w", err)

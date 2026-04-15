@@ -1,15 +1,18 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/adapter"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	creditpurchaseadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/adapter"
 	creditpurchaselineengine "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/lineengine"
 	creditpurchaseservice "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service"
@@ -264,6 +267,34 @@ func (s *BaseSuite) createMockChargeIntent(input createMockChargeIntentInput) ch
 		SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.InvoiceOnlySettlementMode),
 	}
 	return charges.NewChargeIntent(usageBasedIntent)
+}
+
+func (s *BaseSuite) grantPromotionalCredits(ctx context.Context, customerID customer.CustomerID, amount float64) []charges.Charge {
+	s.T().Helper()
+
+	now := clock.Now()
+
+	intent := CreateCreditPurchaseIntent(s.T(), createCreditPurchaseIntentInput{
+		customer: customerID,
+		currency: USD,
+		amount:   alpacadecimal.NewFromFloat(amount),
+		servicePeriod: timeutil.ClosedPeriod{
+			From: now,
+			To:   now,
+		},
+		settlement: creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+	})
+
+	res, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: customerID.Namespace,
+		Intents: charges.ChargeIntents{
+			intent,
+		},
+	})
+	s.NoError(err)
+	s.Len(res, 1)
+
+	return res
 }
 
 func (s *BaseSuite) mustGetChargeByID(chargeID meta.ChargeID) charges.Charge {

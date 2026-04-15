@@ -176,13 +176,19 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 
 		// Validate the standard invoice's contents
 		// Invoice totals should be $70
-		s.Equal(float64(70), invoice.Totals.Total.InexactFloat64())
-		s.Equal(float64(30), invoice.Totals.CreditsTotal.InexactFloat64())
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:       100,
+			Total:        70,
+			CreditsTotal: 30,
+		}, invoice.Totals)
 
 		// Validate the standard line's contents
 		// Line totals should be $70
-		s.Equal(float64(30), stdLine.Totals.CreditsTotal.InexactFloat64())
-		s.Equal(float64(70), stdLine.Totals.Total.InexactFloat64())
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:       100,
+			Total:        70,
+			CreditsTotal: 30,
+		}, stdLine.Totals)
 
 		// The line should have a credit realization intent
 		s.Len(stdLine.CreditsApplied, 1)
@@ -193,8 +199,11 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		// The line should have a single detailed line
 		s.Len(stdLine.DetailedLines, 1)
 		detailedLine := stdLine.DetailedLines[0]
-		s.Equal(float64(70), detailedLine.Totals.Total.InexactFloat64())
-		s.Equal(float64(30), detailedLine.Totals.CreditsTotal.InexactFloat64())
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:       100,
+			Total:        70,
+			CreditsTotal: 30,
+		}, detailedLine.Totals)
 
 		// The detailed line should have a credit realization intent
 		s.Len(detailedLine.CreditsApplied, 1)
@@ -235,8 +244,11 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		s.False(accruedUsage.Mutable, "accrued usage should not be mutable")
 		s.NotNil(accruedUsage.LineID, "line ID should be set")
 		s.Equal(stdLineID.ID, *accruedUsage.LineID, "line ID should be the same as the standard line")
-		s.Equal(float64(70), accruedUsage.Totals.Total.InexactFloat64(), "totals should be the same as the input")
-		s.Equal(float64(30), accruedUsage.Totals.CreditsTotal.InexactFloat64(), "totals should be the same as the input")
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:       100,
+			Total:        70,
+			CreditsTotal: 30,
+		}, accruedUsage.Totals)
 
 		// Authorization callback should have been invoked
 		s.Equal(authorizedCallback.id, updatedFlatFeeCharge.Realizations.Payment.Authorized.TransactionGroupID)
@@ -469,8 +481,10 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 		s.NotNil(currentRun.CollectionEnd)
 		s.True(expectedCollectionEnd.Equal(currentRun.CollectionEnd.UTC()))
 		s.Equal(float64(3), currentRun.MeterValue.InexactFloat64())
-		s.Equal(float64(0), currentRun.Totals.Total.InexactFloat64())
-		s.Equal(float64(3), currentRun.Totals.CreditsTotal.InexactFloat64())
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:       3,
+			CreditsTotal: 3,
+		}, currentRun.Totals)
 		s.Len(currentRun.CreditsAllocated, 1)
 		s.Equal(float64(3), currentRun.CreditsAllocated[0].Amount.InexactFloat64())
 
@@ -563,8 +577,10 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 		s.NotNil(finalRun.CollectionEnd)
 		s.True(expectedCollectionEnd.Equal(finalRun.CollectionEnd.UTC()))
 		s.Equal(float64(11), finalRun.MeterValue.InexactFloat64())
-		s.Equal(float64(0), finalRun.Totals.Total.InexactFloat64())
-		s.Equal(float64(11), finalRun.Totals.CreditsTotal.InexactFloat64())
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:       11,
+			CreditsTotal: 11,
+		}, finalRun.Totals)
 		s.Len(finalRun.CreditsAllocated, 2)
 		s.Equal(float64(3), finalRun.CreditsAllocated[0].Amount.InexactFloat64())
 		s.Equal(float64(8), finalRun.CreditsAllocated[1].Amount.InexactFloat64())
@@ -705,8 +721,10 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 			s.True(firstStoredAtOffset.Equal(input.AllocateAt))
 			s.Equal(float64(20), input.AmountToAllocate.InexactFloat64())
 			s.Equal(float64(10), input.Run.MeterValue.InexactFloat64())
-			s.Equal(float64(0), input.Run.Totals.CreditsTotal.InexactFloat64())
-			s.Equal(float64(20), input.Run.Totals.Total.InexactFloat64())
+			s.RequireTotals(billingtest.ExpectedTotals{
+				Amount: 20,
+				Total:  20,
+			}, input.Run.Totals)
 			s.Empty(input.Run.CreditsAllocated)
 
 			return creditrealization.CreateAllocationInputs{
@@ -742,8 +760,10 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 		s.True(firstStoredAtOffset.Equal(currentRun.AsOf))
 		s.True(expectedCollectionEnd.Equal(currentRun.CollectionEnd.UTC()))
 		s.Equal(float64(10), currentRun.MeterValue.InexactFloat64())
-		s.Equal(float64(20), currentRun.Totals.CreditsTotal.InexactFloat64())
-		s.Equal(float64(0), currentRun.Totals.Total.InexactFloat64())
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:       20,
+			CreditsTotal: 20,
+		}, currentRun.Totals)
 		s.Len(currentRun.CreditsAllocated, 1)
 		s.Equal(creditrealization.TypeAllocation, currentRun.CreditsAllocated[0].Type)
 		s.Equal(float64(20), currentRun.CreditsAllocated[0].Amount.InexactFloat64())
@@ -760,8 +780,10 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 			s.Equal(usagebased.RealizationRunTypeFinalRealization, input.Run.Type)
 			s.True(finalStoredAtOffset.Equal(input.AllocateAt))
 			s.Equal(float64(10), input.Run.MeterValue.InexactFloat64())
-			s.Equal(float64(20), input.Run.Totals.CreditsTotal.InexactFloat64())
-			s.Equal(float64(0), input.Run.Totals.Total.InexactFloat64())
+			s.RequireTotals(billingtest.ExpectedTotals{
+				Amount:       20,
+				CreditsTotal: 20,
+			}, input.Run.Totals)
 			s.Len(input.Run.CreditsAllocated, 1)
 			s.Equal(creditrealization.TypeAllocation, input.Run.CreditsAllocated[0].Type)
 			s.Equal(float64(20), input.Run.CreditsAllocated[0].Amount.InexactFloat64())
@@ -817,8 +839,10 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 		s.True(finalStoredAtOffset.Equal(finalRun.AsOf))
 		s.True(expectedCollectionEnd.Equal(finalRun.CollectionEnd.UTC()))
 		s.Equal(float64(11), finalRun.MeterValue.InexactFloat64())
-		s.Equal(float64(11), finalRun.Totals.CreditsTotal.InexactFloat64())
-		s.Equal(float64(0), finalRun.Totals.Total.InexactFloat64())
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:       11,
+			CreditsTotal: 11,
+		}, finalRun.Totals)
 		s.Len(finalRun.CreditsAllocated, 2)
 
 		s.Equal(creditrealization.TypeAllocation, finalRun.CreditsAllocated[0].Type)
@@ -859,33 +883,14 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		usageBasedChargeID meta.ChargeID
 		invoice            billing.StandardInvoice
 		stdLineID          billing.LineID
+		remainingCredits   *alpacadecimal.Decimal
 	)
 
 	s.Run("#1 grant promotional credits", func() {
 		promotionalCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
 		s.CreditPurchaseTestHandler.onPromotionalCreditPurchase = promotionalCallback.Handler(s.T())
 
-		intent := CreateCreditPurchaseIntent(s.T(),
-			createCreditPurchaseIntentInput{
-				customer: cust.GetID(),
-				currency: USD,
-				amount:   alpacadecimal.NewFromFloat(5),
-				servicePeriod: timeutil.ClosedPeriod{
-					From: createAt,
-					To:   createAt,
-				},
-				settlement: creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
-			},
-		)
-
-		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
-			Intents: charges.ChargeIntents{
-				intent,
-			},
-		})
-		s.NoError(err)
-		s.Len(res, 1)
+		res := s.grantPromotionalCredits(ctx, cust.GetID(), 5)
 		s.Equal(meta.ChargeTypeCreditPurchase, res[0].Type())
 		s.Equal(1, promotionalCallback.nrInvocations)
 	})
@@ -921,31 +926,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 	})
 
 	s.Run("#4 invoice pending lines at service period end", func() {
-		defer s.UsageBasedTestHandler.Reset()
-
-		availableCredits := alpacadecimal.NewFromFloat(5)
-		s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
-			amount := input.AmountToAllocate
-			if amount.GreaterThan(availableCredits) {
-				amount = availableCredits
-			}
-
-			if amount.IsZero() {
-				return nil, nil
-			}
-
-			availableCredits = availableCredits.Sub(amount)
-
-			return creditrealization.CreateAllocationInputs{
-				{
-					ServicePeriod: input.Charge.Intent.ServicePeriod,
-					Amount:        amount,
-					LedgerTransaction: ledgertransaction.GroupReference{
-						TransactionGroupID: ulid.Make().String(),
-					},
-				},
-			}, nil
-		}
+		s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued, remainingCredits = newCappedCreditAllocator(5)
 
 		s.MockStreamingConnector.AddSimpleEvent(
 			meterSlug,
@@ -974,10 +955,16 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		s.Equal(float64(100), lo.FromPtr(stdLine.UsageBased.MeteredQuantity).InexactFloat64())
 		s.Len(stdLine.CreditsApplied, 1)
 		s.Equal(float64(5), stdLine.CreditsApplied[0].Amount.InexactFloat64())
-		s.Equal(float64(5), stdLine.Totals.CreditsTotal.InexactFloat64())
-		s.Equal(float64(5), stdLine.Totals.Total.InexactFloat64())
-		s.Equal(float64(5), invoice.Totals.CreditsTotal.InexactFloat64())
-		s.Equal(float64(5), invoice.Totals.Total.InexactFloat64())
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:       10,
+			Total:        5,
+			CreditsTotal: 5,
+		}, stdLine.Totals)
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:       10,
+			Total:        5,
+			CreditsTotal: 5,
+		}, invoice.Totals)
 		s.Equal(usageBasedChargeID.ID, lo.FromPtr(stdLine.ChargeID))
 
 		usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
@@ -988,13 +975,14 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		currentRun, err := usageBasedCharge.GetCurrentRealizationRun()
 		s.NoError(err)
 		s.Equal(float64(100), currentRun.MeterValue.InexactFloat64())
-		s.NotNil(currentRun.LineID)
-		s.Equal(stdLineID.ID, *currentRun.LineID)
 		s.Len(currentRun.CreditsAllocated, 1)
 		s.Equal(float64(5), currentRun.CreditsAllocated[0].Amount.InexactFloat64())
+		s.True((*remainingCredits).IsZero())
 	})
 
 	s.Run("#5 advance invoice at collection period end", func() {
+		*remainingCredits = (*remainingCredits).Add(alpacadecimal.NewFromFloat(3))
+
 		s.MockStreamingConnector.AddSimpleEvent(
 			meterSlug,
 			25,
@@ -1009,12 +997,19 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		s.Len(invoice.Lines.OrEmpty(), 1)
 
 		stdLine := invoice.Lines.OrEmpty()[0]
-		s.Len(stdLine.CreditsApplied, 1)
+		s.Len(stdLine.CreditsApplied, 2)
 		s.Equal(float64(5), stdLine.CreditsApplied[0].Amount.InexactFloat64())
-		s.Equal(float64(5), stdLine.Totals.CreditsTotal.InexactFloat64())
-		s.Equal(float64(7.5), stdLine.Totals.Total.InexactFloat64())
-		s.Equal(float64(5), invoice.Totals.CreditsTotal.InexactFloat64())
-		s.Equal(float64(7.5), invoice.Totals.Total.InexactFloat64())
+		s.Equal(float64(3), stdLine.CreditsApplied[1].Amount.InexactFloat64())
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:       12.5,
+			Total:        4.5,
+			CreditsTotal: 8,
+		}, stdLine.Totals)
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:       12.5,
+			Total:        4.5,
+			CreditsTotal: 8,
+		}, invoice.Totals)
 
 		usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
 		s.Equal(usagebased.StatusActiveFinalRealizationCompleted, usageBasedCharge.Status)
@@ -1027,8 +1022,235 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		s.True(currentRun.CollectionEnd.Equal(invoice.DefaultCollectionAtForStandardInvoice()))
 		s.NotNil(currentRun.LineID)
 		s.Equal(stdLineID.ID, *currentRun.LineID)
-		s.Len(currentRun.CreditsAllocated, 1)
+		s.Len(currentRun.CreditsAllocated, 2)
 		s.Equal(float64(5), currentRun.CreditsAllocated[0].Amount.InexactFloat64())
+		s.Equal(float64(3), currentRun.CreditsAllocated[1].Amount.InexactFloat64())
+		s.True((*remainingCredits).IsZero())
+	})
+
+	s.Run("#6 approve invoice and finalize the realization run at issuance", func() {
+		defer s.UsageBasedTestHandler.Reset()
+
+		expectedLine := invoice.Lines.OrEmpty()[0]
+		invoiceUsageAccruedCallback := newCountedLedgerTransactionCallback[usagebased.OnInvoiceUsageAccruedInput]()
+		s.UsageBasedTestHandler.onInvoiceUsageAccrued = invoiceUsageAccruedCallback.Handler(s.T(), func(t *testing.T, input usagebased.OnInvoiceUsageAccruedInput) {
+			s.Equal(usageBasedChargeID.ID, input.Charge.ID)
+			s.Equal(expectedLine.Period.ToClosedPeriod(), input.ServicePeriod)
+			s.Equal(float64(4.5), input.Amount.InexactFloat64())
+			s.Equal(float64(125), input.Run.MeterValue.InexactFloat64())
+			s.NotNil(input.Run.LineID)
+			s.Equal(stdLineID.ID, *input.Run.LineID)
+		})
+
+		invoice, err := s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+		s.Equal(1, invoiceUsageAccruedCallback.nrInvocations)
+
+		usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+		s.Equal(usagebased.StatusFinal, usageBasedCharge.Status)
+		s.Nil(usageBasedCharge.State.CurrentRealizationRunID)
+		s.Nil(usageBasedCharge.State.AdvanceAfter)
+		s.Len(usageBasedCharge.Realizations, 1)
+
+		finalRun := usageBasedCharge.Realizations[0]
+		s.Equal(float64(125), finalRun.MeterValue.InexactFloat64())
+		s.NotNil(finalRun.LineID)
+		s.Equal(stdLineID.ID, *finalRun.LineID)
+		s.NotNil(finalRun.InvoiceUsage)
+		s.NotNil(finalRun.InvoiceUsage.LineID)
+		s.Equal(stdLineID.ID, *finalRun.InvoiceUsage.LineID)
+		s.Equal(invoice.Lines.OrEmpty()[0].Period.ToClosedPeriod(), finalRun.InvoiceUsage.ServicePeriod)
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:       12.5,
+			Total:        4.5,
+			CreditsTotal: 8,
+		}, finalRun.InvoiceUsage.Totals)
+		s.NotNil(finalRun.InvoiceUsage.LedgerTransaction)
+		s.Equal(invoiceUsageAccruedCallback.id, finalRun.InvoiceUsage.LedgerTransaction.TransactionGroupID)
+	})
+}
+
+func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceFullyCreditedDoesNotAccrueInvoiceUsage() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-usage-based-credit-then-invoice-fully-credited")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	createAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-01T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+	meterSlug := apiRequestsTotal.Feature.Key
+
+	clock.FreezeTime(createAt)
+	defer clock.UnFreeze()
+
+	var (
+		usageBasedChargeID meta.ChargeID
+		invoice            billing.StandardInvoice
+		stdLineID          billing.LineID
+	)
+
+	s.Run("#1 grant promotional credits", func() {
+		promotionalCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
+		s.CreditPurchaseTestHandler.onPromotionalCreditPurchase = promotionalCallback.Handler(s.T())
+
+		res := s.grantPromotionalCredits(ctx, cust.GetID(), 20)
+		s.Equal(meta.ChargeTypeCreditPurchase, res[0].Type())
+		s.Equal(1, promotionalCallback.nrInvocations)
+	})
+
+	s.Run("#2 create future credit-then-invoice usage-based charge", func() {
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: []charges.ChargeIntent{
+				s.createMockChargeIntent(createMockChargeIntentInput{
+					customer:          cust.GetID(),
+					currency:          USD,
+					servicePeriod:     servicePeriod,
+					settlementMode:    productcatalog.CreditThenInvoiceSettlementMode,
+					price:             productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(0.1)}),
+					name:              "usage-based-credit-then-invoice-fully-credited",
+					managedBy:         billing.SubscriptionManagedLine,
+					uniqueReferenceID: "usage-based-credit-then-invoice-fully-credited",
+					featureKey:        meterSlug,
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+
+		usageBasedCharge, err := res[0].AsUsageBasedCharge()
+		s.NoError(err)
+		usageBasedChargeID = usageBasedCharge.GetChargeID()
+
+		fetched := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+		s.Equal(meta.ChargeStatusCreated, meta.ChargeStatus(fetched.Status))
+		s.Empty(fetched.Realizations)
+		s.Nil(fetched.State.AdvanceAfter)
+	})
+
+	s.Run("#3 invoice pending lines fully settled by credits", func() {
+		defer s.UsageBasedTestHandler.Reset()
+
+		s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued, _ = newCappedCreditAllocator(20)
+
+		s.MockStreamingConnector.AddSimpleEvent(
+			meterSlug,
+			100,
+			datetime.MustParseTimeInLocation(s.T(), "2026-01-15T00:00:00Z", time.UTC).AsTime(),
+		)
+
+		clock.FreezeTime(servicePeriod.To)
+
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(servicePeriod.To),
+		})
+		s.NoError(err)
+		s.Len(invoices, 1)
+
+		invoice = invoices[0]
+		s.Len(invoice.Lines.OrEmpty(), 1)
+
+		stdLine := invoice.Lines.OrEmpty()[0]
+		stdLineID = stdLine.GetLineID()
+		s.NotNil(stdLine.UsageBased)
+		s.NotNil(stdLine.UsageBased.Quantity)
+		s.Equal(float64(100), lo.FromPtr(stdLine.UsageBased.Quantity).InexactFloat64())
+		s.Len(stdLine.CreditsApplied, 1)
+		s.Equal(float64(10), stdLine.CreditsApplied[0].Amount.InexactFloat64())
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:       10,
+			CreditsTotal: 10,
+		}, stdLine.Totals)
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:       10,
+			CreditsTotal: 10,
+		}, invoice.Totals)
+		s.Equal(usageBasedChargeID.ID, lo.FromPtr(stdLine.ChargeID))
+
+		usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+		s.Equal(usagebased.StatusActiveFinalRealizationWaitingForCollection, usageBasedCharge.Status)
+		s.NotNil(usageBasedCharge.State.CurrentRealizationRunID)
+		s.Len(usageBasedCharge.Realizations, 1)
+
+		currentRun, err := usageBasedCharge.GetCurrentRealizationRun()
+		s.NoError(err)
+		s.Equal(float64(100), currentRun.MeterValue.InexactFloat64())
+		s.Len(currentRun.CreditsAllocated, 1)
+		s.Equal(float64(10), currentRun.CreditsAllocated[0].Amount.InexactFloat64())
+	})
+
+	s.Run("#4 advance invoice at collection period end", func() {
+		clock.FreezeTime(invoice.DefaultCollectionAtForStandardInvoice())
+
+		var err error
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.NoError(err)
+		s.Len(invoice.Lines.OrEmpty(), 1)
+
+		stdLine := invoice.Lines.OrEmpty()[0]
+		s.Len(stdLine.CreditsApplied, 1)
+		s.Equal(float64(10), stdLine.CreditsApplied[0].Amount.InexactFloat64())
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:       10,
+			CreditsTotal: 10,
+		}, stdLine.Totals)
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:       10,
+			CreditsTotal: 10,
+		}, invoice.Totals)
+
+		usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+		s.Equal(usagebased.StatusActiveFinalRealizationCompleted, usageBasedCharge.Status)
+		s.NotNil(usageBasedCharge.State.CurrentRealizationRunID)
+		s.Len(usageBasedCharge.Realizations, 1)
+
+		currentRun, err := usageBasedCharge.GetCurrentRealizationRun()
+		s.NoError(err)
+		s.Equal(float64(100), currentRun.MeterValue.InexactFloat64())
+		s.True(currentRun.CollectionEnd.Equal(invoice.DefaultCollectionAtForStandardInvoice()))
+		s.NotNil(currentRun.LineID)
+		s.Equal(stdLineID.ID, *currentRun.LineID)
+		s.Len(currentRun.CreditsAllocated, 1)
+		s.Equal(float64(10), currentRun.CreditsAllocated[0].Amount.InexactFloat64())
+	})
+
+	s.Run("#5 approve invoice without invoice usage accrual", func() {
+		defer s.UsageBasedTestHandler.Reset()
+
+		invoiceUsageAccruedCallback := newCountedLedgerTransactionCallback[usagebased.OnInvoiceUsageAccruedInput]()
+		s.UsageBasedTestHandler.onInvoiceUsageAccrued = invoiceUsageAccruedCallback.Handler(s.T())
+
+		var err error
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.NoError(err)
+		s.Equal(0, invoiceUsageAccruedCallback.nrInvocations)
+
+		usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+		s.Equal(usagebased.StatusFinal, usageBasedCharge.Status)
+		s.Nil(usageBasedCharge.State.CurrentRealizationRunID)
+		s.Nil(usageBasedCharge.State.AdvanceAfter)
+		s.Len(usageBasedCharge.Realizations, 1)
+
+		finalRun := usageBasedCharge.Realizations[0]
+		s.Equal(float64(100), finalRun.MeterValue.InexactFloat64())
+		s.NotNil(finalRun.LineID)
+		s.Equal(stdLineID.ID, *finalRun.LineID)
+		s.Nil(finalRun.InvoiceUsage)
 	})
 }
 
@@ -1199,8 +1421,10 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreateImmediatelyFinal() {
 	s.NotNil(finalRun.CollectionEnd)
 	s.True(expectedCollectionEnd.Equal(finalRun.CollectionEnd.UTC()))
 	s.Equal(expectedUsage, finalRun.MeterValue.InexactFloat64())
-	s.Equal(float64(0), finalRun.Totals.Total.InexactFloat64())
-	s.Equal(expectedUsage, finalRun.Totals.CreditsTotal.InexactFloat64())
+	s.RequireTotals(billingtest.ExpectedTotals{
+		Amount:       expectedUsage,
+		CreditsTotal: expectedUsage,
+	}, finalRun.Totals)
 	s.Len(finalRun.CreditsAllocated, 1)
 	s.Equal(expectedUsage, finalRun.CreditsAllocated[0].Amount.InexactFloat64())
 

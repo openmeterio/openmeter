@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
@@ -95,13 +96,17 @@ func (r CreateRealizationRunInput) Validate() error {
 type UpdateRealizationRunInput struct {
 	ID RealizationRunID
 
-	AsOf       time.Time             `json:"asOf"`
-	MeterValue alpacadecimal.Decimal `json:"meterValue"`
-	Totals     totals.Totals         `json:"totals"`
+	AsOf       mo.Option[time.Time]             `json:"asOf"`
+	LineID     mo.Option[*string]               `json:"lineId,omitempty"`
+	MeterValue mo.Option[alpacadecimal.Decimal] `json:"meterValue"`
+	Totals     mo.Option[totals.Totals]         `json:"totals"`
 }
 
 func (r UpdateRealizationRunInput) Normalized() UpdateRealizationRunInput {
-	r.AsOf = meta.NormalizeTimestamp(r.AsOf)
+	if r.AsOf.IsPresent() {
+		asOf := r.AsOf.OrEmpty()
+		r.AsOf = mo.Some(meta.NormalizeTimestamp(asOf))
+	}
 
 	return r
 }
@@ -113,16 +118,25 @@ func (r UpdateRealizationRunInput) Validate() error {
 		errs = append(errs, fmt.Errorf("namespaced id: %w", err))
 	}
 
-	if r.AsOf.IsZero() {
-		errs = append(errs, fmt.Errorf("as of must be set"))
+	if r.AsOf.IsPresent() && r.AsOf.OrEmpty().IsZero() {
+		errs = append(errs, fmt.Errorf("as of must be non-zero when set"))
 	}
 
-	if r.MeterValue.IsNegative() {
+	if r.LineID.IsPresent() {
+		lineID := r.LineID.OrEmpty()
+		if lineID != nil && *lineID == "" {
+			errs = append(errs, fmt.Errorf("line id must be non-empty"))
+		}
+	}
+
+	if r.MeterValue.IsPresent() && r.MeterValue.OrEmpty().IsNegative() {
 		errs = append(errs, fmt.Errorf("meter value must be zero or positive"))
 	}
 
-	if err := r.Totals.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("totals: %w", err))
+	if r.Totals.IsPresent() {
+		if err := r.Totals.OrEmpty().Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("totals: %w", err))
+		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

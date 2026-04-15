@@ -131,6 +131,7 @@ func (i StandardLineEventInput) Validate() error {
 type (
 	OnStandardInvoiceCreatedInput = StandardLineEventInput
 	OnCollectionCompletedInput    = StandardLineEventInput
+	OnInvoiceIssuedInput          = StandardLineEventInput
 )
 
 type IsLineBillableAsOfInput struct {
@@ -216,9 +217,8 @@ type LineEngine interface {
 	OnCollectionCompleted(ctx context.Context, input OnCollectionCompletedInput) (StandardLines, error)
 	// CalculateLines recalculates detailed lines and totals for standard-invoice lines owned by this engine.
 	CalculateLines(input CalculateLinesInput) (StandardLines, error)
-
-	// TODO[later]: implement this lifecycle event/hook.
-	// OnInvoiceIssued(ctx context.Context, lines StandardLines) error
+	// OnInvoiceIssued is invoked when a standard invoice reaches the issued state.
+	OnInvoiceIssued(ctx context.Context, input OnInvoiceIssuedInput) error
 	// TODO[later]: implement this lifecycle event/hook.
 	// OnPaymentAuthorized(ctx context.Context, lines StandardLines) error
 	// TODO[later]: implement this lifecycle event/hook.
