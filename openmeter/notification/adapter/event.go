@@ -231,41 +231,46 @@ func (a *adapter) CreateEvent(ctx context.Context, params notification.CreateEve
 
 			return nil, fmt.Errorf("failed to fetch notification rule: %w", err)
 		}
+
 		if ruleRow == nil {
 			return nil, errors.New("invalid query result: nil notification rule received")
 		}
+
+		eventRow.Edges.Rules = ruleRow
 
 		if _, err = ruleRow.Edges.ChannelsOrErr(); err != nil {
 			return nil, fmt.Errorf("invalid query result: failed to load notification channels for rule: %w", err)
 		}
 
-		eventRow.Edges.Rules = ruleRow
+		// Create delivery statuses for each channel
+		if len(ruleRow.Edges.Channels) > 0 {
+			statusBulkQuery := make([]*entdb.NotificationEventDeliveryStatusCreate, 0, len(ruleRow.Edges.Channels))
 
-		statusBulkQuery := make([]*entdb.NotificationEventDeliveryStatusCreate, 0, len(ruleRow.Edges.Channels))
-		for _, channel := range ruleRow.Edges.Channels {
-			if channel == nil {
-				a.logger.WarnContext(ctx, "invalid query result: nil channel received")
-				continue
+			for _, channel := range ruleRow.Edges.Channels {
+				if channel == nil {
+					a.logger.WarnContext(ctx, "invalid query result: nil channel received")
+					continue
+				}
+
+				q := a.db.NotificationEventDeliveryStatus.Create().
+					SetNamespace(params.Namespace).
+					SetEventID(eventRow.ID).
+					SetChannelID(channel.ID).
+					SetState(notification.EventDeliveryStatusStatePending).
+					AddEvents(eventRow)
+
+				statusBulkQuery = append(statusBulkQuery, q)
 			}
 
-			q := a.db.NotificationEventDeliveryStatus.Create().
-				SetNamespace(params.Namespace).
-				SetEventID(eventRow.ID).
-				SetChannelID(channel.ID).
-				SetState(notification.EventDeliveryStatusStatePending).
-				AddEvents(eventRow)
+			statusQuery := a.db.NotificationEventDeliveryStatus.CreateBulk(statusBulkQuery...)
 
-			statusBulkQuery = append(statusBulkQuery, q)
+			statusRows, err := statusQuery.Save(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to save notification event: %w", err)
+			}
+
+			eventRow.Edges.DeliveryStatuses = statusRows
 		}
-
-		statusQuery := a.db.NotificationEventDeliveryStatus.CreateBulk(statusBulkQuery...)
-
-		statusRows, err := statusQuery.Save(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to save notification event: %w", err)
-		}
-
-		eventRow.Edges.DeliveryStatuses = statusRows
 
 		event, err := EventFromDBEntity(*eventRow)
 		if err != nil {
