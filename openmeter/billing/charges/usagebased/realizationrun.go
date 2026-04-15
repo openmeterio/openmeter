@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -250,6 +251,13 @@ func (r RealizationRuns) Validate() error {
 		}
 	}
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// Sum returns the aggregate totals across all realization runs.
+func (r RealizationRuns) Sum() totals.Totals {
+	return totals.Sum(lo.Map(r, func(run RealizationRun, _ int) totals.Totals {
+		return run.Totals
+	})...)
 }
 
 func (r RealizationRuns) GetByID(id string) (RealizationRun, error) {

@@ -139,7 +139,7 @@ model ChargeBase<T extends ChargeType> {
    */
   @visibility(Lifecycle.Read)
   @summary("Price")
-  price: Shared.CurrencyAmount;
+  price: ProductCatalog.Price;
 
   /**
    * Unique reference ID of the charge.

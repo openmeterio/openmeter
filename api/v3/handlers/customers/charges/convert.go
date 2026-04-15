@@ -24,7 +24,15 @@ import (
 var ConvertMetadataToLabels = labels.FromMetadata[models.Metadata]
 
 // convertFlatFeeChargeToAPI maps a flatfee.Charge to the API representation.
-func convertFlatFeeChargeToAPI(source flatfee.Charge) api.BillingFlatFeeCharge {
+func convertFlatFeeChargeToAPI(source flatfee.Charge) (api.BillingFlatFeeCharge, error) {
+	var price api.BillingPrice
+	if err := price.FromBillingPriceFlat(api.BillingPriceFlat{
+		Amount: source.ChargeBase.Intent.AmountBeforeProration.String(),
+		Type:   api.BillingPriceFlatTypeFlat,
+	}); err != nil {
+		return api.BillingFlatFeeCharge{}, fmt.Errorf("setting flat fee price union: %w", err)
+	}
+
 	return api.BillingFlatFeeCharge{
 		AdvanceAfter:           source.State.AdvanceAfter,
 		AmountAfterProration:   ConvertDecimalToCurrencyAmount(source.ChargeBase.State.AmountAfterProration),
@@ -43,7 +51,7 @@ func convertFlatFeeChargeToAPI(source flatfee.Charge) api.BillingFlatFeeCharge {
 		ManagedBy:              ConvertManagedByToAPI(source.ChargeBase.Intent.Intent.ManagedBy),
 		Name:                   source.ChargeBase.Intent.Intent.Name,
 		PaymentTerm:            ConvertPaymentTermToAPI(source.ChargeBase.Intent.PaymentTerm),
-		Price:                  ConvertDecimalToCurrencyAmount(source.ChargeBase.Intent.AmountBeforeProration),
+		Price:                  price,
 		ProrationConfiguration: ConvertProRatingConfigToAPI(source.ChargeBase.Intent.ProRating),
 		ServicePeriod:          ConvertClosedPeriodToAPI(source.ChargeBase.Intent.Intent.ServicePeriod),
 		SettlementMode:         ConvertSettlementModeToAPI(source.ChargeBase.Intent.SettlementMode),
@@ -52,7 +60,7 @@ func convertFlatFeeChargeToAPI(source flatfee.Charge) api.BillingFlatFeeCharge {
 		Type:                   api.BillingFlatFeeChargeTypeFlatFee,
 		UniqueReferenceId:      source.ChargeBase.Intent.Intent.UniqueReferenceID,
 		UpdatedAt:              lo.ToPtr(source.ChargeBase.ManagedResource.ManagedModel.UpdatedAt),
-	}
+	}, nil
 }
 
 // convertUsageBasedChargeToAPI maps a usagebased.Charge to the API representation.
@@ -60,6 +68,11 @@ func convertUsageBasedChargeToAPI(source usagebased.Charge) (api.BillingUsageBas
 	status, err := ConvertUsageBasedStatusToAPI(source.ChargeBase.Status)
 	if err != nil {
 		return api.BillingUsageBasedCharge{}, fmt.Errorf("converting usage based charge status: %w", err)
+	}
+
+	price, err := toAPIBillingPrice(source.Intent.Price)
+	if err != nil {
+		return api.BillingUsageBasedCharge{}, fmt.Errorf("converting price: %w", err)
 	}
 
 	return api.BillingUsageBasedCharge{
@@ -78,7 +91,7 @@ func convertUsageBasedChargeToAPI(source usagebased.Charge) (api.BillingUsageBas
 		Labels:            ConvertMetadataToLabels(source.ChargeBase.Intent.Intent.Metadata),
 		ManagedBy:         ConvertManagedByToAPI(source.ChargeBase.Intent.Intent.ManagedBy),
 		Name:              source.ChargeBase.Intent.Intent.Name,
-		Price:             api.CurrencyAmount{Amount: "0"}, // TODO: map complex productcatalog.Price type
+		Price:             price,
 		ServicePeriod:     ConvertClosedPeriodToAPI(source.ChargeBase.Intent.Intent.ServicePeriod),
 		SettlementMode:    ConvertSettlementModeToAPI(source.ChargeBase.Intent.SettlementMode),
 		Status:            lo.FromPtr(status),
@@ -109,7 +122,11 @@ func convertChargeToAPI(charge billingcharges.Charge) (api.BillingCharge, error)
 		if err != nil {
 			return out, fmt.Errorf("converting flat fee charge: %w", err)
 		}
-		if err := out.FromBillingFlatFeeCharge(convertFlatFeeChargeToAPI(ff)); err != nil {
+		apiFF, err := convertFlatFeeChargeToAPI(ff)
+		if err != nil {
+			return out, err
+		}
+		if err := out.FromBillingFlatFeeCharge(apiFF); err != nil {
 			return out, fmt.Errorf("setting flat fee charge union: %w", err)
 		}
 
@@ -140,12 +157,8 @@ func convertChargeToAPI(charge billingcharges.Charge) (api.BillingCharge, error)
 
 // convertUsageBasedChargeTotals aggregates booked totals from persisted realization runs.
 func convertUsageBasedChargeTotals(charge usagebased.Charge) api.BillingChargeTotals {
-	booked := totals.Sum(lo.Map(charge.Realizations, func(run usagebased.RealizationRun, _ int) totals.Totals {
-		return run.Totals
-	})...)
-
 	return api.BillingChargeTotals{
-		Booked: toAPIBillingTotals(booked),
+		Booked: toAPIBillingTotals(charge.Realizations.Sum()),
 	}
 }
 
@@ -161,6 +174,90 @@ func toAPIBillingTotals(t totals.Totals) api.BillingTotals {
 		TaxesTotal:          t.TaxesTotal.String(),
 		Total:               t.Total.String(),
 	}
+}
+
+// toAPIBillingPrice maps a domain productcatalog.Price to the API BillingPrice union type.
+// DynamicPrice and PackagePrice have no API equivalent and return an error.
+func toAPIBillingPrice(p productcatalog.Price) (api.BillingPrice, error) {
+	var out api.BillingPrice
+
+	switch p.Type() {
+	case productcatalog.FlatPriceType:
+		flat, err := p.AsFlat()
+		if err != nil {
+			return out, fmt.Errorf("reading flat price: %w", err)
+		}
+		if err := out.FromBillingPriceFlat(api.BillingPriceFlat{
+			Amount: flat.Amount.String(),
+			Type:   api.BillingPriceFlatTypeFlat,
+		}); err != nil {
+			return out, fmt.Errorf("setting flat price union: %w", err)
+		}
+
+	case productcatalog.UnitPriceType:
+		unit, err := p.AsUnit()
+		if err != nil {
+			return out, fmt.Errorf("reading unit price: %w", err)
+		}
+		if err := out.FromBillingPriceUnit(api.BillingPriceUnit{
+			Amount: unit.Amount.String(),
+			Type:   api.BillingPriceUnitTypeUnit,
+		}); err != nil {
+			return out, fmt.Errorf("setting unit price union: %w", err)
+		}
+
+	case productcatalog.TieredPriceType:
+		tiered, err := p.AsTiered()
+		if err != nil {
+			return out, fmt.Errorf("reading tiered price: %w", err)
+		}
+		tiers := lo.Map(tiered.Tiers, toAPIBillingPriceTier)
+		switch tiered.Mode {
+		case productcatalog.GraduatedTieredPrice:
+			if err := out.FromBillingPriceGraduated(api.BillingPriceGraduated{
+				Tiers: tiers,
+				Type:  api.BillingPriceGraduatedTypeGraduated,
+			}); err != nil {
+				return out, fmt.Errorf("setting graduated price union: %w", err)
+			}
+		case productcatalog.VolumeTieredPrice:
+			if err := out.FromBillingPriceVolume(api.BillingPriceVolume{
+				Tiers: tiers,
+				Type:  api.BillingPriceVolumeTypeVolume,
+			}); err != nil {
+				return out, fmt.Errorf("setting volume price union: %w", err)
+			}
+		default:
+			return out, fmt.Errorf("unsupported tiered price mode: %s", tiered.Mode)
+		}
+
+	default:
+		return out, fmt.Errorf("unsupported price type: %s", p.Type())
+	}
+
+	return out, nil
+}
+
+// toAPIBillingPriceTier maps a domain PriceTier to the API BillingPriceTier type.
+func toAPIBillingPriceTier(t productcatalog.PriceTier, _ int) api.BillingPriceTier {
+	tier := api.BillingPriceTier{}
+	if t.UpToAmount != nil {
+		s := t.UpToAmount.String()
+		tier.UpToAmount = &s
+	}
+	if t.FlatPrice != nil {
+		tier.FlatPrice = &api.BillingPriceFlat{
+			Amount: t.FlatPrice.Amount.String(),
+			Type:   api.BillingPriceFlatTypeFlat,
+		}
+	}
+	if t.UnitPrice != nil {
+		tier.UnitPrice = &api.BillingPriceUnit{
+			Amount: t.UnitPrice.Amount.String(),
+			Type:   api.BillingPriceUnitTypeUnit,
+		}
+	}
+	return tier
 }
 
 // convertFlatFeeDiscounts maps the optional percentage discount to the anonymous API struct.

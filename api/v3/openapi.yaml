@@ -4621,7 +4621,7 @@ components:
           readOnly: true
         price:
           allOf:
-            - $ref: '#/components/schemas/CurrencyAmount'
+            - $ref: '#/components/schemas/BillingPrice'
           description: The price of the charge.
           title: Price
           readOnly: true
@@ -5936,7 +5936,7 @@ components:
           readOnly: true
         price:
           allOf:
-            - $ref: '#/components/schemas/CurrencyAmount'
+            - $ref: '#/components/schemas/BillingPrice'
           description: The price of the charge.
           title: Price
           readOnly: true
