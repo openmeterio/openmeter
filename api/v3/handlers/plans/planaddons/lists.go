@@ -65,7 +65,7 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 
 			items := make([]api.PlanAddon, 0, len(result.Items))
 			for _, a := range result.Items {
-				planAddon, err := toAPIPlanAddon(a)
+				planAddon, err := ToAPIPlanAddon(a)
 				if err != nil {
 					return ListPlanAddonsResponse{}, err
 				}

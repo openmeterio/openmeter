@@ -61,7 +61,7 @@ func (h *handler) CreatePlanAddon() CreatePlanAddonHandler {
 				return CreatePlanAddonResponse{}, fmt.Errorf("failed to create plan addon")
 			}
 
-			return toAPIPlanAddon(*a)
+			return ToAPIPlanAddon(*a)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreatePlanAddonResponse](http.StatusCreated),
 		httptransport.AppendOptions(
