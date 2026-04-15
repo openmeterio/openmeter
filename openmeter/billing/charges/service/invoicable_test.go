@@ -858,6 +858,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 	var (
 		usageBasedChargeID meta.ChargeID
 		invoice            billing.StandardInvoice
+		stdLineID          billing.LineID
 	)
 
 	s.Run("#1 grant promotional credits", func() {
@@ -965,6 +966,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		s.Len(invoice.Lines.OrEmpty(), 1)
 
 		stdLine := invoice.Lines.OrEmpty()[0]
+		stdLineID = stdLine.GetLineID()
 		s.NotNil(stdLine.UsageBased)
 		s.NotNil(stdLine.UsageBased.Quantity)
 		s.NotNil(stdLine.UsageBased.MeteredQuantity)
@@ -986,6 +988,8 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		currentRun, err := usageBasedCharge.GetCurrentRealizationRun()
 		s.NoError(err)
 		s.Equal(float64(100), currentRun.MeterValue.InexactFloat64())
+		s.NotNil(currentRun.LineID)
+		s.Equal(stdLineID.ID, *currentRun.LineID)
 		s.Len(currentRun.CreditsAllocated, 1)
 		s.Equal(float64(5), currentRun.CreditsAllocated[0].Amount.InexactFloat64())
 	})
@@ -1021,6 +1025,8 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		s.NoError(err)
 		s.Equal(float64(125), currentRun.MeterValue.InexactFloat64())
 		s.True(currentRun.CollectionEnd.Equal(invoice.DefaultCollectionAtForStandardInvoice()))
+		s.NotNil(currentRun.LineID)
+		s.Equal(stdLineID.ID, *currentRun.LineID)
 		s.Len(currentRun.CreditsAllocated, 1)
 		s.Equal(float64(5), currentRun.CreditsAllocated[0].Amount.InexactFloat64())
 	})

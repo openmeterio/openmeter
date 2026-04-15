@@ -17207,6 +17207,8 @@ type BillingInvoiceLineMutation struct {
 	charge_flat_fee_invoiced_usage                 map[string]struct{}
 	removedcharge_flat_fee_invoiced_usage          map[string]struct{}
 	clearedcharge_flat_fee_invoiced_usage          bool
+	charge_usage_based_run                         *string
+	clearedcharge_usage_based_run                  bool
 	charge_credit_purchase_invoiced_payment        *string
 	clearedcharge_credit_purchase_invoiced_payment bool
 	tax_code                                       *string
@@ -19748,6 +19750,45 @@ func (m *BillingInvoiceLineMutation) ResetChargeFlatFeeInvoicedUsage() {
 	m.removedcharge_flat_fee_invoiced_usage = nil
 }
 
+// SetChargeUsageBasedRunID sets the "charge_usage_based_run" edge to the ChargeUsageBasedRuns entity by id.
+func (m *BillingInvoiceLineMutation) SetChargeUsageBasedRunID(id string) {
+	m.charge_usage_based_run = &id
+}
+
+// ClearChargeUsageBasedRun clears the "charge_usage_based_run" edge to the ChargeUsageBasedRuns entity.
+func (m *BillingInvoiceLineMutation) ClearChargeUsageBasedRun() {
+	m.clearedcharge_usage_based_run = true
+}
+
+// ChargeUsageBasedRunCleared reports if the "charge_usage_based_run" edge to the ChargeUsageBasedRuns entity was cleared.
+func (m *BillingInvoiceLineMutation) ChargeUsageBasedRunCleared() bool {
+	return m.clearedcharge_usage_based_run
+}
+
+// ChargeUsageBasedRunID returns the "charge_usage_based_run" edge ID in the mutation.
+func (m *BillingInvoiceLineMutation) ChargeUsageBasedRunID() (id string, exists bool) {
+	if m.charge_usage_based_run != nil {
+		return *m.charge_usage_based_run, true
+	}
+	return
+}
+
+// ChargeUsageBasedRunIDs returns the "charge_usage_based_run" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ChargeUsageBasedRunID instead. It exists only for internal usage by the builders.
+func (m *BillingInvoiceLineMutation) ChargeUsageBasedRunIDs() (ids []string) {
+	if id := m.charge_usage_based_run; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetChargeUsageBasedRun resets all changes to the "charge_usage_based_run" edge.
+func (m *BillingInvoiceLineMutation) ResetChargeUsageBasedRun() {
+	m.charge_usage_based_run = nil
+	m.clearedcharge_usage_based_run = false
+}
+
 // SetChargeCreditPurchaseInvoicedPaymentID sets the "charge_credit_purchase_invoiced_payment" edge to the ChargeCreditPurchaseInvoicedPayment entity by id.
 func (m *BillingInvoiceLineMutation) SetChargeCreditPurchaseInvoicedPaymentID(id string) {
 	m.charge_credit_purchase_invoiced_payment = &id
@@ -20773,7 +20814,7 @@ func (m *BillingInvoiceLineMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *BillingInvoiceLineMutation) AddedEdges() []string {
-	edges := make([]string, 0, 18)
+	edges := make([]string, 0, 19)
 	if m.billing_invoice != nil {
 		edges = append(edges, billinginvoiceline.EdgeBillingInvoice)
 	}
@@ -20821,6 +20862,9 @@ func (m *BillingInvoiceLineMutation) AddedEdges() []string {
 	}
 	if m.charge_flat_fee_invoiced_usage != nil {
 		edges = append(edges, billinginvoiceline.EdgeChargeFlatFeeInvoicedUsage)
+	}
+	if m.charge_usage_based_run != nil {
+		edges = append(edges, billinginvoiceline.EdgeChargeUsageBasedRun)
 	}
 	if m.charge_credit_purchase_invoiced_payment != nil {
 		edges = append(edges, billinginvoiceline.EdgeChargeCreditPurchaseInvoicedPayment)
@@ -20911,6 +20955,10 @@ func (m *BillingInvoiceLineMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case billinginvoiceline.EdgeChargeUsageBasedRun:
+		if id := m.charge_usage_based_run; id != nil {
+			return []ent.Value{*id}
+		}
 	case billinginvoiceline.EdgeChargeCreditPurchaseInvoicedPayment:
 		if id := m.charge_credit_purchase_invoiced_payment; id != nil {
 			return []ent.Value{*id}
@@ -20925,7 +20973,7 @@ func (m *BillingInvoiceLineMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *BillingInvoiceLineMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 18)
+	edges := make([]string, 0, 19)
 	if m.removeddetailed_lines != nil {
 		edges = append(edges, billinginvoiceline.EdgeDetailedLines)
 	}
@@ -20993,7 +21041,7 @@ func (m *BillingInvoiceLineMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *BillingInvoiceLineMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 18)
+	edges := make([]string, 0, 19)
 	if m.clearedbilling_invoice {
 		edges = append(edges, billinginvoiceline.EdgeBillingInvoice)
 	}
@@ -21042,6 +21090,9 @@ func (m *BillingInvoiceLineMutation) ClearedEdges() []string {
 	if m.clearedcharge_flat_fee_invoiced_usage {
 		edges = append(edges, billinginvoiceline.EdgeChargeFlatFeeInvoicedUsage)
 	}
+	if m.clearedcharge_usage_based_run {
+		edges = append(edges, billinginvoiceline.EdgeChargeUsageBasedRun)
+	}
 	if m.clearedcharge_credit_purchase_invoiced_payment {
 		edges = append(edges, billinginvoiceline.EdgeChargeCreditPurchaseInvoicedPayment)
 	}
@@ -21087,6 +21138,8 @@ func (m *BillingInvoiceLineMutation) EdgeCleared(name string) bool {
 		return m.clearedcharge_flat_fee_credit_allocations
 	case billinginvoiceline.EdgeChargeFlatFeeInvoicedUsage:
 		return m.clearedcharge_flat_fee_invoiced_usage
+	case billinginvoiceline.EdgeChargeUsageBasedRun:
+		return m.clearedcharge_usage_based_run
 	case billinginvoiceline.EdgeChargeCreditPurchaseInvoicedPayment:
 		return m.clearedcharge_credit_purchase_invoiced_payment
 	case billinginvoiceline.EdgeTaxCode:
@@ -21128,6 +21181,9 @@ func (m *BillingInvoiceLineMutation) ClearEdge(name string) error {
 		return nil
 	case billinginvoiceline.EdgeChargeFlatFeePayment:
 		m.ClearChargeFlatFeePayment()
+		return nil
+	case billinginvoiceline.EdgeChargeUsageBasedRun:
+		m.ClearChargeUsageBasedRun()
 		return nil
 	case billinginvoiceline.EdgeChargeCreditPurchaseInvoicedPayment:
 		m.ClearChargeCreditPurchaseInvoicedPayment()
@@ -21190,6 +21246,9 @@ func (m *BillingInvoiceLineMutation) ResetEdge(name string) error {
 		return nil
 	case billinginvoiceline.EdgeChargeFlatFeeInvoicedUsage:
 		m.ResetChargeFlatFeeInvoicedUsage()
+		return nil
+	case billinginvoiceline.EdgeChargeUsageBasedRun:
+		m.ResetChargeUsageBasedRun()
 		return nil
 	case billinginvoiceline.EdgeChargeCreditPurchaseInvoicedPayment:
 		m.ResetChargeCreditPurchaseInvoicedPayment()
@@ -56247,40 +56306,42 @@ func (m *ChargeUsageBasedRunPaymentMutation) ResetEdge(name string) error {
 // ChargeUsageBasedRunsMutation represents an operation that mutates the ChargeUsageBasedRuns nodes in the graph.
 type ChargeUsageBasedRunsMutation struct {
 	config
-	op                        Op
-	typ                       string
-	id                        *string
-	namespace                 *string
-	created_at                *time.Time
-	updated_at                *time.Time
-	deleted_at                *time.Time
-	amount                    *alpacadecimal.Decimal
-	taxes_total               *alpacadecimal.Decimal
-	taxes_inclusive_total     *alpacadecimal.Decimal
-	taxes_exclusive_total     *alpacadecimal.Decimal
-	charges_total             *alpacadecimal.Decimal
-	discounts_total           *alpacadecimal.Decimal
-	credits_total             *alpacadecimal.Decimal
-	total                     *alpacadecimal.Decimal
-	_type                     *usagebased.RealizationRunType
-	asof                      *time.Time
-	collection_end            *time.Time
-	meter_value               *alpacadecimal.Decimal
-	clearedFields             map[string]struct{}
-	usage_based               *string
-	clearedusage_based        bool
-	feature                   *string
-	clearedfeature            bool
-	credit_allocations        map[string]struct{}
-	removedcredit_allocations map[string]struct{}
-	clearedcredit_allocations bool
-	invoiced_usage            *string
-	clearedinvoiced_usage     bool
-	payment                   *string
-	clearedpayment            bool
-	done                      bool
-	oldValue                  func(context.Context) (*ChargeUsageBasedRuns, error)
-	predicates                []predicate.ChargeUsageBasedRuns
+	op                          Op
+	typ                         string
+	id                          *string
+	namespace                   *string
+	created_at                  *time.Time
+	updated_at                  *time.Time
+	deleted_at                  *time.Time
+	amount                      *alpacadecimal.Decimal
+	taxes_total                 *alpacadecimal.Decimal
+	taxes_inclusive_total       *alpacadecimal.Decimal
+	taxes_exclusive_total       *alpacadecimal.Decimal
+	charges_total               *alpacadecimal.Decimal
+	discounts_total             *alpacadecimal.Decimal
+	credits_total               *alpacadecimal.Decimal
+	total                       *alpacadecimal.Decimal
+	_type                       *usagebased.RealizationRunType
+	asof                        *time.Time
+	collection_end              *time.Time
+	meter_value                 *alpacadecimal.Decimal
+	clearedFields               map[string]struct{}
+	usage_based                 *string
+	clearedusage_based          bool
+	feature                     *string
+	clearedfeature              bool
+	billing_invoice_line        *string
+	clearedbilling_invoice_line bool
+	credit_allocations          map[string]struct{}
+	removedcredit_allocations   map[string]struct{}
+	clearedcredit_allocations   bool
+	invoiced_usage              *string
+	clearedinvoiced_usage       bool
+	payment                     *string
+	clearedpayment              bool
+	done                        bool
+	oldValue                    func(context.Context) (*ChargeUsageBasedRuns, error)
+	predicates                  []predicate.ChargeUsageBasedRuns
 }
 
 var _ ent.Mutation = (*ChargeUsageBasedRunsMutation)(nil)
@@ -57012,6 +57073,55 @@ func (m *ChargeUsageBasedRunsMutation) ResetCollectionEnd() {
 	m.collection_end = nil
 }
 
+// SetLineID sets the "line_id" field.
+func (m *ChargeUsageBasedRunsMutation) SetLineID(s string) {
+	m.billing_invoice_line = &s
+}
+
+// LineID returns the value of the "line_id" field in the mutation.
+func (m *ChargeUsageBasedRunsMutation) LineID() (r string, exists bool) {
+	v := m.billing_invoice_line
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLineID returns the old "line_id" field's value of the ChargeUsageBasedRuns entity.
+// If the ChargeUsageBasedRuns object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunsMutation) OldLineID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLineID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLineID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLineID: %w", err)
+	}
+	return oldValue.LineID, nil
+}
+
+// ClearLineID clears the value of the "line_id" field.
+func (m *ChargeUsageBasedRunsMutation) ClearLineID() {
+	m.billing_invoice_line = nil
+	m.clearedFields[chargeusagebasedruns.FieldLineID] = struct{}{}
+}
+
+// LineIDCleared returns if the "line_id" field was cleared in this mutation.
+func (m *ChargeUsageBasedRunsMutation) LineIDCleared() bool {
+	_, ok := m.clearedFields[chargeusagebasedruns.FieldLineID]
+	return ok
+}
+
+// ResetLineID resets all changes to the "line_id" field.
+func (m *ChargeUsageBasedRunsMutation) ResetLineID() {
+	m.billing_invoice_line = nil
+	delete(m.clearedFields, chargeusagebasedruns.FieldLineID)
+}
+
 // SetMeterValue sets the "meter_value" field.
 func (m *ChargeUsageBasedRunsMutation) SetMeterValue(a alpacadecimal.Decimal) {
 	m.meter_value = &a
@@ -57113,6 +57223,46 @@ func (m *ChargeUsageBasedRunsMutation) FeatureIDs() (ids []string) {
 func (m *ChargeUsageBasedRunsMutation) ResetFeature() {
 	m.feature = nil
 	m.clearedfeature = false
+}
+
+// SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by id.
+func (m *ChargeUsageBasedRunsMutation) SetBillingInvoiceLineID(id string) {
+	m.billing_invoice_line = &id
+}
+
+// ClearBillingInvoiceLine clears the "billing_invoice_line" edge to the BillingInvoiceLine entity.
+func (m *ChargeUsageBasedRunsMutation) ClearBillingInvoiceLine() {
+	m.clearedbilling_invoice_line = true
+	m.clearedFields[chargeusagebasedruns.FieldLineID] = struct{}{}
+}
+
+// BillingInvoiceLineCleared reports if the "billing_invoice_line" edge to the BillingInvoiceLine entity was cleared.
+func (m *ChargeUsageBasedRunsMutation) BillingInvoiceLineCleared() bool {
+	return m.LineIDCleared() || m.clearedbilling_invoice_line
+}
+
+// BillingInvoiceLineID returns the "billing_invoice_line" edge ID in the mutation.
+func (m *ChargeUsageBasedRunsMutation) BillingInvoiceLineID() (id string, exists bool) {
+	if m.billing_invoice_line != nil {
+		return *m.billing_invoice_line, true
+	}
+	return
+}
+
+// BillingInvoiceLineIDs returns the "billing_invoice_line" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// BillingInvoiceLineID instead. It exists only for internal usage by the builders.
+func (m *ChargeUsageBasedRunsMutation) BillingInvoiceLineIDs() (ids []string) {
+	if id := m.billing_invoice_line; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetBillingInvoiceLine resets all changes to the "billing_invoice_line" edge.
+func (m *ChargeUsageBasedRunsMutation) ResetBillingInvoiceLine() {
+	m.billing_invoice_line = nil
+	m.clearedbilling_invoice_line = false
 }
 
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeUsageBasedRunCreditAllocations entity by ids.
@@ -57281,7 +57431,7 @@ func (m *ChargeUsageBasedRunsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeUsageBasedRunsMutation) Fields() []string {
-	fields := make([]string, 0, 18)
+	fields := make([]string, 0, 19)
 	if m.namespace != nil {
 		fields = append(fields, chargeusagebasedruns.FieldNamespace)
 	}
@@ -57333,6 +57483,9 @@ func (m *ChargeUsageBasedRunsMutation) Fields() []string {
 	if m.collection_end != nil {
 		fields = append(fields, chargeusagebasedruns.FieldCollectionEnd)
 	}
+	if m.billing_invoice_line != nil {
+		fields = append(fields, chargeusagebasedruns.FieldLineID)
+	}
 	if m.meter_value != nil {
 		fields = append(fields, chargeusagebasedruns.FieldMeterValue)
 	}
@@ -57378,6 +57531,8 @@ func (m *ChargeUsageBasedRunsMutation) Field(name string) (ent.Value, bool) {
 		return m.Asof()
 	case chargeusagebasedruns.FieldCollectionEnd:
 		return m.CollectionEnd()
+	case chargeusagebasedruns.FieldLineID:
+		return m.LineID()
 	case chargeusagebasedruns.FieldMeterValue:
 		return m.MeterValue()
 	}
@@ -57423,6 +57578,8 @@ func (m *ChargeUsageBasedRunsMutation) OldField(ctx context.Context, name string
 		return m.OldAsof(ctx)
 	case chargeusagebasedruns.FieldCollectionEnd:
 		return m.OldCollectionEnd(ctx)
+	case chargeusagebasedruns.FieldLineID:
+		return m.OldLineID(ctx)
 	case chargeusagebasedruns.FieldMeterValue:
 		return m.OldMeterValue(ctx)
 	}
@@ -57553,6 +57710,13 @@ func (m *ChargeUsageBasedRunsMutation) SetField(name string, value ent.Value) er
 		}
 		m.SetCollectionEnd(v)
 		return nil
+	case chargeusagebasedruns.FieldLineID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLineID(v)
+		return nil
 	case chargeusagebasedruns.FieldMeterValue:
 		v, ok := value.(alpacadecimal.Decimal)
 		if !ok {
@@ -57593,6 +57757,9 @@ func (m *ChargeUsageBasedRunsMutation) ClearedFields() []string {
 	if m.FieldCleared(chargeusagebasedruns.FieldDeletedAt) {
 		fields = append(fields, chargeusagebasedruns.FieldDeletedAt)
 	}
+	if m.FieldCleared(chargeusagebasedruns.FieldLineID) {
+		fields = append(fields, chargeusagebasedruns.FieldLineID)
+	}
 	return fields
 }
 
@@ -57609,6 +57776,9 @@ func (m *ChargeUsageBasedRunsMutation) ClearField(name string) error {
 	switch name {
 	case chargeusagebasedruns.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case chargeusagebasedruns.FieldLineID:
+		m.ClearLineID()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeUsageBasedRuns nullable field %s", name)
@@ -57669,6 +57839,9 @@ func (m *ChargeUsageBasedRunsMutation) ResetField(name string) error {
 	case chargeusagebasedruns.FieldCollectionEnd:
 		m.ResetCollectionEnd()
 		return nil
+	case chargeusagebasedruns.FieldLineID:
+		m.ResetLineID()
+		return nil
 	case chargeusagebasedruns.FieldMeterValue:
 		m.ResetMeterValue()
 		return nil
@@ -57678,12 +57851,15 @@ func (m *ChargeUsageBasedRunsMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeUsageBasedRunsMutation) AddedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.usage_based != nil {
 		edges = append(edges, chargeusagebasedruns.EdgeUsageBased)
 	}
 	if m.feature != nil {
 		edges = append(edges, chargeusagebasedruns.EdgeFeature)
+	}
+	if m.billing_invoice_line != nil {
+		edges = append(edges, chargeusagebasedruns.EdgeBillingInvoiceLine)
 	}
 	if m.credit_allocations != nil {
 		edges = append(edges, chargeusagebasedruns.EdgeCreditAllocations)
@@ -57709,6 +57885,10 @@ func (m *ChargeUsageBasedRunsMutation) AddedIDs(name string) []ent.Value {
 		if id := m.feature; id != nil {
 			return []ent.Value{*id}
 		}
+	case chargeusagebasedruns.EdgeBillingInvoiceLine:
+		if id := m.billing_invoice_line; id != nil {
+			return []ent.Value{*id}
+		}
 	case chargeusagebasedruns.EdgeCreditAllocations:
 		ids := make([]ent.Value, 0, len(m.credit_allocations))
 		for id := range m.credit_allocations {
@@ -57729,7 +57909,7 @@ func (m *ChargeUsageBasedRunsMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ChargeUsageBasedRunsMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.removedcredit_allocations != nil {
 		edges = append(edges, chargeusagebasedruns.EdgeCreditAllocations)
 	}
@@ -57752,12 +57932,15 @@ func (m *ChargeUsageBasedRunsMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeUsageBasedRunsMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.clearedusage_based {
 		edges = append(edges, chargeusagebasedruns.EdgeUsageBased)
 	}
 	if m.clearedfeature {
 		edges = append(edges, chargeusagebasedruns.EdgeFeature)
+	}
+	if m.clearedbilling_invoice_line {
+		edges = append(edges, chargeusagebasedruns.EdgeBillingInvoiceLine)
 	}
 	if m.clearedcredit_allocations {
 		edges = append(edges, chargeusagebasedruns.EdgeCreditAllocations)
@@ -57779,6 +57962,8 @@ func (m *ChargeUsageBasedRunsMutation) EdgeCleared(name string) bool {
 		return m.clearedusage_based
 	case chargeusagebasedruns.EdgeFeature:
 		return m.clearedfeature
+	case chargeusagebasedruns.EdgeBillingInvoiceLine:
+		return m.clearedbilling_invoice_line
 	case chargeusagebasedruns.EdgeCreditAllocations:
 		return m.clearedcredit_allocations
 	case chargeusagebasedruns.EdgeInvoicedUsage:
@@ -57799,6 +57984,9 @@ func (m *ChargeUsageBasedRunsMutation) ClearEdge(name string) error {
 	case chargeusagebasedruns.EdgeFeature:
 		m.ClearFeature()
 		return nil
+	case chargeusagebasedruns.EdgeBillingInvoiceLine:
+		m.ClearBillingInvoiceLine()
+		return nil
 	case chargeusagebasedruns.EdgeInvoicedUsage:
 		m.ClearInvoicedUsage()
 		return nil
@@ -57818,6 +58006,9 @@ func (m *ChargeUsageBasedRunsMutation) ResetEdge(name string) error {
 		return nil
 	case chargeusagebasedruns.EdgeFeature:
 		m.ResetFeature()
+		return nil
+	case chargeusagebasedruns.EdgeBillingInvoiceLine:
+		m.ResetBillingInvoiceLine()
 		return nil
 	case chargeusagebasedruns.EdgeCreditAllocations:
 		m.ResetCreditAllocations()

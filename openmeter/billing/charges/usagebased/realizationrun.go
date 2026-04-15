@@ -46,6 +46,7 @@ type CreateRealizationRunInput struct {
 	Type          RealizationRunType    `json:"type"`
 	AsOf          time.Time             `json:"asOf"`
 	CollectionEnd time.Time             `json:"collectionEnd,omitempty"`
+	LineID        *string               `json:"lineId,omitempty"`
 	MeterValue    alpacadecimal.Decimal `json:"meterValue"`
 	Totals        totals.Totals         `json:"totals"`
 }
@@ -82,6 +83,10 @@ func (r CreateRealizationRunInput) Validate() error {
 
 	if r.CollectionEnd.IsZero() {
 		errs = append(errs, fmt.Errorf("collection end must be set"))
+	}
+
+	if r.LineID != nil && *r.LineID == "" {
+		errs = append(errs, fmt.Errorf("line id must be non-empty"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -127,7 +132,8 @@ type RealizationRunBase struct {
 	ID RealizationRunID
 	models.ManagedModel
 
-	FeatureID string `json:"featureId"`
+	FeatureID string  `json:"featureId"`
+	LineID    *string `json:"lineId,omitempty"`
 
 	Type          RealizationRunType    `json:"type"`
 	AsOf          time.Time             `json:"asOf"`
@@ -156,6 +162,10 @@ func (r RealizationRunBase) Validate() error {
 
 	if r.FeatureID == "" {
 		errs = append(errs, fmt.Errorf("feature id must be set"))
+	}
+
+	if r.LineID != nil && *r.LineID == "" {
+		errs = append(errs, fmt.Errorf("line id must be non-empty"))
 	}
 
 	if err := r.Type.Validate(); err != nil {

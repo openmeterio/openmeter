@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
@@ -156,6 +157,20 @@ func (_c *ChargeUsageBasedRunsCreate) SetCollectionEnd(v time.Time) *ChargeUsage
 	return _c
 }
 
+// SetLineID sets the "line_id" field.
+func (_c *ChargeUsageBasedRunsCreate) SetLineID(v string) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetLineID(v)
+	return _c
+}
+
+// SetNillableLineID sets the "line_id" field if the given value is not nil.
+func (_c *ChargeUsageBasedRunsCreate) SetNillableLineID(v *string) *ChargeUsageBasedRunsCreate {
+	if v != nil {
+		_c.SetLineID(*v)
+	}
+	return _c
+}
+
 // SetMeterValue sets the "meter_value" field.
 func (_c *ChargeUsageBasedRunsCreate) SetMeterValue(v alpacadecimal.Decimal) *ChargeUsageBasedRunsCreate {
 	_c.mutation.SetMeterValue(v)
@@ -190,6 +205,25 @@ func (_c *ChargeUsageBasedRunsCreate) SetUsageBased(v *ChargeUsageBased) *Charge
 // SetFeature sets the "feature" edge to the Feature entity.
 func (_c *ChargeUsageBasedRunsCreate) SetFeature(v *Feature) *ChargeUsageBasedRunsCreate {
 	return _c.SetFeatureID(v.ID)
+}
+
+// SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
+func (_c *ChargeUsageBasedRunsCreate) SetBillingInvoiceLineID(id string) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetBillingInvoiceLineID(id)
+	return _c
+}
+
+// SetNillableBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID if the given value is not nil.
+func (_c *ChargeUsageBasedRunsCreate) SetNillableBillingInvoiceLineID(id *string) *ChargeUsageBasedRunsCreate {
+	if id != nil {
+		_c = _c.SetBillingInvoiceLineID(*id)
+	}
+	return _c
+}
+
+// SetBillingInvoiceLine sets the "billing_invoice_line" edge to the BillingInvoiceLine entity.
+func (_c *ChargeUsageBasedRunsCreate) SetBillingInvoiceLine(v *BillingInvoiceLine) *ChargeUsageBasedRunsCreate {
+	return _c.SetBillingInvoiceLineID(v.ID)
 }
 
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeUsageBasedRunCreditAllocations entity by IDs.
@@ -359,6 +393,11 @@ func (_c *ChargeUsageBasedRunsCreate) check() error {
 	if _, ok := _c.mutation.CollectionEnd(); !ok {
 		return &ValidationError{Name: "collection_end", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.collection_end"`)}
 	}
+	if v, ok := _c.mutation.LineID(); ok {
+		if err := chargeusagebasedruns.LineIDValidator(v); err != nil {
+			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRuns.line_id": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.MeterValue(); !ok {
 		return &ValidationError{Name: "meter_value", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.meter_value"`)}
 	}
@@ -500,6 +539,23 @@ func (_c *ChargeUsageBasedRunsCreate) createSpec() (*ChargeUsageBasedRuns, *sqlg
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.FeatureID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.BillingInvoiceLineIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   chargeusagebasedruns.BillingInvoiceLineTable,
+			Columns: []string{chargeusagebasedruns.BillingInvoiceLineColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.LineID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.CreditAllocationsIDs(); len(nodes) > 0 {
@@ -740,6 +796,24 @@ func (u *ChargeUsageBasedRunsUpsert) UpdateAsof() *ChargeUsageBasedRunsUpsert {
 	return u
 }
 
+// SetLineID sets the "line_id" field.
+func (u *ChargeUsageBasedRunsUpsert) SetLineID(v string) *ChargeUsageBasedRunsUpsert {
+	u.Set(chargeusagebasedruns.FieldLineID, v)
+	return u
+}
+
+// UpdateLineID sets the "line_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsert) UpdateLineID() *ChargeUsageBasedRunsUpsert {
+	u.SetExcluded(chargeusagebasedruns.FieldLineID)
+	return u
+}
+
+// ClearLineID clears the value of the "line_id" field.
+func (u *ChargeUsageBasedRunsUpsert) ClearLineID() *ChargeUsageBasedRunsUpsert {
+	u.SetNull(chargeusagebasedruns.FieldLineID)
+	return u
+}
+
 // SetMeterValue sets the "meter_value" field.
 func (u *ChargeUsageBasedRunsUpsert) SetMeterValue(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsert {
 	u.Set(chargeusagebasedruns.FieldMeterValue, v)
@@ -976,6 +1050,27 @@ func (u *ChargeUsageBasedRunsUpsertOne) SetAsof(v time.Time) *ChargeUsageBasedRu
 func (u *ChargeUsageBasedRunsUpsertOne) UpdateAsof() *ChargeUsageBasedRunsUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
 		s.UpdateAsof()
+	})
+}
+
+// SetLineID sets the "line_id" field.
+func (u *ChargeUsageBasedRunsUpsertOne) SetLineID(v string) *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetLineID(v)
+	})
+}
+
+// UpdateLineID sets the "line_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertOne) UpdateLineID() *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateLineID()
+	})
+}
+
+// ClearLineID clears the value of the "line_id" field.
+func (u *ChargeUsageBasedRunsUpsertOne) ClearLineID() *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.ClearLineID()
 	})
 }
 
@@ -1384,6 +1479,27 @@ func (u *ChargeUsageBasedRunsUpsertBulk) SetAsof(v time.Time) *ChargeUsageBasedR
 func (u *ChargeUsageBasedRunsUpsertBulk) UpdateAsof() *ChargeUsageBasedRunsUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
 		s.UpdateAsof()
+	})
+}
+
+// SetLineID sets the "line_id" field.
+func (u *ChargeUsageBasedRunsUpsertBulk) SetLineID(v string) *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetLineID(v)
+	})
+}
+
+// UpdateLineID sets the "line_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertBulk) UpdateLineID() *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateLineID()
+	})
+}
+
+// ClearLineID clears the value of the "line_id" field.
+func (u *ChargeUsageBasedRunsUpsertBulk) ClearLineID() *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.ClearLineID()
 	})
 }
 

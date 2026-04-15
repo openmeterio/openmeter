@@ -79,6 +79,10 @@ func (e *Engine) OnCollectionCompleted(_ context.Context, input billing.OnCollec
 	return input.Lines, nil
 }
 
+func (e *Engine) OnStandardInvoiceCreated(_ context.Context, input billing.OnStandardInvoiceCreatedInput) (billing.StandardLines, error) {
+	return input.Lines, nil
+}
+
 func (e *Engine) CalculateLines(input billing.CalculateLinesInput) (billing.StandardLines, error) {
 	if input.Invoice.ID == "" {
 		return nil, fmt.Errorf("invoice id is required")

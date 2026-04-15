@@ -22,6 +22,7 @@ type CreateRatedRunInput struct {
 	Type               usagebased.RealizationRunType
 	AsOf               time.Time
 	CollectionEnd      time.Time
+	LineID             *string
 	CreditAllocation   CreditAllocationMode
 	CurrencyCalculator currencyx.Calculator
 }
@@ -127,6 +128,7 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 		Type:          in.Type,
 		AsOf:          in.AsOf,
 		CollectionEnd: in.CollectionEnd,
+		LineID:        in.LineID,
 		MeterValue:    ratingResult.Quantity,
 		Totals:        runTotals,
 	})

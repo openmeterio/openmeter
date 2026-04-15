@@ -147,6 +147,11 @@ func CollectionEnd(v time.Time) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldCollectionEnd, v))
 }
 
+// LineID applies equality check predicate on the "line_id" field. It's identical to LineIDEQ.
+func LineID(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldLineID, v))
+}
+
 // MeterValue applies equality check predicate on the "meter_value" field. It's identical to MeterValueEQ.
 func MeterValue(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldMeterValue, v))
@@ -907,6 +912,81 @@ func CollectionEndLTE(v time.Time) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldCollectionEnd, v))
 }
 
+// LineIDEQ applies the EQ predicate on the "line_id" field.
+func LineIDEQ(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldLineID, v))
+}
+
+// LineIDNEQ applies the NEQ predicate on the "line_id" field.
+func LineIDNEQ(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldLineID, v))
+}
+
+// LineIDIn applies the In predicate on the "line_id" field.
+func LineIDIn(vs ...string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldIn(FieldLineID, vs...))
+}
+
+// LineIDNotIn applies the NotIn predicate on the "line_id" field.
+func LineIDNotIn(vs ...string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNotIn(FieldLineID, vs...))
+}
+
+// LineIDGT applies the GT predicate on the "line_id" field.
+func LineIDGT(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGT(FieldLineID, v))
+}
+
+// LineIDGTE applies the GTE predicate on the "line_id" field.
+func LineIDGTE(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGTE(FieldLineID, v))
+}
+
+// LineIDLT applies the LT predicate on the "line_id" field.
+func LineIDLT(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLT(FieldLineID, v))
+}
+
+// LineIDLTE applies the LTE predicate on the "line_id" field.
+func LineIDLTE(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldLineID, v))
+}
+
+// LineIDContains applies the Contains predicate on the "line_id" field.
+func LineIDContains(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldContains(FieldLineID, v))
+}
+
+// LineIDHasPrefix applies the HasPrefix predicate on the "line_id" field.
+func LineIDHasPrefix(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldHasPrefix(FieldLineID, v))
+}
+
+// LineIDHasSuffix applies the HasSuffix predicate on the "line_id" field.
+func LineIDHasSuffix(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldHasSuffix(FieldLineID, v))
+}
+
+// LineIDIsNil applies the IsNil predicate on the "line_id" field.
+func LineIDIsNil() predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldIsNull(FieldLineID))
+}
+
+// LineIDNotNil applies the NotNil predicate on the "line_id" field.
+func LineIDNotNil() predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNotNull(FieldLineID))
+}
+
+// LineIDEqualFold applies the EqualFold predicate on the "line_id" field.
+func LineIDEqualFold(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEqualFold(FieldLineID, v))
+}
+
+// LineIDContainsFold applies the ContainsFold predicate on the "line_id" field.
+func LineIDContainsFold(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldContainsFold(FieldLineID, v))
+}
+
 // MeterValueEQ applies the EQ predicate on the "meter_value" field.
 func MeterValueEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldMeterValue, v))
@@ -985,6 +1065,29 @@ func HasFeature() predicate.ChargeUsageBasedRuns {
 func HasFeatureWith(preds ...predicate.Feature) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {
 		step := newFeatureStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasBillingInvoiceLine applies the HasEdge predicate on the "billing_invoice_line" edge.
+func HasBillingInvoiceLine() predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, BillingInvoiceLineTable, BillingInvoiceLineColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasBillingInvoiceLineWith applies the HasEdge predicate on the "billing_invoice_line" edge with a given conditions (other predicates).
+func HasBillingInvoiceLineWith(preds ...predicate.BillingInvoiceLine) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {
+		step := newBillingInvoiceLineStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
