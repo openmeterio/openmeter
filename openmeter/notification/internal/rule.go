@@ -151,12 +151,29 @@ func (t *TestEventGenerator) newTestEntitlementResetPayload() notification.Event
 				},
 				StripeCustomerId: lo.ToPtr("01J5AW2XS6DYHH7E9PNJSQJ341"),
 			},
-
 			Value: api.EntitlementValue{
 				Balance:   lo.ToPtr(10_000.0),
 				HasAccess: true,
 				Overage:   lo.ToPtr(99.0),
 				Usage:     lo.ToPtr(5_001.0),
+			},
+			Customer: api.Customer{
+				BillingAddress:        nil,
+				CreatedAt:             createdAt,
+				Currency:              nil,
+				CurrentSubscriptionId: nil,
+				DeletedAt:             nil,
+				Description:           nil,
+				Id:                    "01J5AW2XS6DYHH7E9PNJSQJ341",
+				Key:                   lo.ToPtr("test-customer-1"),
+				Metadata:              nil,
+				Name:                  "Test Customer 1",
+				PrimaryEmail:          nil,
+				Subscriptions:         nil,
+				UpdatedAt:             updatedAt,
+				UsageAttribution: &api.CustomerUsageAttribution{
+					SubjectKeys: []string{"test-subject-1"},
+				},
 			},
 		},
 	}

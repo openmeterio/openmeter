@@ -491,20 +491,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	eventHandler, cleanup8, err := common.NewNotificationEventHandler(notificationConfiguration, logger, tracer, notificationRepository, handler)
+	notificationService, err := common.NewNotificationService(logger, notificationRepository, handler, featureConnector)
 	if err != nil {
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	notificationService, err := common.NewNotificationService(logger, notificationRepository, handler, eventHandler, featureConnector)
-	if err != nil {
-		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -516,7 +504,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	subjectAdapter, err := common.NewSubjectAdapter(client)
 	if err != nil {
-		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -528,7 +515,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	subjectService, err := common.NewSubjectService(subjectAdapter)
 	if err != nil {
-		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -540,7 +526,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	syncJob, err := common.NewLLMCostSyncJob(logger, client)
 	if err != nil {
-		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -581,7 +566,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		LLMCostSyncJob:                syncJob,
 	}
 	return application, func() {
-		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()

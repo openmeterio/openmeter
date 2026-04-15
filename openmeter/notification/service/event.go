@@ -51,7 +51,7 @@ func (s Service) CreateEvent(ctx context.Context, params notification.CreateEven
 			return nil, fmt.Errorf("failed to get rule: %w", err)
 		}
 
-		if rule.DeletedAt != nil {
+		if rule.IsDeletedAt(clock.Now()) {
 			return nil, notification.NotFoundError{
 				NamespacedID: models.NamespacedID{
 					Namespace: params.Namespace,
@@ -64,16 +64,7 @@ func (s Service) CreateEvent(ctx context.Context, params notification.CreateEven
 			return nil, models.NewGenericValidationError(errors.New("failed to send event: rule is disabled"))
 		}
 
-		event, err := s.adapter.CreateEvent(ctx, params)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create event: %w", err)
-		}
-
-		if err = s.eventHandler.Dispatch(ctx, event); err != nil {
-			return nil, fmt.Errorf("failed to dispatch event: %w", err)
-		}
-
-		return event, nil
+		return s.adapter.CreateEvent(ctx, params)
 	}
 
 	return transaction.Run(ctx, s.adapter, fn)
