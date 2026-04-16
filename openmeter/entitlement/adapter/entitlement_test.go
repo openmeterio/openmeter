@@ -117,6 +117,33 @@ func createCustomerWithSubject(t *testing.T, subjectRepo subject.Service, custom
 	return cust
 }
 
+func createCustomerWithSubjectAndKey(t *testing.T, subjectRepo subject.Service, customerRepo customer.Adapter, namespace string, subjectKey string, customerKey string) *customer.Customer {
+	t.Helper()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	_, err := subjectRepo.Create(ctx, subject.CreateInput{
+		Namespace: namespace,
+		Key:       subjectKey,
+	})
+	require.NoError(t, err)
+
+	cust, err := customerRepo.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: namespace,
+		CustomerMutate: customer.CustomerMutate{
+			Key:  lo.ToPtr(customerKey),
+			Name: "Customer 1",
+			UsageAttribution: &customer.CustomerUsageAttribution{
+				SubjectKeys: []string{subjectKey},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	return cust
+}
+
 func TestUpsertEntitlementCurrentPeriods(t *testing.T) {
 	ns := "ns1"
 	featureKey := "feature1"
@@ -517,4 +544,79 @@ func TestEntitlementLoadsSubjectAndCustomerAndPreservesAcrossTypedMapping(t *tes
 			require.NotEmpty(t, typed.CustomerID)
 		}
 	}
+}
+
+func TestListEntitlementsFiltersByCustomerKeysAndFeatureIDsOrKeys(t *testing.T) {
+	ctx := context.Background()
+	ns := "ns-list-filters"
+
+	repo, cleanup := setup(t)
+	defer cleanup()
+
+	featureByKey, err := repo.featureRepo.CreateFeature(ctx, feature.CreateFeatureInputs{
+		Namespace: ns,
+		Key:       "free_plan_usage",
+		Name:      "Free plan usage",
+	})
+	require.NoError(t, err)
+
+	featureByID, err := repo.featureRepo.CreateFeature(ctx, feature.CreateFeatureInputs{
+		Namespace: ns,
+		Key:       "pro_plan_usage",
+		Name:      "Pro plan usage",
+	})
+	require.NoError(t, err)
+
+	customerA := createCustomerWithSubjectAndKey(t, repo.subjectRepo, repo.customerRepo, ns, "subject-a", "customer-a")
+	customerB := createCustomerWithSubjectAndKey(t, repo.subjectRepo, repo.customerRepo, ns, "subject-b", "customer-b")
+
+	entA, err := repo.entRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
+		Namespace:        ns,
+		FeatureID:        featureByKey.ID,
+		FeatureKey:       featureByKey.Key,
+		UsageAttribution: customerA.GetUsageAttribution(),
+		EntitlementType:  entitlement.EntitlementTypeBoolean,
+	})
+	require.NoError(t, err)
+
+	entB, err := repo.entRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
+		Namespace:        ns,
+		FeatureID:        featureByID.ID,
+		FeatureKey:       featureByID.Key,
+		UsageAttribution: customerB.GetUsageAttribution(),
+		EntitlementType:  entitlement.EntitlementTypeBoolean,
+	})
+	require.NoError(t, err)
+
+	t.Run("Should filter by customer key and feature key", func(t *testing.T) {
+		res, err := repo.entRepo.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
+			Namespaces:       []string{ns},
+			CustomerKeys:     []string{"customer-a"},
+			FeatureIDsOrKeys: []string{featureByKey.Key},
+		})
+		require.NoError(t, err)
+		require.Len(t, res.Items, 1)
+		require.Equal(t, entA.ID, res.Items[0].ID)
+	})
+
+	t.Run("Should filter by customer key and feature ID", func(t *testing.T) {
+		res, err := repo.entRepo.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
+			Namespaces:       []string{ns},
+			CustomerKeys:     []string{"customer-b"},
+			FeatureIDsOrKeys: []string{featureByID.ID},
+		})
+		require.NoError(t, err)
+		require.Len(t, res.Items, 1)
+		require.Equal(t, entB.ID, res.Items[0].ID)
+	})
+
+	t.Run("Should return empty result without querying entitlements when customer key does not exist", func(t *testing.T) {
+		res, err := repo.entRepo.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
+			Namespaces:   []string{ns},
+			CustomerKeys: []string{"missing-customer"},
+		})
+		require.NoError(t, err)
+		require.Empty(t, res.Items)
+		require.Zero(t, res.TotalCount)
+	})
 }

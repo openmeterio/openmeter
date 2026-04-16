@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
@@ -86,10 +87,9 @@ func (a *entitlementDBAdapter) GetActiveEntitlementOfCustomerAt(ctx context.Cont
 				Where(EntitlementActiveAt(at)...).
 				Where(
 					db_entitlement.Or(db_entitlement.DeletedAtGT(at), db_entitlement.DeletedAtIsNil()),
+					db_entitlement.CustomerID(customerID),
 					db_entitlement.HasCustomerWith(
-						customerdb.Namespace(namespace),
 						customerNotDeletedAt(at),
-						customerdb.ID(customerID),
 					),
 					db_entitlement.Namespace(namespace),
 					db_entitlement.FeatureKey(featureKey),
@@ -313,6 +313,9 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 		a,
 		func(ctx context.Context, repo *entitlementDBAdapter) (pagination.Result[entitlement.Entitlement], error) {
 			now := clock.Now().UTC()
+			response := pagination.Result[entitlement.Entitlement]{
+				Page: params.Page,
+			}
 
 			query := repo.db.Entitlement.Query()
 
@@ -335,15 +338,29 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 			}
 
 			if len(params.CustomerKeys) > 0 {
-				query = query.Where(db_entitlement.HasCustomerWith(
-					customerdb.KeyIn(params.CustomerKeys...),
-				))
+				customerQuery := repo.db.Customer.Query().
+					Where(customerdb.KeyIn(params.CustomerKeys...))
+
+				if len(params.Namespaces) > 0 {
+					customerQuery = customerQuery.Where(customerdb.NamespaceIn(params.Namespaces...))
+				}
+
+				customerIDs, err := customerQuery.IDs(ctx)
+				if err != nil {
+					return response, err
+				}
+
+				if len(customerIDs) == 0 {
+					response.Items = []entitlement.Entitlement{}
+					response.TotalCount = 0
+					return response, nil
+				}
+
+				query = query.Where(db_entitlement.CustomerIDIn(customerIDs...))
 			}
 
 			if len(params.CustomerIDs) > 0 {
-				query = query.Where(db_entitlement.HasCustomerWith(
-					customerdb.IDIn(params.CustomerIDs...),
-				))
+				query = query.Where(db_entitlement.CustomerIDIn(params.CustomerIDs...))
 			}
 
 			if len(params.EntitlementTypes) > 0 {
@@ -357,16 +374,30 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 			}
 
 			if len(params.FeatureIDsOrKeys) > 0 {
-				var ep predicate.Entitlement
-				for i, idOrKey := range params.FeatureIDsOrKeys {
-					p := db_entitlement.Or(db_entitlement.FeatureID(idOrKey), db_entitlement.FeatureKey(idOrKey))
-					if i == 0 {
-						ep = p
-						continue
+				featureIDs := make([]string, 0, len(params.FeatureIDsOrKeys))
+				featureKeys := make([]string, 0, len(params.FeatureIDsOrKeys))
+
+				for _, idOrKey := range params.FeatureIDsOrKeys {
+					if _, err := ulid.Parse(idOrKey); err == nil {
+						featureIDs = append(featureIDs, idOrKey)
+					} else {
+						featureKeys = append(featureKeys, idOrKey)
 					}
-					ep = db_entitlement.Or(ep, p)
 				}
-				query = query.Where(ep)
+
+				switch {
+				case len(featureIDs) > 0 && len(featureKeys) > 0:
+					query = query.Where(
+						db_entitlement.Or(
+							db_entitlement.FeatureIDIn(featureIDs...),
+							db_entitlement.FeatureKeyIn(featureKeys...),
+						),
+					)
+				case len(featureIDs) > 0:
+					query = query.Where(db_entitlement.FeatureIDIn(featureIDs...))
+				case len(featureKeys) > 0:
+					query = query.Where(db_entitlement.FeatureKeyIn(featureKeys...))
+				}
 			}
 
 			if len(params.FeatureIDs) > 0 {
@@ -404,10 +435,6 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 				case entitlement.ListEntitlementsOrderByUpdatedAt:
 					query = query.Order(db_entitlement.ByUpdatedAt(order...))
 				}
-			}
-
-			response := pagination.Result[entitlement.Entitlement]{
-				Page: params.Page,
 			}
 
 			// we're using limit and offset
