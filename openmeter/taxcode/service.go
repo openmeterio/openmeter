@@ -19,6 +19,10 @@ type Service interface {
 	DeleteTaxCode(ctx context.Context, input DeleteTaxCodeInput) error
 }
 
+type inputOptions struct {
+	AllowAnnotations bool
+}
+
 var (
 	_ models.Validator = (*CreateTaxCodeInput)(nil)
 	_ models.Validator = (*UpdateTaxCodeInput)(nil)
@@ -69,6 +73,8 @@ type UpdateTaxCodeInput struct {
 	AppMappings TaxCodeAppMappings
 	Metadata    models.Metadata
 	Annotations models.Annotations
+
+	inputOptions
 }
 
 func (i UpdateTaxCodeInput) Validate() error {
@@ -174,6 +180,8 @@ func (i GetOrCreateByAppMappingInput) Validate() error {
 
 type DeleteTaxCodeInput struct {
 	models.NamespacedID
+
+	inputOptions
 }
 
 func (i DeleteTaxCodeInput) Validate() error {

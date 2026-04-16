@@ -45,6 +45,20 @@ func TestTaxCodeService(t *testing.T) {
 			assert.Equal(t, taxcode.ErrCodeTaxCodeManagedBySystem, vi.Code())
 		})
 
+		t.Run("UpdateIsByPassed", func(t *testing.T) {
+			input := taxcode.UpdateTaxCodeInput{
+				NamespacedID: models.NamespacedID{Namespace: ns, ID: tc.ID},
+				Name:         "updated name",
+				Annotations: models.Annotations{
+					taxcode.AnnotationKeyManagedBy: taxcode.AnnotationValueManagedBySystem,
+				},
+			}
+			input.AllowAnnotations = true
+			updated, err := env.Service.UpdateTaxCode(t.Context(), input)
+			require.NoError(t, err)
+			assert.Equal(t, "updated name", updated.Name)
+		})
+
 		t.Run("DeleteIsBlocked", func(t *testing.T) {
 			err := env.Service.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{
 				NamespacedID: models.NamespacedID{Namespace: ns, ID: tc.ID},
@@ -54,6 +68,15 @@ func TestTaxCodeService(t *testing.T) {
 			var vi models.ValidationIssue
 			require.ErrorAs(t, err, &vi)
 			assert.Equal(t, taxcode.ErrCodeTaxCodeManagedBySystem, vi.Code())
+		})
+
+		t.Run("DeleteIsByPassed", func(t *testing.T) {
+			input := taxcode.DeleteTaxCodeInput{
+				NamespacedID: models.NamespacedID{Namespace: ns, ID: tc.ID},
+			}
+			input.AllowAnnotations = true
+			err := env.Service.DeleteTaxCode(t.Context(), input)
+			require.NoError(t, err)
 		})
 	})
 
