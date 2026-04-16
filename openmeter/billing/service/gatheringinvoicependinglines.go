@@ -13,6 +13,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
+	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -702,6 +703,16 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 		return nil, fmt.Errorf("updating target invoice: %w", err)
 	}
 
+	invoice, err = s.invokeOnStandardInvoiceCreated(ctx, invoice)
+	if err != nil {
+		return nil, fmt.Errorf("processing standard invoice created hooks: %w", err)
+	}
+
+	invoice, err = s.recalculateStandardInvoice(ctx, invoice)
+	if err != nil {
+		return nil, fmt.Errorf("recalculating target invoice after standard invoice created hooks: %w", err)
+	}
+
 	if err := s.standardInvoiceHooks.PostCreate(ctx, &invoice); err != nil {
 		return nil, fmt.Errorf("invoking post create hooks: %w", err)
 	}
@@ -770,6 +781,74 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 	}
 
 	return &invoice, nil
+}
+
+func (s *Service) invokeOnStandardInvoiceCreated(ctx context.Context, invoice billing.StandardInvoice) (billing.StandardInvoice, error) {
+	groupedStandardLines, err := s.lineEngines.groupStandardLinesByEngine(invoice.Lines.OrEmpty())
+	if err != nil {
+		return billing.StandardInvoice{}, fmt.Errorf("grouping standard lines by engine: %w", err)
+	}
+
+	for _, grouped := range groupedStandardLines {
+		input := billing.OnStandardInvoiceCreatedInput{
+			Invoice: invoice,
+			Lines:   grouped.Lines,
+		}
+		if err := input.Validate(); err != nil {
+			return billing.StandardInvoice{}, fmt.Errorf("validating standard invoice created input for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+		}
+
+		lines, err := grouped.Engine.OnStandardInvoiceCreated(ctx, input)
+		if err != nil {
+			return billing.StandardInvoice{}, fmt.Errorf("standard invoice created for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+		}
+
+		if err := lines.Validate(); err != nil {
+			return billing.StandardInvoice{}, fmt.Errorf("validating standard invoice created output for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+		}
+
+		if err := billing.ValidateStandardLineIDsMatchExactly(grouped.Lines, lines); err != nil {
+			return billing.StandardInvoice{}, fmt.Errorf("validating standard invoice created line ids for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+		}
+
+		if err := invoice.Lines.ReplaceLinesByID(lines...); err != nil {
+			return billing.StandardInvoice{}, fmt.Errorf("replacing standard invoice created lines for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+		}
+	}
+
+	return invoice, nil
+}
+
+func (s *Service) recalculateStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (billing.StandardInvoice, error) {
+	featureMeters, err := s.resolveFeatureMeters(ctx, invoice.Namespace, invoice.Lines)
+	if err != nil {
+		return billing.StandardInvoice{}, fmt.Errorf("resolving feature meters: %w", err)
+	}
+
+	taxCodes, err := s.resolveTaxCodes(ctx, resolveTaxCodesInput{
+		Namespace: invoice.Namespace,
+		Invoice:   &invoice,
+		ReadOnly:  false,
+	})
+	if err != nil {
+		return billing.StandardInvoice{}, fmt.Errorf("resolving tax codes: %w", err)
+	}
+
+	if err := s.invoiceCalculator.Calculate(&invoice, invoicecalc.CalculatorDependencies{
+		FeatureMeters: featureMeters,
+		RatingService: s.ratingService,
+		TaxCodes:      taxCodes,
+		LineEngines:   s.lineEngines,
+	}); err != nil {
+		return billing.StandardInvoice{}, fmt.Errorf("recalculating target invoice: %w", err)
+	}
+
+	invoice, err = s.updateInvoice(ctx, invoice)
+	if err != nil {
+		return billing.StandardInvoice{}, fmt.Errorf("updating target invoice after line engine hook: %w", err)
+	}
+
+	return invoice, nil
 }
 
 func (s *Service) invokePostCreationHooks(invoice billing.StandardInvoice, hook billing.PostCreationCalculationHook) error {

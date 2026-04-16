@@ -37,6 +37,7 @@ type mockCollectionCompletedLineEngine struct {
 	engineType ombilling.LineEngineType
 
 	buildStandardInvoiceLines func(ctx context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error)
+	onStandardInvoiceCreated  func(ctx context.Context, input ombilling.OnStandardInvoiceCreatedInput) (ombilling.StandardLines, error)
 	onCollectionCompleted     func(ctx context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error)
 }
 
@@ -84,6 +85,14 @@ func (m *mockCollectionCompletedLineEngine) OnCollectionCompleted(ctx context.Co
 	}
 
 	return m.onCollectionCompleted(ctx, input)
+}
+
+func (m *mockCollectionCompletedLineEngine) OnStandardInvoiceCreated(ctx context.Context, input ombilling.OnStandardInvoiceCreatedInput) (ombilling.StandardLines, error) {
+	if m.onStandardInvoiceCreated == nil {
+		return input.Lines, nil
+	}
+
+	return m.onStandardInvoiceCreated(ctx, input)
 }
 
 func (m *mockCollectionCompletedLineEngine) CalculateLines(input ombilling.CalculateLinesInput) (ombilling.StandardLines, error) {

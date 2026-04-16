@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrunpayment"
@@ -57,6 +58,8 @@ type ChargeUsageBasedRuns struct {
 	Asof time.Time `json:"asof,omitempty"`
 	// CollectionEnd holds the value of the "collection_end" field.
 	CollectionEnd time.Time `json:"collection_end,omitempty"`
+	// LineID holds the value of the "line_id" field.
+	LineID *string `json:"line_id,omitempty"`
 	// MeterValue holds the value of the "meter_value" field.
 	MeterValue alpacadecimal.Decimal `json:"meter_value,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -71,6 +74,8 @@ type ChargeUsageBasedRunsEdges struct {
 	UsageBased *ChargeUsageBased `json:"usage_based,omitempty"`
 	// Feature holds the value of the feature edge.
 	Feature *Feature `json:"feature,omitempty"`
+	// BillingInvoiceLine holds the value of the billing_invoice_line edge.
+	BillingInvoiceLine *BillingInvoiceLine `json:"billing_invoice_line,omitempty"`
 	// CreditAllocations holds the value of the credit_allocations edge.
 	CreditAllocations []*ChargeUsageBasedRunCreditAllocations `json:"credit_allocations,omitempty"`
 	// InvoicedUsage holds the value of the invoiced_usage edge.
@@ -79,7 +84,7 @@ type ChargeUsageBasedRunsEdges struct {
 	Payment *ChargeUsageBasedRunPayment `json:"payment,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
+	loadedTypes [6]bool
 }
 
 // UsageBasedOrErr returns the UsageBased value or an error if the edge
@@ -104,10 +109,21 @@ func (e ChargeUsageBasedRunsEdges) FeatureOrErr() (*Feature, error) {
 	return nil, &NotLoadedError{edge: "feature"}
 }
 
+// BillingInvoiceLineOrErr returns the BillingInvoiceLine value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeUsageBasedRunsEdges) BillingInvoiceLineOrErr() (*BillingInvoiceLine, error) {
+	if e.BillingInvoiceLine != nil {
+		return e.BillingInvoiceLine, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: billinginvoiceline.Label}
+	}
+	return nil, &NotLoadedError{edge: "billing_invoice_line"}
+}
+
 // CreditAllocationsOrErr returns the CreditAllocations value or an error if the edge
 // was not loaded in eager-loading.
 func (e ChargeUsageBasedRunsEdges) CreditAllocationsOrErr() ([]*ChargeUsageBasedRunCreditAllocations, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[3] {
 		return e.CreditAllocations, nil
 	}
 	return nil, &NotLoadedError{edge: "credit_allocations"}
@@ -118,7 +134,7 @@ func (e ChargeUsageBasedRunsEdges) CreditAllocationsOrErr() ([]*ChargeUsageBased
 func (e ChargeUsageBasedRunsEdges) InvoicedUsageOrErr() (*ChargeUsageBasedRunInvoicedUsage, error) {
 	if e.InvoicedUsage != nil {
 		return e.InvoicedUsage, nil
-	} else if e.loadedTypes[3] {
+	} else if e.loadedTypes[4] {
 		return nil, &NotFoundError{label: chargeusagebasedruninvoicedusage.Label}
 	}
 	return nil, &NotLoadedError{edge: "invoiced_usage"}
@@ -129,7 +145,7 @@ func (e ChargeUsageBasedRunsEdges) InvoicedUsageOrErr() (*ChargeUsageBasedRunInv
 func (e ChargeUsageBasedRunsEdges) PaymentOrErr() (*ChargeUsageBasedRunPayment, error) {
 	if e.Payment != nil {
 		return e.Payment, nil
-	} else if e.loadedTypes[4] {
+	} else if e.loadedTypes[5] {
 		return nil, &NotFoundError{label: chargeusagebasedrunpayment.Label}
 	}
 	return nil, &NotLoadedError{edge: "payment"}
@@ -142,7 +158,7 @@ func (*ChargeUsageBasedRuns) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargeusagebasedruns.FieldAmount, chargeusagebasedruns.FieldTaxesTotal, chargeusagebasedruns.FieldTaxesInclusiveTotal, chargeusagebasedruns.FieldTaxesExclusiveTotal, chargeusagebasedruns.FieldChargesTotal, chargeusagebasedruns.FieldDiscountsTotal, chargeusagebasedruns.FieldCreditsTotal, chargeusagebasedruns.FieldTotal, chargeusagebasedruns.FieldMeterValue:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargeusagebasedruns.FieldID, chargeusagebasedruns.FieldNamespace, chargeusagebasedruns.FieldChargeID, chargeusagebasedruns.FieldFeatureID, chargeusagebasedruns.FieldType:
+		case chargeusagebasedruns.FieldID, chargeusagebasedruns.FieldNamespace, chargeusagebasedruns.FieldChargeID, chargeusagebasedruns.FieldFeatureID, chargeusagebasedruns.FieldType, chargeusagebasedruns.FieldLineID:
 			values[i] = new(sql.NullString)
 		case chargeusagebasedruns.FieldCreatedAt, chargeusagebasedruns.FieldUpdatedAt, chargeusagebasedruns.FieldDeletedAt, chargeusagebasedruns.FieldAsof, chargeusagebasedruns.FieldCollectionEnd:
 			values[i] = new(sql.NullTime)
@@ -270,6 +286,13 @@ func (_m *ChargeUsageBasedRuns) assignValues(columns []string, values []any) err
 			} else if value.Valid {
 				_m.CollectionEnd = value.Time
 			}
+		case chargeusagebasedruns.FieldLineID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field line_id", values[i])
+			} else if value.Valid {
+				_m.LineID = new(string)
+				*_m.LineID = value.String
+			}
 		case chargeusagebasedruns.FieldMeterValue:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field meter_value", values[i])
@@ -297,6 +320,11 @@ func (_m *ChargeUsageBasedRuns) QueryUsageBased() *ChargeUsageBasedQuery {
 // QueryFeature queries the "feature" edge of the ChargeUsageBasedRuns entity.
 func (_m *ChargeUsageBasedRuns) QueryFeature() *FeatureQuery {
 	return NewChargeUsageBasedRunsClient(_m.config).QueryFeature(_m)
+}
+
+// QueryBillingInvoiceLine queries the "billing_invoice_line" edge of the ChargeUsageBasedRuns entity.
+func (_m *ChargeUsageBasedRuns) QueryBillingInvoiceLine() *BillingInvoiceLineQuery {
+	return NewChargeUsageBasedRunsClient(_m.config).QueryBillingInvoiceLine(_m)
 }
 
 // QueryCreditAllocations queries the "credit_allocations" edge of the ChargeUsageBasedRuns entity.
@@ -389,6 +417,11 @@ func (_m *ChargeUsageBasedRuns) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("collection_end=")
 	builder.WriteString(_m.CollectionEnd.Format(time.ANSIC))
+	builder.WriteString(", ")
+	if v := _m.LineID; v != nil {
+		builder.WriteString("line_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("meter_value=")
 	builder.WriteString(fmt.Sprintf("%v", _m.MeterValue))

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
@@ -72,9 +74,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 			usagebased.StatusActiveFinalRealizationWaitingForCollection,
 		).
 		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
-		OnActive(
-			s.StartInvoiceCreatedRun,
-		)
+		OnEntry(statelessx.WithParameters(s.StartInvoiceCreatedRun))
 
 	s.Configure(usagebased.StatusActiveFinalRealizationWaitingForCollection).
 		Permit(
@@ -112,7 +112,19 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, _ meta
 	return s.refetchCharge(ctx)
 }
 
-func (s *CreditThenInvoiceStateMachine) StartInvoiceCreatedRun(ctx context.Context) error {
+type invoiceCreatedInput struct {
+	LineID string
+}
+
+func (i invoiceCreatedInput) Validate() error {
+	if i.LineID == "" {
+		return fmt.Errorf("line id is required")
+	}
+
+	return nil
+}
+
+func (s *CreditThenInvoiceStateMachine) StartInvoiceCreatedRun(ctx context.Context, input invoiceCreatedInput) error {
 	storedAtOffset := meta.NormalizeTimestamp(clock.Now())
 	collectionEnd, err := s.GetCollectionPeriodEnd(ctx)
 	if err != nil {
@@ -126,6 +138,7 @@ func (s *CreditThenInvoiceStateMachine) StartInvoiceCreatedRun(ctx context.Conte
 		Type:               usagebased.RealizationRunTypeFinalRealization,
 		AsOf:               storedAtOffset,
 		CollectionEnd:      collectionEnd,
+		LineID:             lo.ToPtr(input.LineID),
 		CreditAllocation:   usagebasedrun.CreditAllocationAvailable,
 		CurrencyCalculator: s.CurrencyCalculator,
 	})

@@ -96,6 +96,7 @@ func MapRealizationRunBaseFromDB(dbRun *entdb.ChargeUsageBasedRuns) usagebased.R
 		ManagedModel: entutils.MapTimeMixinFromDB(dbRun),
 
 		FeatureID:     dbRun.FeatureID,
+		LineID:        dbRun.LineID,
 		Type:          dbRun.Type,
 		AsOf:          dbRun.Asof.UTC(),
 		CollectionEnd: dbRun.CollectionEnd,

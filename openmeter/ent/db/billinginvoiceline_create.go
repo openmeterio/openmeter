@@ -27,6 +27,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeinvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
@@ -656,6 +657,25 @@ func (_c *BillingInvoiceLineCreate) AddChargeFlatFeeInvoicedUsage(v ...*ChargeFl
 		ids[i] = v[i].ID
 	}
 	return _c.AddChargeFlatFeeInvoicedUsageIDs(ids...)
+}
+
+// SetChargeUsageBasedRunID sets the "charge_usage_based_run" edge to the ChargeUsageBasedRuns entity by ID.
+func (_c *BillingInvoiceLineCreate) SetChargeUsageBasedRunID(id string) *BillingInvoiceLineCreate {
+	_c.mutation.SetChargeUsageBasedRunID(id)
+	return _c
+}
+
+// SetNillableChargeUsageBasedRunID sets the "charge_usage_based_run" edge to the ChargeUsageBasedRuns entity by ID if the given value is not nil.
+func (_c *BillingInvoiceLineCreate) SetNillableChargeUsageBasedRunID(id *string) *BillingInvoiceLineCreate {
+	if id != nil {
+		_c = _c.SetChargeUsageBasedRunID(*id)
+	}
+	return _c
+}
+
+// SetChargeUsageBasedRun sets the "charge_usage_based_run" edge to the ChargeUsageBasedRuns entity.
+func (_c *BillingInvoiceLineCreate) SetChargeUsageBasedRun(v *ChargeUsageBasedRuns) *BillingInvoiceLineCreate {
+	return _c.SetChargeUsageBasedRunID(v.ID)
 }
 
 // SetChargeCreditPurchaseInvoicedPaymentID sets the "charge_credit_purchase_invoiced_payment" edge to the ChargeCreditPurchaseInvoicedPayment entity by ID.
@@ -1289,6 +1309,22 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeinvoicedusage.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChargeUsageBasedRunIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   billinginvoiceline.ChargeUsageBasedRunTable,
+			Columns: []string{billinginvoiceline.ChargeUsageBasedRunColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -3167,6 +3167,20 @@ func (u *ChargeUsageBasedRunsUpdateOne) SetOrClearDeletedAt(value *time.Time) *C
 	return u.SetDeletedAt(*value)
 }
 
+func (u *ChargeUsageBasedRunsUpdate) SetOrClearLineID(value *string) *ChargeUsageBasedRunsUpdate {
+	if value == nil {
+		return u.ClearLineID()
+	}
+	return u.SetLineID(*value)
+}
+
+func (u *ChargeUsageBasedRunsUpdateOne) SetOrClearLineID(value *string) *ChargeUsageBasedRunsUpdateOne {
+	if value == nil {
+		return u.ClearLineID()
+	}
+	return u.SetLineID(*value)
+}
+
 func (u *CreditRealizationLineageSegmentUpdate) SetOrClearBackingTransactionGroupID(value *string) *CreditRealizationLineageSegmentUpdate {
 	if value == nil {
 		return u.ClearBackingTransactionGroupID()
