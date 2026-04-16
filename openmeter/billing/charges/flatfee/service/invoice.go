@@ -63,6 +63,10 @@ func (s *service) PostInvoiceIssued(ctx context.Context, charge flatfee.Charge, 
 			return fmt.Errorf("postInvoiceIssued: line is nil")
 		}
 
+		if lineWithHeader.Line.Totals.Total.IsZero() {
+			return nil
+		}
+
 		ledgerTransactionRef, err := s.handler.OnInvoiceUsageAccrued(ctx, flatfee.OnInvoiceUsageAccruedInput{
 			Charge:        charge,
 			ServicePeriod: lineWithHeader.Line.Period.ToClosedPeriod(),

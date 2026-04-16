@@ -276,6 +276,119 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 	})
 }
 
+func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedDoesNotAccrueInvoiceUsage() {
+	ctx := context.Background()
+	ns := s.GetUniqueNamespace("charges-service-flatfee-credit-then-invoice-fully-credited")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithProgressiveBilling(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "PT1H")),
+		billingtest.WithManualApproval(),
+	)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	clock.SetTime(servicePeriod.From)
+
+	flatFeeChargeID := meta.ChargeID{}
+
+	s.Run("create charge", func() {
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: []charges.ChargeIntent{
+				s.createMockChargeIntent(createMockChargeIntentInput{
+					customer:       cust.GetID(),
+					currency:       USD,
+					servicePeriod:  servicePeriod,
+					settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromInt(100),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					name:              "flat-fee-fully-credited",
+					managedBy:         billing.SubscriptionManagedLine,
+					uniqueReferenceID: "flat-fee-fully-credited",
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+
+		flatFeeCharge, err := res[0].AsFlatFeeCharge()
+		s.NoError(err)
+		flatFeeChargeID = flatFeeCharge.GetChargeID()
+	})
+
+	var invoice billing.StandardInvoice
+
+	s.Run("invoice pending lines fully settled by credits", func() {
+		defer s.FlatFeeTestHandler.Reset()
+
+		s.FlatFeeTestHandler.onAssignedToInvoice = func(ctx context.Context, input flatfee.OnAssignedToInvoiceInput) (creditrealization.CreateAllocationInputs, error) {
+			return creditrealization.CreateAllocationInputs{
+				{
+					ServicePeriod: input.ServicePeriod,
+					Amount:        input.PreTaxTotalAmount,
+					LedgerTransaction: ledgertransaction.GroupReference{
+						TransactionGroupID: ulid.Make().String(),
+					},
+				},
+			}, nil
+		}
+
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(servicePeriod.From),
+		})
+		s.NoError(err)
+		s.Len(invoices, 1)
+
+		invoice = invoices[0]
+		s.Len(invoice.Lines.OrEmpty(), 1)
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:       100,
+			CreditsTotal: 100,
+		}, invoice.Totals)
+
+		charge := s.mustGetChargeByID(flatFeeChargeID)
+		updatedFlatFeeCharge, err := charge.AsFlatFeeCharge()
+		s.NoError(err)
+		s.Len(updatedFlatFeeCharge.Realizations.CreditRealizations, 1)
+		s.Nil(updatedFlatFeeCharge.Realizations.AccruedUsage)
+	})
+
+	s.Run("post invoice issued without invoice usage accrual", func() {
+		defer s.FlatFeeTestHandler.Reset()
+
+		invoiceUsageAccruedCallback := newCountedLedgerTransactionCallback[flatfee.OnInvoiceUsageAccruedInput]()
+		s.FlatFeeTestHandler.onInvoiceUsageAccrued = invoiceUsageAccruedCallback.Handler(s.T())
+
+		charge := s.mustGetChargeByID(flatFeeChargeID)
+		flatFeeCharge, err := charge.AsFlatFeeCharge()
+		s.NoError(err)
+
+		err = s.Charges.flatFeeService.PostInvoiceIssued(ctx, flatFeeCharge, billing.StandardLineWithInvoiceHeader{
+			Line:    invoice.Lines.OrEmpty()[0],
+			Invoice: invoice,
+		})
+		s.NoError(err)
+		s.Equal(0, invoiceUsageAccruedCallback.nrInvocations)
+
+		charge = s.mustGetChargeByID(flatFeeChargeID)
+		updatedFlatFeeCharge, err := charge.AsFlatFeeCharge()
+		s.NoError(err)
+		s.Nil(updatedFlatFeeCharge.Realizations.AccruedUsage)
+	})
+}
+
 func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-usage-based-credit-only-lifecycle")

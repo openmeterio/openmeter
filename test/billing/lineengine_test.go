@@ -417,3 +417,104 @@ func (s *LineEngineTestSuite) TestOnInvoiceIssuedIsCalled() {
 		)
 	})
 }
+
+func (s *LineEngineTestSuite) TestOnInvoiceIssuedFailureTransitionsToRetryableIssuingState() {
+	var (
+		ctx                = context.Background()
+		namespace          = s.GetUniqueNamespace("ns-line-engine-on-invoice-issued-failed")
+		mockEngine         = &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeCreditPurchase}
+		invoice            ombilling.StandardInvoice
+		collectionAt       time.Time
+		onInvoiceIssuedCnt int
+	)
+
+	clockBase := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
+	clock.SetTime(clockBase)
+	defer clock.ResetTime()
+	defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
+	defer s.MockStreamingConnector.Reset()
+	s.registerMockLineEngine(s.T(), mockEngine)
+	defer s.unregisterLineEngine(s.T(), mockEngine)
+
+	s.Run("Given a draft invoice waiting for collection with a failing issued hook", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+			return mustAsNewStandardLines(input), nil
+		}
+
+		invoice, collectionAt = s.createMeteredDraftInvoiceWaitingForCollection(
+			ctx,
+			namespace,
+			mockEngine.GetLineEngineType(),
+			"UBP - invoice issued hook failed",
+		)
+	})
+
+	s.Run("When the invoice is collected and approval hits the failing issued hook", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.onCollectionCompleted = func(_ context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
+			lines := input.Lines
+			for _, stdLine := range lines {
+				if stdLine.UsageBased == nil {
+					stdLine.UsageBased = &ombilling.UsageBasedLine{}
+				}
+
+				stdLine.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.PreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+				stdLine.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+			}
+
+			return lines, nil
+		}
+
+		mockEngine.onInvoiceIssued = func(_ context.Context, input ombilling.OnInvoiceIssuedInput) error {
+			onInvoiceIssuedCnt++
+			s.Equal(input.Invoice.ID, invoice.ID)
+			return errors.New("simulated invoice issued failure")
+		}
+
+		clock.SetTime(collectionAt.Add(time.Minute))
+
+		var err error
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+
+		if invoice.Status != ombilling.StandardInvoiceStatusPaymentProcessingPending {
+			invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+			s.Require().NoError(err)
+		}
+
+			s.Equal(ombilling.StandardInvoiceStatusIssuingChargeBookingFailed, invoice.Status)
+		s.True(invoice.StatusDetails.Failed)
+		s.NotNil(invoice.StatusDetails.AvailableActions.Retry)
+		s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingPending, invoice.StatusDetails.AvailableActions.Retry.ResultingState)
+		s.Len(invoice.ValidationIssues, 1)
+		s.Equal(ombilling.ValidationIssueSeverityCritical, invoice.ValidationIssues[0].Severity)
+		s.Equal("simulated invoice issued failure", invoice.ValidationIssues[0].Message)
+	})
+
+	s.Run("Then retry succeeds without re-finalizing the invoice", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.onInvoiceIssued = func(_ context.Context, input ombilling.OnInvoiceIssuedInput) error {
+			onInvoiceIssuedCnt++
+			s.Equal(input.Invoice.ID, invoice.ID)
+			return nil
+		}
+
+		var err error
+		invoice, err = s.BillingService.RetryInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(2, onInvoiceIssuedCnt)
+		s.Contains(
+			[]ombilling.StandardInvoiceStatus{
+				ombilling.StandardInvoiceStatusPaymentProcessingPending,
+				ombilling.StandardInvoiceStatusPaid,
+			},
+			invoice.Status,
+		)
+	})
+}

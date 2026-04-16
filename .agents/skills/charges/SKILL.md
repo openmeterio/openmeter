@@ -126,6 +126,8 @@ Current shared contract details:
 - optional split outputs use pointers; `SplitGatheringLineResult.PostSplitAtLine` is `*billing.GatheringLine`
 - use `billing.ValidateStandardLineIDsMatchExactly(...)` when a charge-side test or helper needs to assert that returned standard-line identities are preserved across a line-engine boundary
 - collection-time errors should be normalized through `billing.NewLineEngineValidationError(...)` instead of rebuilding the validation-issue wrapper at each billing callsite
+- charge line engines are only responsible for invoice-backed charge flows such as `credit_then_invoice`; they are not the execution path for `credit_only` settlement mode
+- because of that boundary, it is acceptable for a charge line engine to return an error when invoked with `credit_only` settlement mode; treat that as a lifecycle misuse rather than adding `credit_only` behavior to the engine
 
 ## Timestamp Normalization
 
@@ -192,6 +194,25 @@ Placement guidance:
 - prefer shared normalization in `creditrealization` helpers for correction flows instead of repeating callback-local normalization at each callsite
 - do not mutate whole intents inside adapters just to normalize currency; if an adapter needs a persistence backstop, keep it local to the `Set*` write
 - when ledger logic derives monetary values from balances, entries, or its own calculations, round those values in ledger code as well; do not rely only on upstream callers
+
+## Zero Invoice Accrual
+
+Invoice accrual uses a non-negative, no-op-aware contract.
+
+Rules:
+
+- negative invoice-accrual amounts are invalid
+- zero invoice-accrual amounts are valid no-ops
+- positive invoice-accrual amounts must produce a non-empty ledger transaction group reference
+- charges-side services should short-circuit zero before calling persistence that expects a real ledger transaction
+- do not persist `invoicedusage.AccruedUsage` rows with an empty `LedgerTransaction.TransactionGroupID`
+
+Current expected behavior:
+
+- `usagebased.OnInvoiceUsageAccruedInput.Validate()` allows zero and rejects only negatives
+- usage-based and flat-fee service/orchestration layers should skip invoice-accrual persistence when the invoice line total is zero
+- ledger handlers may still defensively tolerate zero and return `ledgertransaction.GroupReference{}`
+- when a service proceeds with non-zero invoice accrual, it must require a non-empty transaction group reference before storing accrued usage
 
 ## Realization Helper Subpackages
 

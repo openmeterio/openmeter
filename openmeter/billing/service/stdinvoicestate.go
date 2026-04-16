@@ -223,7 +223,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 
 	stateMachine.Configure(billing.StandardInvoiceStatusIssuingSyncing).
 		Permit(billing.TriggerNext,
-			billing.StandardInvoiceStatusIssued,
+			billing.StandardInvoiceStatusIssuingChargeBooking,
 			statelessx.BoolFn(out.canIssuingSyncAdvance),
 		).
 		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusIssuingSyncFailed).
@@ -236,11 +236,20 @@ func allocateStateMachine() *InvoiceStateMachine {
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
 		Permit(billing.TriggerRetry, billing.StandardInvoiceStatusIssuingSyncing)
 
+	stateMachine.Configure(billing.StandardInvoiceStatusIssuingChargeBooking).
+		Permit(billing.TriggerNext, billing.StandardInvoiceStatusIssued).
+		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusIssuingChargeBookingFailed).
+		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
+		OnActive(out.onInvoiceIssued)
+
+	stateMachine.Configure(billing.StandardInvoiceStatusIssuingChargeBookingFailed).
+		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
+		Permit(billing.TriggerRetry, billing.StandardInvoiceStatusIssuingChargeBooking)
+
 	// Issued state
 	stateMachine.Configure(billing.StandardInvoiceStatusIssued).
 		Permit(billing.TriggerNext, billing.StandardInvoiceStatusPaymentProcessingPending).
-		Permit(billing.TriggerVoid, billing.StandardInvoiceStatusVoided).
-		OnActive(out.onInvoiceIssued)
+		Permit(billing.TriggerVoid, billing.StandardInvoiceStatusVoided)
 
 	// Payment states
 	stateMachine.Configure(billing.StandardInvoiceStatusPaymentProcessingPending).
@@ -450,7 +459,14 @@ func (m *InvoiceStateMachine) AdvanceUntilStateStable(ctx context.Context) error
 		}
 
 		if err := m.FireAndActivate(ctx, billing.TriggerNext); err != nil {
-			return fmt.Errorf("cannot transition to the next status [current_status=%s]: %w", m.Invoice.Status, err)
+			validationIssues, validationErr := billing.ToValidationIssues(err)
+			if validationErr != nil {
+				return fmt.Errorf("cannot transition to the next status [current_status=%s]: %w", m.Invoice.Status, err)
+			}
+
+			m.Invoice.ValidationIssues = validationIssues
+
+			return validationIssues.AsError()
 		}
 
 		if m.NeedsDBSave {
@@ -882,7 +898,7 @@ func (m *InvoiceStateMachine) onInvoiceIssued(ctx context.Context) error {
 		}
 
 		if err := grouped.Engine.OnInvoiceIssued(ctx, input); err != nil {
-			return fmt.Errorf("invoice issued for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+			return billing.NewLineEngineValidationError(grouped.Engine, err)
 		}
 	}
 

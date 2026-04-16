@@ -43,7 +43,7 @@ func (h *usageBasedHandler) OnInvoiceUsageAccrued(ctx context.Context, input usa
 
 	amount := input.Amount
 	if amount.IsZero() {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("amount is zero")
+		return ledgertransaction.GroupReference{}, nil
 	}
 
 	if err := validateSettlementMode(
