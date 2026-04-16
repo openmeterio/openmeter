@@ -116,7 +116,7 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (api.BillingRateCard, erro
 		Name:        meta.Name,
 		Description: meta.Description,
 		Discounts:   ToAPIBillingRateCardDiscount(meta.Discounts),
-		TaxConfig:   ToAPIBillingRateCardTaxConfi(meta.TaxConfig, meta.TaxCode),
+		TaxConfig:   ToAPIBillingRateCardTaxConfig(meta.TaxConfig, meta.TaxCode),
 	}
 
 	if meta.FeatureID != nil {
@@ -278,7 +278,7 @@ func ToAPIBillingPriceTiers(tiers []productcatalog.PriceTier) []api.BillingPrice
 	return result
 }
 
-func ToAPIBillingRateCardTaxConfi(c *productcatalog.TaxConfig, tc *taxcode.TaxCode) *api.BillingRateCardTaxConfig {
+func ToAPIBillingRateCardTaxConfig(c *productcatalog.TaxConfig, tc *taxcode.TaxCode) *api.BillingRateCardTaxConfig {
 	if c == nil || tc == nil {
 		return nil
 	}
@@ -363,7 +363,7 @@ func FromAPIUpsertPlanRequest(ns string, planID string, body api.UpsertPlanReque
 
 	meta, err := labels.ToMetadata(body.Labels)
 	if err != nil {
-		return req, fmt.Errorf("failed to convert label metadata %w", err)
+		return req, fmt.Errorf("failed to convert label metadata: %w", err)
 	}
 
 	if body.Labels != nil {
@@ -454,7 +454,7 @@ func FromAPIBillingPlanPhase(p api.BillingPlanPhase) (productcatalog.Phase, erro
 	meta, labelErr := labels.ToMetadata(p.Labels)
 
 	if labelErr != nil {
-		return productcatalog.Phase{}, fmt.Errorf("failed to convert label metadata %w", labelErr)
+		return productcatalog.Phase{}, fmt.Errorf("failed to convert label metadata: %w", labelErr)
 	}
 
 	phase := productcatalog.Phase{
@@ -497,7 +497,7 @@ func FromAPIBillingRateCard(rc api.BillingRateCard) (productcatalog.RateCard, er
 
 	labelMeta, err := labels.ToMetadata(rc.Labels)
 	if err != nil {
-		return nil, fmt.Errorf("faled to convert metadata %w", err)
+		return nil, fmt.Errorf("failed to convert metadata: %w", err)
 	}
 
 	meta := productcatalog.RateCardMeta{

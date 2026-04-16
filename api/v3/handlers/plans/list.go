@@ -74,10 +74,14 @@ func (h *handler) ListPlans() ListPlansHandler {
 				items = append(items, billingPlan)
 			}
 
+			// Adjust total count to reflect the actual number of returned items
+			// since we filter out plans with unsupported price types client-side.
+			filteredTotal := result.TotalCount - (len(result.Items) - len(items))
+
 			return response.NewPagePaginationResponse(items, response.PageMetaPage{
 				Size:   req.Page.PageSize,
 				Number: req.Page.PageNumber,
-				Total:  lo.ToPtr(result.TotalCount),
+				Total:  lo.ToPtr(filteredTotal),
 			}), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[ListPlansResponse](http.StatusOK),
