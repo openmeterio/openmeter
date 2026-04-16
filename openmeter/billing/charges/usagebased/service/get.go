@@ -113,7 +113,6 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 	var wg sync.WaitGroup
 
 	for _, charge := range charges {
-
 		featureMeter, err := charge.ResolveFeatureMeter(featureMeters)
 		if err != nil {
 			errCh <- fmt.Errorf("resolving feature meter: %w", err)
