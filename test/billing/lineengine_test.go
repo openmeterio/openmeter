@@ -335,7 +335,7 @@ func (s *LineEngineTestSuite) TestCollectionCompletedCustomSnapshotIsPreserved()
 
 func (s *LineEngineTestSuite) TestOnInvoiceIssuedIsCalled() {
 	var (
-		ctx                = context.Background()
+		ctx                = s.T().Context()
 		namespace          = s.GetUniqueNamespace("ns-line-engine-on-invoice-issued")
 		mockEngine         = &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeCreditPurchase}
 		invoice            ombilling.StandardInvoice
