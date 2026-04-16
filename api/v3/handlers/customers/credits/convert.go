@@ -352,8 +352,8 @@ func toAPIBillingCreditTransaction(tx customerbalance.CreditTransaction) api.Bil
 			After  api.Numeric `json:"after"`
 			Before api.Numeric `json:"before"`
 		}{
-			Before: api.Numeric(tx.Balance.Before.String()),
-			After:  api.Numeric(tx.Balance.After.String()),
+			Before: tx.Balance.Before.String(),
+			After:  tx.Balance.After.String(),
 		},
 	}
 
