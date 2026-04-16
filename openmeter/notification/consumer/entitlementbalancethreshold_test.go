@@ -213,7 +213,10 @@ func Test_GetActiveThresholdsWithHighestPriority(t *testing.T) {
 			},
 		},
 		{
-			Name: "Usage percentage with no grants",
+			// Grant fully consumed: balance=0, usage=100, overage unset (treated as 0).
+			// total grants = usage = 100; 50% and 100% threshold values: 50 and 100.
+			// Highest active: 50% (50 < 100). 100% not active (100 < 100 = false).
+			Name: "Usage percentage - grant fully consumed (overage unset)",
 			BalanceThresholds: []notification.BalanceThreshold{
 				newUsagePercentageThreshold(50),
 				newUsagePercentageThreshold(100),
@@ -225,7 +228,7 @@ func Test_GetActiveThresholdsWithHighestPriority(t *testing.T) {
 				Usage:   lo.ToPtr(100.0),
 			},
 			Expected: &activeThresholds{
-				Usage:   nil,
+				Usage:   lo.ToPtr(newUsagePercentageThreshold(50)),
 				Balance: nil,
 			},
 		},
@@ -475,6 +478,48 @@ func Test_GetActiveThresholdsWithHighestPriority(t *testing.T) {
 			},
 			Expected: &activeThresholds{
 				Usage:   nil,
+				Balance: nil,
+			},
+		},
+		{
+			// total grants = 1000; 90% threshold value = 900 = usage → strictly less than not satisfied.
+			// A threshold fires only when usage strictly exceeds the threshold credit value.
+			Name: "Usage percentage - boundary: usage equals threshold value (90%)",
+			BalanceThresholds: []notification.BalanceThreshold{
+				newUsagePercentageThreshold(50),
+				newUsagePercentageThreshold(75),
+				newUsagePercentageThreshold(90),
+				newUsagePercentageThreshold(100),
+			},
+			EntitlementValue: snapshot.EntitlementValue{
+				Balance: lo.ToPtr(100.0),
+				Usage:   lo.ToPtr(900.0),
+				Overage: lo.ToPtr(0.0),
+			},
+			// total grants = 1000; 90% threshold value = 900 = usage → not strictly exceeded
+			Expected: &activeThresholds{
+				Usage:   lo.ToPtr(newUsagePercentageThreshold(75)),
+				Balance: nil,
+			},
+		},
+		{
+			// Grant fully consumed: balance=0, usage=1000, overage=0.
+			// total grants = usage = 1000; 90% threshold value = 900 < 1000 → active.
+			// 100% threshold value = 1000 = usage → strictly less than not satisfied.
+			Name: "Usage percentage - grant fully consumed (balance=0, overage=0, usage=total)",
+			BalanceThresholds: []notification.BalanceThreshold{
+				newUsagePercentageThreshold(50),
+				newUsagePercentageThreshold(75),
+				newUsagePercentageThreshold(90),
+				newUsagePercentageThreshold(100),
+			},
+			EntitlementValue: snapshot.EntitlementValue{
+				Balance: lo.ToPtr(0.0),
+				Usage:   lo.ToPtr(1000.0),
+				Overage: lo.ToPtr(0.0),
+			},
+			Expected: &activeThresholds{
+				Usage:   lo.ToPtr(newUsagePercentageThreshold(90)),
 				Balance: nil,
 			},
 		},

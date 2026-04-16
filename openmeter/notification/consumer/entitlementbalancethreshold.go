@@ -418,8 +418,10 @@ func getNumericThreshold(threshold notification.BalanceThreshold, value api.Enti
 	case api.NotificationRuleBalanceThresholdValueTypePercent:
 		fallthrough
 	case api.NotificationRuleBalanceThresholdValueTypeUsagePercentage:
-		// Cannot calculate total grants if both balance and overage are zero (usage alone is insufficient).
-		if balance == 0 && overage == 0 {
+		// Cannot calculate total grants when all three values are zero (no data at all).
+		// Note: when balance=0 and overage=0 but usage>0, the grant is fully consumed and
+		// total grants = usage, so the calculation is valid.
+		if balance == 0 && usage == 0 && overage == 0 {
 			return nil, ErrNoBalanceAvailable
 		}
 
