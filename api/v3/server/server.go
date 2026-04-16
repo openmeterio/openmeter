@@ -26,6 +26,8 @@ import (
 	featureshandler "github.com/openmeterio/openmeter/api/v3/handlers/features"
 	llmcosthandler "github.com/openmeterio/openmeter/api/v3/handlers/llmcost"
 	metershandler "github.com/openmeterio/openmeter/api/v3/handlers/meters"
+	planshandler "github.com/openmeterio/openmeter/api/v3/handlers/plans"
+	planaddonshandler "github.com/openmeterio/openmeter/api/v3/handlers/plans/planaddons"
 	subscriptionshandler "github.com/openmeterio/openmeter/api/v3/handlers/subscriptions"
 	taxcodeshandler "github.com/openmeterio/openmeter/api/v3/handlers/taxcodes"
 	"github.com/openmeterio/openmeter/api/v3/oasmiddleware"
@@ -48,6 +50,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -79,6 +82,7 @@ type Config struct {
 	CustomerBalanceFacade   *customerbalance.Facade
 	EntitlementService      entitlement.Service
 	PlanService             plan.Service
+	PlanAddonService        planaddon.Service
 	PlanSubscriptionService plansubscription.PlanSubscriptionService
 	StripeService           appstripe.Service
 	SubscriptionService     subscription.Service
@@ -196,6 +200,8 @@ type Server struct {
 	metersHandler               metershandler.Handler
 	subscriptionsHandler        subscriptionshandler.Handler
 	billingProfilesHandler      billingprofileshandler.Handler
+	plansHandler                planshandler.Handler
+	planAddonsHandler           planaddonshandler.Handler
 	taxcodesHandler             taxcodeshandler.Handler
 	currenciesHandler           currencieshandler.Handler
 	featuresHandler             featureshandler.Handler
@@ -256,6 +262,8 @@ func NewServer(config *Config) (*Server, error) {
 	metersHandler := metershandler.New(resolveNamespace, config.MeterService, config.StreamingConnector, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
 	subscriptionsHandler := subscriptionshandler.New(resolveNamespace, config.CustomerService, config.PlanService, config.PlanSubscriptionService, config.SubscriptionService, httptransport.WithErrorHandler(config.ErrorHandler))
 	billingProfilesHandler := billingprofileshandler.New(resolveNamespace, config.BillingService, httptransport.WithErrorHandler(config.ErrorHandler))
+	plansHandler := planshandler.New(resolveNamespace, config.PlanService, httptransport.WithErrorHandler(config.ErrorHandler))
+	planAddonsHandler := planaddonshandler.New(resolveNamespace, config.PlanService, config.PlanAddonService, httptransport.WithErrorHandler(config.ErrorHandler))
 	taxcodesHandler := taxcodeshandler.New(resolveNamespace, config.TaxCodeService, httptransport.WithErrorHandler(config.ErrorHandler))
 	currenciesHandler := currencieshandler.New(config.NamespaceDecoder, config.CurrencyService, httptransport.WithErrorHandler(config.ErrorHandler))
 
@@ -284,6 +292,8 @@ func NewServer(config *Config) (*Server, error) {
 		metersHandler:               metersHandler,
 		subscriptionsHandler:        subscriptionsHandler,
 		billingProfilesHandler:      billingProfilesHandler,
+		plansHandler:                plansHandler,
+		planAddonsHandler:           planAddonsHandler,
 		taxcodesHandler:             taxcodesHandler,
 		currenciesHandler:           currenciesHandler,
 		featuresHandler:             featuresH,

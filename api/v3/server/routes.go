@@ -6,6 +6,7 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	currencieshandler "github.com/openmeterio/openmeter/api/v3/handlers/currencies"
 	customerscreditshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/credits"
+	planaddonshandler "github.com/openmeterio/openmeter/api/v3/handlers/plans/planaddons"
 )
 
 // Meters
@@ -239,31 +240,31 @@ func (s *Server) DeleteLlmCostOverride(w http.ResponseWriter, r *http.Request, p
 // Plans
 
 func (s *Server) ListPlans(w http.ResponseWriter, r *http.Request, params api.ListPlansParams) {
-	unimplemented.ListPlans(w, r, params)
+	s.plansHandler.ListPlans().With(params).ServeHTTP(w, r)
 }
 
 func (s *Server) CreatePlan(w http.ResponseWriter, r *http.Request) {
-	unimplemented.CreatePlan(w, r)
+	s.plansHandler.CreatePlan().ServeHTTP(w, r)
 }
 
 func (s *Server) GetPlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {
-	unimplemented.GetPlan(w, r, planId)
+	s.plansHandler.GetPlan().With(planId).ServeHTTP(w, r)
 }
 
 func (s *Server) UpdatePlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {
-	unimplemented.UpdatePlan(w, r, planId)
+	s.plansHandler.UpdatePlan().With(planId).ServeHTTP(w, r)
 }
 
 func (s *Server) DeletePlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {
-	unimplemented.DeletePlan(w, r, planId)
+	s.plansHandler.DeletePlan().With(planId).ServeHTTP(w, r)
 }
 
 func (s *Server) ArchivePlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {
-	unimplemented.ArchivePlan(w, r, planId)
+	s.plansHandler.ArchivePlan().With(planId).ServeHTTP(w, r)
 }
 
 func (s *Server) PublishPlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {
-	unimplemented.PublishPlan(w, r, planId)
+	s.plansHandler.PublishPlan().With(planId).ServeHTTP(w, r)
 }
 
 // Addons
@@ -299,23 +300,35 @@ func (s *Server) PublishAddon(w http.ResponseWriter, r *http.Request, addonId ap
 // Plan Addons
 
 func (s *Server) ListPlanAddons(w http.ResponseWriter, r *http.Request, planId api.ULID, params api.ListPlanAddonsParams) {
-	unimplemented.ListPlanAddons(w, r, planId, params)
+	s.planAddonsHandler.ListPlanAddons().With(planaddonshandler.ListPlanAddonsParams{
+		PlanID: planId,
+		Params: params,
+	}).ServeHTTP(w, r)
 }
 
 func (s *Server) CreatePlanAddon(w http.ResponseWriter, r *http.Request, planId api.ULID) {
-	unimplemented.CreatePlanAddon(w, r, planId)
+	s.planAddonsHandler.CreatePlanAddon().With(planId).ServeHTTP(w, r)
 }
 
 func (s *Server) GetPlanAddon(w http.ResponseWriter, r *http.Request, planId api.ULID, planAddonId api.ULID) {
-	unimplemented.GetPlanAddon(w, r, planId, planAddonId)
+	s.planAddonsHandler.GetPlanAddon().With(planaddonshandler.GetPlanAddonParams{
+		PlanID:      planId,
+		PlanAddonID: planAddonId,
+	}).ServeHTTP(w, r)
 }
 
 func (s *Server) UpdatePlanAddon(w http.ResponseWriter, r *http.Request, planId api.ULID, planAddonId api.ULID) {
-	unimplemented.UpdatePlanAddon(w, r, planId, planAddonId)
+	s.planAddonsHandler.UpdatePlanAddon().With(planaddonshandler.UpdatePlanAddonParams{
+		PlanID:      planId,
+		PlanAddonID: planAddonId,
+	}).ServeHTTP(w, r)
 }
 
 func (s *Server) DeletePlanAddon(w http.ResponseWriter, r *http.Request, planId api.ULID, planAddonId api.ULID) {
-	unimplemented.DeletePlanAddon(w, r, planId, planAddonId)
+	s.planAddonsHandler.DeletePlanAddon().With(planaddonshandler.DeletePlanAddonParams{
+		PlanID:      planId,
+		PlanAddonID: planAddonId,
+	}).ServeHTTP(w, r)
 }
 
 // Credits
