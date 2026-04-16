@@ -141,16 +141,18 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 				}
 			}()
 
-				ratingResult, err := s.rater.GetRatingForUsage(ctx, usagebasedrating.GetRatingForUsageInput{
-					Charge:         charge,
-					Customer:       customerOverridesById[charge.GetCustomerID()],
-					FeatureMeter:   featureMeter,
-					StoredAtOffset: storedAt,
-				})
-				if err != nil {
-					err = fmt.Errorf("rating charge %s: %w", charge.ID, err)
-					return
-				}
+			var ratingResult usagebasedrating.GetRatingForUsageResult
+			ratingResult, err = s.rater.GetRatingForUsage(ctx, usagebasedrating.GetRatingForUsageInput{
+				Charge:         charge,
+				Customer:       customerOverridesById[charge.GetCustomerID()],
+				FeatureMeter:   featureMeter,
+				StoredAtOffset: storedAt,
+			})
+			if err != nil {
+				err = fmt.Errorf("rating charge %s: %w", charge.ID, err)
+				return
+			}
+
 			ratingResults.Store(charge.GetChargeID(), ratingResult)
 		})
 	}
