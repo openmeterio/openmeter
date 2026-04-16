@@ -487,7 +487,7 @@ func (s *LineEngineTestSuite) TestOnInvoiceIssuedFailureTransitionsToRetryableIs
 			s.Require().NoError(err)
 		}
 
-			s.Equal(ombilling.StandardInvoiceStatusIssuingChargeBookingFailed, invoice.Status)
+		s.Equal(ombilling.StandardInvoiceStatusIssuingChargeBookingFailed, invoice.Status)
 		s.True(invoice.StatusDetails.Failed)
 		s.NotNil(invoice.StatusDetails.AvailableActions.Retry)
 		s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingPending, invoice.StatusDetails.AvailableActions.Retry.ResultingState)
