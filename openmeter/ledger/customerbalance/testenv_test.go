@@ -211,6 +211,7 @@ func newTestEnv(t *testing.T) *testEnv {
 			usageBasedService: usageService,
 		},
 		UsageBasedService: usageService,
+		Ledger:            base.Deps.HistoricalLedger,
 	})
 	require.NoError(t, err)
 

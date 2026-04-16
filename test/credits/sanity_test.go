@@ -1258,7 +1258,7 @@ func (s *CreditsTestSuite) mustCustomerFBOBalanceWithPriority(customerID custome
 		Currency:       code,
 		CostBasis:      costBasis,
 		CreditPriority: lo.ToPtr(priority),
-	})
+	}, nil)
 	s.NoError(err)
 
 	return balance.Settled()
@@ -1277,7 +1277,7 @@ func (s *CreditsTestSuite) mustCustomerReceivableBalance(customerID customer.Cus
 		Currency:                       code,
 		CostBasis:                      costBasis,
 		TransactionAuthorizationStatus: lo.ToPtr(status),
-	})
+	}, nil)
 	s.NoError(err)
 
 	return balance.Settled()
@@ -1295,7 +1295,7 @@ func (s *CreditsTestSuite) mustCustomerAccruedBalance(customerID customer.Custom
 	balance, err := customerAccounts.AccruedAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
 		Currency:  code,
 		CostBasis: costBasis,
-	})
+	}, nil)
 	s.NoError(err)
 
 	return balance.Settled()
@@ -1313,7 +1313,7 @@ func (s *CreditsTestSuite) mustWashBalance(namespace string, code currencyx.Code
 	balance, err := businessAccounts.WashAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
 		Currency:  code,
 		CostBasis: costBasis,
-	})
+	}, nil)
 	s.NoError(err)
 
 	return balance.Settled()
@@ -1327,7 +1327,7 @@ func (s *CreditsTestSuite) mustEarningsBalance(namespace string, code currencyx.
 
 	balance, err := businessAccounts.EarningsAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
 		Currency: code,
-	})
+	}, nil)
 	s.NoError(err)
 
 	return balance.Settled()

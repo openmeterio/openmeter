@@ -68,6 +68,16 @@ func (p Query) Validate() error {
 		}
 	}
 
+	if p.Filters.After != nil {
+		if err := p.Filters.After.Validate(); err != nil {
+			return ErrLedgerQueryInvalid.WithAttrs(models.Attributes{
+				"reason": "after_invalid",
+				"after":  p.Filters.After,
+				"error":  err,
+			})
+		}
+	}
+
 	if _, err := p.Filters.Route.Normalize(); err != nil {
 		return ErrLedgerQueryInvalid.WithAttrs(models.Attributes{
 			"reason": "route_invalid",
@@ -82,6 +92,7 @@ func (p Query) Validate() error {
 type Filters struct {
 	// BookedAtPeriod is inclusive-exclusive... should it be? Maybe finally add period inclusivity params?
 	BookedAtPeriod *timeutil.OpenPeriod
+	After          *TransactionCursor
 	TransactionID  *string
 	// AccountID narrows the query to a single account via its sub-accounts.
 	AccountID *string

@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	pagepagination "github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	"github.com/openmeterio/openmeter/tools/migrate"
 )
@@ -224,6 +225,207 @@ func TestRepo_ListTransactions_PaginatesAndFilters(t *testing.T) {
 	require.Equal(t, tx2.ID(), filtered.Items[0].ID())
 }
 
+func TestRepo_ListTransactionsByPage_FiltersCreditMovementByScopedFBOEntry(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+	env.DBSchemaMigrate(t)
+
+	ctx := t.Context()
+	namespace := testNamespace()
+	usdSubAccount := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
+	eurSubAccount := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("EUR")})
+
+	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+
+	txInput := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
+		{
+			Address:     testAddress(t, usdSubAccount),
+			AmountValue: alpacadecimal.NewFromInt(-10),
+		},
+		{
+			Address:     testAddress(t, eurSubAccount),
+			AmountValue: alpacadecimal.NewFromInt(10),
+		},
+	})
+	tx, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInput)
+	require.NoError(t, err)
+
+	page := pagepagination.NewPage(1, 20)
+	usd := currencyx.Code("USD")
+	eur := currencyx.Code("EUR")
+	accountIDs := []string{usdSubAccount.AccountID, eurSubAccount.AccountID}
+
+	usdConsumed, err := env.repo.ListTransactionsByPage(ctx, ledger.ListTransactionsByPageInput{
+		Page:           page,
+		Namespace:      namespace,
+		AccountIDs:     accountIDs,
+		Currency:       &usd,
+		CreditMovement: ledger.ListTransactionsCreditMovementNegative,
+	})
+	require.NoError(t, err)
+	require.Len(t, usdConsumed.Items, 1)
+	require.Equal(t, tx.ID(), usdConsumed.Items[0].ID())
+	require.Len(t, usdConsumed.Items[0].Entries(), 1)
+	require.Equal(t, currencyx.Code("USD"), usdConsumed.Items[0].Entries()[0].PostingAddress().Route().Route().Currency)
+
+	usdFunded, err := env.repo.ListTransactionsByPage(ctx, ledger.ListTransactionsByPageInput{
+		Page:           page,
+		Namespace:      namespace,
+		AccountIDs:     accountIDs,
+		Currency:       &usd,
+		CreditMovement: ledger.ListTransactionsCreditMovementPositive,
+	})
+	require.NoError(t, err)
+	require.Len(t, usdFunded.Items, 0)
+
+	eurFunded, err := env.repo.ListTransactionsByPage(ctx, ledger.ListTransactionsByPageInput{
+		Page:           page,
+		Namespace:      namespace,
+		AccountIDs:     accountIDs,
+		Currency:       &eur,
+		CreditMovement: ledger.ListTransactionsCreditMovementPositive,
+	})
+	require.NoError(t, err)
+	require.Len(t, eurFunded.Items, 1)
+	require.Equal(t, tx.ID(), eurFunded.Items[0].ID())
+	require.Len(t, eurFunded.Items[0].Entries(), 1)
+	require.Equal(t, currencyx.Code("EUR"), eurFunded.Items[0].Entries()[0].PostingAddress().Route().Route().Currency)
+
+	eurConsumed, err := env.repo.ListTransactionsByPage(ctx, ledger.ListTransactionsByPageInput{
+		Page:           page,
+		Namespace:      namespace,
+		AccountIDs:     accountIDs,
+		Currency:       &eur,
+		CreditMovement: ledger.ListTransactionsCreditMovementNegative,
+	})
+	require.NoError(t, err)
+	require.Len(t, eurConsumed.Items, 0)
+}
+
+func TestRepo_ListTransactionsByPage_PaginatesAndFiltersByAccountAndAnnotation(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+	env.DBSchemaMigrate(t)
+
+	ctx := t.Context()
+	namespace := testNamespace()
+	usdSubAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
+	eurSubAccount := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("EUR")})
+	usdSubAccountC := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
+
+	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+
+	now := time.Now().UTC()
+
+	txOld, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, &transactionstestutils.AnyTransactionInput{
+		BookedAtValue: now.Add(-2 * time.Hour),
+		AnnotationsValue: models.Annotations{
+			"kind": "keep",
+		},
+		EntryInputsValues: []*transactionstestutils.AnyEntryInput{
+			{
+				Address:     testAddress(t, usdSubAccountA),
+				AmountValue: alpacadecimal.NewFromInt(-10),
+			},
+			{
+				Address:     testAddress(t, eurSubAccount),
+				AmountValue: alpacadecimal.NewFromInt(10),
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, &transactionstestutils.AnyTransactionInput{
+		BookedAtValue: now.Add(-90 * time.Minute),
+		AnnotationsValue: models.Annotations{
+			"kind": "skip",
+		},
+		EntryInputsValues: []*transactionstestutils.AnyEntryInput{
+			{
+				Address:     testAddress(t, usdSubAccountA),
+				AmountValue: alpacadecimal.NewFromInt(-15),
+			},
+			{
+				Address:     testAddress(t, eurSubAccount),
+				AmountValue: alpacadecimal.NewFromInt(15),
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, &transactionstestutils.AnyTransactionInput{
+		BookedAtValue: now.Add(-1 * time.Hour),
+		AnnotationsValue: models.Annotations{
+			"kind": "keep",
+		},
+		EntryInputsValues: []*transactionstestutils.AnyEntryInput{
+			{
+				Address:     testAddress(t, usdSubAccountC),
+				AmountValue: alpacadecimal.NewFromInt(-20),
+			},
+			{
+				Address:     testAddress(t, eurSubAccount),
+				AmountValue: alpacadecimal.NewFromInt(20),
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	txNew, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, &transactionstestutils.AnyTransactionInput{
+		BookedAtValue: now.Add(-30 * time.Minute),
+		AnnotationsValue: models.Annotations{
+			"kind": "keep",
+		},
+		EntryInputsValues: []*transactionstestutils.AnyEntryInput{
+			{
+				Address:     testAddress(t, usdSubAccountA),
+				AmountValue: alpacadecimal.NewFromInt(-30),
+			},
+			{
+				Address:     testAddress(t, eurSubAccount),
+				AmountValue: alpacadecimal.NewFromInt(30),
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	page1, err := env.repo.ListTransactionsByPage(ctx, ledger.ListTransactionsByPageInput{
+		Page:       pagepagination.NewPage(1, 1),
+		Namespace:  namespace,
+		AccountIDs: []string{usdSubAccountA.AccountID},
+		AnnotationFilters: map[string]string{
+			"kind": "keep",
+		},
+	})
+	require.NoError(t, err)
+	require.Equal(t, 2, page1.TotalCount)
+	require.Len(t, page1.Items, 1)
+	require.Equal(t, txNew.ID(), page1.Items[0].ID())
+
+	page2, err := env.repo.ListTransactionsByPage(ctx, ledger.ListTransactionsByPageInput{
+		Page:       pagepagination.NewPage(2, 1),
+		Namespace:  namespace,
+		AccountIDs: []string{usdSubAccountA.AccountID},
+		AnnotationFilters: map[string]string{
+			"kind": "keep",
+		},
+	})
+	require.NoError(t, err)
+	require.Equal(t, 2, page2.TotalCount)
+	require.Len(t, page2.Items, 1)
+	require.Equal(t, txOld.ID(), page2.Items[0].ID())
+}
+
 func TestRepo_SumEntries_Filters(t *testing.T) {
 	env := NewTestEnv(t)
 	t.Cleanup(func() {
@@ -280,7 +482,7 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 			AmountValue: alpacadecimal.NewFromInt(-50),
 		},
 	})
-	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInputLate)
+	txLate, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInputLate)
 	require.NoError(t, err)
 
 	txInputCostBasis := mustSetUpHistoricalTransactionInput(t, time.Now().UTC().Add(-15*time.Minute), []*transactionstestutils.AnyEntryInput{
@@ -293,7 +495,7 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 			AmountValue: alpacadecimal.NewFromInt(-25),
 		},
 	})
-	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInputCostBasis)
+	txCostBasis, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInputCostBasis)
 	require.NoError(t, err)
 
 	// Sum by currency
@@ -360,6 +562,36 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.True(t, sumCostBasis.Equal(alpacadecimal.NewFromInt(25)))
+
+	sumAfterLate, err := env.repo.SumEntries(ctx, ledger.Query{
+		Namespace: namespace,
+		Filters: ledger.Filters{
+			After: lo.ToPtr(txLate.Cursor()),
+			Route: ledger.RouteFilter{Currency: currencyx.Code("USD")},
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, sumAfterLate.Equal(alpacadecimal.NewFromInt(50)))
+
+	sumAfterCostBasis, err := env.repo.SumEntries(ctx, ledger.Query{
+		Namespace: namespace,
+		Filters: ledger.Filters{
+			After: lo.ToPtr(txCostBasis.Cursor()),
+			Route: ledger.RouteFilter{Currency: currencyx.Code("USD")},
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, sumAfterCostBasis.Equal(alpacadecimal.NewFromInt(75)))
+
+	sumAfterEarly, err := env.repo.SumEntries(ctx, ledger.Query{
+		Namespace: namespace,
+		Filters: ledger.Filters{
+			After: lo.ToPtr(txEarly.Cursor()),
+			Route: ledger.RouteFilter{Currency: currencyx.Code("USD")},
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, sumAfterEarly.Equal(alpacadecimal.NewFromInt(0)))
 }
 
 func TestSumEntriesQuery_SQL(t *testing.T) {

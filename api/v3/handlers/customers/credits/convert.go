@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -306,4 +307,105 @@ func convertBalance(currency currencyx.Code, balance ledger.Balance) api.CreditB
 		Available: balance.Settled().String(),
 		Pending:   balance.Pending().String(),
 	}
+}
+
+func fromAPIBillingCreditTransactionType(filter *api.BillingCreditTransactionType) *customerbalance.CreditTransactionType {
+	if filter == nil {
+		return nil
+	}
+
+	var txType customerbalance.CreditTransactionType
+	switch *filter {
+	case api.BillingCreditTransactionTypeFunded:
+		txType = customerbalance.CreditTransactionTypeFunded
+	case api.BillingCreditTransactionTypeConsumed:
+		txType = customerbalance.CreditTransactionTypeConsumed
+	case api.BillingCreditTransactionTypeAdjusted:
+		txType = customerbalance.CreditTransactionTypeAdjusted
+	default:
+		return nil
+	}
+
+	return &txType
+}
+
+func toAPIBillingCreditTransactions(items []customerbalance.CreditTransaction) []api.BillingCreditTransaction {
+	out := make([]api.BillingCreditTransaction, 0, len(items))
+
+	for _, item := range items {
+		out = append(out, toAPIBillingCreditTransaction(item))
+	}
+
+	return out
+}
+
+func toAPIBillingCreditTransaction(tx customerbalance.CreditTransaction) api.BillingCreditTransaction {
+	apiTx := api.BillingCreditTransaction{
+		Id:        tx.ID.ID,
+		CreatedAt: &tx.CreatedAt,
+		BookedAt:  tx.BookedAt,
+		Type:      toAPIBillingCreditTransactionType(tx.Type),
+		Currency:  api.BillingCurrencyCode(tx.Currency),
+		Amount:    tx.Amount.String(),
+		Name:      tx.Name,
+		AvailableBalance: struct {
+			After  api.Numeric `json:"after"`
+			Before api.Numeric `json:"before"`
+		}{
+			Before: tx.Balance.Before.String(),
+			After:  tx.Balance.After.String(),
+		},
+	}
+
+	labels := creditTransactionLabels(tx.Annotations)
+	if len(labels) > 0 {
+		apiLabels := api.Labels(labels)
+		apiTx.Labels = &apiLabels
+	}
+
+	return apiTx
+}
+
+func toAPIBillingCreditTransactionType(txType customerbalance.CreditTransactionType) api.BillingCreditTransactionType {
+	switch txType {
+	case customerbalance.CreditTransactionTypeFunded:
+		return api.BillingCreditTransactionTypeFunded
+	case customerbalance.CreditTransactionTypeConsumed:
+		return api.BillingCreditTransactionTypeConsumed
+	default:
+		return api.BillingCreditTransactionTypeAdjusted
+	}
+}
+
+func creditTransactionLabels(annotations models.Annotations) map[string]string {
+	labels := make(map[string]string)
+
+	setLabel := func(key, annotationKey string) {
+		value := stringAnnotation(annotations, annotationKey)
+		if value != "" {
+			labels[key] = value
+		}
+	}
+
+	setLabel("charge_id", ledger.AnnotationChargeID)
+	setLabel("subscription_id", ledger.AnnotationSubscriptionID)
+	setLabel("subscription_phase_id", ledger.AnnotationSubscriptionPhaseID)
+	setLabel("subscription_item_id", ledger.AnnotationSubscriptionItemID)
+	setLabel("feature_id", ledger.AnnotationFeatureID)
+
+	return labels
+}
+
+func stringAnnotation(annotations models.Annotations, key string) string {
+	raw, ok := annotations[key]
+	if !ok {
+		return ""
+	}
+
+	value, ok := raw.(string)
+	if !ok {
+		return ""
+	}
+
+	return value
 }

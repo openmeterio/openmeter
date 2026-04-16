@@ -40,7 +40,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
+	ledgernoop "github.com/openmeterio/openmeter/openmeter/ledger/noop"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
@@ -72,6 +74,8 @@ type Config struct {
 	IngestService           ingest.Service
 	CustomerService         customer.Service
 	CreditGrantService      creditgrant.Service
+	Ledger                  ledger.Ledger
+	AccountResolver         ledger.AccountResolver
 	CustomerBalanceFacade   *customerbalance.Facade
 	EntitlementService      entitlement.Service
 	PlanService             plan.Service
@@ -155,6 +159,24 @@ func (c *Config) Validate() error {
 		errs = append(errs, errors.New("feature connector is required"))
 	}
 
+	if c.Credits.Enabled {
+		if c.CustomerBalanceFacade == nil {
+			errs = append(errs, errors.New("customer balance facade is required when credits are enabled"))
+		}
+
+		if c.CreditGrantService == nil {
+			errs = append(errs, errors.New("credit grant service is required when credits are enabled"))
+		}
+
+		if c.Ledger == nil {
+			errs = append(errs, errors.New("ledger is required when credits are enabled"))
+		}
+
+		if c.AccountResolver == nil {
+			errs = append(errs, errors.New("account resolver is required when credits are enabled"))
+		}
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -215,10 +237,21 @@ func NewServer(config *Config) (*Server, error) {
 	eventsHandler := eventshandler.New(resolveNamespace, config.IngestService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersHandler := customershandler.New(resolveNamespace, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersBillingHandler := customersbillinghandler.New(resolveNamespace, config.BillingService, config.CustomerService, config.StripeService, httptransport.WithErrorHandler(config.ErrorHandler))
-	var customersCreditsHandler customerscreditshandler.Handler
-	if config.CustomerBalanceFacade != nil && config.Credits.Enabled {
-		customersCreditsHandler = customerscreditshandler.New(resolveNamespace, config.CustomerService, config.CustomerBalanceFacade, config.CreditGrantService, httptransport.WithErrorHandler(config.ErrorHandler))
+	customerBalanceFacade := config.CustomerBalanceFacade
+	creditGrantService := config.CreditGrantService
+	ledgerService := config.Ledger
+	accountResolver := config.AccountResolver
+	if !config.Credits.Enabled {
+		customerBalanceFacade, err = customerbalance.NewFacade(customerbalance.NewNoopService())
+		if err != nil {
+			return nil, fmt.Errorf("create noop customer balance facade: %w", err)
+		}
+
+		creditGrantService = creditgrant.NewNoopService()
+		ledgerService = ledgernoop.Ledger{}
+		accountResolver = ledgernoop.AccountResolver{}
 	}
+	customersCreditsHandler := customerscreditshandler.New(resolveNamespace, config.CustomerService, customerBalanceFacade, creditGrantService, ledgerService, accountResolver, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersEntitlementHandler := customersentitlementhandler.New(resolveNamespace, config.CustomerService, config.EntitlementService, httptransport.WithErrorHandler(config.ErrorHandler))
 	metersHandler := metershandler.New(resolveNamespace, config.MeterService, config.StreamingConnector, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
 	subscriptionsHandler := subscriptionshandler.New(resolveNamespace, config.CustomerService, config.PlanService, config.PlanSubscriptionService, config.SubscriptionService, httptransport.WithErrorHandler(config.ErrorHandler))

@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	chargeusagebased "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
@@ -84,6 +85,37 @@ func TestOnUsageBasedCreditsOnlyUsageAccrued(t *testing.T) {
 		require.True(t, env.sumBalance(t, env.unknownReceivableSubAccount(t)).Equal(alpacadecimal.Zero))
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(20)))
 		require.True(t, env.sumBalance(t, env.unknownAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
+	})
+
+	t.Run("tracks charge references on transactions", func(t *testing.T) {
+		env := newUsageBasedHandlerTestEnv(t)
+
+		charge := env.newCreditsOnlyCharge()
+		charge.Intent.Subscription = &meta.SubscriptionReference{
+			SubscriptionID: "subscription-01JABCDEF0123456789ABCDEF",
+			PhaseID:        "phase-01JABCDEF0123456789ABCDEF",
+			ItemID:         "item-01JABCDEF0123456789ABCDEF",
+		}
+
+		realizations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedInput{
+			Charge:           charge,
+			Run:              env.newRun(),
+			AllocateAt:       env.Now(),
+			AmountToAllocate: alpacadecimal.NewFromInt(30),
+		})
+		require.NoError(t, err)
+		require.Len(t, realizations, 1)
+
+		transactionAnnotations := env.transactionAnnotations(t, realizations[0].LedgerTransaction.TransactionGroupID)
+		require.NotEmpty(t, transactionAnnotations)
+		for _, annotations := range transactionAnnotations {
+			require.Equal(t, charge.ID, annotations[ledger.AnnotationChargeID])
+			require.Equal(t, env.Namespace, annotations[ledger.AnnotationChargeNamespace])
+			require.Equal(t, charge.Intent.Subscription.SubscriptionID, annotations[ledger.AnnotationSubscriptionID])
+			require.Equal(t, charge.Intent.Subscription.PhaseID, annotations[ledger.AnnotationSubscriptionPhaseID])
+			require.Equal(t, charge.Intent.Subscription.ItemID, annotations[ledger.AnnotationSubscriptionItemID])
+			require.Equal(t, charge.State.FeatureID, annotations[ledger.AnnotationFeatureID])
+		}
 	})
 
 	t.Run("zero amount is rejected by input validation", func(t *testing.T) {
@@ -367,6 +399,29 @@ func (e *usageBasedHandlerTestEnv) unknownFboSubAccount(t *testing.T) ledger.Sub
 
 func (e *usageBasedHandlerTestEnv) sumBalance(t *testing.T, subAccount ledger.SubAccount) alpacadecimal.Decimal {
 	return e.SumBalance(t, subAccount)
+}
+
+func (e *usageBasedHandlerTestEnv) transactionAnnotations(t *testing.T, groupID string) []models.Annotations {
+	t.Helper()
+
+	transactions, err := e.DB.LedgerTransaction.Query().
+		Where(
+			ledgertransactiondb.Namespace(e.Namespace),
+			ledgertransactiondb.GroupID(groupID),
+		).
+		Order(
+			ledgertransactiondb.ByCreatedAt(),
+			ledgertransactiondb.ByID(),
+		).
+		All(t.Context())
+	require.NoError(t, err)
+
+	out := make([]models.Annotations, 0, len(transactions))
+	for _, tx := range transactions {
+		out = append(out, tx.Annotations)
+	}
+
+	return out
 }
 
 func (e *usageBasedHandlerTestEnv) realizationsFromAllocations(allocations creditrealization.CreateAllocationInputs) creditrealization.Realizations {

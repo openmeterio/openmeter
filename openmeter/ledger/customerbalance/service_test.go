@@ -113,7 +113,7 @@ func TestGetBalance(t *testing.T) {
 			balance, err := env.Service.GetBalance(t.Context(), env.CustomerID, ledger.RouteFilter{
 				Currency:       env.Currency,
 				CreditPriority: &priority,
-			})
+			}, nil)
 			require.NoError(t, err)
 			require.True(t, balance.Settled().Equal(alpacadecimal.NewFromInt(tt.wantSettled)))
 			require.True(t, balance.Pending().Equal(alpacadecimal.NewFromInt(tt.wantPending)))
@@ -133,7 +133,7 @@ func TestGetBalanceWithDifferentCurrency(t *testing.T) {
 	usdBalance, err := env.Service.GetBalance(t.Context(), env.CustomerID, ledger.RouteFilter{
 		Currency:       currencyx.Code("USD"),
 		CreditPriority: &usdPriority,
-	})
+	}, nil)
 	require.NoError(t, err)
 	require.True(t, usdBalance.Settled().Equal(alpacadecimal.NewFromInt(100)))
 	require.True(t, usdBalance.Pending().Equal(alpacadecimal.NewFromInt(70)))
@@ -142,7 +142,7 @@ func TestGetBalanceWithDifferentCurrency(t *testing.T) {
 	eurBalance, err := env.Service.GetBalance(t.Context(), env.CustomerID, ledger.RouteFilter{
 		Currency:       currencyx.Code("EUR"),
 		CreditPriority: &eurPriority,
-	})
+	}, nil)
 	require.NoError(t, err)
 	require.True(t, eurBalance.Settled().Equal(alpacadecimal.NewFromInt(200)))
 	require.True(t, eurBalance.Pending().Equal(alpacadecimal.NewFromInt(130)))

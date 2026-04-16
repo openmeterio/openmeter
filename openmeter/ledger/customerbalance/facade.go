@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/alpacahq/alpacadecimal"
+
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -29,6 +31,12 @@ type GetBalancesInput struct {
 	Currencies CurrencyFilter
 }
 
+type GetBalanceInput struct {
+	CustomerID customer.CustomerID
+	Currency   currencyx.Code
+	After      *ledger.TransactionCursor
+}
+
 func (i GetBalancesInput) Validate() error {
 	var errs []error
 
@@ -43,13 +51,34 @@ func (i GetBalancesInput) Validate() error {
 	return errors.Join(errs...)
 }
 
+func (i GetBalanceInput) Validate() error {
+	var errs []error
+
+	if err := i.CustomerID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("customer ID: %w", err))
+	}
+
+	if err := i.Currency.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("currency: %w", err))
+	}
+
+	if i.After != nil {
+		if err := i.After.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("after: %w", err))
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
 type BalanceByCurrency struct {
 	Currency currencyx.Code
 	Balance  ledger.Balance
 }
 
 type FacadeService interface {
-	GetBalance(ctx context.Context, customerID customer.CustomerID, filters ledger.RouteFilter) (ledger.Balance, error)
+	GetBalance(ctx context.Context, customerID customer.CustomerID, filters ledger.RouteFilter, after *ledger.TransactionCursor) (ledger.Balance, error)
+	ListCreditTransactions(ctx context.Context, input ListCreditTransactionsInput) (ListCreditTransactionsResult, error)
 	getFBOCurrencies(ctx context.Context, customerID customer.CustomerID) ([]currencyx.Code, error)
 }
 
@@ -96,7 +125,7 @@ func (f *Facade) GetBalances(ctx context.Context, input GetBalancesInput) ([]Bal
 
 	balances := make([]BalanceByCurrency, 0, len(codes))
 	for _, code := range codes {
-		balance, err := f.service.GetBalance(ctx, input.CustomerID, routeFilter(code))
+		balance, err := f.service.GetBalance(ctx, input.CustomerID, routeFilter(code), nil)
 		if err != nil {
 			return nil, err
 		}
@@ -108,6 +137,35 @@ func (f *Facade) GetBalances(ctx context.Context, input GetBalancesInput) ([]Bal
 	}
 
 	return balances, nil
+}
+
+func (f *Facade) GetBalance(ctx context.Context, input GetBalanceInput) (alpacadecimal.Decimal, error) {
+	if f == nil {
+		return alpacadecimal.Zero, errors.New("facade is required")
+	}
+
+	if err := input.Validate(); err != nil {
+		return alpacadecimal.Zero, err
+	}
+
+	balance, err := f.service.GetBalance(ctx, input.CustomerID, routeFilter(input.Currency), input.After)
+	if err != nil {
+		return alpacadecimal.Zero, err
+	}
+
+	return balance.Settled(), nil
+}
+
+func (f *Facade) ListCreditTransactions(ctx context.Context, input ListCreditTransactionsInput) (ListCreditTransactionsResult, error) {
+	if f == nil {
+		return ListCreditTransactionsResult{}, errors.New("facade is required")
+	}
+
+	if err := input.Validate(); err != nil {
+		return ListCreditTransactionsResult{}, err
+	}
+
+	return f.service.ListCreditTransactions(ctx, input)
 }
 
 func routeFilter(currency currencyx.Code) ledger.RouteFilter {

@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	chargecreditpurchase "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	ledgertransactiongroupdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
@@ -48,6 +49,41 @@ func TestOnCreditPurchaseInitiated(t *testing.T) {
 
 	require.True(t, env.sumBalance(t, env.fboSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(100)))
 	require.True(t, env.sumBalance(t, env.receivableSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(-100)))
+}
+
+func TestOnCreditPurchaseInitiated_TracksChargeReferencesOnTransactions(t *testing.T) {
+	env := newCreditPurchaseHandlerTestEnv(t)
+
+	costBasis := mustDecimal(t, "0.5")
+	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
+	charge.Intent.Subscription = &meta.SubscriptionReference{
+		SubscriptionID: "subscription-01JABCDEF0123456789ABCDEF",
+		PhaseID:        "phase-01JABCDEF0123456789ABCDEF",
+		ItemID:         "item-01JABCDEF0123456789ABCDEF",
+	}
+
+	ref, err := env.handler.OnCreditPurchaseInitiated(t.Context(), charge)
+	require.NoError(t, err)
+	require.NotEmpty(t, ref.TransactionGroupID)
+
+	expected := ledger.ChargeTransactionAnnotations(ledger.ChargeTransactionAnnotationsInput{
+		ChargeID: models.NamespacedID{
+			Namespace: env.Namespace,
+			ID:        charge.ID,
+		},
+		SubscriptionID:      &charge.Intent.Subscription.SubscriptionID,
+		SubscriptionPhaseID: &charge.Intent.Subscription.PhaseID,
+		SubscriptionItemID:  &charge.Intent.Subscription.ItemID,
+	})
+	require.Equal(t, expected, env.transactionGroupAnnotations(t, ref.TransactionGroupID))
+
+	for _, annotations := range env.transactionAnnotations(t, ref.TransactionGroupID) {
+		require.Equal(t, charge.ID, annotations[ledger.AnnotationChargeID])
+		require.Equal(t, env.Namespace, annotations[ledger.AnnotationChargeNamespace])
+		require.Equal(t, charge.Intent.Subscription.SubscriptionID, annotations[ledger.AnnotationSubscriptionID])
+		require.Equal(t, charge.Intent.Subscription.PhaseID, annotations[ledger.AnnotationSubscriptionPhaseID])
+		require.Equal(t, charge.Intent.Subscription.ItemID, annotations[ledger.AnnotationSubscriptionItemID])
+	}
 }
 
 func TestOnCreditPurchaseInitiated_OnlyIssuesExcessBeyondAdvance(t *testing.T) {
@@ -364,6 +400,29 @@ func (e *creditPurchaseHandlerTestEnv) transactionGroupAnnotations(t *testing.T,
 	require.NoError(t, err)
 
 	return group.Annotations
+}
+
+func (e *creditPurchaseHandlerTestEnv) transactionAnnotations(t *testing.T, groupID string) []models.Annotations {
+	t.Helper()
+
+	transactions, err := e.DB.LedgerTransaction.Query().
+		Where(
+			ledgertransactiondb.Namespace(e.Namespace),
+			ledgertransactiondb.GroupID(groupID),
+		).
+		Order(
+			ledgertransactiondb.ByCreatedAt(),
+			ledgertransactiondb.ByID(),
+		).
+		All(t.Context())
+	require.NoError(t, err)
+
+	out := make([]models.Annotations, 0, len(transactions))
+	for _, tx := range transactions {
+		out = append(out, tx.Annotations)
+	}
+
+	return out
 }
 
 func mustDecimal(t *testing.T, raw string) alpacadecimal.Decimal {

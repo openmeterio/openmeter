@@ -60,6 +60,17 @@ func (t *Transaction) Annotations() models.Annotations {
 	return t.data.Annotations
 }
 
+func (t *Transaction) Cursor() ledger.TransactionCursor {
+	return ledger.TransactionCursor{
+		BookedAt:  t.data.BookedAt,
+		CreatedAt: t.data.CreatedAt,
+		ID: models.NamespacedID{
+			Namespace: t.data.Namespace,
+			ID:        t.data.ID,
+		},
+	}
+}
+
 type TransactionGroup struct {
 	data         TransactionGroupData
 	transactions []*Transaction

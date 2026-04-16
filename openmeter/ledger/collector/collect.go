@@ -48,12 +48,23 @@ func (c *accrualCollector) collect(ctx context.Context, input CollectToAccruedIn
 		return nil, nil
 	}
 
-	transactionGroup, err := c.ledger.CommitGroup(ctx, transactions.GroupInputs(
-		input.Namespace,
-		ledger.ChargeAnnotations(models.NamespacedID{
+	groupAnnotations := input.Annotations
+	if groupAnnotations == nil {
+		groupAnnotations = ledger.ChargeAnnotations(models.NamespacedID{
 			Namespace: input.Namespace,
 			ID:        input.ChargeID,
-		}),
+		})
+	}
+
+	for i, txInput := range inputs {
+		if txInput != nil {
+			inputs[i] = transactions.WithAnnotations(txInput, groupAnnotations)
+		}
+	}
+
+	transactionGroup, err := c.ledger.CommitGroup(ctx, transactions.GroupInputs(
+		input.Namespace,
+		groupAnnotations,
 		inputs...,
 	))
 	if err != nil {

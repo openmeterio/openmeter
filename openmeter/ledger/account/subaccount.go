@@ -77,7 +77,7 @@ func (s *SubAccount) GetBalance(ctx context.Context) (ledger.Balance, error) {
 		return nil, fmt.Errorf("parent account is required")
 	}
 
-	res, err := s.account.GetBalance(ctx, s.data.Route.Filter())
+	res, err := s.account.GetBalance(ctx, s.data.Route.Filter(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get balance for sub-account %s: %w", s.data.ID, err)
 	}

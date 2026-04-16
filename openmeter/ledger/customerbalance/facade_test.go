@@ -2,12 +2,18 @@ package customerbalance
 
 import (
 	"testing"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/ledger"
+	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	pagepagination "github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 func TestFacadeGetBalancesWithExplicitCurrencies(t *testing.T) {
@@ -88,4 +94,48 @@ func TestFacadeGetBalancesWithUnsupportedExplicitCurrency(t *testing.T) {
 	require.Error(t, err)
 	require.ErrorContains(t, err, "CUSTOM")
 	require.ErrorContains(t, err, "not supported by ledger")
+}
+
+func TestFacadeGetBalanceAfterTransactionCursor(t *testing.T) {
+	env := newTestEnv(t)
+	facade, err := NewFacade(env.Service)
+	require.NoError(t, err)
+
+	firstBookedAt := time.Date(2026, 4, 10, 9, 0, 0, 0, time.UTC)
+	secondBookedAt := firstBookedAt.Add(time.Minute)
+
+	clock.SetTime(firstBookedAt)
+	defer clock.ResetTime()
+	env.bookFBOBalance(t, alpacadecimal.NewFromInt(100))
+
+	clock.SetTime(secondBookedAt)
+	env.bookFBOBalance(t, alpacadecimal.NewFromInt(20))
+
+	fboAccount, ok := env.CustomerAccounts.FBOAccount.(*ledgeraccount.CustomerFBOAccount)
+	require.True(t, ok)
+
+	paged, err := env.Deps.HistoricalLedger.ListTransactionsByPage(t.Context(), ledger.ListTransactionsByPageInput{
+		Page:       pagepagination.NewPage(1, 10),
+		Namespace:  env.Namespace,
+		AccountIDs: []string{fboAccount.ID().ID},
+		Currency:   &env.Currency,
+	})
+	require.NoError(t, err)
+	require.Len(t, paged.Items, 2)
+
+	olderTx := paged.Items[1]
+	balanceAfterOlderTx, err := facade.GetBalance(t.Context(), GetBalanceInput{
+		CustomerID: env.CustomerID,
+		Currency:   env.Currency,
+		After:      lo.ToPtr(olderTx.Cursor()),
+	})
+	require.NoError(t, err)
+	require.True(t, balanceAfterOlderTx.Equal(alpacadecimal.NewFromInt(100)))
+
+	currentBalance, err := facade.GetBalance(t.Context(), GetBalanceInput{
+		CustomerID: env.CustomerID,
+		Currency:   env.Currency,
+	})
+	require.NoError(t, err)
+	require.True(t, currentBalance.Equal(alpacadecimal.NewFromInt(120)))
 }

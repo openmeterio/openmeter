@@ -39,6 +39,7 @@ import (
 	infohttpdriver "github.com/openmeterio/openmeter/openmeter/info/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	ingesthttpdriver "github.com/openmeterio/openmeter/openmeter/ingest/httpdriver"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -104,6 +105,8 @@ type Config struct {
 	CurrencyService             currencies.CurrencyService
 	CostService                 cost.Service
 	CreditGrantService          creditgrant.Service
+	Ledger                      ledger.Ledger
+	AccountResolver             ledger.AccountResolver
 	Customer                    customer.Service
 	CustomerBalanceFacade       *customerbalance.Facade
 	DebugConnector              debug.DebugConnector

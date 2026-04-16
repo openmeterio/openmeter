@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -29,6 +30,7 @@ type CollectToAccruedInput struct {
 	Namespace      string
 	ChargeID       string
 	CustomerID     string
+	Annotations    models.Annotations
 	At             time.Time
 	Currency       currencyx.Code
 	SettlementMode productcatalog.SettlementMode
@@ -40,6 +42,7 @@ type CorrectCollectedAccruedInput struct {
 	Namespace                    string
 	ChargeID                     string
 	CustomerID                   string
+	Annotations                  models.Annotations
 	AllocateAt                   time.Time
 	Corrections                  creditrealization.CorrectionRequest
 	LineageSegmentsByRealization lineage.ActiveSegmentsByRealizationID

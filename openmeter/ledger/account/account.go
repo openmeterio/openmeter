@@ -71,7 +71,7 @@ type Account struct {
 
 var _ ledger.Account = (*Account)(nil)
 
-func (a *Account) GetBalance(ctx context.Context, query ledger.RouteFilter) (ledger.Balance, error) {
+func (a *Account) GetBalance(ctx context.Context, query ledger.RouteFilter, after *ledger.TransactionCursor) (ledger.Balance, error) {
 	// TODO: this is a hack
 	// package boundary between account and historical ledger is incorrect, dependency resolution is broken
 	if a.services.Querier == nil {
@@ -88,6 +88,7 @@ func (a *Account) GetBalance(ctx context.Context, query ledger.RouteFilter) (led
 		Cursor:    lastClosingCursor,
 		Filters: ledger.Filters{
 			BookedAtPeriod: periodSinceListClosing,
+			After:          after,
 			AccountID:      lo.ToPtr(a.data.ID.ID),
 			Route:          query,
 		},

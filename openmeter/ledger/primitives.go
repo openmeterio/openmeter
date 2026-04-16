@@ -2,6 +2,8 @@ package ledger
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -9,6 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	pagepagination "github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
@@ -65,7 +68,7 @@ type RouteFilter struct {
 // Accounts describe ownership and purpose while SubAccounts parameterize the actual posting address.
 type Account interface {
 	// Balance can be queried across sub-accounts according to RouteFilter
-	GetBalance(ctx context.Context, query RouteFilter) (Balance, error)
+	GetBalance(ctx context.Context, query RouteFilter, after *TransactionCursor) (Balance, error)
 }
 
 // ----------------------------------------------------------------------------
@@ -91,10 +94,35 @@ type TransactionInput interface {
 
 // Transaction represents a list of entries booked at the same time
 type Transaction interface {
+	Cursor() TransactionCursor
 	BookedAt() time.Time
 	Entries() []Entry
 	ID() models.NamespacedID
 	Annotations() models.Annotations
+}
+
+type TransactionCursor struct {
+	BookedAt  time.Time
+	CreatedAt time.Time
+	ID        models.NamespacedID
+}
+
+func (c TransactionCursor) Validate() error {
+	var errs []error
+
+	if c.BookedAt.IsZero() {
+		errs = append(errs, fmt.Errorf("booked_at is zero"))
+	}
+
+	if c.CreatedAt.IsZero() {
+		errs = append(errs, fmt.Errorf("created_at is zero"))
+	}
+
+	if err := c.ID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("id is invalid: %w", err))
+	}
+
+	return errors.Join(errs...)
 }
 
 type TransactionGroupInput interface {
@@ -125,6 +153,9 @@ type Ledger interface {
 	//
 	// TODO: Cursoring gets problematic due to diff between wall_clock and booked_at. It would be convenient to return in order of booked_at as that simplifies parsing. This API will likely change.
 	ListTransactions(ctx context.Context, params ListTransactionsInput) (pagination.Result[Transaction], error)
+
+	// ListTransactionsByPage lists transactions using page-based pagination.
+	ListTransactionsByPage(ctx context.Context, params ListTransactionsByPageInput) (pagepagination.Result[Transaction], error)
 }
 
 type ListTransactionsInput struct {
@@ -133,6 +164,12 @@ type ListTransactionsInput struct {
 	Limit     int
 
 	TransactionID *models.NamespacedID
+
+	// AccountIDs scopes the query to transactions with entries on these accounts.
+	AccountIDs []string
+
+	// AnnotationFilters matches transactions whose annotations contain all the given key-value pairs.
+	AnnotationFilters map[string]string
 }
 
 func (i ListTransactionsInput) Validate() error {
@@ -151,6 +188,37 @@ func (i ListTransactionsInput) Validate() error {
 				"error":          err,
 			})
 		}
+	}
+
+	return nil
+}
+
+type ListTransactionsCreditMovement uint8
+
+const (
+	ListTransactionsCreditMovementUnspecified ListTransactionsCreditMovement = iota
+	ListTransactionsCreditMovementPositive
+	ListTransactionsCreditMovementNegative
+)
+
+type ListTransactionsByPageInput struct {
+	pagepagination.Page
+
+	Namespace  string
+	AccountIDs []string
+	Currency   *currencyx.Code
+
+	CreditMovement    ListTransactionsCreditMovement
+	AnnotationFilters map[string]string
+}
+
+func (i ListTransactionsByPageInput) Validate() error {
+	if err := i.Page.Validate(); err != nil {
+		return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{
+			"reason": "page_invalid",
+			"page":   i.Page,
+			"error":  err,
+		})
 	}
 
 	return nil

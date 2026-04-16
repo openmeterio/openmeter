@@ -13,7 +13,6 @@ import (
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // creditPurchaseHandler maps credit purchase lifecycle events to ledger transaction templates.
@@ -59,10 +58,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 		Namespace: charge.Namespace,
 		ID:        charge.Intent.CustomerID,
 	}
-	annotations := ledger.ChargeAnnotations(models.NamespacedID{
-		Namespace: charge.Namespace,
-		ID:        charge.ID,
-	})
+	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
 
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
@@ -80,6 +76,12 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 	)
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("resolve transactions: %w", err)
+	}
+
+	for i, input := range inputs {
+		if input != nil {
+			inputs[i] = transactions.WithAnnotations(input, annotations)
+		}
 	}
 
 	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
@@ -110,10 +112,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 		Namespace: charge.Namespace,
 		ID:        charge.Intent.CustomerID,
 	}
-	annotations := ledger.ChargeAnnotations(models.NamespacedID{
-		Namespace: charge.Namespace,
-		ID:        charge.ID,
-	})
+	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
 
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
@@ -131,6 +130,12 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 	)
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("resolve transactions: %w", err)
+	}
+
+	for i, input := range inputs {
+		if input != nil {
+			inputs[i] = transactions.WithAnnotations(input, annotations)
+		}
 	}
 
 	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
@@ -168,10 +173,7 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, charge 
 		Namespace: charge.Namespace,
 		ID:        charge.Intent.CustomerID,
 	}
-	annotations := ledger.ChargeAnnotations(models.NamespacedID{
-		Namespace: charge.Namespace,
-		ID:        charge.ID,
-	})
+	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
 
 	advanceOutstanding, err := h.outstandingAdvanceBalance(ctx, customerID, charge.Intent.Currency)
 	if err != nil {
@@ -244,6 +246,12 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, charge 
 	)
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("resolve transactions: %w", err)
+	}
+
+	for i, input := range inputs {
+		if input != nil {
+			inputs[i] = transactions.WithAnnotations(input, annotations)
+		}
 	}
 
 	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(

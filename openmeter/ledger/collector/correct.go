@@ -79,14 +79,25 @@ func (c *accrualCorrector) correct(ctx context.Context, input CorrectCollectedAc
 		return nil, nil
 	}
 
-	// Write the whole correction batch as one group and point every new correction
-	// realization at that group.
-	transactionGroup, err := c.ledger.CommitGroup(ctx, transactions.GroupInputs(
-		input.Namespace,
-		ledger.ChargeAnnotations(models.NamespacedID{
+	groupAnnotations := input.Annotations
+	if groupAnnotations == nil {
+		groupAnnotations = ledger.ChargeAnnotations(models.NamespacedID{
 			Namespace: input.Namespace,
 			ID:        input.ChargeID,
-		}),
+		})
+	}
+
+	// Write the whole correction batch as one group and point every new correction
+	// realization at that group.
+	for i, txInput := range resolvedInputs {
+		if txInput != nil {
+			resolvedInputs[i] = transactions.WithAnnotations(txInput, groupAnnotations)
+		}
+	}
+
+	transactionGroup, err := c.ledger.CommitGroup(ctx, transactions.GroupInputs(
+		input.Namespace,
+		groupAnnotations,
 		resolvedInputs...,
 	))
 	if err != nil {

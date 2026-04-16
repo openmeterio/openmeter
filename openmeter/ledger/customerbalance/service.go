@@ -48,6 +48,7 @@ type Service struct {
 	SubAccountService subAccountLister
 	ChargesService    chargesService
 	UsageBasedService usageBasedTotalsService
+	Ledger            ledger.Ledger
 
 	balanceCalculator chargePendingBalanceCalculator
 }
@@ -57,6 +58,7 @@ type Config struct {
 	SubAccountService subAccountLister
 	ChargesService    chargesService
 	UsageBasedService usageBasedTotalsService
+	Ledger            ledger.Ledger
 }
 
 func (c Config) Validate() error {
@@ -78,6 +80,10 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("usage based service is required"))
 	}
 
+	if c.Ledger == nil {
+		errs = append(errs, errors.New("ledger is required"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -91,11 +97,12 @@ func New(config Config) (*Service, error) {
 		SubAccountService: config.SubAccountService,
 		ChargesService:    config.ChargesService,
 		UsageBasedService: config.UsageBasedService,
+		Ledger:            config.Ledger,
 		balanceCalculator: chargePendingBalanceCalculator{},
 	}, nil
 }
 
-func (s *Service) GetBalance(ctx context.Context, customerID customer.CustomerID, filters ledger.RouteFilter) (ledger.Balance, error) {
+func (s *Service) GetBalance(ctx context.Context, customerID customer.CustomerID, filters ledger.RouteFilter, after *ledger.TransactionCursor) (ledger.Balance, error) {
 	if err := s.validate(customerID, filters); err != nil {
 		return nil, err
 	}
@@ -105,11 +112,13 @@ func (s *Service) GetBalance(ctx context.Context, customerID customer.CustomerID
 		return nil, fmt.Errorf("get customer accounts: %w", err)
 	}
 
-	bookedBalance, err := customerAccounts.FBOAccount.GetBalance(ctx, filters)
+	bookedBalance, err := customerAccounts.FBOAccount.GetBalance(ctx, filters, after)
 	if err != nil {
 		return nil, fmt.Errorf("get booked balance: %w", err)
 	}
 
+	// Pending balance remains a current projection from open charges.
+	// Historical cursoring only affects the booked/settled side for now.
 	impacts, err := s.getChargePendingBalanceImpacts(ctx, customerID, filters.Currency)
 	if err != nil {
 		return nil, fmt.Errorf("get charge pending balance impacts: %w", err)

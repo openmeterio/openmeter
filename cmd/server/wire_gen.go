@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -486,7 +487,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	facadeService, err := common.NewCustomerBalanceService(creditsConfiguration, logger, client, locker, ledger, accountResolver, accountService, billingRegistry, featureConnector, ratingService, connector)
+	facadeService, err := common.NewCustomerBalanceService(creditsConfiguration, ledger, accountResolver, accountService, billingRegistry)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -744,6 +745,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		CurrencyService:                  currencyService,
 		CostService:                      costService,
 		CreditGrantService:               creditgrantService,
+		Ledger:                           ledger,
+		AccountResolver:                  accountResolver,
 		CustomerBalanceFacade:            facade,
 		EntClient:                        client,
 		EventPublisher:                   eventbusPublisher,
@@ -811,6 +814,8 @@ type Application struct {
 	CurrencyService                  currencies.CurrencyService
 	CostService                      cost.Service
 	CreditGrantService               creditgrant.Service
+	Ledger                           ledger.Ledger
+	AccountResolver                  ledger.AccountResolver
 	CustomerBalanceFacade            *customerbalance.Facade
 	EntClient                        *db.Client
 	EventPublisher                   eventbus.Publisher
