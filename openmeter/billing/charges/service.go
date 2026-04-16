@@ -144,13 +144,9 @@ type ListChargesInput struct {
 	CustomerIDs     []string
 	SubscriptionIDs []string
 	ChargeTypes     []meta.ChargeType
-	// StatusIn filters to only charges with one of the given statuses.
-	// Takes precedence over StatusNotIn when both are set.
-	// When empty and StatusNotIn is also empty, deleted charges are still
-	// excluded via the IncludeDeleted flag.
-	StatusIn       []meta.ChargeStatus
-	StatusNotIn    []meta.ChargeStatus
-	IncludeDeleted bool
+	StatusIn        []meta.ChargeStatus
+	StatusNotIn     []meta.ChargeStatus
+	IncludeDeleted  bool
 
 	// OrderBy is the field to sort by. Supported values: id, created_at,
 	// service_period.from, billing_period.from.
@@ -196,6 +192,10 @@ func (i ListChargesInput) Validate() error {
 		if err := status.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("status: %w", err))
 		}
+	}
+
+	if len(i.StatusIn) > 0 && len(i.StatusNotIn) > 0 {
+		errs = append(errs, errors.New("status_in and status_not_in cannot be set at the same time"))
 	}
 
 	if err := i.Expands.Validate(); err != nil {

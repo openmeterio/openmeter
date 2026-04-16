@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/samber/lo"
@@ -56,14 +57,19 @@ func (h *handler) ListCustomerCharges() ListCustomerChargesHandler {
 				})
 			}
 
+			// Realization runs are always required to compute booked totals.
+			expands := meta.Expands{meta.ExpandRealizations}
+			if args.Params.Expand != nil && slices.Contains(*args.Params.Expand, api.BillingChargesExpandRealTimeUsage) {
+				expands = expands.With(meta.ExpandRealtimeUsage)
+			}
+
 			req := ListCustomerChargesRequest{
 				Page:        page,
 				Namespace:   ns,
 				CustomerIDs: []string{args.CustomerID},
 				// Credit purchases are served by the credit grants API; exclude them here.
 				ChargeTypes: []meta.ChargeType{meta.ChargeTypeFlatFee, meta.ChargeTypeUsageBased},
-				// Realization runs are always required to compute booked totals.
-				Expands: meta.Expands{meta.ExpandRealizations},
+				Expands:     expands,
 			}
 
 			// Parse sort. When omitted, the service defaults to created_at ascending
