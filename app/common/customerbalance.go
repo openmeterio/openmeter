@@ -1,36 +1,19 @@
 package common
 
 import (
-	"context"
 	"log/slog"
 
 	"github.com/google/wire"
 
 	"github.com/openmeterio/openmeter/app/config"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges"
-	chargeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/adapter"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
-	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
-	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
-	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
-	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
-	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
-	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
-	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
-	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
-	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 var CustomerBalance = wire.NewSet(
@@ -55,165 +38,14 @@ func NewCustomerBalanceService(
 		return customerbalance.NewNoopService(), nil
 	}
 
-	metaAdapter, err := metaadapter.New(metaadapter.Config{
-		Client: db,
-		Logger: logger,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
-		Client: db,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	lineageService, err := lineageservice.New(lineageservice.Config{
-		Adapter: lineageAdapter,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	searchAdapter, err := chargeadapter.New(chargeadapter.Config{
-		Client: db,
-		Logger: logger,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	flatFeeAdapter, err := flatfeeadapter.New(flatfeeadapter.Config{
-		Client:      db,
-		Logger:      logger,
-		MetaAdapter: metaAdapter,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	collectorService := ledgercollector.NewService(ledgercollector.Config{
-		Ledger: historicalLedger,
-		Dependencies: transactions.ResolverDependencies{
-			AccountService:    accountResolver,
-			SubAccountService: accountService,
-		},
-	})
-
-	flatFeeService, err := flatfeeservice.New(flatfeeservice.Config{
-		Adapter:     flatFeeAdapter,
-		Handler:     ledgerchargeadapter.NewFlatFeeHandler(historicalLedger, transactions.ResolverDependencies{AccountService: accountResolver, SubAccountService: accountService}, collectorService),
-		Lineage:     lineageService,
-		MetaAdapter: metaAdapter,
-		Locker:      locker,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	usageAdapter, err := usagebasedadapter.New(usagebasedadapter.Config{
-		Client:      db,
-		Logger:      logger,
-		MetaAdapter: metaAdapter,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	usageService, err := usagebasedservice.New(usagebasedservice.Config{
-		Adapter:                 usageAdapter,
-		Handler:                 ledgerchargeadapter.NewUsageBasedHandler(collectorService),
-		Lineage:                 lineageService,
-		Locker:                  locker,
-		MetaAdapter:             metaAdapter,
-		CustomerOverrideService: billingRegistry.Billing,
-		FeatureService:          featureConnector,
-		RatingService:           ratingService,
-		StreamingConnector:      streamingConnector,
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	return customerbalance.New(customerbalance.Config{
 		AccountResolver:   accountResolver,
 		SubAccountService: accountService,
-		ChargesService:    customerBalanceChargeStore{search: searchAdapter, flatFeeService: flatFeeService, usageBasedService: usageService},
-		UsageBasedService: usageService,
+		ChargesService:    billingRegistry.Charges.Service,
+		UsageBasedService: billingRegistry.Charges.UsageBasedService,
 	})
 }
 
 func NewCustomerBalanceFacade(service customerbalance.FacadeService) (*customerbalance.Facade, error) {
 	return customerbalance.NewFacade(service)
-}
-
-type customerBalanceChargeStore struct {
-	search            charges.ChargesSearchAdapter
-	flatFeeService    flatfee.Service
-	usageBasedService usagebased.Service
-}
-
-func (s customerBalanceChargeStore) ListCharges(ctx context.Context, input charges.ListChargesInput) (pagination.Result[charges.Charge], error) {
-	searchResult, err := s.search.ListCharges(ctx, input)
-	if err != nil {
-		return pagination.Result[charges.Charge]{}, err
-	}
-
-	flatFeeIDs := make([]string, 0, len(searchResult.Items))
-	usageBasedIDs := make([]string, 0, len(searchResult.Items))
-
-	for _, item := range searchResult.Items {
-		switch item.Type {
-		case meta.ChargeTypeFlatFee:
-			flatFeeIDs = append(flatFeeIDs, item.ID.ID)
-		case meta.ChargeTypeUsageBased:
-			usageBasedIDs = append(usageBasedIDs, item.ID.ID)
-		}
-	}
-
-	flatFeeCharges, err := s.flatFeeService.GetByIDs(ctx, flatfee.GetByIDsInput{
-		Namespace: input.Namespace,
-		IDs:       flatFeeIDs,
-		Expands:   input.Expands,
-	})
-	if err != nil {
-		return pagination.Result[charges.Charge]{}, err
-	}
-
-	usageBasedCharges, err := s.usageBasedService.GetByIDs(ctx, usagebased.GetByIDsInput{
-		Namespace: input.Namespace,
-		IDs:       usageBasedIDs,
-		Expands:   input.Expands,
-	})
-	if err != nil {
-		return pagination.Result[charges.Charge]{}, err
-	}
-
-	chargesByID := make(map[string]charges.Charge, len(flatFeeCharges)+len(usageBasedCharges))
-
-	for _, charge := range flatFeeCharges {
-		chargesByID[charge.ID] = charges.NewCharge(charge)
-	}
-
-	for _, charge := range usageBasedCharges {
-		chargesByID[charge.ID] = charges.NewCharge(charge)
-	}
-
-	items := make([]charges.Charge, 0, len(searchResult.Items))
-	for _, item := range searchResult.Items {
-		charge, ok := chargesByID[item.ID.ID]
-		if !ok {
-			continue
-		}
-
-		items = append(items, charge)
-	}
-
-	return pagination.Result[charges.Charge]{
-		Page:       searchResult.Page,
-		TotalCount: searchResult.TotalCount,
-		Items:      items,
-	}, nil
 }

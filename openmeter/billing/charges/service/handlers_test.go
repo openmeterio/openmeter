@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/oklog/ulid/v2"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
@@ -142,12 +143,21 @@ func (h *creditPurchaseTestHandler) Reset() {
 var _ usagebased.Handler = (*usageBasedTestHandler)(nil)
 
 type usageBasedTestHandler struct {
+	onInvoiceUsageAccrued               func(ctx context.Context, input usagebased.OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error)
 	onCreditsOnlyUsageAccrued           func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error)
 	onCreditsOnlyUsageAccruedCorrection func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error)
 }
 
 func newUsageBasedTestHandler() *usageBasedTestHandler {
 	return &usageBasedTestHandler{}
+}
+
+func (h *usageBasedTestHandler) OnInvoiceUsageAccrued(ctx context.Context, input usagebased.OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error) {
+	if h.onInvoiceUsageAccrued == nil {
+		return ledgertransaction.GroupReference{}, errors.New("onInvoiceUsageAccrued is not set")
+	}
+
+	return h.onInvoiceUsageAccrued(ctx, input)
 }
 
 func (h *usageBasedTestHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
@@ -184,6 +194,33 @@ func newCountedLedgerTransactionCallback[T any]() *countedLedgerTransactionCallb
 		nrInvocations: 0,
 		id:            ulid.Make().String(),
 	}
+}
+
+func newCappedCreditAllocator(availableCredits float64) (func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error), *alpacadecimal.Decimal) {
+	remainingCredits := alpacadecimal.NewFromFloat(availableCredits)
+
+	return func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
+		amount := input.AmountToAllocate
+		if amount.GreaterThan(remainingCredits) {
+			amount = remainingCredits
+		}
+
+		if amount.IsZero() {
+			return nil, nil
+		}
+
+		remainingCredits = remainingCredits.Sub(amount)
+
+		return creditrealization.CreateAllocationInputs{
+			{
+				ServicePeriod: input.Charge.Intent.ServicePeriod,
+				Amount:        amount,
+				LedgerTransaction: ledgertransaction.GroupReference{
+					TransactionGroupID: ulid.Make().String(),
+				},
+			},
+		}, nil
+	}, &remainingCredits
 }
 
 func (c *countedLedgerTransactionCallback[T]) Handler(t *testing.T, asserts ...assertFunc[T]) func(ctx context.Context, t T) (ledgertransaction.GroupReference, error) {

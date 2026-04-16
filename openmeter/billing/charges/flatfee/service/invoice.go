@@ -13,8 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
-// TODO: Once we have proper UBP handling this should happen on the already converted StandardLine but for now we should be fine with this approach.
-func (s *service) PostLineAssignedToInvoice(ctx context.Context, charge flatfee.Charge, line billing.GatheringLine) (creditrealization.Realizations, error) {
+func (s *service) PostLineAssignedToInvoice(ctx context.Context, charge flatfee.Charge, line billing.StandardLine) (creditrealization.Realizations, error) {
 	if charge.State.AmountAfterProration.IsZero() {
 		return nil, nil
 	}
@@ -27,7 +26,7 @@ func (s *service) PostLineAssignedToInvoice(ctx context.Context, charge flatfee.
 
 		input := flatfee.OnAssignedToInvoiceInput{
 			Charge:            charge,
-			ServicePeriod:     line.ServicePeriod,
+			ServicePeriod:     line.Period.ToClosedPeriod(),
 			PreTaxTotalAmount: currencyCalculator.RoundToPrecision(charge.State.AmountAfterProration),
 		}
 		if err := input.Validate(); err != nil {
@@ -62,6 +61,10 @@ func (s *service) PostInvoiceIssued(ctx context.Context, charge flatfee.Charge, 
 
 		if lineWithHeader.Line == nil {
 			return fmt.Errorf("postInvoiceIssued: line is nil")
+		}
+
+		if lineWithHeader.Line.Totals.Total.IsZero() {
+			return nil
 		}
 
 		ledgerTransactionRef, err := s.handler.OnInvoiceUsageAccrued(ctx, flatfee.OnInvoiceUsageAccruedInput{

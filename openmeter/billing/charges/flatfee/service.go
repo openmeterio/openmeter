@@ -26,7 +26,7 @@ type FlatFeeService interface {
 }
 
 type InvoiceLifecycleHooks interface {
-	PostLineAssignedToInvoice(ctx context.Context, charge Charge, line billing.GatheringLine) (creditrealization.Realizations, error)
+	PostLineAssignedToInvoice(ctx context.Context, charge Charge, line billing.StandardLine) (creditrealization.Realizations, error)
 	PostInvoiceIssued(ctx context.Context, charge Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error
 	PostInvoicePaymentAuthorized(ctx context.Context, charge Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error
 	PostInvoicePaymentSettled(ctx context.Context, charge Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error

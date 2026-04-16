@@ -85,8 +85,16 @@ func NewChargesCreditPurchaseHandler(
 	return ledgerchargeadapter.NewCreditPurchaseHandler(ledgerService, accountResolver, accountService)
 }
 
-func NewChargesUsageBasedHandler(collectorService ledgercollector.Service) usagebased.Handler {
-	return ledgerchargeadapter.NewUsageBasedHandler(collectorService)
+func NewChargesUsageBasedHandler(
+	ledgerService ledger.Ledger,
+	accountResolver ledger.AccountResolver,
+	accountService ledgeraccount.Service,
+	collectorService ledgercollector.Service,
+) usagebased.Handler {
+	return ledgerchargeadapter.NewUsageBasedHandler(ledgerService, transactions.ResolverDependencies{
+		AccountService:    accountResolver,
+		SubAccountService: accountService,
+	}, collectorService)
 }
 
 func NewChargesFlatFeeAdapter(
@@ -309,8 +317,8 @@ func newChargesRegistry(
 
 	collectorService := NewChargesCollectorService(ledgerService, accountResolver, accountService)
 	flatFeeHandler := NewChargesFlatFeeHandler(ledgerService, accountResolver, accountService, collectorService)
+	usageBasedHandler := NewChargesUsageBasedHandler(ledgerService, accountResolver, accountService, collectorService)
 	creditPurchaseHandler := NewChargesCreditPurchaseHandler(ledgerService, accountResolver, accountService)
-	usageBasedHandler := NewChargesUsageBasedHandler(collectorService)
 
 	flatFeeAdapter, err := NewChargesFlatFeeAdapter(db, logger, metaAdapter)
 	if err != nil {

@@ -5,12 +5,14 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
 type Adapter interface {
 	RealizationRunAdapter
 	RealizationRunCreditAllocationAdapter
+	RealizationRunInvoiceUsageAdapter
 	ChargeAdapter
 
 	entutils.TxCreator
@@ -31,4 +33,8 @@ type RealizationRunAdapter interface {
 
 type RealizationRunCreditAllocationAdapter interface {
 	CreateRunCreditRealization(ctx context.Context, runID RealizationRunID, creditAllocations creditrealization.CreateInputs) (creditrealization.Realizations, error)
+}
+
+type RealizationRunInvoiceUsageAdapter interface {
+	CreateRunInvoicedUsage(ctx context.Context, runID RealizationRunID, invoicedUsage invoicedusage.AccruedUsage) (invoicedusage.AccruedUsage, error)
 }

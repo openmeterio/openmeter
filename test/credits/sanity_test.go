@@ -83,7 +83,7 @@ func (s *CreditsTestSuite) SetupSuite() {
 		StreamingConnector:    s.MockStreamingConnector,
 		FlatFeeHandler:        ledgerchargeadapter.NewFlatFeeHandler(deps.HistoricalLedger, transactions.ResolverDependencies{AccountService: deps.ResolversService, SubAccountService: deps.AccountService}, collectorService),
 		CreditPurchaseHandler: ledgerchargeadapter.NewCreditPurchaseHandler(deps.HistoricalLedger, deps.ResolversService, deps.AccountService),
-		UsageBasedHandler:     ledgerchargeadapter.NewUsageBasedHandler(collectorService),
+		UsageBasedHandler:     ledgerchargeadapter.NewUsageBasedHandler(deps.HistoricalLedger, transactions.ResolverDependencies{AccountService: deps.ResolversService, SubAccountService: deps.AccountService}, collectorService),
 	})
 	s.NoError(err)
 	s.Charges = stack.ChargesService

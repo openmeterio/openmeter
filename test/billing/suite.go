@@ -29,6 +29,7 @@ import (
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
@@ -714,4 +715,30 @@ func ExpectJSONEqual(t *testing.T, exp, actual any) {
 	require.NoError(t, err)
 
 	require.JSONEq(t, string(aJSON), string(bJSON))
+}
+
+type ExpectedTotals struct {
+	Amount              float64 `json:"amount"`
+	ChargesTotal        float64 `json:"chargesTotal"`
+	DiscountsTotal      float64 `json:"discountsTotal"`
+	TaxesInclusiveTotal float64 `json:"taxesInclusiveTotal"`
+	TaxesExclusiveTotal float64 `json:"taxesExclusiveTotal"`
+	TaxesTotal          float64 `json:"taxesTotal"`
+	Total               float64 `json:"total"`
+	CreditsTotal        float64 `json:"creditsTotal"`
+}
+
+func (s *BaseSuite) RequireTotals(expected ExpectedTotals, actual totals.Totals) {
+	s.T().Helper()
+
+	s.Require().Equal(expected, ExpectedTotals{
+		Amount:              actual.Amount.InexactFloat64(),
+		ChargesTotal:        actual.ChargesTotal.InexactFloat64(),
+		DiscountsTotal:      actual.DiscountsTotal.InexactFloat64(),
+		TaxesInclusiveTotal: actual.TaxesInclusiveTotal.InexactFloat64(),
+		TaxesExclusiveTotal: actual.TaxesExclusiveTotal.InexactFloat64(),
+		TaxesTotal:          actual.TaxesTotal.InexactFloat64(),
+		Total:               actual.Total.InexactFloat64(),
+		CreditsTotal:        actual.CreditsTotal.InexactFloat64(),
+	})
 }

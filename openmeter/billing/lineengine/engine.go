@@ -92,3 +92,7 @@ func (e *Engine) OnCollectionCompleted(ctx context.Context, input billing.OnColl
 func (e *Engine) OnStandardInvoiceCreated(_ context.Context, input billing.OnStandardInvoiceCreatedInput) (billing.StandardLines, error) {
 	return input.Lines, nil
 }
+
+func (e *Engine) OnInvoiceIssued(_ context.Context, _ billing.OnInvoiceIssuedInput) error {
+	return nil
+}

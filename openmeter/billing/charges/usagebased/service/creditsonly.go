@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -205,9 +206,9 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 
 	if _, err := s.Adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
 		ID:         currentRun.ID,
-		AsOf:       storedAtOffset,
-		MeterValue: ratingResult.Quantity,
-		Totals:     currentTotals,
+		AsOf:       mo.Some(storedAtOffset),
+		MeterValue: mo.Some(ratingResult.Quantity),
+		Totals:     mo.Some(currentTotals),
 	}); err != nil {
 		return fmt.Errorf("update realization run: %w", err)
 	}

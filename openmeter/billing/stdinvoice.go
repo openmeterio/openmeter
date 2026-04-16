@@ -66,8 +66,10 @@ const (
 	StandardInvoiceStatusDeleteFailed     StandardInvoiceStatus = "delete.failed"
 	StandardInvoiceStatusDeleted          StandardInvoiceStatus = "deleted"
 
-	StandardInvoiceStatusIssuingSyncing    StandardInvoiceStatus = "issuing.syncing"
-	StandardInvoiceStatusIssuingSyncFailed StandardInvoiceStatus = "issuing.failed"
+	StandardInvoiceStatusIssuingSyncing             StandardInvoiceStatus = "issuing.syncing"
+	StandardInvoiceStatusIssuingSyncFailed          StandardInvoiceStatus = "issuing.failed"
+	StandardInvoiceStatusIssuingChargeBooking       StandardInvoiceStatus = "issuing.charge_booking"
+	StandardInvoiceStatusIssuingChargeBookingFailed StandardInvoiceStatus = "issuing.charge_booking_failed"
 
 	StandardInvoiceStatusIssued StandardInvoiceStatus = "issued"
 
@@ -107,6 +109,8 @@ var validStatuses = []StandardInvoiceStatus{
 
 	StandardInvoiceStatusIssuingSyncing,
 	StandardInvoiceStatusIssuingSyncFailed,
+	StandardInvoiceStatusIssuingChargeBooking,
+	StandardInvoiceStatusIssuingChargeBookingFailed,
 
 	StandardInvoiceStatusIssued,
 
@@ -158,6 +162,7 @@ func (s StandardInvoiceStatus) MatchesInvoiceStatus(status StandardInvoiceStatus
 var failedStatuses = []StandardInvoiceStatus{
 	StandardInvoiceStatusDraftSyncFailed,
 	StandardInvoiceStatusIssuingSyncFailed,
+	StandardInvoiceStatusIssuingChargeBookingFailed,
 	StandardInvoiceStatusDeleteFailed,
 	StandardInvoiceStatusPaymentProcessingFailed,
 }

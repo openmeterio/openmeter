@@ -223,7 +223,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 
 	stateMachine.Configure(billing.StandardInvoiceStatusIssuingSyncing).
 		Permit(billing.TriggerNext,
-			billing.StandardInvoiceStatusIssued,
+			billing.StandardInvoiceStatusIssuingChargeBooking,
 			statelessx.BoolFn(out.canIssuingSyncAdvance),
 		).
 		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusIssuingSyncFailed).
@@ -235,6 +235,16 @@ func allocateStateMachine() *InvoiceStateMachine {
 	stateMachine.Configure(billing.StandardInvoiceStatusIssuingSyncFailed).
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
 		Permit(billing.TriggerRetry, billing.StandardInvoiceStatusIssuingSyncing)
+
+	stateMachine.Configure(billing.StandardInvoiceStatusIssuingChargeBooking).
+		Permit(billing.TriggerNext, billing.StandardInvoiceStatusIssued).
+		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusIssuingChargeBookingFailed).
+		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
+		OnActive(out.onInvoiceIssued)
+
+	stateMachine.Configure(billing.StandardInvoiceStatusIssuingChargeBookingFailed).
+		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
+		Permit(billing.TriggerRetry, billing.StandardInvoiceStatusIssuingChargeBooking)
 
 	// Issued state
 	stateMachine.Configure(billing.StandardInvoiceStatusIssued).
@@ -449,7 +459,14 @@ func (m *InvoiceStateMachine) AdvanceUntilStateStable(ctx context.Context) error
 		}
 
 		if err := m.FireAndActivate(ctx, billing.TriggerNext); err != nil {
-			return fmt.Errorf("cannot transition to the next status [current_status=%s]: %w", m.Invoice.Status, err)
+			validationIssues, validationErr := billing.ToValidationIssues(err)
+			if validationErr != nil {
+				return fmt.Errorf("cannot transition to the next status [current_status=%s]: %w", m.Invoice.Status, err)
+			}
+
+			m.Invoice.ValidationIssues = validationIssues
+
+			return validationIssues.AsError()
 		}
 
 		if m.NeedsDBSave {
@@ -860,6 +877,29 @@ func (m *InvoiceStateMachine) onCollectionCompleted(ctx context.Context) error {
 	if len(groupedLines) > 0 && !hadValidationErr {
 		now := clock.Now().UTC()
 		m.Invoice.QuantitySnapshotedAt = &now
+	}
+
+	return nil
+}
+
+func (m *InvoiceStateMachine) onInvoiceIssued(ctx context.Context) error {
+	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(m.Invoice.Lines.OrEmpty())
+	if err != nil {
+		return fmt.Errorf("grouping standard lines by engine: %w", err)
+	}
+
+	for _, grouped := range groupedLines {
+		input := billing.OnInvoiceIssuedInput{
+			Invoice: m.Invoice,
+			Lines:   grouped.Lines,
+		}
+		if err := input.Validate(); err != nil {
+			return fmt.Errorf("validating invoice issued input for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+		}
+
+		if err := grouped.Engine.OnInvoiceIssued(ctx, input); err != nil {
+			return billing.NewLineEngineValidationError(grouped.Engine, err)
+		}
 	}
 
 	return nil

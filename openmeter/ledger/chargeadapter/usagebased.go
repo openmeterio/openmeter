@@ -5,22 +5,94 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/collector"
+	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // usageBasedHandler maps usage-based credit lifecycle events to ledger transaction templates.
 type usageBasedHandler struct {
+	ledger    ledger.Ledger
+	deps      transactions.ResolverDependencies
 	collector collector.Service
 }
 
 var _ usagebased.Handler = (*usageBasedHandler)(nil)
 
-func NewUsageBasedHandler(collectorService collector.Service) usagebased.Handler {
+func NewUsageBasedHandler(
+	ledger ledger.Ledger,
+	deps transactions.ResolverDependencies,
+	collectorService collector.Service,
+) usagebased.Handler {
 	return &usageBasedHandler{
+		ledger:    ledger,
+		deps:      deps,
 		collector: collectorService,
 	}
+}
+
+func (h *usageBasedHandler) OnInvoiceUsageAccrued(ctx context.Context, input usagebased.OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error) {
+	if err := input.Validate(); err != nil {
+		return ledgertransaction.GroupReference{}, err
+	}
+
+	amount := input.Amount
+	if amount.IsZero() {
+		return ledgertransaction.GroupReference{}, nil
+	}
+
+	if err := validateSettlementMode(
+		input.Charge.Intent.SettlementMode,
+		productcatalog.InvoiceOnlySettlementMode,
+		productcatalog.CreditThenInvoiceSettlementMode,
+	); err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("invoice usage accrued: %w", err)
+	}
+
+	customerID := customer.CustomerID{
+		Namespace: input.Charge.Namespace,
+		ID:        input.Charge.Intent.CustomerID,
+	}
+	annotations := ledger.ChargeAnnotations(models.NamespacedID{
+		Namespace: input.Charge.Namespace,
+		ID:        input.Charge.ID,
+	})
+
+	inputs, err := transactions.ResolveTransactions(
+		ctx,
+		h.deps,
+		transactions.ResolutionScope{
+			CustomerID: customerID,
+			Namespace:  input.Charge.Namespace,
+		},
+		transactions.TransferCustomerReceivableToAccruedTemplate{
+			At:        input.Charge.Intent.InvoiceAt,
+			Amount:    amount,
+			Currency:  input.Charge.Intent.Currency,
+			CostBasis: invoiceCostBasis,
+		},
+	)
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("resolve transactions: %w", err)
+	}
+
+	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
+		input.Charge.Namespace,
+		annotations,
+		inputs...,
+	))
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("commit ledger transaction group: %w", err)
+	}
+
+	return ledgertransaction.GroupReference{
+		TransactionGroupID: transactionGroup.ID().ID,
+	}, nil
 }
 
 func (h *usageBasedHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {

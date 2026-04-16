@@ -846,6 +846,8 @@ func (a *adapter) IsAppUsed(ctx context.Context, appID app.AppID) error {
 				billing.StandardInvoiceStatusGathering,
 				billing.StandardInvoiceStatusIssuingSyncing,
 				billing.StandardInvoiceStatusIssuingSyncFailed,
+				billing.StandardInvoiceStatusIssuingChargeBooking,
+				billing.StandardInvoiceStatusIssuingChargeBookingFailed,
 				billing.StandardInvoiceStatusIssued,
 				billing.StandardInvoiceStatusPaymentProcessingPending,
 				billing.StandardInvoiceStatusPaymentProcessingFailed,

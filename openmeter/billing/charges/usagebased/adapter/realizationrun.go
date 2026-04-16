@@ -50,11 +50,23 @@ func (a *adapter) UpdateRealizationRun(ctx context.Context, input usagebased.Upd
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (usagebased.RealizationRunBase, error) {
 		update := tx.db.ChargeUsageBasedRuns.UpdateOneID(input.ID.ID).
-			Where(dbchargeusagebasedruns.NamespaceEQ(input.ID.Namespace)).
-			SetAsof(meta.NormalizeTimestamp(input.AsOf)).
-			SetMeterValue(input.MeterValue)
+			Where(dbchargeusagebasedruns.NamespaceEQ(input.ID.Namespace))
 
-		update = totals.Set(update, input.Totals)
+		if input.AsOf.IsPresent() {
+			update = update.SetAsof(meta.NormalizeTimestamp(input.AsOf.OrEmpty()))
+		}
+
+		if input.LineID.IsPresent() {
+			update = update.SetOrClearLineID(input.LineID.OrEmpty())
+		}
+
+		if input.MeterValue.IsPresent() {
+			update = update.SetMeterValue(input.MeterValue.OrEmpty())
+		}
+
+		if input.Totals.IsPresent() {
+			update = totals.Set(update, input.Totals.OrEmpty())
+		}
 
 		dbRun, err := update.Save(ctx)
 		if err != nil {

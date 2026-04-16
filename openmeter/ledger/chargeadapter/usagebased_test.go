@@ -176,6 +176,21 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 	})
 }
 
+func TestOnUsageBasedInvoiceUsageAccrued(t *testing.T) {
+	t.Run("credit_then_invoice zero amount returns empty reference", func(t *testing.T) {
+		env := newUsageBasedHandlerTestEnv(t)
+
+		ref, err := env.handler.OnInvoiceUsageAccrued(t.Context(), chargeusagebased.OnInvoiceUsageAccruedInput{
+			Charge:        env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
+			Run:           env.newRun(),
+			ServicePeriod: timeutil.ClosedPeriod{From: env.Now().Add(-time.Hour), To: env.Now()},
+			Amount:        alpacadecimal.Zero,
+		})
+		require.NoError(t, err)
+		require.Empty(t, ref.TransactionGroupID)
+	})
+}
+
 type usageBasedHandlerTestEnv struct {
 	*ledgertestutils.IntegrationEnv
 	handler chargeusagebased.Handler
@@ -193,7 +208,10 @@ func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
 
 	return &usageBasedHandlerTestEnv{
 		IntegrationEnv: base,
-		handler:        chargeadapter.NewUsageBasedHandler(collectorService),
+		handler: chargeadapter.NewUsageBasedHandler(base.Deps.HistoricalLedger, transactions.ResolverDependencies{
+			AccountService:    base.Deps.ResolversService,
+			SubAccountService: base.Deps.AccountService,
+		}, collectorService),
 	}
 }
 
