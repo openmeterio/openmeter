@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -14,9 +14,9 @@ import (
 )
 
 // GetStripeCustomerData gets stripe customer data
-func (a *adapter) GetStripeCustomerData(ctx context.Context, input appstripeentity.GetStripeCustomerDataInput) (appstripeentity.CustomerData, error) {
+func (a *adapter) GetStripeCustomerData(ctx context.Context, input appstripe.GetStripeCustomerDataInput) (appstripe.CustomerData, error) {
 	if err := input.Validate(); err != nil {
-		return appstripeentity.CustomerData{}, models.NewGenericValidationError(
+		return appstripe.CustomerData{}, models.NewGenericValidationError(
 			fmt.Errorf("error getting stripe customer data: %w", err),
 		)
 	}
@@ -29,7 +29,7 @@ func (a *adapter) GetStripeCustomerData(ctx context.Context, input appstripeenti
 		Only(ctx)
 	if err != nil {
 		if entdb.IsNotFound(err) {
-			return appstripeentity.CustomerData{}, app.NewAppCustomerPreConditionError(
+			return appstripe.CustomerData{}, app.NewAppCustomerPreConditionError(
 				input.AppID,
 				app.AppTypeStripe,
 				&input.CustomerID,
@@ -37,23 +37,23 @@ func (a *adapter) GetStripeCustomerData(ctx context.Context, input appstripeenti
 			)
 		}
 
-		return appstripeentity.CustomerData{}, fmt.Errorf("error getting stripe customer data: %w", err)
+		return appstripe.CustomerData{}, fmt.Errorf("error getting stripe customer data: %w", err)
 	}
 
-	customerData := appstripeentity.CustomerData{
+	customerData := appstripe.CustomerData{
 		StripeCustomerID:             stripeCustomerDBEntity.StripeCustomerID,
 		StripeDefaultPaymentMethodID: stripeCustomerDBEntity.StripeDefaultPaymentMethodID,
 	}
 
 	if err := customerData.Validate(); err != nil {
-		return appstripeentity.CustomerData{}, fmt.Errorf("error validating stripe customer data: %w", err)
+		return appstripe.CustomerData{}, fmt.Errorf("error validating stripe customer data: %w", err)
 	}
 
 	return customerData, nil
 }
 
 // UpsertStripeCustomerData upserts stripe customer data
-func (a *adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error {
+func (a *adapter) UpsertStripeCustomerData(ctx context.Context, input appstripe.UpsertStripeCustomerDataInput) error {
 	if err := input.Validate(); err != nil {
 		return models.NewGenericValidationError(
 			fmt.Errorf("error upsert stripe customer data: %w", err),
@@ -160,7 +160,7 @@ func (a *adapter) UpsertStripeCustomerData(ctx context.Context, input appstripee
 }
 
 // DeleteStripeCustomerData deletes stripe customer data
-func (a *adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeentity.DeleteStripeCustomerDataInput) error {
+func (a *adapter) DeleteStripeCustomerData(ctx context.Context, input appstripe.DeleteStripeCustomerDataInput) error {
 	if err := input.Validate(); err != nil {
 		return models.NewGenericValidationError(
 			fmt.Errorf("error delete stripe customer data: %w", err),
@@ -221,19 +221,19 @@ func (a *adapter) DeleteStripeCustomerData(ctx context.Context, input appstripee
 }
 
 // createStripeCustomer creates a new stripe customer
-func (a *adapter) createStripeCustomer(ctx context.Context, input appstripeentity.CreateStripeCustomerInput) (appstripeentity.CreateStripeCustomerOutput, error) {
+func (a *adapter) createStripeCustomer(ctx context.Context, input appstripe.CreateStripeCustomerInput) (appstripe.CreateStripeCustomerOutput, error) {
 	// Get the stripe app
-	stripeAppData, err := a.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{
+	stripeAppData, err := a.GetStripeAppData(ctx, appstripe.GetStripeAppDataInput{
 		AppID: input.AppID,
 	})
 	if err != nil {
-		return appstripeentity.CreateStripeCustomerOutput{}, fmt.Errorf("failed to get stripe app data: %w", err)
+		return appstripe.CreateStripeCustomerOutput{}, fmt.Errorf("failed to get stripe app data: %w", err)
 	}
 
 	// Get Stripe API Key
 	apiKeySecret, err := a.secretService.GetAppSecret(ctx, stripeAppData.APIKey)
 	if err != nil {
-		return appstripeentity.CreateStripeCustomerOutput{}, fmt.Errorf("failed to get stripe api key secret: %w", err)
+		return appstripe.CreateStripeCustomerOutput{}, fmt.Errorf("failed to get stripe api key secret: %w", err)
 	}
 
 	// Stripe Client
@@ -244,7 +244,7 @@ func (a *adapter) createStripeCustomer(ctx context.Context, input appstripeentit
 		Logger:     a.logger.With("operation", "createStripeCustomer", "app_id", input.AppID.ID, "customer_id", input.CustomerID.ID),
 	})
 	if err != nil {
-		return appstripeentity.CreateStripeCustomerOutput{}, fmt.Errorf("failed to create stripe client: %w", err)
+		return appstripe.CreateStripeCustomerOutput{}, fmt.Errorf("failed to create stripe client: %w", err)
 	}
 
 	// Create stripe customer
@@ -255,26 +255,26 @@ func (a *adapter) createStripeCustomer(ctx context.Context, input appstripeentit
 		Email:      input.Email,
 	})
 	if err != nil {
-		return appstripeentity.CreateStripeCustomerOutput{}, fmt.Errorf("failed to create stripe customer: %w", err)
+		return appstripe.CreateStripeCustomerOutput{}, fmt.Errorf("failed to create stripe customer: %w", err)
 	}
 
 	// Upsert stripe customer data
-	err = a.UpsertStripeCustomerData(ctx, appstripeentity.UpsertStripeCustomerDataInput{
+	err = a.UpsertStripeCustomerData(ctx, appstripe.UpsertStripeCustomerDataInput{
 		AppID:            input.AppID,
 		CustomerID:       input.CustomerID,
 		StripeCustomerID: stripeCustomer.StripeCustomerID,
 	})
 	if err != nil {
-		return appstripeentity.CreateStripeCustomerOutput{}, fmt.Errorf("failed to upsert stripe customer data: %w", err)
+		return appstripe.CreateStripeCustomerOutput{}, fmt.Errorf("failed to upsert stripe customer data: %w", err)
 	}
 
 	// Output
-	out := appstripeentity.CreateStripeCustomerOutput{
+	out := appstripe.CreateStripeCustomerOutput{
 		StripeCustomerID: stripeCustomer.StripeCustomerID,
 	}
 
 	if err := out.Validate(); err != nil {
-		return appstripeentity.CreateStripeCustomerOutput{}, fmt.Errorf("failed to validate create stripe customer output: %w", err)
+		return appstripe.CreateStripeCustomerOutput{}, fmt.Errorf("failed to validate create stripe customer output: %w", err)
 	}
 
 	return out, nil

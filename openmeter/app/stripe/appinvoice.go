@@ -1,4 +1,4 @@
-package appstripeentityapp
+package appstripe
 
 import (
 	"context"
@@ -13,7 +13,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -164,7 +163,7 @@ func (a App) createInvoice(ctx context.Context, invoice billing.StandardInvoice)
 	}
 
 	// Get stripe customer data
-	stripeCustomerData, err := a.StripeAppService.GetStripeCustomerData(ctx, appstripeentity.GetStripeCustomerDataInput{
+	stripeCustomerData, err := a.StripeAppService.GetStripeCustomerData(ctx, GetStripeCustomerDataInput{
 		AppID:      a.GetID(),
 		CustomerID: customerID,
 	})
@@ -274,7 +273,7 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.StandardInvoice)
 	}
 
 	// Get stripe customer data
-	stripeCustomerData, err := a.StripeAppService.GetStripeCustomerData(ctx, appstripeentity.GetStripeCustomerDataInput{
+	stripeCustomerData, err := a.StripeAppService.GetStripeCustomerData(ctx, GetStripeCustomerDataInput{
 		AppID: a.GetID(),
 		CustomerID: customer.CustomerID{
 			Namespace: invoice.Namespace,

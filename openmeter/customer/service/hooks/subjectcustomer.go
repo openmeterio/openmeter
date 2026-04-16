@@ -18,7 +18,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subject"
@@ -577,7 +577,7 @@ func (p CustomerProvisioner) EnsureStripeCustomer(ctx context.Context, customerI
 
 	err = profile.Apps.Payment.UpsertCustomerData(ctx, app.UpsertAppInstanceCustomerDataInput{
 		CustomerID: customerID,
-		Data: appstripeentity.CustomerData{
+		Data: appstripe.CustomerData{
 			StripeCustomerID: stripeCustomerID,
 		},
 	})

@@ -13,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
-	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 )
 
 // goverter:variables
@@ -50,7 +50,7 @@ func ToAPIBillingApp(item app.App) (api.BillingApp, error) {
 
 	switch item.GetType() {
 	case app.AppTypeStripe:
-		stripeApp, ok := item.(appstripeentityapp.App)
+		stripeApp, ok := item.(appstripe.App)
 		if !ok {
 			return api.BillingApp{}, fmt.Errorf("expected stripe app, got %T", item)
 		}
@@ -126,7 +126,7 @@ func toAPIBillingAppSandbox(sandboxApp appsandbox.Meta) (api.BillingAppSandbox, 
 }
 
 func toAPIBillingAppStripe(
-	stripeApp appstripeentityapp.Meta,
+	stripeApp appstripe.Meta,
 ) (api.BillingAppStripe, error) {
 	definition, err := ToAPIBillingAppCatalogItem(stripeApp.GetListing())
 	if err != nil {

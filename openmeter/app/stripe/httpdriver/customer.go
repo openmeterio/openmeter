@@ -8,8 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	apphttphandler "github.com/openmeterio/openmeter/openmeter/app/httpdriver"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
-	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -225,13 +224,13 @@ func (h *handler) CreateStripeCustomerPortalSession() CreateStripeCustomerPortal
 			}
 
 			// Enforce stripe apptype, see app type filter above
-			stripeApp, ok := genericApp.(appstripeentityapp.App)
+			stripeApp, ok := genericApp.(appstripe.App)
 			if !ok {
 				return CreateStripeCustomerPortalSessionResponse{}, fmt.Errorf("customer app is not a stripe app")
 			}
 
 			// Create the portal session
-			portalSession, err := h.service.CreatePortalSession(ctx, appstripeentity.CreateStripePortalSessionInput{
+			portalSession, err := h.service.CreatePortalSession(ctx, appstripe.CreateStripePortalSessionInput{
 				AppID:           stripeApp.GetID(),
 				CustomerID:      request.customerId,
 				ConfigurationID: request.params.ConfigurationId,
@@ -264,13 +263,13 @@ func (h *handler) getAPIStripeCustomerAppData(ctx context.Context, customerID cu
 	}
 
 	// Enforce stripe apptype, see app type filter above
-	stripeApp, ok := genericApp.(appstripeentityapp.App)
+	stripeApp, ok := genericApp.(appstripe.App)
 	if !ok {
 		return GetCustomerStripeAppDataResponse{}, fmt.Errorf("customer app is not a stripe app")
 	}
 
 	// List customer data for the specific stripe app
-	customerData, err := h.service.GetStripeCustomerData(ctx, appstripeentity.GetStripeCustomerDataInput{
+	customerData, err := h.service.GetStripeCustomerData(ctx, appstripe.GetStripeCustomerDataInput{
 		AppID:      stripeApp.GetID(),
 		CustomerID: customerID,
 	})

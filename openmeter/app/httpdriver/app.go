@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
-	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -155,7 +155,7 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 					Name:        payload.Name,
 					Description: payload.Description,
 					Metadata:    payload.Metadata,
-					AppConfigUpdate: appstripeentityapp.Configuration{
+					AppConfigUpdate: appstripe.Configuration{
 						SecretAPIKey: payload.SecretAPIKey,
 					},
 				}, nil

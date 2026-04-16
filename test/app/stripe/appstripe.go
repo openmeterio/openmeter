@@ -13,8 +13,8 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
@@ -202,7 +202,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 	})
 
 	require.NoError(t, err, "Get customer data must not return error")
-	require.Equal(t, appstripeentity.CustomerData{
+	require.Equal(t, appstripe.CustomerData{
 		StripeCustomerID: customerData.StripeCustomerID,
 	}, getCustomerData, "Customer data must match")
 
@@ -242,7 +242,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 	err = testApp.UpsertCustomerData(ctx, app.UpsertAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
-		Data: appstripeentity.CustomerData{
+		Data: appstripe.CustomerData{
 			StripeCustomerID:             newStripeCustomerID,
 			StripeDefaultPaymentMethodID: &newStripePaymentMethodID,
 		},
@@ -256,7 +256,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 	})
 
 	require.NoError(t, err, "Get customer data must not return error")
-	require.Equal(t, appstripeentity.CustomerData{
+	require.Equal(t, appstripe.CustomerData{
 		StripeCustomerID:             newStripeCustomerID,
 		StripeDefaultPaymentMethodID: &newStripePaymentMethodID,
 	}, getCustomerData, "Customer data must match")
@@ -272,7 +272,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 	err = testApp.UpsertCustomerData(ctx, app.UpsertAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
-		Data: appstripeentity.CustomerData{
+		Data: appstripe.CustomerData{
 			StripeCustomerID: nonExistingStripeCustomerID,
 		},
 	})
@@ -298,7 +298,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 	err = testApp.UpsertCustomerData(ctx, app.UpsertAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
-		Data: appstripeentity.CustomerData{
+		Data: appstripe.CustomerData{
 			StripeCustomerID:             newStripeCustomerID,
 			StripeDefaultPaymentMethodID: &nonExistingStripePaymentMethodID,
 		},
@@ -327,7 +327,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 	err = testApp.UpsertCustomerData(ctx, app.UpsertAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
-		Data: appstripeentity.CustomerData{
+		Data: appstripe.CustomerData{
 			StripeCustomerID:             newStripeCustomerID,
 			StripeDefaultPaymentMethodID: &newStripePaymentMethodID,
 		},
@@ -341,7 +341,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 	})
 
 	require.NoError(t, err, "Get customer data must not return error")
-	require.Equal(t, appstripeentity.CustomerData{
+	require.Equal(t, appstripe.CustomerData{
 		StripeCustomerID:             "cus_456",
 		StripeDefaultPaymentMethodID: &newStripePaymentMethodID,
 	}, getCustomerData, "Customer data must match")
@@ -383,7 +383,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 	err = testApp.UpsertCustomerData(ctx, app.UpsertAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
-		Data: appstripeentity.CustomerData{
+		Data: appstripe.CustomerData{
 			StripeCustomerID: customerData.StripeCustomerID,
 		},
 	})
@@ -657,7 +657,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 	// TODO: do not share env between tests
 	defer s.Env.StripeAppClient().Restore()
 
-	checkoutSession, err := s.Env.AppStripe().CreateCheckoutSession(ctx, appstripeentity.CreateCheckoutSessionInput{
+	checkoutSession, err := s.Env.AppStripe().CreateCheckoutSession(ctx, appstripe.CreateCheckoutSessionInput{
 		Namespace:  s.namespace,
 		AppID:      appID,
 		CustomerID: &customerID,
@@ -666,7 +666,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 
 	require.NoError(t, err, "Create checkout session must not return error")
 
-	require.Equal(t, appstripeentity.CreateCheckoutSessionOutput{
+	require.Equal(t, appstripe.CreateCheckoutSessionOutput{
 		AppID:            appID,
 		CustomerID:       testCustomer.GetID(),
 		StripeCustomerID: defaultStripeCustomerID,
@@ -684,7 +684,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 		ID:        "not_found",
 	}
 
-	_, err = s.Env.AppStripe().CreateCheckoutSession(ctx, appstripeentity.CreateCheckoutSessionInput{
+	_, err = s.Env.AppStripe().CreateCheckoutSession(ctx, appstripe.CreateCheckoutSessionInput{
 		Namespace:  s.namespace,
 		AppID:      appIdNotFound,
 		CustomerID: &customerID,
@@ -699,7 +699,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 		ID:        "not_found",
 	}
 
-	_, err = s.Env.AppStripe().CreateCheckoutSession(ctx, appstripeentity.CreateCheckoutSessionInput{
+	_, err = s.Env.AppStripe().CreateCheckoutSession(ctx, appstripe.CreateCheckoutSessionInput{
 		Namespace:  s.namespace,
 		AppID:      appID,
 		CustomerID: &customerIdNotFound,
@@ -741,7 +741,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 	})
 	require.NoError(t, err, "Update customer must not return error")
 
-	_, err = s.Env.AppStripe().CreateCheckoutSession(ctx, appstripeentity.CreateCheckoutSessionInput{
+	_, err = s.Env.AppStripe().CreateCheckoutSession(ctx, appstripe.CreateCheckoutSessionInput{
 		Namespace:  s.namespace,
 		AppID:      appID,
 		CustomerID: &customerID,
@@ -778,7 +778,7 @@ func (s *AppHandlerTestSuite) TestCreatePortalSession(ctx context.Context, t *te
 	// TODO: do not share env between tests
 	defer s.Env.StripeAppClient().Restore()
 
-	portalSession, err := s.Env.AppStripe().CreatePortalSession(ctx, appstripeentity.CreateStripePortalSessionInput{
+	portalSession, err := s.Env.AppStripe().CreatePortalSession(ctx, appstripe.CreateStripePortalSessionInput{
 		AppID:      appID,
 		CustomerID: customerID,
 		ReturnURL:  lo.ToPtr("https://openmeter.io"),
@@ -786,7 +786,7 @@ func (s *AppHandlerTestSuite) TestCreatePortalSession(ctx context.Context, t *te
 
 	require.NoError(t, err, "Create portal session must not return error")
 
-	require.Equal(t, appstripeentity.StripePortalSession{
+	require.Equal(t, appstripe.StripePortalSession{
 		ID:               "ps_123",
 		StripeCustomerID: defaultStripeCustomerID,
 		Livemode:         true,
@@ -802,7 +802,7 @@ func (s *AppHandlerTestSuite) TestCreatePortalSession(ctx context.Context, t *te
 		ID:        "not_found",
 	}
 
-	_, err = s.Env.AppStripe().CreatePortalSession(ctx, appstripeentity.CreateStripePortalSessionInput{
+	_, err = s.Env.AppStripe().CreatePortalSession(ctx, appstripe.CreateStripePortalSessionInput{
 		AppID:      appIdNotFound,
 		CustomerID: customerID,
 	})
@@ -816,13 +816,13 @@ func (s *AppHandlerTestSuite) TestUpdateAPIKey(ctx context.Context, t *testing.T
 	require.NoError(t, err, "setup fixture must not return error")
 
 	// Get stripe app
-	stripeApp, err := s.Env.AppStripe().GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{AppID: testApp.GetID()})
+	stripeApp, err := s.Env.AppStripe().GetStripeAppData(ctx, appstripe.GetStripeAppDataInput{AppID: testApp.GetID()})
 	require.NoError(t, err, "Get stripe app data must not return error")
 
 	newAPIKey := "sk_test_abcde"
 
 	// Should not allow to update test mode app with livemode key
-	err = s.Env.AppStripe().UpdateAPIKey(ctx, appstripeentity.UpdateAPIKeyInput{
+	err = s.Env.AppStripe().UpdateAPIKey(ctx, appstripe.UpdateAPIKeyInput{
 		AppID:  testApp.GetID(),
 		APIKey: newAPIKey,
 	})
@@ -845,7 +845,7 @@ func (s *AppHandlerTestSuite) TestUpdateAPIKey(ctx context.Context, t *testing.T
 	s.Env.Secret().
 		On("GetAppSecret", secretentity.GetAppSecretInput{
 			AppID: testApp.GetID(),
-			Key:   appstripeentity.APIKeySecretKey,
+			Key:   appstripe.APIKeySecretKey,
 		}).
 		Return(stripeApp.APIKey, nil)
 
@@ -853,7 +853,7 @@ func (s *AppHandlerTestSuite) TestUpdateAPIKey(ctx context.Context, t *testing.T
 		On("UpdateAppSecret", secretentity.UpdateAppSecretInput{
 			AppID:    testApp.GetID(),
 			SecretID: stripeApp.APIKey,
-			Key:      appstripeentity.APIKeySecretKey,
+			Key:      appstripe.APIKeySecretKey,
 			Value:    newAPIKey,
 		}).
 		Return(nil)
@@ -867,7 +867,7 @@ func (s *AppHandlerTestSuite) TestUpdateAPIKey(ctx context.Context, t *testing.T
 	require.NoError(t, err, "Update app status must not return error")
 
 	// Should allow to update test mode app with test mode key
-	err = s.Env.AppStripe().UpdateAPIKey(ctx, appstripeentity.UpdateAPIKeyInput{
+	err = s.Env.AppStripe().UpdateAPIKey(ctx, appstripe.UpdateAPIKeyInput{
 		AppID:  testApp.GetID(),
 		APIKey: newAPIKey,
 	})

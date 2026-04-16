@@ -11,8 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
-	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -362,8 +361,8 @@ func (h *handler) toAPICustomerAppData(a app.CustomerApp) (api.CustomerAppData, 
 	appId := a.App.GetID().ID
 
 	switch customerAppData := a.CustomerData.(type) {
-	case appstripeentity.CustomerData:
-		stripeApp, ok := a.App.(appstripeentityapp.App)
+	case appstripe.CustomerData:
+		stripeApp, ok := a.App.(appstripe.App)
 		if !ok {
 			return apiCustomerAppData, fmt.Errorf("error casting app to stripe app")
 		}

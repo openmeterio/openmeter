@@ -1,4 +1,4 @@
-package appstripeentity
+package appstripe
 
 import (
 	"github.com/openmeterio/openmeter/openmeter/app"

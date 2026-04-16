@@ -10,8 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
-	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 )
 
 // MapAppToAPI maps an app to an API app
@@ -22,7 +21,7 @@ func MapAppToAPI(item app.App) (api.App, error) {
 
 	switch item.GetType() {
 	case app.AppTypeStripe:
-		stripeApp := item.(appstripeentityapp.App)
+		stripeApp := item.(appstripe.App)
 
 		app := api.App{}
 		if err := app.FromStripeApp(mapStripeAppToAPI(stripeApp.Meta)); err != nil {
@@ -67,7 +66,7 @@ func mapSandboxAppToAPI(app appsandbox.Meta) api.SandboxApp {
 }
 
 func mapStripeAppToAPI(
-	stripeApp appstripeentityapp.Meta,
+	stripeApp appstripe.Meta,
 ) api.StripeApp {
 	apiStripeApp := api.StripeApp{
 		Id:              stripeApp.GetID().ID,
@@ -113,7 +112,7 @@ func mapCustomInvoicingAppToAPI(app appcustominvoicing.Meta) api.CustomInvoicing
 func MapEventAppToAPI(event app.EventApp) (api.App, error) {
 	switch event.GetType() {
 	case app.AppTypeStripe:
-		target := appstripeentityapp.App{}
+		target := appstripe.App{}
 		if err := target.FromEventAppData(event); err != nil {
 			return api.App{}, err
 		}
@@ -154,8 +153,8 @@ func MapEventAppToAPI(event app.EventApp) (api.App, error) {
 }
 
 // fromAPIAppStripeCustomerData maps an API stripe customer data to an app stripe customer data
-func fromAPIAppStripeCustomerData(apiStripeCustomerData api.StripeCustomerAppData) appstripeentity.CustomerData {
-	return appstripeentity.CustomerData{
+func fromAPIAppStripeCustomerData(apiStripeCustomerData api.StripeCustomerAppData) appstripe.CustomerData {
+	return appstripe.CustomerData{
 		StripeCustomerID:             apiStripeCustomerData.StripeCustomerId,
 		StripeDefaultPaymentMethodID: apiStripeCustomerData.StripeDefaultPaymentMethodId,
 	}
@@ -163,8 +162,8 @@ func fromAPIAppStripeCustomerData(apiStripeCustomerData api.StripeCustomerAppDat
 
 // customerAppToAPI converts a CustomerApp to an API CustomerAppData
 func ToAPIStripeCustomerAppData(
-	customerAppData appstripeentity.CustomerData,
-	stripeApp appstripeentityapp.App,
+	customerAppData appstripe.CustomerData,
+	stripeApp appstripe.App,
 ) api.StripeCustomerAppData {
 	apiStripeCustomerAppData := api.StripeCustomerAppData{
 		Id:                           lo.ToPtr(stripeApp.GetID().ID),

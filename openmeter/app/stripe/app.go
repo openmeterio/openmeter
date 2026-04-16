@@ -1,4 +1,4 @@
-package appstripeentityapp
+package appstripe
 
 import (
 	"errors"
@@ -6,16 +6,14 @@ import (
 	"log/slog"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	stripeapp "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/secret"
 )
 
 type Meta struct {
 	app.AppBase
-	appstripeentity.AppData
+	AppData
 }
 
 var _ app.EventAppParser = (*Meta)(nil)
@@ -39,7 +37,7 @@ type App struct {
 	AppService             app.Service                         `json:"-"`
 	BillingService         billing.Service                     `json:"-"`
 	StripeAppClientFactory stripeclient.StripeAppClientFactory `json:"-"`
-	StripeAppService       stripeapp.Service                   `json:"-"`
+	StripeAppService       Service                             `json:"-"`
 	SecretService          secret.Service                      `json:"-"`
 }
 

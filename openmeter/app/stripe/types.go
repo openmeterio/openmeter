@@ -1,4 +1,4 @@
-package appstripeentity
+package appstripe
 
 import (
 	"errors"

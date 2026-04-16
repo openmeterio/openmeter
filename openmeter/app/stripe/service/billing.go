@@ -13,19 +13,18 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 var _ appstripe.BillingService = (*Service)(nil)
 
-func (s *Service) GetSupplierContact(ctx context.Context, input appstripeentity.GetSupplierContactInput) (billing.SupplierContact, error) {
+func (s *Service) GetSupplierContact(ctx context.Context, input appstripe.GetSupplierContactInput) (billing.SupplierContact, error) {
 	return s.adapter.GetSupplierContact(ctx, input)
 }
 
 // Invoice webhook handlers
-func (s *Service) HandleInvoiceStateTransition(ctx context.Context, input appstripeentity.HandleInvoiceStateTransitionInput) error {
+func (s *Service) HandleInvoiceStateTransition(ctx context.Context, input appstripe.HandleInvoiceStateTransitionInput) error {
 	if err := input.Validate(); err != nil {
 		return err
 	}
@@ -60,7 +59,7 @@ func (s *Service) HandleInvoiceStateTransition(ctx context.Context, input appstr
 	var stripeInvoice *stripe.Invoice
 	if input.ShouldTriggerOnEvent != nil || input.GetValidationErrors != nil {
 		// Let's rule out any late events by validating the invoice status
-		stripeInvoice, err = s.adapter.GetStripeInvoice(ctx, appstripeentity.GetStripeInvoiceInput{
+		stripeInvoice, err = s.adapter.GetStripeInvoice(ctx, appstripe.GetStripeInvoiceInput{
 			AppID:           input.AppID,
 			StripeInvoiceID: input.Invoice.ID,
 		})
@@ -119,7 +118,7 @@ func (s *Service) HandleInvoiceStateTransition(ctx context.Context, input appstr
 	return nil
 }
 
-func (s *Service) HandleInvoiceSentEvent(ctx context.Context, input appstripeentity.HandleInvoiceSentEventInput) error {
+func (s *Service) HandleInvoiceSentEvent(ctx context.Context, input appstripe.HandleInvoiceSentEventInput) error {
 	if err := input.Validate(); err != nil {
 		return err
 	}

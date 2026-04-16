@@ -7,7 +7,7 @@ import (
 	"fmt"
 	api "github.com/openmeterio/openmeter/api"
 	v3 "github.com/openmeterio/openmeter/api/v3"
-	entity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	stripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 )
 
 func init() {
@@ -159,7 +159,7 @@ func init() {
 		}
 		return apiCreateCheckoutSessionTaxIdCollectionRequired, nil
 	}
-	ToAPIBillingAppStripeCreateCheckoutSessionResult = func(source entity.CreateCheckoutSessionOutput) v3.BillingAppStripeCreateCheckoutSessionResult {
+	ToAPIBillingAppStripeCreateCheckoutSessionResult = func(source stripe.CreateCheckoutSessionOutput) v3.BillingAppStripeCreateCheckoutSessionResult {
 		var v3BillingAppStripeCreateCheckoutSessionResult v3.BillingAppStripeCreateCheckoutSessionResult
 		v3BillingAppStripeCreateCheckoutSessionResult.CancelUrl = source.StripeCheckoutSession.CancelURL
 		v3BillingAppStripeCreateCheckoutSessionResult.ClientReferenceId = source.StripeCheckoutSession.ClientReferenceID
@@ -186,7 +186,7 @@ func init() {
 		v3BillingAppStripeCreateCheckoutSessionResult.Url = source.StripeCheckoutSession.URL
 		return v3BillingAppStripeCreateCheckoutSessionResult
 	}
-	ToAPIBillingAppStripeCreateCustomerPortalSessionResult = func(source entity.StripePortalSession) v3.BillingAppStripeCreateCustomerPortalSessionResult {
+	ToAPIBillingAppStripeCreateCustomerPortalSessionResult = func(source stripe.StripePortalSession) v3.BillingAppStripeCreateCustomerPortalSessionResult {
 		var v3BillingAppStripeCreateCustomerPortalSessionResult v3.BillingAppStripeCreateCustomerPortalSessionResult
 		var pString *string
 		if source.Configuration != nil {
