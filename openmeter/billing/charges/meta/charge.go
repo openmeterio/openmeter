@@ -67,12 +67,14 @@ func (t ChargeType) Validate() error {
 type Expand string
 
 const (
-	ExpandRealizations Expand = "realizations"
+	ExpandRealizations  Expand = "realizations"
+	ExpandRealtimeUsage Expand = "realtime_usage"
 )
 
 func (e Expand) Values() []Expand {
 	return []Expand{
 		ExpandRealizations,
+		ExpandRealtimeUsage,
 	}
 }
 

@@ -8,6 +8,8 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -68,6 +70,7 @@ type Charge struct {
 	ChargeBase
 
 	Realizations RealizationRuns `json:"realizations"`
+	Expands      Expands         `json:"expands"`
 }
 
 type Charges []Charge
@@ -79,6 +82,10 @@ func (c Charge) Validate() error {
 		errs = append(errs, fmt.Errorf("charge base: %w", err))
 	}
 
+	if err := c.Expands.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("expands: %w", err))
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -88,6 +95,13 @@ func (c Charge) GetCurrentRealizationRun() (RealizationRun, error) {
 	}
 
 	return c.Realizations.GetByID(*c.State.CurrentRealizationRunID)
+}
+
+func (c Charge) GetCustomerID() customer.CustomerID {
+	return customer.CustomerID{
+		Namespace: c.Namespace,
+		ID:        c.Intent.CustomerID,
+	}
 }
 
 func (c Charge) GetFeatureKeyOrID() ref.IDOrKey {
@@ -209,6 +223,22 @@ func (s State) Validate() error {
 
 	if s.FeatureID == "" {
 		errs = append(errs, fmt.Errorf("feature id must be set"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type Expands struct {
+	RealtimeUsage *totals.Totals `json:"realtimeUsage,omitempty"`
+}
+
+func (e Expands) Validate() error {
+	var errs []error
+
+	if e.RealtimeUsage != nil {
+		if err := e.RealtimeUsage.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("realtime usage: %w", err))
+		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
