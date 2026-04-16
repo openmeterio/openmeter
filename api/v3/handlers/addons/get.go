@@ -40,7 +40,7 @@ func (h *handler) GetAddon() GetAddonHandler {
 				return GetAddonResponse{}, err
 			}
 
-			return ConvertFromAddon(*a)
+			return ToAPIAddon(*a)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetAddonResponse](http.StatusOK),
 		httptransport.AppendOptions(

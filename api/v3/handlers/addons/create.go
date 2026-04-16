@@ -2,10 +2,12 @@ package addons
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -21,7 +23,7 @@ func (h *handler) CreateAddon() CreateAddonHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (CreateAddonRequest, error) {
 			body := apiv3.CreateAddonRequest{}
-			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
+			if err := request.ParseBody(r, &body); err != nil {
 				return CreateAddonRequest{}, err
 			}
 
@@ -30,7 +32,7 @@ func (h *handler) CreateAddon() CreateAddonHandler {
 				return CreateAddonRequest{}, err
 			}
 
-			req, err := ConvertToCreateAddonRequest(ns, body)
+			req, err := FromAPICreateAddonRequest(ns, body)
 			if err != nil {
 				return CreateAddonRequest{}, err
 			}
@@ -45,7 +47,11 @@ func (h *handler) CreateAddon() CreateAddonHandler {
 				return CreateAddonResponse{}, err
 			}
 
-			return ConvertFromAddon(*a)
+			if a == nil {
+				return CreateAddonResponse{}, fmt.Errorf("failed to create add-on")
+			}
+
+			return ToAPIAddon(*a)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateAddonResponse](http.StatusCreated),
 		httptransport.AppendOptions(

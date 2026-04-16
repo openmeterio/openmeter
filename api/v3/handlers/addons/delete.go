@@ -13,7 +13,7 @@ import (
 
 type (
 	DeleteAddonRequest  = addon.DeleteAddonInput
-	DeleteAddonResponse = interface{}
+	DeleteAddonResponse = any
 	DeleteAddonHandler  httptransport.HandlerWithArgs[DeleteAddonRequest, DeleteAddonResponse, string]
 )
 

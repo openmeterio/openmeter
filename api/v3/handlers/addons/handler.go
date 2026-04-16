@@ -11,10 +11,10 @@ type Handler interface {
 	CreateAddon() CreateAddonHandler
 	DeleteAddon() DeleteAddonHandler
 	GetAddon() GetAddonHandler
-	//ListAddons() ListAddonsHandler
-	//UpdateAddon() UpdateAddonHandler
-	//PublishAddon() PublishAddonHandler
-	//ArchiveAddon() ArchiveAddonHandler
+	ListAddons() ListAddonsHandler
+	UpdateAddon() UpdateAddonHandler
+	PublishAddon() PublishAddonHandler
+	ArchiveAddon() ArchiveAddonHandler
 }
 
 type handler struct {
