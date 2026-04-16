@@ -47,7 +47,7 @@ func (s *RatingTestSuite) TestListChargesExpandsRealtimeUsageForMultipleUsageBas
 	createAt := servicePeriod.From
 	firstUsageAt := servicePeriod.From.Add(2 * time.Hour)
 	secondUsageAt := servicePeriod.From.Add(5 * time.Hour)
-	readAt := servicePeriod.From.Add(4 * time.Hour)
+	readAt := servicePeriod.From.Add(6 * time.Hour)
 
 	clock.SetTime(createAt)
 	defer clock.ResetTime()
