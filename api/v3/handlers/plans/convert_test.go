@@ -641,18 +641,18 @@ func TestFromBillingCommitments(t *testing.T) {
 
 func TestFromBillingTaxConfig(t *testing.T) {
 	t.Run("nil when tax config is nil", func(t *testing.T) {
-		result := ToAPIBillingRateCardTaxConfi(nil, &taxcode.TaxCode{NamespacedID: models.NamespacedID{ID: "01TAXCODE"}})
+		result := ToAPIBillingRateCardTaxConfig(nil, &taxcode.TaxCode{NamespacedID: models.NamespacedID{ID: "01TAXCODE"}})
 		assert.Nil(t, result)
 	})
 
 	t.Run("nil when tax code is nil", func(t *testing.T) {
-		result := ToAPIBillingRateCardTaxConfi(&productcatalog.TaxConfig{}, nil)
+		result := ToAPIBillingRateCardTaxConfig(&productcatalog.TaxConfig{}, nil)
 		assert.Nil(t, result)
 	})
 
 	t.Run("maps tax code ID", func(t *testing.T) {
 		tc := &taxcode.TaxCode{NamespacedID: models.NamespacedID{ID: "01TAXCODE000000000000000000"}}
-		result := ToAPIBillingRateCardTaxConfi(&productcatalog.TaxConfig{}, tc)
+		result := ToAPIBillingRateCardTaxConfig(&productcatalog.TaxConfig{}, tc)
 
 		require.NotNil(t, result)
 		assert.Equal(t, api.ULID("01TAXCODE000000000000000000"), result.Code.Id)
@@ -665,7 +665,7 @@ func TestFromBillingTaxConfig(t *testing.T) {
 			Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 		}
 
-		result := ToAPIBillingRateCardTaxConfi(cfg, tc)
+		result := ToAPIBillingRateCardTaxConfig(cfg, tc)
 		require.NotNil(t, result)
 		require.NotNil(t, result.Behavior)
 		assert.Equal(t, api.BillingTaxBehavior("inclusive"), *result.Behavior)

@@ -142,6 +142,10 @@ func (c *Config) Validate() error {
 		errs = append(errs, errors.New("plan service is required"))
 	}
 
+	if c.PlanAddonService == nil {
+		errs = append(errs, errors.New("plan addon service is required"))
+	}
+
 	if c.PlanSubscriptionService == nil {
 		errs = append(errs, errors.New("plan subscription service is required"))
 	}
