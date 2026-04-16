@@ -54,10 +54,6 @@ func (s *service) GetByIDs(ctx context.Context, input charges.GetByIDsInput) (ch
 	})
 }
 
-func (s *service) GetCurrentTotals(ctx context.Context, input usagebased.GetCurrentTotalsInput) (usagebased.GetCurrentTotalsResult, error) {
-	return s.usageBasedService.GetCurrentTotals(ctx, input)
-}
-
 // expandChargesWithTypes fetches the charges by type and expands them with the given expands.
 func (s *service) expandChargesWithTypes(ctx context.Context, namespace string, chargesItems charges.ChargeSearchItems, expands meta.Expands) (charges.Charges, error) {
 	chargesByType := lo.GroupByMap(chargesItems, func(chargeMeta charges.ChargeSearchItem) (meta.ChargeType, string) {

@@ -62,6 +62,8 @@ func (h *handler) ListCustomerCharges() ListCustomerChargesHandler {
 				CustomerIDs: []string{args.CustomerID},
 				// Credit purchases are served by the credit grants API; exclude them here.
 				ChargeTypes: []meta.ChargeType{meta.ChargeTypeFlatFee, meta.ChargeTypeUsageBased},
+				// Realization runs are always required to compute booked totals.
+				Expands: meta.Expands{meta.ExpandRealizations},
 			}
 
 			// Parse sort. When omitted, the service defaults to created_at ascending
@@ -103,16 +105,6 @@ func (h *handler) ListCustomerCharges() ListCustomerChargesHandler {
 					})
 				}
 				req.StatusIn = statuses
-			}
-
-			// Parse expand
-			if args.Params.Expand != nil {
-				req.Expands = lo.FilterMap(*args.Params.Expand, func(exp api.BillingChargesExpand, _ int) (meta.Expand, bool) {
-					if exp == api.BillingChargesExpandRealTimeUsage {
-						return meta.ExpandRealizations, true
-					}
-					return "", false
-				})
 			}
 
 			return req, nil
