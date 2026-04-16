@@ -21,8 +21,8 @@ import (
 )
 
 const (
-	// defaultWorkerCount is the number of workers to use for the rating (fetching from CH).
-	defaultWorkerCount = 5
+	// defaultMaxParallelRatingsPerRequest is the number of workers to use for the rating (fetching from CH).
+	defaultMaxParallelRatingsPerRequest = 5
 )
 
 func (s *service) GetByIDs(ctx context.Context, input usagebased.GetByIDsInput) ([]usagebased.Charge, error) {
@@ -104,7 +104,8 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 	}
 
 	// Let's do the rating for each charge
-	sem := semaphore.NewWeighted(int64(defaultWorkerCount))
+	sem := semaphore.NewWeighted(int64(defaultMaxParallelRatingsPerRequest))
+	storedAt := clock.Now()
 
 	errCh := make(chan error, len(charges))
 	ratingResults := sync.Map{}
@@ -140,16 +141,16 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 				}
 			}()
 
-			ratingResult, err := s.rater.GetRatingForUsage(ctx, usagebasedrating.GetRatingForUsageInput{
-				Charge:         charge,
-				Customer:       customerOverridesById[charge.GetCustomerID()],
-				FeatureMeter:   featureMeter,
-				StoredAtOffset: clock.Now(),
-			})
-			if err != nil {
-				errCh <- fmt.Errorf("rating charge %s: %w", charge.ID, err)
-				return
-			}
+				ratingResult, err := s.rater.GetRatingForUsage(ctx, usagebasedrating.GetRatingForUsageInput{
+					Charge:         charge,
+					Customer:       customerOverridesById[charge.GetCustomerID()],
+					FeatureMeter:   featureMeter,
+					StoredAtOffset: storedAt,
+				})
+				if err != nil {
+					err = fmt.Errorf("rating charge %s: %w", charge.ID, err)
+					return
+				}
 			ratingResults.Store(charge.GetChargeID(), ratingResult)
 		})
 	}

@@ -82,6 +82,10 @@ func (c Charge) Validate() error {
 		errs = append(errs, fmt.Errorf("charge base: %w", err))
 	}
 
+	if err := c.Expands.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("expands: %w", err))
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
