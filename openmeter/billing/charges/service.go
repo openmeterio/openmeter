@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 type Service interface {
@@ -143,8 +144,19 @@ type ListChargesInput struct {
 	CustomerIDs     []string
 	SubscriptionIDs []string
 	ChargeTypes     []meta.ChargeType
-	StatusNotIn     []meta.ChargeStatus
-	IncludeDeleted  bool
+	// StatusIn filters to only charges with one of the given statuses.
+	// Takes precedence over StatusNotIn when both are set.
+	// When empty and StatusNotIn is also empty, deleted charges are still
+	// excluded via the IncludeDeleted flag.
+	StatusIn       []meta.ChargeStatus
+	StatusNotIn    []meta.ChargeStatus
+	IncludeDeleted bool
+
+	// OrderBy is the field to sort by. Supported values: id, created_at,
+	// service_period.from, billing_period.from.
+	// Defaults to created_at when empty.
+	OrderBy string
+	Order   sortx.Order
 
 	Expands meta.Expands
 }
@@ -171,6 +183,12 @@ func (i ListChargesInput) Validate() error {
 	for _, chargeType := range i.ChargeTypes {
 		if err := chargeType.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("charge type: %w", err))
+		}
+	}
+
+	for _, status := range i.StatusIn {
+		if err := status.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("status: %w", err))
 		}
 	}
 

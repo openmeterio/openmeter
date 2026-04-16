@@ -4621,7 +4621,7 @@ components:
           readOnly: true
         price:
           allOf:
-            - $ref: '#/components/schemas/CurrencyAmount'
+            - $ref: '#/components/schemas/BillingPrice'
           description: The price of the charge.
           title: Price
           readOnly: true
@@ -4642,13 +4642,8 @@ components:
           description: Payment term of the flat fee charge.
           title: Payment term
         discounts:
-          type: object
-          properties:
-            percentage:
-              type: number
-              minimum: 0
-              maximum: 100
-              description: Percentage discount applied to the price (0–100).
+          allOf:
+            - $ref: '#/components/schemas/BillingFlatFeeDiscounts'
           description: The discounts applied to the charge.
           title: Discounts
         feature_key:
@@ -4668,6 +4663,19 @@ components:
           readOnly: true
       description: A flat fee charge for a customer.
       title: Flat fee charge
+    BillingFlatFeeDiscounts:
+      type: object
+      properties:
+        percentage:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Percentage discount applied to the price (0–100).
+      description: |-
+        Discounts applicable to flat fee charges.
+
+        This is the same as `ProductCatalog.Discounts` but without the `usage` field, which is not applicable to flat fee charges.
+      title: Flat fee charge discounts
     BillingParty:
       type: object
       properties:
@@ -5928,7 +5936,7 @@ components:
           readOnly: true
         price:
           allOf:
-            - $ref: '#/components/schemas/CurrencyAmount'
+            - $ref: '#/components/schemas/BillingPrice'
           description: The price of the charge.
           title: Price
           readOnly: true

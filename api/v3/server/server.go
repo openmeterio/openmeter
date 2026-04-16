@@ -19,6 +19,7 @@ import (
 	currencieshandler "github.com/openmeterio/openmeter/api/v3/handlers/currencies"
 	customershandler "github.com/openmeterio/openmeter/api/v3/handlers/customers"
 	customersbillinghandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/billing"
+	chargeshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/charges"
 	customerscreditshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/credits"
 	customersentitlementhandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/entitlementaccess"
 	eventshandler "github.com/openmeterio/openmeter/api/v3/handlers/events"
@@ -36,6 +37,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	"github.com/openmeterio/openmeter/openmeter/cost"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -88,6 +90,7 @@ type Config struct {
 	SubscriptionService     subscription.Service
 	TaxCodeService          taxcode.Service
 	CurrencyService         currencies.CurrencyService
+	ChargeService           billingcharges.ChargeService
 	CostService             cost.Service
 	FeatureConnector        feature.FeatureConnector
 }
@@ -202,6 +205,7 @@ type Server struct {
 	billingProfilesHandler      billingprofileshandler.Handler
 	plansHandler                planshandler.Handler
 	planAddonsHandler           planaddonshandler.Handler
+	chargesHandler              chargeshandler.Handler
 	taxcodesHandler             taxcodeshandler.Handler
 	currenciesHandler           currencieshandler.Handler
 	featuresHandler             featureshandler.Handler
@@ -267,6 +271,11 @@ func NewServer(config *Config) (*Server, error) {
 	taxcodesHandler := taxcodeshandler.New(resolveNamespace, config.TaxCodeService, httptransport.WithErrorHandler(config.ErrorHandler))
 	currenciesHandler := currencieshandler.New(config.NamespaceDecoder, config.CurrencyService, httptransport.WithErrorHandler(config.ErrorHandler))
 
+	var chargesH chargeshandler.Handler
+	if config.ChargeService != nil {
+		chargesH = chargeshandler.New(resolveNamespace, config.ChargeService, httptransport.WithErrorHandler(config.ErrorHandler))
+	}
+
 	featuresH := featureshandler.New(resolveNamespace, config.FeatureConnector, config.MeterService, config.LLMCostService, httptransport.WithErrorHandler(config.ErrorHandler))
 
 	var llmcostH llmcosthandler.Handler
@@ -294,6 +303,7 @@ func NewServer(config *Config) (*Server, error) {
 		billingProfilesHandler:      billingProfilesHandler,
 		plansHandler:                plansHandler,
 		planAddonsHandler:           planAddonsHandler,
+		chargesHandler:              chargesH,
 		taxcodesHandler:             taxcodesHandler,
 		currenciesHandler:           currenciesHandler,
 		featuresHandler:             featuresH,
