@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -68,7 +68,7 @@ func (h *handler) GetCustomerBilling() GetCustomerBillingHandler {
 
 			switch application.GetType() {
 			case app.AppTypeStripe:
-				if data, ok := data.(appstripeentity.CustomerData); ok {
+				if data, ok := data.(appstripe.CustomerData); ok {
 					// TODO: we don't have metadata on the stripe customer data yet
 					appData.Stripe = &api.BillingAppCustomerDataStripe{
 						CustomerId:             &data.StripeCustomerID,

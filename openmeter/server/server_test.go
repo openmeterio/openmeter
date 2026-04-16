@@ -22,8 +22,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
-	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	costpkg "github.com/openmeterio/openmeter/openmeter/cost"
 	"github.com/openmeterio/openmeter/openmeter/credit"
@@ -1165,11 +1163,11 @@ func (n NoopAppService) ListMarketplaceListings(ctx context.Context, input app.M
 }
 
 func (n NoopAppService) InstallMarketplaceListingWithAPIKey(ctx context.Context, input app.InstallAppWithAPIKeyInput) (app.App, error) {
-	return appstripeentityapp.App{}, nil
+	return appstripe.App{}, nil
 }
 
 func (n NoopAppService) InstallMarketplaceListing(ctx context.Context, input app.InstallAppInput) (app.App, error) {
-	return appstripeentityapp.App{}, nil
+	return appstripe.App{}, nil
 }
 
 func (n NoopAppService) GetMarketplaceListingOauth2InstallURL(ctx context.Context, input app.GetOauth2InstallURLInput) (app.GetOauth2InstallURLOutput, error) {
@@ -1189,11 +1187,11 @@ func (n NoopAppService) UpdateAppStatus(ctx context.Context, input app.UpdateApp
 }
 
 func (n NoopAppService) GetApp(ctx context.Context, input app.GetAppInput) (app.App, error) {
-	return appstripeentityapp.App{}, nil
+	return appstripe.App{}, nil
 }
 
 func (n NoopAppService) UpdateApp(ctx context.Context, input app.UpdateAppInput) (app.App, error) {
-	return appstripeentityapp.App{}, nil
+	return appstripe.App{}, nil
 }
 
 func (n NoopAppService) ListApps(ctx context.Context, input app.ListAppInput) (pagination.Result[app.App], error) {
@@ -1220,39 +1218,39 @@ var _ appstripe.Service = (*NoopAppStripeService)(nil)
 
 type NoopAppStripeService struct{}
 
-func (n NoopAppStripeService) UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateAPIKeyInput) error {
+func (n NoopAppStripeService) UpdateAPIKey(ctx context.Context, input appstripe.UpdateAPIKeyInput) error {
 	return nil
 }
 
-func (n NoopAppStripeService) CreateCheckoutSession(ctx context.Context, input appstripeentity.CreateCheckoutSessionInput) (appstripeentity.CreateCheckoutSessionOutput, error) {
-	return appstripeentity.CreateCheckoutSessionOutput{}, nil
+func (n NoopAppStripeService) CreateCheckoutSession(ctx context.Context, input appstripe.CreateCheckoutSessionInput) (appstripe.CreateCheckoutSessionOutput, error) {
+	return appstripe.CreateCheckoutSessionOutput{}, nil
 }
 
-func (n NoopAppStripeService) GetWebhookSecret(ctx context.Context, input appstripeentity.GetWebhookSecretInput) (appstripeentity.GetWebhookSecretOutput, error) {
-	return appstripeentity.GetWebhookSecretOutput{}, nil
+func (n NoopAppStripeService) GetWebhookSecret(ctx context.Context, input appstripe.GetWebhookSecretInput) (appstripe.GetWebhookSecretOutput, error) {
+	return appstripe.GetWebhookSecretOutput{}, nil
 }
 
-func (n NoopAppStripeService) GetStripeAppData(ctx context.Context, input appstripeentity.GetStripeAppDataInput) (appstripeentity.AppData, error) {
-	return appstripeentity.AppData{}, nil
+func (n NoopAppStripeService) GetStripeAppData(ctx context.Context, input appstripe.GetStripeAppDataInput) (appstripe.AppData, error) {
+	return appstripe.AppData{}, nil
 }
 
-func (n NoopAppStripeService) HandleSetupIntentSucceeded(ctx context.Context, input appstripeentity.HandleSetupIntentSucceededInput) (appstripeentity.HandleSetupIntentSucceededOutput, error) {
-	return appstripeentity.HandleSetupIntentSucceededOutput{}, nil
+func (n NoopAppStripeService) HandleSetupIntentSucceeded(ctx context.Context, input appstripe.HandleSetupIntentSucceededInput) (appstripe.HandleSetupIntentSucceededOutput, error) {
+	return appstripe.HandleSetupIntentSucceededOutput{}, nil
 }
 
-func (n NoopAppStripeService) GetStripeCustomerData(ctx context.Context, input appstripeentity.GetStripeCustomerDataInput) (appstripeentity.CustomerData, error) {
-	return appstripeentity.CustomerData{}, nil
+func (n NoopAppStripeService) GetStripeCustomerData(ctx context.Context, input appstripe.GetStripeCustomerDataInput) (appstripe.CustomerData, error) {
+	return appstripe.CustomerData{}, nil
 }
 
-func (n NoopAppStripeService) UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error {
+func (n NoopAppStripeService) UpsertStripeCustomerData(ctx context.Context, input appstripe.UpsertStripeCustomerDataInput) error {
 	return nil
 }
 
-func (n NoopAppStripeService) DeleteStripeCustomerData(ctx context.Context, input appstripeentity.DeleteStripeCustomerDataInput) error {
+func (n NoopAppStripeService) DeleteStripeCustomerData(ctx context.Context, input appstripe.DeleteStripeCustomerDataInput) error {
 	return nil
 }
 
-func (n NoopAppStripeService) GetSupplierContact(ctx context.Context, input appstripeentity.GetSupplierContactInput) (billing.SupplierContact, error) {
+func (n NoopAppStripeService) GetSupplierContact(ctx context.Context, input appstripe.GetSupplierContactInput) (billing.SupplierContact, error) {
 	return billing.SupplierContact{}, nil
 }
 
@@ -1260,8 +1258,8 @@ func (n NoopAppStripeService) GetMaskedSecretAPIKey(ctx context.Context, secretA
 	return "", nil
 }
 
-func (n NoopAppStripeService) CreatePortalSession(ctx context.Context, input appstripeentity.CreateStripePortalSessionInput) (appstripeentity.StripePortalSession, error) {
-	return appstripeentity.StripePortalSession{}, nil
+func (n NoopAppStripeService) CreatePortalSession(ctx context.Context, input appstripe.CreateStripePortalSessionInput) (appstripe.StripePortalSession, error) {
+	return appstripe.StripePortalSession{}, nil
 }
 
 // Factory methods
@@ -1278,11 +1276,11 @@ func (n NoopAppStripeService) UninstallApp(ctx context.Context, input app.Uninst
 }
 
 // Billing parts
-func (n NoopAppStripeService) HandleInvoiceStateTransition(ctx context.Context, input appstripeentity.HandleInvoiceStateTransitionInput) error {
+func (n NoopAppStripeService) HandleInvoiceStateTransition(ctx context.Context, input appstripe.HandleInvoiceStateTransitionInput) error {
 	return nil
 }
 
-func (n NoopAppStripeService) HandleInvoiceSentEvent(ctx context.Context, input appstripeentity.HandleInvoiceSentEventInput) error {
+func (n NoopAppStripeService) HandleInvoiceSentEvent(ctx context.Context, input appstripe.HandleInvoiceSentEventInput) error {
 	return nil
 }
 

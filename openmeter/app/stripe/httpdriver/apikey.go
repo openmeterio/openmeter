@@ -7,13 +7,13 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
 type (
-	UpdateStripeAPIKeyRequest  = appstripeentity.UpdateAPIKeyInput
+	UpdateStripeAPIKeyRequest  = appstripe.UpdateAPIKeyInput
 	UpdateStripeAPIKeyResponse = struct{}
 	UpdateStripeAPIKeyHandler  httptransport.HandlerWithArgs[UpdateStripeAPIKeyRequest, UpdateStripeAPIKeyResponse, string]
 )

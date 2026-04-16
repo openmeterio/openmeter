@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
@@ -25,27 +24,27 @@ type AppFactoryService interface {
 
 // StripeAppService contains methods for managing stripe app
 type StripeAppService interface {
-	UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateAPIKeyInput) error
-	GetStripeAppData(ctx context.Context, input appstripeentity.GetStripeAppDataInput) (appstripeentity.AppData, error)
-	GetWebhookSecret(ctx context.Context, input appstripeentity.GetWebhookSecretInput) (appstripeentity.GetWebhookSecretOutput, error)
+	UpdateAPIKey(ctx context.Context, input UpdateAPIKeyInput) error
+	GetStripeAppData(ctx context.Context, input GetStripeAppDataInput) (AppData, error)
+	GetWebhookSecret(ctx context.Context, input GetWebhookSecretInput) (GetWebhookSecretOutput, error)
 }
 
 // CustomerService contains methods for managing customer data
 type CustomerService interface {
-	GetStripeCustomerData(ctx context.Context, input appstripeentity.GetStripeCustomerDataInput) (appstripeentity.CustomerData, error)
-	UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error
-	DeleteStripeCustomerData(ctx context.Context, input appstripeentity.DeleteStripeCustomerDataInput) error
-	HandleSetupIntentSucceeded(ctx context.Context, input appstripeentity.HandleSetupIntentSucceededInput) (appstripeentity.HandleSetupIntentSucceededOutput, error)
+	GetStripeCustomerData(ctx context.Context, input GetStripeCustomerDataInput) (CustomerData, error)
+	UpsertStripeCustomerData(ctx context.Context, input UpsertStripeCustomerDataInput) error
+	DeleteStripeCustomerData(ctx context.Context, input DeleteStripeCustomerDataInput) error
+	HandleSetupIntentSucceeded(ctx context.Context, input HandleSetupIntentSucceededInput) (HandleSetupIntentSucceededOutput, error)
 
-	CreateCheckoutSession(ctx context.Context, input appstripeentity.CreateCheckoutSessionInput) (appstripeentity.CreateCheckoutSessionOutput, error)
-	CreatePortalSession(ctx context.Context, input appstripeentity.CreateStripePortalSessionInput) (appstripeentity.StripePortalSession, error)
+	CreateCheckoutSession(ctx context.Context, input CreateCheckoutSessionInput) (CreateCheckoutSessionOutput, error)
+	CreatePortalSession(ctx context.Context, input CreateStripePortalSessionInput) (StripePortalSession, error)
 }
 
 // BillingService contains methods for managing billing subsystem (invoices)
 type BillingService interface {
-	GetSupplierContact(ctx context.Context, input appstripeentity.GetSupplierContactInput) (billing.SupplierContact, error)
+	GetSupplierContact(ctx context.Context, input GetSupplierContactInput) (billing.SupplierContact, error)
 
 	// Invoice webhook handlers
-	HandleInvoiceStateTransition(ctx context.Context, input appstripeentity.HandleInvoiceStateTransitionInput) error
-	HandleInvoiceSentEvent(ctx context.Context, input appstripeentity.HandleInvoiceSentEventInput) error
+	HandleInvoiceStateTransition(ctx context.Context, input HandleInvoiceStateTransitionInput) error
+	HandleInvoiceSentEvent(ctx context.Context, input HandleInvoiceSentEventInput) error
 }

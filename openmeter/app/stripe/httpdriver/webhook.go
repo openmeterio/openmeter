@@ -13,8 +13,8 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -45,7 +45,7 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 			// we validate the payload signature with the app's webhook secret.
 
 			// Get the webhook secret for the app
-			secret, err := h.service.GetWebhookSecret(ctx, appstripeentity.GetWebhookSecretInput{
+			secret, err := h.service.GetWebhookSecret(ctx, appstripe.GetWebhookSecretInput{
 				AppID: params.AppID,
 			})
 			if err != nil {
@@ -154,8 +154,8 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 
 				// Set the default payment method for the customer
 				out, err := h.service.HandleSetupIntentSucceeded(ctx,
-					appstripeentity.HandleSetupIntentSucceededInput{
-						SetCustomerDefaultPaymentMethodInput: appstripeentity.SetCustomerDefaultPaymentMethodInput{
+					appstripe.HandleSetupIntentSucceededInput{
+						SetCustomerDefaultPaymentMethodInput: appstripe.SetCustomerDefaultPaymentMethodInput{
 							AppID:            request.AppID,
 							StripeCustomerID: paymentIntent.Customer.ID,
 							PaymentMethodID:  paymentIntent.PaymentMethod.ID,
@@ -192,7 +192,7 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 					return AppStripeWebhookResponse{}, err
 				}
 
-				err = h.service.HandleInvoiceStateTransition(ctx, appstripeentity.HandleInvoiceStateTransitionInput{
+				err = h.service.HandleInvoiceStateTransition(ctx, appstripe.HandleInvoiceStateTransitionInput{
 					AppID:   request.AppID,
 					Invoice: invoice,
 					Trigger: billing.TriggerFailed,
@@ -208,8 +208,8 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 					ShouldTriggerOnEvent: func(stripeInvoice *stripe.Invoice) (bool, error) {
 						return stripeInvoice.LastFinalizationError != nil, nil
 					},
-					GetValidationErrors: func(stripeInvoice *stripe.Invoice) (*appstripeentity.ValidationErrorsInput, error) {
-						return &appstripeentity.ValidationErrorsInput{
+					GetValidationErrors: func(stripeInvoice *stripe.Invoice) (*appstripe.ValidationErrorsInput, error) {
+						return &appstripe.ValidationErrorsInput{
 							Op:     billing.StandardInvoiceOpFinalize,
 							Errors: []*stripe.Error{stripeInvoice.LastFinalizationError},
 						}, nil
@@ -230,7 +230,7 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 					return AppStripeWebhookResponse{}, err
 				}
 
-				err = h.service.HandleInvoiceSentEvent(ctx, appstripeentity.HandleInvoiceSentEventInput{
+				err = h.service.HandleInvoiceSentEvent(ctx, appstripe.HandleInvoiceSentEventInput{
 					AppID:   request.AppID,
 					Invoice: invoice,
 					SentAt:  request.Event.Created,
@@ -250,7 +250,7 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 					return AppStripeWebhookResponse{}, err
 				}
 
-				err = h.service.HandleInvoiceStateTransition(ctx, appstripeentity.HandleInvoiceStateTransitionInput{
+				err = h.service.HandleInvoiceStateTransition(ctx, appstripe.HandleInvoiceStateTransitionInput{
 					AppID:          request.AppID,
 					Invoice:        invoice,
 					Trigger:        billing.TriggerVoid,
@@ -278,7 +278,7 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 					return AppStripeWebhookResponse{}, err
 				}
 
-				err = h.service.HandleInvoiceStateTransition(ctx, appstripeentity.HandleInvoiceStateTransitionInput{
+				err = h.service.HandleInvoiceStateTransition(ctx, appstripe.HandleInvoiceStateTransitionInput{
 					AppID:          request.AppID,
 					Invoice:        invoice,
 					Trigger:        billing.TriggerPaymentUncollectible,
@@ -302,7 +302,7 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 					return AppStripeWebhookResponse{}, err
 				}
 
-				err = h.service.HandleInvoiceStateTransition(ctx, appstripeentity.HandleInvoiceStateTransitionInput{
+				err = h.service.HandleInvoiceStateTransition(ctx, appstripe.HandleInvoiceStateTransitionInput{
 					AppID:          request.AppID,
 					Invoice:        invoice,
 					Trigger:        billing.TriggerPaymentOverdue,
@@ -329,7 +329,7 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 					return AppStripeWebhookResponse{}, err
 				}
 
-				err = h.service.HandleInvoiceStateTransition(ctx, appstripeentity.HandleInvoiceStateTransitionInput{
+				err = h.service.HandleInvoiceStateTransition(ctx, appstripe.HandleInvoiceStateTransitionInput{
 					AppID:          request.AppID,
 					Invoice:        invoice,
 					Trigger:        billing.TriggerPaid,
@@ -353,7 +353,7 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 					return AppStripeWebhookResponse{}, err
 				}
 
-				err = h.service.HandleInvoiceStateTransition(ctx, appstripeentity.HandleInvoiceStateTransitionInput{
+				err = h.service.HandleInvoiceStateTransition(ctx, appstripe.HandleInvoiceStateTransitionInput{
 					AppID:          request.AppID,
 					Invoice:        invoice,
 					Trigger:        billing.TriggerActionRequired,
@@ -382,7 +382,7 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 					return AppStripeWebhookResponse{}, err
 				}
 
-				err = h.service.HandleInvoiceStateTransition(ctx, appstripeentity.HandleInvoiceStateTransitionInput{
+				err = h.service.HandleInvoiceStateTransition(ctx, appstripe.HandleInvoiceStateTransitionInput{
 					AppID:   request.AppID,
 					Invoice: invoice,
 					Trigger: billing.TriggerFailed,

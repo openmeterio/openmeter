@@ -1,4 +1,4 @@
-package appstripeentityapp
+package appstripe
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
@@ -29,7 +28,7 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customer.Custo
 	}
 
 	// Get Stripe Customer
-	stripeCustomerData, err := a.StripeAppService.GetStripeCustomerData(ctx, appstripeentity.GetStripeCustomerDataInput{
+	stripeCustomerData, err := a.StripeAppService.GetStripeCustomerData(ctx, GetStripeCustomerDataInput{
 		AppID:      a.GetID(),
 		CustomerID: customerID,
 	})
@@ -179,7 +178,7 @@ func (a App) GetCustomerData(ctx context.Context, input app.GetAppInstanceCustom
 		)
 	}
 
-	customerData, err := a.StripeAppService.GetStripeCustomerData(ctx, appstripeentity.GetStripeCustomerDataInput{
+	customerData, err := a.StripeAppService.GetStripeCustomerData(ctx, GetStripeCustomerDataInput{
 		AppID:      a.GetID(),
 		CustomerID: input.CustomerID,
 	})
@@ -198,13 +197,13 @@ func (a App) UpsertCustomerData(ctx context.Context, input app.UpsertAppInstance
 		)
 	}
 
-	stripeCustomerData, ok := input.Data.(appstripeentity.CustomerData)
+	stripeCustomerData, ok := input.Data.(CustomerData)
 	if !ok {
 		return fmt.Errorf("error casting stripe customer data")
 	}
 
 	// Upsert stripe customer data
-	if err := a.StripeAppService.UpsertStripeCustomerData(ctx, appstripeentity.UpsertStripeCustomerDataInput{
+	if err := a.StripeAppService.UpsertStripeCustomerData(ctx, UpsertStripeCustomerDataInput{
 		AppID:                        a.GetID(),
 		CustomerID:                   input.CustomerID,
 		StripeCustomerID:             stripeCustomerData.StripeCustomerID,
@@ -227,7 +226,7 @@ func (a App) DeleteCustomerData(ctx context.Context, input app.DeleteAppInstance
 	appId := a.GetID()
 
 	// Delete stripe customer data
-	if err := a.StripeAppService.DeleteStripeCustomerData(ctx, appstripeentity.DeleteStripeCustomerDataInput{
+	if err := a.StripeAppService.DeleteStripeCustomerData(ctx, DeleteStripeCustomerDataInput{
 		AppID:      &appId,
 		CustomerID: &input.CustomerID,
 	}); err != nil {

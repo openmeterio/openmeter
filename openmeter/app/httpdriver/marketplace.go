@@ -9,7 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -282,7 +282,7 @@ func (h *handler) makeStripeDefaultBillingApp(ctx context.Context, stripeApp app
 	setDefaultBillingProfile := defaultBillingProfile != nil && defaultBillingProfile.Apps != nil && defaultBillingProfile.Apps.Invoicing.GetType() == app.AppTypeSandbox
 
 	// Get supplier contract from stripe app
-	supplierContract, err := h.stripeAppService.GetSupplierContact(ctx, appstripeentity.GetSupplierContactInput{
+	supplierContract, err := h.stripeAppService.GetSupplierContact(ctx, appstripe.GetSupplierContactInput{
 		AppID: appID,
 	})
 	if err != nil {

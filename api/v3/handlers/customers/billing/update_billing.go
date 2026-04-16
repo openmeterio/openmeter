@@ -12,7 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -146,7 +146,7 @@ func (h *handler) UpdateCustomerBilling() UpdateCustomerBillingHandler {
 				resp.AppData = &api.BillingAppCustomerData{
 					Stripe: request.AppData.Stripe,
 				}
-				appData = appstripeentity.CustomerData{
+				appData = appstripe.CustomerData{
 					StripeCustomerID:             *request.AppData.Stripe.CustomerId,
 					StripeDefaultPaymentMethodID: request.AppData.Stripe.DefaultPaymentMethodId,
 				}

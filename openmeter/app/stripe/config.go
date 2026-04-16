@@ -1,11 +1,10 @@
-package appstripeentityapp
+package appstripe
 
 import (
 	"context"
 	"errors"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 )
 
 type Configuration struct {
@@ -31,7 +30,7 @@ func (a App) UpdateAppConfig(ctx context.Context, input app.AppConfigUpdate) err
 	}
 
 	if configUpdate.SecretAPIKey != nil {
-		return a.StripeAppService.UpdateAPIKey(ctx, appstripeentity.UpdateAPIKeyInput{
+		return a.StripeAppService.UpdateAPIKey(ctx, UpdateAPIKeyInput{
 			AppID:  a.GetID(),
 			APIKey: *configUpdate.SecretAPIKey,
 		})

@@ -9,72 +9,71 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 var _ appstripe.Service = (*Service)(nil)
 
-func (s *Service) GetWebhookSecret(ctx context.Context, input appstripeentity.GetWebhookSecretInput) (appstripeentity.GetWebhookSecretOutput, error) {
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (appstripeentity.GetWebhookSecretOutput, error) {
+func (s *Service) GetWebhookSecret(ctx context.Context, input appstripe.GetWebhookSecretInput) (appstripe.GetWebhookSecretOutput, error) {
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (appstripe.GetWebhookSecretOutput, error) {
 		return s.adapter.GetWebhookSecret(ctx, input)
 	})
 }
 
-func (s *Service) UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateAPIKeyInput) error {
+func (s *Service) UpdateAPIKey(ctx context.Context, input appstripe.UpdateAPIKeyInput) error {
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
-		return s.adapter.UpdateAPIKey(ctx, appstripeentity.UpdateAPIKeyAdapterInput{
+		return s.adapter.UpdateAPIKey(ctx, appstripe.UpdateAPIKeyAdapterInput{
 			UpdateAPIKeyInput: input,
 			MaskedAPIKey:      s.generateMaskedSecretAPIKey(input.APIKey),
 		})
 	})
 }
 
-func (s *Service) CreateCheckoutSession(ctx context.Context, input appstripeentity.CreateCheckoutSessionInput) (appstripeentity.CreateCheckoutSessionOutput, error) {
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (appstripeentity.CreateCheckoutSessionOutput, error) {
+func (s *Service) CreateCheckoutSession(ctx context.Context, input appstripe.CreateCheckoutSessionInput) (appstripe.CreateCheckoutSessionOutput, error) {
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (appstripe.CreateCheckoutSessionOutput, error) {
 		// Create the checkout session
 		output, err := s.adapter.CreateCheckoutSession(ctx, input)
 		if err != nil {
-			return appstripeentity.CreateCheckoutSessionOutput{}, err
+			return appstripe.CreateCheckoutSessionOutput{}, err
 		}
 
 		// Emit the checkout session created event
 		event := appstripe.NewAppCheckoutSessionEvent(ctx, input.Namespace, output.SessionID, output.AppID.ID, output.CustomerID.ID)
 		if err := s.publisher.Publish(ctx, event); err != nil {
-			return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to publish event: %w", err)
+			return appstripe.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to publish event: %w", err)
 		}
 
 		return output, nil
 	})
 }
 
-func (s *Service) GetStripeAppData(ctx context.Context, input appstripeentity.GetStripeAppDataInput) (appstripeentity.AppData, error) {
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (appstripeentity.AppData, error) {
+func (s *Service) GetStripeAppData(ctx context.Context, input appstripe.GetStripeAppDataInput) (appstripe.AppData, error) {
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (appstripe.AppData, error) {
 		return s.adapter.GetStripeAppData(ctx, input)
 	})
 }
 
-func (s *Service) GetStripeCustomerData(ctx context.Context, input appstripeentity.GetStripeCustomerDataInput) (appstripeentity.CustomerData, error) {
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (appstripeentity.CustomerData, error) {
+func (s *Service) GetStripeCustomerData(ctx context.Context, input appstripe.GetStripeCustomerDataInput) (appstripe.CustomerData, error) {
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (appstripe.CustomerData, error) {
 		return s.adapter.GetStripeCustomerData(ctx, input)
 	})
 }
 
-func (s *Service) UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error {
+func (s *Service) UpsertStripeCustomerData(ctx context.Context, input appstripe.UpsertStripeCustomerDataInput) error {
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
 		return s.adapter.UpsertStripeCustomerData(ctx, input)
 	})
 }
 
-func (s *Service) DeleteStripeCustomerData(ctx context.Context, input appstripeentity.DeleteStripeCustomerDataInput) error {
+func (s *Service) DeleteStripeCustomerData(ctx context.Context, input appstripe.DeleteStripeCustomerDataInput) error {
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
 		return s.adapter.DeleteStripeCustomerData(ctx, input)
 	})
 }
 
-func (s *Service) HandleSetupIntentSucceeded(ctx context.Context, input appstripeentity.HandleSetupIntentSucceededInput) (appstripeentity.HandleSetupIntentSucceededOutput, error) {
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (appstripeentity.HandleSetupIntentSucceededOutput, error) {
-		def := appstripeentity.HandleSetupIntentSucceededOutput{}
+func (s *Service) HandleSetupIntentSucceeded(ctx context.Context, input appstripe.HandleSetupIntentSucceededInput) (appstripe.HandleSetupIntentSucceededOutput, error) {
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (appstripe.HandleSetupIntentSucceededOutput, error) {
+		def := appstripe.HandleSetupIntentSucceededOutput{}
 
 		res, err := s.adapter.SetCustomerDefaultPaymentMethod(ctx, input.SetCustomerDefaultPaymentMethodInput)
 		if err != nil {
@@ -98,12 +97,12 @@ func (s *Service) HandleSetupIntentSucceeded(ctx context.Context, input appstrip
 			return def, fmt.Errorf("failed to publish event: %w", err)
 		}
 
-		return appstripeentity.HandleSetupIntentSucceededOutput(res), nil
+		return appstripe.HandleSetupIntentSucceededOutput(res), nil
 	})
 }
 
 // CreatePortalSession creates a portal session for a customer.
-func (s *Service) CreatePortalSession(ctx context.Context, input appstripeentity.CreateStripePortalSessionInput) (appstripeentity.StripePortalSession, error) {
+func (s *Service) CreatePortalSession(ctx context.Context, input appstripe.CreateStripePortalSessionInput) (appstripe.StripePortalSession, error) {
 	return s.adapter.CreatePortalSession(ctx, input)
 }
 

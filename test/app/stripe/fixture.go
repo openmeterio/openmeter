@@ -9,8 +9,8 @@ import (
 	"golang.org/x/exp/rand"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 )
 
@@ -38,20 +38,20 @@ type Fixture struct {
 }
 
 // setupAppWithCustomer creates a stripe app and a customer with customer data
-func (s *Fixture) setupAppWithCustomer(ctx context.Context, namespace string) (app.App, *customer.Customer, appstripeentity.CustomerData, error) {
+func (s *Fixture) setupAppWithCustomer(ctx context.Context, namespace string) (app.App, *customer.Customer, appstripe.CustomerData, error) {
 	app, err := s.setupApp(ctx, namespace)
 	if err != nil {
-		return nil, nil, appstripeentity.CustomerData{}, fmt.Errorf("setup app failed: %w", err)
+		return nil, nil, appstripe.CustomerData{}, fmt.Errorf("setup app failed: %w", err)
 	}
 
 	customer, err := s.setupCustomer(ctx, namespace)
 	if err != nil {
-		return nil, nil, appstripeentity.CustomerData{}, fmt.Errorf("setup customer failed: %w", err)
+		return nil, nil, appstripe.CustomerData{}, fmt.Errorf("setup customer failed: %w", err)
 	}
 
 	data, err := s.setupAppCustomerData(ctx, app, customer)
 	if err != nil {
-		return nil, nil, appstripeentity.CustomerData{}, fmt.Errorf("setup app customer data failed: %w", err)
+		return nil, nil, appstripe.CustomerData{}, fmt.Errorf("setup app customer data failed: %w", err)
 	}
 
 	return app, customer, data, nil
@@ -110,8 +110,8 @@ func (s *Fixture) setupCustomer(ctx context.Context, namespace string) (*custome
 }
 
 // Add customer data to the app
-func (s *Fixture) setupAppCustomerData(ctx context.Context, customerApp app.App, customer *customer.Customer) (appstripeentity.CustomerData, error) {
-	data := appstripeentity.CustomerData{
+func (s *Fixture) setupAppCustomerData(ctx context.Context, customerApp app.App, customer *customer.Customer) (appstripe.CustomerData, error) {
+	data := appstripe.CustomerData{
 		StripeCustomerID: defaultStripeCustomerID,
 	}
 

@@ -4,7 +4,7 @@ package customersbilling
 import (
 	apilegacy "github.com/openmeterio/openmeter/api"
 	api "github.com/openmeterio/openmeter/api/v3"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 )
 
@@ -53,10 +53,10 @@ var (
 	FromAPIBillingAppStripeCheckoutSessionUIMode func(source api.BillingAppStripeCheckoutSessionUIMode) (apilegacy.CheckoutSessionUIMode, error)
 
 	// goverter:map Configuration.ID ConfigurationId
-	ToAPIBillingAppStripeCreateCustomerPortalSessionResult func(portalSession appstripeentity.StripePortalSession) api.BillingAppStripeCreateCustomerPortalSessionResult
+	ToAPIBillingAppStripeCreateCustomerPortalSessionResult func(portalSession appstripe.StripePortalSession) api.BillingAppStripeCreateCustomerPortalSessionResult
 
 	// goverter:autoMap StripeCheckoutSession
-	ToAPIBillingAppStripeCreateCheckoutSessionResult func(source appstripeentity.CreateCheckoutSessionOutput) api.BillingAppStripeCreateCheckoutSessionResult
+	ToAPIBillingAppStripeCreateCheckoutSessionResult func(source appstripe.CreateCheckoutSessionOutput) api.BillingAppStripeCreateCheckoutSessionResult
 )
 
 func ResolveIDFromCustomerId(namespacedID customer.CustomerID) string {

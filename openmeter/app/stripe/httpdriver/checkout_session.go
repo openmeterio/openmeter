@@ -9,7 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -18,7 +18,7 @@ import (
 )
 
 type (
-	CreateAppStripeCheckoutSessionRequest  = appstripeentity.CreateCheckoutSessionInput
+	CreateAppStripeCheckoutSessionRequest  = appstripe.CreateCheckoutSessionInput
 	CreateAppStripeCheckoutSessionResponse = api.CreateStripeCheckoutSessionResult
 	CreateAppStripeCheckoutSessionHandler  httptransport.Handler[CreateAppStripeCheckoutSessionRequest, CreateAppStripeCheckoutSessionResponse]
 )

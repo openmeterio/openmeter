@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -36,7 +36,7 @@ func (s *AppHandlerTestSuite) TestGetMarketplaceListing(ctx context.Context, t *
 	service := s.Env.App()
 
 	// Listing
-	expectedListing := appstripeentity.StripeMarketplaceListing
+	expectedListing := appstripe.StripeMarketplaceListing
 
 	require.NotNil(t, expectedListing, "Expected Listing must not be nil")
 
@@ -81,5 +81,5 @@ func (s *AppHandlerTestSuite) TestListMarketplaceListings(ctx context.Context, t
 	require.Equal(t, 1, list.TotalCount, "Listings total count must be 1")
 	require.Equal(t, 1, list.Page.PageNumber, "Listings page must be 0")
 	require.Len(t, list.Items, 1, "Listings must have a single item")
-	require.Equal(t, list.Items[0].Listing, appstripeentity.StripeMarketplaceListing, "Listings must match")
+	require.Equal(t, list.Items[0].Listing, appstripe.StripeMarketplaceListing, "Listings must match")
 }

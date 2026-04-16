@@ -8,9 +8,8 @@ import (
 	"github.com/oklog/ulid/v2"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
-	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 )
 
@@ -19,7 +18,7 @@ var _ app.AppFactory = (*Service)(nil)
 
 // NewApp implement the app.AppFactory interface and returns a Stripe App by extending the AppBase
 func (s *Service) NewApp(ctx context.Context, appBase app.AppBase) (app.App, error) {
-	stripeApp, err := s.adapter.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{AppID: appBase.GetID()})
+	stripeApp, err := s.adapter.GetStripeAppData(ctx, appstripe.GetStripeAppDataInput{AppID: appBase.GetID()})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get stripe app data: %w", err)
 	}
@@ -67,7 +66,7 @@ func (s *Service) InstallAppWithAPIKey(ctx context.Context, input app.AppFactory
 	// Create API Key secret
 	apiKeySecretID, err := s.secretService.CreateAppSecret(ctx, secretentity.CreateAppSecretInput{
 		AppID: appID,
-		Key:   appstripeentity.APIKeySecretKey,
+		Key:   appstripe.APIKeySecretKey,
 		Value: input.APIKey,
 	})
 	if err != nil {
@@ -101,7 +100,7 @@ func (s *Service) InstallAppWithAPIKey(ctx context.Context, input app.AppFactory
 	// Create webhook secret
 	webhookSecretID, err := s.secretService.CreateAppSecret(ctx, secretentity.CreateAppSecretInput{
 		AppID: appID,
-		Key:   appstripeentity.WebhookSecretKey,
+		Key:   appstripe.WebhookSecretKey,
 		Value: stripeWebhookEndpoint.Secret,
 	})
 	if err != nil {
@@ -109,7 +108,7 @@ func (s *Service) InstallAppWithAPIKey(ctx context.Context, input app.AppFactory
 	}
 
 	// Create stripe app
-	createStripeAppInput := appstripeentity.CreateAppStripeInput{
+	createStripeAppInput := appstripe.CreateAppStripeInput{
 		CreateAppInput: app.CreateAppInput{
 			ID:          &appID,
 			Namespace:   input.Namespace,
@@ -146,7 +145,7 @@ func (s *Service) InstallAppWithAPIKey(ctx context.Context, input app.AppFactory
 // UninstallApp uninstalls an app by id
 func (s *Service) UninstallApp(ctx context.Context, input app.UninstallAppInput) error {
 	// Get Stripe App
-	stripeApp, err := s.adapter.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{
+	stripeApp, err := s.adapter.GetStripeAppData(ctx, appstripe.GetStripeAppDataInput{
 		AppID: input,
 	})
 	if err != nil {
@@ -154,7 +153,7 @@ func (s *Service) UninstallApp(ctx context.Context, input app.UninstallAppInput)
 	}
 
 	// Delete stripe customer data
-	err = s.adapter.DeleteStripeCustomerData(ctx, appstripeentity.DeleteStripeCustomerDataInput{
+	err = s.adapter.DeleteStripeCustomerData(ctx, appstripe.DeleteStripeCustomerDataInput{
 		AppID: &input,
 	})
 	if err != nil {
@@ -162,7 +161,7 @@ func (s *Service) UninstallApp(ctx context.Context, input app.UninstallAppInput)
 	}
 
 	// Delete stripe app data
-	err = s.adapter.DeleteStripeAppData(ctx, appstripeentity.DeleteStripeAppDataInput{
+	err = s.adapter.DeleteStripeAppData(ctx, appstripe.DeleteStripeAppDataInput{
 		AppID: input,
 	})
 	if err != nil {
@@ -217,9 +216,9 @@ func (s *Service) UninstallApp(ctx context.Context, input app.UninstallAppInput)
 }
 
 // newApp combines the app base and stripe app data to create a new app
-func (s *Service) newApp(appBase app.AppBase, stripeApp appstripeentity.AppData) (appstripeentityapp.App, error) {
-	app := appstripeentityapp.App{
-		Meta: appstripeentityapp.Meta{
+func (s *Service) newApp(appBase app.AppBase, stripeApp appstripe.AppData) (appstripe.App, error) {
+	app := appstripe.App{
+		Meta: appstripe.Meta{
 			AppBase: appBase,
 			AppData: stripeApp,
 		},
@@ -232,7 +231,7 @@ func (s *Service) newApp(appBase app.AppBase, stripeApp appstripeentity.AppData)
 	}
 
 	if err := app.Validate(); err != nil {
-		return appstripeentityapp.App{}, fmt.Errorf("failed to map stripe app from db: %w", err)
+		return appstripe.App{}, fmt.Errorf("failed to map stripe app from db: %w", err)
 	}
 
 	return app, nil

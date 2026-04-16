@@ -20,7 +20,6 @@ import (
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripeadapter "github.com/openmeterio/openmeter/openmeter/app/stripe/adapter"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	appstripeservice "github.com/openmeterio/openmeter/openmeter/app/stripe/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -439,7 +438,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 	clock.FreezeTime(periodEnd.Add(time.Minute))
 
 	var app app.App
-	var customerData appstripeentity.CustomerData
+	var customerData appstripe.CustomerData
 	var invoice billing.StandardInvoice
 	var invoicingApp billing.InvoicingApp
 

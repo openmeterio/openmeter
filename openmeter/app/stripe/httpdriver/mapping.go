@@ -2,11 +2,11 @@ package httpdriver
 
 import (
 	"github.com/openmeterio/openmeter/api"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 )
 
 // toAPIStripePortalSession maps a StripePortalSession to an API StripePortalSession
-func toAPIStripePortalSession(portalSession appstripeentity.StripePortalSession) api.StripeCustomerPortalSession {
+func toAPIStripePortalSession(portalSession appstripe.StripePortalSession) api.StripeCustomerPortalSession {
 	apiPortalSession := api.StripeCustomerPortalSession{
 		Id:               portalSession.ID,
 		StripeCustomerId: portalSession.StripeCustomerID,
@@ -25,8 +25,8 @@ func toAPIStripePortalSession(portalSession appstripeentity.StripePortalSession)
 }
 
 // fromAPIAppStripeCustomerDataBase maps an API stripe customer data base to an app stripe customer data
-func fromAPIAppStripeCustomerDataBase(apiStripeCustomerData api.StripeCustomerAppDataBase) appstripeentity.CustomerData {
-	return appstripeentity.CustomerData{
+func fromAPIAppStripeCustomerDataBase(apiStripeCustomerData api.StripeCustomerAppDataBase) appstripe.CustomerData {
+	return appstripe.CustomerData{
 		StripeCustomerID:             apiStripeCustomerData.StripeCustomerId,
 		StripeDefaultPaymentMethodID: apiStripeCustomerData.StripeDefaultPaymentMethodId,
 	}

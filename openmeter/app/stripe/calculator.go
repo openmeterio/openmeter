@@ -1,4 +1,4 @@
-package appstripeentityapp
+package appstripe
 
 import (
 	"fmt"

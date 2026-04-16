@@ -10,8 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
-	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -80,13 +79,13 @@ func (h *handler) CreateCustomerStripePortalSession() CreateCustomerStripePortal
 			}
 
 			// Enforce stripe apptype, see app type filter above
-			stripeApp, ok := genericApp.(appstripeentityapp.App)
+			stripeApp, ok := genericApp.(appstripe.App)
 			if !ok {
 				return CreateCustomerStripePortalSessionResponse{}, fmt.Errorf("customer app is not a stripe app")
 			}
 
 			// Create the portal session
-			portalSession, err := h.stripeService.CreatePortalSession(ctx, appstripeentity.CreateStripePortalSessionInput{
+			portalSession, err := h.stripeService.CreatePortalSession(ctx, appstripe.CreateStripePortalSessionInput{
 				AppID:           stripeApp.GetID(),
 				CustomerID:      request.customerId,
 				ConfigurationID: request.options.ConfigurationId,
