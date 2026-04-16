@@ -417,7 +417,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		// This should match the ledger's transaction group ID
 		s.NotEmpty(cpCharge.Realizations.CreditGrantRealization.TransactionGroupID)
 
-		// LEDGER[galexi]:
+		// LEDGER:
 		// - OnPromotionalCreditPurchase is called
 		// - At this point the customer must have 30 USD promotional credits
 
@@ -463,7 +463,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		// This should match the ledger's transaction group ID
 		s.NotEmpty(cpCharge.Realizations.CreditGrantRealization.TransactionGroupID)
 
-		// LEDGER[galexi]:
+		// LEDGER:
 		// - OnCreditPurchaseInitiated is called
 		// - At this point the customer must have 50 USD credits cost basis of 0.5
 
@@ -482,7 +482,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		})
 		s.NoError(err)
 
-		// LEDGER[galexi]:
+		// LEDGER:
 		// - OnCreditPurchasePaymentAuthorized is called
 
 		costBasis := alpacadecimal.NewFromFloat(0.5)
@@ -497,7 +497,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		})
 		s.NoError(err)
 
-		// LEDGER[galexi]:
+		// LEDGER:
 		// - OnCreditPurchasePaymentSettled is called
 
 		costBasis := alpacadecimal.NewFromFloat(0.5)
@@ -566,7 +566,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		flatFeeCharge, err := res[0].AsFlatFeeCharge()
 		s.NoError(err)
 
-		// LEDGER[galexi]:
+		// LEDGER:
 		// - This is a noop as this is in the future, so it just creates the charge + gathering line
 
 		flatFeeChargeID = flatFeeCharge.GetChargeID()
@@ -597,7 +597,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 
 		s.Equal(flatFeeChargeID.ID, updatedFlatFeeCharge.ID)
 
-		// LEDGER[galexi]:
+		// LEDGER:
 		// - OnFlatFeeAssignedToInvoice is called with the pre tax total amount of USD 100
 		// - Two credit realizations should happen for the two different credit types
 
@@ -625,7 +625,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
 	})
 
-	s.Run("advance the invoice and authorize payment", func() {
+	s.Run("advance the invoice to payment processing", func() {
 		invoice, err := s.BillingService.ApproveInvoice(ctx, stdInvoiceID)
 		s.NoError(err)
 		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
@@ -634,10 +634,10 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		updatedFlatFeeCharge, err := charge.AsFlatFeeCharge()
 		s.NoError(err)
 
-		// LEDGER[galexi]:
+		// LEDGER:
 		// - OnFlatFeeStandardInvoiceUsageAccrued is called with the service period and totals of USD 20 to be represented
 		//   on the ledger
-		// - OnFlatFeePaymentAuthorized is called (I cannot make this a two step process without creating a new app) with the USD 20
+		// - Payment authorization is deferred until the payment app advances the invoice beyond pending
 
 		// Invoice usage accrued callback should have been invoked
 		accruedUsage := updatedFlatFeeCharge.Realizations.AccruedUsage
@@ -651,6 +651,33 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 
 		assertDelta("promo FBO after payment authorization", flatFeeStart.promoFBO, alpacadecimal.NewFromInt(-30), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&promoCostBasis)))
 		assertDelta("external FBO after payment authorization", flatFeeStart.externalFBO, alpacadecimal.NewFromInt(-50), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)))
+		assertDelta("promo receivable after payment processing pending", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("external receivable after payment processing pending", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("total open receivable after payment processing pending", flatFeeStart.totalOpenReceivable, alpacadecimal.NewFromInt(-20), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("authorized receivable after payment processing pending", flatFeeStart.authorizedReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized))
+		assertDelta("accrued after payment processing pending", flatFeeStart.accrued, alpacadecimal.NewFromInt(100), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()))
+		assertDelta("total wash after payment processing pending", flatFeeStart.totalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()))
+		assertDelta("external wash after payment processing pending", flatFeeStart.externalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
+		assertDelta("earnings after payment processing pending", flatFeeStart.earnings, alpacadecimal.Zero, s.mustEarningsBalance(ns, USD))
+	})
+
+	s.Run("payment is authorized", func() {
+		invoice, err := s.BillingService.PaymentAuthorized(ctx, stdInvoiceID)
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaymentProcessingAuthorized, invoice.Status)
+
+		// LEDGER:
+		// - OnFlatFeePaymentAuthorized is called with the remaining USD 20
+
+		charge := s.mustGetChargeByID(flatFeeChargeID)
+		updatedFlatFeeCharge, err := charge.AsFlatFeeCharge()
+		s.NoError(err)
+		s.Equal(flatfee.StatusActive, updatedFlatFeeCharge.Status)
+		s.NotNil(updatedFlatFeeCharge.Realizations.Payment)
+		s.Equal(payment.StatusAuthorized, updatedFlatFeeCharge.Realizations.Payment.Status)
+		s.NotNil(updatedFlatFeeCharge.Realizations.Payment.Authorized)
+		s.Nil(updatedFlatFeeCharge.Realizations.Payment.Settled)
+
 		assertDelta("promo receivable after payment authorization", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen))
 		assertDelta("external receivable after payment authorization", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen))
 		assertDelta("total open receivable after payment authorization", flatFeeStart.totalOpenReceivable, alpacadecimal.NewFromInt(-20), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
@@ -669,13 +696,17 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		s.NoError(err)
 		s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status)
 
-		// LEDGER[galexi]:
+		// LEDGER:
 		// - OnFlatFeePaymentSettled is called with the USD 20
 
 		charge := s.mustGetChargeByID(flatFeeChargeID)
 		updatedFlatFeeCharge, err := charge.AsFlatFeeCharge()
 		s.NoError(err)
 		s.Equal(flatfee.StatusFinal, updatedFlatFeeCharge.Status)
+		s.NotNil(updatedFlatFeeCharge.Realizations.Payment)
+		s.Equal(payment.StatusSettled, updatedFlatFeeCharge.Realizations.Payment.Status)
+		s.NotNil(updatedFlatFeeCharge.Realizations.Payment.Authorized)
+		s.NotNil(updatedFlatFeeCharge.Realizations.Payment.Settled)
 
 		assertDelta("promo receivable after payment settlement", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen))
 		assertDelta("external receivable after payment settlement", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen))

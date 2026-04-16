@@ -87,6 +87,14 @@ func (e *Engine) OnInvoiceIssued(_ context.Context, _ billing.OnInvoiceIssuedInp
 	return nil
 }
 
+func (e *Engine) OnPaymentAuthorized(_ context.Context, _ billing.OnPaymentAuthorizedInput) error {
+	return nil
+}
+
+func (e *Engine) OnPaymentSettled(_ context.Context, _ billing.OnPaymentSettledInput) error {
+	return nil
+}
+
 func (e *Engine) CalculateLines(input billing.CalculateLinesInput) (billing.StandardLines, error) {
 	if input.Invoice.ID == "" {
 		return nil, fmt.Errorf("invoice id is required")

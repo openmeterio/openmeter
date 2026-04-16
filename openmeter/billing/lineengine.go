@@ -132,6 +132,8 @@ type (
 	OnStandardInvoiceCreatedInput = StandardLineEventInput
 	OnCollectionCompletedInput    = StandardLineEventInput
 	OnInvoiceIssuedInput          = StandardLineEventInput
+	OnPaymentAuthorizedInput      = StandardLineEventInput
+	OnPaymentSettledInput         = StandardLineEventInput
 )
 
 type IsLineBillableAsOfInput struct {
@@ -219,10 +221,10 @@ type LineEngine interface {
 	CalculateLines(input CalculateLinesInput) (StandardLines, error)
 	// OnInvoiceIssued is invoked when a standard invoice reaches the issued state.
 	OnInvoiceIssued(ctx context.Context, input OnInvoiceIssuedInput) error
-	// TODO[later]: implement this lifecycle event/hook.
-	// OnPaymentAuthorized(ctx context.Context, lines StandardLines) error
-	// TODO[later]: implement this lifecycle event/hook.
-	// OnPaymentSettled(ctx context.Context, lines StandardLines) error
+	// OnPaymentAuthorized is invoked when a standard invoice reaches the payment authorized state.
+	OnPaymentAuthorized(ctx context.Context, input OnPaymentAuthorizedInput) error
+	// OnPaymentSettled is invoked when a standard invoice reaches the paid state.
+	OnPaymentSettled(ctx context.Context, input OnPaymentSettledInput) error
 }
 
 func LineEngineValidationComponent(engineType LineEngineType) ComponentName {

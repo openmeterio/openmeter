@@ -85,6 +85,7 @@ type InvoiceService interface {
 	AdvanceInvoice(ctx context.Context, input AdvanceInvoiceInput) (StandardInvoice, error)
 	SnapshotQuantities(ctx context.Context, input SnapshotQuantitiesInput) (StandardInvoice, error)
 	ApproveInvoice(ctx context.Context, input ApproveInvoiceInput) (StandardInvoice, error)
+	PaymentAuthorized(ctx context.Context, input PaymentAuthorizedInput) (StandardInvoice, error)
 	RetryInvoice(ctx context.Context, input RetryInvoiceInput) (StandardInvoice, error)
 	DeleteInvoice(ctx context.Context, input DeleteInvoiceInput) (StandardInvoice, error)
 	UpdateInvoice(ctx context.Context, input UpdateInvoiceInput) (Invoice, error)

@@ -52,7 +52,14 @@ func (s *service) handleStandardInvoiceUpdate(ctx context.Context, invoice billi
 			creditPurchase: noop[creditpurchase.Charge],
 		})
 
-	case billing.StandardInvoiceStatusPaymentProcessingPending:
+	case billing.StandardInvoiceStatusPaymentProcessingAuthorized:
+		return s.handleChargeEvent(ctx, invoice, processorByType{
+			flatFee:        s.flatFeeService.PostInvoicePaymentAuthorized,
+			usageBased:     noop[usagebased.Charge],
+			creditPurchase: s.creditPurchaseService.PostInvoicePaymentAuthorized,
+		})
+
+	case billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettled:
 		return s.handleChargeEvent(ctx, invoice, processorByType{
 			flatFee:        s.flatFeeService.PostInvoicePaymentAuthorized,
 			usageBased:     noop[usagebased.Charge],

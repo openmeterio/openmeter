@@ -253,15 +253,57 @@ func allocateStateMachine() *InvoiceStateMachine {
 
 	// Payment states
 	stateMachine.Configure(billing.StandardInvoiceStatusPaymentProcessingPending).
-		Permit(billing.TriggerPaid, billing.StandardInvoiceStatusPaid).
+		Permit(billing.TriggerAuthorized, billing.StandardInvoiceStatusPaymentProcessingBookingAuthorized).
+		Permit(billing.TriggerPaid, billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettled).
 		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusPaymentProcessingFailed).
 		Permit(billing.TriggerPaymentUncollectible, billing.StandardInvoiceStatusUncollectible).
 		Permit(billing.TriggerPaymentOverdue, billing.StandardInvoiceStatusOverdue).
 		Permit(billing.TriggerActionRequired, billing.StandardInvoiceStatusPaymentProcessingActionRequired).
 		Permit(billing.TriggerVoid, billing.StandardInvoiceStatusVoided)
 
+	stateMachine.Configure(billing.StandardInvoiceStatusPaymentProcessingBookingAuthorized).
+		Permit(billing.TriggerNext, billing.StandardInvoiceStatusPaymentProcessingAuthorized).
+		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedFailed).
+		Permit(billing.TriggerVoid, billing.StandardInvoiceStatusVoided).
+		OnActive(out.onPaymentAuthorized)
+
+	stateMachine.Configure(billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedFailed).
+		Permit(billing.TriggerRetry, billing.StandardInvoiceStatusPaymentProcessingBookingAuthorized).
+		Permit(billing.TriggerVoid, billing.StandardInvoiceStatusVoided)
+
+	// Some payment apps jump directly from pending to paid. This combined state keeps
+	// charge-side ledger booking consistent by running authorized booking before settlement.
+	stateMachine.Configure(billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettled).
+		Permit(billing.TriggerNext, billing.StandardInvoiceStatusPaid).
+		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettledFailed).
+		Permit(billing.TriggerVoid, billing.StandardInvoiceStatusVoided).
+		OnActive(out.onPaymentAuthorizedAndSettled)
+
+	stateMachine.Configure(billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettledFailed).
+		Permit(billing.TriggerRetry, billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettled).
+		Permit(billing.TriggerVoid, billing.StandardInvoiceStatusVoided)
+
+	stateMachine.Configure(billing.StandardInvoiceStatusPaymentProcessingAuthorized).
+		Permit(billing.TriggerPaid, billing.StandardInvoiceStatusPaymentProcessingBookingSettled).
+		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusPaymentProcessingFailed).
+		Permit(billing.TriggerPaymentUncollectible, billing.StandardInvoiceStatusUncollectible).
+		Permit(billing.TriggerPaymentOverdue, billing.StandardInvoiceStatusOverdue).
+		Permit(billing.TriggerActionRequired, billing.StandardInvoiceStatusPaymentProcessingActionRequired).
+		Permit(billing.TriggerVoid, billing.StandardInvoiceStatusVoided)
+
+	stateMachine.Configure(billing.StandardInvoiceStatusPaymentProcessingBookingSettled).
+		Permit(billing.TriggerNext, billing.StandardInvoiceStatusPaid).
+		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusPaymentProcessingBookingSettledFailed).
+		Permit(billing.TriggerVoid, billing.StandardInvoiceStatusVoided).
+		OnActive(out.onPaymentSettled)
+
+	stateMachine.Configure(billing.StandardInvoiceStatusPaymentProcessingBookingSettledFailed).
+		Permit(billing.TriggerRetry, billing.StandardInvoiceStatusPaymentProcessingBookingSettled).
+		Permit(billing.TriggerVoid, billing.StandardInvoiceStatusVoided)
+
 	stateMachine.Configure(billing.StandardInvoiceStatusPaymentProcessingFailed).
-		Permit(billing.TriggerPaid, billing.StandardInvoiceStatusPaid).
+		Permit(billing.TriggerAuthorized, billing.StandardInvoiceStatusPaymentProcessingBookingAuthorized).
+		Permit(billing.TriggerPaid, billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettled).
 		Permit(billing.TriggerRetry, billing.StandardInvoiceStatusPaymentProcessingPending).
 		Permit(billing.TriggerPaymentOverdue, billing.StandardInvoiceStatusOverdue).
 		Permit(billing.TriggerPaymentUncollectible, billing.StandardInvoiceStatusUncollectible).
@@ -269,7 +311,8 @@ func allocateStateMachine() *InvoiceStateMachine {
 		Permit(billing.TriggerVoid, billing.StandardInvoiceStatusVoided)
 
 	stateMachine.Configure(billing.StandardInvoiceStatusPaymentProcessingActionRequired).
-		Permit(billing.TriggerPaid, billing.StandardInvoiceStatusPaid).
+		Permit(billing.TriggerAuthorized, billing.StandardInvoiceStatusPaymentProcessingBookingAuthorized).
+		Permit(billing.TriggerPaid, billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettled).
 		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusPaymentProcessingFailed).
 		Permit(billing.TriggerRetry, billing.StandardInvoiceStatusPaymentProcessingPending).
 		Permit(billing.TriggerPaymentOverdue, billing.StandardInvoiceStatusOverdue).
@@ -279,7 +322,8 @@ func allocateStateMachine() *InvoiceStateMachine {
 	// Payment overdue state
 
 	stateMachine.Configure(billing.StandardInvoiceStatusOverdue).
-		Permit(billing.TriggerPaid, billing.StandardInvoiceStatusPaid).
+		Permit(billing.TriggerAuthorized, billing.StandardInvoiceStatusPaymentProcessingBookingAuthorized).
+		Permit(billing.TriggerPaid, billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettled).
 		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusPaymentProcessingFailed).
 		Permit(billing.TriggerRetry, billing.StandardInvoiceStatusPaymentProcessingPending).
 		Permit(billing.TriggerPaymentUncollectible, billing.StandardInvoiceStatusUncollectible).
@@ -287,7 +331,8 @@ func allocateStateMachine() *InvoiceStateMachine {
 
 	stateMachine.Configure(billing.StandardInvoiceStatusUncollectible).
 		Permit(billing.TriggerVoid, billing.StandardInvoiceStatusVoided).
-		Permit(billing.TriggerPaid, billing.StandardInvoiceStatusPaid)
+		Permit(billing.TriggerAuthorized, billing.StandardInvoiceStatusPaymentProcessingBookingAuthorized).
+		Permit(billing.TriggerPaid, billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettled)
 
 	// Final payment states
 	stateMachine.Configure(billing.StandardInvoiceStatusPaid)
@@ -320,7 +365,6 @@ func (s *Service) WithInvoiceStateMachine(ctx context.Context, invoice billing.S
 		sm.Publisher = nil
 		sm.FSNamespaceLockdown = nil
 		sm.NeedsDBSave = false
-
 		invoiceStateMachineCache.Put(sm)
 	}()
 
@@ -512,7 +556,29 @@ func (m *InvoiceStateMachine) TriggerFailed(ctx context.Context) error {
 // transitions to the failed state and activates that.
 // In addition to the activation a calculation is always performed to ensure that the invoice is up to date.
 func (m *InvoiceStateMachine) FireAndActivate(ctx context.Context, trigger billing.InvoiceTrigger) error {
+	previousStatus := m.Invoice.Status
 	if err := m.StateMachine.FireCtx(ctx, trigger); err != nil {
+		if m.Invoice.Status == previousStatus {
+			return err
+		}
+
+		canFireFailed, failedCheckErr := m.StateMachine.CanFireCtx(ctx, billing.TriggerFailed)
+		if failedCheckErr != nil {
+			return fmt.Errorf("failed to check if we can transition to failed state: %w", failedCheckErr)
+		}
+
+		if !canFireFailed {
+			return err
+		}
+
+		if failedErr := m.StateMachine.FireCtx(ctx, billing.TriggerFailed); failedErr != nil {
+			return fmt.Errorf("failed to transition to failed state after fire error: %w", failedErr)
+		}
+
+		if activationErr := m.StateMachine.ActivateCtx(ctx); activationErr != nil {
+			return activationErr
+		}
+
 		return err
 	}
 
@@ -648,6 +714,10 @@ func (m *InvoiceStateMachine) HandleInvoiceTrigger(ctx context.Context, trigger 
 	}
 
 	if err := m.Publisher.Publish(ctx, event); err != nil {
+		return err
+	}
+
+	if err := m.AdvanceUntilStateStable(ctx); err != nil {
 		return err
 	}
 
@@ -898,6 +968,60 @@ func (m *InvoiceStateMachine) onInvoiceIssued(ctx context.Context) error {
 		}
 
 		if err := grouped.Engine.OnInvoiceIssued(ctx, input); err != nil {
+			return billing.NewLineEngineValidationError(grouped.Engine, err)
+		}
+	}
+
+	return nil
+}
+
+func (m *InvoiceStateMachine) onPaymentAuthorized(ctx context.Context) error {
+	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(m.Invoice.Lines.OrEmpty())
+	if err != nil {
+		return fmt.Errorf("grouping standard lines by engine: %w", err)
+	}
+
+	for _, grouped := range groupedLines {
+		input := billing.OnPaymentAuthorizedInput{
+			Invoice: m.Invoice,
+			Lines:   grouped.Lines,
+		}
+		if err := input.Validate(); err != nil {
+			return fmt.Errorf("validating payment authorized input for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+		}
+
+		if err := grouped.Engine.OnPaymentAuthorized(ctx, input); err != nil {
+			return billing.NewLineEngineValidationError(grouped.Engine, err)
+		}
+	}
+
+	return nil
+}
+
+func (m *InvoiceStateMachine) onPaymentAuthorizedAndSettled(ctx context.Context) error {
+	if err := m.onPaymentAuthorized(ctx); err != nil {
+		return err
+	}
+
+	return m.onPaymentSettled(ctx)
+}
+
+func (m *InvoiceStateMachine) onPaymentSettled(ctx context.Context) error {
+	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(m.Invoice.Lines.OrEmpty())
+	if err != nil {
+		return fmt.Errorf("grouping standard lines by engine: %w", err)
+	}
+
+	for _, grouped := range groupedLines {
+		input := billing.OnPaymentSettledInput{
+			Invoice: m.Invoice,
+			Lines:   grouped.Lines,
+		}
+		if err := input.Validate(); err != nil {
+			return fmt.Errorf("validating payment settled input for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+		}
+
+		if err := grouped.Engine.OnPaymentSettled(ctx, input); err != nil {
 			return billing.NewLineEngineValidationError(grouped.Engine, err)
 		}
 	}

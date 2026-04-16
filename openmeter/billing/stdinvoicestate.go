@@ -31,6 +31,8 @@ var (
 
 	// TriggerPaid is used to signify that the invoice has been paid
 	TriggerPaid InvoiceTrigger = "trigger_paid"
+	// TriggerAuthorized is used to signify that the invoice has an authorized payment method/funds hold
+	TriggerAuthorized InvoiceTrigger = "trigger_authorized"
 	// TriggerActionRequired is used to signify that the invoice requires action
 	TriggerActionRequired InvoiceTrigger = "trigger_action_required"
 
