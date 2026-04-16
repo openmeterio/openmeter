@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
@@ -226,10 +227,17 @@ func (c *service) GetEntitlementsOfCustomer(ctx context.Context, namespace strin
 }
 
 func (c *service) GetEntitlementOfCustomerAt(ctx context.Context, namespace string, customerID string, idOrFeatureKey string, at time.Time) (*entitlement.Entitlement, error) {
+	// Feature keys are forbidden from being valid ULIDs, so non-ULID inputs can
+	// skip the guaranteed-miss entitlement-ID lookup.
+	if _, err := ulid.Parse(idOrFeatureKey); err != nil {
+		return c.entitlementRepo.GetActiveEntitlementOfCustomerAt(ctx, namespace, customerID, idOrFeatureKey, at)
+	}
+
 	ent, err := c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: idOrFeatureKey})
 	if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
 		ent, err = c.entitlementRepo.GetActiveEntitlementOfCustomerAt(ctx, namespace, customerID, idOrFeatureKey, at)
 	}
+
 	return ent, err
 }
 
