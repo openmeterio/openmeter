@@ -12,7 +12,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // usageBasedHandler maps usage-based credit lifecycle events to ledger transaction templates.
@@ -58,10 +57,6 @@ func (h *usageBasedHandler) OnInvoiceUsageAccrued(ctx context.Context, input usa
 		Namespace: input.Charge.Namespace,
 		ID:        input.Charge.Intent.CustomerID,
 	}
-	annotations := ledger.ChargeAnnotations(models.NamespacedID{
-		Namespace: input.Charge.Namespace,
-		ID:        input.Charge.ID,
-	})
 
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
@@ -83,7 +78,7 @@ func (h *usageBasedHandler) OnInvoiceUsageAccrued(ctx context.Context, input usa
 
 	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
 		input.Charge.Namespace,
-		annotations,
+		chargeAnnotationsForUsageBasedCharge(input.Charge),
 		inputs...,
 	))
 	if err != nil {
