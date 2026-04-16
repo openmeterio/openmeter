@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/samber/lo"
+	"golang.org/x/sync/semaphore"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -15,11 +18,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/ref"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
-	"github.com/samber/lo"
-	"golang.org/x/sync/semaphore"
 )
 
 const (
+	// defaultWorkerCount is the number of workers to use for the rating (fetching from CH).
 	defaultWorkerCount = 5
 )
 
@@ -150,7 +152,6 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 			}
 			ratingResults.Store(charge.GetChargeID(), ratingResult)
 		})
-
 	}
 
 	wg.Wait()
