@@ -211,3 +211,15 @@ type ListTransactionsByPageInput struct {
 	CreditMovement    ListTransactionsCreditMovement
 	AnnotationFilters map[string]string
 }
+
+func (i ListTransactionsByPageInput) Validate() error {
+	if err := i.Page.Validate(); err != nil {
+		return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{
+			"reason": "page_invalid",
+			"page":   i.Page,
+			"error":  err,
+		})
+	}
+
+	return nil
+}

@@ -59,6 +59,10 @@ func (l *Ledger) ListTransactions(ctx context.Context, params ledger.ListTransac
 }
 
 func (l *Ledger) ListTransactionsByPage(ctx context.Context, params ledger.ListTransactionsByPageInput) (pagepagination.Result[ledger.Transaction], error) {
+	if err := params.Validate(); err != nil {
+		return pagepagination.Result[ledger.Transaction]{}, fmt.Errorf("failed to validate list transactions by page input: %w", err)
+	}
+
 	res, err := l.repo.ListTransactionsByPage(ctx, params)
 	if err != nil {
 		return pagepagination.Result[ledger.Transaction]{}, fmt.Errorf("list transactions by page: %w", err)

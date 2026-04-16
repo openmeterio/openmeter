@@ -48,6 +48,7 @@ type Service struct {
 	SubAccountService subAccountLister
 	ChargesService    chargesService
 	UsageBasedService usageBasedTotalsService
+	Ledger            ledger.Ledger
 
 	balanceCalculator chargePendingBalanceCalculator
 }
@@ -57,6 +58,7 @@ type Config struct {
 	SubAccountService subAccountLister
 	ChargesService    chargesService
 	UsageBasedService usageBasedTotalsService
+	Ledger            ledger.Ledger
 }
 
 func (c Config) Validate() error {
@@ -78,6 +80,10 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("usage based service is required"))
 	}
 
+	if c.Ledger == nil {
+		errs = append(errs, errors.New("ledger is required"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -91,6 +97,7 @@ func New(config Config) (*Service, error) {
 		SubAccountService: config.SubAccountService,
 		ChargesService:    config.ChargesService,
 		UsageBasedService: config.UsageBasedService,
+		Ledger:            config.Ledger,
 		balanceCalculator: chargePendingBalanceCalculator{},
 	}, nil
 }

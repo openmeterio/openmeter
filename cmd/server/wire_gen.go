@@ -487,7 +487,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	facadeService, err := common.NewCustomerBalanceService(creditsConfiguration, logger, client, locker, ledger, accountResolver, accountService, billingRegistry, featureConnector, ratingService, connector)
+	facadeService, err := common.NewCustomerBalanceService(creditsConfiguration, ledger, accountResolver, accountService, billingRegistry)
 	if err != nil {
 		cleanup7()
 		cleanup6()

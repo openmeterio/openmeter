@@ -28,6 +28,10 @@ func (NoopService) GetBalance(context.Context, customer.CustomerID, ledger.Route
 	return noopBalance{}, nil
 }
 
+func (NoopService) ListCreditTransactions(context.Context, ListCreditTransactionsInput) (ListCreditTransactionsResult, error) {
+	return ListCreditTransactionsResult{}, nil
+}
+
 func (NoopService) getFBOCurrencies(context.Context, customer.CustomerID) ([]currencyx.Code, error) {
 	return nil, nil
 }

@@ -78,6 +78,7 @@ type BalanceByCurrency struct {
 
 type FacadeService interface {
 	GetBalance(ctx context.Context, customerID customer.CustomerID, filters ledger.RouteFilter, after *ledger.TransactionCursor) (ledger.Balance, error)
+	ListCreditTransactions(ctx context.Context, input ListCreditTransactionsInput) (ListCreditTransactionsResult, error)
 	getFBOCurrencies(ctx context.Context, customerID customer.CustomerID) ([]currencyx.Code, error)
 }
 
@@ -153,6 +154,18 @@ func (f *Facade) GetBalance(ctx context.Context, input GetBalanceInput) (alpacad
 	}
 
 	return balance.Settled(), nil
+}
+
+func (f *Facade) ListCreditTransactions(ctx context.Context, input ListCreditTransactionsInput) (ListCreditTransactionsResult, error) {
+	if f == nil {
+		return ListCreditTransactionsResult{}, errors.New("facade is required")
+	}
+
+	if err := input.Validate(); err != nil {
+		return ListCreditTransactionsResult{}, err
+	}
+
+	return f.service.ListCreditTransactions(ctx, input)
 }
 
 func routeFilter(currency currencyx.Code) ledger.RouteFilter {

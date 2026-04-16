@@ -1,6 +1,8 @@
 package chargeadapter
 
 import (
+	"github.com/samber/lo"
+
 	chargecreditpurchase "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	chargeflatfee "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -38,7 +40,7 @@ func chargeAnnotationsForUsageBasedCharge(charge chargeusagebased.Charge) models
 			ID:        charge.ID,
 		},
 		charge.Intent.Subscription,
-		ptrIfNotEmpty(charge.State.FeatureID),
+		lo.EmptyableToPtr(charge.State.FeatureID),
 	)
 }
 
@@ -60,12 +62,4 @@ func chargeTransactionAnnotations(chargeID models.NamespacedID, subscription *me
 		SubscriptionItemID:  subscriptionItemID,
 		FeatureID:           featureID,
 	})
-}
-
-func ptrIfNotEmpty(value string) *string {
-	if value == "" {
-		return nil
-	}
-
-	return &value
 }
