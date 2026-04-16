@@ -113,16 +113,17 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 	var wg sync.WaitGroup
 
 	for _, charge := range charges {
-		err := sem.Acquire(ctx, 1)
-		if err != nil {
-			// Clean up and stop the loop
-			errCh <- fmt.Errorf("acquiring worker slot: %w", err)
-			break
-		}
 
 		featureMeter, err := charge.ResolveFeatureMeter(featureMeters)
 		if err != nil {
 			errCh <- fmt.Errorf("resolving feature meter: %w", err)
+			break
+		}
+
+		err = sem.Acquire(ctx, 1)
+		if err != nil {
+			// Clean up and stop the loop
+			errCh <- fmt.Errorf("acquiring worker slot: %w", err)
 			break
 		}
 
