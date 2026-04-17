@@ -236,14 +236,23 @@ jobs:
 
       - name: Run tests
         env:
-          GO_TEST_PACKAGE_PARALLELISM: 32
+          GO_TEST_PACKAGE_PARALLELISM: 128
           SVIX_HOST: localhost
           TEST_CLICKHOUSE_DSN: ${{ vars.TEST_CLICKHOUSE_DSN }}
           # Dev JWT secret, non-sensitive
           SVIX_JWT_SECRET: DUMMY_JWT_SECRET
         # count=1 is needed to force retest
         run: |
-          nix develop --impure .#ci -c make test-nocache
+          # On Depot runners, cgo builds during tests can spill temporary files
+          # into /run via the default temp dir. Keep Go and system temp files on
+          # the workspace disk for this step to avoid "no space left on device".
+          mkdir -p \
+            "$GITHUB_WORKSPACE/.tmp/go-work" \
+            "$GITHUB_WORKSPACE/.tmp/system"
+          env \
+            GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
+            TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
+            nix develop --impure .#ci -c make test-nocache
 
       - name: Stop docker-compose dependencies
         if: always()
