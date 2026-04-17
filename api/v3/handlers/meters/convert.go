@@ -103,6 +103,36 @@ func IntToFloat32(i int) float32 {
 	return float32(i)
 }
 
+func FromAPIUpdateMeterRequest(namespace string, meterID string, body api.UpdateMeterRequest) (meter.UpdateMeterInput, error) {
+	input := meter.UpdateMeterInput{
+		ID: models.NamespacedID{
+			Namespace: namespace,
+			ID:        meterID,
+		},
+	}
+
+	if body.Name != nil {
+		input.Name = *body.Name
+	}
+
+	input.Description = body.Description
+
+	if body.Dimensions != nil {
+		input.GroupBy = *body.Dimensions
+	}
+
+	if body.Labels != nil {
+		metadata, err := labels.ToMetadata(body.Labels)
+		if err != nil {
+			return meter.UpdateMeterInput{}, err
+		}
+
+		input.Metadata = metadata
+	}
+
+	return input, nil
+}
+
 // ConvertMetadataToLabels converts models.Metadata to api.Labels.
 // Always returns an initialized map (never nil) so JSON serializes to {} instead of null.
 func ConvertMetadataToLabels(source models.Metadata) *api.Labels {

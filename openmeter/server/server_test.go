@@ -599,6 +599,19 @@ func TestRoutes(t *testing.T) {
 				status: http.StatusNotImplemented,
 			},
 		},
+		// Update meter v3
+		{
+			name: "update meter v3",
+			req: testRequest{
+				method:      http.MethodPut,
+				contentType: "application/json",
+				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID,
+				body:        apiv3.UpdateMeterRequest{},
+			},
+			res: testResponse{
+				status: http.StatusOK,
+			},
+		},
 		// Charges
 		{
 			name: "list customer charges without charge service",
