@@ -119,7 +119,7 @@ jobs:
           nix develop --impure .#ci -c pre-commit run -a
           nix develop --impure .#ci -c pre-commit run --hook-stage manual
 
-  generators:
+  generators-openapi:
     name: Code Generators
     runs-on: depot-ubuntu-latest-8
 
@@ -162,7 +162,129 @@ jobs:
 
       - name: Ensure code generators are run
         run: |
-          nix develop --impure .#ci -c make generate-all
+          nix develop --impure .#ci -c make update-openapi
+
+          # does not detect new files
+          if [ -n "$(git diff --exit-code)" ]; then
+            git diff
+
+            echo "Code generators have not been run, please run 'make generate-all' and commit the changes"
+            exit 1
+          fi
+
+          # detect files not committed
+          if [ -n "$(git status --porcelain)" ]; then
+            git status --porcelain
+
+            echo "Code generators have not been run, please run 'make generate-all' and commit the changes"
+            exit 1
+          fi
+
+  generators-javascript-sdk:
+    name: Code Generators
+    runs-on: depot-ubuntu-latest-8
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Nix
+        uses: nixbuild/nix-quick-install-action@2c9db80fb984ceb1bcaa77cdda3fdf8cfba92035 # v34
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          nix_conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: Restore Nix store
+        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+        with:
+          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          restore-prefixes-first-match: |
+            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
+            ${{ runner.os }}-openmeter-nix-build-main-
+            ${{ runner.os }}-openmeter-nix-build-
+
+      - name: Restore go.mod cache if exists
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        with:
+          path: .devenv/state/go
+          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+          # Prefer to restore the branch cache over the main cache
+          restore-keys: |
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-main
+
+      - name: Ensure code generators are run
+        run: |
+          nix develop --impure .#ci -c make generate-javascript-sdk
+
+          # does not detect new files
+          if [ -n "$(git diff --exit-code)" ]; then
+            git diff
+
+            echo "Code generators have not been run, please run 'make generate-all' and commit the changes"
+            exit 1
+          fi
+
+          # detect files not committed
+          if [ -n "$(git status --porcelain)" ]; then
+            git status --porcelain
+
+            echo "Code generators have not been run, please run 'make generate-all' and commit the changes"
+            exit 1
+          fi
+
+  generators-go:
+    name: Code Generators
+    runs-on: depot-ubuntu-latest-8
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Nix
+        uses: nixbuild/nix-quick-install-action@2c9db80fb984ceb1bcaa77cdda3fdf8cfba92035 # v34
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          nix_conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: Restore Nix store
+        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+        with:
+          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          restore-prefixes-first-match: |
+            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
+            ${{ runner.os }}-openmeter-nix-build-main-
+            ${{ runner.os }}-openmeter-nix-build-
+
+      - name: Restore go.mod cache if exists
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        with:
+          path: .devenv/state/go
+          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+          # Prefer to restore the branch cache over the main cache
+          restore-keys: |
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-main
+
+      - name: Ensure code generators are run
+        run: |
+          nix develop --impure .#ci -c go generate ./...
 
           # does not detect new files
           if [ -n "$(git diff --exit-code)" ]; then
