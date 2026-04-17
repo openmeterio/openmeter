@@ -394,10 +394,16 @@ const absoluteZero = 1e-9
 
 func getNumericThreshold(threshold notification.BalanceThreshold, value api.EntitlementValue) (*numericThreshold, error) {
 	var (
-		balance = lo.FromPtr(value.Balance)
-		usage   = lo.FromPtr(value.Usage)
-		overage = lo.FromPtr(value.Overage)
+		balance     = lo.FromPtr(value.Balance)
+		usage       = lo.FromPtr(value.Usage)
+		overage     = lo.FromPtr(value.Overage)
+		totalGrants = lo.FromPtr(value.TotalAvailableGrantAmount)
 	)
+
+	// If no grants are available, we cannot calculate the threshold value.
+	if totalGrants == 0 {
+		return nil, ErrNoBalanceAvailable
+	}
 
 	// Invalid entitlement value as there cannot be overage if the balance is not zero.
 	if balance > absoluteZero && overage > absoluteZero {
@@ -406,24 +412,15 @@ func getNumericThreshold(threshold notification.BalanceThreshold, value api.Enti
 
 	switch threshold.Type {
 	// Deprecated: obsoleted by api.NotificationRuleBalanceThresholdValueTypeUsageValue
-	case api.NotificationRuleBalanceThresholdValueTypeNumber:
-		fallthrough
-	case api.NotificationRuleBalanceThresholdValueTypeUsageValue:
+	case api.NotificationRuleBalanceThresholdValueTypeUsageValue, api.NotificationRuleBalanceThresholdValueTypeNumber:
 		return &numericThreshold{
 			BalanceThreshold: threshold,
 			ThresholdValue:   threshold.Value,
 			Active:           threshold.Value < usage,
 		}, nil
 	// Deprecated: obsoleted by api.NotificationRuleBalanceThresholdValueTypeUsagePercentage
-	case api.NotificationRuleBalanceThresholdValueTypePercent:
-		fallthrough
-	case api.NotificationRuleBalanceThresholdValueTypeUsagePercentage:
-		// Cannot calculate total grants if both balance and overage are zero (usage alone is insufficient).
-		if balance == 0 && overage == 0 {
-			return nil, ErrNoBalanceAvailable
-		}
-
-		thresholdValue := (balance + usage - overage) * (threshold.Value / 100)
+	case api.NotificationRuleBalanceThresholdValueTypeUsagePercentage, api.NotificationRuleBalanceThresholdValueTypePercent:
+		thresholdValue := totalGrants * (threshold.Value / 100)
 
 		return &numericThreshold{
 			BalanceThreshold: threshold,
@@ -431,11 +428,6 @@ func getNumericThreshold(threshold notification.BalanceThreshold, value api.Enti
 			Active:           thresholdValue < usage,
 		}, nil
 	case api.NotificationRuleBalanceThresholdValueTypeBalanceValue:
-		// Cannot calculate total grants if both the balance and the overage have zero value even if the usage is non-zero.
-		if balance == 0 && usage == 0 && overage == 0 {
-			return nil, ErrNoBalanceAvailable
-		}
-
 		active := threshold.Value > balance
 
 		if threshold.Value == 0 {

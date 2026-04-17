@@ -174,8 +174,9 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 	snapshotEvent := NewBalanceSnapshotEvent(BalanceSnapshotEventInput{
 		Feature: s.feature,
 		Value: snapshot.EntitlementValue{
-			Balance: convert.ToPointer(100.0),
-			Usage:   convert.ToPointer(50.0),
+			Balance:                   convert.ToPointer(100.0),
+			Usage:                     convert.ToPointer(50.0),
+			TotalAvailableGrantAmount: convert.ToPointer(150.0),
 		},
 		Namespace: s.namespace,
 	})
@@ -198,8 +199,9 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 	snapshotEvent = NewBalanceSnapshotEvent(BalanceSnapshotEventInput{
 		Feature: s.feature,
 		Value: snapshot.EntitlementValue{
-			Balance: convert.ToPointer(4.0),
-			Usage:   convert.ToPointer(96.0),
+			Balance:                   convert.ToPointer(4.0),
+			Usage:                     convert.ToPointer(96.0),
+			TotalAvailableGrantAmount: convert.ToPointer(100.0),
 		},
 		Namespace: s.namespace,
 	})
@@ -228,8 +230,9 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 	snapshotEvent = NewBalanceSnapshotEvent(BalanceSnapshotEventInput{
 		Feature: s.feature,
 		Value: snapshot.EntitlementValue{
-			Balance: convert.ToPointer(3.0),
-			Usage:   convert.ToPointer(97.0),
+			Balance:                   convert.ToPointer(3.0),
+			Usage:                     convert.ToPointer(97.0),
+			TotalAvailableGrantAmount: convert.ToPointer(100.0),
 		},
 		Namespace: s.namespace,
 	})
@@ -248,8 +251,9 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 	snapshotEvent = NewBalanceSnapshotEvent(BalanceSnapshotEventInput{
 		Feature: s.feature,
 		Value: snapshot.EntitlementValue{
-			Balance: convert.ToPointer(2004.0),
-			Usage:   convert.ToPointer(96.0),
+			Balance:                   convert.ToPointer(2003.0),
+			Usage:                     convert.ToPointer(97.0),
+			TotalAvailableGrantAmount: convert.ToPointer(2100.0),
 		},
 		Namespace: s.namespace,
 	})
@@ -266,8 +270,9 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 	snapshotEvent = NewBalanceSnapshotEvent(BalanceSnapshotEventInput{
 		Feature: s.feature,
 		Value: snapshot.EntitlementValue{
-			Balance: convert.ToPointer(1004.0),
-			Usage:   convert.ToPointer(1096.0),
+			Balance:                   convert.ToPointer(1003.0),
+			Usage:                     convert.ToPointer(1097.0),
+			TotalAvailableGrantAmount: convert.ToPointer(2100.0),
 		},
 		Namespace: s.namespace,
 	})
@@ -295,8 +300,9 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 	snapshotEvent = NewBalanceSnapshotEvent(BalanceSnapshotEventInput{
 		Feature: s.feature,
 		Value: snapshot.EntitlementValue{
-			Balance: convert.ToPointer(4.0),
-			Usage:   convert.ToPointer(2096.0),
+			Balance:                   convert.ToPointer(3.0),
+			Usage:                     convert.ToPointer(2097.0),
+			TotalAvailableGrantAmount: convert.ToPointer(2100.0),
 		},
 		Namespace: s.namespace,
 	})
@@ -323,8 +329,9 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 	snapshotEvent = NewBalanceSnapshotEvent(BalanceSnapshotEventInput{
 		Feature: s.feature,
 		Value: snapshot.EntitlementValue{
-			Balance: convert.ToPointer(1004.0),
-			Usage:   convert.ToPointer(2096.0),
+			Balance:                   convert.ToPointer(1003.0),
+			Usage:                     convert.ToPointer(2097.0),
+			TotalAvailableGrantAmount: convert.ToPointer(3100.0),
 		},
 		Namespace: s.namespace,
 	})
@@ -358,8 +365,9 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 	snapshotEvent = NewBalanceSnapshotEvent(BalanceSnapshotEventInput{
 		Feature: s.feature,
 		Value: snapshot.EntitlementValue{
-			Balance: convert.ToPointer(100.0),
-			Usage:   convert.ToPointer(0.0),
+			Balance:                   convert.ToPointer(100.0),
+			Usage:                     convert.ToPointer(0.0),
+			TotalAvailableGrantAmount: convert.ToPointer(100.0),
 		},
 		Namespace: s.namespace,
 	})
@@ -382,8 +390,9 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 	snapshotEvent = NewBalanceSnapshotEvent(BalanceSnapshotEventInput{
 		Feature: s.feature,
 		Value: snapshot.EntitlementValue{
-			Balance: convert.ToPointer(1.0),
-			Usage:   convert.ToPointer(99.0),
+			Balance:                   convert.ToPointer(1.0),
+			Usage:                     convert.ToPointer(99.0),
+			TotalAvailableGrantAmount: convert.ToPointer(100.0),
 		},
 		Namespace: s.namespace,
 	})
@@ -484,8 +493,9 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestFeatureFiltering(ctx context.C
 	snapshotEvent := NewBalanceSnapshotEvent(BalanceSnapshotEventInput{
 		Feature: feature3,
 		Value: snapshot.EntitlementValue{
-			Balance: convert.ToPointer(1.0),
-			Usage:   convert.ToPointer(10001.0),
+			Balance:                   convert.ToPointer(1.0),
+			Usage:                     convert.ToPointer(10001.0),
+			TotalAvailableGrantAmount: convert.ToPointer(10002.0),
 		},
 		Namespace: s.namespace,
 	})
@@ -514,8 +524,9 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestFeatureFiltering(ctx context.C
 	snapshotEvent = NewBalanceSnapshotEvent(BalanceSnapshotEventInput{
 		Feature: feature2,
 		Value: snapshot.EntitlementValue{
-			Balance: convert.ToPointer(1.0),
-			Usage:   convert.ToPointer(10001.0),
+			Balance:                   convert.ToPointer(1.0),
+			Usage:                     convert.ToPointer(10001.0),
+			TotalAvailableGrantAmount: convert.ToPointer(10002.0),
 		},
 		Namespace: s.namespace,
 	})
@@ -533,7 +544,9 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestFeatureFiltering(ctx context.C
 
 	// Let's sanity check the resulting events
 	eventsCreated := events.Items[0:3]
-	affectedRules := []notification.Rule{}
+
+	var affectedRules []notification.Rule
+
 	for _, event := range eventsCreated {
 		require.Equal(t, notification.EventTypeBalanceThreshold, event.Payload.Type, "Event must be of type balance threshold")
 
