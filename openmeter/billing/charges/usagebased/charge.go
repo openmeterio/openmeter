@@ -75,6 +75,24 @@ type Charge struct {
 
 type Charges []Charge
 
+func (c Charge) GetStatus() Status {
+	return c.Status
+}
+
+func (c Charge) WithStatus(status Status) Charge {
+	c.Status = status
+	return c
+}
+
+func (c Charge) GetBase() ChargeBase {
+	return c.ChargeBase
+}
+
+func (c Charge) WithBase(base ChargeBase) Charge {
+	c.ChargeBase = base
+	return c
+}
+
 func (c Charge) Validate() error {
 	var errs []error
 

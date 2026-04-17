@@ -137,7 +137,11 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, policy meta.
 		return fmt.Errorf("delete charge: %w", err)
 	}
 
-	return s.refetchCharge(ctx)
+	if err := s.RefetchCharge(ctx); err != nil {
+		return fmt.Errorf("get charge: %w", err)
+	}
+
+	return nil
 }
 
 func (s *CreditsOnlyStateMachine) StartFinalRealizationRun(ctx context.Context) error {
@@ -218,7 +222,7 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 		return fmt.Errorf("update charge: %w", err)
 	}
 
-	if err := s.refetchCharge(ctx); err != nil {
+	if err := s.RefetchCharge(ctx); err != nil {
 		return fmt.Errorf("refetch charge: %w", err)
 	}
 

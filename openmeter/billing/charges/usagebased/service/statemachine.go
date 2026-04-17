@@ -7,11 +7,11 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/qmuntal/stateless"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	chargestatemachine "github.com/openmeterio/openmeter/openmeter/billing/charges/statemachine"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
 	usagebasedrun "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run"
@@ -21,9 +21,7 @@ import (
 )
 
 type stateMachine struct {
-	*stateless.StateMachine
-
-	Charge usagebased.Charge
+	*chargestatemachine.Machine[usagebased.Charge, usagebased.ChargeBase, usagebased.Status]
 
 	Logger *slog.Logger
 
@@ -36,12 +34,7 @@ type stateMachine struct {
 	CurrencyCalculator currencyx.Calculator
 }
 
-type StateMachine interface {
-	AdvanceUntilStateStable(ctx context.Context) (*usagebased.Charge, error)
-	CanFire(ctx context.Context, trigger meta.Trigger) (bool, error)
-	FireAndActivate(ctx context.Context, trigger meta.Trigger, args ...any) error
-	GetCharge() usagebased.Charge
-}
+type StateMachine = chargestatemachine.StateMachine[usagebased.Charge]
 
 type StateMachineConfig struct {
 	Charge             usagebased.Charge
@@ -98,7 +91,6 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 	}
 
 	out := &stateMachine{
-		Charge:             config.Charge,
 		Logger:             lo.CoalesceOrEmpty(config.Logger, slog.Default()),
 		Adapter:            config.Adapter,
 		Rater:              config.Rater,
@@ -108,49 +100,27 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 		CurrencyCalculator: config.CurrencyCalculator,
 	}
 
-	stateMachine := stateless.NewStateMachineWithExternalStorage(
-		func(ctx context.Context) (stateless.State, error) {
-			return out.Charge.Status, nil
+	machine, err := chargestatemachine.New(chargestatemachine.Config[usagebased.Charge, usagebased.ChargeBase, usagebased.Status]{
+		Charge: config.Charge,
+		Persistence: chargestatemachine.Persistence[usagebased.Charge, usagebased.ChargeBase]{
+			UpdateBase: func(ctx context.Context, base usagebased.ChargeBase) (usagebased.ChargeBase, error) {
+				return out.Adapter.UpdateCharge(ctx, base)
+			},
+			Refetch: func(ctx context.Context, chargeID meta.ChargeID) (usagebased.Charge, error) {
+				return out.Adapter.GetByID(ctx, usagebased.GetByIDInput{
+					ChargeID: chargeID,
+					Expands:  meta.Expands{meta.ExpandRealizations},
+				})
+			},
 		},
-		func(ctx context.Context, state stateless.State) error {
-			newStatus := state.(usagebased.Status)
-			if err := newStatus.Validate(); err != nil {
-				return fmt.Errorf("invalid status: %w", err)
-			}
-
-			out.Charge.Status = newStatus
-			return nil
-		},
-		stateless.FiringImmediate,
-	)
-
-	out.StateMachine = stateMachine
-
-	return out, nil
-}
-
-// refetchCharge refetches the charge from the database and updates the state machine's charge.
-// The adapter's modification functions should properly support updating the charge in memory, as
-// a yearly charge with daily realization lifecycle will have a lot of realizations thus a lot of data
-// should be loaded.
-//
-// Use this where the final implementation is uncertain for now.
-func (s *stateMachine) refetchCharge(ctx context.Context) error {
-	charge, err := s.Adapter.GetByID(ctx, usagebased.GetByIDInput{
-		ChargeID: s.Charge.GetChargeID(),
-		Expands:  meta.Expands{meta.ExpandRealizations},
 	})
 	if err != nil {
-		return fmt.Errorf("get charge: %w", err)
+		return nil, fmt.Errorf("new machine: %w", err)
 	}
 
-	s.Charge = charge
+	out.Machine = machine
 
-	return nil
-}
-
-func (s *stateMachine) GetCharge() usagebased.Charge {
-	return s.Charge
+	return out, nil
 }
 
 func (s *stateMachine) IsInsideServicePeriod() bool {
@@ -214,49 +184,4 @@ func (s *stateMachine) getCurrentRunCollectionEnd() (time.Time, error) {
 	}
 
 	return meta.NormalizeTimestamp(currentRun.CollectionEnd), nil
-}
-
-func (s *stateMachine) FireAndActivate(ctx context.Context, trigger meta.Trigger, args ...any) error {
-	if err := s.StateMachine.FireCtx(ctx, trigger, args...); err != nil {
-		return err
-	}
-
-	return s.StateMachine.ActivateCtx(ctx)
-}
-
-func (s *stateMachine) CanFire(ctx context.Context, trigger meta.Trigger) (bool, error) {
-	return s.StateMachine.CanFireCtx(ctx, trigger)
-}
-
-func (s *stateMachine) AdvanceUntilStateStable(ctx context.Context) (*usagebased.Charge, error) {
-	var advanced bool
-
-	for {
-		canFire, err := s.StateMachine.CanFireCtx(ctx, meta.TriggerNext)
-		if err != nil {
-			return nil, err
-		}
-
-		if !canFire {
-			if !advanced {
-				return nil, nil
-			}
-
-			charge := s.Charge
-			return &charge, nil
-		}
-
-		if err := s.FireAndActivate(ctx, meta.TriggerNext); err != nil {
-			return nil, fmt.Errorf("cannot transition to the next status [current_status=%s]: %w", s.Charge.Status, err)
-		}
-
-		updatedChargeBase, err := s.Adapter.UpdateCharge(ctx, s.Charge.ChargeBase)
-		if err != nil {
-			return nil, fmt.Errorf("persist charge: %w", err)
-		}
-
-		s.Charge.ChargeBase = updatedChargeBase
-
-		advanced = true
-	}
 }
