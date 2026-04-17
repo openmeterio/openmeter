@@ -26,6 +26,7 @@ func TestFromAPIBillingCreditTransactionType_Adjusted(t *testing.T) {
 func TestToAPIBillingCreditTransaction(t *testing.T) {
 	createdAt := time.Date(2026, 4, 10, 9, 0, 0, 0, time.UTC)
 	bookedAt := createdAt.Add(time.Second)
+	description := "Welcome credits"
 
 	tx := toAPIBillingCreditTransaction(customerbalance.CreditTransaction{
 		ID: models.NamespacedID{
@@ -41,7 +42,8 @@ func TestToAPIBillingCreditTransaction(t *testing.T) {
 			Before: alpacadecimal.NewFromInt(52),
 			After:  alpacadecimal.NewFromInt(42),
 		},
-		Name: "credit_transaction",
+		Name:        "credit_transaction",
+		Description: &description,
 		Annotations: models.Annotations{
 			ledger.AnnotationChargeID: "charge-1",
 		},
@@ -53,6 +55,8 @@ func TestToAPIBillingCreditTransaction(t *testing.T) {
 	require.Equal(t, api.Numeric("-10"), tx.Amount)
 	require.Equal(t, api.Numeric("52"), tx.AvailableBalance.Before)
 	require.Equal(t, api.Numeric("42"), tx.AvailableBalance.After)
+	require.NotNil(t, tx.Description)
+	require.Equal(t, description, *tx.Description)
 	require.NotNil(t, tx.Labels)
 	require.Equal(t, "charge-1", (*tx.Labels)["charge_id"])
 }

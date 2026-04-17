@@ -1,17 +1,23 @@
 package customerbalance
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	chargemeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 func TestLedgerCreditMovement_AdjustedReturnsEmpty(t *testing.T) {
@@ -63,6 +69,58 @@ func TestApplyCreditTransactionBalances(t *testing.T) {
 
 	require.True(t, items[0].Balance.After.Equal(alpacadecimal.NewFromInt(42)))
 	require.True(t, items[0].Balance.Before.Equal(alpacadecimal.NewFromInt(52)))
+}
+
+func TestApplyChargeMetadataToCreditTransactions(t *testing.T) {
+	const (
+		namespace = "ns"
+		chargeID  = "charge-1"
+	)
+
+	description := "Welcome credits"
+
+	service := Service{
+		ChargesService: staticChargeService{
+			chargesByID: map[string]charges.Charge{
+				chargeID: charges.NewCharge(creditpurchase.Charge{
+					ChargeBase: creditpurchase.ChargeBase{
+						ManagedResource: chargemeta.ManagedResource{
+							NamespacedModel: models.NamespacedModel{
+								Namespace: namespace,
+							},
+							ID: chargeID,
+						},
+						Intent: creditpurchase.Intent{
+							Intent: chargemeta.Intent{
+								Name:        "Intro Credits",
+								Description: lo.ToPtr(description),
+							},
+						},
+					},
+				}),
+			},
+		},
+	}
+
+	items := []CreditTransaction{
+		{
+			Name: "IssueCustomerReceivableTemplate",
+			Annotations: models.Annotations{
+				ledger.AnnotationChargeID: chargeID,
+			},
+		},
+		{
+			Name: "",
+		},
+	}
+
+	service.applyChargeMetadataToCreditTransactions(t.Context(), namespace, items)
+
+	require.Equal(t, "Intro Credits", items[0].Name)
+	require.NotNil(t, items[0].Description)
+	require.Equal(t, description, *items[0].Description)
+	require.Equal(t, "", items[1].Name)
+	require.Nil(t, items[1].Description)
 }
 
 func mustCustomerFBOAccount(t *testing.T, namespace, id string) *ledgeraccount.CustomerFBOAccount {
@@ -144,4 +202,26 @@ func mustEntryData(t *testing.T, id string, accountType ledger.AccountType, curr
 		Amount:        amount,
 		TransactionID: "tx-1",
 	}
+}
+
+type staticChargeService struct {
+	chargesByID map[string]charges.Charge
+}
+
+func (s staticChargeService) GetByIDs(_ context.Context, input charges.GetByIDsInput) (charges.Charges, error) {
+	items := make(charges.Charges, 0, len(input.IDs))
+	for _, id := range input.IDs {
+		charge, ok := s.chargesByID[id]
+		if !ok {
+			continue
+		}
+
+		items = append(items, charge)
+	}
+
+	return items, nil
+}
+
+func (s staticChargeService) ListCharges(context.Context, charges.ListChargesInput) (pagination.Result[charges.Charge], error) {
+	return pagination.Result[charges.Charge]{}, nil
 }

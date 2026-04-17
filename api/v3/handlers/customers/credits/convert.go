@@ -371,13 +371,14 @@ func toAPIBillingCreditTransactions(items []customerbalance.CreditTransaction) [
 
 func toAPIBillingCreditTransaction(tx customerbalance.CreditTransaction) api.BillingCreditTransaction {
 	apiTx := api.BillingCreditTransaction{
-		Id:        tx.ID.ID,
-		CreatedAt: &tx.CreatedAt,
-		BookedAt:  tx.BookedAt,
-		Type:      toAPIBillingCreditTransactionType(tx.Type),
-		Currency:  api.BillingCurrencyCode(tx.Currency),
-		Amount:    tx.Amount.String(),
-		Name:      tx.Name,
+		Id:          tx.ID.ID,
+		CreatedAt:   &tx.CreatedAt,
+		BookedAt:    tx.BookedAt,
+		Type:        toAPIBillingCreditTransactionType(tx.Type),
+		Currency:    api.BillingCurrencyCode(tx.Currency),
+		Amount:      tx.Amount.String(),
+		Name:        tx.Name,
+		Description: tx.Description,
 		AvailableBalance: struct {
 			After  api.Numeric `json:"after"`
 			Before api.Numeric `json:"before"`
