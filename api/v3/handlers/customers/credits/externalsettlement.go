@@ -10,7 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type (
@@ -45,9 +44,6 @@ func (h *handler) UpdateCreditGrantExternalSettlement() UpdateCreditGrantExterna
 		},
 		func(ctx context.Context, request UpdateCreditGrantExternalSettlementRequest) (UpdateCreditGrantExternalSettlementResponse, error) {
 			charge, err := h.creditGrantService.UpdateExternalSettlement(ctx, request)
-			if models.IsGenericNotFoundError(err) {
-				return UpdateCreditGrantExternalSettlementResponse{}, apierrors.NewNotFoundError(ctx, err, "credit grant")
-			}
 			if err != nil {
 				return UpdateCreditGrantExternalSettlementResponse{}, err
 			}
