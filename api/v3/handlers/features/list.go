@@ -61,11 +61,6 @@ func (h *handler) ListFeatures() ListFeaturesHandler {
 						{Field: "filter[meter_id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
-				if err := meterIDs.Validate(); err != nil {
-					return ListFeaturesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-						{Field: "filter[meter_id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
-					})
-				}
 				req.MeterIDs = meterIDs
 			}
 

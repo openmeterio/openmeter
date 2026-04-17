@@ -325,6 +325,11 @@ func (c *featureConnector) ListFeatures(ctx context.Context, params ListFeatures
 			return pagination.Result[Feature]{}, err
 		}
 	}
+	if params.MeterIDs != nil {
+		if err := params.MeterIDs.Validate(); err != nil {
+			return pagination.Result[Feature]{}, err
+		}
+	}
 	return c.featureRepo.ListFeatures(ctx, params)
 }
 
