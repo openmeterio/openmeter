@@ -120,7 +120,7 @@ jobs:
           nix develop --impure .#ci -c pre-commit run --hook-stage manual
 
   generators-openapi:
-    name: Code Generators
+    name: Code Generators / OpenAPI
     runs-on: depot-ubuntu-latest-8
 
     steps:
@@ -181,7 +181,7 @@ jobs:
           fi
 
   generators-javascript-sdk:
-    name: Code Generators
+    name: Code Generators / JavaScript SDK
     runs-on: depot-ubuntu-latest-8
 
     steps:
@@ -242,7 +242,7 @@ jobs:
           fi
 
   generators-go:
-    name: Code Generators
+    name: Code Generators / Go
     runs-on: depot-ubuntu-latest-8
 
     steps:
