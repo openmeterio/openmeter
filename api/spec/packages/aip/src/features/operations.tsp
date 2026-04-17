@@ -13,6 +13,14 @@ using TypeSpec.OpenAPI;
 
 namespace Features;
 
+@friendlyName("ListFeatureParamsFilter")
+model ListFeaturesParamsFilter {
+  /**
+   * Filter features by meter_id.
+   */
+  meter_id?: Common.StringFieldFilter;
+}
+
 interface FeatureOperations {
   /**
    *  List all features.
@@ -25,6 +33,14 @@ interface FeatureOperations {
   @extension(Shared.InternalExtension, true)
   list(
     ...Common.PagePaginationQuery,
+
+    /**
+     * Filter features returned in the response.
+     *
+     * To filter features by meter_id add the following query param: filter[meter_id][oeq]=<id>
+     */
+    @query(#{ style: "deepObject", explode: true })
+    filter?: ListFeaturesParamsFilter,
   ): Shared.PagePaginatedResponse<Feature> | Common.ErrorResponses;
 
   /**

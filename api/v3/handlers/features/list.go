@@ -8,6 +8,7 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/api/v3/filters"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -48,10 +49,27 @@ func (h *handler) ListFeatures() ListFeaturesHandler {
 				})
 			}
 
-			return ListFeaturesRequest{
+			req := ListFeaturesRequest{
 				Namespace: ns,
 				Page:      page,
-			}, nil
+			}
+
+			if params.Filter != nil {
+				meterIDs, err := filters.FromAPIFilterString(params.Filter.MeterId)
+				if err != nil {
+					return ListFeaturesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[meter_id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				if err := meterIDs.Validate(); err != nil {
+					return ListFeaturesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[meter_id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.MeterIDs = meterIDs
+			}
+
+			return req, nil
 		},
 		func(ctx context.Context, req ListFeaturesRequest) (ListFeaturesResponse, error) {
 			result, err := h.connector.ListFeatures(ctx, req)

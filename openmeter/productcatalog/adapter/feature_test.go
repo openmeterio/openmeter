@@ -188,6 +188,54 @@ func TestCreateFeature(t *testing.T) {
 			},
 		},
 		{
+			name: "Should search by meter_id",
+			run: func(t *testing.T, connector feature.FeatureRepo) {
+				ctx := context.Background()
+
+				// made up meter id, only here for testing or condition
+				meterID2 := ulid.Make().String()
+
+				_, err := connector.CreateFeature(ctx, testFeature)
+				assert.NoError(t, err)
+
+				time.Sleep(100 * time.Millisecond)
+
+				// ?filter[meter_id][oeq]=<meterID>
+				features, err := connector.ListFeatures(ctx, feature.ListFeaturesParams{
+					Namespace: namespace,
+					MeterIDs: &filter.FilterString{
+						In: lo.ToPtr([]string{meterID}),
+					},
+				})
+				assert.NoError(t, err)
+
+				assert.Len(t, features.Items, 1)
+				assert.Equal(t, "feature-1", features.Items[0].Name)
+
+				// ?filter[meter_id][oeq]=<meterID>,<meterID2>
+				features, err = connector.ListFeatures(ctx, feature.ListFeaturesParams{
+					Namespace: namespace,
+					MeterIDs: &filter.FilterString{
+						In: lo.ToPtr([]string{meterID, meterID2}),
+					},
+				})
+				assert.NoError(t, err)
+
+				assert.Len(t, features.Items, 1)
+
+				// ?filter[meter_id][oeq]=invalid
+				features, err = connector.ListFeatures(ctx, feature.ListFeaturesParams{
+					Namespace: namespace,
+					MeterIDs: &filter.FilterString{
+						In: lo.ToPtr([]string{"invalidid"}),
+					},
+				})
+				assert.NoError(t, err)
+
+				assert.Len(t, features.Items, 0)
+			},
+		},
+		{
 			name: "Should find by name",
 			run: func(t *testing.T, connector feature.FeatureRepo) {
 				ctx := context.Background()

@@ -13,6 +13,7 @@ import (
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/ref"
@@ -99,7 +100,7 @@ func (f FeatureOrderBy) Values() []FeatureOrderBy {
 type ListFeaturesParams struct {
 	IDsOrKeys       []string
 	Namespace       string
-	MeterIDs        []string
+	MeterIDs        *filter.FilterString
 	MeterSlugs      []string // Kept for ingest pipeline compat (queries via ent edge on meter key)
 	IncludeArchived bool
 	Page            pagination.Page

@@ -1178,6 +1178,16 @@ paths:
       description: List all features.
       parameters:
         - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter features returned in the response.
+
+            To filter features by meter_id add the following query param: filter[meter_id][oeq]=<id>
+          schema:
+            $ref: '#/components/schemas/ListFeatureParamsFilter'
+          style: deepObject
       responses:
         '200':
           description: Page paginated response.
@@ -7362,6 +7372,13 @@ components:
             - $ref: '#/components/schemas/StringFieldFilter'
           description: Filter customers by primary email.
       description: Filter options for listing customers.
+    ListFeatureParamsFilter:
+      type: object
+      properties:
+        meter_id:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilter'
+          description: Filter features by meter_id.
     ListLLMCostPricesParamsFilter:
       type: object
       properties:
