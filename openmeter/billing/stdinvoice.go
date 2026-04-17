@@ -73,9 +73,16 @@ const (
 
 	StandardInvoiceStatusIssued StandardInvoiceStatus = "issued"
 
-	StandardInvoiceStatusPaymentProcessingPending        StandardInvoiceStatus = "payment_processing.pending"
-	StandardInvoiceStatusPaymentProcessingFailed         StandardInvoiceStatus = "payment_processing.failed"
-	StandardInvoiceStatusPaymentProcessingActionRequired StandardInvoiceStatus = "payment_processing.action_required"
+	StandardInvoiceStatusPaymentProcessingPending                           StandardInvoiceStatus = "payment_processing.pending"
+	StandardInvoiceStatusPaymentProcessingBookingAuthorized                 StandardInvoiceStatus = "payment_processing.booking_authorized"
+	StandardInvoiceStatusPaymentProcessingBookingAuthorizedFailed           StandardInvoiceStatus = "payment_processing.booking_authorized_failed"
+	StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettled       StandardInvoiceStatus = "payment_processing.booking_authorized_and_settled"
+	StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettledFailed StandardInvoiceStatus = "payment_processing.booking_authorized_and_settled_failed"
+	StandardInvoiceStatusPaymentProcessingAuthorized                        StandardInvoiceStatus = "payment_processing.authorized"
+	StandardInvoiceStatusPaymentProcessingFailed                            StandardInvoiceStatus = "payment_processing.failed"
+	StandardInvoiceStatusPaymentProcessingActionRequired                    StandardInvoiceStatus = "payment_processing.action_required"
+	StandardInvoiceStatusPaymentProcessingBookingSettled                    StandardInvoiceStatus = "payment_processing.booking_settled"
+	StandardInvoiceStatusPaymentProcessingBookingSettledFailed              StandardInvoiceStatus = "payment_processing.booking_settled_failed"
 
 	// These are separate statuses to allow for more gradual filtering on the API without having to understand sub-statuses
 
@@ -115,8 +122,15 @@ var validStatuses = []StandardInvoiceStatus{
 	StandardInvoiceStatusIssued,
 
 	StandardInvoiceStatusPaymentProcessingPending,
+	StandardInvoiceStatusPaymentProcessingBookingAuthorized,
+	StandardInvoiceStatusPaymentProcessingBookingAuthorizedFailed,
+	StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettled,
+	StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettledFailed,
+	StandardInvoiceStatusPaymentProcessingAuthorized,
 	StandardInvoiceStatusPaymentProcessingFailed,
 	StandardInvoiceStatusPaymentProcessingActionRequired,
+	StandardInvoiceStatusPaymentProcessingBookingSettled,
+	StandardInvoiceStatusPaymentProcessingBookingSettledFailed,
 
 	StandardInvoiceStatusOverdue,
 
@@ -164,7 +178,10 @@ var failedStatuses = []StandardInvoiceStatus{
 	StandardInvoiceStatusIssuingSyncFailed,
 	StandardInvoiceStatusIssuingChargeBookingFailed,
 	StandardInvoiceStatusDeleteFailed,
+	StandardInvoiceStatusPaymentProcessingBookingAuthorizedFailed,
+	StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettledFailed,
 	StandardInvoiceStatusPaymentProcessingFailed,
+	StandardInvoiceStatusPaymentProcessingBookingSettledFailed,
 }
 
 func (s StandardInvoiceStatus) IsFailed() bool {
@@ -735,6 +752,7 @@ type AssociatedLineCountsAdapterResponse struct {
 type (
 	AdvanceInvoiceInput     = InvoiceID
 	ApproveInvoiceInput     = InvoiceID
+	PaymentAuthorizedInput  = InvoiceID
 	RetryInvoiceInput       = InvoiceID
 	SnapshotQuantitiesInput = InvoiceID
 )

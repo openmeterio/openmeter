@@ -9,6 +9,7 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
@@ -19,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -74,7 +76,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 
 	flatFeeChargeID := meta.ChargeID{}
 
-	s.Run("create new upcoming charges", func() {
+	s.Run("create new upcoming charge", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
 			Intents: []charges.ChargeIntent{
@@ -123,7 +125,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 
 	var stdInvoiceID billing.InvoiceID
 	var stdLineID billing.LineID
-	s.Run("invoice the charge", func() {
+	s.Run("invoice pending lines creates partial credit realizations", func() {
 		defer s.FlatFeeTestHandler.Reset()
 
 		testTrnsGroupID := ulid.Make().String()
@@ -216,11 +218,17 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
 	})
 
-	s.Run("advance the invoice and authorize payment", func() {
+	s.Run("approve invoice accrues usage without authorizing payment", func() {
 		defer s.FlatFeeTestHandler.Reset()
 
 		authorizedCallback := newCountedLedgerTransactionCallback[flatfee.Charge]()
-		s.FlatFeeTestHandler.onPaymentAuthorized = authorizedCallback.Handler(s.T())
+		// Use non-fatal assertions inside handler callbacks so failures are reported
+		// on the callback's testing context without aborting the parent test flow.
+		s.FlatFeeTestHandler.onPaymentAuthorized = authorizedCallback.Handler(s.T(), func(t *testing.T, charge flatfee.Charge) {
+			assert.NotNil(t, charge.Realizations.AccruedUsage)
+			assert.Nil(t, charge.Realizations.Payment)
+			assert.Equal(t, flatfee.StatusActive, charge.Status)
+		})
 
 		invoiceUsageAccruedCallback := newCountedLedgerTransactionCallback[flatfee.OnInvoiceUsageAccruedInput]()
 		s.FlatFeeTestHandler.onInvoiceUsageAccrued = invoiceUsageAccruedCallback.Handler(s.T())
@@ -229,8 +237,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		s.NoError(err)
 		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
 
-		s.Equal(1, authorizedCallback.nrInvocations)
 		s.Equal(1, invoiceUsageAccruedCallback.nrInvocations)
+		s.Equal(0, authorizedCallback.nrInvocations)
 
 		charge := s.mustGetChargeByID(flatFeeChargeID)
 		updatedFlatFeeCharge, err := charge.AsFlatFeeCharge()
@@ -250,16 +258,34 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 			CreditsTotal: 30,
 		}, accruedUsage.Totals)
 
-		// Authorization callback should have been invoked
-		s.Equal(authorizedCallback.id, updatedFlatFeeCharge.Realizations.Payment.Authorized.TransactionGroupID)
+		// Payment authorization should not be persisted until the payment flow advances past pending.
+		s.Nil(updatedFlatFeeCharge.Realizations.Payment)
 		s.Equal(flatfee.StatusActive, updatedFlatFeeCharge.Status)
 	})
 
-	s.Run("payment is settled", func() {
+	s.Run("trigger paid authorizes then settles payment", func() {
 		defer s.FlatFeeTestHandler.Reset()
 
+		authorizedCallback := newCountedLedgerTransactionCallback[flatfee.Charge]()
+		// Use non-fatal assertions inside handler callbacks so failures are reported
+		// on the callback's testing context without aborting the parent test flow.
+		s.FlatFeeTestHandler.onPaymentAuthorized = authorizedCallback.Handler(s.T(), func(t *testing.T, charge flatfee.Charge) {
+			assert.Nil(t, charge.Realizations.Payment)
+			assert.NotNil(t, charge.Realizations.AccruedUsage)
+			assert.Equal(t, flatfee.StatusActive, charge.Status)
+		})
+
 		settledCallback := newCountedLedgerTransactionCallback[flatfee.Charge]()
-		s.FlatFeeTestHandler.onPaymentSettled = settledCallback.Handler(s.T())
+		// Use non-fatal assertions inside handler callbacks so failures are reported
+		// on the callback's testing context without aborting the parent test flow.
+		s.FlatFeeTestHandler.onPaymentSettled = settledCallback.Handler(s.T(), func(t *testing.T, charge flatfee.Charge) {
+			assert.NotNil(t, charge.Realizations.Payment)
+			assert.NotNil(t, charge.Realizations.Payment.Authorized)
+			assert.Nil(t, charge.Realizations.Payment.Settled)
+			assert.Equal(t, authorizedCallback.id, charge.Realizations.Payment.Authorized.TransactionGroupID)
+			assert.Equal(t, payment.StatusAuthorized, charge.Realizations.Payment.Status)
+			assert.Equal(t, flatfee.StatusActive, charge.Status)
+		})
 
 		invoice, err := s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
 			InvoiceID: stdInvoiceID,
@@ -268,9 +294,13 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		s.NoError(err)
 		s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status)
 
+		s.Equal(1, authorizedCallback.nrInvocations)
+		s.Equal(1, settledCallback.nrInvocations)
+
 		charge := s.mustGetChargeByID(flatFeeChargeID)
 		updatedFlatFeeCharge, err := charge.AsFlatFeeCharge()
 		s.NoError(err)
+		s.Equal(authorizedCallback.id, updatedFlatFeeCharge.Realizations.Payment.Authorized.TransactionGroupID)
 		s.Equal(settledCallback.id, updatedFlatFeeCharge.Realizations.Payment.Settled.TransactionGroupID)
 		s.Equal(flatfee.StatusFinal, updatedFlatFeeCharge.Status)
 	})

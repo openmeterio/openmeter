@@ -1870,6 +1870,10 @@ func (n NoopBillingService) ApproveInvoice(ctx context.Context, input billing.Ap
 	return billing.StandardInvoice{}, nil
 }
 
+func (n NoopBillingService) PaymentAuthorized(ctx context.Context, input billing.PaymentAuthorizedInput) (billing.StandardInvoice, error) {
+	return billing.StandardInvoice{}, nil
+}
+
 func (n NoopBillingService) RetryInvoice(ctx context.Context, input billing.RetryInvoiceInput) (billing.StandardInvoice, error) {
 	return billing.StandardInvoice{}, nil
 }

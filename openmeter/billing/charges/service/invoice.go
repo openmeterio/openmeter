@@ -52,7 +52,17 @@ func (s *service) handleStandardInvoiceUpdate(ctx context.Context, invoice billi
 			creditPurchase: noop[creditpurchase.Charge],
 		})
 
-	case billing.StandardInvoiceStatusPaymentProcessingPending:
+	case billing.StandardInvoiceStatusPaymentProcessingAuthorized:
+		return s.handleChargeEvent(ctx, invoice, processorByType{
+			flatFee:        s.flatFeeService.PostInvoicePaymentAuthorized,
+			usageBased:     noop[usagebased.Charge],
+			creditPurchase: s.creditPurchaseService.PostInvoicePaymentAuthorized,
+		})
+
+	// Temporary hack to handle the case where the invoice is authorized and settled in one go
+	// This should be removed once we transition to the line-engine based invocation of hooks in all
+	// charge types.
+	case billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettled:
 		return s.handleChargeEvent(ctx, invoice, processorByType{
 			flatFee:        s.flatFeeService.PostInvoicePaymentAuthorized,
 			usageBased:     noop[usagebased.Charge],

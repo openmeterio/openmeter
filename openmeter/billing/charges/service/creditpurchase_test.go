@@ -333,6 +333,7 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseManuallySe
 
 	var chargeID meta.ChargeID
 	var initatedTrnsID string
+	var authorizedTrnsID string
 
 	s.Run("initiated", func() {
 		defer s.CreditPurchaseTestHandler.Reset()
@@ -365,7 +366,6 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseManuallySe
 		initatedTrnsID = initatedCallback.id
 	})
 
-	var authorizedTrnsID string
 	s.Run("authorized", func() {
 		defer s.CreditPurchaseTestHandler.Reset()
 
@@ -535,7 +535,6 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 		s.NotEmpty(invoiceID)
 	})
 
-	var authorizedTrnsID string
 	s.Run("authorized", func() {
 		defer s.CreditPurchaseTestHandler.Reset()
 
@@ -574,15 +573,9 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 		creditPurchaseCharge, err := charge.AsCreditPurchaseCharge()
 		s.NoError(err)
 
-		// Invoice settlement should be set
-		s.NotNil(creditPurchaseCharge.Realizations.InvoiceSettlement)
-		lineID := creditPurchaseCharge.Realizations.InvoiceSettlement.LineID
-		s.NotEmpty(lineID)
-
-		s.Equal(1, authorizedCallback.nrInvocations)
-		s.NotNil(creditPurchaseCharge.Realizations.InvoiceSettlement)
-		s.NotNil(creditPurchaseCharge.Realizations.InvoiceSettlement.Authorized)
-		s.Equal(authorizedCallback.id, creditPurchaseCharge.Realizations.InvoiceSettlement.Authorized.TransactionGroupID)
+		// Payment authorization is no longer persisted at pending.
+		s.Equal(0, authorizedCallback.nrInvocations)
+		s.Nil(creditPurchaseCharge.Realizations.InvoiceSettlement)
 		s.Equal(creditpurchase.StatusActive, creditPurchaseCharge.Status, "charge status should be active")
 
 		// validate the standard line
@@ -590,7 +583,6 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 		s.Require().Len(lines, 1)
 
 		line := lines[0]
-		s.Equal(lineID, line.ID)
 		s.Equal(USD, line.Currency)
 		s.Equal(billing.Period{
 			Start: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
@@ -613,12 +605,13 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 		// validate invoice totals
 		s.Equal(alpacadecimal.NewFromFloat(50), invoice.Totals.Amount)
 		s.Equal(alpacadecimal.NewFromFloat(50), invoice.Totals.Total)
-
-		authorizedTrnsID = authorizedCallback.id
 	})
 
 	s.Run("settled", func() {
 		defer s.CreditPurchaseTestHandler.Reset()
+		authorizedCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
+		s.CreditPurchaseTestHandler.onCreditPurchasePaymentAuthorized = authorizedCallback.Handler(s.T())
+
 		// Then the settled callback should be called, with a grant realization and a payment settlement
 		settledCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
 		s.CreditPurchaseTestHandler.onCreditPurchasePaymentSettled = settledCallback.Handler(s.T(), func(t *testing.T, charge creditpurchase.Charge) {
@@ -626,7 +619,7 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 			assert.NotNil(t, charge.Realizations.InvoiceSettlement, "invoice settlement should be set")
 
 			// Authorized transaction group ID should still be set from the authorized phase
-			assert.Equal(t, authorizedTrnsID, charge.Realizations.InvoiceSettlement.Authorized.TransactionGroupID)
+			assert.Equal(t, authorizedCallback.id, charge.Realizations.InvoiceSettlement.Authorized.TransactionGroupID)
 			assert.Equal(t, creditpurchase.StatusActive, charge.Status, "charge status should be active")
 		})
 
@@ -653,6 +646,7 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 		creditPurchaseCharge, err := charge.AsCreditPurchaseCharge()
 		s.NoError(err)
 
+		s.Equal(1, authorizedCallback.nrInvocations)
 		s.Equal(settledCallback.id, creditPurchaseCharge.Realizations.InvoiceSettlement.Settled.TransactionGroupID)
 		s.Equal(payment.StatusSettled, creditPurchaseCharge.Realizations.InvoiceSettlement.Status)
 		s.Equal(creditpurchase.StatusFinal, creditPurchaseCharge.Status)

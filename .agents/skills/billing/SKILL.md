@@ -125,8 +125,15 @@ DraftCreated
   → DraftWaitingAutoApproval     (if autoAdvance + shouldAutoAdvance → DraftReadyToIssue)
   → DraftReadyToIssue
   → IssuingSyncing               (OnActive: finalizeInvoice → app.FinalizeStandardInvoice)
+  → IssuingChargeBooking         (OnActive: line-engine OnInvoiceIssued; TriggerFailed → IssuingChargeBookingFailed)
   → Issued
-  → PaymentProcessingPending / Paid / Overdue / Uncollectible / Voided
+  → PaymentProcessingPending
+  → PaymentProcessingBookingAuthorized                 (TriggerAuthorized; OnActive: line-engine OnPaymentAuthorized)
+  → PaymentProcessingAuthorized
+  → PaymentProcessingBookingAuthorizedAndSettled       (TriggerPaid from pending; OnActive: OnPaymentAuthorized then OnPaymentSettled)
+  → PaymentProcessingBookingSettled                    (TriggerPaid from authorized; OnActive: line-engine OnPaymentSettled)
+  → PaymentProcessingFailed / PaymentProcessingActionRequired / Overdue / Uncollectible / Voided
+  → Paid
 
 DeleteInProgress → DeleteSyncing → Deleted (TriggerFailed → DeleteFailed)
 ```
@@ -136,8 +143,94 @@ DeleteInProgress → DeleteSyncing → Deleted (TriggerFailed → DeleteFailed)
 - `shouldAutoAdvance`: checks `DraftUntil <= now` (auto-approval window has elapsed)
 - `canIssuingSyncAdvance`: polls `InvoicingAppAsyncSyncer` if the app implements async sync
 
+**Retryable lifecycle hooks**:
+- Invoice-issued and payment-booking line-engine callbacks run in dedicated retryable states (`issuing.charge_booking`, `payment_processing.booking_authorized`, `payment_processing.booking_authorized_and_settled`, `payment_processing.booking_settled`) instead of stable states like `issued` or `paid`.
+- Callback failures must be returned as validation-shaped errors so `FireAndActivate` can transition to the corresponding `*_failed` status and `RetryInvoice` can re-enter only that hook state.
+- App-driven triggers (for example `TriggerPaid` via `HandleInvoiceTrigger`) must call `AdvanceUntilStateStable` after `FireAndActivate`. These triggers can land in intermediary booking states, not directly in the final stable state.
+- `payment_processing.booking_authorized_and_settled` exists for direct `pending -> paid` provider flows. It preserves charge and ledger ordering by running authorization booking before settlement booking.
+- `payment_processing.authorized` is a stable stop. `TriggerAuthorized` should stop there and must not auto-advance into settlement.
+
 **Retrying stuck invoices**: Use the existing `RetryInvoice` service method (`service/invoice.go`) rather than firing `TriggerRetry` directly. `RetryInvoice` first **downgrades all critical validation issues to warnings** before firing the trigger — without this step, `noCriticalValidationErrors` would immediately block re-advancement out of `DraftValidating` and the invoice would land back in `DraftSyncFailed`. For bulk retries, query with `ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusDraftSyncFailed}` and call `RetryInvoice` per result.
 
+## Line Engine Lifecycle
+
+The billing line-engine contract lives in `openmeter/billing/lineengine.go`. Billing owns the orchestration and grouping; each engine owns only the behavior for the lines assigned to its discriminator.
+
+**Registered engine types**:
+- `invoicing` — the default billing-owned engine for generic invoice behavior
+- `charge_flatfee`
+- `charge_usagebased`
+- `charge_creditpurchase`
+
+`billingservice.engineRegistry` (`service/lineengine.go`) stores engines by `LineEngineType`, validates explicit engine tags on lines, and defaults missing line engines to `LineEngineTypeInvoice`.
+
+**Grouping model**:
+- Gathering-line work is grouped by `groupGatheringLinesByEngine`
+- Standard-line work is grouped by `groupStandardLinesByEngine`
+- Hooks are invoked once per engine group, never line-by-line from the billing state machine
+
+**Hook sequence and ownership**:
+- `BuildStandardInvoiceLines`
+  - called while converting gathering lines into a new standard invoice in `service/gatheringinvoicependinglines.go`
+  - must return standard lines reusing the same line IDs as the input gathering lines
+- `OnStandardInvoiceCreated`
+  - called after the standard invoice and standard lines have been persisted
+  - may mutate and return replacement lines
+  - billing validates output lines and enforces exact line-ID preservation before replacing them on the invoice
+- `OnCollectionCompleted`
+  - called from `InvoiceStateMachine.onCollectionCompleted`
+  - may mutate and return replacement lines
+  - billing merges line-engine validation issues per component and continues across engines so one engine failure does not prevent other engines from snapshotting/updating their lines
+- `OnInvoiceIssued`
+  - called from retryable state `issuing.charge_booking`
+  - side-effect only; returns `error`, not mutated lines
+- `OnPaymentAuthorized`
+  - called from retryable state `payment_processing.booking_authorized`
+  - side-effect only; returns `error`
+- `OnPaymentAuthorized` + `OnPaymentSettled`
+  - called in order from retryable state `payment_processing.booking_authorized_and_settled` when the payment app reports a direct paid outcome from `payment_processing.pending`
+  - this exists so charge-side handlers never settle without first creating the authorized realization / ledger booking
+- `OnPaymentSettled`
+  - called from retryable state `payment_processing.booking_settled`
+  - side-effect only; returns `error`
+- `CalculateLines`
+  - recalculates detailed lines/totals for standard lines already owned by the engine
+  - should be deterministic and line-local; orchestration happens in billing
+
+**Validation and failure contract**:
+- All hook inputs use `StandardLineEventInput` aliases and must pass `.Validate()`
+- Hooks that return lines must return valid lines with unchanged IDs
+- Hook errors that represent business-rule failures should surface as validation-shaped errors so billing can persist them as invoice `ValidationIssues`
+- For side-effect hooks, billing wraps engine errors with `billing.NewLineEngineValidationError(...)`
+- For mutating hooks like `OnCollectionCompleted`, billing uses `MergeValidationIssues(...)` with the engine component and keeps processing other engine groups
+- Unwrapped infrastructure/programming errors still abort the operation and roll back the transition
+
+**Important behavior split**:
+- `OnStandardInvoiceCreated` and `OnCollectionCompleted` are allowed to reshape line contents
+- `OnInvoiceIssued`, `OnPaymentAuthorized`, and `OnPaymentSettled` are for side effects only; they do not return lines back into billing
+- Retryable payment/issuing states exist specifically so these side-effect hooks can fail and be retried without rerunning the entire invoice finalization path
+
+**App trigger interaction**:
+- App-driven invoice triggers such as `TriggerPaid` can land in intermediary booking states rather than directly in `paid`
+- `HandleInvoiceTrigger` must therefore call `AdvanceUntilStateStable` after `FireAndActivate`, otherwise invoices remain stuck in `payment_processing.booking_*`
+
+**When adding a new line engine or hook**:
+1. Extend `billing.LineEngine` in `openmeter/billing/lineengine.go`
+2. Add no-op implementations to every concrete engine that already satisfies the interface
+3. Wire the billing invocation point in either `gatheringinvoicependinglines.go` or `stdinvoicestate.go`
+4. Decide whether failures must be retryable; if yes, add dedicated intermediary invoice states instead of attaching `OnActive` to a stable/final state
+5. Add focused billing tests in `test/billing/lineengine_test.go`
+
+**Current test coverage pattern**:
+- `TestCollectionCompletedErrorsBecomeValidationIssues`
+- `TestOnInvoiceIssuedIsCalled`
+- `TestOnInvoiceIssuedFailureTransitionsToRetryableIssuingState`
+- `TestOnPaymentAuthorizedIsCalled`
+- `TestOnPaymentAuthorizedFailureTransitionsToRetryablePaymentState`
+- `TestOnPaymentSettledIsCalled`
+- `TestOnPaymentSettledFailureTransitionsToRetryablePaymentState`
+
+Use those tests as the template for new billing line-engine lifecycle behavior.
 ## Gathering vs Standard Invoices
 
 **Gathering invoice**: one per customer per currency, never advances through states. Collects pending lines (from subscription sync). When lines become due (`CollectionAt <= now`), the `InvoiceCollector` cron calls `InvoicePendingLines` to move them into a new `StandardInvoice`. The gathering invoice is soft-deleted when it has no remaining lines.
@@ -394,7 +487,11 @@ See `references/testing.md` for full test patterns. Key points:
 - **`RemoveMetaForCompare()`**: both `StandardInvoice` and `StandardLine` have this method that strips DB-only fields for test assertions. Use it before `require.Equal` comparisons.
 
 - **Hook registration is mutable**: `RegisterStandardInvoiceHooks` appends to a slice on the billing service. The charges service self-registers at `New()`. In tests, the hook is registered once per suite (not per test) — reset handler function fields in `TearDownTest()` rather than re-registering.
+- **Line-engine outputs must preserve IDs**: `BuildStandardInvoiceLines`, `OnStandardInvoiceCreated`, and `OnCollectionCompleted` all depend on exact line-ID reuse. Returning replacement lines with different IDs will fail billing validation before persistence.
 
+- **Default engine inference is validator-only**: `populateGatheringLineEngine` and `populateStandardLineEngine` default blank engines to `invoicing`, but if a line already has an explicit engine billing only validates the enum value. Registration is checked later when grouping/invoking hooks.
+
+- **Payment/issuing side-effect hooks are not line-mutating hooks**: `OnInvoiceIssued`, `OnPaymentAuthorized`, and `OnPaymentSettled` return only `error`. If you need to mutate invoice lines, do it earlier in `OnStandardInvoiceCreated` or `OnCollectionCompleted`.
 ## References
 
 - `references/subscription-sync.md` — detailed subscription→billing sync algorithm, phase iterator, reconciler

@@ -509,6 +509,10 @@ func (s *Service) ApproveInvoice(ctx context.Context, input billing.ApproveInvoi
 	return s.executeTriggerOnInvoice(ctx, input, billing.TriggerApprove)
 }
 
+func (s *Service) PaymentAuthorized(ctx context.Context, input billing.PaymentAuthorizedInput) (billing.StandardInvoice, error) {
+	return s.executeTriggerOnInvoice(ctx, input, billing.TriggerAuthorized)
+}
+
 func (s *Service) SnapshotQuantities(ctx context.Context, input billing.SnapshotQuantitiesInput) (billing.StandardInvoice, error) {
 	return s.executeTriggerOnInvoice(ctx, input, billing.TriggerSnapshotQuantities)
 }
