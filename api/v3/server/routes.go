@@ -24,6 +24,10 @@ func (s *Server) ListMeters(w http.ResponseWriter, r *http.Request, params api.L
 	s.metersHandler.ListMeters().With(params).ServeHTTP(w, r)
 }
 
+func (s *Server) UpdateMeter(w http.ResponseWriter, r *http.Request, meterId api.ULID) {
+	unimplemented.UpdateMeter(w, r, meterId)
+}
+
 func (s *Server) DeleteMeter(w http.ResponseWriter, r *http.Request, meterId api.ULID) {
 	s.metersHandler.DeleteMeter().With(meterId).ServeHTTP(w, r)
 }

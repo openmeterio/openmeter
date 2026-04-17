@@ -1604,6 +1604,42 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - Meters
+    put:
+      operationId: update-meter
+      summary: Update meter
+      description: Update a meter.
+      parameters:
+        - name: meterId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Meter updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meter'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - Meters
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMeterRequest'
+      x-internal: true
+      x-unstable: true
+      x-private: true
     delete:
       operationId: delete-meter
       summary: Delete meter
@@ -8096,6 +8132,37 @@ components:
       description: |-
         Request body for updating a feature.
         Currently only the unit_cost field can be updated.
+    UpdateMeterRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        dimensions:
+          type: object
+          additionalProperties:
+            type: string
+          description: |-
+            Named JSONPath expressions to extract the group by values from the event data.
+
+            Keys must be unique and consist only alphanumeric and underscore characters.
+          example:
+            type: $.type
+      description: Meter update request.
     UpsertAddonRequest:
       type: object
       required:

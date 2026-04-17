@@ -46,6 +46,20 @@ interface MetersOperations {
   ): Shared.PagePaginatedResponse<Meter> | Common.ErrorResponses;
 
   /**
+   * Update a meter.
+   */
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @put
+  @operationId("update-meter")
+  @summary("Update meter")
+  update(
+    @path meterId: Shared.ULID,
+    @body meter: Shared.UpdateRequest<Meter>,
+  ): Shared.UpdateResponse<Meter> | Common.NotFound | Common.ErrorResponses;
+
+  /**
    * Delete a meter.
    */
   @delete
