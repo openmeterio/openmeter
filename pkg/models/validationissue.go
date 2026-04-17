@@ -12,8 +12,9 @@ import (
 type ErrorExtension map[string]any
 
 var (
-	_ error          = (*ValidationIssue)(nil)
-	_ json.Marshaler = (*ValidationIssue)(nil)
+	_ error                    = (*ValidationIssue)(nil)
+	_ json.Marshaler           = (*ValidationIssue)(nil)
+	_ Equaler[ValidationIssue] = (*ValidationIssue)(nil)
 )
 
 type ValidationIssue struct {
@@ -23,6 +24,7 @@ type ValidationIssue struct {
 	message    string
 	field      *FieldDescriptor
 	severity   ErrorSeverity
+	wraps      error
 }
 
 func (i ValidationIssue) MarshalJSON() ([]byte, error) {
@@ -39,6 +41,7 @@ func (i ValidationIssue) Clone() ValidationIssue {
 		message:    i.message,
 		field:      i.field,
 		severity:   i.severity,
+		wraps:      i,
 	}
 }
 
@@ -146,6 +149,61 @@ func (i ValidationIssue) SetAttributes(attrs Attributes) ValidationIssue {
 
 func (i ValidationIssue) Error() string {
 	return i.message
+}
+
+// Is is required in addition to Unwrap because ValidationIssue is not comparable:
+// it contains map-backed attributes, so errors.Is cannot use == when it reaches a
+// wrapped ValidationIssue in the chain.
+func (i ValidationIssue) Is(target error) bool {
+	targetIssue, ok := asValidationIssue(target)
+	if !ok {
+		return false
+	}
+
+	return i.Equal(targetIssue)
+}
+
+func (i ValidationIssue) Unwrap() error {
+	return i.wraps
+}
+
+func (i ValidationIssue) Equal(other ValidationIssue) bool {
+	return maps.EqualFunc(i.attributes, other.attributes, equalValidationIssueAttributeValue) &&
+		i.code == other.code &&
+		i.component == other.component &&
+		i.message == other.message &&
+		i.severity == other.severity &&
+		i.Field().String() == other.Field().String()
+}
+
+// equalValidationIssueAttributeValue is used to compare attribute values for equality.
+// It's better than reflect.DeepEqual because it handles nil values properly (DeepEqual would consider nil and empty value equal)
+func equalValidationIssueAttributeValue(left, right any) bool {
+	if left == nil || right == nil {
+		return left == right
+	}
+
+	// Let's not use DeepEqual for comparable types
+	if t := reflect.TypeOf(left); t != nil && t.Comparable() {
+		return left == right
+	}
+
+	return reflect.DeepEqual(left, right)
+}
+
+func asValidationIssue(err error) (ValidationIssue, bool) {
+	switch t := err.(type) {
+	case ValidationIssue:
+		return t, true
+	case *ValidationIssue:
+		if t == nil {
+			return ValidationIssue{}, false
+		}
+
+		return *t, true
+	default:
+		return ValidationIssue{}, false
+	}
 }
 
 func (i ValidationIssue) AsErrorExtension() ErrorExtension {
@@ -352,27 +410,13 @@ func asValidationIssues(err error, prefix *FieldDescriptor, component ComponentN
 	case fieldPrefixedWrapper:
 		return asValidationIssues(e.err, e.prefix.WithPrefix(prefix), component, true)
 	case ValidationIssue:
-		opts := []ValidationIssueOption{
-			withMessage(e.message),
-			withCode(e.code),
-			WithComponent(func() ComponentName {
-				if component == "" {
-					return e.component
-				}
-
-				return component
-			}()),
-			WithSeverity(e.severity),
-			WithAttributes(e.Attributes()),
+		return validationIssueAsValidationIssues(e, prefix, component), nil
+	case *ValidationIssue:
+		if e == nil {
+			return nil, nil
 		}
 
-		if e.field != nil {
-			opts = append(opts, WithField(e.field.WithPrefix(prefix)))
-		}
-
-		return ValidationIssues{
-			newValidationIssue(opts...),
-		}, nil
+		return validationIssueAsValidationIssues(*e, prefix, component), nil
 	}
 
 	switch e := err.(type) {
@@ -408,6 +452,30 @@ func asValidationIssues(err error, prefix *FieldDescriptor, component ComponentN
 		}
 
 		return nil, err
+	}
+}
+
+func validationIssueAsValidationIssues(e ValidationIssue, prefix *FieldDescriptor, component ComponentName) ValidationIssues {
+	opts := []ValidationIssueOption{
+		withMessage(e.message),
+		withCode(e.code),
+		WithComponent(func() ComponentName {
+			if component == "" {
+				return e.component
+			}
+
+			return component
+		}()),
+		WithSeverity(e.severity),
+		WithAttributes(e.Attributes()),
+	}
+
+	if e.field != nil {
+		opts = append(opts, WithField(e.field.WithPrefix(prefix)))
+	}
+
+	return ValidationIssues{
+		newValidationIssue(opts...),
 	}
 }
 

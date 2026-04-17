@@ -156,12 +156,13 @@ func TestValidationIssue_Clone(t *testing.T) {
 				message:    errTestValidationIssue.message,
 				field:      errTestValidationIssue.field,
 				severity:   errTestValidationIssue.severity,
+				wraps:      errTestValidationIssue,
 			},
 		},
 		{
 			name:          "empty",
 			issue:         ValidationIssue{},
-			expectedIssue: ValidationIssue{},
+			expectedIssue: ValidationIssue{wraps: ValidationIssue{}},
 		},
 	}
 
@@ -172,6 +173,28 @@ func TestValidationIssue_Clone(t *testing.T) {
 			assert.Equalf(t, test.expectedIssue, actual, "must match after clone")
 		})
 	}
+}
+
+func TestValidationIssue_UnwrapAndErrorsIs(t *testing.T) {
+	base := errTestValidationIssue
+	withField := base.WithField(NewFieldSelectorGroup(NewFieldSelector("field_name")))
+	withAttrs := withField.WithAttr("key", "value")
+
+	require.ErrorIs(t, withField, base)
+	require.ErrorIs(t, withAttrs, withField)
+	require.ErrorIs(t, withAttrs, base)
+
+	assert.Equal(t, base.Error(), withField.Error())
+	assert.Equal(t, withField.Error(), withAttrs.Error())
+}
+
+func TestValidationIssue_ErrorsIsWithJoin(t *testing.T) {
+	base := NewValidationError("joined_code", "joined message")
+	derived := base.WithPathString("field_name")
+	joined := errors.Join(errors.New("other error"), derived)
+
+	require.ErrorIs(t, joined, derived)
+	require.ErrorIs(t, joined, base)
 }
 
 func TestAsValidationIssues(t *testing.T) {
@@ -397,4 +420,19 @@ func TestValidationIssues_AsError(t *testing.T) {
 	validationIssues, err := AsValidationIssues(err)
 	require.NoError(t, err)
 	RequireValidationIssuesMatch(t, issues, validationIssues)
+}
+
+func TestAsValidationIssues_PointerValidationIssue(t *testing.T) {
+	issue := NewValidationIssue("errcode1", "error message 1",
+		WithFieldString("field1"),
+		WithWarningSeverity(),
+		WithAttributes(Attributes{
+			"attr1": "value1",
+		}),
+	)
+
+	actual, err := AsValidationIssues(&issue)
+	require.NoError(t, err)
+
+	RequireValidationIssuesMatch(t, ValidationIssues{issue}, actual)
 }
