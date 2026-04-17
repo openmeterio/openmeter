@@ -101,7 +101,7 @@ jobs:
         run: nix flake check --impure
 
       - name: Build components
-        run: nix develop --impure .#ci -c make -j 3 build
+        run: nix develop --impure .#ci -c make build
 
       - name: Validate commit messages
         run: |
