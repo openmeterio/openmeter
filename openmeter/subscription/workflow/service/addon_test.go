@@ -762,7 +762,7 @@ func TestAddonCombinations(t *testing.T) {
 
 		// Now, repeatedly change quantity to 0 and then back to 1
 		// Let's pass time
-		clock.SetTime(clock.Now().Add(time.Minute))
+		clock.FreezeTime(clock.Now().Add(time.Minute))
 
 		for i := 0; i < 3; i++ {
 			// Change quantity to 0 (remove)
@@ -777,7 +777,7 @@ func TestAddonCombinations(t *testing.T) {
 			require.NoError(t, err, "failed to change addon quantity to 0 on iteration %d", i)
 
 			// Let's pass time
-			clock.SetTime(clock.Now().Add(time.Minute))
+			clock.FreezeTime(clock.Now().Add(time.Minute))
 
 			// Change quantity back to 1 (re-add)
 			changeInpOne := subscriptionworkflow.ChangeAddonQuantityWorkflowInput{
@@ -791,7 +791,7 @@ func TestAddonCombinations(t *testing.T) {
 			require.NoError(t, err, "failed to change addon quantity to 1 on iteration %d", i)
 
 			// Let's pass time
-			clock.SetTime(clock.Now().Add(time.Minute))
+			clock.FreezeTime(clock.Now().Add(time.Minute))
 		}
 	}))
 }
