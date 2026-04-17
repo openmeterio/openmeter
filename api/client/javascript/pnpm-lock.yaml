@@ -60,9 +60,6 @@ importers:
       rollup:
         specifier: 4.60.1
         version: 4.60.1
-      ts-morph:
-        specifier: 28.0.0
-        version: 28.0.0
       tslib:
         specifier: 2.8.1
         version: 2.8.1
@@ -890,9 +887,6 @@ packages:
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
 
-  '@ts-morph/common@0.29.0':
-    resolution: {integrity: sha512-35oUmphHbJvQ/+UTwFNme/t2p3FoKiGJ5auTjjpNTop2dyREspirjMy82PLSC1pnDJ8ah1GU98hwpVt64YXQsg==}
-
   '@tybys/wasm-util@0.10.1':
     resolution: {integrity: sha512-9tTaPJLSiejZKx+Bmog4uSubteqTvFrVrURwkmHixBo0G4seD0zUxp98E1DzUBJxLQ3NPwXrGKDiVjwx/DpPsg==}
 
@@ -1033,9 +1027,6 @@ packages:
   chokidar@5.0.0:
     resolution: {integrity: sha512-TQMmc3w+5AxjpL8iIiwebF73dRDF4fBIieAqGn9RGCWaEVwQ6Fb2cGe31Yns0RRIzii5goJ1Y7xbMwo1TxMplw==}
     engines: {node: '>= 20.19.0'}
-
-  code-block-writer@13.0.3:
-    resolution: {integrity: sha512-Oofo0pq3IKnsFtuHqSF7TqBfr71aeyZDVJ0HpmqB7FBM2qEigL0iPONSCZSO9pE9dZTAxANe5XHG9Uy0YMv8cg==}
 
   colorette@1.4.0:
     resolution: {integrity: sha512-Y2oEozpomLn7Q3HFP7dpww7AtMJplbM9lGZP6RDfHqmbeRjiwRg4n6VM6j4KLmRke85uWEI7JqF17f3pqdRA0g==}
@@ -1436,9 +1427,6 @@ packages:
     resolution: {integrity: sha512-TXfryirbmq34y8QBwgqCVLi+8oA3oWx2eAnSn62ITyEhEYaWRlVZ2DvMM9eZbMs/RfxPu/PK/aBLyGj4IrqMHw==}
     engines: {node: '>=18'}
 
-  path-browserify@1.0.1:
-    resolution: {integrity: sha512-b7uo2UCUOYZcnF/3ID0lulOJi/bafxa1xPe7ZPsammBSpjSWQkjNxlt635YGS2MiR9GjvuXCtz2emr3jbsz98g==}
-
   path-key@3.1.1:
     resolution: {integrity: sha512-ojmeN0qd+y0jszEtoY48r0Peq5dwMEkIlCOu6Q5f41lfkswXuKtYrhgoTpLnyIcHm24Uhqx+5Tqm2InSwLhE6Q==}
     engines: {node: '>=8'}
@@ -1614,9 +1602,6 @@ packages:
   to-regex-range@5.0.1:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
     engines: {node: '>=8.0'}
-
-  ts-morph@28.0.0:
-    resolution: {integrity: sha512-Wp3tnZ2bzwxyTZMtgWVzXDfm7lB1Drz+y9DmmYH/L702PQhPyVrp3pkou3yIz4qjS14GY9kcpmLiOOMvl8oG1g==}
 
   tsconfck@3.1.6:
     resolution: {integrity: sha512-ks6Vjr/jEw0P1gmOVwutM3B7fWxoWBL2KRDb1JfqGVawBmO5UsvmWOQFGHBPl5yxYz4eERr19E6L7NMv+Fej4w==}
@@ -2421,12 +2406,6 @@ snapshots:
 
   '@standard-schema/spec@1.1.0': {}
 
-  '@ts-morph/common@0.29.0':
-    dependencies:
-      minimatch: 10.2.5
-      path-browserify: 1.0.1
-      tinyglobby: 0.2.16
-
   '@tybys/wasm-util@0.10.1':
     dependencies:
       tslib: 2.8.1
@@ -2562,8 +2541,6 @@ snapshots:
   chokidar@5.0.0:
     dependencies:
       readdirp: 5.0.0
-
-  code-block-writer@13.0.3: {}
 
   colorette@1.4.0: {}
 
@@ -3050,8 +3027,6 @@ snapshots:
 
   parse-ms@4.0.0: {}
 
-  path-browserify@1.0.1: {}
-
   path-key@3.1.1: {}
 
   path-key@4.0.0: {}
@@ -3211,11 +3186,6 @@ snapshots:
   to-regex-range@5.0.1:
     dependencies:
       is-number: 7.0.0
-
-  ts-morph@28.0.0:
-    dependencies:
-      '@ts-morph/common': 0.29.0
-      code-block-writer: 13.0.3
 
   tsconfck@3.1.6(typescript@5.9.3):
     optionalDependencies:
