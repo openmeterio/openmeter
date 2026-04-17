@@ -1,0 +1,20 @@
+# Optional host port exposure for local debugging.
+# CI does not need these infra services reachable from the host.
+services:
+  kafka:
+    ports:
+      - "127.0.0.1:39092:29092"
+
+  clickhouse:
+    ports:
+      - "127.0.0.1:38123:8123"
+      - "127.0.0.1:39000:9000"
+      - "127.0.0.1:39009:9009"
+
+  redis:
+    ports:
+      - "127.0.0.1:36379:6379"
+
+  postgres:
+    ports:
+      - "127.0.0.1:35432:5432"

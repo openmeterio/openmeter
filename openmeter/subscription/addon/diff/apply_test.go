@@ -33,8 +33,11 @@ func TestApply(t *testing.T) {
 
 	// TODO: we could write purer tests here (without depending on the services) but this is simply more convenient for now
 	runWithDeps := func(t *testing.T, fn func(t *testing.T, deps *tcDeps)) {
-		clock.SetTime(now)
-		defer clock.ResetTime()
+		clock.FreezeTime(now.Add(time.Millisecond))
+		defer func() {
+			clock.UnFreeze()
+			clock.ResetTime()
+		}()
 
 		dbDeps := subscriptiontestutils.SetupDBDeps(t)
 		defer dbDeps.Cleanup(t)
@@ -811,8 +814,11 @@ func TestApplyWithMultiInstance(t *testing.T) {
 	}
 
 	runWithDeps := func(t *testing.T, fn func(t *testing.T, deps *tcDeps)) {
-		clock.SetTime(now)
-		defer clock.ResetTime()
+		clock.FreezeTime(now.Add(time.Millisecond))
+		defer func() {
+			clock.UnFreeze()
+			clock.ResetTime()
+		}()
 
 		dbDeps := subscriptiontestutils.SetupDBDeps(t)
 		defer dbDeps.Cleanup(t)

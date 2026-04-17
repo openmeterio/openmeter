@@ -33,8 +33,14 @@ func TestAddAddon(t *testing.T) {
 
 	runWithDeps := func(fn func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies)) func(t *testing.T) {
 		return func(t *testing.T) {
-			clock.SetTime(now)
-			defer clock.ResetTime()
+			// Freeze just past the effective boundary to avoid Postgres timestamp
+			// truncation turning "now" into a boundary value that reads as
+			// not-yet-active or already-past in follow-up comparisons.
+			clock.FreezeTime(now.Add(time.Millisecond))
+			defer func() {
+				clock.UnFreeze()
+				clock.ResetTime()
+			}()
 
 			dbDeps := subscriptiontestutils.SetupDBDeps(t)
 			defer dbDeps.Cleanup(t)
@@ -307,8 +313,14 @@ func TestChangeAddonQuantity(t *testing.T) {
 
 	runWithDeps := func(fn func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies)) func(t *testing.T) {
 		return func(t *testing.T) {
-			clock.SetTime(now)
-			defer clock.ResetTime()
+			// Freeze just past the effective boundary to avoid Postgres timestamp
+			// truncation turning "now" into a boundary value that reads as
+			// not-yet-active or already-past in follow-up comparisons.
+			clock.FreezeTime(now.Add(time.Millisecond))
+			defer func() {
+				clock.UnFreeze()
+				clock.ResetTime()
+			}()
 
 			dbDeps := subscriptiontestutils.SetupDBDeps(t)
 			defer dbDeps.Cleanup(t)
@@ -652,8 +664,14 @@ func TestAddonCombinations(t *testing.T) {
 
 	runWithDeps := func(fn func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies)) func(t *testing.T) {
 		return func(t *testing.T) {
-			clock.SetTime(now)
-			defer clock.ResetTime()
+			// Freeze just past the effective boundary to avoid Postgres timestamp
+			// truncation turning "now" into a boundary value that reads as
+			// not-yet-active or already-past in follow-up comparisons.
+			clock.FreezeTime(now.Add(time.Millisecond))
+			defer func() {
+				clock.UnFreeze()
+				clock.ResetTime()
+			}()
 
 			dbDeps := subscriptiontestutils.SetupDBDeps(t)
 			defer dbDeps.Cleanup(t)
@@ -744,7 +762,7 @@ func TestAddonCombinations(t *testing.T) {
 
 		// Now, repeatedly change quantity to 0 and then back to 1
 		// Let's pass time
-		clock.SetTime(clock.Now().Add(time.Minute))
+		clock.FreezeTime(clock.Now().Add(time.Minute))
 
 		for i := 0; i < 3; i++ {
 			// Change quantity to 0 (remove)
@@ -759,7 +777,7 @@ func TestAddonCombinations(t *testing.T) {
 			require.NoError(t, err, "failed to change addon quantity to 0 on iteration %d", i)
 
 			// Let's pass time
-			clock.SetTime(clock.Now().Add(time.Minute))
+			clock.FreezeTime(clock.Now().Add(time.Minute))
 
 			// Change quantity back to 1 (re-add)
 			changeInpOne := subscriptionworkflow.ChangeAddonQuantityWorkflowInput{
@@ -773,7 +791,7 @@ func TestAddonCombinations(t *testing.T) {
 			require.NoError(t, err, "failed to change addon quantity to 1 on iteration %d", i)
 
 			// Let's pass time
-			clock.SetTime(clock.Now().Add(time.Minute))
+			clock.FreezeTime(clock.Now().Add(time.Minute))
 		}
 	}))
 }

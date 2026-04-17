@@ -101,15 +101,26 @@ jobs:
         run: nix flake check --impure
 
       - name: Build components
-        run: nix develop --impure .#ci -c make -j 3 build
+        run: |
+          # On Depot runners, cgo external linking can spill large temporary linker
+          # files into /run via the default temp dir. Keep Go and system temp files
+          # on the workspace disk for this step to avoid "no space left on device",
+          # while still allowing each parallel go build to get its own temp dir.
+          mkdir -p \
+            "$GITHUB_WORKSPACE/.tmp/go-work" \
+            "$GITHUB_WORKSPACE/.tmp/system"
+          env \
+            GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
+            TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
+            nix develop --impure .#ci -c make -j 4 build
 
       - name: Validate commit messages
         run: |
           nix develop --impure .#ci -c pre-commit run -a
           nix develop --impure .#ci -c pre-commit run --hook-stage manual
 
-  generators:
-    name: Code Generators
+  generators-openapi:
+    name: Code Generators / OpenAPI
     runs-on: depot-ubuntu-latest-8
 
     steps:
@@ -151,7 +162,130 @@ jobs:
 
       - name: Ensure code generators are run
         run: |
-          nix develop --impure .#ci -c make generate-all
+          nix develop --impure .#ci -c make update-openapi
+
+          # does not detect new files
+          if [ -n "$(git diff --exit-code)" ]; then
+            git diff
+
+            echo "Code generators have not been run, please run 'make generate-all' and commit the changes"
+            exit 1
+          fi
+
+          # detect files not committed
+          if [ -n "$(git status --porcelain)" ]; then
+            git status --porcelain
+
+            echo "Code generators have not been run, please run 'make generate-all' and commit the changes"
+            exit 1
+          fi
+
+  generators-javascript-sdk:
+    name: Code Generators / JavaScript SDK
+    runs-on: depot-ubuntu-latest-8
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Nix
+        uses: nixbuild/nix-quick-install-action@2c9db80fb984ceb1bcaa77cdda3fdf8cfba92035 # v34
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          nix_conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: Restore Nix store
+        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+        with:
+          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          restore-prefixes-first-match: |
+            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
+            ${{ runner.os }}-openmeter-nix-build-main-
+            ${{ runner.os }}-openmeter-nix-build-
+
+      - name: Restore go.mod cache if exists
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        with:
+          path: .devenv/state/go
+          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+          # Prefer to restore the branch cache over the main cache
+          restore-keys: |
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-main
+
+      - name: Ensure code generators are run
+        run: |
+          nix develop --impure .#ci -c make generate-javascript-sdk
+
+          # does not detect new files
+          if [ -n "$(git diff --exit-code)" ]; then
+            git diff
+
+            echo "Code generators have not been run, please run 'make generate-all' and commit the changes"
+            exit 1
+          fi
+
+          # detect files not committed
+          if [ -n "$(git status --porcelain)" ]; then
+            git status --porcelain
+
+            echo "Code generators have not been run, please run 'make generate-all' and commit the changes"
+            exit 1
+          fi
+
+  generators-go:
+    name: Code Generators / Go
+    runs-on: depot-ubuntu-latest-8
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Nix
+        uses: nixbuild/nix-quick-install-action@2c9db80fb984ceb1bcaa77cdda3fdf8cfba92035 # v34
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          nix_conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: Restore Nix store
+        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+        with:
+          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          restore-prefixes-first-match: |
+            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
+            ${{ runner.os }}-openmeter-nix-build-main-
+            ${{ runner.os }}-openmeter-nix-build-
+
+      - name: Restore go.mod cache if exists
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        with:
+          path: .devenv/state/go
+          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+          # Prefer to restore the branch cache over the main cache
+          restore-keys: |
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-main
+
+      - name: Ensure code generators are run
+        run: |
+          nix develop --impure .#ci -c make patch-oapi-templates
+          nix develop --impure .#ci -c go generate ./...
 
           # does not detect new files
           if [ -n "$(git diff --exit-code)" ]; then
@@ -232,7 +366,16 @@ jobs:
           SVIX_JWT_SECRET: DUMMY_JWT_SECRET
         # count=1 is needed to force retest
         run: |
-          nix develop --impure .#ci -c make test-nocache
+          # On Depot runners, cgo builds during tests can spill temporary files
+          # into /run via the default temp dir. Keep Go and system temp files on
+          # the workspace disk for this step to avoid "no space left on device".
+          mkdir -p \
+            "$GITHUB_WORKSPACE/.tmp/go-work" \
+            "$GITHUB_WORKSPACE/.tmp/system"
+          env \
+            GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
+            TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
+            nix develop --impure .#ci -c make test-nocache
 
       - name: Stop docker-compose dependencies
         if: always()
@@ -441,6 +584,14 @@ jobs:
 
           cat quickstart/docker-compose.override.yaml
 
+      - name: Debug quickstart runner state
+        run: |
+          echo "### DEBUG"
+          ss -ltnp | grep ':49000 ' || true
+          docker ps -a
+          docker network ls
+          echo "### DEBUG"
+
       - name: Launch Docker Compose
         run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml up -d
         working-directory: quickstart
@@ -522,6 +673,14 @@ jobs:
           EOF
 
           cat e2e/docker-compose.override.yaml
+
+      - name: Debug E2E runner state
+        run: |
+          echo "### DEBUG"
+          ss -ltnp | grep ':39000 ' || true
+          docker ps -a
+          docker network ls
+          echo "### DEBUG"
 
       - name: Launch Docker Compose infra
         run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml up -d
