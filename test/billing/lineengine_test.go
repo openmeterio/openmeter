@@ -161,7 +161,6 @@ func (s *LineEngineTestSuite) createMeteredDraftInvoiceWaitingForCollectionForAp
 	engineType ombilling.LineEngineType,
 	lineName string,
 ) (ombilling.StandardInvoice, time.Time) {
-
 	meterSlug := fmt.Sprintf("%s-meter", namespace)
 	meterID := ulid.Make().String()
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{{
