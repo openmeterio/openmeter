@@ -168,12 +168,27 @@ func (i ValidationIssue) Unwrap() error {
 }
 
 func (i ValidationIssue) Equal(other ValidationIssue) bool {
-	return maps.Equal(i.attributes, other.attributes) &&
+	return maps.EqualFunc(i.attributes, other.attributes, equalValidationIssueAttributeValue) &&
 		i.code == other.code &&
 		i.component == other.component &&
 		i.message == other.message &&
 		i.severity == other.severity &&
 		i.Field().String() == other.Field().String()
+}
+
+// equalValidationIssueAttributeValue is used to compare attribute values for equality.
+// It's better than reflect.DeepEqual because it handles nil values properly (DeepEqual would consider nil and empty value equal)
+func equalValidationIssueAttributeValue(left, right any) bool {
+	if left == nil || right == nil {
+		return left == right
+	}
+
+	// Let's not use DeepEqual for comparable types
+	if t := reflect.TypeOf(left); t != nil && t.Comparable() {
+		return left == right
+	}
+
+	return reflect.DeepEqual(left, right)
 }
 
 func asValidationIssue(err error) (ValidationIssue, bool) {
