@@ -237,12 +237,14 @@ func (s *LineEngineTestSuite) createMeteredDraftInvoiceWaitingForCollectionForAp
 }
 
 func (s *LineEngineTestSuite) markInvoicePaid(ctx context.Context, invoiceID ombilling.InvoiceID) ombilling.StandardInvoice {
+	appType := s.mustGetInvoiceAppType(ctx, invoiceID)
+
 	s.Require().NoError(s.BillingService.TriggerInvoice(ctx, ombilling.InvoiceTriggerServiceInput{
 		InvoiceTriggerInput: ombilling.InvoiceTriggerInput{
 			Invoice: invoiceID,
 			Trigger: ombilling.TriggerPaid,
 		},
-		AppType:    app.AppTypeSandbox,
+		AppType:    appType,
 		Capability: app.CapabilityTypeCollectPayments,
 	}))
 
@@ -255,12 +257,14 @@ func (s *LineEngineTestSuite) markInvoicePaid(ctx context.Context, invoiceID omb
 }
 
 func (s *LineEngineTestSuite) markInvoiceAuthorized(ctx context.Context, invoiceID ombilling.InvoiceID) ombilling.StandardInvoice {
+	appType := s.mustGetInvoiceAppType(ctx, invoiceID)
+
 	s.Require().NoError(s.BillingService.TriggerInvoice(ctx, ombilling.InvoiceTriggerServiceInput{
 		InvoiceTriggerInput: ombilling.InvoiceTriggerInput{
 			Invoice: invoiceID,
 			Trigger: ombilling.TriggerAuthorized,
 		},
-		AppType:    app.AppTypeSandbox,
+		AppType:    appType,
 		Capability: app.CapabilityTypeCollectPayments,
 	}))
 
@@ -270,6 +274,25 @@ func (s *LineEngineTestSuite) markInvoiceAuthorized(ctx context.Context, invoice
 	s.Require().NoError(err)
 
 	return invoice
+}
+
+func (s *LineEngineTestSuite) mustGetInvoiceAppType(ctx context.Context, invoiceID ombilling.InvoiceID) app.AppType {
+	invoice, err := s.BillingService.GetStandardInvoiceById(ctx, ombilling.GetStandardInvoiceByIdInput{
+		Invoice: invoiceID,
+	})
+	s.Require().NoError(err)
+
+	if invoice.Workflow.Apps != nil && invoice.Workflow.Apps.Invoicing != nil {
+		return invoice.Workflow.Apps.Invoicing.GetType()
+	}
+
+	invoicingApp, err := s.AppService.GetApp(ctx, app.GetAppInput{
+		Namespace: invoice.Namespace,
+		ID:        invoice.Workflow.AppReferences.Invoicing.ID,
+	})
+	s.Require().NoError(err)
+
+	return invoicingApp.GetType()
 }
 
 func (s *LineEngineTestSuite) TestCollectionCompletedErrorsBecomeValidationIssues() {
