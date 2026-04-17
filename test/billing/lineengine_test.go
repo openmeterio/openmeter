@@ -998,3 +998,202 @@ func (s *LineEngineTestSuite) TestOnPaymentSettledFailureTransitionsToRetryableP
 		s.Equal(ombilling.StandardInvoiceStatusPaid, invoice.Status)
 	})
 }
+
+func (s *LineEngineTestSuite) TestOnPaymentSettledIsCalledAfterAuthorization() {
+	var (
+		ctx                 = s.T().Context()
+		namespace           = s.GetUniqueNamespace("ns-line-engine-on-payment-settled-after-authorization")
+		mockEngine          = &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeCreditPurchase}
+		customInvoicingApp  = s.SetupCustomInvoicing(namespace).App
+		invoice             ombilling.StandardInvoice
+		collectionAt        time.Time
+		onPaymentSettledCnt int
+	)
+
+	clockBase := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
+	clock.SetTime(clockBase)
+	defer clock.ResetTime()
+	defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
+	defer s.MockStreamingConnector.Reset()
+	s.registerMockLineEngine(s.T(), mockEngine)
+	defer s.unregisterLineEngine(s.T(), mockEngine)
+
+	s.Run("Given a draft invoice waiting for collection with a payment-settled hook after authorization", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+			return mustAsNewStandardLines(input), nil
+		}
+
+		invoice, collectionAt = s.createMeteredDraftInvoiceWaitingForCollectionForApp(
+			ctx,
+			namespace,
+			customInvoicingApp.GetID(),
+			mockEngine.GetLineEngineType(),
+			"UBP - payment settled hook after authorization",
+		)
+	})
+
+	s.Run("When the invoice is collected, issued, marked authorized, and then marked paid", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.onCollectionCompleted = func(_ context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
+			lines := input.Lines
+			for _, stdLine := range lines {
+				if stdLine.UsageBased == nil {
+					stdLine.UsageBased = &ombilling.UsageBasedLine{}
+				}
+
+				stdLine.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.PreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+				stdLine.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+			}
+
+			return lines, nil
+		}
+
+		mockEngine.onInvoiceIssued = func(_ context.Context, input ombilling.OnInvoiceIssuedInput) error {
+			s.Equal(invoice.ID, input.Invoice.ID)
+			return nil
+		}
+
+		mockEngine.onPaymentSettled = func(_ context.Context, input ombilling.OnPaymentSettledInput) error {
+			onPaymentSettledCnt++
+			s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingBookingSettled, input.Invoice.Status)
+			s.Equal(invoice.ID, input.Invoice.ID)
+			s.Len(input.Lines, 1)
+			s.Equal(invoice.ID, input.Lines[0].InvoiceID)
+			s.Equal(mockEngine.GetLineEngineType(), input.Lines[0].Engine)
+			return nil
+		}
+
+		clock.SetTime(collectionAt.Add(time.Minute))
+
+		var err error
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(ombilling.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+
+		invoice = s.markInvoiceAuthorized(ctx, invoice.GetInvoiceID())
+		s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingAuthorized, invoice.Status)
+
+		invoice = s.markInvoicePaid(ctx, invoice.GetInvoiceID())
+		s.Equal(ombilling.StandardInvoiceStatusPaid, invoice.Status)
+	})
+
+	s.Run("Then the payment-settled hook is called once", func() {
+		s.Equal(1, onPaymentSettledCnt)
+		s.Equal(ombilling.StandardInvoiceStatusPaid, invoice.Status)
+	})
+}
+
+func (s *LineEngineTestSuite) TestOnPaymentSettledFailureAfterAuthorizationTransitionsToRetryablePaymentState() {
+	var (
+		ctx                 = s.T().Context()
+		namespace           = s.GetUniqueNamespace("ns-line-engine-on-payment-settled-failed-after-authorization")
+		mockEngine          = &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeCreditPurchase}
+		customInvoicingApp  = s.SetupCustomInvoicing(namespace).App
+		invoice             ombilling.StandardInvoice
+		collectionAt        time.Time
+		onPaymentSettledCnt int
+	)
+
+	clockBase := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
+	clock.SetTime(clockBase)
+	defer clock.ResetTime()
+	defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
+	defer s.MockStreamingConnector.Reset()
+	s.registerMockLineEngine(s.T(), mockEngine)
+	defer s.unregisterLineEngine(s.T(), mockEngine)
+
+	s.Run("Given a draft invoice waiting for collection with a failing payment-settled hook after authorization", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+			return mustAsNewStandardLines(input), nil
+		}
+
+		invoice, collectionAt = s.createMeteredDraftInvoiceWaitingForCollectionForApp(
+			ctx,
+			namespace,
+			customInvoicingApp.GetID(),
+			mockEngine.GetLineEngineType(),
+			"UBP - payment settled hook failed after authorization",
+		)
+	})
+
+	s.Run("When the invoice is collected, issued, marked authorized, and payment settlement hits the failing hook", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.onCollectionCompleted = func(_ context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
+			lines := input.Lines
+			for _, stdLine := range lines {
+				if stdLine.UsageBased == nil {
+					stdLine.UsageBased = &ombilling.UsageBasedLine{}
+				}
+
+				stdLine.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.PreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+				stdLine.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+			}
+
+			return lines, nil
+		}
+
+		mockEngine.onInvoiceIssued = func(_ context.Context, input ombilling.OnInvoiceIssuedInput) error {
+			s.Equal(invoice.ID, input.Invoice.ID)
+			return nil
+		}
+
+		mockEngine.onPaymentSettled = func(_ context.Context, input ombilling.OnPaymentSettledInput) error {
+			onPaymentSettledCnt++
+			s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingBookingSettled, input.Invoice.Status)
+			s.Equal(invoice.ID, input.Invoice.ID)
+			return errors.New("simulated payment settled failure")
+		}
+
+		clock.SetTime(collectionAt.Add(time.Minute))
+
+		var err error
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(ombilling.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+
+		invoice = s.markInvoiceAuthorized(ctx, invoice.GetInvoiceID())
+		s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingAuthorized, invoice.Status)
+
+		invoice = s.markInvoicePaid(ctx, invoice.GetInvoiceID())
+		s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingBookingSettledFailed, invoice.Status)
+		s.True(invoice.StatusDetails.Failed)
+		s.NotNil(invoice.StatusDetails.AvailableActions.Retry)
+		s.NotEmpty(invoice.ValidationIssues)
+		s.Equal(ombilling.ValidationIssueSeverityCritical, invoice.ValidationIssues[0].Severity)
+		s.Equal("simulated payment settled failure", invoice.ValidationIssues[0].Message)
+	})
+
+	s.Run("Then retry succeeds without restarting payment processing", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.onPaymentSettled = func(_ context.Context, input ombilling.OnPaymentSettledInput) error {
+			onPaymentSettledCnt++
+			s.Equal(invoice.ID, input.Invoice.ID)
+			return nil
+		}
+
+		var err error
+		invoice, err = s.BillingService.RetryInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(2, onPaymentSettledCnt)
+		s.Equal(ombilling.StandardInvoiceStatusPaid, invoice.Status)
+	})
+}

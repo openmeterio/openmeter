@@ -222,10 +222,12 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		defer s.FlatFeeTestHandler.Reset()
 
 		authorizedCallback := newCountedLedgerTransactionCallback[flatfee.Charge]()
+		// Use non-fatal assertions inside handler callbacks so failures are reported
+		// on the callback's testing context without aborting the parent test flow.
 		s.FlatFeeTestHandler.onPaymentAuthorized = authorizedCallback.Handler(s.T(), func(t *testing.T, charge flatfee.Charge) {
-			s.Require().NotNil(charge.Realizations.AccruedUsage)
-			s.Nil(charge.Realizations.Payment)
-			s.Equal(flatfee.StatusActive, charge.Status)
+			assert.NotNil(t, charge.Realizations.AccruedUsage)
+			assert.Nil(t, charge.Realizations.Payment)
+			assert.Equal(t, flatfee.StatusActive, charge.Status)
 		})
 
 		invoiceUsageAccruedCallback := newCountedLedgerTransactionCallback[flatfee.OnInvoiceUsageAccruedInput]()
@@ -265,6 +267,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		defer s.FlatFeeTestHandler.Reset()
 
 		authorizedCallback := newCountedLedgerTransactionCallback[flatfee.Charge]()
+		// Use non-fatal assertions inside handler callbacks so failures are reported
+		// on the callback's testing context without aborting the parent test flow.
 		s.FlatFeeTestHandler.onPaymentAuthorized = authorizedCallback.Handler(s.T(), func(t *testing.T, charge flatfee.Charge) {
 			assert.Nil(t, charge.Realizations.Payment)
 			assert.NotNil(t, charge.Realizations.AccruedUsage)
@@ -272,6 +276,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		})
 
 		settledCallback := newCountedLedgerTransactionCallback[flatfee.Charge]()
+		// Use non-fatal assertions inside handler callbacks so failures are reported
+		// on the callback's testing context without aborting the parent test flow.
 		s.FlatFeeTestHandler.onPaymentSettled = settledCallback.Handler(s.T(), func(t *testing.T, charge flatfee.Charge) {
 			assert.NotNil(t, charge.Realizations.Payment)
 			assert.NotNil(t, charge.Realizations.Payment.Authorized)

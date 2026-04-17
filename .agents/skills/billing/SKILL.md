@@ -172,7 +172,7 @@ The billing line-engine contract lives in `openmeter/billing/lineengine.go`. Bil
 **Hook sequence and ownership**:
 - `BuildStandardInvoiceLines`
   - called while converting gathering lines into a new standard invoice in `service/gatheringinvoicependinglines.go`
-  - must return standard lines reusing the exact same line IDs as the input gathering lines
+  - must return standard lines reusing the same line IDs as the input gathering lines
 - `OnStandardInvoiceCreated`
   - called after the standard invoice and standard lines have been persisted
   - may mutate and return replacement lines
