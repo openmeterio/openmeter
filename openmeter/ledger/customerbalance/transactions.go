@@ -9,6 +9,8 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
@@ -77,6 +79,7 @@ type CreditTransaction struct {
 	Amount      alpacadecimal.Decimal
 	Balance     CreditTransactionBalance
 	Name        string
+	Description *string
 	Annotations models.Annotations
 }
 
@@ -123,6 +126,8 @@ func (s *Service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 	if err != nil {
 		return ListCreditTransactionsResult{}, err
 	}
+
+	s.applyChargeMetadataToCreditTransactions(ctx, input.CustomerID.Namespace, items)
 
 	if len(items) > 0 {
 		runningBalance, err := s.GetBalance(ctx, input.CustomerID, routeFilter(items[0].Currency), lo.ToPtr(result.Items[0].Cursor()))
@@ -212,7 +217,7 @@ func creditTransactionFromLedgerTransaction(tx ledger.Transaction) (CreditTransa
 		Type:        creditTransactionType(amount),
 		Currency:    entry.PostingAddress().Route().Route().Currency,
 		Amount:      amount,
-		Name:        creditTransactionName(tx),
+		Name:        "",
 		Annotations: tx.Annotations(),
 	}, nil
 }
@@ -251,11 +256,107 @@ func creditTransactionType(fboImpact alpacadecimal.Decimal) CreditTransactionTyp
 	return CreditTransactionTypeAdjusted
 }
 
-func creditTransactionName(tx ledger.Transaction) string {
-	templateName, _ := ledger.TransactionTemplateNameFromAnnotations(tx.Annotations())
-	if templateName != "" {
-		return templateName
+type chargeDisplayMetadata struct {
+	Name        string
+	Description *string
+}
+
+func (s *Service) applyChargeMetadataToCreditTransactions(ctx context.Context, namespace string, items []CreditTransaction) {
+	chargeIDs := lo.Uniq(lo.FilterMap(items, func(item CreditTransaction, _ int) (string, bool) {
+		id := chargeIDFromAnnotations(item.Annotations)
+		return id, id != ""
+	}))
+
+	if len(chargeIDs) == 0 {
+		return
 	}
 
-	return "credit_transaction"
+	chargeEntities, err := s.ChargesService.GetByIDs(ctx, charges.GetByIDsInput{
+		Namespace: namespace,
+		IDs:       chargeIDs,
+	})
+	if err != nil {
+		return
+	}
+
+	chargeDisplayByID := make(map[string]chargeDisplayMetadata, len(chargeEntities))
+	for _, chargeEntity := range chargeEntities {
+		chargeID, err := chargeEntity.GetChargeID()
+		if err != nil {
+			continue
+		}
+
+		metadata, err := chargeDisplayMetadataFromCharge(chargeEntity)
+		if err != nil {
+			continue
+		}
+
+		chargeDisplayByID[chargeID.ID] = metadata
+	}
+
+	for i := range items {
+		chargeID := chargeIDFromAnnotations(items[i].Annotations)
+		if chargeID == "" {
+			continue
+		}
+
+		metadata, ok := chargeDisplayByID[chargeID]
+		if !ok {
+			continue
+		}
+
+		items[i].Name = metadata.Name
+		items[i].Description = metadata.Description
+	}
+}
+
+func chargeDisplayMetadataFromCharge(charge charges.Charge) (chargeDisplayMetadata, error) {
+	switch charge.Type() {
+	case meta.ChargeTypeFlatFee:
+		flatFeeCharge, err := charge.AsFlatFeeCharge()
+		if err != nil {
+			return chargeDisplayMetadata{}, fmt.Errorf("map flat fee charge: %w", err)
+		}
+
+		return chargeDisplayMetadata{
+			Name:        flatFeeCharge.Intent.Name,
+			Description: flatFeeCharge.Intent.Description,
+		}, nil
+	case meta.ChargeTypeUsageBased:
+		usageBasedCharge, err := charge.AsUsageBasedCharge()
+		if err != nil {
+			return chargeDisplayMetadata{}, fmt.Errorf("map usage based charge: %w", err)
+		}
+
+		return chargeDisplayMetadata{
+			Name:        usageBasedCharge.Intent.Name,
+			Description: usageBasedCharge.Intent.Description,
+		}, nil
+	case meta.ChargeTypeCreditPurchase:
+		creditPurchaseCharge, err := charge.AsCreditPurchaseCharge()
+		if err != nil {
+			return chargeDisplayMetadata{}, fmt.Errorf("map credit purchase charge: %w", err)
+		}
+
+		return chargeDisplayMetadata{
+			Name:        creditPurchaseCharge.Intent.Name,
+			Description: creditPurchaseCharge.Intent.Description,
+		}, nil
+	default:
+		return chargeDisplayMetadata{}, fmt.Errorf("unsupported charge type %s", charge.Type())
+	}
+}
+
+func chargeIDFromAnnotations(annotations models.Annotations) string {
+	raw, ok := annotations[ledger.AnnotationChargeID]
+	if !ok {
+		return ""
+	}
+
+	value, ok := raw.(string)
+	if !ok {
+		return ""
+	}
+
+	return value
 }

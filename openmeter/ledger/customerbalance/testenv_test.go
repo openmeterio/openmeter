@@ -366,6 +366,62 @@ type chargeStore struct {
 	usageBasedService usagebased.Service
 }
 
+func (l chargeStore) GetByIDs(ctx context.Context, input charges.GetByIDsInput) (charges.Charges, error) {
+	searchResult, err := l.search.GetByIDs(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	flatFeeIDs := make([]string, 0, len(searchResult))
+	usageBasedIDs := make([]string, 0, len(searchResult))
+	for _, item := range searchResult {
+		switch item.Type {
+		case chargemeta.ChargeTypeFlatFee:
+			flatFeeIDs = append(flatFeeIDs, item.ID.ID)
+		case chargemeta.ChargeTypeUsageBased:
+			usageBasedIDs = append(usageBasedIDs, item.ID.ID)
+		}
+	}
+
+	flatFeeCharges, err := l.flatFeeService.GetByIDs(ctx, flatfee.GetByIDsInput{
+		Namespace: input.Namespace,
+		IDs:       flatFeeIDs,
+		Expands:   input.Expands,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	usageBasedCharges, err := l.usageBasedService.GetByIDs(ctx, usagebased.GetByIDsInput{
+		Namespace: input.Namespace,
+		IDs:       usageBasedIDs,
+		Expands:   input.Expands,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	chargesByID := make(map[string]charges.Charge, len(flatFeeCharges)+len(usageBasedCharges))
+	for _, charge := range flatFeeCharges {
+		chargesByID[charge.ID] = charges.NewCharge(charge)
+	}
+	for _, charge := range usageBasedCharges {
+		chargesByID[charge.ID] = charges.NewCharge(charge)
+	}
+
+	items := make(charges.Charges, 0, len(searchResult))
+	for _, item := range searchResult {
+		charge, ok := chargesByID[item.ID.ID]
+		if !ok {
+			continue
+		}
+
+		items = append(items, charge)
+	}
+
+	return items, nil
+}
+
 func (l chargeStore) ListCharges(ctx context.Context, input charges.ListChargesInput) (pagination.Result[charges.Charge], error) {
 	searchResult, err := l.search.ListCharges(ctx, input)
 	if err != nil {
