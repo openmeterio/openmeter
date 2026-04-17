@@ -135,6 +135,7 @@ model QueryCursorPagination {
    * The cursor after which to start the pagination.
    */
   @query
+  @continuationToken
   cursor?: string;
 
   /**
@@ -161,5 +162,6 @@ model CursorPaginatedResponse<T> {
   /**
    * The cursor of the last item in the list.
    */
+  @continuationToken
   nextCursor?: string;
 }

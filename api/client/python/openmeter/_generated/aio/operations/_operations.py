@@ -10915,7 +10915,6 @@ class EventsV2Operations:
     def list(
         self,
         *,
-        cursor: Optional[str] = None,
         limit: Optional[int] = None,
         client_id: Optional[str] = None,
         filter: Optional[_models.ListRequestFilter] = None,
@@ -10925,8 +10924,6 @@ class EventsV2Operations:
 
         List ingested events with advanced filtering and cursor pagination.
 
-        :keyword cursor: The cursor after which to start the pagination. Default value is None.
-        :paramtype cursor: str
         :keyword limit: The limit of the pagination. Default value is None.
         :paramtype limit: int
         :keyword client_id: Client ID
@@ -10950,33 +10947,20 @@ class EventsV2Operations:
         }
         error_map.update(kwargs.pop("error_map", {}) or {})
 
-        def prepare_request(next_link=None):
-            if not next_link:
+        def prepare_request(_continuation_token=None):
 
-                _request = build_events_v2_list_request(
-                    cursor=cursor,
-                    limit=limit,
-                    client_id=client_id,
-                    filter=filter,
-                    headers=_headers,
-                    params=_params,
-                )
-                path_format_arguments = {
-                    "endpoint": self._serialize.url(
-                        "self._config.endpoint", self._config.endpoint, "str", skip_quote=True
-                    ),
-                }
-                _request.url = self._client.format_url(_request.url, **path_format_arguments)
-
-            else:
-                _request = HttpRequest("GET", next_link)
-                path_format_arguments = {
-                    "endpoint": self._serialize.url(
-                        "self._config.endpoint", self._config.endpoint, "str", skip_quote=True
-                    ),
-                }
-                _request.url = self._client.format_url(_request.url, **path_format_arguments)
-
+            _request = build_events_v2_list_request(
+                cursor=_continuation_token,
+                limit=limit,
+                client_id=client_id,
+                filter=filter,
+                headers=_headers,
+                params=_params,
+            )
+            path_format_arguments = {
+                "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
+            }
+            _request.url = self._client.format_url(_request.url, **path_format_arguments)
             return _request
 
         async def extract_data(pipeline_response):
@@ -10987,10 +10971,10 @@ class EventsV2Operations:
             )
             if cls:
                 list_of_elem = cls(list_of_elem)  # type: ignore
-            return None, AsyncList(list_of_elem)
+            return deserialized.get("nextCursor") or None, AsyncList(list_of_elem)
 
-        async def get_next(next_link=None):
-            _request = prepare_request(next_link)
+        async def get_next(_continuation_token=None):
+            _request = prepare_request(_continuation_token)
 
             _stream = False
             pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
