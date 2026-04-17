@@ -23,6 +23,7 @@ type Handler interface {
 	ListCreditGrants() ListCreditGrantsHandler
 	CreateCreditGrant() CreateCreditGrantHandler
 	GetCreditGrant() GetCreditGrantHandler
+	UpdateCreditGrantExternalSettlement() UpdateCreditGrantExternalSettlementHandler
 	ListCreditTransactions() ListCreditTransactionsHandler
 }
 

@@ -73,9 +73,6 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 			_, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
 				CustomerID: &request.CustomerID,
 			})
-			if models.IsGenericNotFoundError(err) {
-				return GetCustomerCreditBalanceResponse{}, apierrors.NewNotFoundError(ctx, err, "customer")
-			}
 			if err != nil {
 				return GetCustomerCreditBalanceResponse{}, err
 			}
@@ -94,7 +91,7 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 					continue
 				}
 
-				balances = append(balances, convertBalance(item.Currency, item.Balance))
+				balances = append(balances, toAPICreditBalance(item.Currency, item.Balance))
 			}
 
 			return GetCustomerCreditBalanceResponse{

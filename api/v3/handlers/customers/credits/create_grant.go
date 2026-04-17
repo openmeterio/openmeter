@@ -34,7 +34,7 @@ func (h *handler) CreateCreditGrant() CreateCreditGrantHandler {
 				return CreateCreditGrantRequest{}, err
 			}
 
-			req, err := convertAPICreateCreditGrantRequest(ns, args.CustomerID, body)
+			req, err := fromAPICreateCreditGrantRequest(ns, args.CustomerID, body)
 			if err != nil {
 				return CreateCreditGrantRequest{}, apierrors.NewBadRequestError(ctx, err, nil)
 			}
@@ -47,7 +47,7 @@ func (h *handler) CreateCreditGrant() CreateCreditGrantHandler {
 				return CreateCreditGrantResponse{}, err
 			}
 
-			return convertCreditGrant(charge)
+			return toAPIBillingCreditGrant(charge)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateCreditGrantResponse](http.StatusCreated),
 		httptransport.AppendOptions(

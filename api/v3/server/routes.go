@@ -388,7 +388,15 @@ func (s *Server) CreateCreditAdjustment(w http.ResponseWriter, r *http.Request, 
 }
 
 func (s *Server) UpdateCreditGrantExternalSettlement(w http.ResponseWriter, r *http.Request, customerId api.ULID, creditGrantId api.ULID) {
-	unimplemented.UpdateCreditGrantExternalSettlement(w, r, customerId, creditGrantId)
+	if !s.Credits.Enabled || s.customersCreditsHandler == nil || s.CreditGrantService == nil {
+		unimplemented.UpdateCreditGrantExternalSettlement(w, r, customerId, creditGrantId)
+		return
+	}
+
+	s.customersCreditsHandler.UpdateCreditGrantExternalSettlement().With(customerscreditshandler.UpdateCreditGrantExternalSettlementParams{
+		CustomerID:    customerId,
+		CreditGrantID: creditGrantId,
+	}).ServeHTTP(w, r)
 }
 
 func (s *Server) ListCreditTransactions(w http.ResponseWriter, r *http.Request, customerId api.ULID, params api.ListCreditTransactionsParams) {

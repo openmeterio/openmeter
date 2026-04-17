@@ -41,7 +41,7 @@ func (h *handler) GetCreditGrant() GetCreditGrantHandler {
 				return GetCreditGrantResponse{}, err
 			}
 
-			return convertCreditGrant(charge)
+			return toAPIBillingCreditGrant(charge)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetCreditGrantResponse](http.StatusOK),
 		httptransport.AppendOptions(
