@@ -284,6 +284,7 @@ jobs:
 
       - name: Ensure code generators are run
         run: |
+          nix develop --impure .#ci -c make patch-oapi-templates
           nix develop --impure .#ci -c go generate ./...
 
           # does not detect new files

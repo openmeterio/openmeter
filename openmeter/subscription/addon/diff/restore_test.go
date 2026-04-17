@@ -30,8 +30,11 @@ func TestRestore(t *testing.T) {
 
 	withDeps := func(fn func(t *testing.T, deps *tcDeps)) func(t *testing.T) {
 		return func(t *testing.T) {
-			clock.SetTime(now)
-			defer clock.ResetTime()
+			clock.FreezeTime(now.Add(time.Millisecond))
+			defer func() {
+				clock.UnFreeze()
+				clock.ResetTime()
+			}()
 
 			dbDeps := subscriptiontestutils.SetupDBDeps(t)
 			defer dbDeps.Cleanup(t)
@@ -371,7 +374,7 @@ func TestRestore(t *testing.T) {
 		}))
 
 		// Let's advance some time
-		clock.SetTime(clock.Now().AddDate(0, 0, 1))
+		clock.FreezeTime(clock.Now().AddDate(0, 0, 1))
 
 		// Let's make an edit to the sub effective at 1 month
 		sView, err := deps.deps.WorkflowService.EditRunning(
@@ -647,7 +650,7 @@ func TestRestore(t *testing.T) {
 
 		for idx := range 8 {
 			// Lets pass time
-			clock.SetTime(clock.Now().Add(time.Minute))
+			clock.FreezeTime(clock.Now().Add(time.Minute))
 			diff, err := addondiff.GetDiffableFromAddon(subView, subsAdd)
 			require.NoError(t, err, "failed to get diffable for iteration %d", idx)
 
@@ -657,7 +660,7 @@ func TestRestore(t *testing.T) {
 			err = spec.Apply(diff.GetRestores(), subscription.ApplyContext{CurrentTime: now})
 			require.NoError(t, err, "failed to restore for iteration %d", idx)
 
-			clock.SetTime(clock.Now().Add(time.Minute))
+			clock.FreezeTime(clock.Now().Add(time.Minute))
 
 			// Finally lets toggle the quantity
 			sAdd, err := deps.deps.SubscriptionAddonService.ChangeQuantity(context.Background(), subsAdd.NamespacedID, subscriptionaddon.CreateSubscriptionAddonQuantityInput{
