@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -16,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -145,6 +147,44 @@ func (s *service) List(ctx context.Context, input creditgrant.ListInput) (pagina
 	}
 
 	return s.creditPurchaseService.List(ctx, listInput)
+}
+
+func (s *service) UpdateExternalSettlement(ctx context.Context, input creditgrant.UpdateExternalSettlementInput) (creditpurchase.Charge, error) {
+	if err := input.Validate(); err != nil {
+		return creditpurchase.Charge{}, fmt.Errorf("invalid input: %w", err)
+	}
+
+	charge, err := s.Get(ctx, creditgrant.GetInput{
+		Namespace:  input.Namespace,
+		CustomerID: input.CustomerID,
+		ChargeID:   input.ChargeID,
+	})
+	if err != nil {
+		return creditpurchase.Charge{}, err
+	}
+
+	if charge.Intent.Settlement.Type() != creditpurchase.SettlementTypeExternal {
+		return creditpurchase.Charge{}, models.NewValidationIssue(
+			"credit_grant_external_settlement_not_supported",
+			"credit grant is not externally funded",
+			models.WithCriticalSeverity(),
+			commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+			models.WithAttribute("charge_id", charge.ID),
+		)
+	}
+
+	updated, err := s.chargesService.HandleCreditPurchaseExternalPaymentStateTransition(ctx, charges.HandleCreditPurchaseExternalPaymentStateTransitionInput{
+		ChargeID: meta.ChargeID{
+			Namespace: input.Namespace,
+			ID:        input.ChargeID,
+		},
+		TargetPaymentState: input.TargetStatus,
+	})
+	if err != nil {
+		return creditpurchase.Charge{}, fmt.Errorf("update external settlement: %w", err)
+	}
+
+	return updated, nil
 }
 
 func toIntent(input creditgrant.CreateInput) creditpurchase.Intent {

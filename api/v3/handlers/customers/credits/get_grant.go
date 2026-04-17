@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type (
@@ -37,6 +38,9 @@ func (h *handler) GetCreditGrant() GetCreditGrantHandler {
 		},
 		func(ctx context.Context, request GetCreditGrantRequest) (GetCreditGrantResponse, error) {
 			charge, err := h.creditGrantService.Get(ctx, request)
+			if models.IsGenericNotFoundError(err) {
+				return GetCreditGrantResponse{}, apierrors.NewNotFoundError(ctx, err, "credit grant")
+			}
 			if err != nil {
 				return GetCreditGrantResponse{}, err
 			}

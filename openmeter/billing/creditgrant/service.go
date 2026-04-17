@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -20,6 +21,7 @@ type Service interface {
 	Create(ctx context.Context, input CreateInput) (creditpurchase.Charge, error)
 	Get(ctx context.Context, input GetInput) (creditpurchase.Charge, error)
 	List(ctx context.Context, input ListInput) (pagination.Result[creditpurchase.Charge], error)
+	UpdateExternalSettlement(ctx context.Context, input UpdateExternalSettlementInput) (creditpurchase.Charge, error)
 }
 
 // FundingMethod represents how a credit grant is funded.
@@ -173,6 +175,36 @@ func (i ListInput) Validate() error {
 		if err := i.Currency.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("currency: %w", err))
 		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type UpdateExternalSettlementInput struct {
+	Namespace  string
+	CustomerID string
+	ChargeID   string
+
+	TargetStatus payment.Status
+}
+
+func (i UpdateExternalSettlementInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.CustomerID == "" {
+		errs = append(errs, errors.New("customer ID is required"))
+	}
+
+	if i.ChargeID == "" {
+		errs = append(errs, errors.New("charge ID is required"))
+	}
+
+	if err := i.TargetStatus.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("target status: %w", err))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

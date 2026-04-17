@@ -299,6 +299,36 @@ func convertAPICreateCreditGrantRequest(ns string, customerID api.ULID, body api
 	return req, nil
 }
 
+func convertAPIUpdateCreditGrantExternalSettlementRequest(
+	ns string,
+	customerID api.ULID,
+	creditGrantID api.ULID,
+	body api.UpdateCreditGrantExternalSettlementRequest,
+) (creditgrant.UpdateExternalSettlementInput, error) {
+	targetStatus, err := convertAPIExternalSettlementStatus(body.Status)
+	if err != nil {
+		return creditgrant.UpdateExternalSettlementInput{}, err
+	}
+
+	return creditgrant.UpdateExternalSettlementInput{
+		Namespace:    ns,
+		CustomerID:   customerID,
+		ChargeID:     creditGrantID,
+		TargetStatus: targetStatus,
+	}, nil
+}
+
+func convertAPIExternalSettlementStatus(status api.BillingCreditPurchasePaymentSettlementStatus) (payment.Status, error) {
+	switch status {
+	case api.BillingCreditPurchasePaymentSettlementStatusAuthorized:
+		return payment.StatusAuthorized, nil
+	case api.BillingCreditPurchasePaymentSettlementStatusSettled:
+		return payment.StatusSettled, nil
+	default:
+		return "", newCreditGrantExternalSettlementStatusInvalid(string(status))
+	}
+}
+
 func convertBalance(currency currencyx.Code, balance ledger.Balance) api.CreditBalance {
 	// Temporary mapping while the v3 credit-balance schema still predates the
 	// customerbalance service's settled/live-pending semantics.
