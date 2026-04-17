@@ -128,6 +128,23 @@ func (i Intent) Validate() error {
 		errs = append(errs, fmt.Errorf("settlement: %w", err))
 	}
 
+	switch i.Settlement.Type() {
+	case SettlementTypeInvoice:
+		settlement, err := i.Settlement.AsInvoiceSettlement()
+		if err != nil {
+			errs = append(errs, fmt.Errorf("settlement: %w", err))
+		} else if settlement.Currency != i.Currency {
+			errs = append(errs, fmt.Errorf("settlement currency %q must match credit currency %q", settlement.Currency, i.Currency))
+		}
+	case SettlementTypeExternal:
+		settlement, err := i.Settlement.AsExternalSettlement()
+		if err != nil {
+			errs = append(errs, fmt.Errorf("settlement: %w", err))
+		} else if settlement.Currency != i.Currency {
+			errs = append(errs, fmt.Errorf("settlement currency %q must match credit currency %q", settlement.Currency, i.Currency))
+		}
+	}
+
 	if i.EffectiveAt != nil {
 		return errors.New("effective at is not yet supported")
 	}

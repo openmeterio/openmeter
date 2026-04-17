@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -92,6 +93,64 @@ func (s *CreditPurchaseTestSuite) TestPromotionalCreditPurchase() {
 	s.NoError(err)
 	s.Equal(promotionalCallback.id, updatedCPCharge.Realizations.CreditGrantRealization.GroupReference.TransactionGroupID)
 	s.Equal(creditpurchase.StatusFinal, updatedCPCharge.Status)
+}
+
+func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsMismatchedSettlementCurrency() {
+	ctx := context.Background()
+	ns := s.GetUniqueNamespace("charges-service-credit-purchase-mismatched-settlement-currency")
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	for _, tc := range []struct {
+		name       string
+		settlement creditpurchase.Settlement
+	}{
+		{
+			name: "external",
+			settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
+				InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
+				GenericSettlement: creditpurchase.GenericSettlement{
+					Currency:  currencyx.Code(currency.EUR),
+					CostBasis: alpacadecimal.NewFromFloat(0.5),
+				},
+			}),
+		},
+		{
+			name: "invoice",
+			settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
+				GenericSettlement: creditpurchase.GenericSettlement{
+					Currency:  currencyx.Code(currency.EUR),
+					CostBasis: alpacadecimal.NewFromFloat(0.5),
+				},
+			}),
+		},
+	} {
+		s.Run(tc.name, func() {
+			intent := CreateCreditPurchaseIntent(s.T(), createCreditPurchaseIntentInput{
+				customer:      cust.GetID(),
+				currency:      USD,
+				amount:        alpacadecimal.NewFromFloat(100),
+				servicePeriod: servicePeriod,
+				settlement:    tc.settlement,
+			})
+
+			res, err := s.Charges.Create(ctx, charges.CreateInput{
+				Namespace: ns,
+				Intents: charges.ChargeIntents{
+					intent,
+				},
+			})
+			s.Error(err)
+			s.ErrorContains(err, `settlement currency "EUR" must match credit currency "USD"`)
+			s.Empty(res)
+		})
+	}
 }
 
 type createCreditPurchaseIntentInput struct {
