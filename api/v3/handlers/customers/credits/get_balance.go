@@ -91,7 +91,7 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 					continue
 				}
 
-				balances = append(balances, convertBalance(item.Currency, item.Balance))
+				balances = append(balances, toAPICreditBalance(item.Currency, item.Balance))
 			}
 
 			return GetCustomerCreditBalanceResponse{

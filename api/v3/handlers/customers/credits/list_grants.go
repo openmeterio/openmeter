@@ -63,7 +63,7 @@ func (h *handler) ListCreditGrants() ListCreditGrantsHandler {
 
 			if args.Params.Filter != nil {
 				if args.Params.Filter.Status != nil {
-					status, err := convertAPIStatusToChargeStatus(*args.Params.Filter.Status)
+					status, err := fromAPIBillingCreditGrantStatus(*args.Params.Filter.Status)
 					if err != nil {
 						return ListCreditGrantsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 							{
@@ -91,7 +91,7 @@ func (h *handler) ListCreditGrants() ListCreditGrantsHandler {
 			}
 
 			grants, err := slicesx.MapWithErr(result.Items, func(item creditpurchase.Charge) (api.BillingCreditGrant, error) {
-				return convertCreditGrant(item)
+				return toAPIBillingCreditGrant(item)
 			})
 			if err != nil {
 				return ListCreditGrantsResponse{}, fmt.Errorf("converting credit grants: %w", err)

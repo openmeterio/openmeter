@@ -14,7 +14,7 @@ import (
 )
 
 func TestConvertAPIUpdateCreditGrantExternalSettlementRequest(t *testing.T) {
-	req, err := convertAPIUpdateCreditGrantExternalSettlementRequest(
+	req, err := fromAPIUpdateCreditGrantExternalSettlementRequest(
 		"ns",
 		"cust-1",
 		"grant-1",
@@ -31,7 +31,7 @@ func TestConvertAPIUpdateCreditGrantExternalSettlementRequest(t *testing.T) {
 }
 
 func TestConvertAPIUpdateCreditGrantExternalSettlementRequestRejectsPending(t *testing.T) {
-	_, err := convertAPIUpdateCreditGrantExternalSettlementRequest(
+	_, err := fromAPIUpdateCreditGrantExternalSettlementRequest(
 		"ns",
 		"cust-1",
 		"grant-1",

@@ -19,15 +19,15 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func convertCreditGrant(charge creditpurchase.Charge) (api.BillingCreditGrant, error) {
+func toAPIBillingCreditGrant(charge creditpurchase.Charge) (api.BillingCreditGrant, error) {
 	grant := api.BillingCreditGrant{
 		Id:            charge.ID,
 		Name:          charge.Intent.Name,
 		Description:   charge.Intent.Description,
 		Amount:        charge.Intent.CreditAmount.String(),
 		Currency:      api.BillingCurrencyCode(charge.Intent.Currency),
-		FundingMethod: convertFundingMethod(charge.Intent.Settlement),
-		Status:        convertGrantStatus(charge),
+		FundingMethod: toAPIBillingCreditFundingMethod(charge.Intent.Settlement),
+		Status:        toAPIBillingCreditGrantStatus(charge),
 		CreatedAt:     lo.ToPtr(charge.CreatedAt),
 		UpdatedAt:     lo.ToPtr(charge.UpdatedAt),
 		DeletedAt:     charge.DeletedAt,
@@ -39,17 +39,17 @@ func convertCreditGrant(charge creditpurchase.Charge) (api.BillingCreditGrant, e
 		grant.Priority = &p
 	}
 
-	purchase, err := convertPurchase(charge)
+	purchase, err := toAPICreditGrantPurchase(charge)
 	if err != nil {
 		return grant, fmt.Errorf("converting purchase: %w", err)
 	}
 	grant.Purchase = purchase
-	grant.TaxConfig = convertTaxConfig(charge)
+	grant.TaxConfig = toAPIBillingCreditGrantTaxConfig(charge)
 
 	return grant, nil
 }
 
-func convertFundingMethod(settlement creditpurchase.Settlement) api.BillingCreditFundingMethod {
+func toAPIBillingCreditFundingMethod(settlement creditpurchase.Settlement) api.BillingCreditFundingMethod {
 	switch settlement.Type() {
 	case creditpurchase.SettlementTypeInvoice:
 		return api.BillingCreditFundingMethodInvoice
@@ -60,7 +60,7 @@ func convertFundingMethod(settlement creditpurchase.Settlement) api.BillingCredi
 	}
 }
 
-func convertGrantStatus(charge creditpurchase.Charge) api.BillingCreditGrantStatus {
+func toAPIBillingCreditGrantStatus(charge creditpurchase.Charge) api.BillingCreditGrantStatus {
 	switch charge.Status {
 	case creditpurchase.StatusActive, creditpurchase.StatusFinal:
 		return api.BillingCreditGrantStatusActive
@@ -81,9 +81,9 @@ type creditGrantPurchase = struct {
 	SettlementStatus   *api.BillingCreditPurchasePaymentSettlementStatus `json:"settlement_status,omitempty"`
 }
 
-// convertPurchase builds the purchase block for funded grants (invoice or external).
+// toAPICreditGrantPurchase builds the purchase block for funded grants (invoice or external).
 // Returns nil for promotional grants (funding_method=none).
-func convertPurchase(charge creditpurchase.Charge) (*creditGrantPurchase, error) {
+func toAPICreditGrantPurchase(charge creditpurchase.Charge) (*creditGrantPurchase, error) {
 	settlement := charge.Intent.Settlement
 
 	switch settlement.Type() {
@@ -102,7 +102,7 @@ func convertPurchase(charge creditpurchase.Charge) (*creditGrantPurchase, error)
 		settlementStatus := api.BillingCreditPurchasePaymentSettlementStatusPending
 
 		if charge.Realizations.InvoiceSettlement != nil {
-			settlementStatus = convertPaymentStatus(charge.Realizations.InvoiceSettlement.Status)
+			settlementStatus = toAPIBillingCreditPurchasePaymentSettlementStatus(charge.Realizations.InvoiceSettlement.Status)
 		}
 
 		return &creditGrantPurchase{
@@ -124,14 +124,14 @@ func convertPurchase(charge creditpurchase.Charge) (*creditGrantPurchase, error)
 			return nil, fmt.Errorf("getting currency calculator: %w", err)
 		}
 		purchaseAmount := currencyCalculator.RoundToPrecision(charge.Intent.CreditAmount.Mul(ext.CostBasis))
-		availPolicy, err := convertAvailabilityPolicy(ext.InitialStatus)
+		availPolicy, err := toAPIBillingCreditAvailabilityPolicy(ext.InitialStatus)
 		if err != nil {
 			return nil, fmt.Errorf("converting availability policy: %w", err)
 		}
 		settlementStatus := api.BillingCreditPurchasePaymentSettlementStatusPending
 
 		if charge.Realizations.ExternalPaymentSettlement != nil {
-			settlementStatus = convertPaymentStatus(charge.Realizations.ExternalPaymentSettlement.Status)
+			settlementStatus = toAPIBillingCreditPurchasePaymentSettlementStatus(charge.Realizations.ExternalPaymentSettlement.Status)
 		}
 
 		return &creditGrantPurchase{
@@ -147,7 +147,7 @@ func convertPurchase(charge creditpurchase.Charge) (*creditGrantPurchase, error)
 	}
 }
 
-func convertPaymentStatus(status payment.Status) api.BillingCreditPurchasePaymentSettlementStatus {
+func toAPIBillingCreditPurchasePaymentSettlementStatus(status payment.Status) api.BillingCreditPurchasePaymentSettlementStatus {
 	switch status {
 	case payment.StatusAuthorized:
 		return api.BillingCreditPurchasePaymentSettlementStatusAuthorized
@@ -158,7 +158,7 @@ func convertPaymentStatus(status payment.Status) api.BillingCreditPurchasePaymen
 	}
 }
 
-func convertAvailabilityPolicy(status creditpurchase.InitialPaymentSettlementStatus) (api.BillingCreditAvailabilityPolicy, error) {
+func toAPIBillingCreditAvailabilityPolicy(status creditpurchase.InitialPaymentSettlementStatus) (api.BillingCreditAvailabilityPolicy, error) {
 	switch status {
 	case creditpurchase.CreatedInitialPaymentSettlementStatus:
 		return api.BillingCreditAvailabilityPolicyOnCreation, nil
@@ -167,7 +167,7 @@ func convertAvailabilityPolicy(status creditpurchase.InitialPaymentSettlementSta
 	}
 }
 
-func convertTaxConfig(charge creditpurchase.Charge) *api.BillingCreditGrantTaxConfig {
+func toAPIBillingCreditGrantTaxConfig(charge creditpurchase.Charge) *api.BillingCreditGrantTaxConfig {
 	if charge.Intent.TaxConfig == nil {
 		return nil
 	}
@@ -190,7 +190,7 @@ func convertTaxConfig(charge creditpurchase.Charge) *api.BillingCreditGrantTaxCo
 	return tc
 }
 
-func convertAPIFundingMethod(fm api.BillingCreditFundingMethod) creditgrant.FundingMethod {
+func fromAPIBillingCreditFundingMethod(fm api.BillingCreditFundingMethod) creditgrant.FundingMethod {
 	switch fm {
 	case api.BillingCreditFundingMethodInvoice:
 		return creditgrant.FundingMethodInvoice
@@ -201,7 +201,7 @@ func convertAPIFundingMethod(fm api.BillingCreditFundingMethod) creditgrant.Fund
 	}
 }
 
-func convertAPIAvailabilityPolicy(policy api.BillingCreditAvailabilityPolicy) (creditpurchase.InitialPaymentSettlementStatus, error) {
+func fromAPIBillingCreditAvailabilityPolicy(policy api.BillingCreditAvailabilityPolicy) (creditpurchase.InitialPaymentSettlementStatus, error) {
 	switch policy {
 	case api.BillingCreditAvailabilityPolicyOnCreation:
 		return creditpurchase.CreatedInitialPaymentSettlementStatus, nil
@@ -210,7 +210,7 @@ func convertAPIAvailabilityPolicy(policy api.BillingCreditAvailabilityPolicy) (c
 	}
 }
 
-func convertAPITaxConfig(tc *api.BillingCreditGrantTaxConfig) *productcatalog.TaxConfig {
+func fromAPIBillingCreditGrantTaxConfig(tc *api.BillingCreditGrantTaxConfig) *productcatalog.TaxConfig {
 	if tc == nil {
 		return nil
 	}
@@ -229,7 +229,7 @@ func convertAPITaxConfig(tc *api.BillingCreditGrantTaxConfig) *productcatalog.Ta
 	return config
 }
 
-func convertAPIStatusToChargeStatus(status api.BillingCreditGrantStatus) (meta.ChargeStatus, error) {
+func fromAPIBillingCreditGrantStatus(status api.BillingCreditGrantStatus) (meta.ChargeStatus, error) {
 	switch status {
 	case api.BillingCreditGrantStatusActive:
 		return meta.ChargeStatusActive, nil
@@ -245,7 +245,7 @@ func convertAPIStatusToChargeStatus(status api.BillingCreditGrantStatus) (meta.C
 	}
 }
 
-func convertAPICreateCreditGrantRequest(ns string, customerID api.ULID, body api.CreateCreditGrantRequest) (creditgrant.CreateInput, error) {
+func fromAPICreateCreditGrantRequest(ns string, customerID api.ULID, body api.CreateCreditGrantRequest) (creditgrant.CreateInput, error) {
 	amount, err := alpacadecimal.NewFromString(body.Amount)
 	if err != nil {
 		return creditgrant.CreateInput{}, fmt.Errorf("invalid amount: %w", err)
@@ -258,7 +258,7 @@ func convertAPICreateCreditGrantRequest(ns string, customerID api.ULID, body api
 		Description:   body.Description,
 		Currency:      currencyx.Code(body.Currency),
 		Amount:        amount,
-		FundingMethod: convertAPIFundingMethod(body.FundingMethod),
+		FundingMethod: fromAPIBillingCreditFundingMethod(body.FundingMethod),
 		Priority:      body.Priority,
 		Labels:        lo.FromPtrOr(body.Labels, api.Labels{}),
 	}
@@ -278,7 +278,7 @@ func convertAPICreateCreditGrantRequest(ns string, customerID api.ULID, body api
 		}
 
 		if body.Purchase.AvailabilityPolicy != nil {
-			policy, err := convertAPIAvailabilityPolicy(*body.Purchase.AvailabilityPolicy)
+			policy, err := fromAPIBillingCreditAvailabilityPolicy(*body.Purchase.AvailabilityPolicy)
 			if err != nil {
 				return creditgrant.CreateInput{}, err
 			}
@@ -289,7 +289,7 @@ func convertAPICreateCreditGrantRequest(ns string, customerID api.ULID, body api
 	}
 
 	if body.TaxConfig != nil {
-		req.TaxConfig = convertAPITaxConfig(body.TaxConfig)
+		req.TaxConfig = fromAPIBillingCreditGrantTaxConfig(body.TaxConfig)
 	}
 
 	if body.Filters != nil && body.Filters.Features != nil && len(*body.Filters.Features) > 0 {
@@ -299,13 +299,13 @@ func convertAPICreateCreditGrantRequest(ns string, customerID api.ULID, body api
 	return req, nil
 }
 
-func convertAPIUpdateCreditGrantExternalSettlementRequest(
+func fromAPIUpdateCreditGrantExternalSettlementRequest(
 	ns string,
 	customerID api.ULID,
 	creditGrantID api.ULID,
 	body api.UpdateCreditGrantExternalSettlementRequest,
 ) (creditgrant.UpdateExternalSettlementInput, error) {
-	targetStatus, err := convertAPIExternalSettlementStatus(body.Status)
+	targetStatus, err := fromAPIBillingCreditPurchasePaymentSettlementStatus(body.Status)
 	if err != nil {
 		return creditgrant.UpdateExternalSettlementInput{}, err
 	}
@@ -318,7 +318,7 @@ func convertAPIUpdateCreditGrantExternalSettlementRequest(
 	}, nil
 }
 
-func convertAPIExternalSettlementStatus(status api.BillingCreditPurchasePaymentSettlementStatus) (payment.Status, error) {
+func fromAPIBillingCreditPurchasePaymentSettlementStatus(status api.BillingCreditPurchasePaymentSettlementStatus) (payment.Status, error) {
 	switch status {
 	case api.BillingCreditPurchasePaymentSettlementStatusAuthorized:
 		return payment.StatusAuthorized, nil
@@ -329,7 +329,7 @@ func convertAPIExternalSettlementStatus(status api.BillingCreditPurchasePaymentS
 	}
 }
 
-func convertBalance(currency currencyx.Code, balance ledger.Balance) api.CreditBalance {
+func toAPICreditBalance(currency currencyx.Code, balance ledger.Balance) api.CreditBalance {
 	// Temporary mapping while the v3 credit-balance schema still predates the
 	// customerbalance service's settled/live-pending semantics.
 	return api.CreditBalance{

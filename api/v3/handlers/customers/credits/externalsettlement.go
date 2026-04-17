@@ -35,7 +35,7 @@ func (h *handler) UpdateCreditGrantExternalSettlement() UpdateCreditGrantExterna
 				return UpdateCreditGrantExternalSettlementRequest{}, err
 			}
 
-			req, err := convertAPIUpdateCreditGrantExternalSettlementRequest(ns, args.CustomerID, args.CreditGrantID, body)
+			req, err := fromAPIUpdateCreditGrantExternalSettlementRequest(ns, args.CustomerID, args.CreditGrantID, body)
 			if err != nil {
 				return UpdateCreditGrantExternalSettlementRequest{}, err
 			}
@@ -48,7 +48,7 @@ func (h *handler) UpdateCreditGrantExternalSettlement() UpdateCreditGrantExterna
 				return UpdateCreditGrantExternalSettlementResponse{}, err
 			}
 
-			return convertCreditGrant(charge)
+			return toAPIBillingCreditGrant(charge)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdateCreditGrantExternalSettlementResponse](http.StatusOK),
 		httptransport.AppendOptions(
