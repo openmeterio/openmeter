@@ -115,38 +115,26 @@ services:
     extends:
       file: ../docker-compose.base.yaml
       service: kafka
-    ports:
-      - "127.0.0.1:49092:29092"
 
   clickhouse:
     extends:
       file: ../docker-compose.base.yaml
       service: clickhouse
-    ports:
-      - "127.0.0.1:48123:8123"
-      - "127.0.0.1:49000:9000"
-      - "127.0.0.1:49009:9009"
 
   redis:
     extends:
       file: ../docker-compose.base.yaml
       service: redis
-    ports:
-      - "127.0.0.1:46379:6379"
 
   postgres:
     extends:
       file: ../docker-compose.base.yaml
       service: postgres
-    ports:
-      - "127.0.0.1:45432:5432"
 
   svix:
     extends:
       file: ../docker-compose.base.yaml
       service: svix
-    ports:
-      - "127.0.0.1:48071:8071"
 
 configs:
   svix_sql:
@@ -155,4 +143,3 @@ configs:
       CREATE DATABASE svix;
       GRANT ALL PRIVILEGES ON DATABASE svix TO svix;
       ALTER DATABASE svix OWNER TO svix;
-

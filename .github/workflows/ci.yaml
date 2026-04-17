@@ -103,16 +103,15 @@ jobs:
       - name: Build components
         run: |
           # On Depot runners, cgo external linking can spill large temporary linker
-          # files into /run via the default temp dir. Keep build/link temp files on
-          # the workspace disk for this step to avoid "no space left on device".
+          # files into /run via the default temp dir. Keep Go and system temp files
+          # on the workspace disk for this step to avoid "no space left on device",
+          # while still allowing each parallel go build to get its own temp dir.
           mkdir -p \
-            "$GITHUB_WORKSPACE/.tmp/go-link" \
             "$GITHUB_WORKSPACE/.tmp/go-work" \
             "$GITHUB_WORKSPACE/.tmp/system"
           env \
             GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
             TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
-            GOFLAGS="-ldflags=-tmpdir=$GITHUB_WORKSPACE/.tmp/go-link" \
             nix develop --impure .#ci -c make -j 4 build
 
       - name: Validate commit messages
@@ -453,6 +452,14 @@ jobs:
 
           cat quickstart/docker-compose.override.yaml
 
+      - name: Debug quickstart runner state
+        run: |
+          echo "### DEBUG"
+          ss -ltnp | grep ':49000 ' || true
+          docker ps -a
+          docker network ls
+          echo "### DEBUG"
+
       - name: Launch Docker Compose
         run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml up -d
         working-directory: quickstart
@@ -534,6 +541,14 @@ jobs:
           EOF
 
           cat e2e/docker-compose.override.yaml
+
+      - name: Debug E2E runner state
+        run: |
+          echo "### DEBUG"
+          ss -ltnp | grep ':39000 ' || true
+          docker ps -a
+          docker network ls
+          echo "### DEBUG"
 
       - name: Launch Docker Compose infra
         run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml up -d

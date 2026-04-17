@@ -1,0 +1,24 @@
+# Optional host port exposure for local debugging.
+# CI only needs the app/service ports declared in docker-compose.yaml.
+services:
+  kafka:
+    ports:
+      - "127.0.0.1:49092:29092"
+
+  clickhouse:
+    ports:
+      - "127.0.0.1:48123:8123"
+      - "127.0.0.1:49000:9000"
+      - "127.0.0.1:49009:9009"
+
+  redis:
+    ports:
+      - "127.0.0.1:46379:6379"
+
+  postgres:
+    ports:
+      - "127.0.0.1:45432:5432"
+
+  svix:
+    ports:
+      - "127.0.0.1:48071:8071"

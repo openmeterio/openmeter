@@ -1,15 +1,14 @@
 # A Self-Documenting Makefile: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 
 .PHONY: test-local
-test-local: ## Run tests against local openmeter
+test-local: ## Run quickstart tests against a local stack with debug ports exposed
 	$(call print-target)
 	$(MAKE) env-local-down
 	$(MAKE) env-local-up
 
-	# wait for sink-worker to be ready
-	curl --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:30000/healthz
+	curl --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:40000/healthz
 
-	TZ=UTC OPENMETER_ADDRESS=http://localhost:38888 go test -count=1 -v ./...
+	OPENMETER_ADDRESS=http://localhost:48888 go test -count=1 -v ./...
 
 	$(MAKE) env-local-down
 
@@ -17,21 +16,17 @@ test-local: ## Run tests against local openmeter
 env-local-down:
 	$(call print-target)
 	docker compose \
-		-f docker-compose.infra.yaml \
+		-f docker-compose.yaml \
 		-f docker-compose.debug-ports.yaml \
-		-f docker-compose.openmeter.yaml \
-		-f docker-compose.openmeter-local.yaml \
 		down
 
 .PHONY: env-local-up
 env-local-up:
 	$(call print-target)
 	docker compose \
-		-f docker-compose.infra.yaml \
+		-f docker-compose.yaml \
 		-f docker-compose.debug-ports.yaml \
-		-f docker-compose.openmeter.yaml \
-		-f docker-compose.openmeter-local.yaml \
-		up -d --build --force-recreate
+		up -d --force-recreate
 
 .PHONY: help
 .DEFAULT_GOAL := help
