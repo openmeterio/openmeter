@@ -6,7 +6,7 @@ export default defineConfig({
       target: '../../openapi.cloud.yaml',
     },
     output: {
-      biome: true,
+      formatter: 'biome',
       clean: true,
       client: 'zod',
       mode: 'single',
