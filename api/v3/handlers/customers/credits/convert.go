@@ -142,6 +142,9 @@ func toAPICreditGrantPurchase(charge creditpurchase.Charge) (*creditGrantPurchas
 			SettlementStatus:   &settlementStatus,
 		}, nil
 
+	case creditpurchase.SettlementTypePromotional:
+		return nil, nil
+
 	default:
 		return nil, fmt.Errorf("invalid settlement type: %s", settlement.Type())
 	}

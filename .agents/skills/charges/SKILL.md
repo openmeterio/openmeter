@@ -214,6 +214,24 @@ Current expected behavior:
 - ledger handlers may still defensively tolerate zero and return `ledgertransaction.GroupReference{}`
 - when a service proceeds with non-zero invoice accrual, it must require a non-empty transaction group reference before storing accrued usage
 
+## HTTP/API Conversion
+
+Credit-purchase charges have an API/domain enum mismatch for promotional grants.
+
+Rules:
+
+- in the billing domain, promotional credit grants are represented as `creditpurchase.SettlementTypePromotional`
+- in the v3 customer credits API, the same case is represented as `funding_method=none`
+- v3 API responses for promotional grants must omit the `purchase` block entirely
+- conversion code in `api/v3/handlers/customers/credits` must map this case explicitly instead of treating `promotional` as an unsupported settlement type
+
+Important files:
+
+- `api/v3/handlers/customers/credits/convert.go`
+- `openmeter/billing/charges/creditpurchase/settlement.go`
+- `openmeter/billing/creditgrant/service/service.go`
+- `api/spec/packages/aip/src/customers/credits/grant.tsp`
+
 ## Realization Helper Subpackages
 
 Use small type-specific realization helper subpackages to keep charge services and state machines from becoming kitchen-sink orchestration layers.
