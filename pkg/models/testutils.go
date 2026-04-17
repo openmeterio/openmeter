@@ -25,6 +25,8 @@ func RequireValidationIssuesMatch(t *testing.T, expected ValidationIssues, actua
 
 		actCopy[i].field = nil
 		expCopy[i].field = nil
+		actCopy[i].wraps = nil
+		expCopy[i].wraps = nil
 	}
 
 	require.Equalf(t, expCopy, actCopy, "issues must match")
