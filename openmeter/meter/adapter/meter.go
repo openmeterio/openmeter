@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	meterdb "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -41,6 +42,9 @@ func (a *Adapter) ListMeters(ctx context.Context, params meter.ListMetersParams)
 	if params.SlugFilter != nil {
 		query = query.Where(meterdb.KeyIn(*params.SlugFilter...))
 	}
+
+	query = filter.ApplyToQuery(query, params.Key, meterdb.FieldKey)
+	query = filter.ApplyToQuery(query, params.Name, meterdb.FieldName)
 
 	if params.EventTypes != nil {
 		query = query.Where(meterdb.EventTypeIn(*params.EventTypes...))

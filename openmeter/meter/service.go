@@ -7,6 +7,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -63,6 +64,10 @@ type ListMetersParams struct {
 	Order   sortx.Order
 
 	Namespace string
+
+	// AIP-style filters
+	Key  *filter.FilterString
+	Name *filter.FilterString
 
 	IDFilter   *[]string
 	SlugFilter *[]string

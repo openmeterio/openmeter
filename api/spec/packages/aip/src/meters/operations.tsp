@@ -14,6 +14,22 @@ using TypeSpec.OpenAPI;
 
 namespace Meters;
 
+/**
+ * Filter options for listing meters.
+ */
+@friendlyName("ListMetersParamsFilter")
+model ListMetersParamsFilter {
+  /**
+   * Filter meters by key.
+   */
+  key?: Common.StringFieldFilter;
+
+  /**
+   * Filter meters by name.
+   */
+  name?: Common.StringFieldFilter;
+}
+
 interface MetersOperations {
   /**
    * Create a meter.
@@ -43,6 +59,14 @@ interface MetersOperations {
   @summary("List meters")
   list(
     ...Common.PagePaginationQuery,
+
+    /**
+     * Filter meters returned in the response.
+     *
+     * To filter meters by key add the following query param: filter[key]=my-meter-key
+     */
+    @query(#{ style: "deepObject", explode: true })
+    filter?: ListMetersParamsFilter,
   ): Shared.PagePaginatedResponse<Meter> | Common.ErrorResponses;
 
   /**

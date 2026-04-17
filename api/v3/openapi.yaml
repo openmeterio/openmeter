@@ -1561,6 +1561,16 @@ paths:
       description: List meters.
       parameters:
         - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter meters returned in the response.
+
+            To filter meters by key add the following query param: filter[key]=my-meter-key
+          schema:
+            $ref: '#/components/schemas/ListMetersParamsFilter'
+          style: deepObject
       responses:
         '200':
           description: Page paginated response.
@@ -7376,6 +7386,18 @@ components:
             - $ref: '#/components/schemas/StringFieldFilter'
           description: Filter by source. e.g. ?filter[source][eq]=system
       description: Filter options for listing LLM cost prices.
+    ListMetersParamsFilter:
+      type: object
+      properties:
+        key:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilter'
+          description: Filter meters by key.
+        name:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilter'
+          description: Filter meters by name.
+      description: Filter options for listing meters.
     Meter:
       type: object
       required:
