@@ -305,7 +305,7 @@ jobs:
 
   test:
     name: Test
-    runs-on: depot-ubuntu-latest-8
+    runs-on: depot-ubuntu-latest-16
 
     steps:
       - name: Checkout repository
