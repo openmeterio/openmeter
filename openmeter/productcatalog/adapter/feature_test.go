@@ -2,7 +2,6 @@ package adapter_test
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -127,7 +126,7 @@ func TestCreateFeature(t *testing.T) {
 				_, err := connector.CreateFeature(ctx, featureIn1)
 				assert.NoError(t, err)
 
-				c := assert.Eventually(t, func() bool {
+				assert.Eventually(t, func() bool {
 					featureList, err := connector.ListFeatures(ctx, feature.ListFeaturesParams{
 						Namespace: namespace,
 						MeterIDs:  &filter.FilterString{Eq: lo.ToPtr(meterID)},
@@ -137,7 +136,6 @@ func TestCreateFeature(t *testing.T) {
 					}
 					return len(featureList.Items) > 0
 				}, 100*time.Millisecond, 10*time.Millisecond)
-				fmt.Println(c)
 
 				_, err = connector.CreateFeature(ctx, featureIn2)
 				assert.NoError(t, err)
