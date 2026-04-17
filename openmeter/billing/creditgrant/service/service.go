@@ -84,15 +84,37 @@ func (s *service) Create(ctx context.Context, input creditgrant.CreateInput) (cr
 	// Build the credit purchase intent
 	intent := toIntent(input)
 
-	result, err := s.creditPurchaseService.Create(ctx, creditpurchase.CreateInput{
+	result, err := s.chargesService.Create(ctx, charges.CreateInput{
 		Namespace: input.Namespace,
-		Intent:    intent,
+		Intents:   charges.ChargeIntents{charges.NewChargeIntent(intent)},
 	})
 	if err != nil {
-		return creditpurchase.Charge{}, fmt.Errorf("create credit purchase charge: %w", err)
+		return creditpurchase.Charge{}, fmt.Errorf("create credit grant charge: %w", err)
 	}
 
-	return result.Charge, nil
+	if len(result) != 1 {
+		return creditpurchase.Charge{}, fmt.Errorf("expected 1 created charge, got %d", len(result))
+	}
+
+	createdChargeID, err := result[0].GetChargeID()
+	if err != nil {
+		return creditpurchase.Charge{}, fmt.Errorf("get created charge id: %w", err)
+	}
+
+	charge, err := s.chargesService.GetByID(ctx, charges.GetByIDInput{
+		ChargeID: createdChargeID,
+		Expands:  meta.Expands{meta.ExpandRealizations},
+	})
+	if err != nil {
+		return creditpurchase.Charge{}, fmt.Errorf("get created credit grant charge: %w", err)
+	}
+
+	cpCharge, err := charge.AsCreditPurchaseCharge()
+	if err != nil {
+		return creditpurchase.Charge{}, fmt.Errorf("charge is not a credit purchase: %w", err)
+	}
+
+	return cpCharge, nil
 }
 
 func (s *service) Get(ctx context.Context, input creditgrant.GetInput) (creditpurchase.Charge, error) {
