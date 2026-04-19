@@ -3,10 +3,8 @@ default:
   @just --list
 
 generate:
-    dagger call generate server export --path api
-    dagger call generate javascript-sdk export --path api/client/javascript
+    make gen-api
 
-    # TODO: move this to dagger?
     GOWORK=off go generate ./cmd/...
     go generate ./api/client/go
 
@@ -36,7 +34,3 @@ release:
 
     git tag -m "Release ${version}" $version
     git push origin $version
-
-# update CI dependency versions
-update-versions:
-    dagger call dev update-versions --github-token env:GITHUB_TOKEN export --path .dagger/versions.go

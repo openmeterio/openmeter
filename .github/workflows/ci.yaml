@@ -8,9 +8,6 @@ on:
 permissions:
   contents: read
 
-env:
-  DAGGER_VERSION: 0.20.0
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ !contains(github.ref, 'refs/heads/main') && !contains(github.ref, 'refs/tags/') }}
@@ -388,36 +385,44 @@ jobs:
     environment: dev
 
     steps:
-      # Required as a workaround for Dagger to properly detect Git metadata
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0 # Needed to compare against base branch
           persist-credentials: false
 
-      - name: Run pipeline
-        uses: dagger/dagger-for-github@27b130bf0f79a7f6fbbbe0fbca6760dc9bb40a77 # v8.4.1
+      - name: Set up Nix
+        uses: nixbuild/nix-quick-install-action@2c9db80fb984ceb1bcaa77cdda3fdf8cfba92035 # v34
         with:
-          verb: call
-          args: migrate check
-          cloud-token: ${{ secrets.DAGGER_CLOUD_NO_CACHE_TOKEN }}
-          version: ${{ env.DAGGER_VERSION }}
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          nix_conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            keep-env-derivations = true
+            keep-outputs = true
 
-      - name: Export Dagger Engine logs
-        id: export-dagger-engine-logs
-        run: docker logs $(docker container list --all --filter 'name=^dagger-engine-*' --format '{{.Names}}') > engine.stdout.log 2> engine.stderr.log
-        if: always()
-        continue-on-error: true
-
-      - name: Upload Dagger Engine logs as artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: always() && steps.export-dagger-engine-logs.outcome == 'success'
+      - name: Restore Nix store
+        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          name: "[${{ github.job }}] Dagger Engine logs"
-          path: |
-            engine.stdout.log
-            engine.stderr.log
-          retention-days: 14
+          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          restore-prefixes-first-match: |
+            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
+            ${{ runner.os }}-openmeter-nix-build-main-
+            ${{ runner.os }}-openmeter-nix-build-
+
+      - name: Restore go.mod cache if exists
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        with:
+          path: .devenv/state/go
+          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-main
+
+      - name: Run migration checks
+        run: nix develop --impure .#ci -c make migrate-check
 
   lint:
     name: Lint

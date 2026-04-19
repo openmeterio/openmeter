@@ -60,8 +60,7 @@ type TestDB struct {
 func InitPostgresDB(t *testing.T) *TestDB {
 	t.Helper()
 
-	// Dagger will set the POSTGRES_HOST environment variable for `make test`.
-	// If you need to run credit tests without Dagger you can set the POSTGRES_HOST environment variable.
+	// Set POSTGRES_HOST to point tests at your local Postgres.
 	// For example to use the Postgres in docker compose you can run `POSTGRES_HOST=localhost go test ./internal/credit/...`
 	host := os.Getenv("POSTGRES_HOST")
 	if host == "" {
