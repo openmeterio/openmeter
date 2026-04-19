@@ -8,4 +8,8 @@ compatibility:
   # See: https://github.com/oapi-codegen/oapi-codegen/issues/778
   disable-required-readonly-as-pointer: true
   always-prefix-enum-values: true
+# Redirect internal pkg/models types to the client-local models package so
+# that the generated client has no dependency on the root openmeter module.
+import-mapping:
+  github.com/openmeterio/openmeter/pkg/models: github.com/openmeterio/openmeter/api/client/go/models
 output: ./client.gen.go
