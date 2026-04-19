@@ -14,6 +14,13 @@ on:
 permissions:
   contents: read
 
+# Serialize releases by ref so two overlapping tag pushes or main pushes
+# can't race on the npm/GHCR registries. Tags never cancel each other;
+# main-push betas can safely supersede earlier in-flight runs.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+
 jobs:
   artifacts:
     name: Artifacts
@@ -70,19 +77,26 @@ jobs:
             ${{ runner.os }}-openmeter-nix-build-
 
       - name: Package chart
-        run: nix develop --impure .#ci -c make package-helm-chart CHART=${{ matrix.chart }} VERSION=${{ github.ref_name }}
+        # Untrusted values (github.ref_name, matrix.chart) passed via env to
+        # avoid shell injection through ${{ ... }} interpolation in run:.
+        run: nix develop --impure .#ci -c make package-helm-chart CHART="$CHART" VERSION="$VERSION"
+        env:
+          CHART: ${{ matrix.chart }}
+          VERSION: ${{ github.ref_name }}
 
       - name: Login to GitHub Container Registry
-        run: |
-          echo "${{ github.token }}" | nix develop --impure .#ci -c helm registry login ghcr.io \
-            --username "${{ github.actor }}" --password-stdin
+        run: echo "$GH_TOKEN" | nix develop --impure .#ci -c helm registry login ghcr.io --username "$GH_ACTOR" --password-stdin
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_ACTOR: ${{ github.actor }}
 
       - name: Push chart to GHCR
         run: |
           nix develop --impure .#ci -c helm push \
-            build/helm/${{ matrix.chart }}-${GITHUB_REF_NAME#v}.tgz \
+            "build/helm/${CHART}-${GITHUB_REF_NAME#v}.tgz" \
             oci://ghcr.io/openmeterio/helm-charts
         env:
+          CHART: ${{ matrix.chart }}
           GITHUB_REF_NAME: ${{ github.ref_name }}
 
   binary-build:
@@ -141,14 +155,23 @@ jobs:
             ${{ runner.os }}-openmeter-go-modules-main
 
       - name: Build benthos-collector binary
+        # Untrusted github.ref_name passed via env; matrix values are
+        # workflow-controlled but routed via env for consistency.
         run: |
           nix develop --impure .#ci -c make build-benthos-collector-release \
-            GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} VERSION=${{ github.ref_name }}
+            GOOS="$GOOS" GOARCH="$GOARCH" VERSION="$VERSION"
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          VERSION: ${{ github.ref_name }}
 
       - name: Archive benthos-collector binary
         run: |
           nix develop --impure .#ci -c make archive-benthos-collector-release \
-            GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }}
+            GOOS="$GOOS" GOARCH="$GOARCH"
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
 
       - name: Upload archive
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
@@ -212,12 +235,14 @@ jobs:
     steps:
       - name: Determine version and npm dist-tag
         id: meta
+        env:
+          REF_TYPE: ${{ github.ref_type }}
         run: |
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+          if [[ "$REF_TYPE" == "tag" ]]; then
             echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
             echo "dist-tag=latest" >> "$GITHUB_OUTPUT"
           else
-            short_sha=$(echo "${GITHUB_SHA}" | cut -c 1-12)
+            short_sha="${GITHUB_SHA:0:12}"
             echo "version=1.0.0-beta-${short_sha}" >> "$GITHUB_OUTPUT"
             echo "dist-tag=beta" >> "$GITHUB_OUTPUT"
           fi
@@ -248,16 +273,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: ${{ github.head_ref }}
           persist-credentials: false
 
       - name: Get short SHA
         id: get-short-sha
         run: |
-          id=$(echo ${{ github.sha }} | cut -c 1-12)
-          echo "id=${id}" >> $GITHUB_OUTPUT
+          echo "id=${GITHUB_SHA:0:12}" >> "$GITHUB_OUTPUT"
 
-      # If you keep using Nix for your dev shell / tooling, retain these steps
       - name: Set up Nix
         uses: nixbuild/nix-quick-install-action@2c9db80fb984ceb1bcaa77cdda3fdf8cfba92035 # v34
         with:

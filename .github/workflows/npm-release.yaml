@@ -19,6 +19,10 @@ on:
         required: true
         type: string
 
+# Restrictive default; the publish job opens id-token: write itself.
+permissions:
+  contents: read
+
 jobs:
   publish:
     name: Publish @openmeter/sdk
