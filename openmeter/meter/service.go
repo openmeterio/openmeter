@@ -13,6 +13,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
+// maxListMeterFilterDepth caps the And/Or nesting depth for Key and Name filters
+// in ListMetersParams to prevent overly complex filter trees from reaching the DB.
+const maxListMeterFilterDepth = 2
+
 // Meter is an interface for the meter service.
 type Service interface {
 	ListMeters(ctx context.Context, params ListMetersParams) (pagination.Result[Meter], error)
@@ -101,13 +105,13 @@ func (p ListMetersParams) Validate() error {
 	}
 
 	if p.Key != nil {
-		if err := p.Key.Validate(); err != nil {
+		if err := p.Key.ValidateWithComplexity(maxListMeterFilterDepth); err != nil {
 			errs = append(errs, fmt.Errorf("invalid key filter: %w", err))
 		}
 	}
 
 	if p.Name != nil {
-		if err := p.Name.Validate(); err != nil {
+		if err := p.Name.ValidateWithComplexity(maxListMeterFilterDepth); err != nil {
 			errs = append(errs, fmt.Errorf("invalid name filter: %w", err))
 		}
 	}
