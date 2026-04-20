@@ -51,7 +51,7 @@ jobs:
         run: nix develop --impure .#ci -c go mod download
 
       - name: Save go caches - go mod
-        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: .devenv/state/go
           key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
@@ -86,7 +86,7 @@ jobs:
             ${{ runner.os }}-openmeter-nix-build-
 
       - name: Restore go.mod cache if exists
-        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: .devenv/state/go
           key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
@@ -149,7 +149,7 @@ jobs:
             ${{ runner.os }}-openmeter-nix-build-
 
       - name: Restore go.mod cache if exists
-        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: .devenv/state/go
           key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
@@ -210,7 +210,7 @@ jobs:
             ${{ runner.os }}-openmeter-nix-build-
 
       - name: Restore go.mod cache if exists
-        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: .devenv/state/go
           key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
@@ -271,7 +271,7 @@ jobs:
             ${{ runner.os }}-openmeter-nix-build-
 
       - name: Restore go.mod cache if exists
-        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: .devenv/state/go
           key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
@@ -342,7 +342,7 @@ jobs:
 
       # This shaves off 5s or so
       - name: Restore go.mod cache if exists
-        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: .devenv/state/go
           key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
@@ -453,7 +453,7 @@ jobs:
 
       # This shaves off 5s or so
       - name: Restore go.mod cache if exists
-        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: .devenv/state/go
           key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
@@ -481,7 +481,7 @@ jobs:
           echo "sha=${BASE_COMMIT}"
 
       - name: Lint cache
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: .devenv/golangci-lint-cache
           key: ${{ runner.os }}-openmeter-golangci-lint-cache-${{ steps.base-commit.outputs.sha }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
@@ -616,7 +616,7 @@ jobs:
             ${{ runner.os }}-openmeter-nix-build-
 
       - name: Restore go.mod cache if exists
-        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: .devenv/state/go
           key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
@@ -706,7 +706,7 @@ jobs:
             ${{ runner.os }}-openmeter-nix-build-
 
       - name: Restore go.mod cache if exists
-        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: .devenv/state/go
           key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
