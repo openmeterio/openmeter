@@ -54,27 +54,22 @@ func (h *handler) ListMeters() ListMetersHandler {
 				Page:      page,
 			}
 
-			var apiFilters struct {
-				Key  *filters.FilterString `json:"key"`
-				Name *filters.FilterString `json:"name"`
-			}
-			if err := filters.Parse(r.URL.Query(), &apiFilters); err != nil {
-				return ListMetersRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-					{Field: "filter", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
-				})
-			}
+			if params.Filter != nil {
+				key, err := filters.FromAPIFilterString(params.Filter.Key)
+				if err != nil {
+					return ListMetersRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[key]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.Key = key
 
-			req.Key, err = filters.FromAPIFilterString(apiFilters.Key)
-			if err != nil {
-				return ListMetersRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-					{Field: "filter[key]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
-				})
-			}
-			req.Name, err = filters.FromAPIFilterString(apiFilters.Name)
-			if err != nil {
-				return ListMetersRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-					{Field: "filter[name]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
-				})
+				name, err := filters.FromAPIFilterString(params.Filter.Name)
+				if err != nil {
+					return ListMetersRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[name]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.Name = name
 			}
 
 			return req, nil

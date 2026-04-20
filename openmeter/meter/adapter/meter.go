@@ -39,10 +39,6 @@ func (a *Adapter) ListMeters(ctx context.Context, params meter.ListMetersParams)
 		query = query.Where(meterdb.IDIn(*params.IDFilter...))
 	}
 
-	if params.SlugFilter != nil {
-		query = query.Where(meterdb.KeyIn(*params.SlugFilter...))
-	}
-
 	query = filter.ApplyToQuery(query, params.Key, meterdb.FieldKey)
 	query = filter.ApplyToQuery(query, params.Name, meterdb.FieldName)
 

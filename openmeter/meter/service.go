@@ -73,8 +73,7 @@ type ListMetersParams struct {
 	Key  *filter.FilterString `json:"key,omitempty"`
 	Name *filter.FilterString `json:"name,omitempty"`
 
-	IDFilter   *[]string
-	SlugFilter *[]string
+	IDFilter *[]string
 
 	// WithoutNamespace is a flag to list meters without a namespace.
 	// We do this instead of letting the namespace be empty to avoid
@@ -120,14 +119,6 @@ func (p ListMetersParams) Validate() error {
 		for _, id := range *p.IDFilter {
 			if id == "" {
 				errs = append(errs, errors.New("id filter must not contain empty string"))
-			}
-		}
-	}
-
-	if p.SlugFilter != nil {
-		for _, slug := range *p.SlugFilter {
-			if slug == "" {
-				errs = append(errs, errors.New("slug filter must not contain empty string"))
 			}
 		}
 	}
