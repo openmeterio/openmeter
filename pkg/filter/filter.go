@@ -43,7 +43,7 @@ var (
 	_ Filter = (*FilterTime)(nil)
 	_ Filter = (*FilterTimeUnix)(nil)
 	_ Filter = (*FilterBoolean)(nil)
-	_ Filter = (*FilterUlid)(nil)
+	_ Filter = (*FilterULID)(nil)
 )
 
 // EscapeLikePattern escapes SQL LIKE metacharacters using the package's escape character.
@@ -795,24 +795,24 @@ func isEmptyFilter(v Filter) bool {
 	return true
 }
 
-// FilterUlid is a filter for a string field.
-type FilterUlid struct {
+// FilterULID is a filter for a string field.
+type FilterULID struct {
 	FilterString
-	And *[]FilterUlid `json:"$and,omitempty"`
-	Or  *[]FilterUlid `json:"$or,omitempty"`
+	And *[]FilterULID `json:"$and,omitempty"`
+	Or  *[]FilterULID `json:"$or,omitempty"`
 }
 
 // Validate validates the filter.
-func (f FilterUlid) Validate() error {
+func (f FilterULID) Validate() error {
 	return models.NewNillableGenericValidationError(f.validateWithComplexity(math.MaxInt))
 }
 
 // ValidateWithComplexity validates the filter complexity.
-func (f FilterUlid) ValidateWithComplexity(maxDepth int) error {
+func (f FilterULID) ValidateWithComplexity(maxDepth int) error {
 	return models.NewNillableGenericValidationError(f.validateWithComplexity(maxDepth))
 }
 
-func (f FilterUlid) validateWithComplexity(maxDepth int) error {
+func (f FilterULID) validateWithComplexity(maxDepth int) error {
 	if err := validateSingleOperator(f.FilterString); err != nil {
 		return err
 	}
@@ -846,17 +846,17 @@ func (f FilterUlid) validateWithComplexity(maxDepth int) error {
 }
 
 // IsEmpty returns true if the filter is empty.
-func (f FilterUlid) IsEmpty() bool {
+func (f FilterULID) IsEmpty() bool {
 	return isEmptyFilter(f.FilterString)
 }
 
 // SelectWhereExpr converts the filter to a SQL WHERE expression.
-func (f FilterUlid) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) string {
+func (f FilterULID) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) string {
 	return f.FilterString.SelectWhereExpr(field, q)
 }
 
 // Select converts the filter to an Ent selector predicate.
-func (f FilterUlid) Select(field string) func(*sql.Selector) {
+func (f FilterULID) Select(field string) func(*sql.Selector) {
 	return f.FilterString.Select(field)
 }
 

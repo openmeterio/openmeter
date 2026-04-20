@@ -24,7 +24,7 @@ Use the filter types from `api/spec/packages/aip/common/parameters.tsp` (backed 
 | `Common.StringFieldFilter`       | string, partial or exact match          | `filter[name][contains]=foo`                   | `filters.FilterString`       |
 | `Common.StringFieldFilterExact`  | string, exact match only                | `filter[key]=my-key`                           | `filters.FilterStringExact`  |
 | `Common.UuidFieldFilter`         | UUID/ID columns, exact match only       | `filter[id]=3bbfd3a-...`                       | `filters.FilterStringExact`  |
-| `Common.UlidFieldFilter`         | ULID/ID columns, partial or exact match | `filter[id]=01KPDB8K...`                       | `filters.FilterUlid`         |
+| `Common.ULIDFieldFilter`         | ULID/ID columns, partial or exact match | `filter[id]=01KPDB8K...`                       | `filters.FilterULID`         |
 | `Common.BooleanFieldFilter`      | boolean (bare `true`/`false` scalar)    | `filter[active]=true`                          | `filters.FilterBoolean`      |
 | `Common.NumericFieldFilter`      | numeric comparisons                     | `filter[amount][gte]=10`                       | `filters.FilterNumeric`      |
 | `Common.DateTimeFieldFilter`     | RFC-3339 datetime comparisons           | `filter[created_at][gte]=2024-01-01T00:00:00Z` | `filters.FilterDateTime`     |
@@ -38,7 +38,7 @@ The authoritative operator surface for each Common type is defined in `api/spec/
 
 - `StringFieldFilter`: implicit-eq, `eq`, `neq`, `contains`, `ocontains`, `oeq` — **no ranges**
 - `StringFieldFilterExact` / `UuidFieldFilter`: implicit-eq, `eq`, `neq`, `oeq`
-- `UlidFieldFilter`: implicit-eq, `eq`, `neq`, `contains`, `ocontains`, `oeq` — **no ranges**
+- `ULIDFieldFilter`: implicit-eq, `eq`, `neq`, `contains`, `ocontains`, `oeq` — **no ranges**
 - `NumericFieldFilter`: implicit-eq, `eq`, `lt`, `lte`, `gt`, `gte` — **no `neq` or `oeq`** in the OAS
 - `DateTimeFieldFilter`: implicit-eq, `eq`, `lt`, `lte`, `gt`, `gte` — **no `neq`**
 - `BooleanFieldFilter`: bare scalar only (`true` / `false`)

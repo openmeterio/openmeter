@@ -83,8 +83,8 @@ type FilterString struct {
 	Exists *bool `json:"$exists,omitempty"`
 }
 
-// FilterUlid represents a filter operation on a string field that satisfies ULID format.
-type FilterUlid struct {
+// FilterULID represents a filter operation on a string field that satisfies ULID format.
+type FilterULID struct {
 	// Eq requires the field to match the provided value exactly (case-sensitive).
 	Eq *string `json:"eq,omitempty"`
 

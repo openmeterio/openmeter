@@ -7377,7 +7377,7 @@ components:
       properties:
         meter_id:
           allOf:
-            - $ref: "#/components/schemas/UlidFieldFilter"
+            - $ref: "#/components/schemas/ULIDFieldFilter"
           description: Filter features by meter_id.
     ListLLMCostPricesParamsFilter:
       type: object
@@ -8146,7 +8146,7 @@ components:
       description: ULID (Universally Unique Lexicographically Sortable Identifier).
       title: ULID
       example: 01G65Z755AFWAKHE12NY0CQ9FH
-    UlidFieldFilter:
+    ULIDFieldFilter:
       anyOf:
         - type: string
         - type: object
@@ -8192,7 +8192,7 @@ components:
         All properties are optional; provide exactly one to specify the comparison.
       x-go-type-import:
         path: github.com/openmeterio/openmeter/api/v3/filters
-      x-go-type: filters.FilterUlid
+      x-go-type: filters.FilterULID
     UpdateCreditGrantExternalSettlementRequest:
       type: object
       required:

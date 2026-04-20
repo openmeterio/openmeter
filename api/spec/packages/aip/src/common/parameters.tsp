@@ -140,13 +140,13 @@ model StringFieldFilterExact {
  * Filters on the given string field value by either exact or fuzzy match.
  * All properties are optional; provide exactly one to specify the comparison.
  */
-@friendlyName("UlidFieldFilter")
-@extension("x-go-type", "filters.FilterUlid")
+@friendlyName("ULIDFieldFilter")
+@extension("x-go-type", "filters.FilterULID")
 @extension(
   "x-go-type-import",
   #{ path: "github.com/openmeterio/openmeter/api/v3/filters" }
 )
-union UlidFieldFilter {
+union ULIDFieldFilter {
   string: string,
   object: {
     /** Value strictly equals the given string value. */

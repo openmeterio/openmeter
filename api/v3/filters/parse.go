@@ -78,7 +78,7 @@ func fieldError(field, op string, err error) error {
 var (
 	filterStringType      = reflect.TypeFor[*FilterString]()
 	filterStringExactType = reflect.TypeFor[*FilterStringExact]()
-	filterULIDType        = reflect.TypeFor[*FilterUlid]()
+	FilterULIDType        = reflect.TypeFor[*FilterULID]()
 	filterNumericType     = reflect.TypeFor[*FilterNumeric]()
 	filterDateTimeType    = reflect.TypeFor[*FilterDateTime]()
 	filterBooleanType     = reflect.TypeFor[*FilterBoolean]()
@@ -140,8 +140,8 @@ func parseFiltersValue(qs url.Values, v reflect.Value) error {
 			}
 			fieldVal.Set(reflect.ValueOf(&parsed))
 
-		case filterULIDType:
-			parsed, err := parseFilterUlid(qs, name)
+		case FilterULIDType:
+			parsed, err := parseFilterULID(qs, name)
 			if err != nil {
 				return err
 			}
@@ -275,9 +275,9 @@ func parseFilterStringExact(qs url.Values, field string) (FilterStringExact, err
 	return f, err
 }
 
-// parseFilterUlid extracts a FilterUlid supporting all string operators.
-func parseFilterUlid(qs url.Values, field string) (FilterUlid, error) {
-	var f FilterUlid
+// parseFilterULID extracts a FilterULID supporting all string operators.
+func parseFilterULID(qs url.Values, field string) (FilterULID, error) {
+	var f FilterULID
 
 	err := forEachFieldParam(qs, field, func(p parsedFilterParam) error {
 		if p.bare {

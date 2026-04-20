@@ -100,7 +100,7 @@ func (f FeatureOrderBy) Values() []FeatureOrderBy {
 type ListFeaturesParams struct {
 	IDsOrKeys       []string
 	Namespace       string
-	MeterIDs        *filter.FilterUlid
+	MeterIDs        *filter.FilterULID
 	MeterSlugs      []string // Kept for ingest pipeline compat (queries via ent edge on meter key)
 	IncludeArchived bool
 	Page            pagination.Page

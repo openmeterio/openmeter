@@ -2440,12 +2440,12 @@ func TestFilterTime_IsEmpty(t *testing.T) {
 func TestFilterULID_Validate(t *testing.T) {
 	tests := []struct {
 		name   string
-		filter filter.FilterUlid
+		filter filter.FilterULID
 		valid  bool
 	}{
 		{
 			name: "valid_single",
-			filter: filter.FilterUlid{
+			filter: filter.FilterULID{
 				FilterString: filter.FilterString{
 					Eq: lo.ToPtr(ulid.Make().String()),
 				},
@@ -2454,7 +2454,7 @@ func TestFilterULID_Validate(t *testing.T) {
 		},
 		{
 			name: "valid_multiple",
-			filter: filter.FilterUlid{
+			filter: filter.FilterULID{
 				FilterString: filter.FilterString{
 					In: lo.ToPtr([]string{ulid.Make().String(), ulid.Make().String(), ulid.Make().String()}),
 				},
@@ -2463,8 +2463,8 @@ func TestFilterULID_Validate(t *testing.T) {
 		},
 		{
 			name: "valid_and",
-			filter: filter.FilterUlid{
-				And: lo.ToPtr([]filter.FilterUlid{
+			filter: filter.FilterULID{
+				And: lo.ToPtr([]filter.FilterULID{
 					{
 						FilterString: filter.FilterString{
 							Eq: lo.ToPtr(ulid.Make().String()),
@@ -2481,8 +2481,8 @@ func TestFilterULID_Validate(t *testing.T) {
 		},
 		{
 			name: "valid_or",
-			filter: filter.FilterUlid{
-				Or: lo.ToPtr([]filter.FilterUlid{
+			filter: filter.FilterULID{
+				Or: lo.ToPtr([]filter.FilterULID{
 					{
 						FilterString: filter.FilterString{
 							Eq: lo.ToPtr(ulid.Make().String()),
@@ -2499,7 +2499,7 @@ func TestFilterULID_Validate(t *testing.T) {
 		},
 		{
 			name: "invalid_single",
-			filter: filter.FilterUlid{
+			filter: filter.FilterULID{
 				FilterString: filter.FilterString{
 					Ne: lo.ToPtr("test"),
 				},
@@ -2508,7 +2508,7 @@ func TestFilterULID_Validate(t *testing.T) {
 		},
 		{
 			name: "invalid_multiple",
-			filter: filter.FilterUlid{
+			filter: filter.FilterULID{
 				FilterString: filter.FilterString{
 					Nin: lo.ToPtr([]string{"test", "test2", "test3"}),
 				},
@@ -2517,7 +2517,7 @@ func TestFilterULID_Validate(t *testing.T) {
 		},
 		{
 			name: "invalid_multiple_partial",
-			filter: filter.FilterUlid{
+			filter: filter.FilterULID{
 				FilterString: filter.FilterString{
 					In: lo.ToPtr([]string{ulid.Make().String(), "test", ulid.Make().String()}),
 				},
@@ -2526,8 +2526,8 @@ func TestFilterULID_Validate(t *testing.T) {
 		},
 		{
 			name: "invalid_and",
-			filter: filter.FilterUlid{
-				And: lo.ToPtr([]filter.FilterUlid{
+			filter: filter.FilterULID{
+				And: lo.ToPtr([]filter.FilterULID{
 					{
 						FilterString: filter.FilterString{
 							Eq: lo.ToPtr(ulid.Make().String()),
@@ -2544,8 +2544,8 @@ func TestFilterULID_Validate(t *testing.T) {
 		},
 		{
 			name: "invalid_or",
-			filter: filter.FilterUlid{
-				Or: lo.ToPtr([]filter.FilterUlid{
+			filter: filter.FilterULID{
+				Or: lo.ToPtr([]filter.FilterULID{
 					{
 						FilterString: filter.FilterString{
 							Eq: lo.ToPtr(ulid.Make().String()),

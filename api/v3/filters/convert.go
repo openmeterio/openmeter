@@ -61,42 +61,42 @@ func FromAPIFilterString(f *FilterString) (*filter.FilterString, error) {
 }
 
 // FromAPIFilterULID converts an API FilterString to filter.FilterULID.
-func FromAPIFilterULID(f *FilterUlid) (*filter.FilterUlid, error) {
+func FromAPIFilterULID(f *FilterULID) (*filter.FilterULID, error) {
 	if f == nil {
 		return nil, nil
 	}
 
-	var parts []filter.FilterUlid
+	var parts []filter.FilterULID
 
 	if f.Eq != nil {
-		parts = append(parts, filter.FilterUlid{FilterString: filter.FilterString{Eq: f.Eq}})
+		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{Eq: f.Eq}})
 	}
 	if f.Neq != nil {
-		parts = append(parts, filter.FilterUlid{FilterString: filter.FilterString{Ne: f.Neq}})
+		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{Ne: f.Neq}})
 	}
 	if f.Exists != nil {
-		parts = append(parts, filter.FilterUlid{FilterString: filter.FilterString{Exists: f.Exists}})
+		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{Exists: f.Exists}})
 	}
 	if f.Contains != nil {
-		parts = append(parts, filter.FilterUlid{FilterString: filter.FilterString{Contains: f.Contains}})
+		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{Contains: f.Contains}})
 	}
 	if f.Gt != nil {
-		parts = append(parts, filter.FilterUlid{FilterString: filter.FilterString{Gt: f.Gt}})
+		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{Gt: f.Gt}})
 	}
 	if f.Gte != nil {
-		parts = append(parts, filter.FilterUlid{FilterString: filter.FilterString{Gte: f.Gte}})
+		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{Gte: f.Gte}})
 	}
 	if f.Lt != nil {
-		parts = append(parts, filter.FilterUlid{FilterString: filter.FilterString{Lt: f.Lt}})
+		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{Lt: f.Lt}})
 	}
 	if f.Lte != nil {
-		parts = append(parts, filter.FilterUlid{FilterString: filter.FilterString{Lte: f.Lte}})
+		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{Lte: f.Lte}})
 	}
 	if len(f.Oeq) > 0 {
-		parts = append(parts, filter.FilterUlid{FilterString: filter.FilterString{In: convert.SliceToPointer(f.Oeq)}})
+		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{In: convert.SliceToPointer(f.Oeq)}})
 	}
 	if len(f.Ocontains) > 0 {
-		parts = append(parts, filter.FilterUlid{FilterString: filter.FilterString{
+		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{
 			Or: convert.SliceToPointer(lo.Map(f.Ocontains, func(v string, _ int) filter.FilterString {
 				return filter.FilterString{Contains: &v}
 			})),
@@ -109,7 +109,7 @@ func FromAPIFilterULID(f *FilterUlid) (*filter.FilterUlid, error) {
 	case 1:
 		return &parts[0], nil
 	default:
-		return &filter.FilterUlid{And: &parts}, nil
+		return &filter.FilterULID{And: &parts}, nil
 	}
 }
 

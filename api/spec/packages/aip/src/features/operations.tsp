@@ -18,7 +18,7 @@ model ListFeaturesParamsFilter {
   /**
    * Filter features by meter_id.
    */
-  meter_id?: Common.UlidFieldFilter;
+  meter_id?: Common.ULIDFieldFilter;
 }
 
 interface FeatureOperations {
