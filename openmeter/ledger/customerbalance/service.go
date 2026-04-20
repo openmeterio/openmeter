@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -17,6 +18,12 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
+
+type Service interface {
+	GetBalance(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code, after *ledger.TransactionCursor) (ledger.Balance, error)
+	ListCreditTransactions(ctx context.Context, input ListCreditTransactionsInput) (ListCreditTransactionsResult, error)
+	GetFBOCurrencies(ctx context.Context, customerID customer.CustomerID) ([]currencyx.Code, error)
+}
 
 // ----------------------------------------------------------------------------
 // Dependency interfaces
@@ -44,7 +51,7 @@ const chargeListPageSize = 100
 // service is NOT the RTE (Real Time Engine)
 // - it is a simple service to bridge the gap until we get to implementing the RTE
 // - this should be used for balance queries until the RTE is implemented
-type Service struct {
+type service struct {
 	AccountResolver   ledger.AccountResolver
 	SubAccountService subAccountLister
 	ChargesService    chargesService
@@ -53,6 +60,8 @@ type Service struct {
 
 	balanceCalculator chargePendingBalanceCalculator
 }
+
+var _ Service = (*service)(nil)
 
 type Config struct {
 	AccountResolver   ledger.AccountResolver
@@ -88,12 +97,12 @@ func (c Config) Validate() error {
 	return errors.Join(errs...)
 }
 
-func New(config Config) (*Service, error) {
+func New(config Config) (*service, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
 
-	return &Service{
+	return &service{
 		AccountResolver:   config.AccountResolver,
 		SubAccountService: config.SubAccountService,
 		ChargesService:    config.ChargesService,
@@ -103,35 +112,43 @@ func New(config Config) (*Service, error) {
 	}, nil
 }
 
-func (s *Service) GetBalance(ctx context.Context, customerID customer.CustomerID, filters ledger.RouteFilter, after *ledger.TransactionCursor) (ledger.Balance, error) {
-	if err := s.validate(customerID, filters); err != nil {
-		return nil, err
-	}
-
+func (s *service) GetBalance(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code, after *ledger.TransactionCursor) (ledger.Balance, error) {
 	customerAccounts, err := s.AccountResolver.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
 		return nil, fmt.Errorf("get customer accounts: %w", err)
 	}
 
-	bookedBalance, err := customerAccounts.FBOAccount.GetBalance(ctx, filters, after)
+	bookedBalance, err := customerAccounts.FBOAccount.GetBalance(ctx, ledger.RouteFilter{
+		Currency: currency,
+	}, after)
 	if err != nil {
 		return nil, fmt.Errorf("get booked balance: %w", err)
 	}
 
+	advanceBalance, err := customerAccounts.ReceivableAccount.GetBalance(ctx, ledger.RouteFilter{
+		Currency:  currency,
+		CostBasis: mo.None[*alpacadecimal.Decimal](),
+	}, after)
+	if err != nil {
+		return nil, fmt.Errorf("get advance balance: %w", err)
+	}
+
 	// Pending balance remains a current projection from open charges.
 	// Historical cursoring only affects the booked/settled side for now.
-	impacts, err := s.getChargePendingBalanceImpacts(ctx, customerID, filters.Currency)
+	impacts, err := s.getChargePendingBalanceImpacts(ctx, customerID, currency)
 	if err != nil {
 		return nil, fmt.Errorf("get charge pending balance impacts: %w", err)
 	}
 
+	settled := bookedBalance.Settled().Add(advanceBalance.Settled())
+
 	return balance{
-		settled: bookedBalance.Settled(),
-		pending: s.balanceCalculator.CalculatePendingBalance(bookedBalance.Pending(), impacts),
+		settled: settled,
+		pending: s.balanceCalculator.CalculatePendingBalance(settled, impacts),
 	}, nil
 }
 
-func (s *Service) getFBOCurrencies(ctx context.Context, customerID customer.CustomerID) ([]currencyx.Code, error) {
+func (s *service) GetFBOCurrencies(ctx context.Context, customerID customer.CustomerID) ([]currencyx.Code, error) {
 	customerAccounts, err := s.AccountResolver.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
 		return nil, fmt.Errorf("get customer accounts: %w", err)
@@ -166,7 +183,7 @@ func (s *Service) getFBOCurrencies(ctx context.Context, customerID customer.Cust
 	return codes, nil
 }
 
-func (s *Service) getChargePendingBalanceImpacts(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code) ([]Impact, error) {
+func (s *service) getChargePendingBalanceImpacts(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code) ([]Impact, error) {
 	items, err := pagination.CollectAll(
 		ctx,
 		pagination.NewPaginator(func(ctx context.Context, page pagination.Page) (pagination.Result[charges.Charge], error) {
@@ -205,7 +222,7 @@ func (s *Service) getChargePendingBalanceImpacts(ctx context.Context, customerID
 	return impacts, nil
 }
 
-func (s *Service) getChargePendingBalanceImpact(ctx context.Context, charge charges.Charge, currency currencyx.Code) (*Impact, error) {
+func (s *service) getChargePendingBalanceImpact(ctx context.Context, charge charges.Charge, currency currencyx.Code) (*Impact, error) {
 	if !chargeHasStarted(charge) {
 		return nil, nil
 	}
@@ -233,7 +250,7 @@ func getFlatFeeChargePendingBalanceImpact(charge charges.Charge, currency curren
 	return newImpactOrNil(charge, flatFeeCharge.State.AmountAfterProration)
 }
 
-func (s *Service) getUsageBasedChargePendingBalanceImpact(ctx context.Context, charge charges.Charge, currency currencyx.Code) (*Impact, error) {
+func (s *service) getUsageBasedChargePendingBalanceImpact(ctx context.Context, charge charges.Charge, currency currencyx.Code) (*Impact, error) {
 	usageBasedCharge, err := charge.AsUsageBasedCharge()
 	if err != nil {
 		return nil, fmt.Errorf("map usage based charge: %w", err)
@@ -287,44 +304,6 @@ func newImpactOrNil(charge charges.Charge, amount alpacadecimal.Decimal) (*Impac
 	}
 
 	return &impact, nil
-}
-
-func (s *Service) validate(customerID customer.CustomerID, filters ledger.RouteFilter) error {
-	var errs []error
-
-	if s == nil {
-		errs = append(errs, errors.New("service is required"))
-	} else {
-		if s.AccountResolver == nil {
-			errs = append(errs, errors.New("account resolver is required"))
-		}
-
-		if s.SubAccountService == nil {
-			errs = append(errs, errors.New("sub account service is required"))
-		}
-
-		if s.ChargesService == nil {
-			errs = append(errs, errors.New("charges service is required"))
-		}
-
-		if s.UsageBasedService == nil {
-			errs = append(errs, errors.New("usage based service is required"))
-		}
-	}
-
-	if err := customerID.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("customer ID: %w", err))
-	}
-
-	if filters.Currency == "" {
-		errs = append(errs, errors.New("currency filter is required"))
-	}
-
-	if _, err := filters.Normalize(); err != nil {
-		errs = append(errs, fmt.Errorf("route filter: %w", err))
-	}
-
-	return errors.Join(errs...)
 }
 
 type balance struct {

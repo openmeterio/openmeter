@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -105,6 +106,26 @@ type TransactionCursor struct {
 	BookedAt  time.Time
 	CreatedAt time.Time
 	ID        models.NamespacedID
+}
+
+// Compare returns cursor ordering by BookedAt, then CreatedAt, then ID.
+// It returns -1 if c < other, 0 if equal, and 1 if c > other.
+func (c TransactionCursor) Compare(other TransactionCursor) int {
+	switch {
+	case c.BookedAt.Before(other.BookedAt):
+		return -1
+	case c.BookedAt.After(other.BookedAt):
+		return 1
+	}
+
+	switch {
+	case c.CreatedAt.Before(other.CreatedAt):
+		return -1
+	case c.CreatedAt.After(other.CreatedAt):
+		return 1
+	}
+
+	return strings.Compare(c.ID.ID, other.ID.ID)
 }
 
 func (c TransactionCursor) Validate() error {

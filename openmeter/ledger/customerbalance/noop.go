@@ -22,9 +22,9 @@ func (noopBalance) Pending() alpacadecimal.Decimal {
 
 type NoopService struct{}
 
-var _ FacadeService = NoopService{}
+var _ Service = NoopService{}
 
-func (NoopService) GetBalance(context.Context, customer.CustomerID, ledger.RouteFilter, *ledger.TransactionCursor) (ledger.Balance, error) {
+func (NoopService) GetBalance(context.Context, customer.CustomerID, currencyx.Code, *ledger.TransactionCursor) (ledger.Balance, error) {
 	return noopBalance{}, nil
 }
 
@@ -32,10 +32,10 @@ func (NoopService) ListCreditTransactions(context.Context, ListCreditTransaction
 	return ListCreditTransactionsResult{}, nil
 }
 
-func (NoopService) getFBOCurrencies(context.Context, customer.CustomerID) ([]currencyx.Code, error) {
+func (NoopService) GetFBOCurrencies(context.Context, customer.CustomerID) ([]currencyx.Code, error) {
 	return nil, nil
 }
 
-func NewNoopService() FacadeService {
+func NewNoopService() Service {
 	return NoopService{}
 }

@@ -90,7 +90,7 @@ type CreditTransactionBalance struct {
 
 type ListCreditTransactionsResult = pagepagination.Result[CreditTransaction]
 
-func (s *Service) ListCreditTransactions(ctx context.Context, input ListCreditTransactionsInput) (ListCreditTransactionsResult, error) {
+func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTransactionsInput) (ListCreditTransactionsResult, error) {
 	if err := input.Validate(); err != nil {
 		return ListCreditTransactionsResult{}, err
 	}
@@ -130,7 +130,7 @@ func (s *Service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 	s.applyChargeMetadataToCreditTransactions(ctx, input.CustomerID.Namespace, items)
 
 	if len(items) > 0 {
-		runningBalance, err := s.GetBalance(ctx, input.CustomerID, routeFilter(items[0].Currency), lo.ToPtr(result.Items[0].Cursor()))
+		runningBalance, err := s.GetBalance(ctx, input.CustomerID, items[0].Currency, lo.ToPtr(result.Items[0].Cursor()))
 		if err != nil {
 			return ListCreditTransactionsResult{}, fmt.Errorf("get FBO balance after transaction %s: %w", result.Items[0].ID().ID, err)
 		}
@@ -170,7 +170,7 @@ func ledgerCreditMovement(txType *CreditTransactionType) (ledger.ListTransaction
 	}
 }
 
-func (s *Service) customerFBOAccountID(ctx context.Context, customerID customer.CustomerID) (string, error) {
+func (s *service) customerFBOAccountID(ctx context.Context, customerID customer.CustomerID) (string, error) {
 	accounts, err := s.AccountResolver.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
 		return "", err
@@ -261,7 +261,7 @@ type chargeDisplayMetadata struct {
 	Description *string
 }
 
-func (s *Service) applyChargeMetadataToCreditTransactions(ctx context.Context, namespace string, items []CreditTransaction) {
+func (s *service) applyChargeMetadataToCreditTransactions(ctx context.Context, namespace string, items []CreditTransaction) {
 	chargeIDs := lo.Uniq(lo.FilterMap(items, func(item CreditTransaction, _ int) (string, bool) {
 		id := chargeIDFromAnnotations(item.Annotations)
 		return id, id != ""
