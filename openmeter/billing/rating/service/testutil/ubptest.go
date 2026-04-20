@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type TestLineMode string
@@ -25,9 +26,9 @@ const (
 	LastInPeriodSplitLineMode TestLineMode = "last_in_period_split"
 )
 
-var TestFullPeriod = billing.Period{
-	Start: lo.Must(time.Parse(time.RFC3339, "2021-01-01T00:00:00Z")),
-	End:   lo.Must(time.Parse(time.RFC3339, "2021-01-02T00:00:00Z")),
+var TestFullPeriod = timeutil.ClosedPeriod{
+	From: lo.Must(time.Parse(time.RFC3339, "2021-01-01T00:00:00Z")),
+	To:   lo.Must(time.Parse(time.RFC3339, "2021-01-02T00:00:00Z")),
 }
 
 type FeatureUsageResponse struct {
@@ -98,17 +99,17 @@ func RunCalculationTestCase(t *testing.T, tc CalculationTestCase) {
 	case SinglePerPeriodLineMode:
 		line.Period = TestFullPeriod
 	case MidPeriodSplitLineMode:
-		line.Period = billing.Period{
-			Start: TestFullPeriod.Start.Add(time.Hour * 12),
-			End:   TestFullPeriod.End.Add(-time.Hour),
+		line.Period = timeutil.ClosedPeriod{
+			From: TestFullPeriod.From.Add(time.Hour * 12),
+			To:   TestFullPeriod.To.Add(-time.Hour),
 		}
 		line.SplitLineGroupID = &fakeParentGroup.ID
 		line.SplitLineHierarchy = &fakeHierarchy
 
 	case LastInPeriodSplitLineMode:
-		line.Period = billing.Period{
-			Start: TestFullPeriod.Start.Add(time.Hour * 12),
-			End:   TestFullPeriod.End,
+		line.Period = timeutil.ClosedPeriod{
+			From: TestFullPeriod.From.Add(time.Hour * 12),
+			To:   TestFullPeriod.To,
 		}
 
 		line.SplitLineGroupID = &fakeParentGroup.ID

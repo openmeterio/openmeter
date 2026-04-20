@@ -236,7 +236,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeOnly() {
 			name:      "flat fee only",
 			namespace: "ns-collection-flow-flat-fee",
 			line: billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
-				Period:    billing.Period{Start: periodStart, End: periodEnd},
+				Period:    timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 				InvoiceAt: periodStart,
 				Name:      "Flat fee",
 
@@ -248,7 +248,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeOnly() {
 			name:      "ubp flat fee only",
 			namespace: "ns-collection-flow-ubp-flat-fee",
 			line: billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
-				Period:    billing.Period{Start: periodStart, End: periodEnd},
+				Period:    timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 				InvoiceAt: periodStart,
 				Name:      "Flat fee",
 
@@ -372,9 +372,9 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 	invoice, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
 		Invoice: invoice.GetInvoiceID(),
 		EditFn: func(invoice *billing.StandardInvoice) error {
-			linePeriod := billing.Period{
-				Start: periodEnd.Add(time.Hour * 1),
-				End:   periodEnd.Add(time.Hour * 2),
+			linePeriod := timeutil.ClosedPeriod{
+				From: periodEnd.Add(time.Hour * 1),
+				To:   periodEnd.Add(time.Hour * 2),
 			}
 
 			invoice.Lines.Append(
@@ -383,7 +383,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 					Currency:  currencyx.Code(currency.USD),
 					InvoiceID: invoice.ID,
 					Period:    linePeriod,
-					InvoiceAt: linePeriod.End,
+					InvoiceAt: linePeriod.To,
 					Name:      "Flat fee",
 
 					PerUnitAmount: alpacadecimal.NewFromFloat(10),
@@ -540,9 +540,9 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 	s.NotNil(previousSnapshot)
 
 	// When adding an UBP line with a new billing period
-	newLinePeriod := billing.Period{
-		Start: lo.Must(time.Parse(time.RFC3339, "2025-01-02T00:00:00Z")),
-		End:   lo.Must(time.Parse(time.RFC3339, "2025-01-03T00:00:00Z")),
+	newLinePeriod := timeutil.ClosedPeriod{
+		From: lo.Must(time.Parse(time.RFC3339, "2025-01-02T00:00:00Z")),
+		To:   lo.Must(time.Parse(time.RFC3339, "2025-01-03T00:00:00Z")),
 	}
 	s.Run("adding a new line extends the collection period", func() {
 		invoice, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
@@ -557,7 +557,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 						Currency:  currencyx.Code(currency.USD),
 						InvoiceID: invoice.ID,
 						Period:    newLinePeriod,
-						InvoiceAt: newLinePeriod.End,
+						InvoiceAt: newLinePeriod.To,
 						ManagedBy: billing.ManuallyManagedLine,
 					},
 					UsageBased: &billing.UsageBasedLine{
@@ -593,8 +593,8 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 	// - the invoice should have updated snapshots, quantity snapshoted at and totals
 
 	s.Run("advancing the invoice updates the snapshot", func() {
-		clock.SetTime(newLinePeriod.End.Add(time.Hour))
-		s.MockStreamingConnector.AddSimpleEvent(apiRequestsTotalFeature.Feature.Key, 1, newLinePeriod.Start.Add(time.Minute*30))
+		clock.SetTime(newLinePeriod.To.Add(time.Hour))
+		s.MockStreamingConnector.AddSimpleEvent(apiRequestsTotalFeature.Feature.Key, 1, newLinePeriod.From.Add(time.Minute*30))
 
 		invoice, err = s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 			Invoice: invoice.GetInvoiceID(),
@@ -613,6 +613,6 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 		s.NotNil(invoice.QuantitySnapshotedAt)
 		s.Equal(float64(4), invoice.Totals.Amount.InexactFloat64())
 		s.NotEqual(previousSnapshot, *invoice.QuantitySnapshotedAt)
-		s.True(!invoice.QuantitySnapshotedAt.Before(newLinePeriod.End), "quantity should be snapshoted after the new line period")
+		s.True(!invoice.QuantitySnapshotedAt.Before(newLinePeriod.To), "quantity should be snapshoted after the new line period")
 	})
 }

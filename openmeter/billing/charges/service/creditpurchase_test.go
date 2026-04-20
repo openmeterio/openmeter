@@ -584,9 +584,9 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 
 		line := lines[0]
 		s.Equal(USD, line.Currency)
-		s.Equal(billing.Period{
-			Start: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
-			End:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+		s.Equal(timeutil.ClosedPeriod{
+			From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+			To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
 		}, line.Period)
 		s.Equal(alpacadecimal.NewFromFloat(50), line.Totals.Amount)
 		s.Equal(alpacadecimal.NewFromFloat(50), line.Totals.Total)

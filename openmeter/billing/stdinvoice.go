@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type StandardInvoiceStatusCategory string
@@ -222,7 +223,7 @@ type StandardInvoiceBase struct {
 	Status        StandardInvoiceStatus        `json:"status"`
 	StatusDetails StandardInvoiceStatusDetails `json:"statusDetail,omitempty"`
 
-	Period *Period `json:"period,omitempty"`
+	Period *timeutil.ClosedPeriod `json:"period,omitempty"`
 
 	DueAt *time.Time `json:"dueDate,omitempty"`
 

@@ -80,9 +80,9 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 			ManagedBy:   dbLine.ManagedBy,
 			Engine:      dbLine.Engine,
 
-			Period: billing.Period{
-				Start: dbLine.PeriodStart.In(time.UTC),
-				End:   dbLine.PeriodEnd.In(time.UTC),
+			Period: timeutil.ClosedPeriod{
+				From: dbLine.PeriodStart.In(time.UTC),
+				To:   dbLine.PeriodEnd.In(time.UTC),
 			},
 
 			ParentLineID:           dbLine.ParentLineID,
@@ -177,9 +177,9 @@ func (a *adapter) mapStandardInvoiceDetailedLineFromDB(dbLine *db.BillingInvoice
 		ChildUniqueReferenceID: dbLine.ChildUniqueReferenceID,
 		FeeLineConfigID:        dbLine.Edges.FlatFeeLine.ID,
 
-		ServicePeriod: billing.Period{
-			Start: dbLine.PeriodStart.In(time.UTC),
-			End:   dbLine.PeriodEnd.In(time.UTC),
+		ServicePeriod: timeutil.ClosedPeriod{
+			From: dbLine.PeriodStart.In(time.UTC),
+			To:   dbLine.PeriodEnd.In(time.UTC),
 		},
 		PerUnitAmount: dbLine.Edges.FlatFeeLine.PerUnitAmount,
 		Quantity:      lo.FromPtr(dbLine.Quantity),
@@ -232,9 +232,9 @@ func (a *adapter) mapStandardInvoiceDetailedLineV2FromDB(dbLine *db.BillingStand
 		InvoiceID:              dbLine.InvoiceID,
 		ChildUniqueReferenceID: dbLine.ChildUniqueReferenceID,
 
-		ServicePeriod: billing.Period{
-			Start: dbLine.ServicePeriodStart.In(time.UTC),
-			End:   dbLine.ServicePeriodEnd.In(time.UTC),
+		ServicePeriod: timeutil.ClosedPeriod{
+			From: dbLine.ServicePeriodStart.In(time.UTC),
+			To:   dbLine.ServicePeriodEnd.In(time.UTC),
 		},
 		PerUnitAmount: dbLine.PerUnitAmount,
 		Quantity:      dbLine.Quantity,

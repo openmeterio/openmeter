@@ -27,6 +27,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 var _ billing.InvoiceAdapter = (*adapter)(nil)
@@ -487,8 +488,8 @@ func (a *adapter) UpdateStandardInvoice(ctx context.Context, in billing.UpdateSt
 
 		if in.Period != nil {
 			updateQuery = updateQuery.
-				SetPeriodStart(in.Period.Start.In(time.UTC)).
-				SetPeriodEnd(in.Period.End.In(time.UTC))
+				SetPeriodStart(in.Period.From.In(time.UTC)).
+				SetPeriodEnd(in.Period.To.In(time.UTC))
 		} else {
 			updateQuery = updateQuery.
 				ClearPeriodStart().
@@ -782,13 +783,13 @@ func (a *adapter) mapStandardInvoiceFromDB(ctx context.Context, invoice *db.Bill
 	return res, nil
 }
 
-func mapPeriodFromDB(start, end *time.Time) *billing.Period {
+func mapPeriodFromDB(start, end *time.Time) *timeutil.ClosedPeriod {
 	if start == nil || end == nil {
 		return nil
 	}
-	return &billing.Period{
-		Start: start.In(time.UTC),
-		End:   end.In(time.UTC),
+	return &timeutil.ClosedPeriod{
+		From: start.In(time.UTC),
+		To:   end.In(time.UTC),
 	}
 }
 

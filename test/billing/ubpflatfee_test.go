@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type UBPFlatFeeLineTestSuite struct {
@@ -40,15 +41,15 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 	// When we create a pending fee line using the usage based flat fee line
 	// Then the gathering invoice should be created
 
-	period := billing.Period{
-		Start: clockBase,
-		End:   clockBase.Add(time.Hour * 24),
+	period := timeutil.ClosedPeriod{
+		From: clockBase,
+		To:   clockBase.Add(time.Hour * 24),
 	}
 
 	s.Run("should create a pending line", func() {
 		lineIn := billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 			Period:    period,
-			InvoiceAt: period.End,
+			InvoiceAt: period.To,
 
 			Currency:      "USD",
 			Name:          "test in arrears",
@@ -101,7 +102,7 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 	// When we create a draft invoice
 	// Then the invoice should be created and should contain the line with it's detailed lines
 	s.Run("should create a draft invoice", func() {
-		clock.SetTime(period.End)
+		clock.SetTime(period.To)
 
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: cust.GetID(),
@@ -152,9 +153,9 @@ func (s *UBPFlatFeeLineTestSuite) TestPercentageDiscount() {
 	// When we create a pending fee line using the usage based flat fee line with a percentage discount
 	// Then the final invoice should contain the amount details
 
-	period := billing.Period{
-		Start: clock.Now(),
-		End:   clock.Now().Add(time.Hour * 24),
+	period := timeutil.ClosedPeriod{
+		From: clock.Now(),
+		To:   clock.Now().Add(time.Hour * 24),
 	}
 
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
@@ -163,7 +164,7 @@ func (s *UBPFlatFeeLineTestSuite) TestPercentageDiscount() {
 		Lines: []billing.GatheringLine{
 			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 				Period:    period,
-				InvoiceAt: period.End,
+				InvoiceAt: period.To,
 
 				Name:          "test in arrears",
 				PerUnitAmount: alpacadecimal.NewFromInt(200),
@@ -181,7 +182,7 @@ func (s *UBPFlatFeeLineTestSuite) TestPercentageDiscount() {
 	})
 	s.NoError(err)
 
-	clock.SetTime(period.End)
+	clock.SetTime(period.To)
 
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 		Customer: cust.GetID(),
@@ -230,9 +231,9 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 	cust := s.CreateTestCustomer(namespace, "test")
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
-	period := billing.Period{
-		Start: clock.Now(),
-		End:   clock.Now().Add(time.Hour * 24),
+	period := timeutil.ClosedPeriod{
+		From: clock.Now(),
+		To:   clock.Now().Add(time.Hour * 24),
 	}
 
 	s.Run("should not create line with usage discount", func() {
@@ -242,7 +243,7 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 			Lines: []billing.GatheringLine{
 				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Period:    period,
-					InvoiceAt: period.End,
+					InvoiceAt: period.To,
 
 					Name:          "test in arrears",
 					PerUnitAmount: alpacadecimal.NewFromInt(100),
@@ -267,11 +268,11 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 			Currency: "USD",
 			Lines: []billing.GatheringLine{
 				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
-					Period: billing.Period{
-						Start: period.Start,
-						End:   period.Start,
+					Period: timeutil.ClosedPeriod{
+						From: period.From,
+						To:   period.From,
 					},
-					InvoiceAt: period.Start,
+					InvoiceAt: period.From,
 
 					Name:          "test in arrears",
 					PerUnitAmount: alpacadecimal.NewFromInt(100),

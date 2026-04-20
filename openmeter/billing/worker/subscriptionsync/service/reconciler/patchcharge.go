@@ -101,8 +101,8 @@ func (c *chargePatchCollection) AddShrink(uniqueID string, existing persistedsta
 
 	patch, err := chargesmeta.NewPatchShrink(chargesmeta.NewPatchShrinkInput{
 		NewServicePeriodTo:     targetServicePeriod.To,
-		NewFullServicePeriodTo: target.FullServicePeriod.End,
-		NewBillingPeriodTo:     target.BillingPeriod.End,
+		NewFullServicePeriodTo: target.FullServicePeriod.To,
+		NewBillingPeriodTo:     target.BillingPeriod.To,
 	})
 	if err != nil {
 		return err
@@ -116,8 +116,8 @@ func (c *chargePatchCollection) AddExtend(existing persistedstate.Item, target t
 
 	patch, err := chargesmeta.NewPatchExtend(chargesmeta.NewPatchExtendInput{
 		NewServicePeriodTo:     targetServicePeriod.To,
-		NewFullServicePeriodTo: target.FullServicePeriod.End,
-		NewBillingPeriodTo:     target.BillingPeriod.End,
+		NewFullServicePeriodTo: target.FullServicePeriod.To,
+		NewBillingPeriodTo:     target.BillingPeriod.To,
 	})
 	if err != nil {
 		return err
@@ -150,12 +150,12 @@ func newChargeIntentBaseFromTargetState(target targetstate.StateItem) (chargesme
 		Currency:      target.CurrencyCalculator.Currency,
 		ServicePeriod: target.GetServicePeriod(),
 		FullServicePeriod: timeutil.ClosedPeriod{
-			From: target.FullServicePeriod.Start,
-			To:   target.FullServicePeriod.End,
+			From: target.FullServicePeriod.From,
+			To:   target.FullServicePeriod.To,
 		},
 		BillingPeriod: timeutil.ClosedPeriod{
-			From: target.BillingPeriod.Start,
-			To:   target.BillingPeriod.End,
+			From: target.BillingPeriod.From,
+			To:   target.BillingPeriod.To,
 		},
 		TaxConfig:         rateCardMeta.TaxConfig,
 		UniqueReferenceID: &target.UniqueID,

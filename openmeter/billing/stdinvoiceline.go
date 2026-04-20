@@ -33,8 +33,8 @@ type StandardLineBase struct {
 	Currency  currencyx.Code `json:"currency"`
 
 	// Lifecycle
-	Period    Period    `json:"period"`
-	InvoiceAt time.Time `json:"invoiceAt"`
+	Period    timeutil.ClosedPeriod `json:"period"`
+	InvoiceAt time.Time             `json:"invoiceAt"`
 
 	// Relationships
 	ParentLineID     *string `json:"parentLine,omitempty"`
@@ -276,12 +276,9 @@ func (i *StandardLine) SetDeletedAt(at *time.Time) {
 }
 
 func (i *StandardLine) UpdateServicePeriod(fn func(p *timeutil.ClosedPeriod)) {
-	period := i.Period.ToClosedPeriod()
+	period := i.Period
 	fn(&period)
-	i.Period = Period{
-		Start: period.From,
-		End:   period.To,
-	}
+	i.Period = period
 }
 
 func (i StandardLine) GetInvoiceID() string {
@@ -330,8 +327,8 @@ func (i StandardLine) GetMeteredPreLinePeriodQuantity() (*alpacadecimal.Decimal,
 func (i StandardLine) GetProgressivelyBilledServicePeriod() (timeutil.ClosedPeriod, error) {
 	if i.SplitLineGroupID == nil {
 		return timeutil.ClosedPeriod{
-			From: i.Period.Start,
-			To:   i.Period.End,
+			From: i.Period.From,
+			To:   i.Period.To,
 		}, nil
 	}
 
@@ -339,7 +336,7 @@ func (i StandardLine) GetProgressivelyBilledServicePeriod() (timeutil.ClosedPeri
 		return timeutil.ClosedPeriod{}, errors.New("split line hierarchy is required")
 	}
 
-	return i.SplitLineHierarchy.Group.ServicePeriod.ToClosedPeriod(), nil
+	return i.SplitLineHierarchy.Group.ServicePeriod, nil
 }
 
 func (i StandardLine) GetPreviouslyBilledAmount() (alpacadecimal.Decimal, error) {
@@ -352,7 +349,7 @@ func (i StandardLine) GetPreviouslyBilledAmount() (alpacadecimal.Decimal, error)
 	}
 
 	return i.SplitLineHierarchy.SumNetAmount(SumNetAmountInput{
-		PeriodEndLTE: i.Period.Start,
+		PeriodEndLTE: i.Period.From,
 	})
 }
 
@@ -391,8 +388,8 @@ func (i StandardLine) ToGatheringLineBase() (GatheringLineBase, error) {
 		InvoiceID:       i.InvoiceID,
 		Currency:        i.Currency,
 		ServicePeriod: timeutil.ClosedPeriod{
-			From: i.Period.Start,
-			To:   i.Period.End,
+			From: i.Period.From,
+			To:   i.Period.To,
 		},
 		InvoiceAt:              i.InvoiceAt,
 		Price:                  lo.FromPtr(i.UsageBased.Price),
@@ -513,8 +510,8 @@ func (i StandardLine) GetRateCardDiscounts() Discounts {
 
 func (i StandardLine) GetServicePeriod() timeutil.ClosedPeriod {
 	return timeutil.ClosedPeriod{
-		From: i.Period.Start,
-		To:   i.Period.End,
+		From: i.Period.From,
+		To:   i.Period.To,
 	}
 }
 
@@ -623,8 +620,8 @@ func (i StandardLine) Validate() error {
 	if i.UsageBased.Price.Type() != productcatalog.FlatPriceType {
 		if i.InvoiceAt.
 			Truncate(streaming.MinimumWindowSizeDuration).
-			Before(i.Period.Truncate(streaming.MinimumWindowSizeDuration).End) {
-			errs = append(errs, fmt.Errorf("invoice at (%s) must be after period end (%s) for usage based line", i.InvoiceAt, i.Period.Truncate(streaming.MinimumWindowSizeDuration).End))
+			Before(i.Period.Truncate(streaming.MinimumWindowSizeDuration).To) {
+			errs = append(errs, fmt.Errorf("invoice at (%s) must be after period end (%s) for usage based line", i.InvoiceAt, i.Period.Truncate(streaming.MinimumWindowSizeDuration).To))
 		}
 
 		if i.Period.Truncate(streaming.MinimumWindowSizeDuration).IsEmpty() {
@@ -727,8 +724,8 @@ func (i *StandardLine) SortDetailedLines() {
 			return nameOrder < 0
 		}
 
-		if !lineA.ServicePeriod.Start.Equal(lineB.ServicePeriod.Start) {
-			return lineA.ServicePeriod.Start.Before(lineB.ServicePeriod.Start)
+		if !lineA.ServicePeriod.From.Equal(lineB.ServicePeriod.From) {
+			return lineA.ServicePeriod.From.Before(lineB.ServicePeriod.From)
 		}
 
 		return strings.Compare(lineA.ID, lineB.ID) < 0
@@ -742,7 +739,7 @@ type NewFlatFeeLineInput struct {
 	UpdatedAt time.Time
 
 	Namespace string
-	Period    Period
+	Period    timeutil.ClosedPeriod
 	InvoiceAt time.Time
 
 	InvoiceID string
@@ -917,8 +914,8 @@ func (c *StandardLines) Sort() {
 			return nameOrder < 0
 		}
 
-		if !lineA.Period.Start.Equal(lineB.Period.Start) {
-			return lineA.Period.Start.Before(lineB.Period.Start)
+		if !lineA.Period.From.Equal(lineB.Period.From) {
+			return lineA.Period.From.Before(lineB.Period.From)
 		}
 
 		return strings.Compare(lineA.ID, lineB.ID) < 0

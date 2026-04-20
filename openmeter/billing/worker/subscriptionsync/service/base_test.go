@@ -33,6 +33,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
 
@@ -275,7 +276,7 @@ type expectedLine struct {
 	Matcher          lineMatcher
 	Qty              mo.Option[float64]
 	Price            mo.Option[*productcatalog.Price]
-	Periods          []billing.Period
+	Periods          []timeutil.ClosedPeriod
 	InvoiceAt        mo.Option[[]time.Time]
 	AdditionalChecks func(line billing.GenericInvoiceLine)
 }
@@ -325,8 +326,8 @@ func (s *SuiteBase) expectLines(invoice billing.GenericInvoiceReader, subscripti
 				s.Equal(*expectedLine.Price.OrEmpty(), *line.GetPrice(), "%s: price", childID)
 			}
 
-			s.Equal(expectedLine.Periods[idx].Start, line.GetServicePeriod().From, "%s: period start", childID)
-			s.Equal(expectedLine.Periods[idx].End, line.GetServicePeriod().To, "%s: period end", childID)
+			s.Equal(expectedLine.Periods[idx].From, line.GetServicePeriod().From, "%s: period start", childID)
+			s.Equal(expectedLine.Periods[idx].To, line.GetServicePeriod().To, "%s: period end", childID)
 
 			if expectedLine.InvoiceAt.IsPresent() {
 				invoiceAtAccessor, ok := line.(billing.InvoiceAtAccessor)
@@ -462,17 +463,17 @@ func (i subscriptionAddItem) AsPatch() subscription.Patch {
 	}
 }
 
-func (s *SuiteBase) generatePeriods(startStr, endStr string, cadenceStr string, n int) []billing.Period { //nolint: unparam
+func (s *SuiteBase) generatePeriods(startStr, endStr string, cadenceStr string, n int) []timeutil.ClosedPeriod { //nolint: unparam
 	start := testutils.GetRFC3339Time(s.T(), startStr)
 	end := testutils.GetRFC3339Time(s.T(), endStr)
 	cadence := datetime.MustParseDuration(s.T(), cadenceStr)
 
-	out := []billing.Period{}
+	out := []timeutil.ClosedPeriod{}
 
 	for n != 0 {
-		out = append(out, billing.Period{
-			Start: start,
-			End:   end,
+		out = append(out, timeutil.ClosedPeriod{
+			From: start,
+			To:   end,
 		})
 
 		start, _ = cadence.AddTo(start)

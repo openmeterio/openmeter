@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func RecalculateDetailedLinesAndTotals(invoice *billing.StandardInvoice, deps CalculatorDependencies) error {
@@ -88,9 +89,9 @@ func newDetailedLines(line *billing.StandardLine, inputs ...rating.DetailedLine)
 
 		period := line.Period
 		if in.Period != nil {
-			period = billing.Period{
-				Start: in.Period.From,
-				End:   in.Period.To,
+			period = timeutil.ClosedPeriod{
+				From: in.Period.From,
+				To:   in.Period.To,
 			}
 		}
 

@@ -1290,7 +1290,7 @@ func (s *StripeInvoiceTestSuite) TestSendInvoice() {
 			Currency: currencyx.Code(currency.USD),
 			Lines: []billing.GatheringLine{
 				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
-					Period:        billing.Period{Start: periodStart, End: periodEnd},
+					Period:        timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 					InvoiceAt:     periodStart,
 					Name:          "Flat fee",
 					PerUnitAmount: alpacadecimal.NewFromFloat(10),

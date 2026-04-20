@@ -62,7 +62,7 @@ func (s *Service) BookAccruedInvoiceUsage(ctx context.Context, in BookAccruedInv
 	input := usagebased.OnInvoiceUsageAccruedInput{
 		Charge:        in.Charge,
 		Run:           in.Run,
-		ServicePeriod: in.Line.Period.ToClosedPeriod(),
+		ServicePeriod: in.Line.Period,
 		Amount:        in.Line.Totals.Total,
 	}
 
@@ -81,7 +81,7 @@ func (s *Service) BookAccruedInvoiceUsage(ctx context.Context, in BookAccruedInv
 
 	accruedUsage, err := s.adapter.CreateRunInvoicedUsage(ctx, in.Run.ID, invoicedusage.AccruedUsage{
 		LineID:            in.Run.LineID,
-		ServicePeriod:     in.Line.Period.ToClosedPeriod(),
+		ServicePeriod:     in.Line.Period,
 		Mutable:           false,
 		Totals:            in.Line.Totals,
 		LedgerTransaction: &ledgerTransactionRef,

@@ -326,7 +326,7 @@ func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, custom
 			Currency: currencyx.Code(currency.USD),
 			Lines: []billing.GatheringLine{
 				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
-					Period: billing.Period{Start: now, End: now.Add(time.Hour * 24)},
+					Period: timeutil.ClosedPeriod{From: now, To: now.Add(time.Hour * 24)},
 
 					InvoiceAt: now,
 					ManagedBy: billing.ManuallyManagedLine,

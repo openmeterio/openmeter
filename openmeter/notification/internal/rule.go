@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type TestEventGenerator struct {
@@ -212,9 +213,9 @@ func (t *TestEventGenerator) newTestInvoicePayload(ctx context.Context, namespac
 				ManagedBy: billing.ManuallyManagedLine,
 
 				Name: "test flat fee",
-				Period: billing.Period{
-					Start: now.Add(-time.Hour * 24 * 30),
-					End:   now,
+				Period: timeutil.ClosedPeriod{
+					From: now.Add(-time.Hour * 24 * 30),
+					To:   now,
 				},
 				InvoiceAt: now,
 

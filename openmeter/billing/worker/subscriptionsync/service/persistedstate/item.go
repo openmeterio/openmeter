@@ -137,7 +137,7 @@ func (i persistedSplitLineHierarchy) ChildUniqueReferenceID() *string {
 }
 
 func (i persistedSplitLineHierarchy) ServicePeriod() timeutil.ClosedPeriod {
-	return i.hierarchy.Group.ServicePeriod.ToClosedPeriod()
+	return i.hierarchy.Group.ServicePeriod
 }
 
 func (i persistedSplitLineHierarchy) GetSplitLineHierarchy() *billing.SplitLineHierarchy {
@@ -172,7 +172,7 @@ func (i persistedSplitLineHierarchy) HasLastLineAnnotation(annotation string) bo
 func (i persistedSplitLineHierarchy) getLastLineForAnnotations() billing.GenericInvoiceLine {
 	servicePeriod := i.hierarchy.Group.ServicePeriod
 	for _, child := range i.hierarchy.Lines {
-		if child.Line.GetServicePeriod().To.Equal(servicePeriod.End) && child.Line.GetDeletedAt() == nil {
+		if child.Line.GetServicePeriod().To.Equal(servicePeriod.To) && child.Line.GetDeletedAt() == nil {
 			return child.Line
 		}
 	}

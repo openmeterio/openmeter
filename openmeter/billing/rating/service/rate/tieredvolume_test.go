@@ -292,7 +292,7 @@ func TestTieredVolumeCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(50),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: rating.MinSpendChildUniqueReferenceID,
-					Period:                 lo.ToPtr(testutil.TestFullPeriod.ToClosedPeriod()),
+					Period:                 lo.ToPtr(testutil.TestFullPeriod),
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Category:               billing.FlatFeeCategoryCommitment,
 					Totals: totals.Totals{
@@ -362,7 +362,7 @@ func TestTieredVolumeCalculation(t *testing.T) {
 					Name:                   "feature: minimum spend",
 					PerUnitAmount:          alpacadecimal.NewFromFloat(50),
 					Quantity:               alpacadecimal.NewFromFloat(1),
-					Period:                 lo.ToPtr(testutil.TestFullPeriod.ToClosedPeriod()),
+					Period:                 lo.ToPtr(testutil.TestFullPeriod),
 					ChildUniqueReferenceID: rating.MinSpendChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Category:               billing.FlatFeeCategoryCommitment,

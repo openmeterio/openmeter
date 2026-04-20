@@ -84,7 +84,7 @@ func (s *BillingAdapterTestSuite) setupInvoice(ctx context.Context, ns string) *
 
 type newLineInput struct {
 	Namespace              string
-	Period                 billing.Period
+	Period                 timeutil.ClosedPeriod
 	Invoice                *billing.StandardInvoice
 	Name                   string
 	ChildUniqueReferenceID string
@@ -105,7 +105,7 @@ func newLine(in newLineInput) *billing.StandardLine {
 			Currency:  in.Invoice.Currency,
 
 			Period:    in.Period,
-			InvoiceAt: in.Period.End,
+			InvoiceAt: in.Period.To,
 
 			ChildUniqueReferenceID: lo.EmptyableToPtr(in.ChildUniqueReferenceID),
 		},
@@ -154,9 +154,9 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 	ns := "ns-adapter-detailed-line"
 	// Given we have an invoice
 
-	period := billing.Period{
-		Start: lo.Must(time.Parse(time.RFC3339, "2023-01-10T00:00:00Z")),
-		End:   lo.Must(time.Parse(time.RFC3339, "2023-01-20T00:00:00Z")),
+	period := timeutil.ClosedPeriod{
+		From: lo.Must(time.Parse(time.RFC3339, "2023-01-10T00:00:00Z")),
+		To:   lo.Must(time.Parse(time.RFC3339, "2023-01-20T00:00:00Z")),
 	}
 
 	invoice := s.setupInvoice(ctx, ns)
@@ -389,9 +389,9 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 	ns := "ns-adapter-discount-handling"
 	// Given we have an invoice
 
-	period := billing.Period{
-		Start: lo.Must(time.Parse(time.RFC3339, "2023-01-10T00:00:00Z")),
-		End:   lo.Must(time.Parse(time.RFC3339, "2023-01-20T00:00:00Z")),
+	period := timeutil.ClosedPeriod{
+		From: lo.Must(time.Parse(time.RFC3339, "2023-01-10T00:00:00Z")),
+		To:   lo.Must(time.Parse(time.RFC3339, "2023-01-20T00:00:00Z")),
 	}
 
 	invoice := s.setupInvoice(ctx, ns)

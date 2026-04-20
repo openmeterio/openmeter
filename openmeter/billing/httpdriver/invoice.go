@@ -24,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/sortx"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 var _ InvoiceHandler = (*handler)(nil)
@@ -710,15 +711,15 @@ func MapEventInvoiceToAPI(event billing.EventStandardInvoice) (api.Invoice, erro
 	return invoice, nil
 }
 
-func mapPeriodToAPI(p *billing.Period) *api.Period {
+func mapPeriodToAPI(p *timeutil.ClosedPeriod) *api.Period {
 	if p == nil {
 		return nil
 	}
 
 	// TODO[later]: let's use a common model for this
 	return &api.Period{
-		From: p.Start,
-		To:   p.End,
+		From: p.From,
+		To:   p.To,
 	}
 }
 

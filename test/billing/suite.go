@@ -58,6 +58,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
@@ -367,9 +368,9 @@ func (s *BaseSuite) DebugDumpStandardInvoice(h string, i billing.StandardInvoice
 	l := i.Lines.OrEmpty()
 
 	slices.SortFunc(l, func(l1, l2 *billing.StandardLine) int {
-		if l1.Period.Start.Before(l2.Period.Start) {
+		if l1.Period.From.Before(l2.Period.From) {
 			return -1
-		} else if l1.Period.Start.After(l2.Period.Start) {
+		} else if l1.Period.From.After(l2.Period.From) {
 			return 1
 		}
 		return 0
@@ -385,8 +386,8 @@ func (s *BaseSuite) DebugDumpStandardInvoice(h string, i billing.StandardInvoice
 		s.NoError(err)
 
 		s.T().Logf("usage[%s..%s] childUniqueReferenceID: %s, invoiceAt: %s, qty: %s, price: %s (total=%s) %s\n",
-			line.Period.Start.Format(time.RFC3339),
-			line.Period.End.Format(time.RFC3339),
+			line.Period.From.Format(time.RFC3339),
+			line.Period.To.Format(time.RFC3339),
 			lo.FromPtrOr(line.ChildUniqueReferenceID, "null"),
 			line.InvoiceAt.Format(time.RFC3339),
 			line.UsageBased.Quantity,
@@ -467,7 +468,7 @@ func (s *BaseSuite) CreateGatheringInvoice(t *testing.T, ctx context.Context, in
 				billing.NewFlatFeeGatheringLine(
 					billing.NewFlatFeeLineInput{
 						Namespace:     namespace,
-						Period:        billing.Period{Start: periodStart, End: periodEnd},
+						Period:        timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 						InvoiceAt:     invoiceAt,
 						ManagedBy:     billing.ManuallyManagedLine,
 						Name:          "Test item1",
@@ -482,7 +483,7 @@ func (s *BaseSuite) CreateGatheringInvoice(t *testing.T, ctx context.Context, in
 				billing.NewFlatFeeGatheringLine(
 					billing.NewFlatFeeLineInput{
 						Namespace:     namespace,
-						Period:        billing.Period{Start: periodStart, End: periodEnd},
+						Period:        timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 						InvoiceAt:     invoiceAt,
 						ManagedBy:     billing.ManuallyManagedLine,
 						Name:          "Test item2",

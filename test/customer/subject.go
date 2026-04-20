@@ -26,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func (s *CustomerHandlerTestSuite) TestSubjectDeletion(ctx context.Context, t *testing.T) {
@@ -381,7 +382,7 @@ func (s *CustomerHandlerTestSuite) TestMultiSubjectIntegrationFlow(ctx context.C
 		UpdatedAt:     now,
 		Namespace:     s.namespace,
 		Name:          "Integration Manual Line",
-		Period:        billing.Period{Start: periodStart, End: future},
+		Period:        timeutil.ClosedPeriod{From: periodStart, To: future},
 		InvoiceAt:     future,
 		PerUnitAmount: alpacadecimal.NewFromFloat(15),
 		PaymentTerm:   productcatalog.InArrearsPaymentTerm,

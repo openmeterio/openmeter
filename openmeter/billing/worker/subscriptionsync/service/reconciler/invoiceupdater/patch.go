@@ -151,7 +151,7 @@ func (p Patch) Log(logger *slog.Logger) {
 	case PatchOpSplitLineGroupDelete:
 		logger.Info("delete split line group patch", "group_id", p.deleteSplitLineGroupPatch.Group.ID)
 	case PatchOpSplitLineGroupUpdate:
-		logger.Info("update split line group patch", "group_id", p.updateSplitLineGroupPatch.TargetState.ID, "new_service_period_from", p.updateSplitLineGroupPatch.TargetState.ServicePeriod.Start, "new_service_period_to", p.updateSplitLineGroupPatch.TargetState.ServicePeriod.End)
+		logger.Info("update split line group patch", "group_id", p.updateSplitLineGroupPatch.TargetState.ID, "new_service_period_from", p.updateSplitLineGroupPatch.TargetState.ServicePeriod.From, "new_service_period_to", p.updateSplitLineGroupPatch.TargetState.ServicePeriod.To)
 	default:
 		logger.Info("unknown patch operation", "operation", p.op)
 	}

@@ -137,7 +137,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 					billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 						Namespace: namespace,
 
-						Period:    billing.Period{Start: periodStart, End: periodEnd},
+						Period:    timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 						InvoiceAt: issueAt,
 
 						ManagedBy: billing.ManuallyManagedLine,
@@ -169,7 +169,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				Currency: currencyx.Code(currency.HUF),
 				Lines: []billing.GatheringLine{
 					billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
-						Period: billing.Period{Start: periodStart, End: periodEnd},
+						Period: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 
 						InvoiceAt: issueAt,
 						ManagedBy: billing.ManuallyManagedLine,
@@ -420,7 +420,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 			Lines: []billing.GatheringLine{
 				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Namespace: namespace,
-					Period:    billing.Period{Start: periodStart, End: periodEnd},
+					Period:    timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 
 					InvoiceAt: line1IssueAt,
 
@@ -437,7 +437,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 				}),
 				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Namespace: namespace,
-					Period:    billing.Period{Start: periodStart, End: periodEnd},
+					Period:    timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 
 					InvoiceAt: line2IssueAt,
 
@@ -601,7 +601,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 					billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 						Name:      "Test item1",
 						Namespace: namespace,
-						Period:    billing.Period{Start: periodStart, End: periodEnd},
+						Period:    timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 
 						InvoiceAt: line1IssueAt,
 
@@ -1671,9 +1671,9 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			tieredGraduated.ID,
 		})
 
-		expectedPeriod := billing.Period{
-			Start: truncatedPeriodStart,
-			End:   truncatedPeriodStart.Add(time.Hour),
+		expectedPeriod := timeutil.ClosedPeriod{
+			From: truncatedPeriodStart,
+			To:   truncatedPeriodStart.Add(time.Hour),
 		}
 		for _, line := range invoiceLines {
 			require.True(s.T(), expectedPeriod.Equal(line.Period), "period should be changed for the line items")
@@ -1971,9 +1971,9 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			tieredGraduated.ID,
 		})
 
-		expectedPeriod := billing.Period{
-			Start: truncatedPeriodStart.Add(time.Hour),
-			End:   truncatedPeriodStart.Add(2 * time.Hour),
+		expectedPeriod := timeutil.ClosedPeriod{
+			From: truncatedPeriodStart.Add(time.Hour),
+			To:   truncatedPeriodStart.Add(2 * time.Hour),
 		}
 		for _, line := range invoiceLines {
 			require.True(s.T(), expectedPeriod.Equal(line.Period), "period should be changed for the line items")
@@ -1984,7 +1984,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		s.NotNil(tieredGraduated.SplitLineHierarchy)
 		tieredGraduatedHierarchy := tieredGraduated.SplitLineHierarchy
 
-		require.True(s.T(), tieredGraduatedHierarchy.Group.ServicePeriod.ToClosedPeriod().Equal(lines.tieredGraduated.ServicePeriod))
+		require.True(s.T(), tieredGraduatedHierarchy.Group.ServicePeriod.Equal(lines.tieredGraduated.ServicePeriod))
 		require.Len(s.T(), tieredGraduatedHierarchy.Lines, 3, "there should be to child lines [id=%s]", tieredGraduatedHierarchy.Group.ID)
 		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.GetServicePeriod().Equal(timeutil.ClosedPeriod{
 			From: truncatedPeriodStart,
@@ -2175,22 +2175,22 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			lines.tieredVolume.ID,
 		})
 
-		expectedPeriod := billing.Period{
-			Start: truncatedPeriodStart.Add(2 * time.Hour),
-			End:   truncatedPeriodEnd,
+		expectedPeriod := timeutil.ClosedPeriod{
+			From: truncatedPeriodStart.Add(2 * time.Hour),
+			To:   truncatedPeriodEnd,
 		}
 		for _, line := range []*billing.StandardLine{flatPerUnit, tieredGraduated} {
 			require.True(s.T(), expectedPeriod.Equal(line.Period), "period should be changed for the line items")
 		}
-		require.True(s.T(), tieredVolume.Period.ToClosedPeriod().Equal(lines.tieredVolume.ServicePeriod), "period should be unchanged for the tiered volume line")
-		require.True(s.T(), flatFee.Period.ToClosedPeriod().Equal(lines.flatFee.ServicePeriod), "period should be unchanged for the flat line")
+		require.True(s.T(), tieredVolume.Period.Equal(lines.tieredVolume.ServicePeriod), "period should be unchanged for the tiered volume line")
+		require.True(s.T(), flatFee.Period.Equal(lines.flatFee.ServicePeriod), "period should be unchanged for the flat line")
 
 		// Let's validate the output of the split itself: no new split should have occurred
 		s.sortedSplitLineGroupChildren(tieredGraduated)
 		tieredGraduatedHierarchy := tieredGraduated.SplitLineHierarchy
 		s.NotNil(tieredGraduatedHierarchy)
 
-		require.True(s.T(), tieredGraduatedHierarchy.Group.ServicePeriod.ToClosedPeriod().Equal(lines.tieredGraduated.ServicePeriod))
+		require.True(s.T(), tieredGraduatedHierarchy.Group.ServicePeriod.Equal(lines.tieredGraduated.ServicePeriod))
 		require.Len(s.T(), tieredGraduatedHierarchy.Lines, 3, "there should be to child lines [id=%s]", tieredGraduatedHierarchy.Group.ID)
 		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.GetServicePeriod().Equal(timeutil.ClosedPeriod{
 			From: truncatedPeriodStart,
@@ -2861,18 +2861,18 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 		tieredGraduated := s.lineByID(invoiceLines, lines.tieredGraduated.ID)
 		tieredVolume := s.lineByID(invoiceLines, lines.tieredVolume.ID)
 
-		expectedPeriod := billing.Period{
-			Start: truncatedPeriodStart,
-			End:   truncatedPeriodEnd,
+		expectedPeriod := timeutil.ClosedPeriod{
+			From: truncatedPeriodStart,
+			To:   truncatedPeriodEnd,
 		}
 		for _, line := range []*billing.StandardLine{flatPerUnit, tieredGraduated, tieredVolume} {
 			require.True(s.T(), expectedPeriod.Equal(line.Period), "period should not be changed for the line items")
 		}
 
 		require.Equal(s.T(),
-			billing.Period{
-				Start: truncatedPeriodStart,
-				End:   truncatedPeriodEnd,
+			timeutil.ClosedPeriod{
+				From: truncatedPeriodStart,
+				To:   truncatedPeriodEnd,
 			},
 			flatFee.Period,
 			"period should be unchanged",
@@ -3674,7 +3674,7 @@ func (s *InvoicingTestSuite) TestProgressiveBillLate() {
 
 	line := lines[0]
 	s.Equal(line.Name, "UBP - volume")
-	s.True(line.Period.Equal(billing.Period{Start: periodStart, End: periodEnd}), "periods should equal")
+	s.True(line.Period.Equal(timeutil.ClosedPeriod{From: periodStart, To: periodEnd}), "periods should equal")
 }
 
 func (s *InvoicingTestSuite) TestProgressiveBillingOverride() {
@@ -3785,7 +3785,7 @@ func (s *InvoicingTestSuite) TestProgressiveBillingOverride() {
 
 	line := lines[0]
 	s.Equal(line.Name, "UBP - volume")
-	s.True(line.Period.Equal(billing.Period{Start: periodStart, End: periodEnd}), "periods should equal")
+	s.True(line.Period.Equal(timeutil.ClosedPeriod{From: periodStart, To: periodEnd}), "periods should equal")
 }
 
 func (s *InvoicingTestSuite) TestSortLines() {
@@ -3911,7 +3911,7 @@ func (s *InvoicingTestSuite) TestSortLines() {
 
 		line := lines[0]
 		s.Equal(line.Name, "UBP - volume")
-		s.True(line.Period.Equal(billing.Period{Start: periodStart, End: periodEnd}), "periods should equal")
+		s.True(line.Period.Equal(timeutil.ClosedPeriod{From: periodStart, To: periodEnd}), "periods should equal")
 
 		s.Len(line.DetailedLines, 4)
 
@@ -3950,7 +3950,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoicePeriodPersisting() {
 		Currency: currencyx.Code(currency.USD),
 		Lines: []billing.GatheringLine{
 			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
-				Period:    billing.Period{Start: periodStart, End: periodEnd},
+				Period:    timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 				InvoiceAt: periodStart,
 				Name:      "Flat fee",
 
@@ -3982,7 +3982,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoicePeriodPersisting() {
 		Currency: currencyx.Code(currency.USD),
 		Lines: []billing.GatheringLine{
 			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
-				Period:    billing.Period{Start: newPeriodStart, End: newPeriodEnd},
+				Period:    timeutil.ClosedPeriod{From: newPeriodStart, To: newPeriodEnd},
 				InvoiceAt: newPeriodStart,
 				Name:      "Flat fee",
 
@@ -4061,7 +4061,7 @@ func (s *InvoicingTestSuite) TestCreatePendingInvoiceLinesForDeletedCustomers() 
 		Currency: currencyx.Code(currency.USD),
 		Lines: []billing.GatheringLine{
 			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
-				Period:    billing.Period{Start: periodStart, End: periodEnd},
+				Period:    timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 				InvoiceAt: periodStart,
 				Name:      "Flat fee",
 
@@ -4098,7 +4098,7 @@ func (s *InvoicingTestSuite) TestCreatePendingInvoiceLinesForDeletedCustomers() 
 		Currency: currencyx.Code(currency.USD),
 		Lines: []billing.GatheringLine{
 			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
-				Period:        billing.Period{Start: clock.Now(), End: clock.Now().Add(time.Hour * 24)},
+				Period:        timeutil.ClosedPeriod{From: clock.Now(), To: clock.Now().Add(time.Hour * 24)},
 				InvoiceAt:     clock.Now(),
 				Name:          "Flat fee",
 				PerUnitAmount: alpacadecimal.NewFromFloat(10),
@@ -4297,7 +4297,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceEmulation() {
 			Lines: []billing.GatheringLine{
 				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Namespace:     namespace,
-					Period:        billing.Period{Start: periodStart, End: periodEnd},
+					Period:        timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 					InvoiceAt:     now,
 					ManagedBy:     billing.ManuallyManagedLine,
 					Name:          "Test item1",
@@ -4332,7 +4332,7 @@ func (s *InvoicingTestSuite) TestUpdateInvoice() {
 	testLines := []billing.GatheringLine{
 		billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 			Namespace:     namespace,
-			Period:        billing.Period{Start: periodStart, End: periodEnd},
+			Period:        timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 			InvoiceAt:     now,
 			ManagedBy:     billing.ManuallyManagedLine,
 			Name:          "line-active",
@@ -4341,7 +4341,7 @@ func (s *InvoicingTestSuite) TestUpdateInvoice() {
 		}),
 		billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 			Namespace:     namespace,
-			Period:        billing.Period{Start: periodStart, End: periodEnd},
+			Period:        timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 			InvoiceAt:     now,
 			ManagedBy:     billing.ManuallyManagedLine,
 			Name:          "line-deleted",

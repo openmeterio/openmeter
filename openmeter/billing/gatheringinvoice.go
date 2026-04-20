@@ -708,10 +708,7 @@ func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error
 			InvoiceID:       invoiceID,
 			Currency:        g.Currency,
 
-			Period: Period{
-				Start: g.ServicePeriod.From,
-				End:   g.ServicePeriod.To,
-			},
+			Period:    g.ServicePeriod,
 			InvoiceAt: g.InvoiceAt,
 
 			TaxConfig:              taxConfig,
@@ -870,8 +867,8 @@ func NewFlatFeeGatheringLine(input NewFlatFeeLineInput, opts ...usageBasedLineOp
 				Description: input.Description,
 			}),
 			ServicePeriod: timeutil.ClosedPeriod{
-				From: input.Period.Start,
-				To:   input.Period.End,
+				From: input.Period.From,
+				To:   input.Period.To,
 			},
 			InvoiceAt: input.InvoiceAt,
 			InvoiceID: input.InvoiceID,
