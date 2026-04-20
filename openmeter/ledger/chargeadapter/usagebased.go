@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
 // usageBasedHandler maps usage-based credit lifecycle events to ledger transaction templates.
@@ -96,6 +97,7 @@ func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usage
 	if err := input.Validate(); err != nil {
 		return ledgertransaction.GroupReference{}, err
 	}
+	eventTime := clock.Now()
 
 	if err := validateSettlementMode(
 		input.Charge.Intent.SettlementMode,
@@ -128,7 +130,7 @@ func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usage
 			Namespace:  input.Charge.Namespace,
 		},
 		transactions.FundCustomerReceivableTemplate{
-			At:        input.Charge.Intent.InvoiceAt,
+			At:        eventTime,
 			Amount:    receivableReplenishment,
 			Currency:  input.Charge.Intent.Currency,
 			CostBasis: invoiceCostBasis,
@@ -162,6 +164,7 @@ func (h *usageBasedHandler) OnPaymentSettled(ctx context.Context, input usagebas
 	if err := input.Validate(); err != nil {
 		return ledgertransaction.GroupReference{}, err
 	}
+	eventTime := clock.Now()
 
 	if err := validateSettlementMode(
 		input.Charge.Intent.SettlementMode,
@@ -189,7 +192,7 @@ func (h *usageBasedHandler) OnPaymentSettled(ctx context.Context, input usagebas
 			Namespace:  input.Charge.Namespace,
 		},
 		transactions.SettleCustomerReceivablePaymentTemplate{
-			At:        input.Charge.Intent.InvoiceAt,
+			At:        eventTime,
 			Amount:    input.Run.InvoiceUsage.Totals.Total,
 			Currency:  input.Charge.Intent.Currency,
 			CostBasis: invoiceCostBasis,

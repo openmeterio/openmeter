@@ -23,6 +23,7 @@ import (
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -239,8 +240,14 @@ func TestOnUsageBasedPaymentAuthorized(t *testing.T) {
 		})
 		require.NoError(t, err)
 
+		charge := env.newCharge(productcatalog.CreditThenInvoiceSettlementMode)
+		charge.Intent.InvoiceAt = env.Now().Add(-24 * time.Hour)
+		eventTime := env.Now().Add(15 * time.Minute)
+		clock.FreezeTime(eventTime)
+		defer clock.UnFreeze()
+
 		ref, err := env.handler.OnPaymentAuthorized(t.Context(), chargeusagebased.OnPaymentAuthorizedInput{
-			Charge: env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
+			Charge: charge,
 			Run:    env.newRunWithInvoiceUsage("line-1", total),
 		})
 		require.NoError(t, err)
@@ -253,6 +260,11 @@ func TestOnUsageBasedPaymentAuthorized(t *testing.T) {
 		// No revenue recognition happens here anymore.
 		require.True(t, env.sumBalance(t, env.invoiceAccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(40)))
 		require.True(t, env.sumBalance(t, env.invoiceEarningsSubAccount(t)).Equal(alpacadecimal.Zero))
+
+		for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
+			require.True(t, bookedAt.UTC().Equal(eventTime.UTC()))
+			require.False(t, bookedAt.UTC().Equal(charge.Intent.InvoiceAt.UTC()))
+		}
 	})
 
 	t.Run("zero invoice usage is a no-op", func(t *testing.T) {
@@ -280,14 +292,22 @@ func TestOnUsageBasedPaymentSettled(t *testing.T) {
 		})
 		require.NoError(t, err)
 
+		authorizedCharge := env.newCharge(productcatalog.CreditThenInvoiceSettlementMode)
+		authorizedCharge.Intent.InvoiceAt = env.Now().Add(-24 * time.Hour)
 		_, err = env.handler.OnPaymentAuthorized(t.Context(), chargeusagebased.OnPaymentAuthorizedInput{
-			Charge: env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
+			Charge: authorizedCharge,
 			Run:    env.newRunWithInvoiceUsage("line-1", total),
 		})
 		require.NoError(t, err)
 
+		settledCharge := env.newCharge(productcatalog.CreditThenInvoiceSettlementMode)
+		settledCharge.Intent.InvoiceAt = env.Now().Add(-48 * time.Hour)
+		eventTime := env.Now().Add(30 * time.Minute)
+		clock.FreezeTime(eventTime)
+		defer clock.UnFreeze()
+
 		ref, err := env.handler.OnPaymentSettled(t.Context(), chargeusagebased.OnPaymentSettledInput{
-			Charge: env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
+			Charge: settledCharge,
 			Run:    env.newRunWithAuthorizedPayment("line-1", total),
 		})
 		require.NoError(t, err)
@@ -296,6 +316,11 @@ func TestOnUsageBasedPaymentSettled(t *testing.T) {
 		require.True(t, env.sumBalance(t, env.unknownReceivableSubAccount(t)).Equal(alpacadecimal.Zero))
 		require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t)).Equal(alpacadecimal.Zero))
 		require.True(t, env.sumBalance(t, env.washSubAccount(t)).Equal(alpacadecimal.NewFromInt(-25)))
+
+		for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
+			require.True(t, bookedAt.UTC().Equal(eventTime.UTC()))
+			require.False(t, bookedAt.UTC().Equal(settledCharge.Intent.InvoiceAt.UTC()))
+		}
 	})
 
 	t.Run("zero invoice usage is a no-op", func(t *testing.T) {
@@ -582,6 +607,29 @@ func (e *usageBasedHandlerTestEnv) transactionAnnotations(t *testing.T, groupID 
 	out := make([]models.Annotations, 0, len(transactions))
 	for _, tx := range transactions {
 		out = append(out, tx.Annotations)
+	}
+
+	return out
+}
+
+func (e *usageBasedHandlerTestEnv) transactionBookedAtTimes(t *testing.T, groupID string) []time.Time {
+	t.Helper()
+
+	transactions, err := e.DB.LedgerTransaction.Query().
+		Where(
+			ledgertransactiondb.Namespace(e.Namespace),
+			ledgertransactiondb.GroupID(groupID),
+		).
+		Order(
+			ledgertransactiondb.ByCreatedAt(),
+			ledgertransactiondb.ByID(),
+		).
+		All(t.Context())
+	require.NoError(t, err)
+
+	out := make([]time.Time, 0, len(transactions))
+	for _, tx := range transactions {
+		out = append(out, tx.BookedAt)
 	}
 
 	return out
