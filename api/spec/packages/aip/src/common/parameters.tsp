@@ -137,6 +137,53 @@ model StringFieldFilterExact {
 }
 
 /**
+ * Filters on the given string field value by either exact or fuzzy match.
+ * All properties are optional; provide exactly one to specify the comparison.
+ */
+@friendlyName("UlidFieldFilter")
+@extension("x-go-type", "filters.FilterUlid")
+@extension(
+  "x-go-type-import",
+  #{ path: "github.com/openmeterio/openmeter/api/v3/filters" }
+)
+union UlidFieldFilter {
+  string: string,
+  object: {
+    /** Value strictly equals the given string value. */
+    eq?: string,
+
+    /** Value does not equal the given string value. */
+    neq?: string,
+
+    /** Value contains the given string value (fuzzy match). */
+    contains?: string,
+
+    /** Returns entities that fuzzy-match any of the comma-delimited phrases in the filter string. */
+    @encode(ArrayEncoding.commaDelimited)
+    ocontains?: string[],
+
+    /** Returns entities that exact match any of the comma-delimited phrases in the filter string. */
+    @encode(ArrayEncoding.commaDelimited)
+    oeq?: string[],
+
+    /** Value is greater than the given string value (lexicographic compare). */
+    gt?: string,
+
+    /** Value is greater than or equal to the given string value (lexicographic compare). */
+    gte?: string,
+
+    /** Value is less than the given string value (lexicographic compare). */
+    lt?: string,
+
+    /** Value is less than or equal to the given string value (lexicographic compare). */
+    lte?: string,
+
+    /** When true, the field must be present (non-null); when false, the field must be absent (null). */
+    exists?: boolean,
+  },
+}
+
+/**
  * Filters on the given datetime (RFC-3339) field value.
  * All properties are optional; provide exactly one to specify the comparison.
  */

@@ -129,7 +129,9 @@ func TestCreateFeature(t *testing.T) {
 				assert.Eventually(t, func() bool {
 					featureList, err := connector.ListFeatures(ctx, feature.ListFeaturesParams{
 						Namespace: namespace,
-						MeterIDs:  &filter.FilterString{Eq: lo.ToPtr(meterID)},
+						MeterIDs: &filter.FilterUlid{FilterString: filter.FilterString{
+							Eq: lo.ToPtr(meterID),
+						}},
 					})
 					if err != nil {
 						return false
@@ -210,8 +212,10 @@ func TestCreateFeature(t *testing.T) {
 				// ?filter[meter_id][oeq]=<meterID>
 				features, err := connector.ListFeatures(ctx, feature.ListFeaturesParams{
 					Namespace: namespace,
-					MeterIDs: &filter.FilterString{
-						In: lo.ToPtr([]string{meterID}),
+					MeterIDs: &filter.FilterUlid{
+						FilterString: filter.FilterString{
+							In: lo.ToPtr([]string{meterID}),
+						},
 					},
 				})
 				assert.NoError(t, err)
@@ -222,8 +226,10 @@ func TestCreateFeature(t *testing.T) {
 				// ?filter[meter_id][oeq]=<meterID>,<meterID2>
 				features, err = connector.ListFeatures(ctx, feature.ListFeaturesParams{
 					Namespace: namespace,
-					MeterIDs: &filter.FilterString{
-						In: lo.ToPtr([]string{meterID, meterID2}),
+					MeterIDs: &filter.FilterUlid{
+						FilterString: filter.FilterString{
+							In: lo.ToPtr([]string{meterID, meterID2}),
+						},
 					},
 				})
 				assert.NoError(t, err)
@@ -233,8 +239,10 @@ func TestCreateFeature(t *testing.T) {
 				// ?filter[meter_id][oeq]=invalid
 				features, err = connector.ListFeatures(ctx, feature.ListFeaturesParams{
 					Namespace: namespace,
-					MeterIDs: &filter.FilterString{
-						In: lo.ToPtr([]string{"invalidid"}),
+					MeterIDs: &filter.FilterUlid{
+						FilterString: filter.FilterString{
+							In: lo.ToPtr([]string{"invalidid"}),
+						},
 					},
 				})
 				assert.NoError(t, err)

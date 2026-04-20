@@ -83,6 +83,39 @@ type FilterString struct {
 	Exists *bool `json:"$exists,omitempty"`
 }
 
+// FilterUlid represents a filter operation on a string field that satisfies ULID format.
+type FilterUlid struct {
+	// Eq requires the field to match the provided value exactly (case-sensitive).
+	Eq *string `json:"eq,omitempty"`
+
+	// Neq requires the field to not match the provided value (case-sensitive).
+	Neq *string `json:"neq,omitempty"`
+
+	// Gt requires the field to be greater than the provided value.
+	Gt *string `json:"gt,omitempty"`
+
+	// Gte requires the field to be greater than or equal to the provided value.
+	Gte *string `json:"gte,omitempty"`
+
+	// Lt requires the field to be less than the provided value.
+	Lt *string `json:"lt,omitempty"`
+
+	// Lte requires the field to be less than or equal to the provided value.
+	Lte *string `json:"lte,omitempty"`
+
+	// Contains requires the field to contain the provided value (case-insensitive).
+	Contains *string `json:"contains,omitempty"`
+
+	// Oeq requires the field to match any of the provided comma-separated values (case-sensitive).
+	Oeq []string `json:"oeq,omitempty"`
+
+	// Ocontains requires the field to contain any of the provided comma-separated values (case-insensitive).
+	Ocontains []string `json:"ocontains,omitempty"`
+
+	// Exists requires the field to be present (true) or absent (false).
+	Exists *bool `json:"$exists,omitempty"`
+}
+
 // FilterLabel represents a filter operation on a label key.
 type FilterLabel struct {
 	// Eq requires the field to match the provided value exactly.

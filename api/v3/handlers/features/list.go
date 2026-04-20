@@ -55,7 +55,7 @@ func (h *handler) ListFeatures() ListFeaturesHandler {
 			}
 
 			if params.Filter != nil {
-				meterIDs, err := filters.FromAPIFilterString(params.Filter.MeterId)
+				meterIDs, err := filters.FromAPIFilterULID(params.Filter.MeterId)
 				if err != nil {
 					return ListFeaturesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 						{Field: "filter[meter_id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},

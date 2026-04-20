@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/huandu/go-sqlbuilder"
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -32,6 +33,7 @@ type Filter interface {
 var (
 	ErrFilterMultipleOperators  = errors.New("filter is invalid: multiple operators are set")
 	ErrFilterComplexityExceeded = errors.New("filter complexity exceeds maximum allowed depth")
+	ErrFilterFormatMismatch     = errors.New("filter is invalid: format mismatch")
 )
 
 var (
@@ -41,6 +43,7 @@ var (
 	_ Filter = (*FilterTime)(nil)
 	_ Filter = (*FilterTimeUnix)(nil)
 	_ Filter = (*FilterBoolean)(nil)
+	_ Filter = (*FilterUlid)(nil)
 )
 
 // EscapeLikePattern escapes SQL LIKE metacharacters using the package's escape character.
@@ -790,4 +793,98 @@ func isEmptyFilter(v Filter) bool {
 	}
 
 	return true
+}
+
+// FilterUlid is a filter for a string field.
+type FilterUlid struct {
+	FilterString
+	And *[]FilterUlid `json:"$and,omitempty"`
+	Or  *[]FilterUlid `json:"$or,omitempty"`
+}
+
+// Validate validates the filter.
+func (f FilterUlid) Validate() error {
+	return models.NewNillableGenericValidationError(f.validateWithComplexity(math.MaxInt))
+}
+
+// ValidateWithComplexity validates the filter complexity.
+func (f FilterUlid) ValidateWithComplexity(maxDepth int) error {
+	return models.NewNillableGenericValidationError(f.validateWithComplexity(maxDepth))
+}
+
+func (f FilterUlid) validateWithComplexity(maxDepth int) error {
+	if err := validateSingleOperator(f.FilterString); err != nil {
+		return err
+	}
+
+	for _, value := range collectStringValues(f.FilterString) {
+		_, err := ulid.ParseStrict(value)
+		if err != nil {
+			return ErrFilterFormatMismatch
+		}
+	}
+
+	if f.And == nil && f.Or == nil {
+		return nil
+	}
+
+	if maxDepth <= 0 {
+		return ErrFilterComplexityExceeded
+	}
+
+	for _, child := range lo.FromPtr(f.And) {
+		if err := child.validateWithComplexity(maxDepth - 1); err != nil {
+			return err
+		}
+	}
+	for _, child := range lo.FromPtr(f.Or) {
+		if err := child.validateWithComplexity(maxDepth - 1); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// IsEmpty returns true if the filter is empty.
+func (f FilterUlid) IsEmpty() bool {
+	return isEmptyFilter(f.FilterString)
+}
+
+// SelectWhereExpr converts the filter to a SQL WHERE expression.
+func (f FilterUlid) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) string {
+	return f.FilterString.SelectWhereExpr(field, q)
+}
+
+// Select converts the filter to an Ent selector predicate.
+func (f FilterUlid) Select(field string) func(*sql.Selector) {
+	return f.FilterString.Select(field)
+}
+
+// collectStringValues collects the string values into a slice from the filter
+// this function is not processing recursive fields
+func collectStringValues(f Filter) []string {
+	refFilter := reflect.ValueOf(f)
+	if refFilter.Kind() == reflect.Pointer {
+		refFilter = refFilter.Elem()
+	}
+
+	var values []string
+	for i := 0; i < refFilter.NumField(); i++ {
+		filterField := refFilter.Field(i)
+		if filterField.Kind() == reflect.Pointer && !filterField.IsNil() {
+			filterFieldElem := filterField.Elem()
+			switch filterFieldElem.Kind() {
+			case reflect.String:
+				values = append(values, filterFieldElem.String())
+			case reflect.Slice, reflect.Array:
+				for i := range filterFieldElem.Len() {
+					arrayElem := filterFieldElem.Index(i)
+					if arrayElem.Kind() == reflect.String {
+						values = append(values, arrayElem.String())
+					}
+				}
+			}
+		}
+	}
+	return values
 }

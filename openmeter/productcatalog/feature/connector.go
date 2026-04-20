@@ -100,7 +100,7 @@ func (f FeatureOrderBy) Values() []FeatureOrderBy {
 type ListFeaturesParams struct {
 	IDsOrKeys       []string
 	Namespace       string
-	MeterIDs        *filter.FilterString
+	MeterIDs        *filter.FilterUlid
 	MeterSlugs      []string // Kept for ingest pipeline compat (queries via ent edge on meter key)
 	IncludeArchived bool
 	Page            pagination.Page
@@ -110,6 +110,26 @@ type ListFeaturesParams struct {
 	Limit int
 	// will be deprecated
 	Offset int
+}
+
+func (p ListFeaturesParams) Validate() error {
+	var errs []error
+
+	if p.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+	if p.MeterIDs != nil {
+		if err := p.MeterIDs.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if !p.Page.IsZero() {
+		if err := p.Page.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type featureConnector struct {
@@ -320,16 +340,10 @@ func (c *featureConnector) ArchiveFeature(ctx context.Context, featureID models.
 
 // ListFeatures lists features
 func (c *featureConnector) ListFeatures(ctx context.Context, params ListFeaturesParams) (pagination.Result[Feature], error) {
-	if !params.Page.IsZero() {
-		if err := params.Page.Validate(); err != nil {
-			return pagination.Result[Feature]{}, err
-		}
+	if err := params.Validate(); err != nil {
+		return pagination.Result[Feature]{}, err
 	}
-	if params.MeterIDs != nil {
-		if err := params.MeterIDs.Validate(); err != nil {
-			return pagination.Result[Feature]{}, err
-		}
-	}
+
 	return c.featureRepo.ListFeatures(ctx, params)
 }
 

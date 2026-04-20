@@ -78,6 +78,7 @@ func fieldError(field, op string, err error) error {
 var (
 	filterStringType      = reflect.TypeFor[*FilterString]()
 	filterStringExactType = reflect.TypeFor[*FilterStringExact]()
+	filterULIDType        = reflect.TypeFor[*FilterUlid]()
 	filterNumericType     = reflect.TypeFor[*FilterNumeric]()
 	filterDateTimeType    = reflect.TypeFor[*FilterDateTime]()
 	filterBooleanType     = reflect.TypeFor[*FilterBoolean]()
@@ -134,6 +135,13 @@ func parseFiltersValue(qs url.Values, v reflect.Value) error {
 
 		case filterStringExactType:
 			parsed, err := parseFilterStringExact(qs, name)
+			if err != nil {
+				return err
+			}
+			fieldVal.Set(reflect.ValueOf(&parsed))
+
+		case filterULIDType:
+			parsed, err := parseFilterUlid(qs, name)
 			if err != nil {
 				return err
 			}
@@ -258,6 +266,56 @@ func parseFilterStringExact(qs url.Values, field string) (FilterStringExact, err
 				return err
 			}
 			f.Oeq = items
+		default:
+			return fieldError(field, p.op, ErrUnsupportedOperator)
+		}
+		return nil
+	})
+
+	return f, err
+}
+
+// parseFilterUlid extracts a FilterUlid supporting all string operators.
+func parseFilterUlid(qs url.Values, field string) (FilterUlid, error) {
+	var f FilterUlid
+
+	err := forEachFieldParam(qs, field, func(p parsedFilterParam) error {
+		if p.bare {
+			f.Exists = lo.ToPtr(true)
+			return nil
+		}
+
+		switch p.op {
+		case OpEq:
+			f.Eq = &p.value
+		case OpNeq:
+			f.Neq = &p.value
+		case OpContains:
+			f.Contains = &p.value
+		case OpGt:
+			f.Gt = &p.value
+		case OpGte:
+			f.Gte = &p.value
+		case OpLt:
+			f.Lt = &p.value
+		case OpLte:
+			f.Lte = &p.value
+		case OpOeq:
+			items, err := parseCommaSeparatedField(field, p.op, p.value)
+			if err != nil {
+				return err
+			}
+			f.Oeq = items
+		case OpOcontains:
+			items, err := parseCommaSeparatedField(field, p.op, p.value)
+			if err != nil {
+				return err
+			}
+			f.Ocontains = items
+		case OpExists:
+			f.Exists = lo.ToPtr(true)
+		case OpNexists:
+			f.Exists = lo.ToPtr(false)
 		default:
 			return fieldError(field, p.op, ErrUnsupportedOperator)
 		}
