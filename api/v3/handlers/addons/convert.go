@@ -264,7 +264,11 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (apiv3.BillingRateCard, er
 				return result, fmt.Errorf("failed to cast FlatPrice: %w", err)
 			}
 
-			result.PaymentTerm = ToAPIBillingPricePaymentTerm(flatPrice.PaymentTerm)
+			pt, err := ToAPIBillingPricePaymentTerm(flatPrice.PaymentTerm)
+			if err != nil {
+				return result, err
+			}
+			result.PaymentTerm = pt
 
 			var price apiv3.BillingPrice
 			if err := price.FromBillingPriceFlat(apiv3.BillingPriceFlat{
@@ -322,7 +326,10 @@ func ToAPIBillingPrice(price productcatalog.Price) (apiv3.BillingPrice, *apiv3.B
 			return apiPrice, nil, nil, fmt.Errorf("failed to cast FlatPrice: %w", err)
 		}
 
-		paymentTerm = ToAPIBillingPricePaymentTerm(flatPrice.PaymentTerm)
+		paymentTerm, err = ToAPIBillingPricePaymentTerm(flatPrice.PaymentTerm)
+		if err != nil {
+			return apiPrice, nil, nil, err
+		}
 
 		if err := apiPrice.FromBillingPriceFlat(apiv3.BillingPriceFlat{
 			Type:   apiv3.BillingPriceFlatTypeFlat,
@@ -427,12 +434,14 @@ func ToAPIBillingSpendCommitments(minAmount, maxAmount *decimal.Decimal) *apiv3.
 	return c
 }
 
-func ToAPIBillingPricePaymentTerm(t productcatalog.PaymentTermType) *apiv3.BillingPricePaymentTerm {
+func ToAPIBillingPricePaymentTerm(t productcatalog.PaymentTermType) (*apiv3.BillingPricePaymentTerm, error) {
 	switch t {
 	case productcatalog.InArrearsPaymentTerm:
-		return lo.ToPtr(apiv3.BillingPricePaymentTermInArrears)
+		return lo.ToPtr(apiv3.BillingPricePaymentTermInArrears), nil
+	case productcatalog.InAdvancePaymentTerm:
+		return lo.ToPtr(apiv3.BillingPricePaymentTermInAdvance), nil
 	default:
-		return lo.ToPtr(apiv3.BillingPricePaymentTermInAdvance)
+		return nil, fmt.Errorf("unknown payment term: %v", t)
 	}
 }
 
@@ -635,6 +644,8 @@ func FromAPIBillingPriceFlat(f apiv3.BillingPriceFlat, paymentTermPtr *apiv3.Bil
 			paymentTerm = productcatalog.InArrearsPaymentTerm
 		case apiv3.BillingPricePaymentTermInAdvance:
 			paymentTerm = productcatalog.InAdvancePaymentTerm
+		default:
+			return productcatalog.FlatPrice{}, "", fmt.Errorf("unknown payment term: %v", *paymentTermPtr)
 		}
 	}
 

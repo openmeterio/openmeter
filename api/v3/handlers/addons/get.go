@@ -2,6 +2,7 @@ package addons
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
@@ -38,6 +39,10 @@ func (h *handler) GetAddon() GetAddonHandler {
 			a, err := h.service.GetAddon(ctx, request)
 			if err != nil {
 				return GetAddonResponse{}, err
+			}
+
+			if a == nil {
+				return GetAddonResponse{}, fmt.Errorf("failed to get add-on: %s", request.ID)
 			}
 
 			return ToAPIAddon(*a)
