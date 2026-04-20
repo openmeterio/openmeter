@@ -58,6 +58,10 @@ type TaxCodeEdges struct {
 	BillingInvoiceSplitLineGroups []*BillingInvoiceSplitLineGroup `json:"billing_invoice_split_line_groups,omitempty"`
 	// BillingStandardInvoiceDetailedLines holds the value of the billing_standard_invoice_detailed_lines edge.
 	BillingStandardInvoiceDetailedLines []*BillingStandardInvoiceDetailedLine `json:"billing_standard_invoice_detailed_lines,omitempty"`
+	// ChargeUsageBasedDetailedLines holds the value of the charge_usage_based_detailed_lines edge.
+	ChargeUsageBasedDetailedLines []*ChargeUsageBasedDetailedLine `json:"charge_usage_based_detailed_lines,omitempty"`
+	// ChargeFlatFeeDetailedLines holds the value of the charge_flat_fee_detailed_lines edge.
+	ChargeFlatFeeDetailedLines []*ChargeFlatFeeDetailedLine `json:"charge_flat_fee_detailed_lines,omitempty"`
 	// SubscriptionItems holds the value of the subscription_items edge.
 	SubscriptionItems []*SubscriptionItem `json:"subscription_items,omitempty"`
 	// PlanRateCards holds the value of the plan_rate_cards edge.
@@ -66,7 +70,7 @@ type TaxCodeEdges struct {
 	AddonRateCards []*AddonRateCard `json:"addon_rate_cards,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [8]bool
+	loadedTypes [10]bool
 }
 
 // BillingWorkflowConfigsOrErr returns the BillingWorkflowConfigs value or an error if the edge
@@ -114,10 +118,28 @@ func (e TaxCodeEdges) BillingStandardInvoiceDetailedLinesOrErr() ([]*BillingStan
 	return nil, &NotLoadedError{edge: "billing_standard_invoice_detailed_lines"}
 }
 
+// ChargeUsageBasedDetailedLinesOrErr returns the ChargeUsageBasedDetailedLines value or an error if the edge
+// was not loaded in eager-loading.
+func (e TaxCodeEdges) ChargeUsageBasedDetailedLinesOrErr() ([]*ChargeUsageBasedDetailedLine, error) {
+	if e.loadedTypes[5] {
+		return e.ChargeUsageBasedDetailedLines, nil
+	}
+	return nil, &NotLoadedError{edge: "charge_usage_based_detailed_lines"}
+}
+
+// ChargeFlatFeeDetailedLinesOrErr returns the ChargeFlatFeeDetailedLines value or an error if the edge
+// was not loaded in eager-loading.
+func (e TaxCodeEdges) ChargeFlatFeeDetailedLinesOrErr() ([]*ChargeFlatFeeDetailedLine, error) {
+	if e.loadedTypes[6] {
+		return e.ChargeFlatFeeDetailedLines, nil
+	}
+	return nil, &NotLoadedError{edge: "charge_flat_fee_detailed_lines"}
+}
+
 // SubscriptionItemsOrErr returns the SubscriptionItems value or an error if the edge
 // was not loaded in eager-loading.
 func (e TaxCodeEdges) SubscriptionItemsOrErr() ([]*SubscriptionItem, error) {
-	if e.loadedTypes[5] {
+	if e.loadedTypes[7] {
 		return e.SubscriptionItems, nil
 	}
 	return nil, &NotLoadedError{edge: "subscription_items"}
@@ -126,7 +148,7 @@ func (e TaxCodeEdges) SubscriptionItemsOrErr() ([]*SubscriptionItem, error) {
 // PlanRateCardsOrErr returns the PlanRateCards value or an error if the edge
 // was not loaded in eager-loading.
 func (e TaxCodeEdges) PlanRateCardsOrErr() ([]*PlanRateCard, error) {
-	if e.loadedTypes[6] {
+	if e.loadedTypes[8] {
 		return e.PlanRateCards, nil
 	}
 	return nil, &NotLoadedError{edge: "plan_rate_cards"}
@@ -135,7 +157,7 @@ func (e TaxCodeEdges) PlanRateCardsOrErr() ([]*PlanRateCard, error) {
 // AddonRateCardsOrErr returns the AddonRateCards value or an error if the edge
 // was not loaded in eager-loading.
 func (e TaxCodeEdges) AddonRateCardsOrErr() ([]*AddonRateCard, error) {
-	if e.loadedTypes[7] {
+	if e.loadedTypes[9] {
 		return e.AddonRateCards, nil
 	}
 	return nil, &NotLoadedError{edge: "addon_rate_cards"}
@@ -277,6 +299,16 @@ func (_m *TaxCode) QueryBillingInvoiceSplitLineGroups() *BillingInvoiceSplitLine
 // QueryBillingStandardInvoiceDetailedLines queries the "billing_standard_invoice_detailed_lines" edge of the TaxCode entity.
 func (_m *TaxCode) QueryBillingStandardInvoiceDetailedLines() *BillingStandardInvoiceDetailedLineQuery {
 	return NewTaxCodeClient(_m.config).QueryBillingStandardInvoiceDetailedLines(_m)
+}
+
+// QueryChargeUsageBasedDetailedLines queries the "charge_usage_based_detailed_lines" edge of the TaxCode entity.
+func (_m *TaxCode) QueryChargeUsageBasedDetailedLines() *ChargeUsageBasedDetailedLineQuery {
+	return NewTaxCodeClient(_m.config).QueryChargeUsageBasedDetailedLines(_m)
+}
+
+// QueryChargeFlatFeeDetailedLines queries the "charge_flat_fee_detailed_lines" edge of the TaxCode entity.
+func (_m *TaxCode) QueryChargeFlatFeeDetailedLines() *ChargeFlatFeeDetailedLineQuery {
+	return NewTaxCodeClient(_m.config).QueryChargeFlatFeeDetailedLines(_m)
 }
 
 // QuerySubscriptionItems queries the "subscription_items" edge of the TaxCode entity.

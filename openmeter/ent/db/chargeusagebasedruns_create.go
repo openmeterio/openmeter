@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebaseddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrunpayment"
@@ -239,6 +240,21 @@ func (_c *ChargeUsageBasedRunsCreate) AddCreditAllocations(v ...*ChargeUsageBase
 		ids[i] = v[i].ID
 	}
 	return _c.AddCreditAllocationIDs(ids...)
+}
+
+// AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeUsageBasedDetailedLine entity by IDs.
+func (_c *ChargeUsageBasedRunsCreate) AddDetailedLineIDs(ids ...string) *ChargeUsageBasedRunsCreate {
+	_c.mutation.AddDetailedLineIDs(ids...)
+	return _c
+}
+
+// AddDetailedLines adds the "detailed_lines" edges to the ChargeUsageBasedDetailedLine entity.
+func (_c *ChargeUsageBasedRunsCreate) AddDetailedLines(v ...*ChargeUsageBasedDetailedLine) *ChargeUsageBasedRunsCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddDetailedLineIDs(ids...)
 }
 
 // SetInvoicedUsageID sets the "invoiced_usage" edge to the ChargeUsageBasedRunInvoicedUsage entity by ID.
@@ -567,6 +583,22 @@ func (_c *ChargeUsageBasedRunsCreate) createSpec() (*ChargeUsageBasedRuns, *sqlg
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruncreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.DetailedLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebasedruns.DetailedLinesTable,
+			Columns: []string{chargeusagebasedruns.DetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebaseddetailedline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -18,6 +18,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeedetailedline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebaseddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
@@ -212,6 +214,36 @@ func (_c *TaxCodeCreate) AddBillingStandardInvoiceDetailedLines(v ...*BillingSta
 		ids[i] = v[i].ID
 	}
 	return _c.AddBillingStandardInvoiceDetailedLineIDs(ids...)
+}
+
+// AddChargeUsageBasedDetailedLineIDs adds the "charge_usage_based_detailed_lines" edge to the ChargeUsageBasedDetailedLine entity by IDs.
+func (_c *TaxCodeCreate) AddChargeUsageBasedDetailedLineIDs(ids ...string) *TaxCodeCreate {
+	_c.mutation.AddChargeUsageBasedDetailedLineIDs(ids...)
+	return _c
+}
+
+// AddChargeUsageBasedDetailedLines adds the "charge_usage_based_detailed_lines" edges to the ChargeUsageBasedDetailedLine entity.
+func (_c *TaxCodeCreate) AddChargeUsageBasedDetailedLines(v ...*ChargeUsageBasedDetailedLine) *TaxCodeCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddChargeUsageBasedDetailedLineIDs(ids...)
+}
+
+// AddChargeFlatFeeDetailedLineIDs adds the "charge_flat_fee_detailed_lines" edge to the ChargeFlatFeeDetailedLine entity by IDs.
+func (_c *TaxCodeCreate) AddChargeFlatFeeDetailedLineIDs(ids ...string) *TaxCodeCreate {
+	_c.mutation.AddChargeFlatFeeDetailedLineIDs(ids...)
+	return _c
+}
+
+// AddChargeFlatFeeDetailedLines adds the "charge_flat_fee_detailed_lines" edges to the ChargeFlatFeeDetailedLine entity.
+func (_c *TaxCodeCreate) AddChargeFlatFeeDetailedLines(v ...*ChargeFlatFeeDetailedLine) *TaxCodeCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddChargeFlatFeeDetailedLineIDs(ids...)
 }
 
 // AddSubscriptionItemIDs adds the "subscription_items" edge to the SubscriptionItem entity by IDs.
@@ -496,6 +528,38 @@ func (_c *TaxCodeCreate) createSpec() (*TaxCode, *sqlgraph.CreateSpec, error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingstandardinvoicedetailedline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChargeUsageBasedDetailedLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeUsageBasedDetailedLinesTable,
+			Columns: []string{dbtaxcode.ChargeUsageBasedDetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebaseddetailedline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChargeFlatFeeDetailedLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeFlatFeeDetailedLinesTable,
+			Columns: []string{dbtaxcode.ChargeFlatFeeDetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeedetailedline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

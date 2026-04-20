@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -81,6 +82,8 @@ func (ChargeUsageBased) Fields() []ent.Field {
 func (ChargeUsageBased) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("runs", ChargeUsageBasedRuns.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("detailed_lines", ChargeUsageBasedDetailedLine.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("current_run", ChargeUsageBasedRuns.Type).
 			Field("current_realization_run_id").
@@ -203,6 +206,8 @@ func (ChargeUsageBasedRuns) Edges() []ent.Edge {
 		edge.To("credit_allocations", ChargeUsageBasedRunCreditAllocations.Type).
 			StorageKey(edge.Symbol("charge_ub_run_credit_alloc_run")).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("detailed_lines", ChargeUsageBasedDetailedLine.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("invoiced_usage", ChargeUsageBasedRunInvoicedUsage.Type).
 			Unique().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
@@ -215,6 +220,68 @@ func (ChargeUsageBasedRuns) Edges() []ent.Edge {
 func (ChargeUsageBasedRuns) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "charge_id"),
+	}
+}
+
+type ChargeUsageBasedDetailedLine struct {
+	ent.Schema
+}
+
+func (ChargeUsageBasedDetailedLine) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		stddetailedline.Mixin{},
+	}
+}
+
+func (ChargeUsageBasedDetailedLine) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("charge_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+
+		field.String("run_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+	}
+}
+
+func (ChargeUsageBasedDetailedLine) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("charge", ChargeUsageBased.Type).
+			Ref("detailed_lines").
+			Field("charge_id").
+			Unique().
+			Required(),
+		edge.From("run", ChargeUsageBasedRuns.Type).
+			Ref("detailed_lines").
+			Field("run_id").
+			Unique().
+			Required(),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("charge_usage_based_detailed_lines").
+			Field("tax_code_id").
+			Unique(),
+	}
+}
+
+func (ChargeUsageBasedDetailedLine) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "charge_id"),
+		index.Fields("namespace", "run_id"),
+		index.Fields("namespace", "charge_id", "run_id", "child_unique_reference_id").
+			Annotations(
+				entsql.IndexWhere("child_unique_reference_id IS NOT NULL AND deleted_at IS NULL"),
+			).
+			StorageKey("chargeubdetailedline_ns_charge_run_child_id").
+			Unique(),
+	}
+}
+
+func (ChargeUsageBasedDetailedLine) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Annotation{Table: "charge_usage_based_detailed_line"},
 	}
 }
 

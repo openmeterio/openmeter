@@ -62,6 +62,8 @@ const (
 	EdgeBillingInvoiceLine = "billing_invoice_line"
 	// EdgeCreditAllocations holds the string denoting the credit_allocations edge name in mutations.
 	EdgeCreditAllocations = "credit_allocations"
+	// EdgeDetailedLines holds the string denoting the detailed_lines edge name in mutations.
+	EdgeDetailedLines = "detailed_lines"
 	// EdgeInvoicedUsage holds the string denoting the invoiced_usage edge name in mutations.
 	EdgeInvoicedUsage = "invoiced_usage"
 	// EdgePayment holds the string denoting the payment edge name in mutations.
@@ -96,6 +98,13 @@ const (
 	CreditAllocationsInverseTable = "charge_usage_based_run_credit_allocations"
 	// CreditAllocationsColumn is the table column denoting the credit_allocations relation/edge.
 	CreditAllocationsColumn = "run_id"
+	// DetailedLinesTable is the table that holds the detailed_lines relation/edge.
+	DetailedLinesTable = "charge_usage_based_detailed_line"
+	// DetailedLinesInverseTable is the table name for the ChargeUsageBasedDetailedLine entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeusagebaseddetailedline" package.
+	DetailedLinesInverseTable = "charge_usage_based_detailed_line"
+	// DetailedLinesColumn is the table column denoting the detailed_lines relation/edge.
+	DetailedLinesColumn = "run_id"
 	// InvoicedUsageTable is the table that holds the invoiced_usage relation/edge.
 	InvoicedUsageTable = "charge_usage_based_run_invoiced_usages"
 	// InvoicedUsageInverseTable is the table name for the ChargeUsageBasedRunInvoicedUsage entity.
@@ -311,6 +320,20 @@ func ByCreditAllocations(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption
 	}
 }
 
+// ByDetailedLinesCount orders the results by detailed_lines count.
+func ByDetailedLinesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newDetailedLinesStep(), opts...)
+	}
+}
+
+// ByDetailedLines orders the results by detailed_lines terms.
+func ByDetailedLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newDetailedLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByInvoicedUsageField orders the results by invoiced_usage field.
 func ByInvoicedUsageField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -350,6 +373,13 @@ func newCreditAllocationsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CreditAllocationsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, CreditAllocationsTable, CreditAllocationsColumn),
+	)
+}
+func newDetailedLinesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(DetailedLinesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, DetailedLinesTable, DetailedLinesColumn),
 	)
 }
 func newInvoicedUsageStep() *sqlgraph.Step {

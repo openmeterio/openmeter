@@ -103,6 +103,8 @@ type ChargeUsageBased struct {
 type ChargeUsageBasedEdges struct {
 	// Runs holds the value of the runs edge.
 	Runs []*ChargeUsageBasedRuns `json:"runs,omitempty"`
+	// DetailedLines holds the value of the detailed_lines edge.
+	DetailedLines []*ChargeUsageBasedDetailedLine `json:"detailed_lines,omitempty"`
 	// CurrentRun holds the value of the current_run edge.
 	CurrentRun *ChargeUsageBasedRuns `json:"current_run,omitempty"`
 	// Charge holds the value of the charge edge.
@@ -119,7 +121,7 @@ type ChargeUsageBasedEdges struct {
 	Feature *Feature `json:"feature,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [8]bool
+	loadedTypes [9]bool
 }
 
 // RunsOrErr returns the Runs value or an error if the edge
@@ -131,12 +133,21 @@ func (e ChargeUsageBasedEdges) RunsOrErr() ([]*ChargeUsageBasedRuns, error) {
 	return nil, &NotLoadedError{edge: "runs"}
 }
 
+// DetailedLinesOrErr returns the DetailedLines value or an error if the edge
+// was not loaded in eager-loading.
+func (e ChargeUsageBasedEdges) DetailedLinesOrErr() ([]*ChargeUsageBasedDetailedLine, error) {
+	if e.loadedTypes[1] {
+		return e.DetailedLines, nil
+	}
+	return nil, &NotLoadedError{edge: "detailed_lines"}
+}
+
 // CurrentRunOrErr returns the CurrentRun value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ChargeUsageBasedEdges) CurrentRunOrErr() (*ChargeUsageBasedRuns, error) {
 	if e.CurrentRun != nil {
 		return e.CurrentRun, nil
-	} else if e.loadedTypes[1] {
+	} else if e.loadedTypes[2] {
 		return nil, &NotFoundError{label: chargeusagebasedruns.Label}
 	}
 	return nil, &NotLoadedError{edge: "current_run"}
@@ -147,7 +158,7 @@ func (e ChargeUsageBasedEdges) CurrentRunOrErr() (*ChargeUsageBasedRuns, error) 
 func (e ChargeUsageBasedEdges) ChargeOrErr() (*Charge, error) {
 	if e.Charge != nil {
 		return e.Charge, nil
-	} else if e.loadedTypes[2] {
+	} else if e.loadedTypes[3] {
 		return nil, &NotFoundError{label: charge.Label}
 	}
 	return nil, &NotLoadedError{edge: "charge"}
@@ -158,7 +169,7 @@ func (e ChargeUsageBasedEdges) ChargeOrErr() (*Charge, error) {
 func (e ChargeUsageBasedEdges) SubscriptionOrErr() (*Subscription, error) {
 	if e.Subscription != nil {
 		return e.Subscription, nil
-	} else if e.loadedTypes[3] {
+	} else if e.loadedTypes[4] {
 		return nil, &NotFoundError{label: subscription.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription"}
@@ -169,7 +180,7 @@ func (e ChargeUsageBasedEdges) SubscriptionOrErr() (*Subscription, error) {
 func (e ChargeUsageBasedEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, error) {
 	if e.SubscriptionPhase != nil {
 		return e.SubscriptionPhase, nil
-	} else if e.loadedTypes[4] {
+	} else if e.loadedTypes[5] {
 		return nil, &NotFoundError{label: subscriptionphase.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_phase"}
@@ -180,7 +191,7 @@ func (e ChargeUsageBasedEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, err
 func (e ChargeUsageBasedEdges) SubscriptionItemOrErr() (*SubscriptionItem, error) {
 	if e.SubscriptionItem != nil {
 		return e.SubscriptionItem, nil
-	} else if e.loadedTypes[5] {
+	} else if e.loadedTypes[6] {
 		return nil, &NotFoundError{label: subscriptionitem.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_item"}
@@ -191,7 +202,7 @@ func (e ChargeUsageBasedEdges) SubscriptionItemOrErr() (*SubscriptionItem, error
 func (e ChargeUsageBasedEdges) CustomerOrErr() (*Customer, error) {
 	if e.Customer != nil {
 		return e.Customer, nil
-	} else if e.loadedTypes[6] {
+	} else if e.loadedTypes[7] {
 		return nil, &NotFoundError{label: customer.Label}
 	}
 	return nil, &NotLoadedError{edge: "customer"}
@@ -202,7 +213,7 @@ func (e ChargeUsageBasedEdges) CustomerOrErr() (*Customer, error) {
 func (e ChargeUsageBasedEdges) FeatureOrErr() (*Feature, error) {
 	if e.Feature != nil {
 		return e.Feature, nil
-	} else if e.loadedTypes[7] {
+	} else if e.loadedTypes[8] {
 		return nil, &NotFoundError{label: dbfeature.Label}
 	}
 	return nil, &NotLoadedError{edge: "feature"}
@@ -458,6 +469,11 @@ func (_m *ChargeUsageBased) Value(name string) (ent.Value, error) {
 // QueryRuns queries the "runs" edge of the ChargeUsageBased entity.
 func (_m *ChargeUsageBased) QueryRuns() *ChargeUsageBasedRunsQuery {
 	return NewChargeUsageBasedClient(_m.config).QueryRuns(_m)
+}
+
+// QueryDetailedLines queries the "detailed_lines" edge of the ChargeUsageBased entity.
+func (_m *ChargeUsageBased) QueryDetailedLines() *ChargeUsageBasedDetailedLineQuery {
+	return NewChargeUsageBasedClient(_m.config).QueryDetailedLines(_m)
 }
 
 // QueryCurrentRun queries the "current_run" edge of the ChargeUsageBased entity.

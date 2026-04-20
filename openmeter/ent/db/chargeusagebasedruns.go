@@ -78,13 +78,15 @@ type ChargeUsageBasedRunsEdges struct {
 	BillingInvoiceLine *BillingInvoiceLine `json:"billing_invoice_line,omitempty"`
 	// CreditAllocations holds the value of the credit_allocations edge.
 	CreditAllocations []*ChargeUsageBasedRunCreditAllocations `json:"credit_allocations,omitempty"`
+	// DetailedLines holds the value of the detailed_lines edge.
+	DetailedLines []*ChargeUsageBasedDetailedLine `json:"detailed_lines,omitempty"`
 	// InvoicedUsage holds the value of the invoiced_usage edge.
 	InvoicedUsage *ChargeUsageBasedRunInvoicedUsage `json:"invoiced_usage,omitempty"`
 	// Payment holds the value of the payment edge.
 	Payment *ChargeUsageBasedRunPayment `json:"payment,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [6]bool
+	loadedTypes [7]bool
 }
 
 // UsageBasedOrErr returns the UsageBased value or an error if the edge
@@ -129,12 +131,21 @@ func (e ChargeUsageBasedRunsEdges) CreditAllocationsOrErr() ([]*ChargeUsageBased
 	return nil, &NotLoadedError{edge: "credit_allocations"}
 }
 
+// DetailedLinesOrErr returns the DetailedLines value or an error if the edge
+// was not loaded in eager-loading.
+func (e ChargeUsageBasedRunsEdges) DetailedLinesOrErr() ([]*ChargeUsageBasedDetailedLine, error) {
+	if e.loadedTypes[4] {
+		return e.DetailedLines, nil
+	}
+	return nil, &NotLoadedError{edge: "detailed_lines"}
+}
+
 // InvoicedUsageOrErr returns the InvoicedUsage value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ChargeUsageBasedRunsEdges) InvoicedUsageOrErr() (*ChargeUsageBasedRunInvoicedUsage, error) {
 	if e.InvoicedUsage != nil {
 		return e.InvoicedUsage, nil
-	} else if e.loadedTypes[4] {
+	} else if e.loadedTypes[5] {
 		return nil, &NotFoundError{label: chargeusagebasedruninvoicedusage.Label}
 	}
 	return nil, &NotLoadedError{edge: "invoiced_usage"}
@@ -145,7 +156,7 @@ func (e ChargeUsageBasedRunsEdges) InvoicedUsageOrErr() (*ChargeUsageBasedRunInv
 func (e ChargeUsageBasedRunsEdges) PaymentOrErr() (*ChargeUsageBasedRunPayment, error) {
 	if e.Payment != nil {
 		return e.Payment, nil
-	} else if e.loadedTypes[5] {
+	} else if e.loadedTypes[6] {
 		return nil, &NotFoundError{label: chargeusagebasedrunpayment.Label}
 	}
 	return nil, &NotLoadedError{edge: "payment"}
@@ -330,6 +341,11 @@ func (_m *ChargeUsageBasedRuns) QueryBillingInvoiceLine() *BillingInvoiceLineQue
 // QueryCreditAllocations queries the "credit_allocations" edge of the ChargeUsageBasedRuns entity.
 func (_m *ChargeUsageBasedRuns) QueryCreditAllocations() *ChargeUsageBasedRunCreditAllocationsQuery {
 	return NewChargeUsageBasedRunsClient(_m.config).QueryCreditAllocations(_m)
+}
+
+// QueryDetailedLines queries the "detailed_lines" edge of the ChargeUsageBasedRuns entity.
+func (_m *ChargeUsageBasedRuns) QueryDetailedLines() *ChargeUsageBasedDetailedLineQuery {
+	return NewChargeUsageBasedRunsClient(_m.config).QueryDetailedLines(_m)
 }
 
 // QueryInvoicedUsage queries the "invoiced_usage" edge of the ChargeUsageBasedRuns entity.

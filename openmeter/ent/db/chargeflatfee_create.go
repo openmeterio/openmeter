@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecreditallocations"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeinvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
@@ -352,6 +353,21 @@ func (_c *ChargeFlatFeeCreate) AddCreditAllocations(v ...*ChargeFlatFeeCreditAll
 		ids[i] = v[i].ID
 	}
 	return _c.AddCreditAllocationIDs(ids...)
+}
+
+// AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeFlatFeeDetailedLine entity by IDs.
+func (_c *ChargeFlatFeeCreate) AddDetailedLineIDs(ids ...string) *ChargeFlatFeeCreate {
+	_c.mutation.AddDetailedLineIDs(ids...)
+	return _c
+}
+
+// AddDetailedLines adds the "detailed_lines" edges to the ChargeFlatFeeDetailedLine entity.
+func (_c *ChargeFlatFeeCreate) AddDetailedLines(v ...*ChargeFlatFeeDetailedLine) *ChargeFlatFeeCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddDetailedLineIDs(ids...)
 }
 
 // SetInvoicedUsageID sets the "invoiced_usage" edge to the ChargeFlatFeeInvoicedUsage entity by ID.
@@ -772,6 +788,22 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.DetailedLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeflatfee.DetailedLinesTable,
+			Columns: []string{chargeflatfee.DetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeedetailedline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

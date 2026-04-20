@@ -212,6 +212,9 @@ func ChargeFlatFeeOrErr(p ChargeFlatFee, err error) ChargeFlatFee {
 // ChargeFlatFeeCreditAllocations is the predicate function for chargeflatfeecreditallocations builders.
 type ChargeFlatFeeCreditAllocations func(*sql.Selector)
 
+// ChargeFlatFeeDetailedLine is the predicate function for chargeflatfeedetailedline builders.
+type ChargeFlatFeeDetailedLine func(*sql.Selector)
+
 // ChargeFlatFeeInvoicedUsage is the predicate function for chargeflatfeeinvoicedusage builders.
 type ChargeFlatFeeInvoicedUsage func(*sql.Selector)
 
@@ -231,6 +234,9 @@ func ChargeUsageBasedOrErr(p ChargeUsageBased, err error) ChargeUsageBased {
 		p(s)
 	}
 }
+
+// ChargeUsageBasedDetailedLine is the predicate function for chargeusagebaseddetailedline builders.
+type ChargeUsageBasedDetailedLine func(*sql.Selector)
 
 // ChargeUsageBasedRunCreditAllocations is the predicate function for chargeusagebasedruncreditallocations builders.
 type ChargeUsageBasedRunCreditAllocations func(*sql.Selector)

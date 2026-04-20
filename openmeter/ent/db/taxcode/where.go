@@ -645,6 +645,52 @@ func HasBillingStandardInvoiceDetailedLinesWith(preds ...predicate.BillingStanda
 	})
 }
 
+// HasChargeUsageBasedDetailedLines applies the HasEdge predicate on the "charge_usage_based_detailed_lines" edge.
+func HasChargeUsageBasedDetailedLines() predicate.TaxCode {
+	return predicate.TaxCode(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ChargeUsageBasedDetailedLinesTable, ChargeUsageBasedDetailedLinesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasChargeUsageBasedDetailedLinesWith applies the HasEdge predicate on the "charge_usage_based_detailed_lines" edge with a given conditions (other predicates).
+func HasChargeUsageBasedDetailedLinesWith(preds ...predicate.ChargeUsageBasedDetailedLine) predicate.TaxCode {
+	return predicate.TaxCode(func(s *sql.Selector) {
+		step := newChargeUsageBasedDetailedLinesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasChargeFlatFeeDetailedLines applies the HasEdge predicate on the "charge_flat_fee_detailed_lines" edge.
+func HasChargeFlatFeeDetailedLines() predicate.TaxCode {
+	return predicate.TaxCode(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ChargeFlatFeeDetailedLinesTable, ChargeFlatFeeDetailedLinesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasChargeFlatFeeDetailedLinesWith applies the HasEdge predicate on the "charge_flat_fee_detailed_lines" edge with a given conditions (other predicates).
+func HasChargeFlatFeeDetailedLinesWith(preds ...predicate.ChargeFlatFeeDetailedLine) predicate.TaxCode {
+	return predicate.TaxCode(func(s *sql.Selector) {
+		step := newChargeFlatFeeDetailedLinesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasSubscriptionItems applies the HasEdge predicate on the "subscription_items" edge.
 func HasSubscriptionItems() predicate.TaxCode {
 	return predicate.TaxCode(func(s *sql.Selector) {

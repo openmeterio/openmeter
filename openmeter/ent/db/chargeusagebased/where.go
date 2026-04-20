@@ -1678,6 +1678,29 @@ func HasRunsWith(preds ...predicate.ChargeUsageBasedRuns) predicate.ChargeUsageB
 	})
 }
 
+// HasDetailedLines applies the HasEdge predicate on the "detailed_lines" edge.
+func HasDetailedLines() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, DetailedLinesTable, DetailedLinesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasDetailedLinesWith applies the HasEdge predicate on the "detailed_lines" edge with a given conditions (other predicates).
+func HasDetailedLinesWith(preds ...predicate.ChargeUsageBasedDetailedLine) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(func(s *sql.Selector) {
+		step := newDetailedLinesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasCurrentRun applies the HasEdge predicate on the "current_run" edge.
 func HasCurrentRun() predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(func(s *sql.Selector) {
