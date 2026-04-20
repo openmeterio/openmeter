@@ -131,21 +131,20 @@ func newLine(in newLineInput) *billing.StandardLine {
 func newDetailedLine(in newLineInput) billing.DetailedLine {
 	return billing.DetailedLine{
 		DetailedLineBase: billing.DetailedLineBase{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Namespace: in.Namespace,
-				Name:      in.Name,
-			}),
-
 			InvoiceID: in.Invoice.ID,
-			Currency:  in.Invoice.Currency,
-
-			ServicePeriod: in.Period,
-
-			ChildUniqueReferenceID: lo.EmptyableToPtr(in.ChildUniqueReferenceID),
-			PerUnitAmount:          alpacadecimal.NewFromFloat(100),
-			Quantity:               alpacadecimal.NewFromFloat(1),
-			PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-			Category:               stddetailedline.CategoryRegular,
+			Base: stddetailedline.Base{
+				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+					Namespace: in.Namespace,
+					Name:      in.Name,
+				}),
+				Currency:               in.Invoice.Currency,
+				ServicePeriod:          in.Period,
+				ChildUniqueReferenceID: lo.EmptyableToPtr(in.ChildUniqueReferenceID),
+				PerUnitAmount:          alpacadecimal.NewFromFloat(100),
+				Quantity:               alpacadecimal.NewFromFloat(1),
+				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+				Category:               stddetailedline.CategoryRegular,
+			},
 		},
 	}
 }

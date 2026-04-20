@@ -72,6 +72,16 @@ The adapter's `diffInvoiceLines` then compares each line's current state against
 
 `DetailedLine` and `GatheringLine` carry `ChildUniqueReferenceID string` for idempotent upserts. When recalculating pricing, new detailed lines (without IDs) are matched to existing DB rows via this field through `StandardLine.DetailedLinesWithIDReuse()`, avoiding unnecessary delete/re-create cycles.
 
+### Shared Detailed-Line Base
+
+The invoice-agnostic detailed-line domain shape lives in `openmeter/billing/models/stddetailedline`.
+
+Rules:
+- keep shared detailed-line fields on `stddetailedline.Base`
+- keep invoice-only fields such as `InvoiceID` on `billing.DetailedLineBase`
+- when adding charge-owned detailed-line wrappers, embed `stddetailedline.Base` instead of copying the common fields again
+- when shared detailed-line mapping helpers exist, reuse them from billing and charges adapters instead of rebuilding the common base-field mapping inline
+
 ### InvoiceAt vs Period vs CollectionAt
 
 - `Period`: when the service was actually rendered (usage window)
