@@ -82,9 +82,39 @@ func (i OnInvoiceUsageAccruedInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+type RunEventInput struct {
+	Charge Charge         `json:"charge"`
+	Run    RealizationRun `json:"run"`
+}
+
+func (i RunEventInput) Validate() error {
+	var errs []error
+
+	if err := i.Charge.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge: %w", err))
+	}
+
+	if err := i.Run.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("run: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type (
+	OnPaymentAuthorizedInput = RunEventInput
+	OnPaymentSettledInput    = RunEventInput
+)
+
 type Handler interface {
 	// OnInvoiceUsageAccrued is called when invoice-settled usage-based usage is sent to the customer.
 	OnInvoiceUsageAccrued(ctx context.Context, input OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error)
+
+	// OnPaymentAuthorized is called when an invoice-backed usage-based run receives payment authorization.
+	OnPaymentAuthorized(ctx context.Context, input OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error)
+
+	// OnPaymentSettled is called when an invoice-backed usage-based run payment is settled.
+	OnPaymentSettled(ctx context.Context, input OnPaymentSettledInput) (ledgertransaction.GroupReference, error)
 
 	// OnCreditsOnlyUsageAccrued is called when a credit-only usage-based charge needs to be allocated as credits fully.
 	OnCreditsOnlyUsageAccrued(ctx context.Context, input CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error)
@@ -98,6 +128,14 @@ type UnimplementedHandler struct{}
 var _ Handler = (*UnimplementedHandler)(nil)
 
 func (h UnimplementedHandler) OnInvoiceUsageAccrued(ctx context.Context, input OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error) {
+	return ledgertransaction.GroupReference{}, errors.New("not implemented")
+}
+
+func (h UnimplementedHandler) OnPaymentAuthorized(ctx context.Context, input OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error) {
+	return ledgertransaction.GroupReference{}, errors.New("not implemented")
+}
+
+func (h UnimplementedHandler) OnPaymentSettled(ctx context.Context, input OnPaymentSettledInput) (ledgertransaction.GroupReference, error) {
 	return ledgertransaction.GroupReference{}, errors.New("not implemented")
 }
 

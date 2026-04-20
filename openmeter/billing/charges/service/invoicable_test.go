@@ -49,7 +49,7 @@ func (s *InvoicableChargesTestSuite) TearDownTest() {
 }
 
 func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-partial-credit-realizations")
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
@@ -307,7 +307,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 }
 
 func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedDoesNotAccrueInvoiceUsage() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-credit-then-invoice-fully-credited")
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
@@ -420,7 +420,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedDo
 }
 
 func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-based-credit-only-lifecycle")
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
@@ -749,7 +749,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTieredCorrection() {
 	defer s.UsageBasedTestHandler.Reset()
 
-	ctx := context.Background()
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-based-credit-only-lifecycle-volume-tiered-correction")
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
@@ -997,7 +997,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 }
 
 func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-based-credit-then-invoice")
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
@@ -1191,7 +1191,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		s.Equal(1, invoiceUsageAccruedCallback.nrInvocations)
 
 		usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusFinal, usageBasedCharge.Status)
+		s.Equal(usagebased.StatusActivePaymentPending, usageBasedCharge.Status)
 		s.Nil(usageBasedCharge.State.CurrentRealizationRunID)
 		s.Nil(usageBasedCharge.State.AdvanceAfter)
 		s.Len(usageBasedCharge.Realizations, 1)
@@ -1211,6 +1211,68 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		}, finalRun.InvoiceUsage.Totals)
 		s.NotNil(finalRun.InvoiceUsage.LedgerTransaction)
 		s.Equal(invoiceUsageAccruedCallback.id, finalRun.InvoiceUsage.LedgerTransaction.TransactionGroupID)
+	})
+
+	s.Run("#7 payment authorization moves charge to active authorized", func() {
+		defer s.UsageBasedTestHandler.Reset()
+
+		authorizedCallback := newCountedLedgerTransactionCallback[usagebased.OnPaymentAuthorizedInput]()
+		s.UsageBasedTestHandler.onPaymentAuthorized = authorizedCallback.Handler(s.T(), func(t *testing.T, input usagebased.OnPaymentAuthorizedInput) {
+			assert.Equal(t, usageBasedChargeID.ID, input.Charge.ID)
+			assert.NotNil(t, input.Run.InvoiceUsage)
+			assert.Nil(t, input.Run.Payment)
+			assert.NotNil(t, input.Run.LineID)
+			assert.Equal(t, stdLineID.ID, *input.Run.LineID)
+		})
+
+		updatedInvoice, err := s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
+			InvoiceID: invoice.GetInvoiceID(),
+			Trigger:   billing.TriggerAuthorized,
+		})
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaymentProcessingAuthorized, updatedInvoice.Status)
+		s.Equal(1, authorizedCallback.nrInvocations)
+
+		usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+		s.Equal(usagebased.StatusActiveAuthorized, usageBasedCharge.Status)
+		s.Len(usageBasedCharge.Realizations, 1)
+
+		finalRun := usageBasedCharge.Realizations[0]
+		s.NotNil(finalRun.Payment)
+		s.NotNil(finalRun.Payment.Authorized)
+		s.Nil(finalRun.Payment.Settled)
+		s.Equal(authorizedCallback.id, finalRun.Payment.Authorized.TransactionGroupID)
+	})
+
+	s.Run("#8 payment settlement finalizes charge", func() {
+		defer s.UsageBasedTestHandler.Reset()
+
+		settledCallback := newCountedLedgerTransactionCallback[usagebased.OnPaymentSettledInput]()
+		s.UsageBasedTestHandler.onPaymentSettled = settledCallback.Handler(s.T(), func(t *testing.T, input usagebased.OnPaymentSettledInput) {
+			assert.Equal(t, usageBasedChargeID.ID, input.Charge.ID)
+			assert.NotNil(t, input.Run.Payment)
+			assert.NotNil(t, input.Run.Payment.Authorized)
+			assert.Nil(t, input.Run.Payment.Settled)
+			assert.Equal(t, payment.StatusAuthorized, input.Run.Payment.Status)
+		})
+
+		updatedInvoice, err := s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
+			InvoiceID: invoice.GetInvoiceID(),
+			Trigger:   billing.TriggerPaid,
+		})
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaid, updatedInvoice.Status)
+		s.Equal(1, settledCallback.nrInvocations)
+
+		usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+		s.Equal(usagebased.StatusFinal, usageBasedCharge.Status)
+		s.Len(usageBasedCharge.Realizations, 1)
+
+		finalRun := usageBasedCharge.Realizations[0]
+		s.NotNil(finalRun.Payment)
+		s.NotNil(finalRun.Payment.Settled)
+		s.Equal(settledCallback.id, finalRun.Payment.Settled.TransactionGroupID)
+		s.Equal(payment.StatusSettled, finalRun.Payment.Status)
 	})
 }
 
@@ -1384,7 +1446,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceFullyCredite
 		s.Equal(0, invoiceUsageAccruedCallback.nrInvocations)
 
 		usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusFinal, usageBasedCharge.Status)
+		s.Equal(usagebased.StatusActivePaymentPending, usageBasedCharge.Status)
 		s.Nil(usageBasedCharge.State.CurrentRealizationRunID)
 		s.Nil(usageBasedCharge.State.AdvanceAfter)
 		s.Len(usageBasedCharge.Realizations, 1)
@@ -1398,7 +1460,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceFullyCredite
 }
 
 func (s *InvoicableChargesTestSuite) TestUsageBasedCreateImmediatelyActive() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-based-create-immediately-active")
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
@@ -1466,10 +1528,155 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreateImmediatelyActive() {
 	s.Nil(dbCharge.State.CurrentRealizationRunID)
 }
 
+func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceDirectPaidFlow() {
+	// Given
+	// - a credit-then-invoice usage-based charge with metered usage in the service period,
+	// When
+	// - the invoice is issued and the payment app emits a direct paid trigger,
+	// Then
+	// - billing should run the usage-based payment authorization and settlement hooks in order
+	//   and persist the finalized payment state on the realization run.
+
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-usage-based-credit-then-invoice-direct-paid")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	createAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-01T00:00:00Z", time.UTC).AsTime()
+	clock.FreezeTime(createAt)
+	defer clock.UnFreeze()
+
+	promotionalCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
+	s.CreditPurchaseTestHandler.onPromotionalCreditPurchase = promotionalCallback.Handler(s.T())
+	s.grantPromotionalCredits(ctx, cust.GetID(), 5)
+
+	res, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: []charges.ChargeIntent{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromFloat(0.1),
+				}),
+				name:              "usage-based-direct-paid",
+				managedBy:         billing.SubscriptionManagedLine,
+				uniqueReferenceID: "usage-based-direct-paid",
+				featureKey:        apiRequestsTotal.Feature.Key,
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Len(res, 1)
+
+	usageBasedChargeID, err := res[0].GetChargeID()
+	s.NoError(err)
+
+	s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued, _ = newCappedCreditAllocator(5)
+
+	s.MockStreamingConnector.AddSimpleEvent(
+		apiRequestsTotal.Feature.Key,
+		100,
+		datetime.MustParseTimeInLocation(s.T(), "2026-01-15T00:00:00Z", time.UTC).AsTime(),
+	)
+
+	clock.FreezeTime(servicePeriod.To.Add(time.Second))
+
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     lo.ToPtr(servicePeriod.To),
+	})
+	s.NoError(err)
+	s.Len(invoices, 1)
+
+	invoice := invoices[0]
+	s.Len(invoice.Lines.OrEmpty(), 1)
+	stdLine := invoice.Lines.OrEmpty()[0]
+	stdLineID := stdLine.GetLineID()
+
+	s.MockStreamingConnector.AddSimpleEvent(
+		apiRequestsTotal.Feature.Key,
+		25,
+		datetime.MustParseTimeInLocation(s.T(), "2026-01-20T00:00:00Z", time.UTC).AsTime(),
+		streamingtestutils.WithStoredAt(datetime.MustParseTimeInLocation(s.T(), "2026-02-02T12:00:00Z", time.UTC).AsTime()),
+	)
+
+	clock.FreezeTime(invoice.DefaultCollectionAtForStandardInvoice())
+	invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+	s.NoError(err)
+
+	defer s.UsageBasedTestHandler.Reset()
+
+	invoiceUsageAccruedCallback := newCountedLedgerTransactionCallback[usagebased.OnInvoiceUsageAccruedInput]()
+	s.UsageBasedTestHandler.onInvoiceUsageAccrued = invoiceUsageAccruedCallback.Handler(s.T())
+
+	invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+	s.NoError(err)
+	s.Equalf(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status, "validation issues: %v", invoice.ValidationIssues.AsError())
+	s.Equal(1, invoiceUsageAccruedCallback.nrInvocations)
+
+	authorizedCallback := newCountedLedgerTransactionCallback[usagebased.OnPaymentAuthorizedInput]()
+	s.UsageBasedTestHandler.onPaymentAuthorized = authorizedCallback.Handler(s.T(), func(t *testing.T, input usagebased.OnPaymentAuthorizedInput) {
+		assert.Equal(t, usageBasedChargeID.ID, input.Charge.ID)
+		assert.NotNil(t, input.Run.InvoiceUsage)
+		assert.Nil(t, input.Run.Payment)
+		assert.NotNil(t, input.Run.LineID)
+		assert.Equal(t, stdLineID.ID, *input.Run.LineID)
+	})
+
+	settledCallback := newCountedLedgerTransactionCallback[usagebased.OnPaymentSettledInput]()
+	s.UsageBasedTestHandler.onPaymentSettled = settledCallback.Handler(s.T(), func(t *testing.T, input usagebased.OnPaymentSettledInput) {
+		assert.Equal(t, usageBasedChargeID.ID, input.Charge.ID)
+		assert.NotNil(t, input.Run.Payment)
+		assert.NotNil(t, input.Run.Payment.Authorized)
+		assert.Equal(t, authorizedCallback.id, input.Run.Payment.Authorized.TransactionGroupID)
+		assert.Nil(t, input.Run.Payment.Settled)
+		assert.Equal(t, payment.StatusAuthorized, input.Run.Payment.Status)
+	})
+
+	invoice, err = s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
+		InvoiceID: invoice.GetInvoiceID(),
+		Trigger:   billing.TriggerPaid,
+	})
+	s.NoError(err)
+	s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status)
+	s.Equal(1, authorizedCallback.nrInvocations)
+	s.Equal(1, settledCallback.nrInvocations)
+
+	usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+	s.Equal(usagebased.StatusFinal, usageBasedCharge.Status)
+	s.Len(usageBasedCharge.Realizations, 1)
+
+	finalRun := usageBasedCharge.Realizations[0]
+	s.NotNil(finalRun.Payment)
+	s.NotNil(finalRun.Payment.Authorized)
+	s.NotNil(finalRun.Payment.Settled)
+	s.Equal(authorizedCallback.id, finalRun.Payment.Authorized.TransactionGroupID)
+	s.Equal(settledCallback.id, finalRun.Payment.Settled.TransactionGroupID)
+	s.Equal(payment.StatusSettled, finalRun.Payment.Status)
+}
+
 func (s *InvoicableChargesTestSuite) TestUsageBasedCreateImmediatelyFinal() {
 	defer s.UsageBasedTestHandler.Reset()
 
-	ctx := context.Background()
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-based-create-immediately-final")
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
@@ -1580,7 +1787,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreateImmediatelyFinal() {
 }
 
 func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-credit-only-lifecycle")
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
@@ -1742,7 +1949,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyCreateImmediatelyFinal() {
 	defer s.FlatFeeTestHandler.Reset()
 
-	ctx := context.Background()
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-credit-only-create-immediately-final")
 
 	customInvoicing := s.SetupCustomInvoicing(ns)

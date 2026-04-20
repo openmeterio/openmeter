@@ -21,6 +21,8 @@ const (
 	StatusActiveFinalRealizationWaitingForCollection Status = "active.final_realization.waiting_for_collection"
 	StatusActiveFinalRealizationProcessing           Status = "active.final_realization.processing"
 	StatusActiveFinalRealizationCompleted            Status = "active.final_realization.completed"
+	StatusActivePaymentPending                       Status = "active.payment_pending"
+	StatusActiveAuthorized                           Status = "active.authorized"
 
 	StatusFinal   Status = Status(meta.ChargeStatusFinal)
 	StatusDeleted Status = Status(meta.ChargeStatusDeleted)
@@ -34,6 +36,8 @@ func (Status) Values() []string {
 		string(StatusActiveFinalRealizationWaitingForCollection),
 		string(StatusActiveFinalRealizationProcessing),
 		string(StatusActiveFinalRealizationCompleted),
+		string(StatusActivePaymentPending),
+		string(StatusActiveAuthorized),
 		string(StatusFinal),
 		string(StatusDeleted),
 	}

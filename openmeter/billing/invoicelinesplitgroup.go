@@ -187,9 +187,41 @@ type GatheringLineWithInvoiceHeader struct {
 	Invoice GatheringInvoice
 }
 
+func (l GatheringLineWithInvoiceHeader) Validate() error {
+	if err := l.Line.Validate(); err != nil {
+		return fmt.Errorf("line: %w", err)
+	}
+
+	// This transport only carries the parent invoice entity as a header object,
+	// so we validate invoice identity here instead of requiring a fully fetched invoice aggregate.
+	if l.Invoice.ID == "" {
+		return fmt.Errorf("invoice id is required")
+	}
+
+	return nil
+}
+
 type StandardLineWithInvoiceHeader struct {
 	Line    *StandardLine
 	Invoice StandardInvoice
+}
+
+func (l StandardLineWithInvoiceHeader) Validate() error {
+	if l.Line == nil {
+		return fmt.Errorf("line is required")
+	}
+
+	if err := l.Line.Validate(); err != nil {
+		return fmt.Errorf("line: %w", err)
+	}
+
+	// This transport only carries the parent invoice entity as a header object,
+	// so we validate invoice identity here instead of requiring a fully fetched invoice aggregate.
+	if l.Invoice.ID == "" {
+		return fmt.Errorf("invoice id is required")
+	}
+
+	return nil
 }
 
 type LineWithInvoiceHeader struct {

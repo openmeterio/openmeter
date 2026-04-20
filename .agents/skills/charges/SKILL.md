@@ -54,6 +54,7 @@ The generic rule is:
 - type-specific packages own type-specific lifecycle and persistence
 - `AdvanceCharges(...)` is a facade method, not the state machine itself
 - type-specific service subpackages may own reusable realization mechanics when the parent service becomes too broad; keep state-machine decisions in the lifecycle files and move only mechanical operations such as rating snapshots, realization persistence, credit allocation/correction, and realization lineage persistence into these helpers
+- invoice-backed charges must not reach the meta `final` state until their payment lifecycle is fully settled; if a charge is waiting on invoice payment authorization or settlement, keep it in an `active.*` detailed status instead of collapsing to `final`
 
 Important types:
 
