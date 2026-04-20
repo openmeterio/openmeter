@@ -66,8 +66,8 @@ type ListMetersParams struct {
 	Namespace string
 
 	// AIP-style filters
-	Key  *filter.FilterString
-	Name *filter.FilterString
+	Key  *filter.FilterString `json:"key,omitempty"`
+	Name *filter.FilterString `json:"name,omitempty"`
 
 	IDFilter   *[]string
 	SlugFilter *[]string
@@ -98,6 +98,18 @@ func (p ListMetersParams) Validate() error {
 
 	if p.Order != sortx.OrderNone && (p.Order != sortx.OrderAsc && p.Order != sortx.OrderDesc) {
 		errs = append(errs, fmt.Errorf("invalid order: %s", p.Order))
+	}
+
+	if p.Key != nil {
+		if err := p.Key.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid key filter: %w", err))
+		}
+	}
+
+	if p.Name != nil {
+		if err := p.Name.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid name filter: %w", err))
+		}
 	}
 
 	if p.IDFilter != nil {

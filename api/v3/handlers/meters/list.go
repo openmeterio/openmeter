@@ -54,22 +54,10 @@ func (h *handler) ListMeters() ListMetersHandler {
 				Page:      page,
 			}
 
-			if params.Filter != nil {
-				key, err := filters.FromAPIFilterString(params.Filter.Key)
-				if err != nil {
-					return ListMetersRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-						{Field: "filter[key]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
-					})
-				}
-				req.Key = key
-
-				name, err := filters.FromAPIFilterString(params.Filter.Name)
-				if err != nil {
-					return ListMetersRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-						{Field: "filter[name]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
-					})
-				}
-				req.Name = name
+			if err := filters.Parse(r.URL.Query(), &req); err != nil {
+				return ListMetersRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+					{Field: "filter", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+				})
 			}
 
 			return req, nil
