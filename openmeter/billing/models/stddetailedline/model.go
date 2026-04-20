@@ -66,6 +66,9 @@ var _ models.Validator = (*Base)(nil)
 func (l Base) Validate() error {
 	errs := []error{}
 
+	if err := l.ManagedResource.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("managed resource: %w", err))
+	}
 	if err := l.Category.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("category: %w", err))
 	}
