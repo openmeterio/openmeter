@@ -8,3 +8,6 @@ path = "api/client/go/"
 
 [[exceptions]]
 path = ".gen/"
+
+[[exceptions]]
+path = "**.gen.go"
