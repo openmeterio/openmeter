@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -18,6 +19,10 @@ func (a *adapter) CreateRunPayment(ctx context.Context, runID usagebased.Realiza
 
 	if err := in.Validate(); err != nil {
 		return payment.Invoiced{}, err
+	}
+
+	if runID.Namespace != in.Namespace {
+		return payment.Invoiced{}, fmt.Errorf("run namespace %q does not match payment namespace %q", runID.Namespace, in.Namespace)
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (payment.Invoiced, error) {

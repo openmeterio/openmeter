@@ -109,7 +109,6 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		OnEntryFrom(meta.TriggerInvoiceIssued, statelessx.WithParameters(s.FinalizeInvoiceRun))
 
 	s.Configure(usagebased.StatusActiveAuthorized).
-		PermitReentry(meta.TriggerInvoicePaymentAuthorized).
 		Permit(meta.TriggerInvoicePaymentSettled, usagebased.StatusFinal).
 		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
 		OnEntryFrom(meta.TriggerInvoicePaymentAuthorized, statelessx.WithParameters(s.RecordPaymentAuthorized))

@@ -851,7 +851,7 @@ func (s *CreditsTestSuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 		invoice = invoices[0]
 	})
 
-	s.Run("late arriving usage is ignored once the invoice finalization cutoff has passed", func() {
+	s.Run("late arriving usage is included while its stored_at remains before the invoice finalization cutoff", func() {
 		s.MockStreamingConnector.AddSimpleEvent(
 			apiRequestsTotal.Feature.Key,
 			25,

@@ -1559,6 +1559,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceDirectPaidFl
 
 	createAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-01T00:00:00Z", time.UTC).AsTime()
 	clock.FreezeTime(createAt)
+	defer clock.UnFreeze()
 
 	promotionalCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
 	s.CreditPurchaseTestHandler.onPromotionalCreditPurchase = promotionalCallback.Handler(s.T())
