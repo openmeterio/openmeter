@@ -166,7 +166,14 @@ func parseFiltersValue(qs url.Values, v reflect.Value) error {
 			}
 
 		default:
-			return fmt.Errorf("filter[%s]: unsupported filter field type %s", name, fieldVal.Type())
+			// Handle *T where T is a named string-based type (e.g. *BillingCreditTransactionType).
+			if fieldVal.Kind() == reflect.Pointer && fieldVal.Type().Elem().Kind() == reflect.String {
+				if err := parseStringPtrTyped(qs, name, fieldVal); err != nil {
+					return err
+				}
+			} else {
+				return fmt.Errorf("filter[%s]: unsupported filter field type %s", name, fieldVal.Type())
+			}
 		}
 	}
 
@@ -186,6 +193,27 @@ func parseStringPtr(qs url.Values, name string, fieldVal reflect.Value) error {
 		}
 		if val != "" {
 			fieldVal.Set(reflect.ValueOf(&val))
+		}
+		break
+	}
+	return nil
+}
+
+// parseStringPtrTyped handles filter[field]=value for *T fields where T is a named string type.
+func parseStringPtrTyped(qs url.Values, name string, fieldVal reflect.Value) error {
+	prefix := "filter[" + name + "]"
+	for key, values := range qs {
+		if key != prefix {
+			continue
+		}
+		val, err := singleValue(key, values)
+		if err != nil {
+			return err
+		}
+		if val != "" {
+			ptr := reflect.New(fieldVal.Type().Elem())
+			ptr.Elem().SetString(val)
+			fieldVal.Set(ptr)
 		}
 		break
 	}
