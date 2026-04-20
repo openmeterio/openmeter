@@ -437,6 +437,7 @@ func MapSubscriptionViewToAPI(view subscription.SubscriptionView) (api.Subscript
 		UpdatedAt:       apiSub.UpdatedAt,
 		Status:          apiSub.Status,
 		Alignment:       &alg,
+		SettlementMode:  apiSub.SettlementMode,
 	}
 
 	phases := make([]api.SubscriptionPhaseExpanded, 0, len(view.Phases))
