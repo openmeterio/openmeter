@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -25,6 +25,7 @@ func TestGetBalance(t *testing.T) {
 			name: "flat fee credit only",
 			setup: func(t *testing.T, env *testEnv) {
 				env.bookFBOBalance(t, alpacadecimal.NewFromInt(100))
+				env.fundOpenReceivable(t, alpacadecimal.NewFromInt(100))
 				env.createFlatFeeCharge(t, alpacadecimal.NewFromInt(30), productcatalog.CreditOnlySettlementMode, env.sp())
 			},
 			wantSettled: 100,
@@ -34,16 +35,36 @@ func TestGetBalance(t *testing.T) {
 			name: "flat fee credit then invoice",
 			setup: func(t *testing.T, env *testEnv) {
 				env.bookFBOBalance(t, alpacadecimal.NewFromInt(20))
+				env.fundOpenReceivable(t, alpacadecimal.NewFromInt(20))
 				env.createFlatFeeCharge(t, alpacadecimal.NewFromInt(30), productcatalog.CreditThenInvoiceSettlementMode, env.sp())
 			},
 			wantSettled: 20,
 			wantPending: 0,
 		},
 		{
+			name: "credit only charge with no starting credits creates advance",
+			setup: func(t *testing.T, env *testEnv) {
+				env.createFlatFeeCharge(t, alpacadecimal.NewFromInt(30), productcatalog.CreditOnlySettlementMode, env.sp())
+			},
+			wantSettled: 0,
+			wantPending: -30,
+		},
+		{
+			name: "credit only charge advance settles",
+			setup: func(t *testing.T, env *testEnv) {
+				ch := env.createFlatFeeCharge(t, alpacadecimal.NewFromInt(30), productcatalog.CreditOnlySettlementMode, env.sp())
+				env.passTimeAfterServicePeriod(t, env.sp())
+				env.advanceFlatFeeCharge(t, ch)
+			},
+			wantSettled: -30,
+			wantPending: -30,
+		},
+		{
 			name: "usage based credit only",
 			setup: func(t *testing.T, env *testEnv) {
 				env.addUsage(30, clock.Now().Add(-30*time.Minute))
 				env.bookFBOBalance(t, alpacadecimal.NewFromInt(100))
+				env.fundOpenReceivable(t, alpacadecimal.NewFromInt(100))
 				env.createUsageBasedCharge(t, alpacadecimal.NewFromInt(1), productcatalog.CreditOnlySettlementMode, env.sp())
 			},
 			wantSettled: 100,
@@ -54,6 +75,7 @@ func TestGetBalance(t *testing.T) {
 			setup: func(t *testing.T, env *testEnv) {
 				env.addUsage(30, clock.Now().Add(-30*time.Minute))
 				env.bookFBOBalance(t, alpacadecimal.NewFromInt(20))
+				env.fundOpenReceivable(t, alpacadecimal.NewFromInt(20))
 				env.createUsageBasedCharge(t, alpacadecimal.NewFromInt(1), productcatalog.CreditThenInvoiceSettlementMode, env.sp())
 			},
 			wantSettled: 20,
@@ -64,6 +86,7 @@ func TestGetBalance(t *testing.T) {
 			setup: func(t *testing.T, env *testEnv) {
 				env.addUsage(150, clock.Now().Add(-30*time.Minute))
 				env.bookFBOBalance(t, alpacadecimal.NewFromInt(100))
+				env.fundOpenReceivable(t, alpacadecimal.NewFromInt(100))
 				env.createFlatFeeCharge(t, alpacadecimal.NewFromInt(80), productcatalog.CreditThenInvoiceSettlementMode, env.sp())
 				env.createUsageBasedCharge(t, alpacadecimal.NewFromInt(1), productcatalog.CreditOnlySettlementMode, env.sp())
 			},
@@ -80,6 +103,7 @@ func TestGetBalance(t *testing.T) {
 
 				env.addUsage(30, clock.Now().Add(-30*time.Minute))
 				env.bookFBOBalance(t, alpacadecimal.NewFromInt(100))
+				env.fundOpenReceivable(t, alpacadecimal.NewFromInt(100))
 				env.createFlatFeeCharge(t, alpacadecimal.NewFromInt(30), productcatalog.CreditOnlySettlementMode, futureServicePeriod)
 				env.createUsageBasedCharge(t, alpacadecimal.NewFromInt(1), productcatalog.CreditOnlySettlementMode, futureServicePeriod)
 			},
@@ -87,9 +111,10 @@ func TestGetBalance(t *testing.T) {
 			wantPending: 100,
 		},
 		{
-			name: "already realized credits are not applied twice",
+			name: "usage is settled",
 			setup: func(t *testing.T, env *testEnv) {
 				env.bookFBOBalance(t, alpacadecimal.NewFromInt(70))
+				env.fundOpenReceivable(t, alpacadecimal.NewFromInt(70))
 
 				charge := env.createFlatFeeCharge(t,
 					alpacadecimal.NewFromInt(30),
@@ -99,8 +124,8 @@ func TestGetBalance(t *testing.T) {
 
 				env.advanceFlatFeeCharge(t, charge)
 			},
-			wantSettled: 70,
-			wantPending: 70,
+			wantSettled: 40,
+			wantPending: 40,
 		},
 	}
 
@@ -109,14 +134,10 @@ func TestGetBalance(t *testing.T) {
 			env := newTestEnv(t)
 			tt.setup(t, env)
 
-			priority := ledger.DefaultCustomerFBOPriority
-			balance, err := env.Service.GetBalance(t.Context(), env.CustomerID, ledger.RouteFilter{
-				Currency:       env.Currency,
-				CreditPriority: &priority,
-			}, nil)
+			balance, err := env.Service.GetBalance(t.Context(), env.CustomerID, env.Currency, nil)
 			require.NoError(t, err)
-			require.True(t, balance.Settled().Equal(alpacadecimal.NewFromInt(tt.wantSettled)))
-			require.True(t, balance.Pending().Equal(alpacadecimal.NewFromInt(tt.wantPending)))
+			assert.True(t, balance.Settled().Equal(alpacadecimal.NewFromInt(tt.wantSettled)), "settled: %s", balance.Settled())
+			assert.True(t, balance.Pending().Equal(alpacadecimal.NewFromInt(tt.wantPending)), "pending: %s", balance.Pending())
 		})
 	}
 }
@@ -125,24 +146,18 @@ func TestGetBalanceWithDifferentCurrency(t *testing.T) {
 	env := newTestEnv(t)
 
 	env.bookFBOBalanceInCurrency(t, alpacadecimal.NewFromInt(100), "USD")
+	env.fundOpenReceivableInCurrency(t, alpacadecimal.NewFromInt(100), "USD")
 	env.bookFBOBalanceInCurrency(t, alpacadecimal.NewFromInt(200), "EUR")
+	env.fundOpenReceivableInCurrency(t, alpacadecimal.NewFromInt(200), "EUR")
 	env.createFlatFeeChargeInCurrency(t, alpacadecimal.NewFromInt(30), productcatalog.CreditOnlySettlementMode, env.sp(), "USD")
 	env.createFlatFeeChargeInCurrency(t, alpacadecimal.NewFromInt(70), productcatalog.CreditOnlySettlementMode, env.sp(), "EUR")
 
-	usdPriority := ledger.DefaultCustomerFBOPriority
-	usdBalance, err := env.Service.GetBalance(t.Context(), env.CustomerID, ledger.RouteFilter{
-		Currency:       currencyx.Code("USD"),
-		CreditPriority: &usdPriority,
-	}, nil)
+	usdBalance, err := env.Service.GetBalance(t.Context(), env.CustomerID, currencyx.Code("USD"), nil)
 	require.NoError(t, err)
 	require.True(t, usdBalance.Settled().Equal(alpacadecimal.NewFromInt(100)))
 	require.True(t, usdBalance.Pending().Equal(alpacadecimal.NewFromInt(70)))
 
-	eurPriority := ledger.DefaultCustomerFBOPriority
-	eurBalance, err := env.Service.GetBalance(t.Context(), env.CustomerID, ledger.RouteFilter{
-		Currency:       currencyx.Code("EUR"),
-		CreditPriority: &eurPriority,
-	}, nil)
+	eurBalance, err := env.Service.GetBalance(t.Context(), env.CustomerID, currencyx.Code("EUR"), nil)
 	require.NoError(t, err)
 	require.True(t, eurBalance.Settled().Equal(alpacadecimal.NewFromInt(200)))
 	require.True(t, eurBalance.Pending().Equal(alpacadecimal.NewFromInt(130)))
