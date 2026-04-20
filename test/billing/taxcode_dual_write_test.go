@@ -529,7 +529,7 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotTaxCodeIntoLinesOnAdvance() {
 		Lines: []billing.GatheringLine{
 			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 				Namespace:     ns,
-				Period:        billing.Period{Start: now, End: now.Add(time.Hour * 24)},
+				Period:        timeutil.ClosedPeriod{From: now, To: now.Add(time.Hour * 24)},
 				InvoiceAt:     now,
 				ManagedBy:     billing.ManuallyManagedLine,
 				Name:          "nil-taxconfig line",
@@ -685,7 +685,7 @@ func (s *TaxCodeDualWriteTestSuite) TestSimulateInvoiceReadOnly() {
 
 	line := billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
 		Namespace:     ns,
-		Period:        billing.Period{Start: now, End: now.Add(time.Hour * 24)},
+		Period:        timeutil.ClosedPeriod{From: now, To: now.Add(time.Hour * 24)},
 		InvoiceAt:     now,
 		Name:          "simulate line",
 		PerUnitAmount: alpacadecimal.NewFromFloat(100),

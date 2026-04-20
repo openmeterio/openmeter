@@ -35,8 +35,8 @@ func (a *adapter) CreateSplitLineGroup(ctx context.Context, input billing.Create
 			SetName(input.Name).
 			SetNillableDescription(input.Description).
 			SetMetadata(input.Metadata).
-			SetServicePeriodStart(input.ServicePeriod.Start.UTC()).
-			SetServicePeriodEnd(input.ServicePeriod.End.UTC()).
+			SetServicePeriodStart(input.ServicePeriod.From.UTC()).
+			SetServicePeriodEnd(input.ServicePeriod.To.UTC()).
 			SetCurrency(input.Currency).
 			SetRatecardDiscounts(&input.RatecardDiscounts).
 			SetPrice(input.Price).
@@ -78,8 +78,8 @@ func (a *adapter) UpdateSplitLineGroup(ctx context.Context, input billing.Update
 			SetName(input.Name).
 			SetOrClearDescription(input.Description).
 			SetMetadata(input.Metadata).
-			SetServicePeriodStart(input.ServicePeriod.Start.UTC()).
-			SetServicePeriodEnd(input.ServicePeriod.End.UTC()).
+			SetServicePeriodStart(input.ServicePeriod.From.UTC()).
+			SetServicePeriodEnd(input.ServicePeriod.To.UTC()).
 			SetRatecardDiscounts(&input.RatecardDiscounts).
 			SetOrClearTaxConfig(input.TaxConfig).
 			Where(
@@ -214,9 +214,9 @@ func (a *adapter) mapSplitLineGroupFromDB(dbSplitLineGroup *db.BillingInvoiceSpl
 			Description: dbSplitLineGroup.Description,
 			Metadata:    dbSplitLineGroup.Metadata,
 
-			ServicePeriod: billing.Period{
-				Start: dbSplitLineGroup.ServicePeriodStart.UTC(),
-				End:   dbSplitLineGroup.ServicePeriodEnd.UTC(),
+			ServicePeriod: timeutil.ClosedPeriod{
+				From: dbSplitLineGroup.ServicePeriodStart.UTC(),
+				To:   dbSplitLineGroup.ServicePeriodEnd.UTC(),
 			},
 
 			RatecardDiscounts: lo.FromPtr(dbSplitLineGroup.RatecardDiscounts),

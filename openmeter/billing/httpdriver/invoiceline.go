@@ -153,9 +153,9 @@ func mapCreateLineToEntity(line api.InvoicePendingLineCreate, ns string) (*billi
 			ManagedBy: billing.ManuallyManagedLine,
 			Engine:    billing.LineEngineTypeInvoice,
 
-			Period: billing.Period{
-				Start: line.Period.From,
-				End:   line.Period.To,
+			Period: timeutil.ClosedPeriod{
+				From: line.Period.From,
+				To:   line.Period.To,
 			},
 
 			InvoiceAt:         line.InvoiceAt,
@@ -271,8 +271,8 @@ func mapDetailedLineToAPI(line billing.DetailedLine, invoiceAt time.Time) (api.I
 		},
 
 		Period: api.Period{
-			From: line.ServicePeriod.Start,
-			To:   line.ServicePeriod.End,
+			From: line.ServicePeriod.From,
+			To:   line.ServicePeriod.To,
 		},
 
 		PerUnitAmount: lo.ToPtr(line.PerUnitAmount.String()),
@@ -356,8 +356,8 @@ func mapInvoiceLineToAPI(line *billing.StandardLine) (api.InvoiceLine, error) {
 
 		Metadata: convert.MapToPointer(line.Metadata),
 		Period: api.Period{
-			From: line.Period.Start,
-			To:   line.Period.End,
+			From: line.Period.From,
+			To:   line.Period.To,
 		},
 
 		TaxConfig: mapTaxConfigToAPI(line.TaxConfig),
@@ -610,9 +610,9 @@ func mapSimulationLineToEntity(line api.InvoiceSimulationLine) (*billing.Standar
 			Metadata:  lo.FromPtrOr(line.Metadata, map[string]string{}),
 			ManagedBy: billing.ManuallyManagedLine,
 
-			Period: billing.Period{
-				Start: line.Period.From.Truncate(streaming.MinimumWindowSizeDuration),
-				End:   line.Period.To.Truncate(streaming.MinimumWindowSizeDuration),
+			Period: timeutil.ClosedPeriod{
+				From: line.Period.From.Truncate(streaming.MinimumWindowSizeDuration),
+				To:   line.Period.To.Truncate(streaming.MinimumWindowSizeDuration),
 			},
 
 			InvoiceAt:         line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration),
@@ -655,9 +655,9 @@ func standardLineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate,
 			InvoiceID: invoice.ID,
 			Currency:  invoice.Currency,
 
-			Period: billing.Period{
-				Start: line.Period.From.Truncate(streaming.MinimumWindowSizeDuration),
-				End:   line.Period.To.Truncate(streaming.MinimumWindowSizeDuration),
+			Period: timeutil.ClosedPeriod{
+				From: line.Period.From.Truncate(streaming.MinimumWindowSizeDuration),
+				To:   line.Period.To.Truncate(streaming.MinimumWindowSizeDuration),
 			},
 			InvoiceAt: line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration),
 
@@ -738,8 +738,8 @@ func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLin
 	existing.Name = line.Name
 	existing.Description = line.Description
 
-	existing.Period.Start = line.Period.From.Truncate(streaming.MinimumWindowSizeDuration)
-	existing.Period.End = line.Period.To.Truncate(streaming.MinimumWindowSizeDuration)
+	existing.Period.From = line.Period.From.Truncate(streaming.MinimumWindowSizeDuration)
+	existing.Period.To = line.Period.To.Truncate(streaming.MinimumWindowSizeDuration)
 	existing.InvoiceAt = line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
 
 	existing.TaxConfig = rateCardParsed.TaxConfig

@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func TestSortLines(t *testing.T) {
@@ -18,8 +19,8 @@ func TestSortLines(t *testing.T) {
 					Name:        "usage-based-line",
 					Description: lo.ToPtr("index=1"),
 				}),
-				Period: Period{
-					Start: time.Now().Add(time.Hour * 24),
+				Period: timeutil.ClosedPeriod{
+					From: time.Now().Add(time.Hour * 24),
 				},
 			},
 			DetailedLines: DetailedLines{
@@ -49,8 +50,8 @@ func TestSortLines(t *testing.T) {
 					Name:        "usage-based-line",
 					Description: lo.ToPtr("index=0"),
 				}),
-				Period: Period{
-					Start: time.Now(),
+				Period: timeutil.ClosedPeriod{
+					From: time.Now(),
 				},
 			},
 		},

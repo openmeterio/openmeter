@@ -13,7 +13,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -56,12 +55,12 @@ type SubscriptionItemWithPeriods struct {
 	// Period Information
 
 	// ServicePeriod is the de-facto service period that the item is billed for
-	ServicePeriod billing.Period
+	ServicePeriod timeutil.ClosedPeriod
 	// FullServicePeriod is the full service period that the item is billed for (previously nonTruncatedPeriod)
-	FullServicePeriod billing.Period
+	FullServicePeriod timeutil.ClosedPeriod
 
 	// BillingPeriod as determined by alignment and service period
-	BillingPeriod billing.Period
+	BillingPeriod timeutil.ClosedPeriod
 }
 
 // PeriodPercentage returns the percentage of the period that is actually billed, compared to the non-truncated period
@@ -85,14 +84,14 @@ func (r SubscriptionItemWithPeriods) GetInvoiceAt() time.Time {
 		if flatFee.PaymentTerm == productcatalog.InAdvancePaymentTerm {
 			// In advance invoicing
 			// For in advance invoicing we attempt to incoice at the start of the billing period
-			return r.BillingPeriod.Start
+			return r.BillingPeriod.From
 		}
 	}
 
 	// All other items are invoiced after the fact, meaning
 	// - not before its billing period is over
 	// - not before its service period is over
-	return lo.Latest(r.ServicePeriod.End, r.BillingPeriod.End)
+	return lo.Latest(r.ServicePeriod.To, r.BillingPeriod.To)
 }
 
 func NewPhaseIterator(logger *slog.Logger, tracer trace.Tracer, subs subscription.SubscriptionView, phaseKey string) (*PhaseIterator, error) {
@@ -156,17 +155,17 @@ func (it *PhaseIterator) GetMinimumBillableTime() time.Time {
 				}
 			} else {
 				// Let's make sure that truncation won't filter out the item
-				period := billing.Period{
-					Start: item.SubscriptionItem.ActiveFrom,
-					End:   TimeInfinity,
+				period := timeutil.ClosedPeriod{
+					From: item.SubscriptionItem.ActiveFrom,
+					To:   TimeInfinity,
 				}
 
 				if item.SubscriptionItem.ActiveTo != nil {
-					period.End = *item.SubscriptionItem.ActiveTo
+					period.To = *item.SubscriptionItem.ActiveTo
 				}
 
-				if it.phaseCadence.ActiveTo != nil && period.End.After(*it.phaseCadence.ActiveTo) {
-					period.End = *it.phaseCadence.ActiveTo
+				if it.phaseCadence.ActiveTo != nil && period.To.After(*it.phaseCadence.ActiveTo) {
+					period.To = *it.phaseCadence.ActiveTo
 				}
 
 				period = period.Truncate(streaming.MinimumWindowSizeDuration)
@@ -174,8 +173,8 @@ func (it *PhaseIterator) GetMinimumBillableTime() time.Time {
 					continue
 				}
 
-				if period.Start.Before(minTime) {
-					minTime = period.Start
+				if period.From.Before(minTime) {
+					minTime = period.From
 				}
 			}
 		}
@@ -287,7 +286,7 @@ func (it *PhaseIterator) generateForAlignedItemVersion(ctx context.Context, item
 
 			// Let's increment
 			periodIdx = periodIdx + 1
-			at = newItem.ServicePeriod.End
+			at = newItem.ServicePeriod.To
 
 			// Check if we have reached the iteration end based on invoiceAt
 			if newItem.GetInvoiceAt().After(iterationEnd) {
@@ -393,17 +392,17 @@ func (it *PhaseIterator) generateForAlignedItemVersionPeriod(ctx context.Context
 			PeriodIndex: periodIdx,
 			ItemVersion: version,
 
-			ServicePeriod: billing.Period{
-				Start: servicePeriod.From,
-				End:   servicePeriod.To,
+			ServicePeriod: timeutil.ClosedPeriod{
+				From: servicePeriod.From,
+				To:   servicePeriod.To,
 			},
-			FullServicePeriod: billing.Period{
-				Start: fullServicePeriod.From,
-				End:   fullServicePeriod.To,
+			FullServicePeriod: timeutil.ClosedPeriod{
+				From: fullServicePeriod.From,
+				To:   fullServicePeriod.To,
 			},
-			BillingPeriod: billing.Period{
-				Start: billingPeriod.From,
-				End:   billingPeriod.To,
+			BillingPeriod: timeutil.ClosedPeriod{
+				From: billingPeriod.From,
+				To:   billingPeriod.To,
 			},
 		}
 
@@ -494,17 +493,17 @@ func (it *PhaseIterator) generateOneTimeAlignedItem(item subscription.Subscripti
 		PeriodIndex: 0,
 		ItemVersion: versionID,
 
-		ServicePeriod: billing.Period{
-			Start: servicePeriod.From,
-			End:   servicePeriod.To,
+		ServicePeriod: timeutil.ClosedPeriod{
+			From: servicePeriod.From,
+			To:   servicePeriod.To,
 		},
-		FullServicePeriod: billing.Period{
-			Start: fullServicePeriod.From,
-			End:   fullServicePeriod.To,
+		FullServicePeriod: timeutil.ClosedPeriod{
+			From: fullServicePeriod.From,
+			To:   fullServicePeriod.To,
 		},
-		BillingPeriod: billing.Period{
-			Start: billingPeriod.From,
-			End:   billingPeriod.To,
+		BillingPeriod: timeutil.ClosedPeriod{
+			From: billingPeriod.From,
+			To:   billingPeriod.To,
 		},
 	}, nil
 }

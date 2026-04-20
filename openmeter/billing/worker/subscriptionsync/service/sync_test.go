@@ -248,9 +248,9 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 		s.Equal(line.Subscription.PhaseID, discountedPhase.SubscriptionPhase.ID)
 		s.Equal(line.Subscription.ItemID, discountedPhase.ItemsByKey[s.APIRequestsTotalFeature.Key][0].SubscriptionItem.ID)
 		s.Equal(line.InvoiceAt, s.mustParseTime("2024-02-15T00:00:00Z"))
-		s.Equal(line.Period, billing.Period{
-			Start: s.mustParseTime("2024-02-01T00:00:00Z"),
-			End:   s.mustParseTime("2024-02-15T00:00:00Z"),
+		s.Equal(line.Period, timeutil.ClosedPeriod{
+			From: s.mustParseTime("2024-02-01T00:00:00Z"),
+			To:   s.mustParseTime("2024-02-15T00:00:00Z"),
 		})
 
 		// let's fetch the gathering invoice
@@ -324,9 +324,9 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 		splitLineGroup := gatheringLine.SplitLineHierarchy.Group
 
 		s.Equal(splitLineGroup.Subscription.SubscriptionID, subsView.Subscription.ID)
-		s.Equal(splitLineGroup.ServicePeriod, billing.Period{
-			Start: s.mustParseTime("2024-02-01T00:00:00Z"),
-			End:   s.mustParseTime("2024-03-01T00:00:00Z"),
+		s.Equal(splitLineGroup.ServicePeriod, timeutil.ClosedPeriod{
+			From: s.mustParseTime("2024-02-01T00:00:00Z"),
+			To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 		})
 	})
 
@@ -373,9 +373,9 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 		splitLineGroup := gatheringLine.SplitLineHierarchy.Group
 
 		s.Equal(splitLineGroup.Subscription.SubscriptionID, subsView.Subscription.ID)
-		s.Equal(splitLineGroup.ServicePeriod, billing.Period{
-			Start: s.mustParseTime("2024-02-01T00:00:00Z"),
-			End:   s.mustParseTime("2024-03-01T00:00:00Z"),
+		s.Equal(splitLineGroup.ServicePeriod, timeutil.ClosedPeriod{
+			From: s.mustParseTime("2024-02-01T00:00:00Z"),
+			To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 		})
 	})
 }
@@ -707,14 +707,14 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 				Amount:      alpacadecimal.NewFromFloat(10),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:40Z"),
-					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:40Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 				{
-					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{
@@ -820,10 +820,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-01T00:00:40Z"),
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-01T00:00:40Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{
@@ -843,14 +843,14 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 				Amount:      alpacadecimal.NewFromFloat(10),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:40Z"),
-					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:40Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 				{
-					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{
@@ -954,10 +954,10 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsGatheringSyncNonBillableAmou
 				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-01T00:00:40Z"),
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-01T00:00:40Z"),
 				},
 			},
 			// We'll wait till the end of the billing cadence of the item
@@ -976,10 +976,10 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsGatheringSyncNonBillableAmou
 				Amount:      alpacadecimal.NewFromFloat(10),
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:40Z"),
-					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:40Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
 			// We'll wait till the end of the billing cadence of the item
@@ -1061,10 +1061,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncBillableAmountP
 				Amount:      alpacadecimal.NewFromFloat(0.32), // 10 * 1 / 31
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-02T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-02T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{
@@ -1084,10 +1084,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncBillableAmountP
 				Amount:      alpacadecimal.NewFromFloat(19.35), // 20 * 30 / 31
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-02T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					From: s.mustParseTime("2024-01-02T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{
@@ -1107,10 +1107,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncBillableAmountP
 				Amount:      alpacadecimal.NewFromFloat(20),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{
@@ -1182,10 +1182,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 				Amount:      alpacadecimal.NewFromFloat(6),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
 		},
@@ -1229,10 +1229,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 				Amount:      alpacadecimal.NewFromFloat(9.68), // 10 * 30 / 31
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-02T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					From: s.mustParseTime("2024-01-02T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-01T00:00:00Z")}),
@@ -1250,10 +1250,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 				Amount:      alpacadecimal.NewFromFloat(10),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
@@ -1281,10 +1281,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 				Amount:      alpacadecimal.NewFromFloat(0.19), // 6 * 1 / 31
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-02T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-02T00:00:00Z"),
 				},
 			},
 		},
@@ -1355,10 +1355,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 				Amount:      alpacadecimal.NewFromFloat(6),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
 		},
@@ -1402,10 +1402,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 				Amount:      alpacadecimal.NewFromFloat(9.68), // 10 * 30 / 31
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-02T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					From: s.mustParseTime("2024-01-02T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-01T00:00:00Z")}),
@@ -1423,10 +1423,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 				Amount:      alpacadecimal.NewFromFloat(10),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
@@ -1454,10 +1454,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 				Amount:      alpacadecimal.NewFromFloat(6),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
 		},
@@ -1684,10 +1684,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-02T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-02T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-01T00:00:00Z")}),
@@ -1705,39 +1705,39 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 				Amount:      alpacadecimal.NewFromFloat(8),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-02T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-08T00:00:00Z"),
+					From: s.mustParseTime("2024-01-02T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-08T00:00:00Z"),
 				},
 				{
-					Start: s.mustParseTime("2024-01-08T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-15T00:00:00Z"),
+					From: s.mustParseTime("2024-01-08T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-15T00:00:00Z"),
 				},
 				{
-					Start: s.mustParseTime("2024-01-15T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-22T00:00:00Z"),
+					From: s.mustParseTime("2024-01-15T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-22T00:00:00Z"),
 				},
 				{
-					Start: s.mustParseTime("2024-01-22T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-29T00:00:00Z"),
+					From: s.mustParseTime("2024-01-22T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-29T00:00:00Z"),
 				},
 				// As these are in advance items, we also generate them for the next Billing Period (from 2024-01-29 to 2024-02-26)
 				{
-					Start: s.mustParseTime("2024-01-29T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-05T00:00:00Z"),
+					From: s.mustParseTime("2024-01-29T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-05T00:00:00Z"),
 				},
 				{
-					Start: s.mustParseTime("2024-02-05T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-12T00:00:00Z"),
+					From: s.mustParseTime("2024-02-05T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-12T00:00:00Z"),
 				},
 				{
-					Start: s.mustParseTime("2024-02-12T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-19T00:00:00Z"),
+					From: s.mustParseTime("2024-02-12T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-19T00:00:00Z"),
 				},
 				{
-					Start: s.mustParseTime("2024-02-19T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-26T00:00:00Z"),
+					From: s.mustParseTime("2024-02-19T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-26T00:00:00Z"),
 				},
 			},
 			// in-advance items are invoiced immediately when change happens
@@ -1766,10 +1766,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-02T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-02T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-29T00:00:00Z")}),
@@ -1787,22 +1787,22 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 				Amount:      alpacadecimal.NewFromFloat(7),
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-02T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-08T00:00:00Z"),
+					From: s.mustParseTime("2024-01-02T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-08T00:00:00Z"),
 				},
 				{
-					Start: s.mustParseTime("2024-01-08T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-15T00:00:00Z"),
+					From: s.mustParseTime("2024-01-08T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-15T00:00:00Z"),
 				},
 				{
-					Start: s.mustParseTime("2024-01-15T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-22T00:00:00Z"),
+					From: s.mustParseTime("2024-01-15T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-22T00:00:00Z"),
 				},
 				{
-					Start: s.mustParseTime("2024-01-22T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-29T00:00:00Z"),
+					From: s.mustParseTime("2024-01-22T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-29T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{
@@ -1914,14 +1914,14 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionCancellation() {
 				PeriodMax: 1,
 			},
 			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(5)})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: startTime.AddDate(0, 1, 0),
-					End:   startTime.AddDate(0, 2, 0),
+					From: startTime.AddDate(0, 1, 0),
+					To:   startTime.AddDate(0, 2, 0),
 				},
 				{
-					Start: startTime.AddDate(0, 2, 0),
-					End:   startTime.AddDate(0, 3, 0),
+					From: startTime.AddDate(0, 2, 0),
+					To:   startTime.AddDate(0, 3, 0),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{
@@ -2051,10 +2051,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProgressiveBilling
 				ItemKey:  s.APIRequestsTotalFeature.Key,
 			},
 			Price: mo.Some(testPrice),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: startTime,
-					End:   startTime.AddDate(0, 1, 0),
+					From: startTime,
+					To:   startTime.AddDate(0, 1, 0),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{
@@ -2090,10 +2090,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProgressiveBilling
 				ItemKey:  s.APIRequestsTotalFeature.Key,
 			},
 			Price: mo.Some(testPrice),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: startTime,
-					End:   startTime.AddDate(0, 0, 1),
+					From: startTime,
+					To:   startTime.AddDate(0, 0, 1),
 				},
 			},
 		},
@@ -2111,10 +2111,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProgressiveBilling
 				ItemKey:  s.APIRequestsTotalFeature.Key,
 			},
 			Price: mo.Some(testPrice),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: startTime.AddDate(0, 0, 1),
-					End:   startTime.AddDate(0, 1, 0),
+					From: startTime.AddDate(0, 0, 1),
+					To:   startTime.AddDate(0, 1, 0),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{
@@ -2191,10 +2191,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceOneTimeFeeSyncing() {
 				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-01T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-01T00:00:00Z")}),
@@ -2309,10 +2309,10 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsOneTimeFeeSyncing() {
 				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-15T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-15T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-15T00:00:00Z")}),
@@ -2367,10 +2367,10 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdate() {
 			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
@@ -2421,10 +2421,10 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdate() {
 			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-03T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-03T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-03T00:00:00Z")}),
@@ -2442,10 +2442,10 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdate() {
 			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(5),
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-03T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					From: s.mustParseTime("2024-01-03T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
@@ -2517,10 +2517,10 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
 		},
@@ -2541,10 +2541,10 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-03-01T00:00:00Z")}),
@@ -2601,10 +2601,10 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(5),
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-31T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					From: s.mustParseTime("2024-01-31T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
@@ -2620,10 +2620,10 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(5),
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-03-01T00:00:00Z")}),
@@ -2648,10 +2648,10 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-31T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-31T00:00:00Z"),
 				},
 			},
 		},
@@ -2732,10 +2732,10 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
 		},
@@ -2795,10 +2795,10 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-01T00:00:00Z"), // This is not updated, which is what we want
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"), // This is not updated, which is what we want
 				},
 			},
 		},
@@ -2885,10 +2885,10 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-15T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-15T00:00:00Z"),
 				},
 			},
 		},
@@ -2919,10 +2919,10 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-15T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-18T00:00:00Z"),
+					From: s.mustParseTime("2024-01-15T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-18T00:00:00Z"),
 				},
 			},
 		},
@@ -2945,14 +2945,14 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-18T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					From: s.mustParseTime("2024-01-18T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 				{
-					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{
@@ -3011,14 +3011,14 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(5),
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-11T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					From: s.mustParseTime("2024-01-11T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 				{
-					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{
@@ -3049,10 +3049,10 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-15T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-15T00:00:00Z"),
 				},
 			},
 		},
@@ -3255,9 +3255,9 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualEditSync() {
 	// Field updates are supported for manually managed lines
 	s.Equal(resyncedInvoiceLine.StandardLineBase.Name, updatedLine.Name)
 	// Period however is managed by the sync to ensure consistency between line and parent (update endpoint does the filtering)
-	s.Equal(billing.Period{
-		Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-		End:   s.mustParseTime("2024-01-10T00:00:00Z"),
+	s.Equal(timeutil.ClosedPeriod{
+		From: s.mustParseTime("2024-01-01T00:00:00Z"),
+		To:   s.mustParseTime("2024-01-10T00:00:00Z"),
 	}, resyncedInvoiceLine.Period)
 }
 
@@ -3724,17 +3724,17 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualDeleteSync() {
 	line := resyncedInvoice.Lines.OrEmpty()[0]
 	s.NotNil(line.DeletedAt)
 	// Period is updated
-	s.Equal(billing.Period{
-		Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-		End:   s.mustParseTime("2024-01-10T00:00:00Z"),
+	s.Equal(timeutil.ClosedPeriod{
+		From: s.mustParseTime("2024-01-01T00:00:00Z"),
+		To:   s.mustParseTime("2024-01-10T00:00:00Z"),
 	}, line.Period)
 
 	s.NotNil(line.SplitLineHierarchy)
 	parentGroup := line.SplitLineHierarchy.Group
 	// Parent's period is in sync with the child
-	s.Equal(billing.Period{
-		Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-		End:   s.mustParseTime("2024-01-10T00:00:00Z"),
+	s.Equal(timeutil.ClosedPeriod{
+		From: s.mustParseTime("2024-01-01T00:00:00Z"),
+		To:   s.mustParseTime("2024-01-10T00:00:00Z"),
 	}, parentGroup.ServicePeriod)
 	s.Equal(fmt.Sprintf("%s/first-phase/api-requests-total/v[0]/period[0]", subsView.Subscription.ID), *parentGroup.UniqueReferenceID)
 }
@@ -3889,10 +3889,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceInstantBillingOnSubscription
 				Amount:      alpacadecimal.NewFromFloat(6),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
 		},
@@ -3973,10 +3973,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceInstantBillingOnSubscription
 				Amount:      alpacadecimal.NewFromFloat(6),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
@@ -4072,10 +4072,10 @@ func (s *SubscriptionHandlerTestSuite) TestDiscountSynchronization() {
 			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
@@ -4093,10 +4093,10 @@ func (s *SubscriptionHandlerTestSuite) TestDiscountSynchronization() {
 				Amount:      alpacadecimal.NewFromFloat(6),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
@@ -4114,10 +4114,10 @@ func (s *SubscriptionHandlerTestSuite) TestDiscountSynchronization() {
 				Amount:      alpacadecimal.NewFromFloat(6),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
 		},
@@ -4248,10 +4248,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 				Amount:      alpacadecimal.NewFromFloat(2.26),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-15T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-15T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-01T00:00:00Z")}),
@@ -4265,10 +4265,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 				Amount:      alpacadecimal.NewFromFloat(2.26),
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-15T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-15T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-15T00:00:00Z")}),
@@ -4279,10 +4279,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 				ItemKey:  "api-requests-total",
 			},
 			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(10)})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-15T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-15T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-15T00:00:00Z")}),
@@ -4301,10 +4301,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 				Amount:      alpacadecimal.NewFromFloat(2.74),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-15T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					From: s.mustParseTime("2024-01-15T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-15T00:00:00Z")}),
@@ -4320,10 +4320,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
@@ -4339,10 +4339,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 				Amount:      alpacadecimal.NewFromFloat(2.74),
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-15T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					From: s.mustParseTime("2024-01-15T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
@@ -4358,10 +4358,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-03-01T00:00:00Z")}),
@@ -4375,14 +4375,14 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 			},
 			// UBP does not need prorating on price due to period being shorter
 			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(10.0)})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-01-15T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					From: s.mustParseTime("2024-01-15T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 				{
-					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z"), s.mustParseTime("2024-03-01T00:00:00Z")}),
@@ -4466,10 +4466,10 @@ func (s *SubscriptionHandlerTestSuite) TestSynchronizeSubscriptionPeriodAlgorith
 				Amount:      alpacadecimal.NewFromFloat(6),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2025-01-31T00:00:00Z"),
-					End:   s.mustParseTime("2025-03-02T00:00:00Z"),
+					From: s.mustParseTime("2025-01-31T00:00:00Z"),
+					To:   s.mustParseTime("2025-03-02T00:00:00Z"),
 				},
 			},
 		},
@@ -4495,14 +4495,14 @@ func (s *SubscriptionHandlerTestSuite) TestSynchronizeSubscriptionPeriodAlgorith
 				Amount:      alpacadecimal.NewFromFloat(6),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2025-01-31T00:00:00Z"),
-					End:   s.mustParseTime("2025-03-02T00:00:00Z"),
+					From: s.mustParseTime("2025-01-31T00:00:00Z"),
+					To:   s.mustParseTime("2025-03-02T00:00:00Z"),
 				},
 				{
-					Start: s.mustParseTime("2025-03-02T00:00:00Z"),
-					End:   s.mustParseTime("2025-03-31T00:00:00Z"),
+					From: s.mustParseTime("2025-03-02T00:00:00Z"),
+					To:   s.mustParseTime("2025-03-31T00:00:00Z"),
 				},
 			},
 
@@ -4587,10 +4587,10 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedCustomerHandling() {
 			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(5),
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2025-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2025-01-01T01:00:00Z"),
+					From: s.mustParseTime("2025-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2025-01-01T01:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2025-01-01T01:00:00Z")}),
@@ -4619,10 +4619,10 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedCustomerHandling() {
 			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(5),
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2025-01-01T00:00:00Z"),
-					End:   s.mustParseTime("2025-01-01T01:00:00Z"),
+					From: s.mustParseTime("2025-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2025-01-01T01:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2025-01-01T01:00:00Z")}),
@@ -4734,10 +4734,10 @@ func (s *SubscriptionHandlerTestSuite) TestFirstDayOfMonthBillingForSubPeriodLen
 				Amount:      alpacadecimal.NewFromFloat(6),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})),
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
-					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),

@@ -243,19 +243,19 @@ func (b Builder) correctPeriodStartForUpcomingLines(ctx context.Context, subscri
 		// TODO: Add a migration to normalize existing billing timestamps to the precision
 		// supported by meter queries.
 		continuousStart := previousServicePeriod.To.Truncate(streaming.MinimumWindowSizeDuration)
-		if line.ServicePeriod.Start.Equal(continuousStart) {
+		if line.ServicePeriod.From.Equal(continuousStart) {
 			continue
 		}
 
-		if !line.ServicePeriod.Start.Equal(line.FullServicePeriod.Start) {
+		if !line.ServicePeriod.From.Equal(line.FullServicePeriod.From) {
 			return nil, fmt.Errorf("line[%s] service period and full service period start does not match", line.UniqueID)
 		}
 
-		inScopeLines[idx].ServicePeriod.Start = continuousStart
-		inScopeLines[idx].FullServicePeriod.Start = continuousStart
+		inScopeLines[idx].ServicePeriod.From = continuousStart
+		inScopeLines[idx].FullServicePeriod.From = continuousStart
 
-		if line.FullServicePeriod.Start.Equal(line.BillingPeriod.Start) {
-			inScopeLines[idx].BillingPeriod.Start = continuousStart
+		if line.FullServicePeriod.From.Equal(line.BillingPeriod.From) {
+			inScopeLines[idx].BillingPeriod.From = continuousStart
 		}
 	}
 

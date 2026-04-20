@@ -85,8 +85,8 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					SetID(line.ID).
 					SetNamespace(line.Namespace).
 					SetInvoiceID(line.InvoiceID).
-					SetPeriodStart(line.Period.Start.In(time.UTC)).
-					SetPeriodEnd(line.Period.End.In(time.UTC)).
+					SetPeriodStart(line.Period.From.In(time.UTC)).
+					SetPeriodEnd(line.Period.To.In(time.UTC)).
 					SetNillableParentLineID(line.ParentLineID).
 					SetNillableSplitLineGroupID(line.SplitLineGroupID).
 					SetNillableChargeID(line.ChargeID).
@@ -305,8 +305,8 @@ func (a *adapter) upsertDetailedLines(ctx context.Context, in detailedLineDiff) 
 				SetID(line.ID).
 				SetNamespace(line.Namespace).
 				SetInvoiceID(line.InvoiceID).
-				SetPeriodStart(line.ServicePeriod.Start.In(time.UTC)).
-				SetPeriodEnd(line.ServicePeriod.End.In(time.UTC)).
+				SetPeriodStart(line.ServicePeriod.From.In(time.UTC)).
+				SetPeriodEnd(line.ServicePeriod.To.In(time.UTC)).
 				SetParentLineID(lineWithParent.Parent.ID).
 				SetInvoiceAt(lineWithParent.Parent.InvoiceAt.In(time.UTC)).
 				SetNillableDeletedAt(line.DeletedAt).
@@ -422,8 +422,8 @@ func (a *adapter) upsertDetailedLinesV2(ctx context.Context, in detailedLineDiff
 				SetID(line.ID).
 				SetNamespace(line.Namespace).
 				SetInvoiceID(line.InvoiceID).
-				SetServicePeriodStart(line.ServicePeriod.Start.In(time.UTC)).
-				SetServicePeriodEnd(line.ServicePeriod.End.In(time.UTC)).
+				SetServicePeriodStart(line.ServicePeriod.From.In(time.UTC)).
+				SetServicePeriodEnd(line.ServicePeriod.To.In(time.UTC)).
 				SetParentLineID(lineWithParent.Parent.ID).
 				SetNillableDeletedAt(line.DeletedAt).
 				SetName(line.Name).

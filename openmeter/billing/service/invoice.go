@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 var _ billing.InvoiceService = (*Service)(nil)
@@ -313,9 +314,9 @@ func (s *Service) createStandardInvoiceHeaderFromGatheringInvoice(ctx context.Co
 			Type:        billing.InvoiceTypeStandard,
 			Currency:    in.Currency,
 			Status:      billing.StandardInvoiceStatusGathering,
-			Period: &billing.Period{
-				Start: in.ServicePeriod.From,
-				End:   in.ServicePeriod.To,
+			Period: &timeutil.ClosedPeriod{
+				From: in.ServicePeriod.From,
+				To:   in.ServicePeriod.To,
 			},
 			CreatedAt: in.CreatedAt,
 			UpdatedAt: in.UpdatedAt,
@@ -741,7 +742,7 @@ func (s Service) checkIfLinesAreInvoicable(ctx context.Context, invoice *billing
 
 			if period == nil {
 				return billing.ValidationError{
-					Err: fmt.Errorf("line[%s]: %w as of %s", line.ID, billing.ErrInvoiceLinesNotBillable, line.Period.End),
+					Err: fmt.Errorf("line[%s]: %w as of %s", line.ID, billing.ErrInvoiceLinesNotBillable, line.Period.To),
 				}
 			}
 

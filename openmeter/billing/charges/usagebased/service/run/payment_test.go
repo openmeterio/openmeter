@@ -32,7 +32,7 @@ func TestBookInvoicedPaymentAuthorizedInputValidate(t *testing.T) {
 				NamespacedID: models.NamespacedID{Namespace: in.Charge.Namespace, ID: "payment-1"},
 				ManagedModel: models.ManagedModel{CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC()},
 				Base: payment.Base{
-					ServicePeriod: in.Line.Period.ToClosedPeriod(),
+					ServicePeriod: in.Line.Period,
 					Status:        payment.StatusAuthorized,
 					Amount:        in.Line.Totals.Total,
 					Authorized: &ledgertransaction.TimedGroupReference{
@@ -110,9 +110,9 @@ func newBookPaymentAuthorizedInput() BookInvoicedPaymentAuthorizedInput {
 				Currency:  currencyx.Code("USD"),
 				InvoiceID: "invoice-1",
 				InvoiceAt: now,
-				Period: billing.Period{
-					Start: now.Add(-time.Hour),
-					End:   now,
+				Period: timeutil.ClosedPeriod{
+					From: now.Add(-time.Hour),
+					To:   now,
 				},
 				Totals: totals.Totals{
 					Amount: alpacadecimal.NewFromInt(10),
@@ -133,7 +133,7 @@ func newSettlePaymentInput() SettleInvoicedPaymentInput {
 	authInput := newBookPaymentAuthorizedInput()
 	authInput.Run.InvoiceUsage = &invoicedusage.AccruedUsage{
 		LineID:        &authInput.Line.ID,
-		ServicePeriod: authInput.Line.Period.ToClosedPeriod(),
+		ServicePeriod: authInput.Line.Period,
 		Mutable:       false,
 		Totals:        authInput.Line.Totals,
 	}
@@ -142,7 +142,7 @@ func newSettlePaymentInput() SettleInvoicedPaymentInput {
 			NamespacedID: models.NamespacedID{Namespace: authInput.Charge.Namespace, ID: "payment-1"},
 			ManagedModel: models.ManagedModel{CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC()},
 			Base: payment.Base{
-				ServicePeriod: authInput.Line.Period.ToClosedPeriod(),
+				ServicePeriod: authInput.Line.Period,
 				Status:        payment.StatusAuthorized,
 				Amount:        authInput.Line.Totals.Total,
 				Authorized: &ledgertransaction.TimedGroupReference{

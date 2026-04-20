@@ -21,7 +21,7 @@ type SplitLineGroupMutableFields struct {
 	Description *string         `json:"description,omitempty"`
 	Metadata    models.Metadata `json:"metadata,omitempty"`
 
-	ServicePeriod Period `json:"period"`
+	ServicePeriod timeutil.ClosedPeriod `json:"period"`
 
 	RatecardDiscounts Discounts                 `json:"ratecardDiscounts"`
 	TaxConfig         *productcatalog.TaxConfig `json:"taxConfig,omitempty"`
@@ -522,7 +522,7 @@ func (i LineOrHierarchy) ServicePeriod() timeutil.ClosedPeriod {
 	case LineOrHierarchyTypeLine:
 		return i.line.GetServicePeriod()
 	case LineOrHierarchyTypeHierarchy:
-		return i.splitLineHierarchy.Group.ServicePeriod.ToClosedPeriod()
+		return i.splitLineHierarchy.Group.ServicePeriod
 	}
 
 	return timeutil.ClosedPeriod{}

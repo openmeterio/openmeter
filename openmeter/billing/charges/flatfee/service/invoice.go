@@ -26,7 +26,7 @@ func (s *service) PostLineAssignedToInvoice(ctx context.Context, charge flatfee.
 
 		input := flatfee.OnAssignedToInvoiceInput{
 			Charge:            charge,
-			ServicePeriod:     line.Period.ToClosedPeriod(),
+			ServicePeriod:     line.Period,
 			PreTaxTotalAmount: currencyCalculator.RoundToPrecision(charge.State.AmountAfterProration),
 		}
 		if err := input.Validate(); err != nil {
@@ -69,7 +69,7 @@ func (s *service) PostInvoiceIssued(ctx context.Context, charge flatfee.Charge, 
 
 		ledgerTransactionRef, err := s.handler.OnInvoiceUsageAccrued(ctx, flatfee.OnInvoiceUsageAccruedInput{
 			Charge:        charge,
-			ServicePeriod: lineWithHeader.Line.Period.ToClosedPeriod(),
+			ServicePeriod: lineWithHeader.Line.Period,
 			Totals:        lineWithHeader.Line.Totals,
 		})
 		if err != nil {
@@ -78,7 +78,7 @@ func (s *service) PostInvoiceIssued(ctx context.Context, charge flatfee.Charge, 
 
 		accruedUsage := invoicedusage.AccruedUsage{
 			LineID:            lo.ToPtr(lineWithHeader.Line.ID),
-			ServicePeriod:     lineWithHeader.Line.Period.ToClosedPeriod(),
+			ServicePeriod:     lineWithHeader.Line.Period,
 			Mutable:           false,
 			Totals:            lineWithHeader.Line.Totals,
 			LedgerTransaction: &ledgerTransactionRef,

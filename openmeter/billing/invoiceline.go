@@ -38,60 +38,6 @@ func (InvoiceLineManagedBy) Values() []string {
 	}
 }
 
-// Period represents a time period, in billing the time period is always interpreted as
-// [from, to) (i.e. from is inclusive, to is exclusive).
-// TODO: Lets merge this with recurrence.Period
-type Period struct {
-	Start time.Time `json:"start"`
-	End   time.Time `json:"end"`
-}
-
-func (p Period) Validate() error {
-	if p.Start.IsZero() {
-		return errors.New("start is required")
-	}
-
-	if p.End.IsZero() {
-		return errors.New("end is required")
-	}
-
-	if p.Start.After(p.End) {
-		return errors.New("start must be before end")
-	}
-
-	return nil
-}
-
-func (p Period) Truncate(resolution time.Duration) Period {
-	return Period{
-		Start: p.Start.Truncate(resolution),
-		End:   p.End.Truncate(resolution),
-	}
-}
-
-func (p Period) Equal(other Period) bool {
-	return p.Start.Equal(other.Start) && p.End.Equal(other.End)
-}
-
-func (p Period) IsEmpty() bool {
-	return !p.End.After(p.Start)
-}
-
-func (p Period) Contains(t time.Time) bool {
-	return t.After(p.Start) && t.Before(p.End)
-}
-
-func (p Period) Duration() time.Duration {
-	return p.End.Sub(p.Start)
-}
-
-func (p Period) ToClosedPeriod() timeutil.ClosedPeriod {
-	return timeutil.ClosedPeriod{
-		From: p.Start,
-		To:   p.End,
-	}
-}
-
 type GetLinesForSubscriptionInput struct {
 	Namespace      string
 	SubscriptionID string

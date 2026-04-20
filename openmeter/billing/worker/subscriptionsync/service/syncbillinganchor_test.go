@@ -162,10 +162,10 @@ func (s *BillingAnchorTestSuite) TestBillingAnchorSinglePhase() {
 				PhaseKey: "first-phase",
 				ItemKey:  s.APIRequestsTotalFeature.Key,
 			},
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: testutils.GetRFC3339Time(s.T(), "2025-07-10T15:00:00Z"),
-					End:   testutils.GetRFC3339Time(s.T(), "2025-07-31T15:00:00Z"),
+					From: testutils.GetRFC3339Time(s.T(), "2025-07-10T15:00:00Z"),
+					To:   testutils.GetRFC3339Time(s.T(), "2025-07-31T15:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{
@@ -183,14 +183,14 @@ func (s *BillingAnchorTestSuite) TestBillingAnchorSinglePhase() {
 				PeriodMin: 1,
 				PeriodMax: 2,
 			},
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: testutils.GetRFC3339Time(s.T(), "2025-07-31T15:00:00Z"),
-					End:   testutils.GetRFC3339Time(s.T(), "2025-08-31T15:00:00Z"),
+					From: testutils.GetRFC3339Time(s.T(), "2025-07-31T15:00:00Z"),
+					To:   testutils.GetRFC3339Time(s.T(), "2025-08-31T15:00:00Z"),
 				},
 				{
-					Start: testutils.GetRFC3339Time(s.T(), "2025-08-31T15:00:00Z"),
-					End:   testutils.GetRFC3339Time(s.T(), "2025-09-30T15:00:00Z"),
+					From: testutils.GetRFC3339Time(s.T(), "2025-08-31T15:00:00Z"),
+					To:   testutils.GetRFC3339Time(s.T(), "2025-09-30T15:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{
@@ -371,10 +371,10 @@ func (s *BillingAnchorTestSuite) TestBillingAnchorMultiPhase() {
 				PhaseKey: "billable-phase",
 				ItemKey:  s.APIRequestsTotalFeature.Key,
 			},
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: testutils.GetRFC3339Time(s.T(), "2025-08-10T15:00:00Z"),
-					End:   testutils.GetRFC3339Time(s.T(), "2025-08-31T15:00:00Z"),
+					From: testutils.GetRFC3339Time(s.T(), "2025-08-10T15:00:00Z"),
+					To:   testutils.GetRFC3339Time(s.T(), "2025-08-31T15:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{
@@ -388,10 +388,10 @@ func (s *BillingAnchorTestSuite) TestBillingAnchorMultiPhase() {
 				PeriodMin: 1,
 				PeriodMax: 1,
 			},
-			Periods: []billing.Period{
+			Periods: []timeutil.ClosedPeriod{
 				{
-					Start: testutils.GetRFC3339Time(s.T(), "2025-08-31T15:00:00Z"),
-					End:   testutils.GetRFC3339Time(s.T(), "2025-09-30T15:00:00Z"),
+					From: testutils.GetRFC3339Time(s.T(), "2025-08-31T15:00:00Z"),
+					To:   testutils.GetRFC3339Time(s.T(), "2025-09-30T15:00:00Z"),
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{

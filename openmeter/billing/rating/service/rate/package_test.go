@@ -50,7 +50,7 @@ func TestPackagePriceCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: rating.MinSpendChildUniqueReferenceID,
-					Period:                 lo.ToPtr(testutil.TestFullPeriod.ToClosedPeriod()),
+					Period:                 lo.ToPtr(testutil.TestFullPeriod),
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Category:               billing.FlatFeeCategoryCommitment,
 					Totals: totals.Totals{
@@ -100,7 +100,7 @@ func TestPackagePriceCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: rating.MinSpendChildUniqueReferenceID,
-					Period:                 lo.ToPtr(testutil.TestFullPeriod.ToClosedPeriod()),
+					Period:                 lo.ToPtr(testutil.TestFullPeriod),
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Category:               billing.FlatFeeCategoryCommitment,
 					Totals: totals.Totals{

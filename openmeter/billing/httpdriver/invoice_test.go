@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
 
@@ -59,7 +60,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceSerialization() {
 			billing.NewFlatFeeGatheringLine(
 				billing.NewFlatFeeLineInput{
 					Namespace:     namespace,
-					Period:        billing.Period{Start: now, End: now.Add(time.Hour * 24)},
+					Period:        timeutil.ClosedPeriod{From: now, To: now.Add(time.Hour * 24)},
 					InvoiceAt:     now.Add(time.Hour * 24),
 					ManagedBy:     billing.ManuallyManagedLine,
 					Name:          "Test item - USD",

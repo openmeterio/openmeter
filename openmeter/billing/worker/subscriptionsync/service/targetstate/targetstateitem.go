@@ -45,7 +45,7 @@ func (r StateItem) IsBillable() bool {
 }
 
 func (r StateItem) GetServicePeriod() timeutil.ClosedPeriod {
-	return r.ServicePeriod.ToClosedPeriod()
+	return r.ServicePeriod
 }
 
 func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
@@ -68,8 +68,8 @@ func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
 				PhaseID:        r.PhaseID,
 				ItemID:         r.SubscriptionItem.ID,
 				BillingPeriod: timeutil.ClosedPeriod{
-					From: r.BillingPeriod.Start,
-					To:   r.BillingPeriod.End,
+					From: r.BillingPeriod.From,
+					To:   r.BillingPeriod.To,
 				},
 			},
 		},
@@ -142,7 +142,7 @@ func (r StateItem) shouldProrate() bool {
 		return false
 	}
 
-	if r.Subscription.ActiveTo != nil && !r.Subscription.ActiveTo.After(r.ServicePeriod.End) {
+	if r.Subscription.ActiveTo != nil && !r.Subscription.ActiveTo.After(r.ServicePeriod.To) {
 		return false
 	}
 

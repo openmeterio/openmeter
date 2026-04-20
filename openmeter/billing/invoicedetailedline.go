@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 // TODO: Rename to DetailedLineCostCategory (separate PR)
@@ -51,7 +52,7 @@ type DetailedLineBase struct {
 	ChildUniqueReferenceID *string                        `json:"childUniqueReferenceID,omitempty"`
 	Index                  *int                           `json:"index,omitempty"`
 	PaymentTerm            productcatalog.PaymentTermType `json:"paymentTerm"`
-	ServicePeriod          Period                         `json:"servicePeriod"`
+	ServicePeriod          timeutil.ClosedPeriod          `json:"servicePeriod"`
 
 	// Line amount
 	Currency      currencyx.Code        `json:"currency"`

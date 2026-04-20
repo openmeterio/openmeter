@@ -354,7 +354,7 @@ func TestCreditsMutator(t *testing.T) {
 					ChildUniqueReferenceID: rating.MinSpendChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Category:               billing.FlatFeeCategoryCommitment,
-					Period:                 lo.ToPtr(testutil.TestFullPeriod.ToClosedPeriod()),
+					Period:                 lo.ToPtr(testutil.TestFullPeriod),
 					CreditsApplied: []billing.CreditApplied{
 						{
 							Amount:      alpacadecimal.NewFromFloat(25),

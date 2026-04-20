@@ -222,7 +222,7 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					// that from the charge.
 					PerUnitAmount:          alpacadecimal.NewFromFloat(900),
 					Quantity:               alpacadecimal.NewFromFloat(1),
-					Period:                 lo.ToPtr(testutil.TestFullPeriod.ToClosedPeriod()),
+					Period:                 lo.ToPtr(testutil.TestFullPeriod),
 					ChildUniqueReferenceID: rating.MinSpendChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Category:               billing.FlatFeeCategoryCommitment,
@@ -255,7 +255,7 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					Name:                   "feature: minimum spend",
 					PerUnitAmount:          alpacadecimal.NewFromFloat(900),
 					Quantity:               alpacadecimal.NewFromFloat(1),
-					Period:                 lo.ToPtr(testutil.TestFullPeriod.ToClosedPeriod()),
+					Period:                 lo.ToPtr(testutil.TestFullPeriod),
 					ChildUniqueReferenceID: rating.MinSpendChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Category:               billing.FlatFeeCategoryCommitment,

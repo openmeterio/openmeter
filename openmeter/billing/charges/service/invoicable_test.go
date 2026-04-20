@@ -1178,7 +1178,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		invoiceUsageAccruedCallback := newCountedLedgerTransactionCallback[usagebased.OnInvoiceUsageAccruedInput]()
 		s.UsageBasedTestHandler.onInvoiceUsageAccrued = invoiceUsageAccruedCallback.Handler(s.T(), func(t *testing.T, input usagebased.OnInvoiceUsageAccruedInput) {
 			s.Equal(usageBasedChargeID.ID, input.Charge.ID)
-			s.Equal(expectedLine.Period.ToClosedPeriod(), input.ServicePeriod)
+			s.Equal(expectedLine.Period, input.ServicePeriod)
 			s.Equal(float64(4.5), input.Amount.InexactFloat64())
 			s.Equal(float64(125), input.Run.MeterValue.InexactFloat64())
 			s.NotNil(input.Run.LineID)
@@ -1203,7 +1203,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		s.NotNil(finalRun.InvoiceUsage)
 		s.NotNil(finalRun.InvoiceUsage.LineID)
 		s.Equal(stdLineID.ID, *finalRun.InvoiceUsage.LineID)
-		s.Equal(invoice.Lines.OrEmpty()[0].Period.ToClosedPeriod(), finalRun.InvoiceUsage.ServicePeriod)
+		s.Equal(invoice.Lines.OrEmpty()[0].Period, finalRun.InvoiceUsage.ServicePeriod)
 		s.RequireTotals(billingtest.ExpectedTotals{
 			Amount:       12.5,
 			Total:        4.5,

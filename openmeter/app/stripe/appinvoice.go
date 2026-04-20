@@ -574,8 +574,8 @@ func getStripeAddInvoiceItemParams(line billing.DetailedLine, calculator StripeC
 // getPeriod returns the period
 func getPeriod(line billing.DetailedLine) *stripe.InvoiceItemPeriodParams {
 	return &stripe.InvoiceItemPeriodParams{
-		Start: lo.ToPtr(line.ServicePeriod.Start.Unix()),
-		End:   lo.ToPtr(line.ServicePeriod.End.Unix()),
+		Start: lo.ToPtr(line.ServicePeriod.From.Unix()),
+		End:   lo.ToPtr(line.ServicePeriod.To.Unix()),
 	}
 }
 

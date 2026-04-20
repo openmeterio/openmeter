@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type SplitLineGroupAdapter interface {
@@ -37,9 +38,9 @@ func (e *Engine) SplitGatheringLine(ctx context.Context, in billing.SplitGatheri
 			SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{
 				Name:        line.Name,
 				Description: line.Description,
-				ServicePeriod: billing.Period{
-					Start: line.ServicePeriod.From,
-					End:   line.ServicePeriod.To,
+				ServicePeriod: timeutil.ClosedPeriod{
+					From: line.ServicePeriod.From,
+					To:   line.ServicePeriod.To,
 				},
 				RatecardDiscounts: line.RateCardDiscounts,
 				TaxConfig:         line.TaxConfig,

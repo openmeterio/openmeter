@@ -136,7 +136,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 				Currency: currencyx.Code(currency.HUF),
 				Lines: []billing.GatheringLine{
 					billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
-						Period: billing.Period{Start: periodStart, End: periodEnd},
+						Period: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 
 						InvoiceAt: issueAt,
 						ManagedBy: billing.ManuallyManagedLine,
@@ -301,7 +301,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowPaymentStatusOnly() {
 				Currency: currencyx.Code(currency.HUF),
 				Lines: []billing.GatheringLine{
 					billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
-						Period: billing.Period{Start: periodStart, End: periodEnd},
+						Period: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 
 						InvoiceAt: issueAt,
 						ManagedBy: billing.ManuallyManagedLine,

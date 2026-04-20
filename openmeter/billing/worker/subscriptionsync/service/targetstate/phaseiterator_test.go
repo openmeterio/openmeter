@@ -12,11 +12,11 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.opentelemetry.io/otel/trace/noop"
 
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 const NotSet = ""
@@ -35,9 +35,9 @@ func (s *PhaseIteratorTestSuite) SetupSuite() {
 }
 
 type expectedIterations struct {
-	ServicePeriod     billing.Period
-	FullServicePeriod billing.Period
-	BillingPeriod     billing.Period
+	ServicePeriod     timeutil.ClosedPeriod
+	FullServicePeriod timeutil.ClosedPeriod
+	BillingPeriod     timeutil.ClosedPeriod
 	Key               string
 }
 
@@ -94,32 +94,32 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 			alignedBillingCadence: datetime.MustParseDuration(s.T(), "P1D"),
 			expected: []expectedIterations{
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[0]",
 				},
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[1]",
 				},
@@ -141,32 +141,32 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 			alignedBillingCadence: datetime.MustParseDuration(s.T(), "P1D"),
 			expected: []expectedIterations{
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[0]",
 				},
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[1]",
 				},
@@ -184,32 +184,32 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 			alignedBillingCadence: datetime.MustParseDuration(s.T(), "P1D"),
 			expected: []expectedIterations{
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[0]",
 				},
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T15:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T15:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T15:00:00Z"), // billing period can never reach over phases
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T15:00:00Z"), // billing period can never reach over phases
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[1]",
 				},
@@ -233,63 +233,63 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 			expected: []expectedIterations{
 				// 1d cadence
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key-1d/v[0]/period[0]",
 				},
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key-1d/v[0]/period[1]",
 				},
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-03T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-03T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-04T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-03T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-03T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-04T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-03T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-03T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-04T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key-1d/v[0]/period[2]",
 				},
 				// 2d cadence
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key-2d/v[0]/period[0]",
 				},
@@ -314,32 +314,32 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
 			expected: []expectedIterations{
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[0]",
 				},
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[1]/period[0]",
 				},
@@ -363,47 +363,47 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
 			expected: []expectedIterations{
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[0]",
 				},
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T20:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T20:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[1]",
 				},
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T20:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T20:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[1]/period[0]",
 				},
@@ -443,65 +443,65 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
 			expected: []expectedIterations{
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[0]",
 				},
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T20:00:02Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T20:00:02Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
 					// billing period will follow the otherwise cadence
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[1]",
 				},
 				// 0 length service period v1 is dropped
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T20:00:02Z"),
-						End:   s.mustParseTime("2021-01-02T20:00:04Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T20:00:02Z"),
+						To:   s.mustParseTime("2021-01-02T20:00:04Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
 					// billing period will follow the otherwise cadence
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[2]/period[0]",
 				},
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T20:00:04Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T20:00:04Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[3]/period[0]",
 				},
@@ -520,48 +520,48 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
 			expected: []expectedIterations{
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[0]",
 				},
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[1]",
 				},
 				{
 					// Given end is >= invoice_at only at this point
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-03T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-03T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-04T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-03T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-03T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-04T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-03T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-03T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-04T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[2]",
 				},
@@ -581,17 +581,17 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 			phaseEnd: lo.ToPtr(s.mustParseTime("2021-01-05T00:00:00Z")),
 			expected: []expectedIterations{
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-05T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-05T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-05T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-05T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-05T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-05T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]",
 				},
@@ -625,94 +625,94 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 			expected: []expectedIterations{
 				// In Advance
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[0]",
 				},
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T20:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T20:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[1]",
 				},
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T20:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T20:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[1]/period[0]",
 				},
 				// As we want to generate all in advance items invoicable by end time, we get an extra in advance item
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-03T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-03T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-04T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-03T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-03T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-04T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-03T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-03T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-04T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[1]/period[1]",
 				},
 				// In Arrears
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
 					Key: "subID/phase-test/arrears-key/v[0]/period[0]",
 				},
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
 					Key: "subID/phase-test/arrears-key/v[0]/period[1]",
 				},
@@ -731,18 +731,18 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 			expected: []expectedIterations{
 				{
 					// If there is no phase end, the service period will be an instant
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-01T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-01T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-01T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-01T00:00:00Z"),
 					},
 					// If there is no foreseeable end to the phase, we'll bill after a single iteration
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-02-01T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-02-01T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]",
 				},
@@ -762,18 +762,18 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 			expected: []expectedIterations{
 				{
 					// If there is a foreseeable phase end, the service period will account for the entire phase
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-02-05T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-02-05T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-02-05T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-02-05T00:00:00Z"),
 					},
 					// Billing period still follows the aligned cadence
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-02-01T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-02-01T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]",
 				},
@@ -798,139 +798,139 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 			expected: []expectedIterations{
 				// In Advance
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-04T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[0]",
 				},
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-04T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[1]",
 				},
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-03T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-03T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-04T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-03T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-03T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-04T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-04T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[2]",
 				},
 				// We will also generate for the next billing period the in advance items (as their invoice at will be next start = current end = iteration end)
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-04T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-05T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-04T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-05T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-04T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-05T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-04T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-05T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-04T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-07T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-04T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-07T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[3]",
 				},
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-05T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-06T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-05T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-06T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-05T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-06T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-05T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-06T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-04T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-07T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-04T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-07T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[4]",
 				},
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-06T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-07T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-06T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-07T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-06T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-07T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-06T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-07T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-04T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-07T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-04T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-07T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[5]",
 				},
 				// In Arrears
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-04T00:00:00Z"),
 					},
 					Key: "subID/phase-test/arrears-key/v[0]/period[0]",
 				},
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-04T00:00:00Z"),
 					},
 					Key: "subID/phase-test/arrears-key/v[0]/period[1]",
 				},
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-03T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-03T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-04T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-03T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-03T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-04T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-04T00:00:00Z"),
 					},
 					Key: "subID/phase-test/arrears-key/v[0]/period[2]",
 				},
@@ -965,20 +965,20 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 			},
 			expected: []expectedIterations{
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
 						// The full service period wasn't served, this will still be a month long
-						End: s.mustParseTime("2021-02-01T00:00:00Z"),
+						To: s.mustParseTime("2021-02-01T00:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
 						// If the subscription ends, of course we can bill
 						// Also, as otherwise, cadence cannot reach cross phase boundaries, which the subscription end is
-						End: s.mustParseTime("2021-01-03T00:00:00Z"),
+						To: s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[0]",
 				},
@@ -1010,67 +1010,67 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 			expected: []expectedIterations{
 				{
 					// Service Periods will be aligned to the billing anchor
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-01T23:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-01T23:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2020-12-31T23:00:00Z"),
-						End:   s.mustParseTime("2021-01-01T23:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2020-12-31T23:00:00Z"),
+						To:   s.mustParseTime("2021-01-01T23:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
+					BillingPeriod: timeutil.ClosedPeriod{
 						// BillingPeriod cannot fall outside of subscription active period (and phase active period) so start gets truncated
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-01T23:00:00Z"),
+						From: s.mustParseTime("2021-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2021-01-01T23:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[0]",
 				},
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T23:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T23:00:00Z"),
 						// Item ends so does service period
-						End: s.mustParseTime("2021-01-02T20:00:00Z"),
+						To: s.mustParseTime("2021-01-02T20:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T23:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T23:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T23:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T23:00:00Z"),
 					},
 					// Billing period will be the next whole day
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T23:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T23:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T23:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T23:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[1]",
 				},
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T20:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T23:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T20:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T23:00:00Z"),
 					},
 					// Item was changed during period so the full service period will be the same as that of the previous version
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T23:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T23:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T23:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T23:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T23:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T23:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-01T23:00:00Z"),
+						To:   s.mustParseTime("2021-01-02T23:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[1]/period[0]",
 				},
 				// Given invoiceAt should be >= end, we have an extra in advance item
 				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T23:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T23:00:00Z"),
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T23:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T23:00:00Z"),
 					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T23:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T23:00:00Z"),
+					FullServicePeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T23:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T23:00:00Z"),
 					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T23:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T23:00:00Z"),
+					BillingPeriod: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2021-01-02T23:00:00Z"),
+						To:   s.mustParseTime("2021-01-03T23:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[1]/period[1]",
 				},
@@ -1264,11 +1264,11 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					BillingPeriod:     item.BillingPeriod,
 				})
 
-				s.T().Logf("out[%d]: %s \nService Period: [%s..%s] \nFull Service Period: [%s..%s] \nBilling Period: [%s..%s]\n", i, item.UniqueID, item.ServicePeriod.Start, item.ServicePeriod.End, item.FullServicePeriod.Start, item.FullServicePeriod.End, item.BillingPeriod.Start, item.BillingPeriod.End)
+				s.T().Logf("out[%d]: %s \nService Period: [%s..%s] \nFull Service Period: [%s..%s] \nBilling Period: [%s..%s]\n", i, item.UniqueID, item.ServicePeriod.From, item.ServicePeriod.To, item.FullServicePeriod.From, item.FullServicePeriod.To, item.BillingPeriod.From, item.BillingPeriod.To)
 			}
 
 			for i, item := range tc.expected {
-				s.T().Logf("expected[%d]: %s \nService Period: [%s..%s] \nFull Service Period: [%s..%s] \nBilling Period: [%s..%s]\n", i, item.Key, item.ServicePeriod.Start, item.ServicePeriod.End, item.FullServicePeriod.Start, item.FullServicePeriod.End, item.BillingPeriod.Start, item.BillingPeriod.End)
+				s.T().Logf("expected[%d]: %s \nService Period: [%s..%s] \nFull Service Period: [%s..%s] \nBilling Period: [%s..%s]\n", i, item.Key, item.ServicePeriod.From, item.ServicePeriod.To, item.FullServicePeriod.From, item.FullServicePeriod.To, item.BillingPeriod.From, item.BillingPeriod.To)
 			}
 
 			s.ElementsMatch(tc.expected, outAsExpect)

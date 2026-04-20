@@ -79,8 +79,8 @@ func (c *lineHierarchyPatchCollection) AddShrink(uniqueID string, existing persi
 		return nil
 	}
 
-	if !expectedLine.ServicePeriod.To.Before(existingHierarchy.Group.ServicePeriod.End) {
-		return fmt.Errorf("shrink patch requires target end before existing hierarchy end: existing=%s..%s target=%s..%s", existingHierarchy.Group.ServicePeriod.Start, existingHierarchy.Group.ServicePeriod.End, expectedLine.ServicePeriod.From, expectedLine.ServicePeriod.To)
+	if !expectedLine.ServicePeriod.To.Before(existingHierarchy.Group.ServicePeriod.To) {
+		return fmt.Errorf("shrink patch requires target end before existing hierarchy end: existing=%s..%s target=%s..%s", existingHierarchy.Group.ServicePeriod.From, existingHierarchy.Group.ServicePeriod.To, expectedLine.ServicePeriod.From, expectedLine.ServicePeriod.To)
 	}
 
 	patches := make([]invoiceupdater.Patch, 0, len(existingHierarchy.Lines)+1)
@@ -127,7 +127,7 @@ func (c *lineHierarchyPatchCollection) AddShrink(uniqueID string, existing persi
 	}
 
 	updatedGroup := existingHierarchy.Group.ToUpdate()
-	updatedGroup.ServicePeriod.End = expectedLine.ServicePeriod.To
+	updatedGroup.ServicePeriod.To = expectedLine.ServicePeriod.To
 	patches = append(patches, invoiceupdater.NewUpdateSplitLineGroupPatch(updatedGroup))
 
 	return c.addPatches(uniqueID, PatchOperationShrink, patches...)
@@ -147,12 +147,12 @@ func (c *lineHierarchyPatchCollection) AddExtend(existing persistedstate.Item, t
 		return nil
 	}
 
-	if existingHierarchy.Group.ServicePeriod.End.Equal(expectedLine.ServicePeriod.To) {
+	if existingHierarchy.Group.ServicePeriod.To.Equal(expectedLine.ServicePeriod.To) {
 		return nil
 	}
 
-	if !expectedLine.ServicePeriod.To.After(existingHierarchy.Group.ServicePeriod.End) {
-		return fmt.Errorf("[line] extend patch requires target end after existing end: existing=%s..%s target=%s..%s", existingHierarchy.Group.ServicePeriod.Start, existingHierarchy.Group.ServicePeriod.End, expectedLine.ServicePeriod.From, expectedLine.ServicePeriod.To)
+	if !expectedLine.ServicePeriod.To.After(existingHierarchy.Group.ServicePeriod.To) {
+		return fmt.Errorf("[line] extend patch requires target end after existing end: existing=%s..%s target=%s..%s", existingHierarchy.Group.ServicePeriod.From, existingHierarchy.Group.ServicePeriod.To, expectedLine.ServicePeriod.From, expectedLine.ServicePeriod.To)
 	}
 
 	patches := make([]invoiceupdater.Patch, 0, 2)
@@ -189,7 +189,7 @@ func (c *lineHierarchyPatchCollection) AddExtend(existing persistedstate.Item, t
 	}
 
 	updatedGroup := existingHierarchy.Group.ToUpdate()
-	updatedGroup.ServicePeriod.End = expectedLine.ServicePeriod.To
+	updatedGroup.ServicePeriod.To = expectedLine.ServicePeriod.To
 	patches = append(patches, invoiceupdater.NewUpdateSplitLineGroupPatch(updatedGroup))
 
 	return c.addPatches(target.UniqueID, PatchOperationExtend, patches...)
