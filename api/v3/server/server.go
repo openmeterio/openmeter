@@ -14,6 +14,7 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	addonshandler "github.com/openmeterio/openmeter/api/v3/handlers/addons"
 	appshandler "github.com/openmeterio/openmeter/api/v3/handlers/apps"
 	billingprofileshandler "github.com/openmeterio/openmeter/api/v3/handlers/billingprofiles"
 	currencieshandler "github.com/openmeterio/openmeter/api/v3/handlers/currencies"
@@ -50,6 +51,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
@@ -71,6 +73,7 @@ type Config struct {
 	Credits             config.CreditsConfiguration
 
 	// services
+	AddonService            addon.Service
 	AppService              app.Service
 	BillingService          billing.Service
 	LLMCostService          llmcost.Service
@@ -188,6 +191,10 @@ func (c *Config) Validate() error {
 		}
 	}
 
+	if c.AddonService == nil {
+		errs = append(errs, errors.New("addon service is required"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -197,6 +204,7 @@ type Server struct {
 	swagger *openapi3.T
 
 	// handlers
+	addonHandler                addonshandler.Handler
 	appsHandler                 appshandler.Handler
 	eventsHandler               eventshandler.Handler
 	llmcostHandler              llmcosthandler.Handler
@@ -247,6 +255,7 @@ func NewServer(config *Config) (*Server, error) {
 		return ns, nil
 	}
 
+	addonHandler := addonshandler.New(resolveNamespace, config.AddonService, httptransport.WithErrorHandler(config.ErrorHandler))
 	appsHandler := appshandler.New(resolveNamespace, config.AppService, httptransport.WithErrorHandler(config.ErrorHandler))
 	eventsHandler := eventshandler.New(resolveNamespace, config.IngestService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersHandler := customershandler.New(resolveNamespace, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
@@ -295,6 +304,7 @@ func NewServer(config *Config) (*Server, error) {
 	return &Server{
 		Config:                      config,
 		swagger:                     swagger,
+		addonHandler:                addonHandler,
 		appsHandler:                 appsHandler,
 		eventsHandler:               eventsHandler,
 		llmcostHandler:              llmcostH,

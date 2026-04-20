@@ -275,31 +275,31 @@ func (s *Server) PublishPlan(w http.ResponseWriter, r *http.Request, planId api.
 // Addons
 
 func (s *Server) ListAddons(w http.ResponseWriter, r *http.Request, params api.ListAddonsParams) {
-	unimplemented.ListAddons(w, r, params)
+	s.addonHandler.ListAddons().With(params).ServeHTTP(w, r)
 }
 
 func (s *Server) CreateAddon(w http.ResponseWriter, r *http.Request) {
-	unimplemented.CreateAddon(w, r)
+	s.addonHandler.CreateAddon().ServeHTTP(w, r)
 }
 
 func (s *Server) GetAddon(w http.ResponseWriter, r *http.Request, addonId api.ULID) {
-	unimplemented.GetAddon(w, r, addonId)
+	s.addonHandler.GetAddon().With(addonId).ServeHTTP(w, r)
 }
 
 func (s *Server) UpdateAddon(w http.ResponseWriter, r *http.Request, addonId api.ULID) {
-	unimplemented.UpdateAddon(w, r, addonId)
+	s.addonHandler.UpdateAddon().With(addonId).ServeHTTP(w, r)
 }
 
 func (s *Server) DeleteAddon(w http.ResponseWriter, r *http.Request, addonId api.ULID) {
-	unimplemented.DeleteAddon(w, r, addonId)
+	s.addonHandler.DeleteAddon().With(addonId).ServeHTTP(w, r)
 }
 
 func (s *Server) ArchiveAddon(w http.ResponseWriter, r *http.Request, addonId api.ULID) {
-	unimplemented.ArchiveAddon(w, r, addonId)
+	s.addonHandler.ArchiveAddon().With(addonId).ServeHTTP(w, r)
 }
 
 func (s *Server) PublishAddon(w http.ResponseWriter, r *http.Request, addonId api.ULID) {
-	unimplemented.PublishAddon(w, r, addonId)
+	s.addonHandler.PublishAddon().With(addonId).ServeHTTP(w, r)
 }
 
 // Plan Addons

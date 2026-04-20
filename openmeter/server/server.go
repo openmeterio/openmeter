@@ -110,6 +110,7 @@ func NewServer(config *Config) (*Server, error) {
 		NamespaceDecoder:        namespacedriver.StaticNamespaceDecoder(config.RouterConfig.NamespaceManager.GetDefaultNamespace()),
 		ErrorHandler:            config.RouterConfig.ErrorHandler,
 		Credits:                 config.RouterConfig.Credits,
+		AddonService:            config.RouterConfig.Addon,
 		AppService:              config.RouterConfig.App,
 		BillingService:          config.RouterConfig.Billing,
 		CustomerService:         config.RouterConfig.Customer,
