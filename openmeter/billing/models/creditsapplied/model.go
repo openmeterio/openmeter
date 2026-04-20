@@ -28,6 +28,10 @@ func (c CreditsApplied) Validate() error {
 }
 
 func (c CreditsApplied) Clone() CreditsApplied {
+	if len(c) == 0 {
+		return nil
+	}
+
 	return lo.Map(c, func(item CreditApplied, _ int) CreditApplied {
 		return item
 	})
