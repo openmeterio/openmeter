@@ -47,8 +47,6 @@ type CreditApplied struct {
 	Amount              alpacadecimal.Decimal `json:"amount"`
 	Description         string                `json:"description"`
 	CreditRealizationID string                `json:"creditRealizationID"`
-
-	// TODO[later]: Once we see the overall structure we might want to add references
 }
 
 func (c CreditApplied) CloneWithAmount(amount alpacadecimal.Decimal) CreditApplied {
