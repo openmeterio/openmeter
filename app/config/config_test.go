@@ -395,6 +395,7 @@ func TestComplete(t *testing.T) {
 			ReconcileInterval: time.Minute,
 			SendingTimeout:    time.Hour,
 			PendingTimeout:    2 * time.Hour,
+			ReconcilerWorkers: 10,
 		},
 		Svix: svix.SvixConfig{
 			APIKey:    "test-svix-token",

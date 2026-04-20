@@ -23,9 +23,12 @@ type NotificationConfiguration struct {
 
 	Webhook WebhookConfiguration
 
+	// EventHandler configuration
 	ReconcileInterval time.Duration
 	SendingTimeout    time.Duration
 	PendingTimeout    time.Duration
+
+	ReconcilerWorkers int
 }
 
 func (c NotificationConfiguration) Validate() error {
@@ -47,4 +50,5 @@ func ConfigureNotification(v *viper.Viper) {
 	v.SetDefault("notification.reconcileInterval", notification.DefaultReconcileInterval)
 	v.SetDefault("notification.sendingTimeout", notification.DefaultDeliveryStateSendingTimeout)
 	v.SetDefault("notification.pendingTimeout", notification.DefaultDeliveryStatePendingTimeout)
+	v.SetDefault("notification.reconcilerWorkers", notification.DefaultReconcilerWorkers)
 }

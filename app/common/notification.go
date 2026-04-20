@@ -65,6 +65,7 @@ func NewNotificationEventHandler(
 		ReconcileInterval: config.ReconcileInterval,
 		SendingTimeout:    config.SendingTimeout,
 		PendingTimeout:    config.PendingTimeout,
+		ReconcilerWorkers: config.ReconcilerWorkers,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize notification event handler: %w", err)

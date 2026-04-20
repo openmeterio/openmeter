@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/sync/semaphore"
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -85,10 +87,15 @@ func (h *Handler) Reconcile(ctx context.Context) error {
 
 			span.AddEvent("lock acquired")
 
+			workerPool := semaphore.NewWeighted(h.workerPoolSize)
+			wg := sync.WaitGroup{}
+
 			page := pagination.Page{
 				PageSize:   50,
 				PageNumber: 1,
 			}
+
+			nextAttemptBefore := clock.Now().Add(-1 * nextAttemptDelay)
 
 			for {
 				out, err := h.repo.ListEvents(ctx, notification.ListEventsInput{
@@ -98,7 +105,7 @@ func (h *Handler) Reconcile(ctx context.Context) error {
 						notification.EventDeliveryStatusStateSending,
 						notification.EventDeliveryStatusStateResending,
 					},
-					NextAttemptBefore: clock.Now().Add(-1 * nextAttemptDelay),
+					NextAttemptBefore: nextAttemptBefore,
 				})
 				if err != nil {
 					return fmt.Errorf("failed to fetch notification delivery statuses for reconciliation: %w", err)
@@ -109,14 +116,22 @@ func (h *Handler) Reconcile(ctx context.Context) error {
 				))
 
 				for _, event := range out.Items {
-					// TODO: run reconciliation in parallel (goroutines)
-					if err = h.reconcileEvent(ctx, &event); err != nil {
-						h.logger.ErrorContext(ctx, "failed to reconcile notification event",
-							"namespace", event.Namespace,
-							"notification.event.id", event.ID,
-							"error", err.Error(),
-						)
+					err = workerPool.Acquire(ctx, 1)
+					if err != nil {
+						return fmt.Errorf("failed to acquire worker from pool: %w", err)
 					}
+
+					wg.Go(func() {
+						defer workerPool.Release(1)
+
+						if rErr := h.reconcileEvent(ctx, &event); rErr != nil {
+							h.logger.ErrorContext(ctx, "failed to reconcile notification event",
+								"namespace", event.Namespace,
+								"notification.event.id", event.ID,
+								"error", rErr.Error(),
+							)
+						}
+					})
 				}
 
 				if out.TotalCount <= page.PageSize*page.PageNumber || len(out.Items) == 0 {
@@ -125,6 +140,9 @@ func (h *Handler) Reconcile(ctx context.Context) error {
 
 				page.PageNumber++
 			}
+
+			// Wait for all workers to finish
+			wg.Wait()
 
 			return nil
 		})

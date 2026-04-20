@@ -25,6 +25,7 @@ type Config struct {
 	ReconcileInterval time.Duration
 	SendingTimeout    time.Duration
 	PendingTimeout    time.Duration
+	ReconcilerWorkers int
 }
 
 func (c *Config) Validate() error {
@@ -68,6 +69,8 @@ type Handler struct {
 	// Delivery status timeouts
 	sendingTimeout time.Duration
 	pendingTimeout time.Duration
+
+	workerPoolSize int64
 }
 
 func (h *Handler) Start() error {
@@ -129,6 +132,10 @@ func New(config Config) (*Handler, error) {
 		return nil, fmt.Errorf("failed to initialize lockr: %w", err)
 	}
 
+	if config.ReconcilerWorkers == 0 {
+		config.ReconcilerWorkers = notification.DefaultReconcilerWorkers
+	}
+
 	stopCh := make(chan struct{})
 	stopChClose := sync.OnceFunc(func() {
 		close(stopCh)
@@ -145,5 +152,6 @@ func New(config Config) (*Handler, error) {
 		lockr:             reconcileLockr,
 		sendingTimeout:    config.SendingTimeout,
 		pendingTimeout:    config.PendingTimeout,
+		workerPoolSize:    int64(config.ReconcilerWorkers),
 	}, nil
 }
