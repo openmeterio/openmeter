@@ -49,7 +49,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        chart: [openmeter, benthos-collector]
+        chart: [ openmeter, benthos-collector ]
 
     steps:
       - name: Checkout repository
@@ -69,7 +69,8 @@ jobs:
       - name: Restore Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{
+            hashFiles('flake.*') }}
           restore-prefixes-first-match: |
             ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
             ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
@@ -79,13 +80,15 @@ jobs:
       - name: Package chart
         # Untrusted values (github.ref_name, matrix.chart) passed via env to
         # avoid shell injection through ${{ ... }} interpolation in run:.
-        run: nix develop --impure .#ci -c make package-helm-chart CHART="$CHART" VERSION="$VERSION"
+        run: nix develop --impure .#ci -c make package-helm-chart CHART="$CHART"
+          VERSION="$VERSION"
         env:
           CHART: ${{ matrix.chart }}
           VERSION: ${{ github.ref_name }}
 
       - name: Login to GitHub Container Registry
-        run: echo "$GH_TOKEN" | nix develop --impure .#ci -c helm registry login ghcr.io --username "$GH_ACTOR" --password-stdin
+        run: echo "$GH_TOKEN" | nix develop --impure .#ci -c helm registry login ghcr.io
+          --username "$GH_ACTOR" --password-stdin
         env:
           GH_TOKEN: ${{ github.token }}
           GH_ACTOR: ${{ github.actor }}
@@ -136,7 +139,8 @@ jobs:
       - name: Restore Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{
+            hashFiles('flake.*') }}
           restore-prefixes-first-match: |
             ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
             ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
@@ -147,7 +151,8 @@ jobs:
         uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: .devenv/state/go
-          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{
+            hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
           restore-keys: |
             ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
             ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
@@ -177,7 +182,8 @@ jobs:
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: benthos-collector_${{ matrix.goos }}_${{ matrix.goarch }}
-          path: build/release/benthos-collector_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz
+          path: build/release/benthos-collector_${{ matrix.goos }}_${{ matrix.goarch
+            }}.tar.gz
           if-no-files-found: error
           retention-days: 7
 
@@ -186,7 +192,7 @@ jobs:
     # GitHub release creation is tag-only.
     if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
-    needs: [binary-build]
+    needs: [ binary-build ]
     environment: prod
 
     permissions:
@@ -212,6 +218,7 @@ jobs:
           cat checksums.txt
 
       - name: Create GitHub release
+        if: github.ref_type == 'tag'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -252,7 +259,7 @@ jobs:
     # Runs on both tag pushes (stable/pre-release) and main pushes (per-commit beta).
     # npm's trusted publisher entry is keyed on caller workflow file + environment,
     # so this single caller must serve both channels.
-    needs: [sdk-javascript-meta]
+    needs: [ sdk-javascript-meta ]
     uses: ./.github/workflows/npm-release.yaml
     with:
       version: ${{ needs.sdk-javascript-meta.outputs.version }}
@@ -260,7 +267,6 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    secrets: inherit
 
   sdk-python-release:
     name: Python SDK Release
@@ -292,7 +298,8 @@ jobs:
       - name: Restore Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{
+            hashFiles('flake.*') }}
           restore-prefixes-first-match: |
             ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
             ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
