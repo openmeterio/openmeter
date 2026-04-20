@@ -125,7 +125,18 @@ func (m *Machine[CHARGE, BASE, STATUS]) FireAndActivate(ctx context.Context, tri
 		return err
 	}
 
-	return m.stateMachine.ActivateCtx(ctx)
+	if err := m.stateMachine.ActivateCtx(ctx); err != nil {
+		return err
+	}
+
+	updatedBase, err := m.config.Persistence.UpdateBase(ctx, m.Charge.GetBase())
+	if err != nil {
+		return fmt.Errorf("persist charge: %w", err)
+	}
+
+	m.Charge = m.Charge.WithBase(updatedBase)
+
+	return nil
 }
 
 func (m *Machine[CHARGE, BASE, STATUS]) AdvanceUntilStateStable(ctx context.Context) (*CHARGE, error) {
@@ -151,13 +162,6 @@ func (m *Machine[CHARGE, BASE, STATUS]) AdvanceUntilStateStable(ctx context.Cont
 		if err := m.FireAndActivate(ctx, meta.TriggerNext); err != nil {
 			return nil, fmt.Errorf("cannot transition to the next status [current_status=%s]: %w", currentStatus, err)
 		}
-
-		updatedBase, err := m.config.Persistence.UpdateBase(ctx, m.Charge.GetBase())
-		if err != nil {
-			return nil, fmt.Errorf("persist charge: %w", err)
-		}
-
-		m.Charge = m.Charge.WithBase(updatedBase)
 
 		advanced = true
 	}

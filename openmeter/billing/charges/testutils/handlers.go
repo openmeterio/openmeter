@@ -99,6 +99,14 @@ func (mockUsageBasedHandler) OnInvoiceUsageAccrued(context.Context, usagebased.O
 	return newMockLedgerTransactionGroupReference(), nil
 }
 
+func (mockUsageBasedHandler) OnPaymentAuthorized(context.Context, usagebased.OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error) {
+	return newMockLedgerTransactionGroupReference(), nil
+}
+
+func (mockUsageBasedHandler) OnPaymentSettled(context.Context, usagebased.OnPaymentSettledInput) (ledgertransaction.GroupReference, error) {
+	return newMockLedgerTransactionGroupReference(), nil
+}
+
 func (mockUsageBasedHandler) OnCreditsOnlyUsageAccrued(_ context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
 	return creditrealization.CreateAllocationInputs{
 		{

@@ -99,13 +99,24 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 	s.Configure(usagebased.StatusActiveFinalRealizationCompleted).
 		Permit(
 			meta.TriggerInvoiceIssued,
-			usagebased.StatusFinal,
+			usagebased.StatusActivePaymentPending,
 		).
 		Permit(meta.TriggerDelete, usagebased.StatusDeleted)
 
+	s.Configure(usagebased.StatusActivePaymentPending).
+		Permit(meta.TriggerInvoicePaymentAuthorized, usagebased.StatusActiveAuthorized).
+		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
+		OnEntryFrom(meta.TriggerInvoiceIssued, statelessx.WithParameters(s.FinalizeInvoiceRun))
+
+	s.Configure(usagebased.StatusActiveAuthorized).
+		PermitReentry(meta.TriggerInvoicePaymentAuthorized).
+		Permit(meta.TriggerInvoicePaymentSettled, usagebased.StatusFinal).
+		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
+		OnEntryFrom(meta.TriggerInvoicePaymentAuthorized, statelessx.WithParameters(s.RecordPaymentAuthorized))
+
 	s.Configure(usagebased.StatusFinal).
 		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
-		OnEntry(statelessx.WithParameters(s.FinalizeInvoiceRun))
+		OnEntryFrom(meta.TriggerInvoicePaymentSettled, statelessx.WithParameters(s.RecordPaymentSettled))
 
 	s.Configure(usagebased.StatusDeleted).
 		OnEntry(statelessx.WithParameters(s.DeleteCharge))
@@ -220,19 +231,7 @@ func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context
 	return nil
 }
 
-type invoiceIssuedInput struct {
-	Line *billing.StandardLine
-}
-
-func (i invoiceIssuedInput) Validate() error {
-	if i.Line == nil {
-		return fmt.Errorf("line is required")
-	}
-
-	return i.Line.Validate()
-}
-
-func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceRun(ctx context.Context, input invoiceIssuedInput) error {
+func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceRun(ctx context.Context, input billing.StandardLineWithInvoiceHeader) error {
 	if err := input.Validate(); err != nil {
 		return err
 	}
@@ -271,4 +270,68 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceRun(ctx context.Context, 
 	s.Charge.ChargeBase = updatedChargeBase
 
 	return nil
+}
+
+func (s *CreditThenInvoiceStateMachine) RecordPaymentAuthorized(ctx context.Context, input billing.StandardLineWithInvoiceHeader) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
+	run, err := s.getRunForLine(input.Line.ID)
+	if err != nil {
+		return err
+	}
+
+	result, err := s.Runs.BookInvoicedPaymentAuthorized(ctx, usagebasedrun.BookInvoicedPaymentAuthorizedInput{
+		Charge:  s.Charge,
+		Run:     run,
+		Invoice: input.Invoice,
+		Line:    *input.Line,
+	})
+	if err != nil {
+		return fmt.Errorf("authorize invoice payment: %w", err)
+	}
+
+	if err := s.Charge.Realizations.SetRealizationRun(result.Run); err != nil {
+		return fmt.Errorf("update realization run: %w", err)
+	}
+
+	return nil
+}
+
+func (s *CreditThenInvoiceStateMachine) RecordPaymentSettled(ctx context.Context, input billing.StandardLineWithInvoiceHeader) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
+	run, err := s.getRunForLine(input.Line.ID)
+	if err != nil {
+		return err
+	}
+
+	result, err := s.Runs.SettleInvoicedPayment(ctx, usagebasedrun.SettleInvoicedPaymentInput{
+		Charge:  s.Charge,
+		Run:     run,
+		Invoice: input.Invoice,
+		Line:    *input.Line,
+	})
+	if err != nil {
+		return fmt.Errorf("settle invoice payment: %w", err)
+	}
+
+	if err := s.Charge.Realizations.SetRealizationRun(result.Run); err != nil {
+		return fmt.Errorf("update realization run: %w", err)
+	}
+
+	return nil
+}
+
+func (s *CreditThenInvoiceStateMachine) getRunForLine(lineID string) (usagebased.RealizationRun, error) {
+	for _, run := range s.Charge.Realizations {
+		if run.LineID != nil && *run.LineID == lineID {
+			return run, nil
+		}
+	}
+
+	return usagebased.RealizationRun{}, fmt.Errorf("realization run not found for line %s", lineID)
 }

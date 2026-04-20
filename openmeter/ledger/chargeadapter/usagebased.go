@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/alpacahq/alpacadecimal"
+
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -79,6 +81,133 @@ func (h *usageBasedHandler) OnInvoiceUsageAccrued(ctx context.Context, input usa
 	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
 		input.Charge.Namespace,
 		chargeAnnotationsForUsageBasedCharge(input.Charge),
+		inputs...,
+	))
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("commit ledger transaction group: %w", err)
+	}
+
+	return ledgertransaction.GroupReference{
+		TransactionGroupID: transactionGroup.ID().ID,
+	}, nil
+}
+
+func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usagebased.OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error) {
+	if err := input.Validate(); err != nil {
+		return ledgertransaction.GroupReference{}, err
+	}
+
+	if err := validateSettlementMode(
+		input.Charge.Intent.SettlementMode,
+		productcatalog.InvoiceOnlySettlementMode,
+		productcatalog.CreditThenInvoiceSettlementMode,
+	); err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("payment authorized: %w", err)
+	}
+
+	receivableReplenishment := alpacadecimal.Zero
+	if input.Run.InvoiceUsage != nil {
+		receivableReplenishment = input.Run.InvoiceUsage.Totals.Total
+	}
+
+	if receivableReplenishment.IsZero() {
+		return ledgertransaction.GroupReference{}, nil
+	}
+
+	customerID := customer.CustomerID{
+		Namespace: input.Charge.Namespace,
+		ID:        input.Charge.Intent.CustomerID,
+	}
+	annotations := chargeAnnotationsForUsageBasedCharge(input.Charge)
+
+	inputs, err := transactions.ResolveTransactions(
+		ctx,
+		h.deps,
+		transactions.ResolutionScope{
+			CustomerID: customerID,
+			Namespace:  input.Charge.Namespace,
+		},
+		transactions.FundCustomerReceivableTemplate{
+			At:        input.Charge.Intent.InvoiceAt,
+			Amount:    receivableReplenishment,
+			Currency:  input.Charge.Intent.Currency,
+			CostBasis: invoiceCostBasis,
+		},
+	)
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("resolve transactions: %w", err)
+	}
+
+	for i, txInput := range inputs {
+		if txInput != nil {
+			inputs[i] = transactions.WithAnnotations(txInput, annotations)
+		}
+	}
+
+	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
+		input.Charge.Namespace,
+		annotations,
+		inputs...,
+	))
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("commit ledger transaction group: %w", err)
+	}
+
+	return ledgertransaction.GroupReference{
+		TransactionGroupID: transactionGroup.ID().ID,
+	}, nil
+}
+
+func (h *usageBasedHandler) OnPaymentSettled(ctx context.Context, input usagebased.OnPaymentSettledInput) (ledgertransaction.GroupReference, error) {
+	if err := input.Validate(); err != nil {
+		return ledgertransaction.GroupReference{}, err
+	}
+
+	if err := validateSettlementMode(
+		input.Charge.Intent.SettlementMode,
+		productcatalog.InvoiceOnlySettlementMode,
+		productcatalog.CreditThenInvoiceSettlementMode,
+	); err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("payment settled: %w", err)
+	}
+
+	if input.Run.InvoiceUsage == nil || !input.Run.InvoiceUsage.Totals.Total.IsPositive() {
+		return ledgertransaction.GroupReference{}, nil
+	}
+
+	customerID := customer.CustomerID{
+		Namespace: input.Charge.Namespace,
+		ID:        input.Charge.Intent.CustomerID,
+	}
+	annotations := chargeAnnotationsForUsageBasedCharge(input.Charge)
+
+	inputs, err := transactions.ResolveTransactions(
+		ctx,
+		h.deps,
+		transactions.ResolutionScope{
+			CustomerID: customerID,
+			Namespace:  input.Charge.Namespace,
+		},
+		transactions.SettleCustomerReceivablePaymentTemplate{
+			At:        input.Charge.Intent.InvoiceAt,
+			Amount:    input.Run.InvoiceUsage.Totals.Total,
+			Currency:  input.Charge.Intent.Currency,
+			CostBasis: invoiceCostBasis,
+		},
+	)
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("resolve transactions: %w", err)
+	}
+
+	for i, txInput := range inputs {
+		if txInput != nil {
+			inputs[i] = transactions.WithAnnotations(txInput, annotations)
+		}
+	}
+
+	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
+		input.Charge.Namespace,
+		annotations,
 		inputs...,
 	))
 	if err != nil {

@@ -166,46 +166,38 @@ func (e *LineEngine) OnInvoiceIssued(ctx context.Context, input billing.OnInvoic
 		return fmt.Errorf("validating input: %w", err)
 	}
 
-	for _, stdLine := range input.Lines {
-		stateMachine, err := e.newStateMachineForStandardLine(ctx, stdLine)
-		if err != nil {
-			return err
+	return e.fireLineTrigger(ctx, input.Lines, meta.TriggerInvoiceIssued, func(stdLine *billing.StandardLine) any {
+		return billing.StandardLineWithInvoiceHeader{
+			Line:    stdLine,
+			Invoice: input.Invoice,
 		}
+	}, true)
+}
 
-		canFire, err := stateMachine.CanFire(ctx, meta.TriggerInvoiceIssued)
-		if err != nil {
-			return fmt.Errorf("checking invoice_issued for charge[%s]: %w", stateMachine.GetCharge().ID, err)
-		}
-
-		if !canFire {
-			return fmt.Errorf(
-				"charge[%s] in status %s cannot handle invoice_issued for standard line[%s]",
-				stateMachine.GetCharge().ID,
-				stateMachine.GetCharge().Status,
-				stdLine.ID,
-			)
-		}
-
-		if err := stateMachine.FireAndActivate(ctx, meta.TriggerInvoiceIssued, invoiceIssuedInput{
-			Line: stdLine,
-		}); err != nil {
-			return fmt.Errorf("triggering invoice_issued for charge[%s]: %w", stateMachine.GetCharge().ID, err)
-		}
-
-		if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
-			return fmt.Errorf("advancing usage based charge[%s] after invoice_issued: %w", stateMachine.GetCharge().ID, err)
-		}
+func (e *LineEngine) OnPaymentAuthorized(ctx context.Context, input billing.OnPaymentAuthorizedInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("validating input: %w", err)
 	}
 
-	return nil
+	return e.fireLineTrigger(ctx, input.Lines, meta.TriggerInvoicePaymentAuthorized, func(stdLine *billing.StandardLine) any {
+		return billing.StandardLineWithInvoiceHeader{
+			Line:    stdLine,
+			Invoice: input.Invoice,
+		}
+	}, false)
 }
 
-func (e *LineEngine) OnPaymentAuthorized(_ context.Context, _ billing.OnPaymentAuthorizedInput) error {
-	return nil
-}
+func (e *LineEngine) OnPaymentSettled(ctx context.Context, input billing.OnPaymentSettledInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("validating input: %w", err)
+	}
 
-func (e *LineEngine) OnPaymentSettled(_ context.Context, _ billing.OnPaymentSettledInput) error {
-	return nil
+	return e.fireLineTrigger(ctx, input.Lines, meta.TriggerInvoicePaymentSettled, func(stdLine *billing.StandardLine) any {
+		return billing.StandardLineWithInvoiceHeader{
+			Line:    stdLine,
+			Invoice: input.Invoice,
+		}
+	}, false)
 }
 
 func (e *LineEngine) CalculateLines(input billing.CalculateLinesInput) (billing.StandardLines, error) {
@@ -255,6 +247,48 @@ func populateUsageBasedStandardLineFromRun(stdLine *billing.StandardLine, run us
 	}
 
 	stdLine.CreditsApplied = creditsApplied
+
+	return nil
+}
+
+func (e *LineEngine) fireLineTrigger(
+	ctx context.Context,
+	lines billing.StandardLines,
+	trigger meta.Trigger,
+	inputFn func(*billing.StandardLine) any,
+	advanceAfter bool,
+) error {
+	for _, stdLine := range lines {
+		stateMachine, err := e.newStateMachineForStandardLine(ctx, stdLine)
+		if err != nil {
+			return err
+		}
+
+		canFire, err := stateMachine.CanFire(ctx, trigger)
+		if err != nil {
+			return fmt.Errorf("checking %s for charge[%s]: %w", trigger, stateMachine.GetCharge().ID, err)
+		}
+
+		if !canFire {
+			return fmt.Errorf(
+				"charge[%s] in status %s cannot handle %s for standard line[%s]",
+				stateMachine.GetCharge().ID,
+				stateMachine.GetCharge().Status,
+				trigger,
+				stdLine.ID,
+			)
+		}
+
+		if err := stateMachine.FireAndActivate(ctx, trigger, inputFn(stdLine)); err != nil {
+			return fmt.Errorf("triggering %s for charge[%s]: %w", trigger, stateMachine.GetCharge().ID, err)
+		}
+
+		if advanceAfter {
+			if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
+				return fmt.Errorf("advancing usage based charge[%s] after %s: %w", stateMachine.GetCharge().ID, trigger, err)
+			}
+		}
+	}
 
 	return nil
 }

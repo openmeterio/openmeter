@@ -101,11 +101,17 @@ func TestMachine_FireAndActivateUpdatesStatus(t *testing.T) {
 	// When:
 	// FireAndActivate is called with the next trigger.
 	// Then:
-	// the machine updates the in-memory charge status to active.
+	// the machine updates the in-memory charge status to active and persists the updated base.
+	var updateCalls int
+
 	machine := newTestMachine(
 		t,
 		newFakeCharge(fakeStatusCreated),
-		func(ctx context.Context, base fakeBase) (fakeBase, error) { return base, nil },
+		func(ctx context.Context, base fakeBase) (fakeBase, error) {
+			updateCalls++
+			base.Revision++
+			return base, nil
+		},
 		func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
 	)
 
@@ -115,6 +121,8 @@ func TestMachine_FireAndActivateUpdatesStatus(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Equal(t, fakeStatusActive, machine.GetCharge().GetStatus())
+	require.Equal(t, 1, machine.GetCharge().GetBase().Revision)
+	require.Equal(t, 1, updateCalls)
 }
 
 func TestMachine_FireAndActivateReturnsUnsupportedOperationWhenTriggerCannotFire(t *testing.T) {
@@ -258,6 +266,38 @@ func TestMachine_FireAndActivatePropagatesActivationErrors(t *testing.T) {
 	err := machine.FireAndActivate(t.Context(), meta.TriggerNext)
 
 	require.ErrorIs(t, err, activationErr)
+}
+
+func TestMachine_FireAndActivateDoesNotPersistWhenActivationFails(t *testing.T) {
+	// Given:
+	// a machine whose activation callback fails.
+	// When:
+	// FireAndActivate is called.
+	// Then:
+	// it returns the activation error without persisting the base.
+	activationErr := errors.New("activation failed")
+	var updateCalls int
+
+	machine := newTestMachine(
+		t,
+		newFakeCharge(fakeStatusCreated),
+		func(ctx context.Context, base fakeBase) (fakeBase, error) {
+			updateCalls++
+			return base, nil
+		},
+		func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
+	)
+
+	machine.Configure(fakeStatusCreated).
+		Permit(meta.TriggerNext, fakeStatusActive)
+	machine.Configure(fakeStatusActive).OnActive(func(ctx context.Context) error {
+		return activationErr
+	})
+
+	err := machine.FireAndActivate(t.Context(), meta.TriggerNext)
+
+	require.ErrorIs(t, err, activationErr)
+	require.Zero(t, updateCalls)
 }
 
 func TestMachine_FireAndActivateFailsFastOnInvalidTargetStatus(t *testing.T) {

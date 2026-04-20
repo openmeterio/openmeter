@@ -1,7 +1,6 @@
 package credits
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -31,6 +30,7 @@ import (
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -96,15 +96,14 @@ func (s *CreditsTestSuite) TearDownTest() {
 }
 
 func (s *CreditsTestSuite) TestFlatFeeCreditOnlyDeleteCorrectionSanity() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-sanity-flatfee-credit-only-delete")
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.createLedgerBackedCustomer(ns, "test-subject")
 
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
-		billingtest.WithProgressiveBilling(),
-		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "PT1H")),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
 		billingtest.WithManualApproval(),
 	)
 
@@ -171,7 +170,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlyDeleteCorrectionSanity() {
 }
 
 func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionSanity() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-sanity-usagebased-credit-only-delete")
 
 	cust := s.createLedgerBackedCustomer(ns, "test-subject")
@@ -239,7 +238,7 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionSanity() {
 }
 
 func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfillSanity() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-sanity-usagebased-credit-only-delete-partial-backfill")
 
 	cust := s.createLedgerBackedCustomer(ns, "test-subject")
@@ -362,7 +361,7 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBa
 }
 
 func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-sanity-test")
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
@@ -720,7 +719,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 }
 
 func (s *CreditsTestSuite) TestCreditPurchasePersistsPriority() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-creditpurchase-persists-priority")
 
 	cust := s.createLedgerBackedCustomer(ns, "test-subject")
@@ -760,8 +759,197 @@ func (s *CreditsTestSuite) TestCreditPurchasePersistsPriority() {
 	s.True(s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&zeroCostBasis)).Equal(alpacadecimal.Zero))
 }
 
+func (s *CreditsTestSuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-credits-usagebased-credit-then-invoice-payment-lifecycle")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.createLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	createAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-01T00:00:00Z", time.UTC).AsTime()
+	promoCostBasis := alpacadecimal.Zero
+	invoiceCostBasis := alpacadecimal.NewFromInt(1)
+
+	var (
+		usageBasedChargeID meta.ChargeID
+		invoice            billing.StandardInvoice
+	)
+
+	clock.FreezeTime(createAt)
+	defer clock.UnFreeze()
+
+	s.Run("the customer receives a promotional credit grant", func() {
+		grantIntent := s.createCreditPurchaseIntent(createCreditPurchaseIntentInput{
+			customer:      cust.GetID(),
+			currency:      USD,
+			amount:        alpacadecimal.NewFromInt(5),
+			servicePeriod: timeutil.ClosedPeriod{From: createAt, To: createAt},
+			settlement:    creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+		})
+		grantRes, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				grantIntent,
+			},
+		})
+		s.NoError(err)
+		s.Len(grantRes, 1)
+	})
+
+	s.Run("a credit-then-invoice usage based charge is created with initial metered usage", func() {
+		s.MockStreamingConnector.AddSimpleEvent(
+			apiRequestsTotal.Feature.Key,
+			100,
+			datetime.MustParseTimeInLocation(s.T(), "2026-01-15T00:00:00Z", time.UTC).AsTime(),
+		)
+
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				s.createMockChargeIntent(createMockChargeIntentInput{
+					customer:       cust.GetID(),
+					currency:       USD,
+					servicePeriod:  servicePeriod,
+					settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromFloat(0.1),
+					}),
+					name:              "usage-based-credit-then-invoice-payment-lifecycle",
+					managedBy:         billing.SubscriptionManagedLine,
+					uniqueReferenceID: "usage-based-credit-then-invoice-payment-lifecycle",
+					featureKey:        apiRequestsTotal.Feature.Key,
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+
+		usageBasedChargeID, err = res[0].GetChargeID()
+		s.NoError(err)
+	})
+
+	s.Run("the pending invoice is created for the service period", func() {
+		clock.FreezeTime(servicePeriod.To.Add(time.Second))
+
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(servicePeriod.To),
+		})
+		s.NoError(err)
+		s.Len(invoices, 1)
+		invoice = invoices[0]
+	})
+
+	s.Run("late arriving usage is ignored once the invoice finalization cutoff has passed", func() {
+		s.MockStreamingConnector.AddSimpleEvent(
+			apiRequestsTotal.Feature.Key,
+			25,
+			datetime.MustParseTimeInLocation(s.T(), "2026-01-20T00:00:00Z", time.UTC).AsTime(),
+			streamingtestutils.WithStoredAt(datetime.MustParseTimeInLocation(s.T(), "2026-02-02T12:00:00Z", time.UTC).AsTime()),
+		)
+	})
+
+	s.Run("the invoice is advanced and approved into payment pending", func() {
+		clock.FreezeTime(invoice.DefaultCollectionAtForStandardInvoice())
+
+		var err error
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.NoError(err)
+		s.Len(invoice.Lines.OrEmpty(), 1)
+		stdLine := invoice.Lines.OrEmpty()[0]
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:       12.5,
+			Total:        7.5,
+			CreditsTotal: 5,
+		}, stdLine.Totals)
+
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+
+		usageBasedCharge := s.mustGetChargeByID(usageBasedChargeID)
+		updatedCharge, err := usageBasedCharge.AsUsageBasedCharge()
+		s.NoError(err)
+		s.Equal(usagebased.StatusActivePaymentPending, updatedCharge.Status)
+		s.Len(updatedCharge.Realizations, 1)
+		s.NotNil(updatedCharge.Realizations[0].InvoiceUsage)
+		s.Equal(float64(7.5), updatedCharge.Realizations[0].InvoiceUsage.Totals.Total.InexactFloat64())
+
+		// Aggregate open receivable still includes the promotional grant route.
+		// At this point:
+		// - promotional grant receivable (cost basis 0) is -5
+		// - invoice-backed receivable (cost basis 1) is -7.5
+		// so the aggregate open receivable is -12.5.
+		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-5)))
+		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-7.5)))
+		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-12.5)))
+		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero))
+		s.True(s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(12.5)))
+		s.True(s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.Zero))
+	})
+
+	s.Run("the payment is authorized", func() {
+		var err error
+		invoice, err = s.BillingService.PaymentAuthorized(ctx, invoice.GetInvoiceID())
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaymentProcessingAuthorized, invoice.Status)
+
+		usageBasedCharge := s.mustGetChargeByID(usageBasedChargeID)
+		updatedCharge, err := usageBasedCharge.AsUsageBasedCharge()
+		s.NoError(err)
+		s.Equal(usagebased.StatusActiveAuthorized, updatedCharge.Status)
+		s.NotNil(updatedCharge.Realizations[0].Payment)
+		s.Equal(payment.StatusAuthorized, updatedCharge.Realizations[0].Payment.Status)
+		s.NotNil(updatedCharge.Realizations[0].Payment.Authorized)
+		s.Nil(updatedCharge.Realizations[0].Payment.Settled)
+
+		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-5)))
+		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-7.5)))
+		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-12.5)))
+		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromFloat(7.5)))
+		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromFloat(7.5)))
+		s.True(s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(-7.5)))
+	})
+
+	s.Run("the payment is settled and the charge reaches final", func() {
+		var err error
+		invoice, err = s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
+			InvoiceID: invoice.GetInvoiceID(),
+			Trigger:   billing.TriggerPaid,
+		})
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status)
+
+		usageBasedCharge := s.mustGetChargeByID(usageBasedChargeID)
+		updatedCharge, err := usageBasedCharge.AsUsageBasedCharge()
+		s.NoError(err)
+		s.Equal(usagebased.StatusFinal, updatedCharge.Status)
+		s.NotNil(updatedCharge.Realizations[0].Payment)
+		s.Equal(payment.StatusSettled, updatedCharge.Realizations[0].Payment.Status)
+		s.NotNil(updatedCharge.Realizations[0].Payment.Settled)
+
+		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-5)))
+		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
+		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-5)))
+		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero))
+		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero))
+		s.True(s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(-7.5)))
+	})
+}
+
 func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-sanity-test-credit-only")
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
@@ -1258,11 +1446,11 @@ func (s *CreditsTestSuite) createMockChargeIntent(input createMockChargeIntentIn
 func (s *CreditsTestSuite) createLedgerBackedCustomer(ns string, subjectKey string) *customer.Customer {
 	s.T().Helper()
 
-	_, err := s.LedgerResolver.EnsureBusinessAccounts(context.Background(), ns)
+	_, err := s.LedgerResolver.EnsureBusinessAccounts(s.T().Context(), ns)
 	s.NoError(err)
 
 	cust := s.CreateTestCustomer(ns, subjectKey)
-	_, err = s.LedgerResolver.CreateCustomerAccounts(context.Background(), cust.GetID())
+	_, err = s.LedgerResolver.CreateCustomerAccounts(s.T().Context(), cust.GetID())
 	s.NoError(err)
 
 	return cust
