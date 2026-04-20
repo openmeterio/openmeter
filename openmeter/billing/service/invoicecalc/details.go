@@ -7,6 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -96,7 +97,7 @@ func newDetailedLines(line *billing.StandardLine, inputs ...rating.DetailedLine)
 		}
 
 		if in.Category == "" {
-			in.Category = billing.FlatFeeCategoryRegular
+			in.Category = stddetailedline.CategoryRegular
 		}
 
 		line := billing.DetailedLine{

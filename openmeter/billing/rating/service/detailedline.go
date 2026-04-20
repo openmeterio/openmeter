@@ -6,7 +6,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating/service/rate"
@@ -134,7 +134,7 @@ func calculateDetailedLineTotals(line rating.DetailedLine, calc currencyx.Calcul
 	amount := calc.RoundToPrecision(line.PerUnitAmount.Mul(line.Quantity))
 
 	switch line.Category {
-	case billing.FlatFeeCategoryCommitment:
+	case stddetailedline.CategoryCommitment:
 		totals.ChargesTotal = amount
 	default:
 		totals.Amount = amount

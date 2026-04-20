@@ -20,6 +20,7 @@ import (
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
@@ -3922,7 +3923,7 @@ func (s *InvoicingTestSuite) TestSortLines() {
 		}
 
 		// Let's mandate that the last child is the commitment
-		s.Equal(billing.FlatFeeCategoryCommitment, line.DetailedLines[3].Category)
+		s.Equal(stddetailedline.CategoryCommitment, line.DetailedLines[3].Category)
 	}
 }
 

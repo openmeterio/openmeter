@@ -10,6 +10,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -383,6 +385,18 @@ func (e *BillingInvoice) GetTotal() alpacadecimal.Decimal {
 	return e.Total
 }
 
+func (e *BillingInvoice) GetInvoicingAppExternalID() *string {
+	return e.InvoicingAppExternalID
+}
+
+func (e *BillingInvoice) GetPaymentAppExternalID() *string {
+	return e.PaymentAppExternalID
+}
+
+func (e *BillingInvoice) GetTaxAppExternalID() *string {
+	return e.TaxAppExternalID
+}
+
 func (e *BillingInvoiceFlatFeeLineConfig) GetID() string {
 	return e.ID
 }
@@ -475,6 +489,10 @@ func (e *BillingInvoiceLine) GetTotal() alpacadecimal.Decimal {
 	return e.Total
 }
 
+func (e *BillingInvoiceLine) GetInvoicingAppExternalID() *string {
+	return e.InvoicingAppExternalID
+}
+
 func (e *BillingInvoiceLineDiscount) GetID() string {
 	return e.ID
 }
@@ -495,6 +513,10 @@ func (e *BillingInvoiceLineDiscount) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
+func (e *BillingInvoiceLineDiscount) GetInvoicingAppExternalID() *string {
+	return e.InvoicingAppExternalID
+}
+
 func (e *BillingInvoiceLineDiscount) GetLineID() string {
 	return e.LineID
 }
@@ -509,10 +531,6 @@ func (e *BillingInvoiceLineDiscount) GetDescription() *string {
 
 func (e *BillingInvoiceLineDiscount) GetReason() billing.DiscountReasonType {
 	return e.Reason
-}
-
-func (e *BillingInvoiceLineDiscount) GetInvoicingAppExternalID() *string {
-	return e.InvoicingAppExternalID
 }
 
 func (e *BillingInvoiceLineUsageDiscount) GetID() string {
@@ -535,6 +553,10 @@ func (e *BillingInvoiceLineUsageDiscount) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
+func (e *BillingInvoiceLineUsageDiscount) GetInvoicingAppExternalID() *string {
+	return e.InvoicingAppExternalID
+}
+
 func (e *BillingInvoiceLineUsageDiscount) GetLineID() string {
 	return e.LineID
 }
@@ -549,10 +571,6 @@ func (e *BillingInvoiceLineUsageDiscount) GetDescription() *string {
 
 func (e *BillingInvoiceLineUsageDiscount) GetReason() billing.DiscountReasonType {
 	return e.Reason
-}
-
-func (e *BillingInvoiceLineUsageDiscount) GetInvoicingAppExternalID() *string {
-	return e.InvoicingAppExternalID
 }
 
 func (e *BillingInvoiceSplitLineGroup) GetID() string {
@@ -699,6 +717,62 @@ func (e *BillingStandardInvoiceDetailedLine) GetID() string {
 	return e.ID
 }
 
+func (e *BillingStandardInvoiceDetailedLine) GetCurrency() currencyx.Code {
+	return e.Currency
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetTaxConfig() productcatalog.TaxConfig {
+	return e.TaxConfig
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetTaxCodeID() *string {
+	return e.TaxCodeID
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetTaxBehavior() *productcatalog.TaxBehavior {
+	return e.TaxBehavior
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetServicePeriodStart() time.Time {
+	return e.ServicePeriodStart
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetServicePeriodEnd() time.Time {
+	return e.ServicePeriodEnd
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetQuantity() alpacadecimal.Decimal {
+	return e.Quantity
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetInvoicingAppExternalID() *string {
+	return e.InvoicingAppExternalID
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetChildUniqueReferenceID() *string {
+	return e.ChildUniqueReferenceID
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetPerUnitAmount() alpacadecimal.Decimal {
+	return e.PerUnitAmount
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetCategory() stddetailedline.Category {
+	return e.Category
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetPaymentTerm() productcatalog.PaymentTermType {
+	return e.PaymentTerm
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetIndex() *int {
+	return e.Index
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetCreditsApplied() *creditsapplied.CreditsApplied {
+	return e.CreditsApplied
+}
+
 func (e *BillingStandardInvoiceDetailedLine) GetAnnotations() models.Annotations {
 	return e.Annotations
 }
@@ -729,22 +803,6 @@ func (e *BillingStandardInvoiceDetailedLine) GetName() string {
 
 func (e *BillingStandardInvoiceDetailedLine) GetDescription() *string {
 	return e.Description
-}
-
-func (e *BillingStandardInvoiceDetailedLine) GetCurrency() currencyx.Code {
-	return e.Currency
-}
-
-func (e *BillingStandardInvoiceDetailedLine) GetTaxConfig() productcatalog.TaxConfig {
-	return e.TaxConfig
-}
-
-func (e *BillingStandardInvoiceDetailedLine) GetTaxCodeID() *string {
-	return e.TaxCodeID
-}
-
-func (e *BillingStandardInvoiceDetailedLine) GetTaxBehavior() *productcatalog.TaxBehavior {
-	return e.TaxBehavior
 }
 
 func (e *BillingStandardInvoiceDetailedLine) GetAmount() alpacadecimal.Decimal {
@@ -799,6 +857,10 @@ func (e *BillingStandardInvoiceDetailedLineAmountDiscount) GetDeletedAt() *time.
 	return e.DeletedAt
 }
 
+func (e *BillingStandardInvoiceDetailedLineAmountDiscount) GetInvoicingAppExternalID() *string {
+	return e.InvoicingAppExternalID
+}
+
 func (e *BillingStandardInvoiceDetailedLineAmountDiscount) GetLineID() string {
 	return e.LineID
 }
@@ -813,10 +875,6 @@ func (e *BillingStandardInvoiceDetailedLineAmountDiscount) GetDescription() *str
 
 func (e *BillingStandardInvoiceDetailedLineAmountDiscount) GetReason() billing.DiscountReasonType {
 	return e.Reason
-}
-
-func (e *BillingStandardInvoiceDetailedLineAmountDiscount) GetInvoicingAppExternalID() *string {
-	return e.InvoicingAppExternalID
 }
 
 func (e *BillingWorkflowConfig) GetID() string {

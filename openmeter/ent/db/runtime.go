@@ -8,6 +8,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
@@ -519,11 +520,11 @@ func init() {
 	// billinginvoice.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	billinginvoice.CurrencyValidator = billinginvoiceDescCurrency.Validators[0].(func(string) error)
 	// billinginvoiceDescCollectionAt is the schema descriptor for collection_at field.
-	billinginvoiceDescCollectionAt := billinginvoiceFields[28].Descriptor()
+	billinginvoiceDescCollectionAt := billinginvoiceFields[25].Descriptor()
 	// billinginvoice.DefaultCollectionAt holds the default value on creation for the collection_at field.
 	billinginvoice.DefaultCollectionAt = billinginvoiceDescCollectionAt.Default.(func() time.Time)
 	// billinginvoiceDescSchemaLevel is the schema descriptor for schema_level field.
-	billinginvoiceDescSchemaLevel := billinginvoiceFields[30].Descriptor()
+	billinginvoiceDescSchemaLevel := billinginvoiceFields[27].Descriptor()
 	// billinginvoice.DefaultSchemaLevel holds the default value on creation for the schema_level field.
 	billinginvoice.DefaultSchemaLevel = billinginvoiceDescSchemaLevel.Default.(int)
 	// billinginvoiceDescID is the schema descriptor for id field.
@@ -574,8 +575,8 @@ func init() {
 	billinginvoicelineDescRatecardDiscounts := billinginvoicelineFields[9].Descriptor()
 	billinginvoiceline.ValueScanner.RatecardDiscounts = billinginvoicelineDescRatecardDiscounts.ValueScanner.(field.TypeValueScanner[*billing.Discounts])
 	// billinginvoicelineDescCreditsApplied is the schema descriptor for credits_applied field.
-	billinginvoicelineDescCreditsApplied := billinginvoicelineFields[21].Descriptor()
-	billinginvoiceline.ValueScanner.CreditsApplied = billinginvoicelineDescCreditsApplied.ValueScanner.(field.TypeValueScanner[*billing.CreditsApplied])
+	billinginvoicelineDescCreditsApplied := billinginvoicelineFields[20].Descriptor()
+	billinginvoiceline.ValueScanner.CreditsApplied = billinginvoicelineDescCreditsApplied.ValueScanner.(field.TypeValueScanner[*creditsapplied.CreditsApplied])
 	// billinginvoicelineDescID is the schema descriptor for id field.
 	billinginvoicelineDescID := billinginvoicelineMixinFields1[0].Descriptor()
 	// billinginvoiceline.DefaultID holds the default value on creation for the id field.
@@ -817,35 +818,30 @@ func init() {
 	// billingsequencenumbers.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	billingsequencenumbers.NamespaceValidator = billingsequencenumbersDescNamespace.Validators[0].(func(string) error)
 	billingstandardinvoicedetailedlineMixin := schema.BillingStandardInvoiceDetailedLine{}.Mixin()
-	billingstandardinvoicedetailedlineMixinFields1 := billingstandardinvoicedetailedlineMixin[1].Fields()
-	_ = billingstandardinvoicedetailedlineMixinFields1
-	billingstandardinvoicedetailedlineMixinFields2 := billingstandardinvoicedetailedlineMixin[2].Fields()
-	_ = billingstandardinvoicedetailedlineMixinFields2
+	billingstandardinvoicedetailedlineMixinFields0 := billingstandardinvoicedetailedlineMixin[0].Fields()
+	_ = billingstandardinvoicedetailedlineMixinFields0
 	billingstandardinvoicedetailedlineFields := schema.BillingStandardInvoiceDetailedLine{}.Fields()
 	_ = billingstandardinvoicedetailedlineFields
+	// billingstandardinvoicedetailedlineDescCurrency is the schema descriptor for currency field.
+	billingstandardinvoicedetailedlineDescCurrency := billingstandardinvoicedetailedlineMixinFields0[0].Descriptor()
+	// billingstandardinvoicedetailedline.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
+	billingstandardinvoicedetailedline.CurrencyValidator = billingstandardinvoicedetailedlineDescCurrency.Validators[0].(func(string) error)
 	// billingstandardinvoicedetailedlineDescNamespace is the schema descriptor for namespace field.
-	billingstandardinvoicedetailedlineDescNamespace := billingstandardinvoicedetailedlineMixinFields1[1].Descriptor()
+	billingstandardinvoicedetailedlineDescNamespace := billingstandardinvoicedetailedlineMixinFields0[16].Descriptor()
 	// billingstandardinvoicedetailedline.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	billingstandardinvoicedetailedline.NamespaceValidator = billingstandardinvoicedetailedlineDescNamespace.Validators[0].(func(string) error)
 	// billingstandardinvoicedetailedlineDescCreatedAt is the schema descriptor for created_at field.
-	billingstandardinvoicedetailedlineDescCreatedAt := billingstandardinvoicedetailedlineMixinFields1[3].Descriptor()
+	billingstandardinvoicedetailedlineDescCreatedAt := billingstandardinvoicedetailedlineMixinFields0[18].Descriptor()
 	// billingstandardinvoicedetailedline.DefaultCreatedAt holds the default value on creation for the created_at field.
 	billingstandardinvoicedetailedline.DefaultCreatedAt = billingstandardinvoicedetailedlineDescCreatedAt.Default.(func() time.Time)
 	// billingstandardinvoicedetailedlineDescUpdatedAt is the schema descriptor for updated_at field.
-	billingstandardinvoicedetailedlineDescUpdatedAt := billingstandardinvoicedetailedlineMixinFields1[4].Descriptor()
+	billingstandardinvoicedetailedlineDescUpdatedAt := billingstandardinvoicedetailedlineMixinFields0[19].Descriptor()
 	// billingstandardinvoicedetailedline.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	billingstandardinvoicedetailedline.DefaultUpdatedAt = billingstandardinvoicedetailedlineDescUpdatedAt.Default.(func() time.Time)
 	// billingstandardinvoicedetailedline.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	billingstandardinvoicedetailedline.UpdateDefaultUpdatedAt = billingstandardinvoicedetailedlineDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// billingstandardinvoicedetailedlineDescCurrency is the schema descriptor for currency field.
-	billingstandardinvoicedetailedlineDescCurrency := billingstandardinvoicedetailedlineMixinFields2[0].Descriptor()
-	// billingstandardinvoicedetailedline.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
-	billingstandardinvoicedetailedline.CurrencyValidator = billingstandardinvoicedetailedlineDescCurrency.Validators[0].(func(string) error)
-	// billingstandardinvoicedetailedlineDescCreditsApplied is the schema descriptor for credits_applied field.
-	billingstandardinvoicedetailedlineDescCreditsApplied := billingstandardinvoicedetailedlineFields[11].Descriptor()
-	billingstandardinvoicedetailedline.ValueScanner.CreditsApplied = billingstandardinvoicedetailedlineDescCreditsApplied.ValueScanner.(field.TypeValueScanner[*billing.CreditsApplied])
 	// billingstandardinvoicedetailedlineDescID is the schema descriptor for id field.
-	billingstandardinvoicedetailedlineDescID := billingstandardinvoicedetailedlineMixinFields1[0].Descriptor()
+	billingstandardinvoicedetailedlineDescID := billingstandardinvoicedetailedlineMixinFields0[15].Descriptor()
 	// billingstandardinvoicedetailedline.DefaultID holds the default value on creation for the id field.
 	billingstandardinvoicedetailedline.DefaultID = billingstandardinvoicedetailedlineDescID.Default.(func() string)
 	billingstandardinvoicedetailedlineamountdiscountMixin := schema.BillingStandardInvoiceDetailedLineAmountDiscount{}.Mixin()

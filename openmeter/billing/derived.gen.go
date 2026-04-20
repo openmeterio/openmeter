@@ -3,6 +3,7 @@
 package billing
 
 import (
+	creditsapplied "github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	totals "github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	models "github.com/openmeterio/openmeter/pkg/models"
 )
@@ -178,7 +179,7 @@ func deriveEqual_2(this, that *totals.Totals) bool {
 }
 
 // deriveEqual_3 returns whether this and that are equal.
-func deriveEqual_3(this, that []CreditApplied) bool {
+func deriveEqual_3(this, that []creditsapplied.CreditApplied) bool {
 	if this == nil || that == nil {
 		return this == nil && that == nil
 	}
@@ -203,7 +204,7 @@ func deriveEqual_4(this, that *DiscountReason) bool {
 }
 
 // deriveEqual_5 returns whether this and that are equal.
-func deriveEqual_5(this, that *CreditApplied) bool {
+func deriveEqual_5(this, that *creditsapplied.CreditApplied) bool {
 	return (this == nil && that == nil) ||
 		this != nil && that != nil &&
 			this.Amount.Equal(that.Amount) &&

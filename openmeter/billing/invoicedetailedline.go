@@ -3,43 +3,18 @@ package billing
 import (
 	"errors"
 	"fmt"
-	"slices"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
-
-// TODO: Rename to DetailedLineCostCategory (separate PR)
-type FlatFeeCategory string
-
-const (
-	// FlatFeeCategoryRegular is a regular flat fee, that is based on the usage or a subscription.
-	FlatFeeCategoryRegular FlatFeeCategory = "regular"
-	// FlatFeeCategoryCommitment is a flat fee that is based on a commitment such as min spend.
-	FlatFeeCategoryCommitment FlatFeeCategory = "commitment"
-)
-
-func (FlatFeeCategory) Values() []string {
-	return []string{
-		string(FlatFeeCategoryRegular),
-		string(FlatFeeCategoryCommitment),
-	}
-}
-
-var _ models.Validator = (*FlatFeeCategory)(nil)
-
-func (c FlatFeeCategory) Validate() error {
-	if !slices.Contains(FlatFeeCategory("").Values(), string(c)) {
-		return fmt.Errorf("invalid category %s", c)
-	}
-	return nil
-}
 
 type DetailedLineBase struct {
 	models.ManagedResource
@@ -48,7 +23,7 @@ type DetailedLineBase struct {
 	InvoiceID string `json:"invoiceID"`
 
 	// Line details
-	Category               FlatFeeCategory                `json:"category"`
+	Category               stddetailedline.Category       `json:"category"`
 	ChildUniqueReferenceID *string                        `json:"childUniqueReferenceID,omitempty"`
 	Index                  *int                           `json:"index,omitempty"`
 	PaymentTerm            productcatalog.PaymentTermType `json:"paymentTerm"`
@@ -61,8 +36,8 @@ type DetailedLineBase struct {
 	Totals        totals.Totals         `json:"totals"`
 
 	// Apps
-	TaxConfig   *productcatalog.TaxConfig `json:"taxConfig,omitempty"`
-	ExternalIDs LineExternalIDs           `json:"externalIDs,omitempty"`
+	TaxConfig   *productcatalog.TaxConfig  `json:"taxConfig,omitempty"`
+	ExternalIDs externalid.LineExternalIDs `json:"externalIDs,omitempty"`
 
 	// FeeLineConfigID contains the ID of the fee configuration in the DB, this should go away
 	// as soon as we split the ubp/flatfee db parts

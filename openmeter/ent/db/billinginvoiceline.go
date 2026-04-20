@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
@@ -75,6 +76,8 @@ type BillingInvoiceLine struct {
 	CreditsTotal alpacadecimal.Decimal `json:"credits_total,omitempty"`
 	// Total holds the value of the "total" field.
 	Total alpacadecimal.Decimal `json:"total,omitempty"`
+	// InvoicingAppExternalID holds the value of the "invoicing_app_external_id" field.
+	InvoicingAppExternalID *string `json:"invoicing_app_external_id,omitempty"`
 	// PeriodStart holds the value of the "period_start" field.
 	PeriodStart time.Time `json:"period_start,omitempty"`
 	// PeriodEnd holds the value of the "period_end" field.
@@ -95,8 +98,6 @@ type BillingInvoiceLine struct {
 	Quantity *alpacadecimal.Decimal `json:"quantity,omitempty"`
 	// RatecardDiscounts holds the value of the "ratecard_discounts" field.
 	RatecardDiscounts *billing.Discounts `json:"ratecard_discounts,omitempty"`
-	// InvoicingAppExternalID holds the value of the "invoicing_app_external_id" field.
-	InvoicingAppExternalID *string `json:"invoicing_app_external_id,omitempty"`
 	// ChildUniqueReferenceID holds the value of the "child_unique_reference_id" field.
 	ChildUniqueReferenceID *string `json:"child_unique_reference_id,omitempty"`
 	// SubscriptionID holds the value of the "subscription_id" field.
@@ -120,7 +121,7 @@ type BillingInvoiceLine struct {
 	// Deprecated: invoice discounts are deprecated, use line_discounts instead
 	LineIds *string `json:"line_ids,omitempty"`
 	// CreditsApplied holds the value of the "credits_applied" field.
-	CreditsApplied *billing.CreditsApplied `json:"credits_applied,omitempty"`
+	CreditsApplied *creditsapplied.CreditsApplied `json:"credits_applied,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingInvoiceLineQuery when eager-loading is set.
 	Edges                      BillingInvoiceLineEdges `json:"edges"`
@@ -382,7 +383,7 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case billinginvoiceline.FieldAmount, billinginvoiceline.FieldTaxesTotal, billinginvoiceline.FieldTaxesInclusiveTotal, billinginvoiceline.FieldTaxesExclusiveTotal, billinginvoiceline.FieldChargesTotal, billinginvoiceline.FieldDiscountsTotal, billinginvoiceline.FieldCreditsTotal, billinginvoiceline.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldTaxCodeID, billinginvoiceline.FieldTaxBehavior, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldManagedBy, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID, billinginvoiceline.FieldSplitLineGroupID, billinginvoiceline.FieldChargeID, billinginvoiceline.FieldEngine, billinginvoiceline.FieldLineIds:
+		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldTaxCodeID, billinginvoiceline.FieldTaxBehavior, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldManagedBy, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID, billinginvoiceline.FieldSplitLineGroupID, billinginvoiceline.FieldChargeID, billinginvoiceline.FieldEngine, billinginvoiceline.FieldLineIds:
 			values[i] = new(sql.NullString)
 		case billinginvoiceline.FieldCreatedAt, billinginvoiceline.FieldUpdatedAt, billinginvoiceline.FieldDeletedAt, billinginvoiceline.FieldPeriodStart, billinginvoiceline.FieldPeriodEnd, billinginvoiceline.FieldInvoiceAt, billinginvoiceline.FieldSubscriptionBillingPeriodFrom, billinginvoiceline.FieldSubscriptionBillingPeriodTo:
 			values[i] = new(sql.NullTime)
@@ -545,6 +546,13 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 			} else if value != nil {
 				_m.Total = *value
 			}
+		case billinginvoiceline.FieldInvoicingAppExternalID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field invoicing_app_external_id", values[i])
+			} else if value.Valid {
+				_m.InvoicingAppExternalID = new(string)
+				*_m.InvoicingAppExternalID = value.String
+			}
 		case billinginvoiceline.FieldPeriodStart:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field period_start", values[i])
@@ -606,13 +614,6 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 				return err
 			} else {
 				_m.RatecardDiscounts = value
-			}
-		case billinginvoiceline.FieldInvoicingAppExternalID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field invoicing_app_external_id", values[i])
-			} else if value.Valid {
-				_m.InvoicingAppExternalID = new(string)
-				*_m.InvoicingAppExternalID = value.String
 			}
 		case billinginvoiceline.FieldChildUniqueReferenceID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -902,6 +903,11 @@ func (_m *BillingInvoiceLine) String() string {
 	builder.WriteString("total=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Total))
 	builder.WriteString(", ")
+	if v := _m.InvoicingAppExternalID; v != nil {
+		builder.WriteString("invoicing_app_external_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
 	builder.WriteString("period_start=")
 	builder.WriteString(_m.PeriodStart.Format(time.ANSIC))
 	builder.WriteString(", ")
@@ -936,11 +942,6 @@ func (_m *BillingInvoiceLine) String() string {
 	if v := _m.RatecardDiscounts; v != nil {
 		builder.WriteString("ratecard_discounts=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	if v := _m.InvoicingAppExternalID; v != nil {
-		builder.WriteString("invoicing_app_external_id=")
-		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	if v := _m.ChildUniqueReferenceID; v != nil {

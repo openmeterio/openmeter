@@ -11,6 +11,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -47,8 +48,8 @@ type StandardLineBase struct {
 	RateCardDiscounts Discounts                 `json:"rateCardDiscounts,omitempty"`
 	CreditsApplied    CreditsApplied            `json:"creditsApplied,omitempty"`
 
-	ExternalIDs  LineExternalIDs        `json:"externalIDs,omitempty"`
-	Subscription *SubscriptionReference `json:"subscription,omitempty"`
+	ExternalIDs  externalid.LineExternalIDs `json:"externalIDs,omitempty"`
+	Subscription *SubscriptionReference     `json:"subscription,omitempty"`
 
 	Totals totals.Totals `json:"totals,omitempty"`
 }
@@ -200,14 +201,6 @@ func (i SubscriptionReference) Clone() *SubscriptionReference {
 		ItemID:         i.ItemID,
 		BillingPeriod:  i.BillingPeriod,
 	}
-}
-
-type LineExternalIDs struct {
-	Invoicing string `json:"invoicing,omitempty"`
-}
-
-func (i LineExternalIDs) Equal(other LineExternalIDs) bool {
-	return i.Invoicing == other.Invoicing
 }
 
 var (

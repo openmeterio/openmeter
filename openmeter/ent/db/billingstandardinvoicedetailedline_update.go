@@ -12,7 +12,8 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
@@ -33,6 +34,229 @@ type BillingStandardInvoiceDetailedLineUpdate struct {
 // Where appends a list predicates to the BillingStandardInvoiceDetailedLineUpdate builder.
 func (_u *BillingStandardInvoiceDetailedLineUpdate) Where(ps ...predicate.BillingStandardInvoiceDetailedLine) *BillingStandardInvoiceDetailedLineUpdate {
 	_u.mutation.Where(ps...)
+	return _u
+}
+
+// SetTaxConfig sets the "tax_config" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetTaxConfig(v productcatalog.TaxConfig) *BillingStandardInvoiceDetailedLineUpdate {
+	_u.mutation.SetTaxConfig(v)
+	return _u
+}
+
+// SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableTaxConfig(v *productcatalog.TaxConfig) *BillingStandardInvoiceDetailedLineUpdate {
+	if v != nil {
+		_u.SetTaxConfig(*v)
+	}
+	return _u
+}
+
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) ClearTaxConfig() *BillingStandardInvoiceDetailedLineUpdate {
+	_u.mutation.ClearTaxConfig()
+	return _u
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetTaxCodeID(v string) *BillingStandardInvoiceDetailedLineUpdate {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableTaxCodeID(v *string) *BillingStandardInvoiceDetailedLineUpdate {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) ClearTaxCodeID() *BillingStandardInvoiceDetailedLineUpdate {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineUpdate {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineUpdate {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) ClearTaxBehavior() *BillingStandardInvoiceDetailedLineUpdate {
+	_u.mutation.ClearTaxBehavior()
+	return _u
+}
+
+// SetServicePeriodStart sets the "service_period_start" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetServicePeriodStart(v time.Time) *BillingStandardInvoiceDetailedLineUpdate {
+	_u.mutation.SetServicePeriodStart(v)
+	return _u
+}
+
+// SetNillableServicePeriodStart sets the "service_period_start" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableServicePeriodStart(v *time.Time) *BillingStandardInvoiceDetailedLineUpdate {
+	if v != nil {
+		_u.SetServicePeriodStart(*v)
+	}
+	return _u
+}
+
+// SetServicePeriodEnd sets the "service_period_end" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetServicePeriodEnd(v time.Time) *BillingStandardInvoiceDetailedLineUpdate {
+	_u.mutation.SetServicePeriodEnd(v)
+	return _u
+}
+
+// SetNillableServicePeriodEnd sets the "service_period_end" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableServicePeriodEnd(v *time.Time) *BillingStandardInvoiceDetailedLineUpdate {
+	if v != nil {
+		_u.SetServicePeriodEnd(*v)
+	}
+	return _u
+}
+
+// SetQuantity sets the "quantity" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetQuantity(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpdate {
+	_u.mutation.SetQuantity(v)
+	return _u
+}
+
+// SetNillableQuantity sets the "quantity" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableQuantity(v *alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpdate {
+	if v != nil {
+		_u.SetQuantity(*v)
+	}
+	return _u
+}
+
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetInvoicingAppExternalID(v string) *BillingStandardInvoiceDetailedLineUpdate {
+	_u.mutation.SetInvoicingAppExternalID(v)
+	return _u
+}
+
+// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableInvoicingAppExternalID(v *string) *BillingStandardInvoiceDetailedLineUpdate {
+	if v != nil {
+		_u.SetInvoicingAppExternalID(*v)
+	}
+	return _u
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) ClearInvoicingAppExternalID() *BillingStandardInvoiceDetailedLineUpdate {
+	_u.mutation.ClearInvoicingAppExternalID()
+	return _u
+}
+
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetChildUniqueReferenceID(v string) *BillingStandardInvoiceDetailedLineUpdate {
+	_u.mutation.SetChildUniqueReferenceID(v)
+	return _u
+}
+
+// SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableChildUniqueReferenceID(v *string) *BillingStandardInvoiceDetailedLineUpdate {
+	if v != nil {
+		_u.SetChildUniqueReferenceID(*v)
+	}
+	return _u
+}
+
+// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) ClearChildUniqueReferenceID() *BillingStandardInvoiceDetailedLineUpdate {
+	_u.mutation.ClearChildUniqueReferenceID()
+	return _u
+}
+
+// SetPerUnitAmount sets the "per_unit_amount" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetPerUnitAmount(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpdate {
+	_u.mutation.SetPerUnitAmount(v)
+	return _u
+}
+
+// SetNillablePerUnitAmount sets the "per_unit_amount" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillablePerUnitAmount(v *alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpdate {
+	if v != nil {
+		_u.SetPerUnitAmount(*v)
+	}
+	return _u
+}
+
+// SetCategory sets the "category" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetCategory(v stddetailedline.Category) *BillingStandardInvoiceDetailedLineUpdate {
+	_u.mutation.SetCategory(v)
+	return _u
+}
+
+// SetNillableCategory sets the "category" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableCategory(v *stddetailedline.Category) *BillingStandardInvoiceDetailedLineUpdate {
+	if v != nil {
+		_u.SetCategory(*v)
+	}
+	return _u
+}
+
+// SetPaymentTerm sets the "payment_term" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetPaymentTerm(v productcatalog.PaymentTermType) *BillingStandardInvoiceDetailedLineUpdate {
+	_u.mutation.SetPaymentTerm(v)
+	return _u
+}
+
+// SetNillablePaymentTerm sets the "payment_term" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillablePaymentTerm(v *productcatalog.PaymentTermType) *BillingStandardInvoiceDetailedLineUpdate {
+	if v != nil {
+		_u.SetPaymentTerm(*v)
+	}
+	return _u
+}
+
+// SetIndex sets the "index" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetIndex(v int) *BillingStandardInvoiceDetailedLineUpdate {
+	_u.mutation.ResetIndex()
+	_u.mutation.SetIndex(v)
+	return _u
+}
+
+// SetNillableIndex sets the "index" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableIndex(v *int) *BillingStandardInvoiceDetailedLineUpdate {
+	if v != nil {
+		_u.SetIndex(*v)
+	}
+	return _u
+}
+
+// AddIndex adds value to the "index" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) AddIndex(v int) *BillingStandardInvoiceDetailedLineUpdate {
+	_u.mutation.AddIndex(v)
+	return _u
+}
+
+// ClearIndex clears the value of the "index" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) ClearIndex() *BillingStandardInvoiceDetailedLineUpdate {
+	_u.mutation.ClearIndex()
+	return _u
+}
+
+// SetCreditsApplied sets the "credits_applied" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetCreditsApplied(v *creditsapplied.CreditsApplied) *BillingStandardInvoiceDetailedLineUpdate {
+	_u.mutation.SetCreditsApplied(v)
+	return _u
+}
+
+// ClearCreditsApplied clears the value of the "credits_applied" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) ClearCreditsApplied() *BillingStandardInvoiceDetailedLineUpdate {
+	_u.mutation.ClearCreditsApplied()
 	return _u
 }
 
@@ -117,66 +341,6 @@ func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableDescription(v *st
 // ClearDescription clears the value of the "description" field.
 func (_u *BillingStandardInvoiceDetailedLineUpdate) ClearDescription() *BillingStandardInvoiceDetailedLineUpdate {
 	_u.mutation.ClearDescription()
-	return _u
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetTaxConfig(v productcatalog.TaxConfig) *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.SetTaxConfig(v)
-	return _u
-}
-
-// SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableTaxConfig(v *productcatalog.TaxConfig) *BillingStandardInvoiceDetailedLineUpdate {
-	if v != nil {
-		_u.SetTaxConfig(*v)
-	}
-	return _u
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) ClearTaxConfig() *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.ClearTaxConfig()
-	return _u
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetTaxCodeID(v string) *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.SetTaxCodeID(v)
-	return _u
-}
-
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableTaxCodeID(v *string) *BillingStandardInvoiceDetailedLineUpdate {
-	if v != nil {
-		_u.SetTaxCodeID(*v)
-	}
-	return _u
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) ClearTaxCodeID() *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.SetTaxBehavior(v)
-	return _u
-}
-
-// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineUpdate {
-	if v != nil {
-		_u.SetTaxBehavior(*v)
-	}
-	return _u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) ClearTaxBehavior() *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -292,34 +456,6 @@ func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableTotal(v *alpacade
 	return _u
 }
 
-// SetServicePeriodStart sets the "service_period_start" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetServicePeriodStart(v time.Time) *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.SetServicePeriodStart(v)
-	return _u
-}
-
-// SetNillableServicePeriodStart sets the "service_period_start" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableServicePeriodStart(v *time.Time) *BillingStandardInvoiceDetailedLineUpdate {
-	if v != nil {
-		_u.SetServicePeriodStart(*v)
-	}
-	return _u
-}
-
-// SetServicePeriodEnd sets the "service_period_end" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetServicePeriodEnd(v time.Time) *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.SetServicePeriodEnd(v)
-	return _u
-}
-
-// SetNillableServicePeriodEnd sets the "service_period_end" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableServicePeriodEnd(v *time.Time) *BillingStandardInvoiceDetailedLineUpdate {
-	if v != nil {
-		_u.SetServicePeriodEnd(*v)
-	}
-	return _u
-}
-
 // SetInvoiceID sets the "invoice_id" field.
 func (_u *BillingStandardInvoiceDetailedLineUpdate) SetInvoiceID(v string) *BillingStandardInvoiceDetailedLineUpdate {
 	_u.mutation.SetInvoiceID(v)
@@ -345,141 +481,6 @@ func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableParentLineID(v *s
 	if v != nil {
 		_u.SetParentLineID(*v)
 	}
-	return _u
-}
-
-// SetQuantity sets the "quantity" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetQuantity(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.SetQuantity(v)
-	return _u
-}
-
-// SetNillableQuantity sets the "quantity" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableQuantity(v *alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpdate {
-	if v != nil {
-		_u.SetQuantity(*v)
-	}
-	return _u
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetInvoicingAppExternalID(v string) *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.SetInvoicingAppExternalID(v)
-	return _u
-}
-
-// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableInvoicingAppExternalID(v *string) *BillingStandardInvoiceDetailedLineUpdate {
-	if v != nil {
-		_u.SetInvoicingAppExternalID(*v)
-	}
-	return _u
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) ClearInvoicingAppExternalID() *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.ClearInvoicingAppExternalID()
-	return _u
-}
-
-// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetChildUniqueReferenceID(v string) *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.SetChildUniqueReferenceID(v)
-	return _u
-}
-
-// SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableChildUniqueReferenceID(v *string) *BillingStandardInvoiceDetailedLineUpdate {
-	if v != nil {
-		_u.SetChildUniqueReferenceID(*v)
-	}
-	return _u
-}
-
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) ClearChildUniqueReferenceID() *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.ClearChildUniqueReferenceID()
-	return _u
-}
-
-// SetPerUnitAmount sets the "per_unit_amount" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetPerUnitAmount(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.SetPerUnitAmount(v)
-	return _u
-}
-
-// SetNillablePerUnitAmount sets the "per_unit_amount" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillablePerUnitAmount(v *alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpdate {
-	if v != nil {
-		_u.SetPerUnitAmount(*v)
-	}
-	return _u
-}
-
-// SetCategory sets the "category" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetCategory(v billing.FlatFeeCategory) *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.SetCategory(v)
-	return _u
-}
-
-// SetNillableCategory sets the "category" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableCategory(v *billing.FlatFeeCategory) *BillingStandardInvoiceDetailedLineUpdate {
-	if v != nil {
-		_u.SetCategory(*v)
-	}
-	return _u
-}
-
-// SetPaymentTerm sets the "payment_term" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetPaymentTerm(v productcatalog.PaymentTermType) *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.SetPaymentTerm(v)
-	return _u
-}
-
-// SetNillablePaymentTerm sets the "payment_term" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillablePaymentTerm(v *productcatalog.PaymentTermType) *BillingStandardInvoiceDetailedLineUpdate {
-	if v != nil {
-		_u.SetPaymentTerm(*v)
-	}
-	return _u
-}
-
-// SetIndex sets the "index" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetIndex(v int) *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.ResetIndex()
-	_u.mutation.SetIndex(v)
-	return _u
-}
-
-// SetNillableIndex sets the "index" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableIndex(v *int) *BillingStandardInvoiceDetailedLineUpdate {
-	if v != nil {
-		_u.SetIndex(*v)
-	}
-	return _u
-}
-
-// AddIndex adds value to the "index" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) AddIndex(v int) *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.AddIndex(v)
-	return _u
-}
-
-// ClearIndex clears the value of the "index" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) ClearIndex() *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.ClearIndex()
-	return _u
-}
-
-// SetCreditsApplied sets the "credits_applied" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetCreditsApplied(v *billing.CreditsApplied) *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.SetCreditsApplied(v)
-	return _u
-}
-
-// ClearCreditsApplied clears the value of the "credits_applied" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) ClearCreditsApplied() *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.ClearCreditsApplied()
 	return _u
 }
 
@@ -653,36 +654,6 @@ func (_u *BillingStandardInvoiceDetailedLineUpdate) sqlSave(ctx context.Context)
 			}
 		}
 	}
-	if value, ok := _u.mutation.Annotations(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldAnnotations, field.TypeJSON, value)
-	}
-	if _u.mutation.AnnotationsCleared() {
-		_spec.ClearField(billingstandardinvoicedetailedline.FieldAnnotations, field.TypeJSON)
-	}
-	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldMetadata, field.TypeJSON, value)
-	}
-	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(billingstandardinvoicedetailedline.FieldMetadata, field.TypeJSON)
-	}
-	if value, ok := _u.mutation.UpdatedAt(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldUpdatedAt, field.TypeTime, value)
-	}
-	if value, ok := _u.mutation.DeletedAt(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldDeletedAt, field.TypeTime, value)
-	}
-	if _u.mutation.DeletedAtCleared() {
-		_spec.ClearField(billingstandardinvoicedetailedline.FieldDeletedAt, field.TypeTime)
-	}
-	if value, ok := _u.mutation.Name(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldName, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.Description(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldDescription, field.TypeString, value)
-	}
-	if _u.mutation.DescriptionCleared() {
-		_spec.ClearField(billingstandardinvoicedetailedline.FieldDescription, field.TypeString)
-	}
 	if value, ok := _u.mutation.TaxConfig(); ok {
 		_spec.SetField(billingstandardinvoicedetailedline.FieldTaxConfig, field.TypeJSON, value)
 	}
@@ -694,30 +665,6 @@ func (_u *BillingStandardInvoiceDetailedLineUpdate) sqlSave(ctx context.Context)
 	}
 	if _u.mutation.TaxBehaviorCleared() {
 		_spec.ClearField(billingstandardinvoicedetailedline.FieldTaxBehavior, field.TypeEnum)
-	}
-	if value, ok := _u.mutation.Amount(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldAmount, field.TypeOther, value)
-	}
-	if value, ok := _u.mutation.TaxesTotal(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldTaxesTotal, field.TypeOther, value)
-	}
-	if value, ok := _u.mutation.TaxesInclusiveTotal(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldTaxesInclusiveTotal, field.TypeOther, value)
-	}
-	if value, ok := _u.mutation.TaxesExclusiveTotal(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldTaxesExclusiveTotal, field.TypeOther, value)
-	}
-	if value, ok := _u.mutation.ChargesTotal(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldChargesTotal, field.TypeOther, value)
-	}
-	if value, ok := _u.mutation.DiscountsTotal(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldDiscountsTotal, field.TypeOther, value)
-	}
-	if value, ok := _u.mutation.CreditsTotal(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldCreditsTotal, field.TypeOther, value)
-	}
-	if value, ok := _u.mutation.Total(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldTotal, field.TypeOther, value)
 	}
 	if value, ok := _u.mutation.ServicePeriodStart(); ok {
 		_spec.SetField(billingstandardinvoicedetailedline.FieldServicePeriodStart, field.TypeTime, value)
@@ -759,14 +706,64 @@ func (_u *BillingStandardInvoiceDetailedLineUpdate) sqlSave(ctx context.Context)
 		_spec.ClearField(billingstandardinvoicedetailedline.FieldIndex, field.TypeInt)
 	}
 	if value, ok := _u.mutation.CreditsApplied(); ok {
-		vv, err := billingstandardinvoicedetailedline.ValueScanner.CreditsApplied.Value(value)
-		if err != nil {
-			return 0, err
-		}
-		_spec.SetField(billingstandardinvoicedetailedline.FieldCreditsApplied, field.TypeString, vv)
+		_spec.SetField(billingstandardinvoicedetailedline.FieldCreditsApplied, field.TypeJSON, value)
 	}
 	if _u.mutation.CreditsAppliedCleared() {
-		_spec.ClearField(billingstandardinvoicedetailedline.FieldCreditsApplied, field.TypeString)
+		_spec.ClearField(billingstandardinvoicedetailedline.FieldCreditsApplied, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldAnnotations, field.TypeJSON, value)
+	}
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(billingstandardinvoicedetailedline.FieldAnnotations, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.Metadata(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldMetadata, field.TypeJSON, value)
+	}
+	if _u.mutation.MetadataCleared() {
+		_spec.ClearField(billingstandardinvoicedetailedline.FieldMetadata, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.DeletedAt(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldDeletedAt, field.TypeTime, value)
+	}
+	if _u.mutation.DeletedAtCleared() {
+		_spec.ClearField(billingstandardinvoicedetailedline.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.Name(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Description(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldDescription, field.TypeString, value)
+	}
+	if _u.mutation.DescriptionCleared() {
+		_spec.ClearField(billingstandardinvoicedetailedline.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.Amount(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldAmount, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.TaxesTotal(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldTaxesTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.TaxesInclusiveTotal(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldTaxesInclusiveTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.TaxesExclusiveTotal(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldTaxesExclusiveTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.ChargesTotal(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldChargesTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.DiscountsTotal(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldDiscountsTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.CreditsTotal(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldCreditsTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.Total(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldTotal, field.TypeOther, value)
 	}
 	if _u.mutation.BillingInvoiceCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -920,6 +917,229 @@ type BillingStandardInvoiceDetailedLineUpdateOne struct {
 	mutation *BillingStandardInvoiceDetailedLineMutation
 }
 
+// SetTaxConfig sets the "tax_config" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetTaxConfig(v productcatalog.TaxConfig) *BillingStandardInvoiceDetailedLineUpdateOne {
+	_u.mutation.SetTaxConfig(v)
+	return _u
+}
+
+// SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableTaxConfig(v *productcatalog.TaxConfig) *BillingStandardInvoiceDetailedLineUpdateOne {
+	if v != nil {
+		_u.SetTaxConfig(*v)
+	}
+	return _u
+}
+
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) ClearTaxConfig() *BillingStandardInvoiceDetailedLineUpdateOne {
+	_u.mutation.ClearTaxConfig()
+	return _u
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetTaxCodeID(v string) *BillingStandardInvoiceDetailedLineUpdateOne {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableTaxCodeID(v *string) *BillingStandardInvoiceDetailedLineUpdateOne {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) ClearTaxCodeID() *BillingStandardInvoiceDetailedLineUpdateOne {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineUpdateOne {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineUpdateOne {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) ClearTaxBehavior() *BillingStandardInvoiceDetailedLineUpdateOne {
+	_u.mutation.ClearTaxBehavior()
+	return _u
+}
+
+// SetServicePeriodStart sets the "service_period_start" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetServicePeriodStart(v time.Time) *BillingStandardInvoiceDetailedLineUpdateOne {
+	_u.mutation.SetServicePeriodStart(v)
+	return _u
+}
+
+// SetNillableServicePeriodStart sets the "service_period_start" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableServicePeriodStart(v *time.Time) *BillingStandardInvoiceDetailedLineUpdateOne {
+	if v != nil {
+		_u.SetServicePeriodStart(*v)
+	}
+	return _u
+}
+
+// SetServicePeriodEnd sets the "service_period_end" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetServicePeriodEnd(v time.Time) *BillingStandardInvoiceDetailedLineUpdateOne {
+	_u.mutation.SetServicePeriodEnd(v)
+	return _u
+}
+
+// SetNillableServicePeriodEnd sets the "service_period_end" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableServicePeriodEnd(v *time.Time) *BillingStandardInvoiceDetailedLineUpdateOne {
+	if v != nil {
+		_u.SetServicePeriodEnd(*v)
+	}
+	return _u
+}
+
+// SetQuantity sets the "quantity" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetQuantity(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpdateOne {
+	_u.mutation.SetQuantity(v)
+	return _u
+}
+
+// SetNillableQuantity sets the "quantity" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableQuantity(v *alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpdateOne {
+	if v != nil {
+		_u.SetQuantity(*v)
+	}
+	return _u
+}
+
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetInvoicingAppExternalID(v string) *BillingStandardInvoiceDetailedLineUpdateOne {
+	_u.mutation.SetInvoicingAppExternalID(v)
+	return _u
+}
+
+// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableInvoicingAppExternalID(v *string) *BillingStandardInvoiceDetailedLineUpdateOne {
+	if v != nil {
+		_u.SetInvoicingAppExternalID(*v)
+	}
+	return _u
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) ClearInvoicingAppExternalID() *BillingStandardInvoiceDetailedLineUpdateOne {
+	_u.mutation.ClearInvoicingAppExternalID()
+	return _u
+}
+
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetChildUniqueReferenceID(v string) *BillingStandardInvoiceDetailedLineUpdateOne {
+	_u.mutation.SetChildUniqueReferenceID(v)
+	return _u
+}
+
+// SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableChildUniqueReferenceID(v *string) *BillingStandardInvoiceDetailedLineUpdateOne {
+	if v != nil {
+		_u.SetChildUniqueReferenceID(*v)
+	}
+	return _u
+}
+
+// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) ClearChildUniqueReferenceID() *BillingStandardInvoiceDetailedLineUpdateOne {
+	_u.mutation.ClearChildUniqueReferenceID()
+	return _u
+}
+
+// SetPerUnitAmount sets the "per_unit_amount" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetPerUnitAmount(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpdateOne {
+	_u.mutation.SetPerUnitAmount(v)
+	return _u
+}
+
+// SetNillablePerUnitAmount sets the "per_unit_amount" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillablePerUnitAmount(v *alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpdateOne {
+	if v != nil {
+		_u.SetPerUnitAmount(*v)
+	}
+	return _u
+}
+
+// SetCategory sets the "category" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetCategory(v stddetailedline.Category) *BillingStandardInvoiceDetailedLineUpdateOne {
+	_u.mutation.SetCategory(v)
+	return _u
+}
+
+// SetNillableCategory sets the "category" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableCategory(v *stddetailedline.Category) *BillingStandardInvoiceDetailedLineUpdateOne {
+	if v != nil {
+		_u.SetCategory(*v)
+	}
+	return _u
+}
+
+// SetPaymentTerm sets the "payment_term" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetPaymentTerm(v productcatalog.PaymentTermType) *BillingStandardInvoiceDetailedLineUpdateOne {
+	_u.mutation.SetPaymentTerm(v)
+	return _u
+}
+
+// SetNillablePaymentTerm sets the "payment_term" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillablePaymentTerm(v *productcatalog.PaymentTermType) *BillingStandardInvoiceDetailedLineUpdateOne {
+	if v != nil {
+		_u.SetPaymentTerm(*v)
+	}
+	return _u
+}
+
+// SetIndex sets the "index" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetIndex(v int) *BillingStandardInvoiceDetailedLineUpdateOne {
+	_u.mutation.ResetIndex()
+	_u.mutation.SetIndex(v)
+	return _u
+}
+
+// SetNillableIndex sets the "index" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableIndex(v *int) *BillingStandardInvoiceDetailedLineUpdateOne {
+	if v != nil {
+		_u.SetIndex(*v)
+	}
+	return _u
+}
+
+// AddIndex adds value to the "index" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) AddIndex(v int) *BillingStandardInvoiceDetailedLineUpdateOne {
+	_u.mutation.AddIndex(v)
+	return _u
+}
+
+// ClearIndex clears the value of the "index" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) ClearIndex() *BillingStandardInvoiceDetailedLineUpdateOne {
+	_u.mutation.ClearIndex()
+	return _u
+}
+
+// SetCreditsApplied sets the "credits_applied" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetCreditsApplied(v *creditsapplied.CreditsApplied) *BillingStandardInvoiceDetailedLineUpdateOne {
+	_u.mutation.SetCreditsApplied(v)
+	return _u
+}
+
+// ClearCreditsApplied clears the value of the "credits_applied" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) ClearCreditsApplied() *BillingStandardInvoiceDetailedLineUpdateOne {
+	_u.mutation.ClearCreditsApplied()
+	return _u
+}
+
 // SetAnnotations sets the "annotations" field.
 func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetAnnotations(v models.Annotations) *BillingStandardInvoiceDetailedLineUpdateOne {
 	_u.mutation.SetAnnotations(v)
@@ -1001,66 +1221,6 @@ func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableDescription(v 
 // ClearDescription clears the value of the "description" field.
 func (_u *BillingStandardInvoiceDetailedLineUpdateOne) ClearDescription() *BillingStandardInvoiceDetailedLineUpdateOne {
 	_u.mutation.ClearDescription()
-	return _u
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetTaxConfig(v productcatalog.TaxConfig) *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.SetTaxConfig(v)
-	return _u
-}
-
-// SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableTaxConfig(v *productcatalog.TaxConfig) *BillingStandardInvoiceDetailedLineUpdateOne {
-	if v != nil {
-		_u.SetTaxConfig(*v)
-	}
-	return _u
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) ClearTaxConfig() *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.ClearTaxConfig()
-	return _u
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetTaxCodeID(v string) *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.SetTaxCodeID(v)
-	return _u
-}
-
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableTaxCodeID(v *string) *BillingStandardInvoiceDetailedLineUpdateOne {
-	if v != nil {
-		_u.SetTaxCodeID(*v)
-	}
-	return _u
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) ClearTaxCodeID() *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.SetTaxBehavior(v)
-	return _u
-}
-
-// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineUpdateOne {
-	if v != nil {
-		_u.SetTaxBehavior(*v)
-	}
-	return _u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) ClearTaxBehavior() *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -1176,34 +1336,6 @@ func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableTotal(v *alpac
 	return _u
 }
 
-// SetServicePeriodStart sets the "service_period_start" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetServicePeriodStart(v time.Time) *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.SetServicePeriodStart(v)
-	return _u
-}
-
-// SetNillableServicePeriodStart sets the "service_period_start" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableServicePeriodStart(v *time.Time) *BillingStandardInvoiceDetailedLineUpdateOne {
-	if v != nil {
-		_u.SetServicePeriodStart(*v)
-	}
-	return _u
-}
-
-// SetServicePeriodEnd sets the "service_period_end" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetServicePeriodEnd(v time.Time) *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.SetServicePeriodEnd(v)
-	return _u
-}
-
-// SetNillableServicePeriodEnd sets the "service_period_end" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableServicePeriodEnd(v *time.Time) *BillingStandardInvoiceDetailedLineUpdateOne {
-	if v != nil {
-		_u.SetServicePeriodEnd(*v)
-	}
-	return _u
-}
-
 // SetInvoiceID sets the "invoice_id" field.
 func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetInvoiceID(v string) *BillingStandardInvoiceDetailedLineUpdateOne {
 	_u.mutation.SetInvoiceID(v)
@@ -1229,141 +1361,6 @@ func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableParentLineID(v
 	if v != nil {
 		_u.SetParentLineID(*v)
 	}
-	return _u
-}
-
-// SetQuantity sets the "quantity" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetQuantity(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.SetQuantity(v)
-	return _u
-}
-
-// SetNillableQuantity sets the "quantity" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableQuantity(v *alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpdateOne {
-	if v != nil {
-		_u.SetQuantity(*v)
-	}
-	return _u
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetInvoicingAppExternalID(v string) *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.SetInvoicingAppExternalID(v)
-	return _u
-}
-
-// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableInvoicingAppExternalID(v *string) *BillingStandardInvoiceDetailedLineUpdateOne {
-	if v != nil {
-		_u.SetInvoicingAppExternalID(*v)
-	}
-	return _u
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) ClearInvoicingAppExternalID() *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.ClearInvoicingAppExternalID()
-	return _u
-}
-
-// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetChildUniqueReferenceID(v string) *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.SetChildUniqueReferenceID(v)
-	return _u
-}
-
-// SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableChildUniqueReferenceID(v *string) *BillingStandardInvoiceDetailedLineUpdateOne {
-	if v != nil {
-		_u.SetChildUniqueReferenceID(*v)
-	}
-	return _u
-}
-
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) ClearChildUniqueReferenceID() *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.ClearChildUniqueReferenceID()
-	return _u
-}
-
-// SetPerUnitAmount sets the "per_unit_amount" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetPerUnitAmount(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.SetPerUnitAmount(v)
-	return _u
-}
-
-// SetNillablePerUnitAmount sets the "per_unit_amount" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillablePerUnitAmount(v *alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpdateOne {
-	if v != nil {
-		_u.SetPerUnitAmount(*v)
-	}
-	return _u
-}
-
-// SetCategory sets the "category" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetCategory(v billing.FlatFeeCategory) *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.SetCategory(v)
-	return _u
-}
-
-// SetNillableCategory sets the "category" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableCategory(v *billing.FlatFeeCategory) *BillingStandardInvoiceDetailedLineUpdateOne {
-	if v != nil {
-		_u.SetCategory(*v)
-	}
-	return _u
-}
-
-// SetPaymentTerm sets the "payment_term" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetPaymentTerm(v productcatalog.PaymentTermType) *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.SetPaymentTerm(v)
-	return _u
-}
-
-// SetNillablePaymentTerm sets the "payment_term" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillablePaymentTerm(v *productcatalog.PaymentTermType) *BillingStandardInvoiceDetailedLineUpdateOne {
-	if v != nil {
-		_u.SetPaymentTerm(*v)
-	}
-	return _u
-}
-
-// SetIndex sets the "index" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetIndex(v int) *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.ResetIndex()
-	_u.mutation.SetIndex(v)
-	return _u
-}
-
-// SetNillableIndex sets the "index" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableIndex(v *int) *BillingStandardInvoiceDetailedLineUpdateOne {
-	if v != nil {
-		_u.SetIndex(*v)
-	}
-	return _u
-}
-
-// AddIndex adds value to the "index" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) AddIndex(v int) *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.AddIndex(v)
-	return _u
-}
-
-// ClearIndex clears the value of the "index" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) ClearIndex() *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.ClearIndex()
-	return _u
-}
-
-// SetCreditsApplied sets the "credits_applied" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetCreditsApplied(v *billing.CreditsApplied) *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.SetCreditsApplied(v)
-	return _u
-}
-
-// ClearCreditsApplied clears the value of the "credits_applied" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) ClearCreditsApplied() *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.ClearCreditsApplied()
 	return _u
 }
 
@@ -1567,36 +1564,6 @@ func (_u *BillingStandardInvoiceDetailedLineUpdateOne) sqlSave(ctx context.Conte
 			}
 		}
 	}
-	if value, ok := _u.mutation.Annotations(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldAnnotations, field.TypeJSON, value)
-	}
-	if _u.mutation.AnnotationsCleared() {
-		_spec.ClearField(billingstandardinvoicedetailedline.FieldAnnotations, field.TypeJSON)
-	}
-	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldMetadata, field.TypeJSON, value)
-	}
-	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(billingstandardinvoicedetailedline.FieldMetadata, field.TypeJSON)
-	}
-	if value, ok := _u.mutation.UpdatedAt(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldUpdatedAt, field.TypeTime, value)
-	}
-	if value, ok := _u.mutation.DeletedAt(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldDeletedAt, field.TypeTime, value)
-	}
-	if _u.mutation.DeletedAtCleared() {
-		_spec.ClearField(billingstandardinvoicedetailedline.FieldDeletedAt, field.TypeTime)
-	}
-	if value, ok := _u.mutation.Name(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldName, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.Description(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldDescription, field.TypeString, value)
-	}
-	if _u.mutation.DescriptionCleared() {
-		_spec.ClearField(billingstandardinvoicedetailedline.FieldDescription, field.TypeString)
-	}
 	if value, ok := _u.mutation.TaxConfig(); ok {
 		_spec.SetField(billingstandardinvoicedetailedline.FieldTaxConfig, field.TypeJSON, value)
 	}
@@ -1608,30 +1575,6 @@ func (_u *BillingStandardInvoiceDetailedLineUpdateOne) sqlSave(ctx context.Conte
 	}
 	if _u.mutation.TaxBehaviorCleared() {
 		_spec.ClearField(billingstandardinvoicedetailedline.FieldTaxBehavior, field.TypeEnum)
-	}
-	if value, ok := _u.mutation.Amount(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldAmount, field.TypeOther, value)
-	}
-	if value, ok := _u.mutation.TaxesTotal(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldTaxesTotal, field.TypeOther, value)
-	}
-	if value, ok := _u.mutation.TaxesInclusiveTotal(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldTaxesInclusiveTotal, field.TypeOther, value)
-	}
-	if value, ok := _u.mutation.TaxesExclusiveTotal(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldTaxesExclusiveTotal, field.TypeOther, value)
-	}
-	if value, ok := _u.mutation.ChargesTotal(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldChargesTotal, field.TypeOther, value)
-	}
-	if value, ok := _u.mutation.DiscountsTotal(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldDiscountsTotal, field.TypeOther, value)
-	}
-	if value, ok := _u.mutation.CreditsTotal(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldCreditsTotal, field.TypeOther, value)
-	}
-	if value, ok := _u.mutation.Total(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldTotal, field.TypeOther, value)
 	}
 	if value, ok := _u.mutation.ServicePeriodStart(); ok {
 		_spec.SetField(billingstandardinvoicedetailedline.FieldServicePeriodStart, field.TypeTime, value)
@@ -1673,14 +1616,64 @@ func (_u *BillingStandardInvoiceDetailedLineUpdateOne) sqlSave(ctx context.Conte
 		_spec.ClearField(billingstandardinvoicedetailedline.FieldIndex, field.TypeInt)
 	}
 	if value, ok := _u.mutation.CreditsApplied(); ok {
-		vv, err := billingstandardinvoicedetailedline.ValueScanner.CreditsApplied.Value(value)
-		if err != nil {
-			return nil, err
-		}
-		_spec.SetField(billingstandardinvoicedetailedline.FieldCreditsApplied, field.TypeString, vv)
+		_spec.SetField(billingstandardinvoicedetailedline.FieldCreditsApplied, field.TypeJSON, value)
 	}
 	if _u.mutation.CreditsAppliedCleared() {
-		_spec.ClearField(billingstandardinvoicedetailedline.FieldCreditsApplied, field.TypeString)
+		_spec.ClearField(billingstandardinvoicedetailedline.FieldCreditsApplied, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldAnnotations, field.TypeJSON, value)
+	}
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(billingstandardinvoicedetailedline.FieldAnnotations, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.Metadata(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldMetadata, field.TypeJSON, value)
+	}
+	if _u.mutation.MetadataCleared() {
+		_spec.ClearField(billingstandardinvoicedetailedline.FieldMetadata, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.DeletedAt(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldDeletedAt, field.TypeTime, value)
+	}
+	if _u.mutation.DeletedAtCleared() {
+		_spec.ClearField(billingstandardinvoicedetailedline.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.Name(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Description(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldDescription, field.TypeString, value)
+	}
+	if _u.mutation.DescriptionCleared() {
+		_spec.ClearField(billingstandardinvoicedetailedline.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.Amount(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldAmount, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.TaxesTotal(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldTaxesTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.TaxesInclusiveTotal(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldTaxesInclusiveTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.TaxesExclusiveTotal(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldTaxesExclusiveTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.ChargesTotal(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldChargesTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.DiscountsTotal(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldDiscountsTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.CreditsTotal(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldCreditsTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.Total(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldTotal, field.TypeOther, value)
 	}
 	if _u.mutation.BillingInvoiceCleared() {
 		edge := &sqlgraph.EdgeSpec{

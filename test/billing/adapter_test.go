@@ -16,6 +16,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
@@ -144,7 +145,7 @@ func newDetailedLine(in newLineInput) billing.DetailedLine {
 			PerUnitAmount:          alpacadecimal.NewFromFloat(100),
 			Quantity:               alpacadecimal.NewFromFloat(1),
 			PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-			Category:               billing.FlatFeeCategoryRegular,
+			Category:               stddetailedline.CategoryRegular,
 		},
 	}
 }

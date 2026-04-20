@@ -332,6 +332,48 @@ func (_c *BillingInvoiceCreate) SetTotal(v alpacadecimal.Decimal) *BillingInvoic
 	return _c
 }
 
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (_c *BillingInvoiceCreate) SetInvoicingAppExternalID(v string) *BillingInvoiceCreate {
+	_c.mutation.SetInvoicingAppExternalID(v)
+	return _c
+}
+
+// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
+func (_c *BillingInvoiceCreate) SetNillableInvoicingAppExternalID(v *string) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetInvoicingAppExternalID(*v)
+	}
+	return _c
+}
+
+// SetPaymentAppExternalID sets the "payment_app_external_id" field.
+func (_c *BillingInvoiceCreate) SetPaymentAppExternalID(v string) *BillingInvoiceCreate {
+	_c.mutation.SetPaymentAppExternalID(v)
+	return _c
+}
+
+// SetNillablePaymentAppExternalID sets the "payment_app_external_id" field if the given value is not nil.
+func (_c *BillingInvoiceCreate) SetNillablePaymentAppExternalID(v *string) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetPaymentAppExternalID(*v)
+	}
+	return _c
+}
+
+// SetTaxAppExternalID sets the "tax_app_external_id" field.
+func (_c *BillingInvoiceCreate) SetTaxAppExternalID(v string) *BillingInvoiceCreate {
+	_c.mutation.SetTaxAppExternalID(v)
+	return _c
+}
+
+// SetNillableTaxAppExternalID sets the "tax_app_external_id" field if the given value is not nil.
+func (_c *BillingInvoiceCreate) SetNillableTaxAppExternalID(v *string) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetTaxAppExternalID(*v)
+	}
+	return _c
+}
+
 // SetSupplierName sets the "supplier_name" field.
 func (_c *BillingInvoiceCreate) SetSupplierName(v string) *BillingInvoiceCreate {
 	_c.mutation.SetSupplierName(v)
@@ -547,48 +589,6 @@ func (_c *BillingInvoiceCreate) SetInvoicingAppID(v string) *BillingInvoiceCreat
 // SetPaymentAppID sets the "payment_app_id" field.
 func (_c *BillingInvoiceCreate) SetPaymentAppID(v string) *BillingInvoiceCreate {
 	_c.mutation.SetPaymentAppID(v)
-	return _c
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (_c *BillingInvoiceCreate) SetInvoicingAppExternalID(v string) *BillingInvoiceCreate {
-	_c.mutation.SetInvoicingAppExternalID(v)
-	return _c
-}
-
-// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
-func (_c *BillingInvoiceCreate) SetNillableInvoicingAppExternalID(v *string) *BillingInvoiceCreate {
-	if v != nil {
-		_c.SetInvoicingAppExternalID(*v)
-	}
-	return _c
-}
-
-// SetPaymentAppExternalID sets the "payment_app_external_id" field.
-func (_c *BillingInvoiceCreate) SetPaymentAppExternalID(v string) *BillingInvoiceCreate {
-	_c.mutation.SetPaymentAppExternalID(v)
-	return _c
-}
-
-// SetNillablePaymentAppExternalID sets the "payment_app_external_id" field if the given value is not nil.
-func (_c *BillingInvoiceCreate) SetNillablePaymentAppExternalID(v *string) *BillingInvoiceCreate {
-	if v != nil {
-		_c.SetPaymentAppExternalID(*v)
-	}
-	return _c
-}
-
-// SetTaxAppExternalID sets the "tax_app_external_id" field.
-func (_c *BillingInvoiceCreate) SetTaxAppExternalID(v string) *BillingInvoiceCreate {
-	_c.mutation.SetTaxAppExternalID(v)
-	return _c
-}
-
-// SetNillableTaxAppExternalID sets the "tax_app_external_id" field if the given value is not nil.
-func (_c *BillingInvoiceCreate) SetNillableTaxAppExternalID(v *string) *BillingInvoiceCreate {
-	if v != nil {
-		_c.SetTaxAppExternalID(*v)
-	}
 	return _c
 }
 
@@ -1111,6 +1111,18 @@ func (_c *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.CreateS
 		_spec.SetField(billinginvoice.FieldTotal, field.TypeOther, value)
 		_node.Total = value
 	}
+	if value, ok := _c.mutation.InvoicingAppExternalID(); ok {
+		_spec.SetField(billinginvoice.FieldInvoicingAppExternalID, field.TypeString, value)
+		_node.InvoicingAppExternalID = &value
+	}
+	if value, ok := _c.mutation.PaymentAppExternalID(); ok {
+		_spec.SetField(billinginvoice.FieldPaymentAppExternalID, field.TypeString, value)
+		_node.PaymentAppExternalID = &value
+	}
+	if value, ok := _c.mutation.TaxAppExternalID(); ok {
+		_spec.SetField(billinginvoice.FieldTaxAppExternalID, field.TypeString, value)
+		_node.TaxAppExternalID = &value
+	}
 	if value, ok := _c.mutation.SupplierName(); ok {
 		_spec.SetField(billinginvoice.FieldSupplierName, field.TypeString, value)
 		_node.SupplierName = value
@@ -1178,18 +1190,6 @@ func (_c *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.CreateS
 	if value, ok := _c.mutation.StatusDetailsCache(); ok {
 		_spec.SetField(billinginvoice.FieldStatusDetailsCache, field.TypeJSON, value)
 		_node.StatusDetailsCache = value
-	}
-	if value, ok := _c.mutation.InvoicingAppExternalID(); ok {
-		_spec.SetField(billinginvoice.FieldInvoicingAppExternalID, field.TypeString, value)
-		_node.InvoicingAppExternalID = &value
-	}
-	if value, ok := _c.mutation.PaymentAppExternalID(); ok {
-		_spec.SetField(billinginvoice.FieldPaymentAppExternalID, field.TypeString, value)
-		_node.PaymentAppExternalID = &value
-	}
-	if value, ok := _c.mutation.TaxAppExternalID(); ok {
-		_spec.SetField(billinginvoice.FieldTaxAppExternalID, field.TypeString, value)
-		_node.TaxAppExternalID = &value
 	}
 	if value, ok := _c.mutation.PeriodStart(); ok {
 		_spec.SetField(billinginvoice.FieldPeriodStart, field.TypeTime, value)
@@ -1809,6 +1809,60 @@ func (u *BillingInvoiceUpsert) UpdateTotal() *BillingInvoiceUpsert {
 	return u
 }
 
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (u *BillingInvoiceUpsert) SetInvoicingAppExternalID(v string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldInvoicingAppExternalID, v)
+	return u
+}
+
+// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateInvoicingAppExternalID() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldInvoicingAppExternalID)
+	return u
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (u *BillingInvoiceUpsert) ClearInvoicingAppExternalID() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldInvoicingAppExternalID)
+	return u
+}
+
+// SetPaymentAppExternalID sets the "payment_app_external_id" field.
+func (u *BillingInvoiceUpsert) SetPaymentAppExternalID(v string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldPaymentAppExternalID, v)
+	return u
+}
+
+// UpdatePaymentAppExternalID sets the "payment_app_external_id" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdatePaymentAppExternalID() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldPaymentAppExternalID)
+	return u
+}
+
+// ClearPaymentAppExternalID clears the value of the "payment_app_external_id" field.
+func (u *BillingInvoiceUpsert) ClearPaymentAppExternalID() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldPaymentAppExternalID)
+	return u
+}
+
+// SetTaxAppExternalID sets the "tax_app_external_id" field.
+func (u *BillingInvoiceUpsert) SetTaxAppExternalID(v string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldTaxAppExternalID, v)
+	return u
+}
+
+// UpdateTaxAppExternalID sets the "tax_app_external_id" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateTaxAppExternalID() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldTaxAppExternalID)
+	return u
+}
+
+// ClearTaxAppExternalID clears the value of the "tax_app_external_id" field.
+func (u *BillingInvoiceUpsert) ClearTaxAppExternalID() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldTaxAppExternalID)
+	return u
+}
+
 // SetSupplierName sets the "supplier_name" field.
 func (u *BillingInvoiceUpsert) SetSupplierName(v string) *BillingInvoiceUpsert {
 	u.Set(billinginvoice.FieldSupplierName, v)
@@ -2076,60 +2130,6 @@ func (u *BillingInvoiceUpsert) SetWorkflowConfigID(v string) *BillingInvoiceUpse
 // UpdateWorkflowConfigID sets the "workflow_config_id" field to the value that was provided on create.
 func (u *BillingInvoiceUpsert) UpdateWorkflowConfigID() *BillingInvoiceUpsert {
 	u.SetExcluded(billinginvoice.FieldWorkflowConfigID)
-	return u
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (u *BillingInvoiceUpsert) SetInvoicingAppExternalID(v string) *BillingInvoiceUpsert {
-	u.Set(billinginvoice.FieldInvoicingAppExternalID, v)
-	return u
-}
-
-// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
-func (u *BillingInvoiceUpsert) UpdateInvoicingAppExternalID() *BillingInvoiceUpsert {
-	u.SetExcluded(billinginvoice.FieldInvoicingAppExternalID)
-	return u
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (u *BillingInvoiceUpsert) ClearInvoicingAppExternalID() *BillingInvoiceUpsert {
-	u.SetNull(billinginvoice.FieldInvoicingAppExternalID)
-	return u
-}
-
-// SetPaymentAppExternalID sets the "payment_app_external_id" field.
-func (u *BillingInvoiceUpsert) SetPaymentAppExternalID(v string) *BillingInvoiceUpsert {
-	u.Set(billinginvoice.FieldPaymentAppExternalID, v)
-	return u
-}
-
-// UpdatePaymentAppExternalID sets the "payment_app_external_id" field to the value that was provided on create.
-func (u *BillingInvoiceUpsert) UpdatePaymentAppExternalID() *BillingInvoiceUpsert {
-	u.SetExcluded(billinginvoice.FieldPaymentAppExternalID)
-	return u
-}
-
-// ClearPaymentAppExternalID clears the value of the "payment_app_external_id" field.
-func (u *BillingInvoiceUpsert) ClearPaymentAppExternalID() *BillingInvoiceUpsert {
-	u.SetNull(billinginvoice.FieldPaymentAppExternalID)
-	return u
-}
-
-// SetTaxAppExternalID sets the "tax_app_external_id" field.
-func (u *BillingInvoiceUpsert) SetTaxAppExternalID(v string) *BillingInvoiceUpsert {
-	u.Set(billinginvoice.FieldTaxAppExternalID, v)
-	return u
-}
-
-// UpdateTaxAppExternalID sets the "tax_app_external_id" field to the value that was provided on create.
-func (u *BillingInvoiceUpsert) UpdateTaxAppExternalID() *BillingInvoiceUpsert {
-	u.SetExcluded(billinginvoice.FieldTaxAppExternalID)
-	return u
-}
-
-// ClearTaxAppExternalID clears the value of the "tax_app_external_id" field.
-func (u *BillingInvoiceUpsert) ClearTaxAppExternalID() *BillingInvoiceUpsert {
-	u.SetNull(billinginvoice.FieldTaxAppExternalID)
 	return u
 }
 
@@ -2757,6 +2757,69 @@ func (u *BillingInvoiceUpsertOne) UpdateTotal() *BillingInvoiceUpsertOne {
 	})
 }
 
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (u *BillingInvoiceUpsertOne) SetInvoicingAppExternalID(v string) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetInvoicingAppExternalID(v)
+	})
+}
+
+// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateInvoicingAppExternalID() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateInvoicingAppExternalID()
+	})
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (u *BillingInvoiceUpsertOne) ClearInvoicingAppExternalID() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearInvoicingAppExternalID()
+	})
+}
+
+// SetPaymentAppExternalID sets the "payment_app_external_id" field.
+func (u *BillingInvoiceUpsertOne) SetPaymentAppExternalID(v string) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetPaymentAppExternalID(v)
+	})
+}
+
+// UpdatePaymentAppExternalID sets the "payment_app_external_id" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdatePaymentAppExternalID() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdatePaymentAppExternalID()
+	})
+}
+
+// ClearPaymentAppExternalID clears the value of the "payment_app_external_id" field.
+func (u *BillingInvoiceUpsertOne) ClearPaymentAppExternalID() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearPaymentAppExternalID()
+	})
+}
+
+// SetTaxAppExternalID sets the "tax_app_external_id" field.
+func (u *BillingInvoiceUpsertOne) SetTaxAppExternalID(v string) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetTaxAppExternalID(v)
+	})
+}
+
+// UpdateTaxAppExternalID sets the "tax_app_external_id" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateTaxAppExternalID() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateTaxAppExternalID()
+	})
+}
+
+// ClearTaxAppExternalID clears the value of the "tax_app_external_id" field.
+func (u *BillingInvoiceUpsertOne) ClearTaxAppExternalID() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearTaxAppExternalID()
+	})
+}
+
 // SetSupplierName sets the "supplier_name" field.
 func (u *BillingInvoiceUpsertOne) SetSupplierName(v string) *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
@@ -3069,69 +3132,6 @@ func (u *BillingInvoiceUpsertOne) SetWorkflowConfigID(v string) *BillingInvoiceU
 func (u *BillingInvoiceUpsertOne) UpdateWorkflowConfigID() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.UpdateWorkflowConfigID()
-	})
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (u *BillingInvoiceUpsertOne) SetInvoicingAppExternalID(v string) *BillingInvoiceUpsertOne {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetInvoicingAppExternalID(v)
-	})
-}
-
-// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertOne) UpdateInvoicingAppExternalID() *BillingInvoiceUpsertOne {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdateInvoicingAppExternalID()
-	})
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (u *BillingInvoiceUpsertOne) ClearInvoicingAppExternalID() *BillingInvoiceUpsertOne {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.ClearInvoicingAppExternalID()
-	})
-}
-
-// SetPaymentAppExternalID sets the "payment_app_external_id" field.
-func (u *BillingInvoiceUpsertOne) SetPaymentAppExternalID(v string) *BillingInvoiceUpsertOne {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetPaymentAppExternalID(v)
-	})
-}
-
-// UpdatePaymentAppExternalID sets the "payment_app_external_id" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertOne) UpdatePaymentAppExternalID() *BillingInvoiceUpsertOne {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdatePaymentAppExternalID()
-	})
-}
-
-// ClearPaymentAppExternalID clears the value of the "payment_app_external_id" field.
-func (u *BillingInvoiceUpsertOne) ClearPaymentAppExternalID() *BillingInvoiceUpsertOne {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.ClearPaymentAppExternalID()
-	})
-}
-
-// SetTaxAppExternalID sets the "tax_app_external_id" field.
-func (u *BillingInvoiceUpsertOne) SetTaxAppExternalID(v string) *BillingInvoiceUpsertOne {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetTaxAppExternalID(v)
-	})
-}
-
-// UpdateTaxAppExternalID sets the "tax_app_external_id" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertOne) UpdateTaxAppExternalID() *BillingInvoiceUpsertOne {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdateTaxAppExternalID()
-	})
-}
-
-// ClearTaxAppExternalID clears the value of the "tax_app_external_id" field.
-func (u *BillingInvoiceUpsertOne) ClearTaxAppExternalID() *BillingInvoiceUpsertOne {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.ClearTaxAppExternalID()
 	})
 }
 
@@ -3941,6 +3941,69 @@ func (u *BillingInvoiceUpsertBulk) UpdateTotal() *BillingInvoiceUpsertBulk {
 	})
 }
 
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (u *BillingInvoiceUpsertBulk) SetInvoicingAppExternalID(v string) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetInvoicingAppExternalID(v)
+	})
+}
+
+// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateInvoicingAppExternalID() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateInvoicingAppExternalID()
+	})
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (u *BillingInvoiceUpsertBulk) ClearInvoicingAppExternalID() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearInvoicingAppExternalID()
+	})
+}
+
+// SetPaymentAppExternalID sets the "payment_app_external_id" field.
+func (u *BillingInvoiceUpsertBulk) SetPaymentAppExternalID(v string) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetPaymentAppExternalID(v)
+	})
+}
+
+// UpdatePaymentAppExternalID sets the "payment_app_external_id" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdatePaymentAppExternalID() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdatePaymentAppExternalID()
+	})
+}
+
+// ClearPaymentAppExternalID clears the value of the "payment_app_external_id" field.
+func (u *BillingInvoiceUpsertBulk) ClearPaymentAppExternalID() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearPaymentAppExternalID()
+	})
+}
+
+// SetTaxAppExternalID sets the "tax_app_external_id" field.
+func (u *BillingInvoiceUpsertBulk) SetTaxAppExternalID(v string) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetTaxAppExternalID(v)
+	})
+}
+
+// UpdateTaxAppExternalID sets the "tax_app_external_id" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateTaxAppExternalID() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateTaxAppExternalID()
+	})
+}
+
+// ClearTaxAppExternalID clears the value of the "tax_app_external_id" field.
+func (u *BillingInvoiceUpsertBulk) ClearTaxAppExternalID() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearTaxAppExternalID()
+	})
+}
+
 // SetSupplierName sets the "supplier_name" field.
 func (u *BillingInvoiceUpsertBulk) SetSupplierName(v string) *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
@@ -4253,69 +4316,6 @@ func (u *BillingInvoiceUpsertBulk) SetWorkflowConfigID(v string) *BillingInvoice
 func (u *BillingInvoiceUpsertBulk) UpdateWorkflowConfigID() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.UpdateWorkflowConfigID()
-	})
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (u *BillingInvoiceUpsertBulk) SetInvoicingAppExternalID(v string) *BillingInvoiceUpsertBulk {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetInvoicingAppExternalID(v)
-	})
-}
-
-// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertBulk) UpdateInvoicingAppExternalID() *BillingInvoiceUpsertBulk {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdateInvoicingAppExternalID()
-	})
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (u *BillingInvoiceUpsertBulk) ClearInvoicingAppExternalID() *BillingInvoiceUpsertBulk {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.ClearInvoicingAppExternalID()
-	})
-}
-
-// SetPaymentAppExternalID sets the "payment_app_external_id" field.
-func (u *BillingInvoiceUpsertBulk) SetPaymentAppExternalID(v string) *BillingInvoiceUpsertBulk {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetPaymentAppExternalID(v)
-	})
-}
-
-// UpdatePaymentAppExternalID sets the "payment_app_external_id" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertBulk) UpdatePaymentAppExternalID() *BillingInvoiceUpsertBulk {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdatePaymentAppExternalID()
-	})
-}
-
-// ClearPaymentAppExternalID clears the value of the "payment_app_external_id" field.
-func (u *BillingInvoiceUpsertBulk) ClearPaymentAppExternalID() *BillingInvoiceUpsertBulk {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.ClearPaymentAppExternalID()
-	})
-}
-
-// SetTaxAppExternalID sets the "tax_app_external_id" field.
-func (u *BillingInvoiceUpsertBulk) SetTaxAppExternalID(v string) *BillingInvoiceUpsertBulk {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetTaxAppExternalID(v)
-	})
-}
-
-// UpdateTaxAppExternalID sets the "tax_app_external_id" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertBulk) UpdateTaxAppExternalID() *BillingInvoiceUpsertBulk {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdateTaxAppExternalID()
-	})
-}
-
-// ClearTaxAppExternalID clears the value of the "tax_app_external_id" field.
-func (u *BillingInvoiceUpsertBulk) ClearTaxAppExternalID() *BillingInvoiceUpsertBulk {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.ClearTaxAppExternalID()
 	})
 }
 

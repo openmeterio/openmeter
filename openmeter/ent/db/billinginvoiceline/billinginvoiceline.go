@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
@@ -58,6 +59,8 @@ const (
 	FieldCreditsTotal = "credits_total"
 	// FieldTotal holds the string denoting the total field in the database.
 	FieldTotal = "total"
+	// FieldInvoicingAppExternalID holds the string denoting the invoicing_app_external_id field in the database.
+	FieldInvoicingAppExternalID = "invoicing_app_external_id"
 	// FieldPeriodStart holds the string denoting the period_start field in the database.
 	FieldPeriodStart = "period_start"
 	// FieldPeriodEnd holds the string denoting the period_end field in the database.
@@ -78,8 +81,6 @@ const (
 	FieldQuantity = "quantity"
 	// FieldRatecardDiscounts holds the string denoting the ratecard_discounts field in the database.
 	FieldRatecardDiscounts = "ratecard_discounts"
-	// FieldInvoicingAppExternalID holds the string denoting the invoicing_app_external_id field in the database.
-	FieldInvoicingAppExternalID = "invoicing_app_external_id"
 	// FieldChildUniqueReferenceID holds the string denoting the child_unique_reference_id field in the database.
 	FieldChildUniqueReferenceID = "child_unique_reference_id"
 	// FieldSubscriptionID holds the string denoting the subscription_id field in the database.
@@ -294,6 +295,7 @@ var Columns = []string{
 	FieldDiscountsTotal,
 	FieldCreditsTotal,
 	FieldTotal,
+	FieldInvoicingAppExternalID,
 	FieldPeriodStart,
 	FieldPeriodEnd,
 	FieldInvoiceID,
@@ -304,7 +306,6 @@ var Columns = []string{
 	FieldStatus,
 	FieldQuantity,
 	FieldRatecardDiscounts,
-	FieldInvoicingAppExternalID,
 	FieldChildUniqueReferenceID,
 	FieldSubscriptionID,
 	FieldSubscriptionPhaseID,
@@ -360,7 +361,7 @@ var (
 	// ValueScanner of all BillingInvoiceLine fields.
 	ValueScanner struct {
 		RatecardDiscounts field.TypeValueScanner[*billing.Discounts]
-		CreditsApplied    field.TypeValueScanner[*billing.CreditsApplied]
+		CreditsApplied    field.TypeValueScanner[*creditsapplied.CreditsApplied]
 	}
 )
 
@@ -509,6 +510,11 @@ func ByTotal(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTotal, opts...).ToFunc()
 }
 
+// ByInvoicingAppExternalID orders the results by the invoicing_app_external_id field.
+func ByInvoicingAppExternalID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoicingAppExternalID, opts...).ToFunc()
+}
+
 // ByPeriodStart orders the results by the period_start field.
 func ByPeriodStart(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPeriodStart, opts...).ToFunc()
@@ -557,11 +563,6 @@ func ByQuantity(opts ...sql.OrderTermOption) OrderOption {
 // ByRatecardDiscounts orders the results by the ratecard_discounts field.
 func ByRatecardDiscounts(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldRatecardDiscounts, opts...).ToFunc()
-}
-
-// ByInvoicingAppExternalID orders the results by the invoicing_app_external_id field.
-func ByInvoicingAppExternalID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldInvoicingAppExternalID, opts...).ToFunc()
 }
 
 // ByChildUniqueReferenceID orders the results by the child_unique_reference_id field.

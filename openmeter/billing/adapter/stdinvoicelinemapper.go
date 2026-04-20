@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -102,9 +103,7 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 			RateCardDiscounts: lo.FromPtr(dbLine.RatecardDiscounts),
 			CreditsApplied:    creditsApplied,
 			Totals:            totals.FromDB(dbLine),
-			ExternalIDs: billing.LineExternalIDs{
-				Invoicing: lo.FromPtr(dbLine.InvoicingAppExternalID),
-			},
+			ExternalIDs:       externalid.MapLineExternalIDFromDB(dbLine),
 		},
 	}
 
@@ -195,10 +194,8 @@ func (a *adapter) mapStandardInvoiceDetailedLineFromDB(dbLine *db.BillingInvoice
 			dbLine.TaxBehavior,
 			taxCodeFromInvoiceLineEdge(dbLine),
 		),
-		Totals: totals.FromDB(dbLine),
-		ExternalIDs: billing.LineExternalIDs{
-			Invoicing: lo.FromPtr(dbLine.InvoicingAppExternalID),
-		},
+		Totals:      totals.FromDB(dbLine),
+		ExternalIDs: externalid.MapLineExternalIDFromDB(dbLine),
 	}
 
 	discounts, err := slicesx.MapWithErr(dbLine.Edges.LineAmountDiscounts, a.mapStandardInvoiceLineAmountDiscountFromDB)
@@ -250,10 +247,8 @@ func (a *adapter) mapStandardInvoiceDetailedLineV2FromDB(dbLine *db.BillingStand
 			dbLine.TaxBehavior,
 			taxCodeFromDetailedLineV2Edge(dbLine),
 		),
-		Totals: totals.FromDB(dbLine),
-		ExternalIDs: billing.LineExternalIDs{
-			Invoicing: lo.FromPtr(dbLine.InvoicingAppExternalID),
-		},
+		Totals:      totals.FromDB(dbLine),
+		ExternalIDs: externalid.MapLineExternalIDFromDB(dbLine),
 	}
 
 	discounts, err := slicesx.MapWithErr(dbLine.Edges.AmountDiscounts, a.mapStandardInvoiceDetailedLineAmountDiscountFromDB)
@@ -271,9 +266,7 @@ func (a *adapter) mapStandardInvoiceLineUsageDiscountFromDB(dbDiscount *db.Billi
 	base := billing.LineDiscountBase{
 		Description:            dbDiscount.Description,
 		ChildUniqueReferenceID: dbDiscount.ChildUniqueReferenceID,
-		ExternalIDs: billing.LineExternalIDs{
-			Invoicing: lo.FromPtr(dbDiscount.InvoicingAppExternalID),
-		},
+		ExternalIDs:            externalid.MapLineExternalIDFromDB(dbDiscount),
 	}
 
 	if dbDiscount.Reason == billing.MaximumSpendDiscountReason && dbDiscount.ReasonDetails == nil {
@@ -309,9 +302,7 @@ func (a *adapter) mapStandardInvoiceLineAmountDiscountFromDB(dbDiscount *db.Bill
 	base := billing.LineDiscountBase{
 		Description:            dbDiscount.Description,
 		ChildUniqueReferenceID: dbDiscount.ChildUniqueReferenceID,
-		ExternalIDs: billing.LineExternalIDs{
-			Invoicing: lo.FromPtr(dbDiscount.InvoicingAppExternalID),
-		},
+		ExternalIDs:            externalid.MapLineExternalIDFromDB(dbDiscount),
 	}
 
 	if dbDiscount.Reason == billing.MaximumSpendDiscountReason && dbDiscount.SourceDiscount == nil {
@@ -408,9 +399,7 @@ func (a *adapter) mapStandardInvoiceDetailedLineAmountDiscountFromDB(dbDiscount 
 	base := billing.LineDiscountBase{
 		Description:            dbDiscount.Description,
 		ChildUniqueReferenceID: dbDiscount.ChildUniqueReferenceID,
-		ExternalIDs: billing.LineExternalIDs{
-			Invoicing: lo.FromPtr(dbDiscount.InvoicingAppExternalID),
-		},
+		ExternalIDs:            externalid.MapLineExternalIDFromDB(dbDiscount),
 	}
 
 	if dbDiscount.Reason == billing.MaximumSpendDiscountReason && dbDiscount.SourceDiscount == nil {

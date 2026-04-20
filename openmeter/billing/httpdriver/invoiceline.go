@@ -11,6 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
@@ -298,7 +299,7 @@ func mapDetailedLineToAPI(line billing.DetailedLine, invoiceAt time.Time) (api.I
 	}, nil
 }
 
-func mapLineAppExternalIdsToAPI(externalIds billing.LineExternalIDs) *api.InvoiceLineAppExternalIds {
+func mapLineAppExternalIdsToAPI(externalIds externalid.LineExternalIDs) *api.InvoiceLineAppExternalIds {
 	if lo.IsEmpty(externalIds) {
 		return nil
 	}

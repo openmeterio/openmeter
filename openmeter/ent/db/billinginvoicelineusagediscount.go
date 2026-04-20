@@ -28,6 +28,8 @@ type BillingInvoiceLineUsageDiscount struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// InvoicingAppExternalID holds the value of the "invoicing_app_external_id" field.
+	InvoicingAppExternalID *string `json:"invoicing_app_external_id,omitempty"`
 	// LineID holds the value of the "line_id" field.
 	LineID string `json:"line_id,omitempty"`
 	// ChildUniqueReferenceID holds the value of the "child_unique_reference_id" field.
@@ -36,8 +38,6 @@ type BillingInvoiceLineUsageDiscount struct {
 	Description *string `json:"description,omitempty"`
 	// Reason holds the value of the "reason" field.
 	Reason billing.DiscountReasonType `json:"reason,omitempty"`
-	// InvoicingAppExternalID holds the value of the "invoicing_app_external_id" field.
-	InvoicingAppExternalID *string `json:"invoicing_app_external_id,omitempty"`
 	// Quantity holds the value of the "quantity" field.
 	Quantity alpacadecimal.Decimal `json:"quantity,omitempty"`
 	// PreLinePeriodQuantity holds the value of the "pre_line_period_quantity" field.
@@ -79,7 +79,7 @@ func (*BillingInvoiceLineUsageDiscount) scanValues(columns []string) ([]any, err
 			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
 		case billinginvoicelineusagediscount.FieldQuantity:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoicelineusagediscount.FieldID, billinginvoicelineusagediscount.FieldNamespace, billinginvoicelineusagediscount.FieldLineID, billinginvoicelineusagediscount.FieldChildUniqueReferenceID, billinginvoicelineusagediscount.FieldDescription, billinginvoicelineusagediscount.FieldReason, billinginvoicelineusagediscount.FieldInvoicingAppExternalID:
+		case billinginvoicelineusagediscount.FieldID, billinginvoicelineusagediscount.FieldNamespace, billinginvoicelineusagediscount.FieldInvoicingAppExternalID, billinginvoicelineusagediscount.FieldLineID, billinginvoicelineusagediscount.FieldChildUniqueReferenceID, billinginvoicelineusagediscount.FieldDescription, billinginvoicelineusagediscount.FieldReason:
 			values[i] = new(sql.NullString)
 		case billinginvoicelineusagediscount.FieldCreatedAt, billinginvoicelineusagediscount.FieldUpdatedAt, billinginvoicelineusagediscount.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -131,6 +131,13 @@ func (_m *BillingInvoiceLineUsageDiscount) assignValues(columns []string, values
 				_m.DeletedAt = new(time.Time)
 				*_m.DeletedAt = value.Time
 			}
+		case billinginvoicelineusagediscount.FieldInvoicingAppExternalID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field invoicing_app_external_id", values[i])
+			} else if value.Valid {
+				_m.InvoicingAppExternalID = new(string)
+				*_m.InvoicingAppExternalID = value.String
+			}
 		case billinginvoicelineusagediscount.FieldLineID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field line_id", values[i])
@@ -156,13 +163,6 @@ func (_m *BillingInvoiceLineUsageDiscount) assignValues(columns []string, values
 				return fmt.Errorf("unexpected type %T for field reason", values[i])
 			} else if value.Valid {
 				_m.Reason = billing.DiscountReasonType(value.String)
-			}
-		case billinginvoicelineusagediscount.FieldInvoicingAppExternalID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field invoicing_app_external_id", values[i])
-			} else if value.Valid {
-				_m.InvoicingAppExternalID = new(string)
-				*_m.InvoicingAppExternalID = value.String
 			}
 		case billinginvoicelineusagediscount.FieldQuantity:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
@@ -238,6 +238,11 @@ func (_m *BillingInvoiceLineUsageDiscount) String() string {
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
+	if v := _m.InvoicingAppExternalID; v != nil {
+		builder.WriteString("invoicing_app_external_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
 	builder.WriteString("line_id=")
 	builder.WriteString(_m.LineID)
 	builder.WriteString(", ")
@@ -253,11 +258,6 @@ func (_m *BillingInvoiceLineUsageDiscount) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("reason=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Reason))
-	builder.WriteString(", ")
-	if v := _m.InvoicingAppExternalID; v != nil {
-		builder.WriteString("invoicing_app_external_id=")
-		builder.WriteString(*v)
-	}
 	builder.WriteString(", ")
 	builder.WriteString("quantity=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Quantity))

@@ -11,7 +11,8 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
@@ -26,6 +27,34 @@ type BillingStandardInvoiceDetailedLine struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
+	// Currency holds the value of the "currency" field.
+	Currency currencyx.Code `json:"currency,omitempty"`
+	// TaxConfig holds the value of the "tax_config" field.
+	TaxConfig productcatalog.TaxConfig `json:"tax_config,omitempty"`
+	// TaxCodeID holds the value of the "tax_code_id" field.
+	TaxCodeID *string `json:"tax_code_id,omitempty"`
+	// TaxBehavior holds the value of the "tax_behavior" field.
+	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
+	// ServicePeriodStart holds the value of the "service_period_start" field.
+	ServicePeriodStart time.Time `json:"service_period_start,omitempty"`
+	// ServicePeriodEnd holds the value of the "service_period_end" field.
+	ServicePeriodEnd time.Time `json:"service_period_end,omitempty"`
+	// Quantity holds the value of the "quantity" field.
+	Quantity alpacadecimal.Decimal `json:"quantity,omitempty"`
+	// InvoicingAppExternalID holds the value of the "invoicing_app_external_id" field.
+	InvoicingAppExternalID *string `json:"invoicing_app_external_id,omitempty"`
+	// ChildUniqueReferenceID holds the value of the "child_unique_reference_id" field.
+	ChildUniqueReferenceID *string `json:"child_unique_reference_id,omitempty"`
+	// PerUnitAmount holds the value of the "per_unit_amount" field.
+	PerUnitAmount alpacadecimal.Decimal `json:"per_unit_amount,omitempty"`
+	// Category holds the value of the "category" field.
+	Category stddetailedline.Category `json:"category,omitempty"`
+	// PaymentTerm holds the value of the "payment_term" field.
+	PaymentTerm productcatalog.PaymentTermType `json:"payment_term,omitempty"`
+	// Index holds the value of the "index" field.
+	Index *int `json:"index,omitempty"`
+	// CreditsApplied holds the value of the "credits_applied" field.
+	CreditsApplied *creditsapplied.CreditsApplied `json:"credits_applied,omitempty"`
 	// Annotations holds the value of the "annotations" field.
 	Annotations models.Annotations `json:"annotations,omitempty"`
 	// Namespace holds the value of the "namespace" field.
@@ -42,14 +71,6 @@ type BillingStandardInvoiceDetailedLine struct {
 	Name string `json:"name,omitempty"`
 	// Description holds the value of the "description" field.
 	Description *string `json:"description,omitempty"`
-	// Currency holds the value of the "currency" field.
-	Currency currencyx.Code `json:"currency,omitempty"`
-	// TaxConfig holds the value of the "tax_config" field.
-	TaxConfig productcatalog.TaxConfig `json:"tax_config,omitempty"`
-	// TaxCodeID holds the value of the "tax_code_id" field.
-	TaxCodeID *string `json:"tax_code_id,omitempty"`
-	// TaxBehavior holds the value of the "tax_behavior" field.
-	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// Amount holds the value of the "amount" field.
 	Amount alpacadecimal.Decimal `json:"amount,omitempty"`
 	// TaxesTotal holds the value of the "taxes_total" field.
@@ -66,30 +87,10 @@ type BillingStandardInvoiceDetailedLine struct {
 	CreditsTotal alpacadecimal.Decimal `json:"credits_total,omitempty"`
 	// Total holds the value of the "total" field.
 	Total alpacadecimal.Decimal `json:"total,omitempty"`
-	// ServicePeriodStart holds the value of the "service_period_start" field.
-	ServicePeriodStart time.Time `json:"service_period_start,omitempty"`
-	// ServicePeriodEnd holds the value of the "service_period_end" field.
-	ServicePeriodEnd time.Time `json:"service_period_end,omitempty"`
 	// InvoiceID holds the value of the "invoice_id" field.
 	InvoiceID string `json:"invoice_id,omitempty"`
 	// ParentLineID holds the value of the "parent_line_id" field.
 	ParentLineID string `json:"parent_line_id,omitempty"`
-	// Quantity holds the value of the "quantity" field.
-	Quantity alpacadecimal.Decimal `json:"quantity,omitempty"`
-	// InvoicingAppExternalID holds the value of the "invoicing_app_external_id" field.
-	InvoicingAppExternalID *string `json:"invoicing_app_external_id,omitempty"`
-	// ChildUniqueReferenceID holds the value of the "child_unique_reference_id" field.
-	ChildUniqueReferenceID *string `json:"child_unique_reference_id,omitempty"`
-	// PerUnitAmount holds the value of the "per_unit_amount" field.
-	PerUnitAmount alpacadecimal.Decimal `json:"per_unit_amount,omitempty"`
-	// Category holds the value of the "category" field.
-	Category billing.FlatFeeCategory `json:"category,omitempty"`
-	// PaymentTerm holds the value of the "payment_term" field.
-	PaymentTerm productcatalog.PaymentTermType `json:"payment_term,omitempty"`
-	// Index holds the value of the "index" field.
-	Index *int `json:"index,omitempty"`
-	// CreditsApplied holds the value of the "credits_applied" field.
-	CreditsApplied *billing.CreditsApplied `json:"credits_applied,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingStandardInvoiceDetailedLineQuery when eager-loading is set.
 	Edges        BillingStandardInvoiceDetailedLineEdges `json:"edges"`
@@ -158,18 +159,16 @@ func (*BillingStandardInvoiceDetailedLine) scanValues(columns []string) ([]any, 
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case billingstandardinvoicedetailedline.FieldAnnotations, billingstandardinvoicedetailedline.FieldMetadata, billingstandardinvoicedetailedline.FieldTaxConfig:
+		case billingstandardinvoicedetailedline.FieldTaxConfig, billingstandardinvoicedetailedline.FieldCreditsApplied, billingstandardinvoicedetailedline.FieldAnnotations, billingstandardinvoicedetailedline.FieldMetadata:
 			values[i] = new([]byte)
-		case billingstandardinvoicedetailedline.FieldAmount, billingstandardinvoicedetailedline.FieldTaxesTotal, billingstandardinvoicedetailedline.FieldTaxesInclusiveTotal, billingstandardinvoicedetailedline.FieldTaxesExclusiveTotal, billingstandardinvoicedetailedline.FieldChargesTotal, billingstandardinvoicedetailedline.FieldDiscountsTotal, billingstandardinvoicedetailedline.FieldCreditsTotal, billingstandardinvoicedetailedline.FieldTotal, billingstandardinvoicedetailedline.FieldQuantity, billingstandardinvoicedetailedline.FieldPerUnitAmount:
+		case billingstandardinvoicedetailedline.FieldQuantity, billingstandardinvoicedetailedline.FieldPerUnitAmount, billingstandardinvoicedetailedline.FieldAmount, billingstandardinvoicedetailedline.FieldTaxesTotal, billingstandardinvoicedetailedline.FieldTaxesInclusiveTotal, billingstandardinvoicedetailedline.FieldTaxesExclusiveTotal, billingstandardinvoicedetailedline.FieldChargesTotal, billingstandardinvoicedetailedline.FieldDiscountsTotal, billingstandardinvoicedetailedline.FieldCreditsTotal, billingstandardinvoicedetailedline.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
 		case billingstandardinvoicedetailedline.FieldIndex:
 			values[i] = new(sql.NullInt64)
-		case billingstandardinvoicedetailedline.FieldID, billingstandardinvoicedetailedline.FieldNamespace, billingstandardinvoicedetailedline.FieldName, billingstandardinvoicedetailedline.FieldDescription, billingstandardinvoicedetailedline.FieldCurrency, billingstandardinvoicedetailedline.FieldTaxCodeID, billingstandardinvoicedetailedline.FieldTaxBehavior, billingstandardinvoicedetailedline.FieldInvoiceID, billingstandardinvoicedetailedline.FieldParentLineID, billingstandardinvoicedetailedline.FieldInvoicingAppExternalID, billingstandardinvoicedetailedline.FieldChildUniqueReferenceID, billingstandardinvoicedetailedline.FieldCategory, billingstandardinvoicedetailedline.FieldPaymentTerm:
+		case billingstandardinvoicedetailedline.FieldID, billingstandardinvoicedetailedline.FieldCurrency, billingstandardinvoicedetailedline.FieldTaxCodeID, billingstandardinvoicedetailedline.FieldTaxBehavior, billingstandardinvoicedetailedline.FieldInvoicingAppExternalID, billingstandardinvoicedetailedline.FieldChildUniqueReferenceID, billingstandardinvoicedetailedline.FieldCategory, billingstandardinvoicedetailedline.FieldPaymentTerm, billingstandardinvoicedetailedline.FieldNamespace, billingstandardinvoicedetailedline.FieldName, billingstandardinvoicedetailedline.FieldDescription, billingstandardinvoicedetailedline.FieldInvoiceID, billingstandardinvoicedetailedline.FieldParentLineID:
 			values[i] = new(sql.NullString)
-		case billingstandardinvoicedetailedline.FieldCreatedAt, billingstandardinvoicedetailedline.FieldUpdatedAt, billingstandardinvoicedetailedline.FieldDeletedAt, billingstandardinvoicedetailedline.FieldServicePeriodStart, billingstandardinvoicedetailedline.FieldServicePeriodEnd:
+		case billingstandardinvoicedetailedline.FieldServicePeriodStart, billingstandardinvoicedetailedline.FieldServicePeriodEnd, billingstandardinvoicedetailedline.FieldCreatedAt, billingstandardinvoicedetailedline.FieldUpdatedAt, billingstandardinvoicedetailedline.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
-		case billingstandardinvoicedetailedline.FieldCreditsApplied:
-			values[i] = billingstandardinvoicedetailedline.ValueScanner.CreditsApplied.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -190,6 +189,99 @@ func (_m *BillingStandardInvoiceDetailedLine) assignValues(columns []string, val
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
 				_m.ID = value.String
+			}
+		case billingstandardinvoicedetailedline.FieldCurrency:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field currency", values[i])
+			} else if value.Valid {
+				_m.Currency = currencyx.Code(value.String)
+			}
+		case billingstandardinvoicedetailedline.FieldTaxConfig:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_config", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.TaxConfig); err != nil {
+					return fmt.Errorf("unmarshal field tax_config: %w", err)
+				}
+			}
+		case billingstandardinvoicedetailedline.FieldTaxCodeID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_code_id", values[i])
+			} else if value.Valid {
+				_m.TaxCodeID = new(string)
+				*_m.TaxCodeID = value.String
+			}
+		case billingstandardinvoicedetailedline.FieldTaxBehavior:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
+			} else if value.Valid {
+				_m.TaxBehavior = new(productcatalog.TaxBehavior)
+				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
+			}
+		case billingstandardinvoicedetailedline.FieldServicePeriodStart:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field service_period_start", values[i])
+			} else if value.Valid {
+				_m.ServicePeriodStart = value.Time
+			}
+		case billingstandardinvoicedetailedline.FieldServicePeriodEnd:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field service_period_end", values[i])
+			} else if value.Valid {
+				_m.ServicePeriodEnd = value.Time
+			}
+		case billingstandardinvoicedetailedline.FieldQuantity:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field quantity", values[i])
+			} else if value != nil {
+				_m.Quantity = *value
+			}
+		case billingstandardinvoicedetailedline.FieldInvoicingAppExternalID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field invoicing_app_external_id", values[i])
+			} else if value.Valid {
+				_m.InvoicingAppExternalID = new(string)
+				*_m.InvoicingAppExternalID = value.String
+			}
+		case billingstandardinvoicedetailedline.FieldChildUniqueReferenceID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field child_unique_reference_id", values[i])
+			} else if value.Valid {
+				_m.ChildUniqueReferenceID = new(string)
+				*_m.ChildUniqueReferenceID = value.String
+			}
+		case billingstandardinvoicedetailedline.FieldPerUnitAmount:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field per_unit_amount", values[i])
+			} else if value != nil {
+				_m.PerUnitAmount = *value
+			}
+		case billingstandardinvoicedetailedline.FieldCategory:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field category", values[i])
+			} else if value.Valid {
+				_m.Category = stddetailedline.Category(value.String)
+			}
+		case billingstandardinvoicedetailedline.FieldPaymentTerm:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field payment_term", values[i])
+			} else if value.Valid {
+				_m.PaymentTerm = productcatalog.PaymentTermType(value.String)
+			}
+		case billingstandardinvoicedetailedline.FieldIndex:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field index", values[i])
+			} else if value.Valid {
+				_m.Index = new(int)
+				*_m.Index = int(value.Int64)
+			}
+		case billingstandardinvoicedetailedline.FieldCreditsApplied:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field credits_applied", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.CreditsApplied); err != nil {
+					return fmt.Errorf("unmarshal field credits_applied: %w", err)
+				}
 			}
 		case billingstandardinvoicedetailedline.FieldAnnotations:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -245,34 +337,6 @@ func (_m *BillingStandardInvoiceDetailedLine) assignValues(columns []string, val
 				_m.Description = new(string)
 				*_m.Description = value.String
 			}
-		case billingstandardinvoicedetailedline.FieldCurrency:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field currency", values[i])
-			} else if value.Valid {
-				_m.Currency = currencyx.Code(value.String)
-			}
-		case billingstandardinvoicedetailedline.FieldTaxConfig:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field tax_config", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.TaxConfig); err != nil {
-					return fmt.Errorf("unmarshal field tax_config: %w", err)
-				}
-			}
-		case billingstandardinvoicedetailedline.FieldTaxCodeID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field tax_code_id", values[i])
-			} else if value.Valid {
-				_m.TaxCodeID = new(string)
-				*_m.TaxCodeID = value.String
-			}
-		case billingstandardinvoicedetailedline.FieldTaxBehavior:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
-			} else if value.Valid {
-				_m.TaxBehavior = new(productcatalog.TaxBehavior)
-				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
-			}
 		case billingstandardinvoicedetailedline.FieldAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field amount", values[i])
@@ -321,18 +385,6 @@ func (_m *BillingStandardInvoiceDetailedLine) assignValues(columns []string, val
 			} else if value != nil {
 				_m.Total = *value
 			}
-		case billingstandardinvoicedetailedline.FieldServicePeriodStart:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field service_period_start", values[i])
-			} else if value.Valid {
-				_m.ServicePeriodStart = value.Time
-			}
-		case billingstandardinvoicedetailedline.FieldServicePeriodEnd:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field service_period_end", values[i])
-			} else if value.Valid {
-				_m.ServicePeriodEnd = value.Time
-			}
 		case billingstandardinvoicedetailedline.FieldInvoiceID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_id", values[i])
@@ -344,57 +396,6 @@ func (_m *BillingStandardInvoiceDetailedLine) assignValues(columns []string, val
 				return fmt.Errorf("unexpected type %T for field parent_line_id", values[i])
 			} else if value.Valid {
 				_m.ParentLineID = value.String
-			}
-		case billingstandardinvoicedetailedline.FieldQuantity:
-			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
-				return fmt.Errorf("unexpected type %T for field quantity", values[i])
-			} else if value != nil {
-				_m.Quantity = *value
-			}
-		case billingstandardinvoicedetailedline.FieldInvoicingAppExternalID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field invoicing_app_external_id", values[i])
-			} else if value.Valid {
-				_m.InvoicingAppExternalID = new(string)
-				*_m.InvoicingAppExternalID = value.String
-			}
-		case billingstandardinvoicedetailedline.FieldChildUniqueReferenceID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field child_unique_reference_id", values[i])
-			} else if value.Valid {
-				_m.ChildUniqueReferenceID = new(string)
-				*_m.ChildUniqueReferenceID = value.String
-			}
-		case billingstandardinvoicedetailedline.FieldPerUnitAmount:
-			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
-				return fmt.Errorf("unexpected type %T for field per_unit_amount", values[i])
-			} else if value != nil {
-				_m.PerUnitAmount = *value
-			}
-		case billingstandardinvoicedetailedline.FieldCategory:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field category", values[i])
-			} else if value.Valid {
-				_m.Category = billing.FlatFeeCategory(value.String)
-			}
-		case billingstandardinvoicedetailedline.FieldPaymentTerm:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field payment_term", values[i])
-			} else if value.Valid {
-				_m.PaymentTerm = productcatalog.PaymentTermType(value.String)
-			}
-		case billingstandardinvoicedetailedline.FieldIndex:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field index", values[i])
-			} else if value.Valid {
-				_m.Index = new(int)
-				*_m.Index = int(value.Int64)
-			}
-		case billingstandardinvoicedetailedline.FieldCreditsApplied:
-			if value, err := billingstandardinvoicedetailedline.ValueScanner.CreditsApplied.FromValue(values[i]); err != nil {
-				return err
-			} else {
-				_m.CreditsApplied = value
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -452,34 +453,6 @@ func (_m *BillingStandardInvoiceDetailedLine) String() string {
 	var builder strings.Builder
 	builder.WriteString("BillingStandardInvoiceDetailedLine(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
-	builder.WriteString("annotations=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Annotations))
-	builder.WriteString(", ")
-	builder.WriteString("namespace=")
-	builder.WriteString(_m.Namespace)
-	builder.WriteString(", ")
-	builder.WriteString("metadata=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
-	builder.WriteString(", ")
-	builder.WriteString("created_at=")
-	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
-	builder.WriteString(", ")
-	builder.WriteString("updated_at=")
-	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
-	builder.WriteString(", ")
-	if v := _m.DeletedAt; v != nil {
-		builder.WriteString("deleted_at=")
-		builder.WriteString(v.Format(time.ANSIC))
-	}
-	builder.WriteString(", ")
-	builder.WriteString("name=")
-	builder.WriteString(_m.Name)
-	builder.WriteString(", ")
-	if v := _m.Description; v != nil {
-		builder.WriteString("description=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
 	builder.WriteString("currency=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
 	builder.WriteString(", ")
@@ -496,41 +469,11 @@ func (_m *BillingStandardInvoiceDetailedLine) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("amount=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Amount))
-	builder.WriteString(", ")
-	builder.WriteString("taxes_total=")
-	builder.WriteString(fmt.Sprintf("%v", _m.TaxesTotal))
-	builder.WriteString(", ")
-	builder.WriteString("taxes_inclusive_total=")
-	builder.WriteString(fmt.Sprintf("%v", _m.TaxesInclusiveTotal))
-	builder.WriteString(", ")
-	builder.WriteString("taxes_exclusive_total=")
-	builder.WriteString(fmt.Sprintf("%v", _m.TaxesExclusiveTotal))
-	builder.WriteString(", ")
-	builder.WriteString("charges_total=")
-	builder.WriteString(fmt.Sprintf("%v", _m.ChargesTotal))
-	builder.WriteString(", ")
-	builder.WriteString("discounts_total=")
-	builder.WriteString(fmt.Sprintf("%v", _m.DiscountsTotal))
-	builder.WriteString(", ")
-	builder.WriteString("credits_total=")
-	builder.WriteString(fmt.Sprintf("%v", _m.CreditsTotal))
-	builder.WriteString(", ")
-	builder.WriteString("total=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Total))
-	builder.WriteString(", ")
 	builder.WriteString("service_period_start=")
 	builder.WriteString(_m.ServicePeriodStart.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("service_period_end=")
 	builder.WriteString(_m.ServicePeriodEnd.Format(time.ANSIC))
-	builder.WriteString(", ")
-	builder.WriteString("invoice_id=")
-	builder.WriteString(_m.InvoiceID)
-	builder.WriteString(", ")
-	builder.WriteString("parent_line_id=")
-	builder.WriteString(_m.ParentLineID)
 	builder.WriteString(", ")
 	builder.WriteString("quantity=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Quantity))
@@ -559,10 +502,66 @@ func (_m *BillingStandardInvoiceDetailedLine) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := _m.CreditsApplied; v != nil {
-		builder.WriteString("credits_applied=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
+	builder.WriteString("credits_applied=")
+	builder.WriteString(fmt.Sprintf("%v", _m.CreditsApplied))
+	builder.WriteString(", ")
+	builder.WriteString("annotations=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Annotations))
+	builder.WriteString(", ")
+	builder.WriteString("namespace=")
+	builder.WriteString(_m.Namespace)
+	builder.WriteString(", ")
+	builder.WriteString("metadata=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
+	builder.WriteString(", ")
+	builder.WriteString("created_at=")
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	if v := _m.DeletedAt; v != nil {
+		builder.WriteString("deleted_at=")
+		builder.WriteString(v.Format(time.ANSIC))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("name=")
+	builder.WriteString(_m.Name)
+	builder.WriteString(", ")
+	if v := _m.Description; v != nil {
+		builder.WriteString("description=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("amount=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Amount))
+	builder.WriteString(", ")
+	builder.WriteString("taxes_total=")
+	builder.WriteString(fmt.Sprintf("%v", _m.TaxesTotal))
+	builder.WriteString(", ")
+	builder.WriteString("taxes_inclusive_total=")
+	builder.WriteString(fmt.Sprintf("%v", _m.TaxesInclusiveTotal))
+	builder.WriteString(", ")
+	builder.WriteString("taxes_exclusive_total=")
+	builder.WriteString(fmt.Sprintf("%v", _m.TaxesExclusiveTotal))
+	builder.WriteString(", ")
+	builder.WriteString("charges_total=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ChargesTotal))
+	builder.WriteString(", ")
+	builder.WriteString("discounts_total=")
+	builder.WriteString(fmt.Sprintf("%v", _m.DiscountsTotal))
+	builder.WriteString(", ")
+	builder.WriteString("credits_total=")
+	builder.WriteString(fmt.Sprintf("%v", _m.CreditsTotal))
+	builder.WriteString(", ")
+	builder.WriteString("total=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Total))
+	builder.WriteString(", ")
+	builder.WriteString("invoice_id=")
+	builder.WriteString(_m.InvoiceID)
+	builder.WriteString(", ")
+	builder.WriteString("parent_line_id=")
+	builder.WriteString(_m.ParentLineID)
 	builder.WriteByte(')')
 	return builder.String()
 }

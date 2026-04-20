@@ -5,7 +5,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
-	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating/service/rate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -49,7 +49,7 @@ func (m *MinAmountCommitment) Mutate(i rate.PricerCalculateInput, pricerResult r
 			PerUnitAmount:          minimumSpendAmount,
 			ChildUniqueReferenceID: rating.MinSpendChildUniqueReferenceID,
 			PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-			Category:               billing.FlatFeeCategoryCommitment,
+			Category:               stddetailedline.CategoryCommitment,
 			Period:                 &period,
 		})
 	}

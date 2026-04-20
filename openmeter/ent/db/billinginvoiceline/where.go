@@ -150,6 +150,11 @@ func Total(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldTotal, v))
 }
 
+// InvoicingAppExternalID applies equality check predicate on the "invoicing_app_external_id" field. It's identical to InvoicingAppExternalIDEQ.
+func InvoicingAppExternalID(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldInvoicingAppExternalID, v))
+}
+
 // PeriodStart applies equality check predicate on the "period_start" field. It's identical to PeriodStartEQ.
 func PeriodStart(v time.Time) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldPeriodStart, v))
@@ -178,11 +183,6 @@ func InvoiceAt(v time.Time) predicate.BillingInvoiceLine {
 // Quantity applies equality check predicate on the "quantity" field. It's identical to QuantityEQ.
 func Quantity(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldQuantity, v))
-}
-
-// InvoicingAppExternalID applies equality check predicate on the "invoicing_app_external_id" field. It's identical to InvoicingAppExternalIDEQ.
-func InvoicingAppExternalID(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldInvoicingAppExternalID, v))
 }
 
 // ChildUniqueReferenceID applies equality check predicate on the "child_unique_reference_id" field. It's identical to ChildUniqueReferenceIDEQ.
@@ -1114,6 +1114,81 @@ func TotalLTE(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldTotal, v))
 }
 
+// InvoicingAppExternalIDEQ applies the EQ predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDEQ(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDNEQ applies the NEQ predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDNEQ(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDIn applies the In predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDIn(vs ...string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldInvoicingAppExternalID, vs...))
+}
+
+// InvoicingAppExternalIDNotIn applies the NotIn predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDNotIn(vs ...string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldInvoicingAppExternalID, vs...))
+}
+
+// InvoicingAppExternalIDGT applies the GT predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDGT(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGT(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDGTE applies the GTE predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDGTE(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDLT applies the LT predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDLT(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLT(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDLTE applies the LTE predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDLTE(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDContains applies the Contains predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDContains(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldContains(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDHasPrefix applies the HasPrefix predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDHasPrefix(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldHasPrefix(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDHasSuffix applies the HasSuffix predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDHasSuffix(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldHasSuffix(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDIsNil applies the IsNil predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDIsNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIsNull(FieldInvoicingAppExternalID))
+}
+
+// InvoicingAppExternalIDNotNil applies the NotNil predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDNotNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldInvoicingAppExternalID))
+}
+
+// InvoicingAppExternalIDEqualFold applies the EqualFold predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDEqualFold(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEqualFold(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDContainsFold applies the ContainsFold predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDContainsFold(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldInvoicingAppExternalID, v))
+}
+
 // PeriodStartEQ applies the EQ predicate on the "period_start" field.
 func PeriodStartEQ(v time.Time) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldPeriodStart, v))
@@ -1522,81 +1597,6 @@ func RatecardDiscountsIsNil() predicate.BillingInvoiceLine {
 // RatecardDiscountsNotNil applies the NotNil predicate on the "ratecard_discounts" field.
 func RatecardDiscountsNotNil() predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldRatecardDiscounts))
-}
-
-// InvoicingAppExternalIDEQ applies the EQ predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDEQ(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldInvoicingAppExternalID, v))
-}
-
-// InvoicingAppExternalIDNEQ applies the NEQ predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDNEQ(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldInvoicingAppExternalID, v))
-}
-
-// InvoicingAppExternalIDIn applies the In predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDIn(vs ...string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldIn(FieldInvoicingAppExternalID, vs...))
-}
-
-// InvoicingAppExternalIDNotIn applies the NotIn predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDNotIn(vs ...string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldInvoicingAppExternalID, vs...))
-}
-
-// InvoicingAppExternalIDGT applies the GT predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDGT(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldGT(FieldInvoicingAppExternalID, v))
-}
-
-// InvoicingAppExternalIDGTE applies the GTE predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDGTE(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldInvoicingAppExternalID, v))
-}
-
-// InvoicingAppExternalIDLT applies the LT predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDLT(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldLT(FieldInvoicingAppExternalID, v))
-}
-
-// InvoicingAppExternalIDLTE applies the LTE predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDLTE(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldInvoicingAppExternalID, v))
-}
-
-// InvoicingAppExternalIDContains applies the Contains predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDContains(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldContains(FieldInvoicingAppExternalID, v))
-}
-
-// InvoicingAppExternalIDHasPrefix applies the HasPrefix predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDHasPrefix(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldHasPrefix(FieldInvoicingAppExternalID, v))
-}
-
-// InvoicingAppExternalIDHasSuffix applies the HasSuffix predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDHasSuffix(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldHasSuffix(FieldInvoicingAppExternalID, v))
-}
-
-// InvoicingAppExternalIDIsNil applies the IsNil predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDIsNil() predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldIsNull(FieldInvoicingAppExternalID))
-}
-
-// InvoicingAppExternalIDNotNil applies the NotNil predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDNotNil() predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldInvoicingAppExternalID))
-}
-
-// InvoicingAppExternalIDEqualFold applies the EqualFold predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDEqualFold(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldEqualFold(FieldInvoicingAppExternalID, v))
-}
-
-// InvoicingAppExternalIDContainsFold applies the ContainsFold predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDContainsFold(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldInvoicingAppExternalID, v))
 }
 
 // ChildUniqueReferenceIDEQ applies the EQ predicate on the "child_unique_reference_id" field.

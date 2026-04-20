@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
@@ -221,6 +222,20 @@ func (_c *BillingInvoiceLineCreate) SetTotal(v alpacadecimal.Decimal) *BillingIn
 	return _c
 }
 
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (_c *BillingInvoiceLineCreate) SetInvoicingAppExternalID(v string) *BillingInvoiceLineCreate {
+	_c.mutation.SetInvoicingAppExternalID(v)
+	return _c
+}
+
+// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
+func (_c *BillingInvoiceLineCreate) SetNillableInvoicingAppExternalID(v *string) *BillingInvoiceLineCreate {
+	if v != nil {
+		_c.SetInvoicingAppExternalID(*v)
+	}
+	return _c
+}
+
 // SetPeriodStart sets the "period_start" field.
 func (_c *BillingInvoiceLineCreate) SetPeriodStart(v time.Time) *BillingInvoiceLineCreate {
 	_c.mutation.SetPeriodStart(v)
@@ -294,20 +309,6 @@ func (_c *BillingInvoiceLineCreate) SetNillableQuantity(v *alpacadecimal.Decimal
 // SetRatecardDiscounts sets the "ratecard_discounts" field.
 func (_c *BillingInvoiceLineCreate) SetRatecardDiscounts(v *billing.Discounts) *BillingInvoiceLineCreate {
 	_c.mutation.SetRatecardDiscounts(v)
-	return _c
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (_c *BillingInvoiceLineCreate) SetInvoicingAppExternalID(v string) *BillingInvoiceLineCreate {
-	_c.mutation.SetInvoicingAppExternalID(v)
-	return _c
-}
-
-// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
-func (_c *BillingInvoiceLineCreate) SetNillableInvoicingAppExternalID(v *string) *BillingInvoiceLineCreate {
-	if v != nil {
-		_c.SetInvoicingAppExternalID(*v)
-	}
 	return _c
 }
 
@@ -452,7 +453,7 @@ func (_c *BillingInvoiceLineCreate) SetNillableLineIds(v *string) *BillingInvoic
 }
 
 // SetCreditsApplied sets the "credits_applied" field.
-func (_c *BillingInvoiceLineCreate) SetCreditsApplied(v *billing.CreditsApplied) *BillingInvoiceLineCreate {
+func (_c *BillingInvoiceLineCreate) SetCreditsApplied(v *creditsapplied.CreditsApplied) *BillingInvoiceLineCreate {
 	_c.mutation.SetCreditsApplied(v)
 	return _c
 }
@@ -983,6 +984,10 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 		_spec.SetField(billinginvoiceline.FieldTotal, field.TypeOther, value)
 		_node.Total = value
 	}
+	if value, ok := _c.mutation.InvoicingAppExternalID(); ok {
+		_spec.SetField(billinginvoiceline.FieldInvoicingAppExternalID, field.TypeString, value)
+		_node.InvoicingAppExternalID = &value
+	}
 	if value, ok := _c.mutation.PeriodStart(); ok {
 		_spec.SetField(billinginvoiceline.FieldPeriodStart, field.TypeTime, value)
 		_node.PeriodStart = value
@@ -1018,10 +1023,6 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 		}
 		_spec.SetField(billinginvoiceline.FieldRatecardDiscounts, field.TypeString, vv)
 		_node.RatecardDiscounts = value
-	}
-	if value, ok := _c.mutation.InvoicingAppExternalID(); ok {
-		_spec.SetField(billinginvoiceline.FieldInvoicingAppExternalID, field.TypeString, value)
-		_node.InvoicingAppExternalID = &value
 	}
 	if value, ok := _c.mutation.ChildUniqueReferenceID(); ok {
 		_spec.SetField(billinginvoiceline.FieldChildUniqueReferenceID, field.TypeString, value)
@@ -1663,6 +1664,24 @@ func (u *BillingInvoiceLineUpsert) UpdateTotal() *BillingInvoiceLineUpsert {
 	return u
 }
 
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (u *BillingInvoiceLineUpsert) SetInvoicingAppExternalID(v string) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldInvoicingAppExternalID, v)
+	return u
+}
+
+// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateInvoicingAppExternalID() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldInvoicingAppExternalID)
+	return u
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (u *BillingInvoiceLineUpsert) ClearInvoicingAppExternalID() *BillingInvoiceLineUpsert {
+	u.SetNull(billinginvoiceline.FieldInvoicingAppExternalID)
+	return u
+}
+
 // SetPeriodStart sets the "period_start" field.
 func (u *BillingInvoiceLineUpsert) SetPeriodStart(v time.Time) *BillingInvoiceLineUpsert {
 	u.Set(billinginvoiceline.FieldPeriodStart, v)
@@ -1786,24 +1805,6 @@ func (u *BillingInvoiceLineUpsert) UpdateRatecardDiscounts() *BillingInvoiceLine
 // ClearRatecardDiscounts clears the value of the "ratecard_discounts" field.
 func (u *BillingInvoiceLineUpsert) ClearRatecardDiscounts() *BillingInvoiceLineUpsert {
 	u.SetNull(billinginvoiceline.FieldRatecardDiscounts)
-	return u
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (u *BillingInvoiceLineUpsert) SetInvoicingAppExternalID(v string) *BillingInvoiceLineUpsert {
-	u.Set(billinginvoiceline.FieldInvoicingAppExternalID, v)
-	return u
-}
-
-// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsert) UpdateInvoicingAppExternalID() *BillingInvoiceLineUpsert {
-	u.SetExcluded(billinginvoiceline.FieldInvoicingAppExternalID)
-	return u
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (u *BillingInvoiceLineUpsert) ClearInvoicingAppExternalID() *BillingInvoiceLineUpsert {
-	u.SetNull(billinginvoiceline.FieldInvoicingAppExternalID)
 	return u
 }
 
@@ -1982,7 +1983,7 @@ func (u *BillingInvoiceLineUpsert) ClearLineIds() *BillingInvoiceLineUpsert {
 }
 
 // SetCreditsApplied sets the "credits_applied" field.
-func (u *BillingInvoiceLineUpsert) SetCreditsApplied(v *billing.CreditsApplied) *BillingInvoiceLineUpsert {
+func (u *BillingInvoiceLineUpsert) SetCreditsApplied(v *creditsapplied.CreditsApplied) *BillingInvoiceLineUpsert {
 	u.Set(billinginvoiceline.FieldCreditsApplied, v)
 	return u
 }
@@ -2346,6 +2347,27 @@ func (u *BillingInvoiceLineUpsertOne) UpdateTotal() *BillingInvoiceLineUpsertOne
 	})
 }
 
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (u *BillingInvoiceLineUpsertOne) SetInvoicingAppExternalID(v string) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetInvoicingAppExternalID(v)
+	})
+}
+
+// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateInvoicingAppExternalID() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateInvoicingAppExternalID()
+	})
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (u *BillingInvoiceLineUpsertOne) ClearInvoicingAppExternalID() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearInvoicingAppExternalID()
+	})
+}
+
 // SetPeriodStart sets the "period_start" field.
 func (u *BillingInvoiceLineUpsertOne) SetPeriodStart(v time.Time) *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
@@ -2490,27 +2512,6 @@ func (u *BillingInvoiceLineUpsertOne) UpdateRatecardDiscounts() *BillingInvoiceL
 func (u *BillingInvoiceLineUpsertOne) ClearRatecardDiscounts() *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearRatecardDiscounts()
-	})
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (u *BillingInvoiceLineUpsertOne) SetInvoicingAppExternalID(v string) *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetInvoicingAppExternalID(v)
-	})
-}
-
-// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertOne) UpdateInvoicingAppExternalID() *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdateInvoicingAppExternalID()
-	})
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (u *BillingInvoiceLineUpsertOne) ClearInvoicingAppExternalID() *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.ClearInvoicingAppExternalID()
 	})
 }
 
@@ -2718,7 +2719,7 @@ func (u *BillingInvoiceLineUpsertOne) ClearLineIds() *BillingInvoiceLineUpsertOn
 }
 
 // SetCreditsApplied sets the "credits_applied" field.
-func (u *BillingInvoiceLineUpsertOne) SetCreditsApplied(v *billing.CreditsApplied) *BillingInvoiceLineUpsertOne {
+func (u *BillingInvoiceLineUpsertOne) SetCreditsApplied(v *creditsapplied.CreditsApplied) *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.SetCreditsApplied(v)
 	})
@@ -3255,6 +3256,27 @@ func (u *BillingInvoiceLineUpsertBulk) UpdateTotal() *BillingInvoiceLineUpsertBu
 	})
 }
 
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (u *BillingInvoiceLineUpsertBulk) SetInvoicingAppExternalID(v string) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetInvoicingAppExternalID(v)
+	})
+}
+
+// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateInvoicingAppExternalID() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateInvoicingAppExternalID()
+	})
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (u *BillingInvoiceLineUpsertBulk) ClearInvoicingAppExternalID() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearInvoicingAppExternalID()
+	})
+}
+
 // SetPeriodStart sets the "period_start" field.
 func (u *BillingInvoiceLineUpsertBulk) SetPeriodStart(v time.Time) *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
@@ -3399,27 +3421,6 @@ func (u *BillingInvoiceLineUpsertBulk) UpdateRatecardDiscounts() *BillingInvoice
 func (u *BillingInvoiceLineUpsertBulk) ClearRatecardDiscounts() *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearRatecardDiscounts()
-	})
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (u *BillingInvoiceLineUpsertBulk) SetInvoicingAppExternalID(v string) *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetInvoicingAppExternalID(v)
-	})
-}
-
-// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertBulk) UpdateInvoicingAppExternalID() *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdateInvoicingAppExternalID()
-	})
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (u *BillingInvoiceLineUpsertBulk) ClearInvoicingAppExternalID() *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.ClearInvoicingAppExternalID()
 	})
 }
 
@@ -3627,7 +3628,7 @@ func (u *BillingInvoiceLineUpsertBulk) ClearLineIds() *BillingInvoiceLineUpsertB
 }
 
 // SetCreditsApplied sets the "credits_applied" field.
-func (u *BillingInvoiceLineUpsertBulk) SetCreditsApplied(v *billing.CreditsApplied) *BillingInvoiceLineUpsertBulk {
+func (u *BillingInvoiceLineUpsertBulk) SetCreditsApplied(v *creditsapplied.CreditsApplied) *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.SetCreditsApplied(v)
 	})

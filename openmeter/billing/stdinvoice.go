@@ -10,6 +10,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -247,7 +248,7 @@ type StandardInvoiceBase struct {
 	Supplier SupplierContact `json:"supplier"`
 	Workflow InvoiceWorkflow `json:"workflow,omitempty"`
 
-	ExternalIDs InvoiceExternalIDs `json:"externalIds,omitempty"`
+	ExternalIDs externalid.InvoiceExternalIDs `json:"externalIds,omitempty"`
 
 	SchemaLevel int `json:"schemaLevel"`
 
