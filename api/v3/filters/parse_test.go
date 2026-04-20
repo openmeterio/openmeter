@@ -317,6 +317,22 @@ func TestParse_NamedStringType(t *testing.T) {
 		require.NoError(t, Parse(url.Values{}, &f))
 		assert.Nil(t, f.TxType)
 	})
+
+	t.Run("operator-style key rejected", func(t *testing.T) {
+		var f testFilter
+		err := Parse(url.Values{"filter[tx_type][eq]": {"funded"}}, &f)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "operator-style keys are not supported")
+	})
+}
+
+func TestParse_StringPtrOperatorRejected(t *testing.T) {
+	t.Run("operator-style key rejected for *string field", func(t *testing.T) {
+		var f testFilter
+		err := Parse(url.Values{"filter[currency][eq]": {"USD"}}, &f)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "operator-style keys are not supported")
+	})
 }
 
 func TestParse_PointerToPointer(t *testing.T) {

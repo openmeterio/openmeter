@@ -161,6 +161,9 @@ func parseFiltersValue(qs url.Values, v reflect.Value) error {
 			fieldVal.Set(reflect.ValueOf(&parsed))
 
 		case stringPtrType:
+			if hasOperatorStyleKeys(qs, name) {
+				return fmt.Errorf("filter[%s]: operator-style keys are not supported for this field", name)
+			}
 			if err := parseStringPtr(qs, name, fieldVal); err != nil {
 				return err
 			}
@@ -168,6 +171,9 @@ func parseFiltersValue(qs url.Values, v reflect.Value) error {
 		default:
 			// Handle *T where T is a named string-based type (e.g. *BillingCreditTransactionType).
 			if fieldVal.Kind() == reflect.Pointer && fieldVal.Type().Elem().Kind() == reflect.String {
+				if hasOperatorStyleKeys(qs, name) {
+					return fmt.Errorf("filter[%s]: operator-style keys are not supported for this field", name)
+				}
 				if err := parseStringPtrTyped(qs, name, fieldVal); err != nil {
 					return err
 				}
@@ -524,6 +530,17 @@ func forEachFieldParam(qs url.Values, field string, visit func(parsedFilterParam
 func hasFilterKeys(qs url.Values) bool {
 	for key := range qs {
 		if strings.HasPrefix(key, "filter[") {
+			return true
+		}
+	}
+	return false
+}
+
+// hasOperatorStyleKeys reports whether qs contains any filter[field][op] keys for the given field.
+func hasOperatorStyleKeys(qs url.Values, name string) bool {
+	prefix := "filter[" + name + "]["
+	for key := range qs {
+		if strings.HasPrefix(key, prefix) {
 			return true
 		}
 	}
