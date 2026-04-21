@@ -285,5 +285,5 @@ func (a *queryMeterCSVResult) Records() [][]string {
 
 // FileName returns the CSV file name.
 func (a *queryMeterCSVResult) FileName() string {
-	return fmt.Sprintf("%s.csv", a.meterSlug)
+	return a.meterSlug
 }
