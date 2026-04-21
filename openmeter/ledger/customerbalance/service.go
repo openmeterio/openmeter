@@ -127,7 +127,7 @@ func (s *service) GetBalance(ctx context.Context, customerID customer.CustomerID
 
 	advanceBalance, err := customerAccounts.ReceivableAccount.GetBalance(ctx, ledger.RouteFilter{
 		Currency:  currency,
-		CostBasis: mo.None[*alpacadecimal.Decimal](),
+		CostBasis: mo.Some[*alpacadecimal.Decimal](nil),
 	}, after)
 	if err != nil {
 		return nil, fmt.Errorf("get advance balance: %w", err)
