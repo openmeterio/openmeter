@@ -123,7 +123,7 @@ func (l DetailedLines) Validate() error {
 
 func (l DetailedLines) GetByChildUniqueReferenceID(id string) *DetailedLine {
 	for _, dl := range l {
-		if lo.FromPtr(dl.ChildUniqueReferenceID) == id {
+		if dl.ChildUniqueReferenceID == id {
 			return &dl
 		}
 	}

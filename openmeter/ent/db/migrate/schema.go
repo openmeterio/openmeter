@@ -1362,7 +1362,7 @@ var (
 		{Name: "service_period_end", Type: field.TypeTime},
 		{Name: "quantity", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "invoicing_app_external_id", Type: field.TypeString, Nullable: true},
-		{Name: "child_unique_reference_id", Type: field.TypeString, Nullable: true},
+		{Name: "child_unique_reference_id", Type: field.TypeString},
 		{Name: "per_unit_amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "category", Type: field.TypeEnum, Enums: []string{"regular", "commitment"}, Default: "regular"},
 		{Name: "payment_term", Type: field.TypeEnum, Enums: []string{"in_advance", "in_arrears"}, Default: "in_advance"},
@@ -2082,7 +2082,7 @@ var (
 		{Name: "service_period_end", Type: field.TypeTime},
 		{Name: "quantity", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "invoicing_app_external_id", Type: field.TypeString, Nullable: true},
-		{Name: "child_unique_reference_id", Type: field.TypeString, Nullable: true},
+		{Name: "child_unique_reference_id", Type: field.TypeString},
 		{Name: "per_unit_amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "category", Type: field.TypeEnum, Enums: []string{"regular", "commitment"}, Default: "regular"},
 		{Name: "payment_term", Type: field.TypeEnum, Enums: []string{"in_advance", "in_arrears"}, Default: "in_advance"},
@@ -2488,7 +2488,7 @@ var (
 		{Name: "service_period_end", Type: field.TypeTime},
 		{Name: "quantity", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "invoicing_app_external_id", Type: field.TypeString, Nullable: true},
-		{Name: "child_unique_reference_id", Type: field.TypeString, Nullable: true},
+		{Name: "child_unique_reference_id", Type: field.TypeString},
 		{Name: "per_unit_amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "category", Type: field.TypeEnum, Enums: []string{"regular", "commitment"}, Default: "regular"},
 		{Name: "payment_term", Type: field.TypeEnum, Enums: []string{"in_advance", "in_arrears"}, Default: "in_advance"},
@@ -5035,6 +5035,10 @@ func init() {
 	BillingStandardInvoiceDetailedLinesTable.ForeignKeys[0].RefTable = BillingInvoicesTable
 	BillingStandardInvoiceDetailedLinesTable.ForeignKeys[1].RefTable = BillingInvoiceLinesTable
 	BillingStandardInvoiceDetailedLinesTable.ForeignKeys[2].RefTable = TaxCodesTable
+	BillingStandardInvoiceDetailedLinesTable.Annotation = &entsql.Annotation{}
+	BillingStandardInvoiceDetailedLinesTable.Annotation.Checks = map[string]string{
+		"child_unique_reference_id_not_empty": "child_unique_reference_id <> ''",
+	}
 	BillingStandardInvoiceDetailedLineAmountDiscountsTable.ForeignKeys[0].RefTable = BillingStandardInvoiceDetailedLinesTable
 	BillingWorkflowConfigsTable.ForeignKeys[0].RefTable = TaxCodesTable
 	ChargesTable.ForeignKeys[0].RefTable = ChargeCreditPurchasesTable
@@ -5061,6 +5065,9 @@ func init() {
 	ChargeFlatFeeDetailedLineTable.Annotation = &entsql.Annotation{
 		Table: "charge_flat_fee_detailed_line",
 	}
+	ChargeFlatFeeDetailedLineTable.Annotation.Checks = map[string]string{
+		"child_unique_reference_id_not_empty": "child_unique_reference_id <> ''",
+	}
 	ChargeFlatFeeInvoicedUsagesTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
 	ChargeFlatFeeInvoicedUsagesTable.ForeignKeys[1].RefTable = ChargeFlatFeesTable
 	ChargeFlatFeePaymentsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
@@ -5081,6 +5088,9 @@ func init() {
 	ChargeUsageBasedRunDetailedLineTable.ForeignKeys[2].RefTable = TaxCodesTable
 	ChargeUsageBasedRunDetailedLineTable.Annotation = &entsql.Annotation{
 		Table: "charge_usage_based_run_detailed_line",
+	}
+	ChargeUsageBasedRunDetailedLineTable.Annotation.Checks = map[string]string{
+		"child_unique_reference_id_not_empty": "child_unique_reference_id <> ''",
 	}
 	ChargeUsageBasedRunInvoicedUsagesTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunsTable
 	ChargeUsageBasedRunPaymentsTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunsTable

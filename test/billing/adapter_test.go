@@ -139,7 +139,7 @@ func newDetailedLine(in newLineInput) billing.DetailedLine {
 				}),
 				Currency:               in.Invoice.Currency,
 				ServicePeriod:          in.Period,
-				ChildUniqueReferenceID: lo.EmptyableToPtr(in.ChildUniqueReferenceID),
+				ChildUniqueReferenceID: in.ChildUniqueReferenceID,
 				PerUnitAmount:          alpacadecimal.NewFromFloat(100),
 				Quantity:               alpacadecimal.NewFromFloat(1),
 				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
@@ -255,7 +255,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 		unchangedDetailedLineUpdatedAt := lo.FindOrElse[billing.DetailedLine](lines[0].DetailedLines,
 			billing.DetailedLine{},
 			func(l billing.DetailedLine) bool {
-				return *l.ChildUniqueReferenceID == "ref1"
+				return l.ChildUniqueReferenceID == "ref1"
 			},
 		).UpdatedAt.Unix()
 
@@ -300,7 +300,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 		require.Equal(s.T(), unchangedDetailedLineUpdatedAt, lo.FindOrElse(lines[0].DetailedLines,
 			billing.DetailedLine{},
 			func(l billing.DetailedLine) bool {
-				return *l.ChildUniqueReferenceID == "ref1"
+				return l.ChildUniqueReferenceID == "ref1"
 			}).UpdatedAt.Unix())
 
 		require.Len(s.T(), lines[1].DetailedLines, 0)
@@ -312,11 +312,11 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 		detailedLines := lines[0].DetailedLines
 
 		slices.SortFunc(detailedLines, func(a, b billing.DetailedLine) int {
-			return strings.Compare(*a.ChildUniqueReferenceID, *b.ChildUniqueReferenceID)
+			return strings.Compare(a.ChildUniqueReferenceID, b.ChildUniqueReferenceID)
 		})
 
 		require.Len(s.T(), detailedLines, 3)
-		require.Equal(s.T(), "ref1", *detailedLines[0].ChildUniqueReferenceID)
+		require.Equal(s.T(), "ref1", detailedLines[0].ChildUniqueReferenceID)
 
 		// Replace the first detailed line with a new child
 		detailedLines[0] = newDetailedLine(newLineInput{
@@ -371,7 +371,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 
 func getUniqReferenceNames(lines []billing.DetailedLine) []string {
 	return lo.Map(lines, func(l billing.DetailedLine, _ int) string {
-		return *l.ChildUniqueReferenceID
+		return l.ChildUniqueReferenceID
 	})
 }
 

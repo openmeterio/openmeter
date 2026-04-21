@@ -14,7 +14,7 @@ func deriveEqualBase(this, that *Base) bool {
 		this != nil && that != nil &&
 			deriveEqual(&this.ManagedResource, &that.ManagedResource) &&
 			this.Category == that.Category &&
-			((this.ChildUniqueReferenceID == nil && that.ChildUniqueReferenceID == nil) || (this.ChildUniqueReferenceID != nil && that.ChildUniqueReferenceID != nil && *(this.ChildUniqueReferenceID) == *(that.ChildUniqueReferenceID))) &&
+			this.ChildUniqueReferenceID == that.ChildUniqueReferenceID &&
 			((this.Index == nil && that.Index == nil) || (this.Index != nil && that.Index != nil && *(this.Index) == *(that.Index))) &&
 			this.PaymentTerm == that.PaymentTerm &&
 			this.ServicePeriod.Equal(that.ServicePeriod) &&

@@ -171,12 +171,6 @@ func (_u *ChargeFlatFeeDetailedLineUpdate) SetNillableChildUniqueReferenceID(v *
 	return _u
 }
 
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (_u *ChargeFlatFeeDetailedLineUpdate) ClearChildUniqueReferenceID() *ChargeFlatFeeDetailedLineUpdate {
-	_u.mutation.ClearChildUniqueReferenceID()
-	return _u
-}
-
 // SetPerUnitAmount sets the "per_unit_amount" field.
 func (_u *ChargeFlatFeeDetailedLineUpdate) SetPerUnitAmount(v alpacadecimal.Decimal) *ChargeFlatFeeDetailedLineUpdate {
 	_u.mutation.SetPerUnitAmount(v)
@@ -543,6 +537,11 @@ func (_u *ChargeFlatFeeDetailedLineUpdate) check() error {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeDetailedLine.tax_behavior": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.ChildUniqueReferenceID(); ok {
+		if err := chargeflatfeedetailedline.ChildUniqueReferenceIDValidator(v); err != nil {
+			return &ValidationError{Name: "child_unique_reference_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeDetailedLine.child_unique_reference_id": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Category(); ok {
 		if err := chargeflatfeedetailedline.CategoryValidator(v); err != nil {
 			return &ValidationError{Name: "category", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeDetailedLine.category": %w`, err)}
@@ -605,9 +604,6 @@ func (_u *ChargeFlatFeeDetailedLineUpdate) sqlSave(ctx context.Context) (_node i
 	}
 	if value, ok := _u.mutation.ChildUniqueReferenceID(); ok {
 		_spec.SetField(chargeflatfeedetailedline.FieldChildUniqueReferenceID, field.TypeString, value)
-	}
-	if _u.mutation.ChildUniqueReferenceIDCleared() {
-		_spec.ClearField(chargeflatfeedetailedline.FieldChildUniqueReferenceID, field.TypeString)
 	}
 	if value, ok := _u.mutation.PerUnitAmount(); ok {
 		_spec.SetField(chargeflatfeedetailedline.FieldPerUnitAmount, field.TypeOther, value)
@@ -898,12 +894,6 @@ func (_u *ChargeFlatFeeDetailedLineUpdateOne) SetNillableChildUniqueReferenceID(
 	if v != nil {
 		_u.SetChildUniqueReferenceID(*v)
 	}
-	return _u
-}
-
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (_u *ChargeFlatFeeDetailedLineUpdateOne) ClearChildUniqueReferenceID() *ChargeFlatFeeDetailedLineUpdateOne {
-	_u.mutation.ClearChildUniqueReferenceID()
 	return _u
 }
 
@@ -1286,6 +1276,11 @@ func (_u *ChargeFlatFeeDetailedLineUpdateOne) check() error {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeDetailedLine.tax_behavior": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.ChildUniqueReferenceID(); ok {
+		if err := chargeflatfeedetailedline.ChildUniqueReferenceIDValidator(v); err != nil {
+			return &ValidationError{Name: "child_unique_reference_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeDetailedLine.child_unique_reference_id": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Category(); ok {
 		if err := chargeflatfeedetailedline.CategoryValidator(v); err != nil {
 			return &ValidationError{Name: "category", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeDetailedLine.category": %w`, err)}
@@ -1365,9 +1360,6 @@ func (_u *ChargeFlatFeeDetailedLineUpdateOne) sqlSave(ctx context.Context) (_nod
 	}
 	if value, ok := _u.mutation.ChildUniqueReferenceID(); ok {
 		_spec.SetField(chargeflatfeedetailedline.FieldChildUniqueReferenceID, field.TypeString, value)
-	}
-	if _u.mutation.ChildUniqueReferenceIDCleared() {
-		_spec.ClearField(chargeflatfeedetailedline.FieldChildUniqueReferenceID, field.TypeString)
 	}
 	if value, ok := _u.mutation.PerUnitAmount(); ok {
 		_spec.SetField(chargeflatfeedetailedline.FieldPerUnitAmount, field.TypeOther, value)

@@ -172,12 +172,6 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetNillableChildUniqueReference
 	return _u
 }
 
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (_u *ChargeUsageBasedRunDetailedLineUpdate) ClearChildUniqueReferenceID() *ChargeUsageBasedRunDetailedLineUpdate {
-	_u.mutation.ClearChildUniqueReferenceID()
-	return _u
-}
-
 // SetPerUnitAmount sets the "per_unit_amount" field.
 func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetPerUnitAmount(v alpacadecimal.Decimal) *ChargeUsageBasedRunDetailedLineUpdate {
 	_u.mutation.SetPerUnitAmount(v)
@@ -569,6 +563,11 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdate) check() error {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.tax_behavior": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.ChildUniqueReferenceID(); ok {
+		if err := chargeusagebasedrundetailedline.ChildUniqueReferenceIDValidator(v); err != nil {
+			return &ValidationError{Name: "child_unique_reference_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.child_unique_reference_id": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Category(); ok {
 		if err := chargeusagebasedrundetailedline.CategoryValidator(v); err != nil {
 			return &ValidationError{Name: "category", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.category": %w`, err)}
@@ -634,9 +633,6 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdate) sqlSave(ctx context.Context) (_
 	}
 	if value, ok := _u.mutation.ChildUniqueReferenceID(); ok {
 		_spec.SetField(chargeusagebasedrundetailedline.FieldChildUniqueReferenceID, field.TypeString, value)
-	}
-	if _u.mutation.ChildUniqueReferenceIDCleared() {
-		_spec.ClearField(chargeusagebasedrundetailedline.FieldChildUniqueReferenceID, field.TypeString)
 	}
 	if value, ok := _u.mutation.PerUnitAmount(); ok {
 		_spec.SetField(chargeusagebasedrundetailedline.FieldPerUnitAmount, field.TypeOther, value)
@@ -956,12 +952,6 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetNillableChildUniqueRefere
 	if v != nil {
 		_u.SetChildUniqueReferenceID(*v)
 	}
-	return _u
-}
-
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) ClearChildUniqueReferenceID() *ChargeUsageBasedRunDetailedLineUpdateOne {
-	_u.mutation.ClearChildUniqueReferenceID()
 	return _u
 }
 
@@ -1369,6 +1359,11 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) check() error {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.tax_behavior": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.ChildUniqueReferenceID(); ok {
+		if err := chargeusagebasedrundetailedline.ChildUniqueReferenceIDValidator(v); err != nil {
+			return &ValidationError{Name: "child_unique_reference_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.child_unique_reference_id": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Category(); ok {
 		if err := chargeusagebasedrundetailedline.CategoryValidator(v); err != nil {
 			return &ValidationError{Name: "category", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.category": %w`, err)}
@@ -1451,9 +1446,6 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) sqlSave(ctx context.Context)
 	}
 	if value, ok := _u.mutation.ChildUniqueReferenceID(); ok {
 		_spec.SetField(chargeusagebasedrundetailedline.FieldChildUniqueReferenceID, field.TypeString, value)
-	}
-	if _u.mutation.ChildUniqueReferenceIDCleared() {
-		_spec.ClearField(chargeusagebasedrundetailedline.FieldChildUniqueReferenceID, field.TypeString)
 	}
 	if value, ok := _u.mutation.PerUnitAmount(); ok {
 		_spec.SetField(chargeusagebasedrundetailedline.FieldPerUnitAmount, field.TypeOther, value)

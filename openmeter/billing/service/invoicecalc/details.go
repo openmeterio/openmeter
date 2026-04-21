@@ -110,7 +110,7 @@ func newDetailedLines(line *billing.StandardLine, inputs ...rating.DetailedLine)
 					}),
 					ServicePeriod:          period,
 					Currency:               line.Currency,
-					ChildUniqueReferenceID: &in.ChildUniqueReferenceID,
+					ChildUniqueReferenceID: in.ChildUniqueReferenceID,
 					TaxConfig:              line.TaxConfig,
 					PaymentTerm:            lo.CoalesceOrEmpty(in.PaymentTerm, productcatalog.InArrearsPaymentTerm),
 					PerUnitAmount:          in.PerUnitAmount,

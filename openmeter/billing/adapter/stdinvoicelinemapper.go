@@ -175,7 +175,7 @@ func (a *adapter) mapStandardInvoiceDetailedLineFromDB(dbLine *db.BillingInvoice
 				Name:        dbLine.Name,
 				Description: dbLine.Description,
 			}),
-			ChildUniqueReferenceID: dbLine.ChildUniqueReferenceID,
+			ChildUniqueReferenceID: lo.FromPtr(dbLine.ChildUniqueReferenceID),
 			ServicePeriod: timeutil.ClosedPeriod{
 				From: dbLine.PeriodStart.In(time.UTC),
 				To:   dbLine.PeriodEnd.In(time.UTC),

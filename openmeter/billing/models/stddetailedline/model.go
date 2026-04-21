@@ -46,7 +46,7 @@ type Base struct {
 	models.ManagedResource
 
 	Category               Category                       `json:"category"`
-	ChildUniqueReferenceID *string                        `json:"childUniqueReferenceID,omitempty"`
+	ChildUniqueReferenceID string                         `json:"childUniqueReferenceID"`
 	Index                  *int                           `json:"index,omitempty"`
 	PaymentTerm            productcatalog.PaymentTermType `json:"paymentTerm"`
 	ServicePeriod          timeutil.ClosedPeriod          `json:"servicePeriod"`
@@ -68,6 +68,10 @@ func (l Base) Validate() error {
 
 	if err := l.Category.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("category: %w", err))
+	}
+
+	if l.ChildUniqueReferenceID == "" {
+		errs = append(errs, errors.New("child unique reference id is required"))
 	}
 
 	if l.PerUnitAmount.IsNegative() {

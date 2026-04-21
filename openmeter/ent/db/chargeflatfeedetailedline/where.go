@@ -649,16 +649,6 @@ func ChildUniqueReferenceIDHasSuffix(v string) predicate.ChargeFlatFeeDetailedLi
 	return predicate.ChargeFlatFeeDetailedLine(sql.FieldHasSuffix(FieldChildUniqueReferenceID, v))
 }
 
-// ChildUniqueReferenceIDIsNil applies the IsNil predicate on the "child_unique_reference_id" field.
-func ChildUniqueReferenceIDIsNil() predicate.ChargeFlatFeeDetailedLine {
-	return predicate.ChargeFlatFeeDetailedLine(sql.FieldIsNull(FieldChildUniqueReferenceID))
-}
-
-// ChildUniqueReferenceIDNotNil applies the NotNil predicate on the "child_unique_reference_id" field.
-func ChildUniqueReferenceIDNotNil() predicate.ChargeFlatFeeDetailedLine {
-	return predicate.ChargeFlatFeeDetailedLine(sql.FieldNotNull(FieldChildUniqueReferenceID))
-}
-
 // ChildUniqueReferenceIDEqualFold applies the EqualFold predicate on the "child_unique_reference_id" field.
 func ChildUniqueReferenceIDEqualFold(v string) predicate.ChargeFlatFeeDetailedLine {
 	return predicate.ChargeFlatFeeDetailedLine(sql.FieldEqualFold(FieldChildUniqueReferenceID, v))
