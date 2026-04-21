@@ -1,0 +1,25 @@
+name: Workflow Result for Required Check
+
+on:
+  workflow_call:
+    inputs:
+      result:
+        description: Workflow result
+        required: true
+        type: string
+
+jobs:
+  workflow_result:
+    name: Workflow Result
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Pass or Fail
+        run: |
+          if [[ "$INPUTS_RESULT" == true ]]; then
+            exit 1
+          else
+            exit 0
+          fi
+        env:
+          INPUTS_RESULT: ${{ inputs.result == 'fail' }}
