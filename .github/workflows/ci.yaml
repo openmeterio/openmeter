@@ -499,7 +499,16 @@ jobs:
         env:
           GOLANGCI_LINT_CACHE: ${{ github.workspace }}/.devenv/golangci-lint-cache
         run: |
-          nix develop --impure .#ci -c make lint-go
+          # On Depot runners, golangci-lint still uses Go/system temp space for
+          # transient analysis artifacts. Keep those temp files on the workspace
+          # disk so lint does not spill into /run and fail with ENOSPC.
+          mkdir -p \
+            "$GITHUB_WORKSPACE/.tmp/go-work" \
+            "$GITHUB_WORKSPACE/.tmp/system"
+          env \
+            GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
+            TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
+            nix develop --impure .#ci -c make lint-go
 
       - name: Run linters - api spec
         run: |
