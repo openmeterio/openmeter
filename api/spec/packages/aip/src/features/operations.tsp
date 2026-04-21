@@ -13,11 +13,12 @@ using TypeSpec.OpenAPI;
 
 namespace Features;
 
+/**
+ * Filter options for listing features.
+ */
 @friendlyName("ListFeatureParamsFilter")
 model ListFeaturesParamsFilter {
-  /**
-   * Filter features by meter_id.
-   */
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
   meter_id?: Common.ULIDFieldFilter;
 }
 

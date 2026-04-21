@@ -7376,9 +7376,8 @@ components:
       type: object
       properties:
         meter_id:
-          allOf:
-            - $ref: '#/components/schemas/ULIDFieldFilter'
-          description: Filter features by meter_id.
+          $ref: '#/components/schemas/ULIDFieldFilter'
+      description: Filter options for listing features.
     ListLLMCostPricesParamsFilter:
       type: object
       properties:
@@ -8148,15 +8147,17 @@ components:
       example: 01G65Z755AFWAKHE12NY0CQ9FH
     ULIDFieldFilter:
       anyOf:
-        - type: string
+        - $ref: '#/components/schemas/ULID'
         - type: object
           properties:
             eq:
-              type: string
-              description: Value strictly equals the given string value.
+              allOf:
+                - $ref: '#/components/schemas/ULID'
+              description: Value strictly equals the given ULID value.
             neq:
-              type: string
-              description: Value does not equal the given string value.
+              allOf:
+                - $ref: '#/components/schemas/ULID'
+              description: Value does not equal the given ULID value.
             contains:
               type: string
               description: Value contains the given string value (fuzzy match).
@@ -8165,30 +8166,18 @@ components:
               items:
                 type: string
               format: ArrayEncoding.commaDelimited
-              description: Returns entities that fuzzy-match any of the comma-delimited phrases in the filter string.
+              description: Returns entities that fuzzy-match any of the comma-delimited strings in the filter string.
             oeq:
               type: string
               items:
-                type: string
+                $ref: '#/components/schemas/ULID'
               format: ArrayEncoding.commaDelimited
-              description: Returns entities that exact match any of the comma-delimited phrases in the filter string.
-            gt:
-              type: string
-              description: Value is greater than the given string value (lexicographic compare).
-            gte:
-              type: string
-              description: Value is greater than or equal to the given string value (lexicographic compare).
-            lt:
-              type: string
-              description: Value is less than the given string value (lexicographic compare).
-            lte:
-              type: string
-              description: Value is less than or equal to the given string value (lexicographic compare).
+              description: Returns entities that exact match any of the comma-delimited ULIDs in the filter string.
             exists:
               type: boolean
               description: When true, the field must be present (non-null); when false, the field must be absent (null).
       description: |-
-        Filters on the given string field value by either exact or fuzzy match.
+        Filters on the given ULID field value by either exact or fuzzy match.
         All properties are optional; provide exactly one to specify the comparison.
       x-go-type-import:
         path: github.com/openmeterio/openmeter/api/v3/filters
