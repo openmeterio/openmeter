@@ -26,7 +26,8 @@ permissions:
 jobs:
   publish:
     name: Publish @openmeter/sdk
-    runs-on: depot-ubuntu-latest-8
+    # npm trusted publishing with provenance currently requires a GitHub-hosted runner.
+    runs-on: ubuntu-latest
     environment: prod
 
     # npm Trusted Publishing: GitHub mints a short-lived OIDC token that npm
