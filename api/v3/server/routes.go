@@ -8,6 +8,7 @@ import (
 	chargeshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/charges"
 	customerscreditshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/credits"
 	planaddonshandler "github.com/openmeterio/openmeter/api/v3/handlers/plans/planaddons"
+	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 )
 
 // Meters
@@ -33,6 +34,13 @@ func (s *Server) DeleteMeter(w http.ResponseWriter, r *http.Request, meterId api
 }
 
 func (s *Server) QueryMeter(w http.ResponseWriter, r *http.Request, meterId api.ULID) {
+	// Content negotiation: Accept: text/csv switches to the CSV encoder.
+	// All other media types (including a missing Accept header) use JSON.
+	if mediaType, _ := commonhttp.GetMediaType(r); mediaType == "text/csv" {
+		s.metersHandler.QueryMeterCSV().With(meterId).ServeHTTP(w, r)
+		return
+	}
+
 	s.metersHandler.QueryMeter().With(meterId).ServeHTTP(w, r)
 }
 

@@ -1685,14 +1685,26 @@ paths:
         - Meters
     post:
       operationId: query-meter
-      summary: Query meter
-      description: Query a meter for usage.
       parameters:
         - name: meterId
           in: path
           required: true
           schema:
             $ref: '#/components/schemas/ULID'
+      description: |-
+        Query a meter for usage.
+
+        Set `Accept: application/json` (the default) to get a structured JSON response.
+        Set `Accept: text/csv` to download the same data as a CSV file suitable for
+        spreadsheets. The CSV columns, in order, are:
+
+        `from, to, [subject,] [customer_id, customer_key, customer_name,] <dimensions...>, value`
+
+        The `subject` column is emitted only when `subject` is in the query's
+        `group_by_dimensions`.
+        The three `customer_*` columns are emitted together only when `customer_id`
+        is in the query's `group_by_dimensions`.
+      summary: Query meter
       responses:
         '200':
           description: The request has succeeded.
@@ -1700,6 +1712,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MeterQueryResult'
+            text/csv:
+              schema:
+                type: string
+              examples:
+                Grouped by customer and dimensions:
+                  summary: Grouped by customer and dimensions
+                  value: |-
+                    from,to,customer_id,customer_key,customer_name,model,type,value
+                    2023-01-01T00:00:00Z,2023-01-01T00:01:00Z,01G65Z755AFWAKHE12NY0CQ9FH,acme-inc,Acme Inc.,gpt-4-turbo,input,12
+                    2023-01-01T00:01:00Z,2023-01-01T00:02:00Z,01G65Z755AFWAKHE12NY0CQ9FH,acme-inc,Acme Inc.,gpt-4-turbo,input,20
+                    2023-01-01T00:02:00Z,2023-01-01T00:03:00Z,01G65Z755B3YZ1KRA9W8V7PS2D,globex,Globex Corp,gpt-4-turbo,output,4
+                No group-by dimensions:
+                  summary: No group-by dimensions
+                  value: |-
+                    from,to,value
+                    2023-01-01T00:00:00Z,2023-01-01T00:01:00Z,12
+                    2023-01-01T00:01:00Z,2023-01-01T00:02:00Z,20
+                    2023-01-01T00:02:00Z,2023-01-01T00:03:00Z,4
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1708,6 +1738,9 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+      x-internal: true
+      x-unstable: true
+      x-private: true
       tags:
         - Meters
       requestBody:
@@ -1716,9 +1749,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MeterQueryRequest'
-      x-internal: true
-      x-unstable: true
-      x-private: true
   /openmeter/plans:
     get:
       operationId: list-plans

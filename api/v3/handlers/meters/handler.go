@@ -16,6 +16,7 @@ type Handler interface {
 	UpdateMeter() UpdateMeterHandler
 	DeleteMeter() DeleteMeterHandler
 	QueryMeter() QueryMeterHandler
+	QueryMeterCSV() QueryMeterCSVHandler
 }
 
 type handler struct {
