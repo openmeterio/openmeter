@@ -29,7 +29,6 @@ jobs:
     uses: ./.github/workflows/artifacts.yaml
     with:
       publish: true
-      untrusted_source: false
     permissions:
       contents: read
       packages: write

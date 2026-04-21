@@ -522,18 +522,34 @@ jobs:
         run: |
           nix develop --impure .#ci -c make lint-helm
 
-  artifacts:
+  trusted-artifacts:
     name: Artifacts
     uses: ./.github/workflows/artifacts.yaml
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     with:
       publish: ${{ github.event_name == 'push' }}
-      # detect if the source is a fork
-      untrusted_source: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
     permissions:
       contents: read
       packages: write
       id-token: write
       security-events: write
+
+  untrusted-artifacts:
+    name: Untrusted Artifacts
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+    uses: ./.github/workflows/untrusted-artifacts.yaml
+    permissions:
+      contents: read
+
+  artifacts-pass:
+    name: Artifacts
+    needs:
+      - trusted-artifacts
+      - untrusted-artifacts
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') }}
+    uses: ./.github/workflows/workflow-result.yaml
+    with:
+      result: "pass"
 
   dependency-review:
     name: Dependency review
@@ -570,7 +586,9 @@ jobs:
     name: Quickstart
     runs-on: depot-ubuntu-latest-8
     needs:
-      - artifacts
+      - trusted-artifacts
+      - untrusted-artifacts
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(needs.*.result, 'success') }}
 
     steps:
       - name: Checkout repository
@@ -581,7 +599,7 @@ jobs:
       - name: Create override files for quickstart
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         env:
-          DEPOT_IMAGE_URL: ${{ needs.artifacts.outputs.container-image-url-depot }}
+          DEPOT_IMAGE_URL: ${{ needs.trusted-artifacts.outputs.container-image-url-depot }}
         run: |
           cat > quickstart/docker-compose.override.yaml <<EOF
           services:
@@ -686,7 +704,9 @@ jobs:
     runs-on: depot-ubuntu-latest-8
     # Note: This check is running against the image that is going to be pushed.
     needs:
-      - artifacts
+      - trusted-artifacts
+      - untrusted-artifacts
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(needs.*.result, 'success') }}
 
     steps:
       - name: Checkout repository
@@ -696,8 +716,8 @@ jobs:
 
       - name: Create override files for e2e
         env:
-          DEPOT_IMAGE_URL: ${{ needs.artifacts.outputs.container-image-url-depot }}
-        if: github.event.pull_request.head.repo.full_name == github.repository
+          DEPOT_IMAGE_URL: ${{ needs.trusted-artifacts.outputs.container-image-url-depot }}
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
           cat > e2e/docker-compose.override.yaml <<EOF
           services:
@@ -717,7 +737,7 @@ jobs:
           docker network ls
           echo "### DEBUG"
       - name: Build as part of e2e
-        if: github.event.pull_request.head.repo.full_name != github.repository
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
         run: |
           cat > e2e/docker-compose.override.yaml <<EOF
           services:

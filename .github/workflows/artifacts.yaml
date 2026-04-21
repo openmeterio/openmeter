@@ -8,10 +8,6 @@ on:
         default: false
         required: false
         type: boolean
-      untrusted_source:
-        description: Whether the source is untrusted (e.g. running from a fork)
-        required: true
-        type: boolean
     outputs:
       container-image-name:
         description: Container image name
@@ -96,7 +92,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           push: ${{ inputs.publish }}
-          save: ${{ !inputs.untrusted_source }}
+          save: true
           project: ${{ vars.DEPOT_PROJECT }}
 
       - name: Set image ref
@@ -108,7 +104,6 @@ jobs:
 
       - name: Retrieve pull token
         id: pull-token
-        if: ${{ !inputs.untrusted_source }}
         run: |
           PULL_TOKEN="$(depot pull-token --project ${VARS_DEPOT_PROJECT})"
           echo "token=$PULL_TOKEN" >> "$GITHUB_OUTPUT"
@@ -204,7 +199,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           push: ${{ inputs.publish }}
-          save: ${{ !inputs.untrusted_source }}
+          save: true
           project: ${{ vars.DEPOT_PROJECT }}
 
       - name: Set image ref
@@ -216,7 +211,6 @@ jobs:
 
       - name: Retrieve pull token
         id: pull-token
-        if: ${{ !inputs.untrusted_source }}
         run: |
           PULL_TOKEN="$(depot pull-token --project ${VARS_DEPOT_PROJECT})"
           echo "token=$PULL_TOKEN" >> "$GITHUB_OUTPUT"
