@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/cmd/jobs/billing"
 	"github.com/openmeterio/openmeter/cmd/jobs/entitlement"
 	"github.com/openmeterio/openmeter/cmd/jobs/internal"
+	"github.com/openmeterio/openmeter/cmd/jobs/ledger"
 	"github.com/openmeterio/openmeter/cmd/jobs/llmcost"
 	"github.com/openmeterio/openmeter/cmd/jobs/migrate"
 	"github.com/openmeterio/openmeter/cmd/jobs/quickstart"
@@ -57,6 +58,7 @@ func main() {
 	rootCmd.AddCommand(versionCommand())
 	rootCmd.AddCommand(entitlement.RootCommand())
 	rootCmd.AddCommand(billing.Cmd)
+	rootCmd.AddCommand(ledger.Cmd)
 	rootCmd.AddCommand(llmcost.Cmd)
 	rootCmd.AddCommand(quickstart.Cmd)
 	rootCmd.AddCommand(migrate.RootCommand())
