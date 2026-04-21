@@ -11,6 +11,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -101,10 +102,9 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					SetCurrency(line.Currency).
 					SetMetadata(line.Metadata).
 					SetAnnotations(line.Annotations).
-					SetNillableChildUniqueReferenceID(line.ChildUniqueReferenceID).
-					// ExternalIDs
-					SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(line.ExternalIDs.Invoicing))
+					SetNillableChildUniqueReferenceID(line.ChildUniqueReferenceID)
 
+				create = externalid.CreateLineExternalID(create, line.ExternalIDs)
 				create = totals.Set(create, line.Totals)
 
 				if len(line.CreditsApplied) > 0 {
@@ -206,9 +206,9 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					SetNillablePreLinePeriodQuantity(discount.PreLinePeriodQuantity).
 					SetNillableDeletedAt(discount.DeletedAt).
 					SetNillableChildUniqueReferenceID(discount.ChildUniqueReferenceID).
-					SetNillableDescription(discount.Description).
-					// ExternalIDs
-					SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(discount.ExternalIDs.Invoicing))
+					SetNillableDescription(discount.Description)
+
+				create = externalid.CreateLineExternalID(create, discount.ExternalIDs)
 
 				return create, nil
 			},
@@ -318,10 +318,9 @@ func (a *adapter) upsertDetailedLines(ctx context.Context, in detailedLineDiff) 
 				SetName(line.Name).
 				SetNillableDescription(line.Description).
 				SetCurrency(line.Currency).
-				SetNillableChildUniqueReferenceID(line.ChildUniqueReferenceID).
-				// ExternalIDs
-				SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(line.ExternalIDs.Invoicing))
+				SetNillableChildUniqueReferenceID(line.ChildUniqueReferenceID)
 
+			create = externalid.CreateLineExternalID(create, line.ExternalIDs)
 			create = totals.Set(create, line.Totals)
 
 			if line.TaxConfig != nil {
@@ -384,9 +383,9 @@ func (a *adapter) upsertDetailedLineAmountDiscounts(ctx context.Context, in deta
 				SetNillableRoundingAmount(lo.EmptyableToPtr(discount.RoundingAmount)).
 				SetNillableDeletedAt(discount.DeletedAt).
 				SetNillableChildUniqueReferenceID(discount.ChildUniqueReferenceID).
-				SetNillableDescription(discount.Description).
-				// ExternalIDs
-				SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(discount.ExternalIDs.Invoicing))
+				SetNillableDescription(discount.Description)
+
+			create = externalid.CreateLineExternalID(create, discount.ExternalIDs)
 
 			return create, nil
 		},
@@ -434,10 +433,9 @@ func (a *adapter) upsertDetailedLinesV2(ctx context.Context, in detailedLineDiff
 				SetNillableChildUniqueReferenceID(line.ChildUniqueReferenceID).
 				SetCategory(line.Category).
 				SetPaymentTerm(line.PaymentTerm).
-				SetNillableIndex(line.Index).
-				// ExternalIDs
-				SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(line.ExternalIDs.Invoicing))
+				SetNillableIndex(line.Index)
 
+			create = externalid.CreateLineExternalID(create, line.ExternalIDs)
 			create = totals.Set(create, line.Totals)
 
 			if len(line.CreditsApplied) > 0 {
@@ -499,9 +497,9 @@ func (a *adapter) upsertDetailedLineAmountDiscountsV2(ctx context.Context, in de
 				SetNillableRoundingAmount(lo.EmptyableToPtr(discount.RoundingAmount)).
 				SetNillableDeletedAt(discount.DeletedAt).
 				SetNillableChildUniqueReferenceID(discount.ChildUniqueReferenceID).
-				SetNillableDescription(discount.Description).
-				// ExternalIDs
-				SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(discount.ExternalIDs.Invoicing))
+				SetNillableDescription(discount.Description)
+
+			create = externalid.CreateLineExternalID(create, discount.ExternalIDs)
 
 			return create, nil
 		},

@@ -3,73 +3,22 @@ package billing
 import (
 	"errors"
 	"fmt"
-	"slices"
 
-	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
-
-// TODO: Rename to DetailedLineCostCategory (separate PR)
-type FlatFeeCategory string
-
-const (
-	// FlatFeeCategoryRegular is a regular flat fee, that is based on the usage or a subscription.
-	FlatFeeCategoryRegular FlatFeeCategory = "regular"
-	// FlatFeeCategoryCommitment is a flat fee that is based on a commitment such as min spend.
-	FlatFeeCategoryCommitment FlatFeeCategory = "commitment"
-)
-
-func (FlatFeeCategory) Values() []string {
-	return []string{
-		string(FlatFeeCategoryRegular),
-		string(FlatFeeCategoryCommitment),
-	}
-}
-
-var _ models.Validator = (*FlatFeeCategory)(nil)
-
-func (c FlatFeeCategory) Validate() error {
-	if !slices.Contains(FlatFeeCategory("").Values(), string(c)) {
-		return fmt.Errorf("invalid category %s", c)
-	}
-	return nil
-}
 
 type DetailedLineBase struct {
-	models.ManagedResource
+	stddetailedline.Base
 
 	// Relationships
 	InvoiceID string `json:"invoiceID"`
 
-	// Line details
-	Category               FlatFeeCategory                `json:"category"`
-	ChildUniqueReferenceID *string                        `json:"childUniqueReferenceID,omitempty"`
-	Index                  *int                           `json:"index,omitempty"`
-	PaymentTerm            productcatalog.PaymentTermType `json:"paymentTerm"`
-	ServicePeriod          timeutil.ClosedPeriod          `json:"servicePeriod"`
-
-	// Line amount
-	Currency      currencyx.Code        `json:"currency"`
-	PerUnitAmount alpacadecimal.Decimal `json:"perUnitAmount"`
-	Quantity      alpacadecimal.Decimal `json:"quantity"`
-	Totals        totals.Totals         `json:"totals"`
-
-	// Apps
-	TaxConfig   *productcatalog.TaxConfig `json:"taxConfig,omitempty"`
-	ExternalIDs LineExternalIDs           `json:"externalIDs,omitempty"`
-
 	// FeeLineConfigID contains the ID of the fee configuration in the DB, this should go away
 	// as soon as we split the ubp/flatfee db parts
 	FeeLineConfigID string `json:"feeLineConfigID,omitempty"`
-
-	// CreditsApplied is the list of credits that are applied to the line (credits are pre-tax)
-	CreditsApplied CreditsApplied `json:"creditsApplied,omitempty"`
 }
 
 var _ models.Validator = (*DetailedLineBase)(nil)
@@ -81,32 +30,8 @@ func (l DetailedLineBase) Validate() error {
 		errs = append(errs, errors.New("invoiceID is required"))
 	}
 
-	if err := l.Category.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("category: %w", err))
-	}
-
-	if l.PerUnitAmount.IsNegative() {
-		errs = append(errs, errors.New("price should be positive or zero"))
-	}
-
-	if l.Quantity.IsNegative() {
-		errs = append(errs, errors.New("quantity should be positive or zero"))
-	}
-
-	if err := l.PaymentTerm.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("payment term: %w", err))
-	}
-
-	if err := l.ServicePeriod.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("service period: %w", err))
-	}
-
-	if err := l.Currency.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("currency: %w", err))
-	}
-
-	if err := l.CreditsApplied.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("credits applied: %w", err))
+	if err := l.Base.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("base: %w", err))
 	}
 
 	return errors.Join(errs...)
@@ -114,20 +39,15 @@ func (l DetailedLineBase) Validate() error {
 
 // TODO: Is this even needed?
 func (l DetailedLineBase) Clone() DetailedLineBase {
-	if l.TaxConfig != nil {
-		taxConfig := *l.TaxConfig
-		l.TaxConfig = &taxConfig
-	}
-
-	if len(l.CreditsApplied) > 0 {
-		l.CreditsApplied = l.CreditsApplied.Clone()
-	}
+	l.Base = l.Base.Clone()
 
 	return l
 }
 
 func (l DetailedLineBase) Equal(other DetailedLineBase) bool {
-	return deriveEqualDetailedLineBase(&l, &other)
+	return l.Base.Equal(other.Base) &&
+		l.InvoiceID == other.InvoiceID &&
+		l.FeeLineConfigID == other.FeeLineConfigID
 }
 
 type DetailedLine struct {

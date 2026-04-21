@@ -7,6 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating/service/testutil"
@@ -353,7 +354,7 @@ func TestCreditsMutator(t *testing.T) {
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: rating.MinSpendChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					Category:               billing.FlatFeeCategoryCommitment,
+					Category:               stddetailedline.CategoryCommitment,
 					Period:                 lo.ToPtr(testutil.TestFullPeriod),
 					CreditsApplied: []billing.CreditApplied{
 						{

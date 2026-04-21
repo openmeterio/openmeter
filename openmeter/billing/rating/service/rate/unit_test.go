@@ -7,6 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating/service/testutil"
@@ -49,7 +50,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 					ChildUniqueReferenceID: rating.MinSpendChildUniqueReferenceID,
 					Period:                 lo.ToPtr(testutil.TestFullPeriod),
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					Category:               billing.FlatFeeCategoryCommitment,
+					Category:               stddetailedline.CategoryCommitment,
 					Totals: totals.Totals{
 						ChargesTotal: alpacadecimal.NewFromFloat(100),
 						Total:        alpacadecimal.NewFromFloat(100),
@@ -97,7 +98,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 					ChildUniqueReferenceID: rating.MinSpendChildUniqueReferenceID,
 					Period:                 lo.ToPtr(testutil.TestFullPeriod),
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					Category:               billing.FlatFeeCategoryCommitment,
+					Category:               stddetailedline.CategoryCommitment,
 					Totals: totals.Totals{
 						ChargesTotal: alpacadecimal.NewFromFloat(100),
 						Total:        alpacadecimal.NewFromFloat(100),

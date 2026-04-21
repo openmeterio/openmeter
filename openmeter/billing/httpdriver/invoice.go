@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	apphttpdriver "github.com/openmeterio/openmeter/openmeter/app/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
@@ -658,7 +659,7 @@ func MapStandardInvoiceToAPI(invoice billing.StandardInvoice) (api.Invoice, erro
 	return out, nil
 }
 
-func mapInvoiceAppExternalIdsToAPI(externalIds billing.InvoiceExternalIDs) *api.InvoiceAppExternalIds {
+func mapInvoiceAppExternalIdsToAPI(externalIds externalid.InvoiceExternalIDs) *api.InvoiceAppExternalIds {
 	if lo.IsEmpty(externalIds) {
 		return nil
 	}

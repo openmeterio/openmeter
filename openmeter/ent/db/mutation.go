@@ -20,6 +20,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
@@ -54,10 +56,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecreditallocations"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeinvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
@@ -150,10 +154,12 @@ const (
 	TypeChargeCreditPurchaseInvoicedPayment              = "ChargeCreditPurchaseInvoicedPayment"
 	TypeChargeFlatFee                                    = "ChargeFlatFee"
 	TypeChargeFlatFeeCreditAllocations                   = "ChargeFlatFeeCreditAllocations"
+	TypeChargeFlatFeeDetailedLine                        = "ChargeFlatFeeDetailedLine"
 	TypeChargeFlatFeeInvoicedUsage                       = "ChargeFlatFeeInvoicedUsage"
 	TypeChargeFlatFeePayment                             = "ChargeFlatFeePayment"
 	TypeChargeUsageBased                                 = "ChargeUsageBased"
 	TypeChargeUsageBasedRunCreditAllocations             = "ChargeUsageBasedRunCreditAllocations"
+	TypeChargeUsageBasedRunDetailedLine                  = "ChargeUsageBasedRunDetailedLine"
 	TypeChargeUsageBasedRunInvoicedUsage                 = "ChargeUsageBasedRunInvoicedUsage"
 	TypeChargeUsageBasedRunPayment                       = "ChargeUsageBasedRunPayment"
 	TypeChargeUsageBasedRuns                             = "ChargeUsageBasedRuns"
@@ -11898,6 +11904,9 @@ type BillingInvoiceMutation struct {
 	discounts_total                          *alpacadecimal.Decimal
 	credits_total                            *alpacadecimal.Decimal
 	total                                    *alpacadecimal.Decimal
+	invoicing_app_external_id                *string
+	payment_app_external_id                  *string
+	tax_app_external_id                      *string
 	supplier_name                            *string
 	supplier_tax_code                        *string
 	customer_key                             *string
@@ -11915,9 +11924,6 @@ type BillingInvoiceMutation struct {
 	due_at                                   *time.Time
 	status                                   *billing.StandardInvoiceStatus
 	status_details_cache                     *billing.StandardInvoiceStatusDetails
-	invoicing_app_external_id                *string
-	payment_app_external_id                  *string
-	tax_app_external_id                      *string
 	period_start                             *time.Time
 	period_end                               *time.Time
 	collection_at                            *time.Time
@@ -13235,6 +13241,153 @@ func (m *BillingInvoiceMutation) ResetTotal() {
 	m.total = nil
 }
 
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (m *BillingInvoiceMutation) SetInvoicingAppExternalID(s string) {
+	m.invoicing_app_external_id = &s
+}
+
+// InvoicingAppExternalID returns the value of the "invoicing_app_external_id" field in the mutation.
+func (m *BillingInvoiceMutation) InvoicingAppExternalID() (r string, exists bool) {
+	v := m.invoicing_app_external_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInvoicingAppExternalID returns the old "invoicing_app_external_id" field's value of the BillingInvoice entity.
+// If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceMutation) OldInvoicingAppExternalID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInvoicingAppExternalID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInvoicingAppExternalID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInvoicingAppExternalID: %w", err)
+	}
+	return oldValue.InvoicingAppExternalID, nil
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (m *BillingInvoiceMutation) ClearInvoicingAppExternalID() {
+	m.invoicing_app_external_id = nil
+	m.clearedFields[billinginvoice.FieldInvoicingAppExternalID] = struct{}{}
+}
+
+// InvoicingAppExternalIDCleared returns if the "invoicing_app_external_id" field was cleared in this mutation.
+func (m *BillingInvoiceMutation) InvoicingAppExternalIDCleared() bool {
+	_, ok := m.clearedFields[billinginvoice.FieldInvoicingAppExternalID]
+	return ok
+}
+
+// ResetInvoicingAppExternalID resets all changes to the "invoicing_app_external_id" field.
+func (m *BillingInvoiceMutation) ResetInvoicingAppExternalID() {
+	m.invoicing_app_external_id = nil
+	delete(m.clearedFields, billinginvoice.FieldInvoicingAppExternalID)
+}
+
+// SetPaymentAppExternalID sets the "payment_app_external_id" field.
+func (m *BillingInvoiceMutation) SetPaymentAppExternalID(s string) {
+	m.payment_app_external_id = &s
+}
+
+// PaymentAppExternalID returns the value of the "payment_app_external_id" field in the mutation.
+func (m *BillingInvoiceMutation) PaymentAppExternalID() (r string, exists bool) {
+	v := m.payment_app_external_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPaymentAppExternalID returns the old "payment_app_external_id" field's value of the BillingInvoice entity.
+// If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceMutation) OldPaymentAppExternalID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPaymentAppExternalID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPaymentAppExternalID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPaymentAppExternalID: %w", err)
+	}
+	return oldValue.PaymentAppExternalID, nil
+}
+
+// ClearPaymentAppExternalID clears the value of the "payment_app_external_id" field.
+func (m *BillingInvoiceMutation) ClearPaymentAppExternalID() {
+	m.payment_app_external_id = nil
+	m.clearedFields[billinginvoice.FieldPaymentAppExternalID] = struct{}{}
+}
+
+// PaymentAppExternalIDCleared returns if the "payment_app_external_id" field was cleared in this mutation.
+func (m *BillingInvoiceMutation) PaymentAppExternalIDCleared() bool {
+	_, ok := m.clearedFields[billinginvoice.FieldPaymentAppExternalID]
+	return ok
+}
+
+// ResetPaymentAppExternalID resets all changes to the "payment_app_external_id" field.
+func (m *BillingInvoiceMutation) ResetPaymentAppExternalID() {
+	m.payment_app_external_id = nil
+	delete(m.clearedFields, billinginvoice.FieldPaymentAppExternalID)
+}
+
+// SetTaxAppExternalID sets the "tax_app_external_id" field.
+func (m *BillingInvoiceMutation) SetTaxAppExternalID(s string) {
+	m.tax_app_external_id = &s
+}
+
+// TaxAppExternalID returns the value of the "tax_app_external_id" field in the mutation.
+func (m *BillingInvoiceMutation) TaxAppExternalID() (r string, exists bool) {
+	v := m.tax_app_external_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxAppExternalID returns the old "tax_app_external_id" field's value of the BillingInvoice entity.
+// If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceMutation) OldTaxAppExternalID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxAppExternalID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxAppExternalID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxAppExternalID: %w", err)
+	}
+	return oldValue.TaxAppExternalID, nil
+}
+
+// ClearTaxAppExternalID clears the value of the "tax_app_external_id" field.
+func (m *BillingInvoiceMutation) ClearTaxAppExternalID() {
+	m.tax_app_external_id = nil
+	m.clearedFields[billinginvoice.FieldTaxAppExternalID] = struct{}{}
+}
+
+// TaxAppExternalIDCleared returns if the "tax_app_external_id" field was cleared in this mutation.
+func (m *BillingInvoiceMutation) TaxAppExternalIDCleared() bool {
+	_, ok := m.clearedFields[billinginvoice.FieldTaxAppExternalID]
+	return ok
+}
+
+// ResetTaxAppExternalID resets all changes to the "tax_app_external_id" field.
+func (m *BillingInvoiceMutation) ResetTaxAppExternalID() {
+	m.tax_app_external_id = nil
+	delete(m.clearedFields, billinginvoice.FieldTaxAppExternalID)
+}
+
 // SetSupplierName sets the "supplier_name" field.
 func (m *BillingInvoiceMutation) SetSupplierName(s string) {
 	m.supplier_name = &s
@@ -14206,153 +14359,6 @@ func (m *BillingInvoiceMutation) ResetPaymentAppID() {
 	m.payment_app = nil
 }
 
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (m *BillingInvoiceMutation) SetInvoicingAppExternalID(s string) {
-	m.invoicing_app_external_id = &s
-}
-
-// InvoicingAppExternalID returns the value of the "invoicing_app_external_id" field in the mutation.
-func (m *BillingInvoiceMutation) InvoicingAppExternalID() (r string, exists bool) {
-	v := m.invoicing_app_external_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldInvoicingAppExternalID returns the old "invoicing_app_external_id" field's value of the BillingInvoice entity.
-// If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceMutation) OldInvoicingAppExternalID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInvoicingAppExternalID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInvoicingAppExternalID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInvoicingAppExternalID: %w", err)
-	}
-	return oldValue.InvoicingAppExternalID, nil
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (m *BillingInvoiceMutation) ClearInvoicingAppExternalID() {
-	m.invoicing_app_external_id = nil
-	m.clearedFields[billinginvoice.FieldInvoicingAppExternalID] = struct{}{}
-}
-
-// InvoicingAppExternalIDCleared returns if the "invoicing_app_external_id" field was cleared in this mutation.
-func (m *BillingInvoiceMutation) InvoicingAppExternalIDCleared() bool {
-	_, ok := m.clearedFields[billinginvoice.FieldInvoicingAppExternalID]
-	return ok
-}
-
-// ResetInvoicingAppExternalID resets all changes to the "invoicing_app_external_id" field.
-func (m *BillingInvoiceMutation) ResetInvoicingAppExternalID() {
-	m.invoicing_app_external_id = nil
-	delete(m.clearedFields, billinginvoice.FieldInvoicingAppExternalID)
-}
-
-// SetPaymentAppExternalID sets the "payment_app_external_id" field.
-func (m *BillingInvoiceMutation) SetPaymentAppExternalID(s string) {
-	m.payment_app_external_id = &s
-}
-
-// PaymentAppExternalID returns the value of the "payment_app_external_id" field in the mutation.
-func (m *BillingInvoiceMutation) PaymentAppExternalID() (r string, exists bool) {
-	v := m.payment_app_external_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldPaymentAppExternalID returns the old "payment_app_external_id" field's value of the BillingInvoice entity.
-// If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceMutation) OldPaymentAppExternalID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldPaymentAppExternalID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldPaymentAppExternalID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldPaymentAppExternalID: %w", err)
-	}
-	return oldValue.PaymentAppExternalID, nil
-}
-
-// ClearPaymentAppExternalID clears the value of the "payment_app_external_id" field.
-func (m *BillingInvoiceMutation) ClearPaymentAppExternalID() {
-	m.payment_app_external_id = nil
-	m.clearedFields[billinginvoice.FieldPaymentAppExternalID] = struct{}{}
-}
-
-// PaymentAppExternalIDCleared returns if the "payment_app_external_id" field was cleared in this mutation.
-func (m *BillingInvoiceMutation) PaymentAppExternalIDCleared() bool {
-	_, ok := m.clearedFields[billinginvoice.FieldPaymentAppExternalID]
-	return ok
-}
-
-// ResetPaymentAppExternalID resets all changes to the "payment_app_external_id" field.
-func (m *BillingInvoiceMutation) ResetPaymentAppExternalID() {
-	m.payment_app_external_id = nil
-	delete(m.clearedFields, billinginvoice.FieldPaymentAppExternalID)
-}
-
-// SetTaxAppExternalID sets the "tax_app_external_id" field.
-func (m *BillingInvoiceMutation) SetTaxAppExternalID(s string) {
-	m.tax_app_external_id = &s
-}
-
-// TaxAppExternalID returns the value of the "tax_app_external_id" field in the mutation.
-func (m *BillingInvoiceMutation) TaxAppExternalID() (r string, exists bool) {
-	v := m.tax_app_external_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxAppExternalID returns the old "tax_app_external_id" field's value of the BillingInvoice entity.
-// If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceMutation) OldTaxAppExternalID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxAppExternalID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxAppExternalID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxAppExternalID: %w", err)
-	}
-	return oldValue.TaxAppExternalID, nil
-}
-
-// ClearTaxAppExternalID clears the value of the "tax_app_external_id" field.
-func (m *BillingInvoiceMutation) ClearTaxAppExternalID() {
-	m.tax_app_external_id = nil
-	m.clearedFields[billinginvoice.FieldTaxAppExternalID] = struct{}{}
-}
-
-// TaxAppExternalIDCleared returns if the "tax_app_external_id" field was cleared in this mutation.
-func (m *BillingInvoiceMutation) TaxAppExternalIDCleared() bool {
-	_, ok := m.clearedFields[billinginvoice.FieldTaxAppExternalID]
-	return ok
-}
-
-// ResetTaxAppExternalID resets all changes to the "tax_app_external_id" field.
-func (m *BillingInvoiceMutation) ResetTaxAppExternalID() {
-	m.tax_app_external_id = nil
-	delete(m.clearedFields, billinginvoice.FieldTaxAppExternalID)
-}
-
 // SetPeriodStart sets the "period_start" field.
 func (m *BillingInvoiceMutation) SetPeriodStart(t time.Time) {
 	m.period_start = &t
@@ -15071,6 +15077,15 @@ func (m *BillingInvoiceMutation) Fields() []string {
 	if m.total != nil {
 		fields = append(fields, billinginvoice.FieldTotal)
 	}
+	if m.invoicing_app_external_id != nil {
+		fields = append(fields, billinginvoice.FieldInvoicingAppExternalID)
+	}
+	if m.payment_app_external_id != nil {
+		fields = append(fields, billinginvoice.FieldPaymentAppExternalID)
+	}
+	if m.tax_app_external_id != nil {
+		fields = append(fields, billinginvoice.FieldTaxAppExternalID)
+	}
 	if m.supplier_name != nil {
 		fields = append(fields, billinginvoice.FieldSupplierName)
 	}
@@ -15139,15 +15154,6 @@ func (m *BillingInvoiceMutation) Fields() []string {
 	}
 	if m.payment_app != nil {
 		fields = append(fields, billinginvoice.FieldPaymentAppID)
-	}
-	if m.invoicing_app_external_id != nil {
-		fields = append(fields, billinginvoice.FieldInvoicingAppExternalID)
-	}
-	if m.payment_app_external_id != nil {
-		fields = append(fields, billinginvoice.FieldPaymentAppExternalID)
-	}
-	if m.tax_app_external_id != nil {
-		fields = append(fields, billinginvoice.FieldTaxAppExternalID)
 	}
 	if m.period_start != nil {
 		fields = append(fields, billinginvoice.FieldPeriodStart)
@@ -15226,6 +15232,12 @@ func (m *BillingInvoiceMutation) Field(name string) (ent.Value, bool) {
 		return m.CreditsTotal()
 	case billinginvoice.FieldTotal:
 		return m.Total()
+	case billinginvoice.FieldInvoicingAppExternalID:
+		return m.InvoicingAppExternalID()
+	case billinginvoice.FieldPaymentAppExternalID:
+		return m.PaymentAppExternalID()
+	case billinginvoice.FieldTaxAppExternalID:
+		return m.TaxAppExternalID()
 	case billinginvoice.FieldSupplierName:
 		return m.SupplierName()
 	case billinginvoice.FieldSupplierTaxCode:
@@ -15272,12 +15284,6 @@ func (m *BillingInvoiceMutation) Field(name string) (ent.Value, bool) {
 		return m.InvoicingAppID()
 	case billinginvoice.FieldPaymentAppID:
 		return m.PaymentAppID()
-	case billinginvoice.FieldInvoicingAppExternalID:
-		return m.InvoicingAppExternalID()
-	case billinginvoice.FieldPaymentAppExternalID:
-		return m.PaymentAppExternalID()
-	case billinginvoice.FieldTaxAppExternalID:
-		return m.TaxAppExternalID()
 	case billinginvoice.FieldPeriodStart:
 		return m.PeriodStart()
 	case billinginvoice.FieldPeriodEnd:
@@ -15351,6 +15357,12 @@ func (m *BillingInvoiceMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldCreditsTotal(ctx)
 	case billinginvoice.FieldTotal:
 		return m.OldTotal(ctx)
+	case billinginvoice.FieldInvoicingAppExternalID:
+		return m.OldInvoicingAppExternalID(ctx)
+	case billinginvoice.FieldPaymentAppExternalID:
+		return m.OldPaymentAppExternalID(ctx)
+	case billinginvoice.FieldTaxAppExternalID:
+		return m.OldTaxAppExternalID(ctx)
 	case billinginvoice.FieldSupplierName:
 		return m.OldSupplierName(ctx)
 	case billinginvoice.FieldSupplierTaxCode:
@@ -15397,12 +15409,6 @@ func (m *BillingInvoiceMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldInvoicingAppID(ctx)
 	case billinginvoice.FieldPaymentAppID:
 		return m.OldPaymentAppID(ctx)
-	case billinginvoice.FieldInvoicingAppExternalID:
-		return m.OldInvoicingAppExternalID(ctx)
-	case billinginvoice.FieldPaymentAppExternalID:
-		return m.OldPaymentAppExternalID(ctx)
-	case billinginvoice.FieldTaxAppExternalID:
-		return m.OldTaxAppExternalID(ctx)
 	case billinginvoice.FieldPeriodStart:
 		return m.OldPeriodStart(ctx)
 	case billinginvoice.FieldPeriodEnd:
@@ -15611,6 +15617,27 @@ func (m *BillingInvoiceMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetTotal(v)
 		return nil
+	case billinginvoice.FieldInvoicingAppExternalID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInvoicingAppExternalID(v)
+		return nil
+	case billinginvoice.FieldPaymentAppExternalID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPaymentAppExternalID(v)
+		return nil
+	case billinginvoice.FieldTaxAppExternalID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxAppExternalID(v)
+		return nil
 	case billinginvoice.FieldSupplierName:
 		v, ok := value.(string)
 		if !ok {
@@ -15772,27 +15799,6 @@ func (m *BillingInvoiceMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetPaymentAppID(v)
 		return nil
-	case billinginvoice.FieldInvoicingAppExternalID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetInvoicingAppExternalID(v)
-		return nil
-	case billinginvoice.FieldPaymentAppExternalID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetPaymentAppExternalID(v)
-		return nil
-	case billinginvoice.FieldTaxAppExternalID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxAppExternalID(v)
-		return nil
 	case billinginvoice.FieldPeriodStart:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -15921,6 +15927,15 @@ func (m *BillingInvoiceMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoice.FieldCustomerAddressPhoneNumber) {
 		fields = append(fields, billinginvoice.FieldCustomerAddressPhoneNumber)
 	}
+	if m.FieldCleared(billinginvoice.FieldInvoicingAppExternalID) {
+		fields = append(fields, billinginvoice.FieldInvoicingAppExternalID)
+	}
+	if m.FieldCleared(billinginvoice.FieldPaymentAppExternalID) {
+		fields = append(fields, billinginvoice.FieldPaymentAppExternalID)
+	}
+	if m.FieldCleared(billinginvoice.FieldTaxAppExternalID) {
+		fields = append(fields, billinginvoice.FieldTaxAppExternalID)
+	}
 	if m.FieldCleared(billinginvoice.FieldSupplierTaxCode) {
 		fields = append(fields, billinginvoice.FieldSupplierTaxCode)
 	}
@@ -15953,15 +15968,6 @@ func (m *BillingInvoiceMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(billinginvoice.FieldStatusDetailsCache) {
 		fields = append(fields, billinginvoice.FieldStatusDetailsCache)
-	}
-	if m.FieldCleared(billinginvoice.FieldInvoicingAppExternalID) {
-		fields = append(fields, billinginvoice.FieldInvoicingAppExternalID)
-	}
-	if m.FieldCleared(billinginvoice.FieldPaymentAppExternalID) {
-		fields = append(fields, billinginvoice.FieldPaymentAppExternalID)
-	}
-	if m.FieldCleared(billinginvoice.FieldTaxAppExternalID) {
-		fields = append(fields, billinginvoice.FieldTaxAppExternalID)
 	}
 	if m.FieldCleared(billinginvoice.FieldPeriodStart) {
 		fields = append(fields, billinginvoice.FieldPeriodStart)
@@ -16037,6 +16043,15 @@ func (m *BillingInvoiceMutation) ClearField(name string) error {
 	case billinginvoice.FieldCustomerAddressPhoneNumber:
 		m.ClearCustomerAddressPhoneNumber()
 		return nil
+	case billinginvoice.FieldInvoicingAppExternalID:
+		m.ClearInvoicingAppExternalID()
+		return nil
+	case billinginvoice.FieldPaymentAppExternalID:
+		m.ClearPaymentAppExternalID()
+		return nil
+	case billinginvoice.FieldTaxAppExternalID:
+		m.ClearTaxAppExternalID()
+		return nil
 	case billinginvoice.FieldSupplierTaxCode:
 		m.ClearSupplierTaxCode()
 		return nil
@@ -16069,15 +16084,6 @@ func (m *BillingInvoiceMutation) ClearField(name string) error {
 		return nil
 	case billinginvoice.FieldStatusDetailsCache:
 		m.ClearStatusDetailsCache()
-		return nil
-	case billinginvoice.FieldInvoicingAppExternalID:
-		m.ClearInvoicingAppExternalID()
-		return nil
-	case billinginvoice.FieldPaymentAppExternalID:
-		m.ClearPaymentAppExternalID()
-		return nil
-	case billinginvoice.FieldTaxAppExternalID:
-		m.ClearTaxAppExternalID()
 		return nil
 	case billinginvoice.FieldPeriodStart:
 		m.ClearPeriodStart()
@@ -16180,6 +16186,15 @@ func (m *BillingInvoiceMutation) ResetField(name string) error {
 	case billinginvoice.FieldTotal:
 		m.ResetTotal()
 		return nil
+	case billinginvoice.FieldInvoicingAppExternalID:
+		m.ResetInvoicingAppExternalID()
+		return nil
+	case billinginvoice.FieldPaymentAppExternalID:
+		m.ResetPaymentAppExternalID()
+		return nil
+	case billinginvoice.FieldTaxAppExternalID:
+		m.ResetTaxAppExternalID()
+		return nil
 	case billinginvoice.FieldSupplierName:
 		m.ResetSupplierName()
 		return nil
@@ -16248,15 +16263,6 @@ func (m *BillingInvoiceMutation) ResetField(name string) error {
 		return nil
 	case billinginvoice.FieldPaymentAppID:
 		m.ResetPaymentAppID()
-		return nil
-	case billinginvoice.FieldInvoicingAppExternalID:
-		m.ResetInvoicingAppExternalID()
-		return nil
-	case billinginvoice.FieldPaymentAppExternalID:
-		m.ResetPaymentAppExternalID()
-		return nil
-	case billinginvoice.FieldTaxAppExternalID:
-		m.ResetTaxAppExternalID()
 		return nil
 	case billinginvoice.FieldPeriodStart:
 		m.ResetPeriodStart()
@@ -16529,7 +16535,7 @@ type BillingInvoiceFlatFeeLineConfigMutation struct {
 	id              *string
 	namespace       *string
 	per_unit_amount *alpacadecimal.Decimal
-	category        *billing.FlatFeeCategory
+	category        *stddetailedline.Category
 	payment_term    *productcatalog.PaymentTermType
 	index           *int
 	addindex        *int
@@ -16716,12 +16722,12 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) ResetPerUnitAmount() {
 }
 
 // SetCategory sets the "category" field.
-func (m *BillingInvoiceFlatFeeLineConfigMutation) SetCategory(bfc billing.FlatFeeCategory) {
-	m.category = &bfc
+func (m *BillingInvoiceFlatFeeLineConfigMutation) SetCategory(s stddetailedline.Category) {
+	m.category = &s
 }
 
 // Category returns the value of the "category" field in the mutation.
-func (m *BillingInvoiceFlatFeeLineConfigMutation) Category() (r billing.FlatFeeCategory, exists bool) {
+func (m *BillingInvoiceFlatFeeLineConfigMutation) Category() (r stddetailedline.Category, exists bool) {
 	v := m.category
 	if v == nil {
 		return
@@ -16732,7 +16738,7 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) Category() (r billing.FlatFeeC
 // OldCategory returns the old "category" field's value of the BillingInvoiceFlatFeeLineConfig entity.
 // If the BillingInvoiceFlatFeeLineConfig object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceFlatFeeLineConfigMutation) OldCategory(ctx context.Context) (v billing.FlatFeeCategory, err error) {
+func (m *BillingInvoiceFlatFeeLineConfigMutation) OldCategory(ctx context.Context) (v stddetailedline.Category, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCategory is only allowed on UpdateOne operations")
 	}
@@ -16968,7 +16974,7 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) SetField(name string, value en
 		m.SetPerUnitAmount(v)
 		return nil
 	case billinginvoiceflatfeelineconfig.FieldCategory:
-		v, ok := value.(billing.FlatFeeCategory)
+		v, ok := value.(stddetailedline.Category)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -17153,6 +17159,7 @@ type BillingInvoiceLineMutation struct {
 	discounts_total                                *alpacadecimal.Decimal
 	credits_total                                  *alpacadecimal.Decimal
 	total                                          *alpacadecimal.Decimal
+	invoicing_app_external_id                      *string
 	period_start                                   *time.Time
 	period_end                                     *time.Time
 	managed_by                                     *billing.InvoiceLineManagedBy
@@ -17161,13 +17168,12 @@ type BillingInvoiceLineMutation struct {
 	status                                         *billing.InvoiceLineStatus
 	quantity                                       *alpacadecimal.Decimal
 	ratecard_discounts                             **billing.Discounts
-	invoicing_app_external_id                      *string
 	child_unique_reference_id                      *string
 	subscription_billing_period_from               *time.Time
 	subscription_billing_period_to                 *time.Time
 	engine                                         *billing.LineEngineType
 	line_ids                                       *string
-	credits_applied                                **billing.CreditsApplied
+	credits_applied                                **creditsapplied.CreditsApplied
 	clearedFields                                  map[string]struct{}
 	billing_invoice                                *string
 	clearedbilling_invoice                         bool
@@ -18133,6 +18139,55 @@ func (m *BillingInvoiceLineMutation) ResetTotal() {
 	m.total = nil
 }
 
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (m *BillingInvoiceLineMutation) SetInvoicingAppExternalID(s string) {
+	m.invoicing_app_external_id = &s
+}
+
+// InvoicingAppExternalID returns the value of the "invoicing_app_external_id" field in the mutation.
+func (m *BillingInvoiceLineMutation) InvoicingAppExternalID() (r string, exists bool) {
+	v := m.invoicing_app_external_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInvoicingAppExternalID returns the old "invoicing_app_external_id" field's value of the BillingInvoiceLine entity.
+// If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceLineMutation) OldInvoicingAppExternalID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInvoicingAppExternalID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInvoicingAppExternalID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInvoicingAppExternalID: %w", err)
+	}
+	return oldValue.InvoicingAppExternalID, nil
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (m *BillingInvoiceLineMutation) ClearInvoicingAppExternalID() {
+	m.invoicing_app_external_id = nil
+	m.clearedFields[billinginvoiceline.FieldInvoicingAppExternalID] = struct{}{}
+}
+
+// InvoicingAppExternalIDCleared returns if the "invoicing_app_external_id" field was cleared in this mutation.
+func (m *BillingInvoiceLineMutation) InvoicingAppExternalIDCleared() bool {
+	_, ok := m.clearedFields[billinginvoiceline.FieldInvoicingAppExternalID]
+	return ok
+}
+
+// ResetInvoicingAppExternalID resets all changes to the "invoicing_app_external_id" field.
+func (m *BillingInvoiceLineMutation) ResetInvoicingAppExternalID() {
+	m.invoicing_app_external_id = nil
+	delete(m.clearedFields, billinginvoiceline.FieldInvoicingAppExternalID)
+}
+
 // SetPeriodStart sets the "period_start" field.
 func (m *BillingInvoiceLineMutation) SetPeriodStart(t time.Time) {
 	m.period_start = &t
@@ -18530,55 +18585,6 @@ func (m *BillingInvoiceLineMutation) RatecardDiscountsCleared() bool {
 func (m *BillingInvoiceLineMutation) ResetRatecardDiscounts() {
 	m.ratecard_discounts = nil
 	delete(m.clearedFields, billinginvoiceline.FieldRatecardDiscounts)
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (m *BillingInvoiceLineMutation) SetInvoicingAppExternalID(s string) {
-	m.invoicing_app_external_id = &s
-}
-
-// InvoicingAppExternalID returns the value of the "invoicing_app_external_id" field in the mutation.
-func (m *BillingInvoiceLineMutation) InvoicingAppExternalID() (r string, exists bool) {
-	v := m.invoicing_app_external_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldInvoicingAppExternalID returns the old "invoicing_app_external_id" field's value of the BillingInvoiceLine entity.
-// If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceLineMutation) OldInvoicingAppExternalID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInvoicingAppExternalID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInvoicingAppExternalID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInvoicingAppExternalID: %w", err)
-	}
-	return oldValue.InvoicingAppExternalID, nil
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (m *BillingInvoiceLineMutation) ClearInvoicingAppExternalID() {
-	m.invoicing_app_external_id = nil
-	m.clearedFields[billinginvoiceline.FieldInvoicingAppExternalID] = struct{}{}
-}
-
-// InvoicingAppExternalIDCleared returns if the "invoicing_app_external_id" field was cleared in this mutation.
-func (m *BillingInvoiceLineMutation) InvoicingAppExternalIDCleared() bool {
-	_, ok := m.clearedFields[billinginvoiceline.FieldInvoicingAppExternalID]
-	return ok
-}
-
-// ResetInvoicingAppExternalID resets all changes to the "invoicing_app_external_id" field.
-func (m *BillingInvoiceLineMutation) ResetInvoicingAppExternalID() {
-	m.invoicing_app_external_id = nil
-	delete(m.clearedFields, billinginvoiceline.FieldInvoicingAppExternalID)
 }
 
 // SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
@@ -19059,12 +19065,12 @@ func (m *BillingInvoiceLineMutation) ResetLineIds() {
 }
 
 // SetCreditsApplied sets the "credits_applied" field.
-func (m *BillingInvoiceLineMutation) SetCreditsApplied(ba *billing.CreditsApplied) {
-	m.credits_applied = &ba
+func (m *BillingInvoiceLineMutation) SetCreditsApplied(ca *creditsapplied.CreditsApplied) {
+	m.credits_applied = &ca
 }
 
 // CreditsApplied returns the value of the "credits_applied" field in the mutation.
-func (m *BillingInvoiceLineMutation) CreditsApplied() (r *billing.CreditsApplied, exists bool) {
+func (m *BillingInvoiceLineMutation) CreditsApplied() (r *creditsapplied.CreditsApplied, exists bool) {
 	v := m.credits_applied
 	if v == nil {
 		return
@@ -19075,7 +19081,7 @@ func (m *BillingInvoiceLineMutation) CreditsApplied() (r *billing.CreditsApplied
 // OldCreditsApplied returns the old "credits_applied" field's value of the BillingInvoiceLine entity.
 // If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceLineMutation) OldCreditsApplied(ctx context.Context) (v *billing.CreditsApplied, err error) {
+func (m *BillingInvoiceLineMutation) OldCreditsApplied(ctx context.Context) (v *creditsapplied.CreditsApplied, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCreditsApplied is only allowed on UpdateOne operations")
 	}
@@ -19950,6 +19956,9 @@ func (m *BillingInvoiceLineMutation) Fields() []string {
 	if m.total != nil {
 		fields = append(fields, billinginvoiceline.FieldTotal)
 	}
+	if m.invoicing_app_external_id != nil {
+		fields = append(fields, billinginvoiceline.FieldInvoicingAppExternalID)
+	}
 	if m.period_start != nil {
 		fields = append(fields, billinginvoiceline.FieldPeriodStart)
 	}
@@ -19979,9 +19988,6 @@ func (m *BillingInvoiceLineMutation) Fields() []string {
 	}
 	if m.ratecard_discounts != nil {
 		fields = append(fields, billinginvoiceline.FieldRatecardDiscounts)
-	}
-	if m.invoicing_app_external_id != nil {
-		fields = append(fields, billinginvoiceline.FieldInvoicingAppExternalID)
 	}
 	if m.child_unique_reference_id != nil {
 		fields = append(fields, billinginvoiceline.FieldChildUniqueReferenceID)
@@ -20064,6 +20070,8 @@ func (m *BillingInvoiceLineMutation) Field(name string) (ent.Value, bool) {
 		return m.CreditsTotal()
 	case billinginvoiceline.FieldTotal:
 		return m.Total()
+	case billinginvoiceline.FieldInvoicingAppExternalID:
+		return m.InvoicingAppExternalID()
 	case billinginvoiceline.FieldPeriodStart:
 		return m.PeriodStart()
 	case billinginvoiceline.FieldPeriodEnd:
@@ -20084,8 +20092,6 @@ func (m *BillingInvoiceLineMutation) Field(name string) (ent.Value, bool) {
 		return m.Quantity()
 	case billinginvoiceline.FieldRatecardDiscounts:
 		return m.RatecardDiscounts()
-	case billinginvoiceline.FieldInvoicingAppExternalID:
-		return m.InvoicingAppExternalID()
 	case billinginvoiceline.FieldChildUniqueReferenceID:
 		return m.ChildUniqueReferenceID()
 	case billinginvoiceline.FieldSubscriptionID:
@@ -20157,6 +20163,8 @@ func (m *BillingInvoiceLineMutation) OldField(ctx context.Context, name string) 
 		return m.OldCreditsTotal(ctx)
 	case billinginvoiceline.FieldTotal:
 		return m.OldTotal(ctx)
+	case billinginvoiceline.FieldInvoicingAppExternalID:
+		return m.OldInvoicingAppExternalID(ctx)
 	case billinginvoiceline.FieldPeriodStart:
 		return m.OldPeriodStart(ctx)
 	case billinginvoiceline.FieldPeriodEnd:
@@ -20177,8 +20185,6 @@ func (m *BillingInvoiceLineMutation) OldField(ctx context.Context, name string) 
 		return m.OldQuantity(ctx)
 	case billinginvoiceline.FieldRatecardDiscounts:
 		return m.OldRatecardDiscounts(ctx)
-	case billinginvoiceline.FieldInvoicingAppExternalID:
-		return m.OldInvoicingAppExternalID(ctx)
 	case billinginvoiceline.FieldChildUniqueReferenceID:
 		return m.OldChildUniqueReferenceID(ctx)
 	case billinginvoiceline.FieldSubscriptionID:
@@ -20350,6 +20356,13 @@ func (m *BillingInvoiceLineMutation) SetField(name string, value ent.Value) erro
 		}
 		m.SetTotal(v)
 		return nil
+	case billinginvoiceline.FieldInvoicingAppExternalID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInvoicingAppExternalID(v)
+		return nil
 	case billinginvoiceline.FieldPeriodStart:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -20419,13 +20432,6 @@ func (m *BillingInvoiceLineMutation) SetField(name string, value ent.Value) erro
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetRatecardDiscounts(v)
-		return nil
-	case billinginvoiceline.FieldInvoicingAppExternalID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetInvoicingAppExternalID(v)
 		return nil
 	case billinginvoiceline.FieldChildUniqueReferenceID:
 		v, ok := value.(string)
@@ -20498,7 +20504,7 @@ func (m *BillingInvoiceLineMutation) SetField(name string, value ent.Value) erro
 		m.SetLineIds(v)
 		return nil
 	case billinginvoiceline.FieldCreditsApplied:
-		v, ok := value.(*billing.CreditsApplied)
+		v, ok := value.(*creditsapplied.CreditsApplied)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -20555,6 +20561,9 @@ func (m *BillingInvoiceLineMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoiceline.FieldTaxBehavior) {
 		fields = append(fields, billinginvoiceline.FieldTaxBehavior)
 	}
+	if m.FieldCleared(billinginvoiceline.FieldInvoicingAppExternalID) {
+		fields = append(fields, billinginvoiceline.FieldInvoicingAppExternalID)
+	}
 	if m.FieldCleared(billinginvoiceline.FieldParentLineID) {
 		fields = append(fields, billinginvoiceline.FieldParentLineID)
 	}
@@ -20563,9 +20572,6 @@ func (m *BillingInvoiceLineMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(billinginvoiceline.FieldRatecardDiscounts) {
 		fields = append(fields, billinginvoiceline.FieldRatecardDiscounts)
-	}
-	if m.FieldCleared(billinginvoiceline.FieldInvoicingAppExternalID) {
-		fields = append(fields, billinginvoiceline.FieldInvoicingAppExternalID)
 	}
 	if m.FieldCleared(billinginvoiceline.FieldChildUniqueReferenceID) {
 		fields = append(fields, billinginvoiceline.FieldChildUniqueReferenceID)
@@ -20632,6 +20638,9 @@ func (m *BillingInvoiceLineMutation) ClearField(name string) error {
 	case billinginvoiceline.FieldTaxBehavior:
 		m.ClearTaxBehavior()
 		return nil
+	case billinginvoiceline.FieldInvoicingAppExternalID:
+		m.ClearInvoicingAppExternalID()
+		return nil
 	case billinginvoiceline.FieldParentLineID:
 		m.ClearParentLineID()
 		return nil
@@ -20640,9 +20649,6 @@ func (m *BillingInvoiceLineMutation) ClearField(name string) error {
 		return nil
 	case billinginvoiceline.FieldRatecardDiscounts:
 		m.ClearRatecardDiscounts()
-		return nil
-	case billinginvoiceline.FieldInvoicingAppExternalID:
-		m.ClearInvoicingAppExternalID()
 		return nil
 	case billinginvoiceline.FieldChildUniqueReferenceID:
 		m.ClearChildUniqueReferenceID()
@@ -20742,6 +20748,9 @@ func (m *BillingInvoiceLineMutation) ResetField(name string) error {
 	case billinginvoiceline.FieldTotal:
 		m.ResetTotal()
 		return nil
+	case billinginvoiceline.FieldInvoicingAppExternalID:
+		m.ResetInvoicingAppExternalID()
+		return nil
 	case billinginvoiceline.FieldPeriodStart:
 		m.ResetPeriodStart()
 		return nil
@@ -20771,9 +20780,6 @@ func (m *BillingInvoiceLineMutation) ResetField(name string) error {
 		return nil
 	case billinginvoiceline.FieldRatecardDiscounts:
 		m.ResetRatecardDiscounts()
-		return nil
-	case billinginvoiceline.FieldInvoicingAppExternalID:
-		m.ResetInvoicingAppExternalID()
 		return nil
 	case billinginvoiceline.FieldChildUniqueReferenceID:
 		m.ResetChildUniqueReferenceID()
@@ -21270,10 +21276,10 @@ type BillingInvoiceLineDiscountMutation struct {
 	created_at                  *time.Time
 	updated_at                  *time.Time
 	deleted_at                  *time.Time
+	invoicing_app_external_id   *string
 	child_unique_reference_id   *string
 	description                 *string
 	reason                      *billing.DiscountReasonType
-	invoicing_app_external_id   *string
 	amount                      *alpacadecimal.Decimal
 	rounding_amount             *alpacadecimal.Decimal
 	source_discount             **billing.DiscountReason
@@ -21549,6 +21555,55 @@ func (m *BillingInvoiceLineDiscountMutation) ResetDeletedAt() {
 	delete(m.clearedFields, billinginvoicelinediscount.FieldDeletedAt)
 }
 
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (m *BillingInvoiceLineDiscountMutation) SetInvoicingAppExternalID(s string) {
+	m.invoicing_app_external_id = &s
+}
+
+// InvoicingAppExternalID returns the value of the "invoicing_app_external_id" field in the mutation.
+func (m *BillingInvoiceLineDiscountMutation) InvoicingAppExternalID() (r string, exists bool) {
+	v := m.invoicing_app_external_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInvoicingAppExternalID returns the old "invoicing_app_external_id" field's value of the BillingInvoiceLineDiscount entity.
+// If the BillingInvoiceLineDiscount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceLineDiscountMutation) OldInvoicingAppExternalID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInvoicingAppExternalID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInvoicingAppExternalID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInvoicingAppExternalID: %w", err)
+	}
+	return oldValue.InvoicingAppExternalID, nil
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (m *BillingInvoiceLineDiscountMutation) ClearInvoicingAppExternalID() {
+	m.invoicing_app_external_id = nil
+	m.clearedFields[billinginvoicelinediscount.FieldInvoicingAppExternalID] = struct{}{}
+}
+
+// InvoicingAppExternalIDCleared returns if the "invoicing_app_external_id" field was cleared in this mutation.
+func (m *BillingInvoiceLineDiscountMutation) InvoicingAppExternalIDCleared() bool {
+	_, ok := m.clearedFields[billinginvoicelinediscount.FieldInvoicingAppExternalID]
+	return ok
+}
+
+// ResetInvoicingAppExternalID resets all changes to the "invoicing_app_external_id" field.
+func (m *BillingInvoiceLineDiscountMutation) ResetInvoicingAppExternalID() {
+	m.invoicing_app_external_id = nil
+	delete(m.clearedFields, billinginvoicelinediscount.FieldInvoicingAppExternalID)
+}
+
 // SetLineID sets the "line_id" field.
 func (m *BillingInvoiceLineDiscountMutation) SetLineID(s string) {
 	m.billing_invoice_line = &s
@@ -21717,55 +21772,6 @@ func (m *BillingInvoiceLineDiscountMutation) OldReason(ctx context.Context) (v b
 // ResetReason resets all changes to the "reason" field.
 func (m *BillingInvoiceLineDiscountMutation) ResetReason() {
 	m.reason = nil
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (m *BillingInvoiceLineDiscountMutation) SetInvoicingAppExternalID(s string) {
-	m.invoicing_app_external_id = &s
-}
-
-// InvoicingAppExternalID returns the value of the "invoicing_app_external_id" field in the mutation.
-func (m *BillingInvoiceLineDiscountMutation) InvoicingAppExternalID() (r string, exists bool) {
-	v := m.invoicing_app_external_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldInvoicingAppExternalID returns the old "invoicing_app_external_id" field's value of the BillingInvoiceLineDiscount entity.
-// If the BillingInvoiceLineDiscount object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceLineDiscountMutation) OldInvoicingAppExternalID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInvoicingAppExternalID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInvoicingAppExternalID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInvoicingAppExternalID: %w", err)
-	}
-	return oldValue.InvoicingAppExternalID, nil
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (m *BillingInvoiceLineDiscountMutation) ClearInvoicingAppExternalID() {
-	m.invoicing_app_external_id = nil
-	m.clearedFields[billinginvoicelinediscount.FieldInvoicingAppExternalID] = struct{}{}
-}
-
-// InvoicingAppExternalIDCleared returns if the "invoicing_app_external_id" field was cleared in this mutation.
-func (m *BillingInvoiceLineDiscountMutation) InvoicingAppExternalIDCleared() bool {
-	_, ok := m.clearedFields[billinginvoicelinediscount.FieldInvoicingAppExternalID]
-	return ok
-}
-
-// ResetInvoicingAppExternalID resets all changes to the "invoicing_app_external_id" field.
-func (m *BillingInvoiceLineDiscountMutation) ResetInvoicingAppExternalID() {
-	m.invoicing_app_external_id = nil
-	delete(m.clearedFields, billinginvoicelinediscount.FieldInvoicingAppExternalID)
 }
 
 // SetAmount sets the "amount" field.
@@ -22136,6 +22142,9 @@ func (m *BillingInvoiceLineDiscountMutation) Fields() []string {
 	if m.deleted_at != nil {
 		fields = append(fields, billinginvoicelinediscount.FieldDeletedAt)
 	}
+	if m.invoicing_app_external_id != nil {
+		fields = append(fields, billinginvoicelinediscount.FieldInvoicingAppExternalID)
+	}
 	if m.billing_invoice_line != nil {
 		fields = append(fields, billinginvoicelinediscount.FieldLineID)
 	}
@@ -22147,9 +22156,6 @@ func (m *BillingInvoiceLineDiscountMutation) Fields() []string {
 	}
 	if m.reason != nil {
 		fields = append(fields, billinginvoicelinediscount.FieldReason)
-	}
-	if m.invoicing_app_external_id != nil {
-		fields = append(fields, billinginvoicelinediscount.FieldInvoicingAppExternalID)
 	}
 	if m.amount != nil {
 		fields = append(fields, billinginvoicelinediscount.FieldAmount)
@@ -22185,6 +22191,8 @@ func (m *BillingInvoiceLineDiscountMutation) Field(name string) (ent.Value, bool
 		return m.UpdatedAt()
 	case billinginvoicelinediscount.FieldDeletedAt:
 		return m.DeletedAt()
+	case billinginvoicelinediscount.FieldInvoicingAppExternalID:
+		return m.InvoicingAppExternalID()
 	case billinginvoicelinediscount.FieldLineID:
 		return m.LineID()
 	case billinginvoicelinediscount.FieldChildUniqueReferenceID:
@@ -22193,8 +22201,6 @@ func (m *BillingInvoiceLineDiscountMutation) Field(name string) (ent.Value, bool
 		return m.Description()
 	case billinginvoicelinediscount.FieldReason:
 		return m.Reason()
-	case billinginvoicelinediscount.FieldInvoicingAppExternalID:
-		return m.InvoicingAppExternalID()
 	case billinginvoicelinediscount.FieldAmount:
 		return m.Amount()
 	case billinginvoicelinediscount.FieldRoundingAmount:
@@ -22224,6 +22230,8 @@ func (m *BillingInvoiceLineDiscountMutation) OldField(ctx context.Context, name 
 		return m.OldUpdatedAt(ctx)
 	case billinginvoicelinediscount.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
+	case billinginvoicelinediscount.FieldInvoicingAppExternalID:
+		return m.OldInvoicingAppExternalID(ctx)
 	case billinginvoicelinediscount.FieldLineID:
 		return m.OldLineID(ctx)
 	case billinginvoicelinediscount.FieldChildUniqueReferenceID:
@@ -22232,8 +22240,6 @@ func (m *BillingInvoiceLineDiscountMutation) OldField(ctx context.Context, name 
 		return m.OldDescription(ctx)
 	case billinginvoicelinediscount.FieldReason:
 		return m.OldReason(ctx)
-	case billinginvoicelinediscount.FieldInvoicingAppExternalID:
-		return m.OldInvoicingAppExternalID(ctx)
 	case billinginvoicelinediscount.FieldAmount:
 		return m.OldAmount(ctx)
 	case billinginvoicelinediscount.FieldRoundingAmount:
@@ -22283,6 +22289,13 @@ func (m *BillingInvoiceLineDiscountMutation) SetField(name string, value ent.Val
 		}
 		m.SetDeletedAt(v)
 		return nil
+	case billinginvoicelinediscount.FieldInvoicingAppExternalID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInvoicingAppExternalID(v)
+		return nil
 	case billinginvoicelinediscount.FieldLineID:
 		v, ok := value.(string)
 		if !ok {
@@ -22310,13 +22323,6 @@ func (m *BillingInvoiceLineDiscountMutation) SetField(name string, value ent.Val
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetReason(v)
-		return nil
-	case billinginvoicelinediscount.FieldInvoicingAppExternalID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetInvoicingAppExternalID(v)
 		return nil
 	case billinginvoicelinediscount.FieldAmount:
 		v, ok := value.(alpacadecimal.Decimal)
@@ -22393,14 +22399,14 @@ func (m *BillingInvoiceLineDiscountMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoicelinediscount.FieldDeletedAt) {
 		fields = append(fields, billinginvoicelinediscount.FieldDeletedAt)
 	}
+	if m.FieldCleared(billinginvoicelinediscount.FieldInvoicingAppExternalID) {
+		fields = append(fields, billinginvoicelinediscount.FieldInvoicingAppExternalID)
+	}
 	if m.FieldCleared(billinginvoicelinediscount.FieldChildUniqueReferenceID) {
 		fields = append(fields, billinginvoicelinediscount.FieldChildUniqueReferenceID)
 	}
 	if m.FieldCleared(billinginvoicelinediscount.FieldDescription) {
 		fields = append(fields, billinginvoicelinediscount.FieldDescription)
-	}
-	if m.FieldCleared(billinginvoicelinediscount.FieldInvoicingAppExternalID) {
-		fields = append(fields, billinginvoicelinediscount.FieldInvoicingAppExternalID)
 	}
 	if m.FieldCleared(billinginvoicelinediscount.FieldRoundingAmount) {
 		fields = append(fields, billinginvoicelinediscount.FieldRoundingAmount)
@@ -22434,14 +22440,14 @@ func (m *BillingInvoiceLineDiscountMutation) ClearField(name string) error {
 	case billinginvoicelinediscount.FieldDeletedAt:
 		m.ClearDeletedAt()
 		return nil
+	case billinginvoicelinediscount.FieldInvoicingAppExternalID:
+		m.ClearInvoicingAppExternalID()
+		return nil
 	case billinginvoicelinediscount.FieldChildUniqueReferenceID:
 		m.ClearChildUniqueReferenceID()
 		return nil
 	case billinginvoicelinediscount.FieldDescription:
 		m.ClearDescription()
-		return nil
-	case billinginvoicelinediscount.FieldInvoicingAppExternalID:
-		m.ClearInvoicingAppExternalID()
 		return nil
 	case billinginvoicelinediscount.FieldRoundingAmount:
 		m.ClearRoundingAmount()
@@ -22478,6 +22484,9 @@ func (m *BillingInvoiceLineDiscountMutation) ResetField(name string) error {
 	case billinginvoicelinediscount.FieldDeletedAt:
 		m.ResetDeletedAt()
 		return nil
+	case billinginvoicelinediscount.FieldInvoicingAppExternalID:
+		m.ResetInvoicingAppExternalID()
+		return nil
 	case billinginvoicelinediscount.FieldLineID:
 		m.ResetLineID()
 		return nil
@@ -22489,9 +22498,6 @@ func (m *BillingInvoiceLineDiscountMutation) ResetField(name string) error {
 		return nil
 	case billinginvoicelinediscount.FieldReason:
 		m.ResetReason()
-		return nil
-	case billinginvoicelinediscount.FieldInvoicingAppExternalID:
-		m.ResetInvoicingAppExternalID()
 		return nil
 	case billinginvoicelinediscount.FieldAmount:
 		m.ResetAmount()
@@ -22599,10 +22605,10 @@ type BillingInvoiceLineUsageDiscountMutation struct {
 	created_at                  *time.Time
 	updated_at                  *time.Time
 	deleted_at                  *time.Time
+	invoicing_app_external_id   *string
 	child_unique_reference_id   *string
 	description                 *string
 	reason                      *billing.DiscountReasonType
-	invoicing_app_external_id   *string
 	quantity                    *alpacadecimal.Decimal
 	pre_line_period_quantity    *alpacadecimal.Decimal
 	reason_details              **billing.DiscountReason
@@ -22875,6 +22881,55 @@ func (m *BillingInvoiceLineUsageDiscountMutation) ResetDeletedAt() {
 	delete(m.clearedFields, billinginvoicelineusagediscount.FieldDeletedAt)
 }
 
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (m *BillingInvoiceLineUsageDiscountMutation) SetInvoicingAppExternalID(s string) {
+	m.invoicing_app_external_id = &s
+}
+
+// InvoicingAppExternalID returns the value of the "invoicing_app_external_id" field in the mutation.
+func (m *BillingInvoiceLineUsageDiscountMutation) InvoicingAppExternalID() (r string, exists bool) {
+	v := m.invoicing_app_external_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInvoicingAppExternalID returns the old "invoicing_app_external_id" field's value of the BillingInvoiceLineUsageDiscount entity.
+// If the BillingInvoiceLineUsageDiscount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceLineUsageDiscountMutation) OldInvoicingAppExternalID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInvoicingAppExternalID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInvoicingAppExternalID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInvoicingAppExternalID: %w", err)
+	}
+	return oldValue.InvoicingAppExternalID, nil
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (m *BillingInvoiceLineUsageDiscountMutation) ClearInvoicingAppExternalID() {
+	m.invoicing_app_external_id = nil
+	m.clearedFields[billinginvoicelineusagediscount.FieldInvoicingAppExternalID] = struct{}{}
+}
+
+// InvoicingAppExternalIDCleared returns if the "invoicing_app_external_id" field was cleared in this mutation.
+func (m *BillingInvoiceLineUsageDiscountMutation) InvoicingAppExternalIDCleared() bool {
+	_, ok := m.clearedFields[billinginvoicelineusagediscount.FieldInvoicingAppExternalID]
+	return ok
+}
+
+// ResetInvoicingAppExternalID resets all changes to the "invoicing_app_external_id" field.
+func (m *BillingInvoiceLineUsageDiscountMutation) ResetInvoicingAppExternalID() {
+	m.invoicing_app_external_id = nil
+	delete(m.clearedFields, billinginvoicelineusagediscount.FieldInvoicingAppExternalID)
+}
+
 // SetLineID sets the "line_id" field.
 func (m *BillingInvoiceLineUsageDiscountMutation) SetLineID(s string) {
 	m.billing_invoice_line = &s
@@ -23043,55 +23098,6 @@ func (m *BillingInvoiceLineUsageDiscountMutation) OldReason(ctx context.Context)
 // ResetReason resets all changes to the "reason" field.
 func (m *BillingInvoiceLineUsageDiscountMutation) ResetReason() {
 	m.reason = nil
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (m *BillingInvoiceLineUsageDiscountMutation) SetInvoicingAppExternalID(s string) {
-	m.invoicing_app_external_id = &s
-}
-
-// InvoicingAppExternalID returns the value of the "invoicing_app_external_id" field in the mutation.
-func (m *BillingInvoiceLineUsageDiscountMutation) InvoicingAppExternalID() (r string, exists bool) {
-	v := m.invoicing_app_external_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldInvoicingAppExternalID returns the old "invoicing_app_external_id" field's value of the BillingInvoiceLineUsageDiscount entity.
-// If the BillingInvoiceLineUsageDiscount object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceLineUsageDiscountMutation) OldInvoicingAppExternalID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInvoicingAppExternalID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInvoicingAppExternalID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInvoicingAppExternalID: %w", err)
-	}
-	return oldValue.InvoicingAppExternalID, nil
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (m *BillingInvoiceLineUsageDiscountMutation) ClearInvoicingAppExternalID() {
-	m.invoicing_app_external_id = nil
-	m.clearedFields[billinginvoicelineusagediscount.FieldInvoicingAppExternalID] = struct{}{}
-}
-
-// InvoicingAppExternalIDCleared returns if the "invoicing_app_external_id" field was cleared in this mutation.
-func (m *BillingInvoiceLineUsageDiscountMutation) InvoicingAppExternalIDCleared() bool {
-	_, ok := m.clearedFields[billinginvoicelineusagediscount.FieldInvoicingAppExternalID]
-	return ok
-}
-
-// ResetInvoicingAppExternalID resets all changes to the "invoicing_app_external_id" field.
-func (m *BillingInvoiceLineUsageDiscountMutation) ResetInvoicingAppExternalID() {
-	m.invoicing_app_external_id = nil
-	delete(m.clearedFields, billinginvoicelineusagediscount.FieldInvoicingAppExternalID)
 }
 
 // SetQuantity sets the "quantity" field.
@@ -23315,6 +23321,9 @@ func (m *BillingInvoiceLineUsageDiscountMutation) Fields() []string {
 	if m.deleted_at != nil {
 		fields = append(fields, billinginvoicelineusagediscount.FieldDeletedAt)
 	}
+	if m.invoicing_app_external_id != nil {
+		fields = append(fields, billinginvoicelineusagediscount.FieldInvoicingAppExternalID)
+	}
 	if m.billing_invoice_line != nil {
 		fields = append(fields, billinginvoicelineusagediscount.FieldLineID)
 	}
@@ -23326,9 +23335,6 @@ func (m *BillingInvoiceLineUsageDiscountMutation) Fields() []string {
 	}
 	if m.reason != nil {
 		fields = append(fields, billinginvoicelineusagediscount.FieldReason)
-	}
-	if m.invoicing_app_external_id != nil {
-		fields = append(fields, billinginvoicelineusagediscount.FieldInvoicingAppExternalID)
 	}
 	if m.quantity != nil {
 		fields = append(fields, billinginvoicelineusagediscount.FieldQuantity)
@@ -23355,6 +23361,8 @@ func (m *BillingInvoiceLineUsageDiscountMutation) Field(name string) (ent.Value,
 		return m.UpdatedAt()
 	case billinginvoicelineusagediscount.FieldDeletedAt:
 		return m.DeletedAt()
+	case billinginvoicelineusagediscount.FieldInvoicingAppExternalID:
+		return m.InvoicingAppExternalID()
 	case billinginvoicelineusagediscount.FieldLineID:
 		return m.LineID()
 	case billinginvoicelineusagediscount.FieldChildUniqueReferenceID:
@@ -23363,8 +23371,6 @@ func (m *BillingInvoiceLineUsageDiscountMutation) Field(name string) (ent.Value,
 		return m.Description()
 	case billinginvoicelineusagediscount.FieldReason:
 		return m.Reason()
-	case billinginvoicelineusagediscount.FieldInvoicingAppExternalID:
-		return m.InvoicingAppExternalID()
 	case billinginvoicelineusagediscount.FieldQuantity:
 		return m.Quantity()
 	case billinginvoicelineusagediscount.FieldPreLinePeriodQuantity:
@@ -23388,6 +23394,8 @@ func (m *BillingInvoiceLineUsageDiscountMutation) OldField(ctx context.Context, 
 		return m.OldUpdatedAt(ctx)
 	case billinginvoicelineusagediscount.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
+	case billinginvoicelineusagediscount.FieldInvoicingAppExternalID:
+		return m.OldInvoicingAppExternalID(ctx)
 	case billinginvoicelineusagediscount.FieldLineID:
 		return m.OldLineID(ctx)
 	case billinginvoicelineusagediscount.FieldChildUniqueReferenceID:
@@ -23396,8 +23404,6 @@ func (m *BillingInvoiceLineUsageDiscountMutation) OldField(ctx context.Context, 
 		return m.OldDescription(ctx)
 	case billinginvoicelineusagediscount.FieldReason:
 		return m.OldReason(ctx)
-	case billinginvoicelineusagediscount.FieldInvoicingAppExternalID:
-		return m.OldInvoicingAppExternalID(ctx)
 	case billinginvoicelineusagediscount.FieldQuantity:
 		return m.OldQuantity(ctx)
 	case billinginvoicelineusagediscount.FieldPreLinePeriodQuantity:
@@ -23441,6 +23447,13 @@ func (m *BillingInvoiceLineUsageDiscountMutation) SetField(name string, value en
 		}
 		m.SetDeletedAt(v)
 		return nil
+	case billinginvoicelineusagediscount.FieldInvoicingAppExternalID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInvoicingAppExternalID(v)
+		return nil
 	case billinginvoicelineusagediscount.FieldLineID:
 		v, ok := value.(string)
 		if !ok {
@@ -23468,13 +23481,6 @@ func (m *BillingInvoiceLineUsageDiscountMutation) SetField(name string, value en
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetReason(v)
-		return nil
-	case billinginvoicelineusagediscount.FieldInvoicingAppExternalID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetInvoicingAppExternalID(v)
 		return nil
 	case billinginvoicelineusagediscount.FieldQuantity:
 		v, ok := value.(alpacadecimal.Decimal)
@@ -23530,14 +23536,14 @@ func (m *BillingInvoiceLineUsageDiscountMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoicelineusagediscount.FieldDeletedAt) {
 		fields = append(fields, billinginvoicelineusagediscount.FieldDeletedAt)
 	}
+	if m.FieldCleared(billinginvoicelineusagediscount.FieldInvoicingAppExternalID) {
+		fields = append(fields, billinginvoicelineusagediscount.FieldInvoicingAppExternalID)
+	}
 	if m.FieldCleared(billinginvoicelineusagediscount.FieldChildUniqueReferenceID) {
 		fields = append(fields, billinginvoicelineusagediscount.FieldChildUniqueReferenceID)
 	}
 	if m.FieldCleared(billinginvoicelineusagediscount.FieldDescription) {
 		fields = append(fields, billinginvoicelineusagediscount.FieldDescription)
-	}
-	if m.FieldCleared(billinginvoicelineusagediscount.FieldInvoicingAppExternalID) {
-		fields = append(fields, billinginvoicelineusagediscount.FieldInvoicingAppExternalID)
 	}
 	if m.FieldCleared(billinginvoicelineusagediscount.FieldPreLinePeriodQuantity) {
 		fields = append(fields, billinginvoicelineusagediscount.FieldPreLinePeriodQuantity)
@@ -23562,14 +23568,14 @@ func (m *BillingInvoiceLineUsageDiscountMutation) ClearField(name string) error 
 	case billinginvoicelineusagediscount.FieldDeletedAt:
 		m.ClearDeletedAt()
 		return nil
+	case billinginvoicelineusagediscount.FieldInvoicingAppExternalID:
+		m.ClearInvoicingAppExternalID()
+		return nil
 	case billinginvoicelineusagediscount.FieldChildUniqueReferenceID:
 		m.ClearChildUniqueReferenceID()
 		return nil
 	case billinginvoicelineusagediscount.FieldDescription:
 		m.ClearDescription()
-		return nil
-	case billinginvoicelineusagediscount.FieldInvoicingAppExternalID:
-		m.ClearInvoicingAppExternalID()
 		return nil
 	case billinginvoicelineusagediscount.FieldPreLinePeriodQuantity:
 		m.ClearPreLinePeriodQuantity()
@@ -23597,6 +23603,9 @@ func (m *BillingInvoiceLineUsageDiscountMutation) ResetField(name string) error 
 	case billinginvoicelineusagediscount.FieldDeletedAt:
 		m.ResetDeletedAt()
 		return nil
+	case billinginvoicelineusagediscount.FieldInvoicingAppExternalID:
+		m.ResetInvoicingAppExternalID()
+		return nil
 	case billinginvoicelineusagediscount.FieldLineID:
 		m.ResetLineID()
 		return nil
@@ -23608,9 +23617,6 @@ func (m *BillingInvoiceLineUsageDiscountMutation) ResetField(name string) error 
 		return nil
 	case billinginvoicelineusagediscount.FieldReason:
 		m.ResetReason()
-		return nil
-	case billinginvoicelineusagediscount.FieldInvoicingAppExternalID:
-		m.ResetInvoicingAppExternalID()
 		return nil
 	case billinginvoicelineusagediscount.FieldQuantity:
 		m.ResetQuantity()
@@ -30356,6 +30362,20 @@ type BillingStandardInvoiceDetailedLineMutation struct {
 	op                          Op
 	typ                         string
 	id                          *string
+	currency                    *currencyx.Code
+	tax_config                  *productcatalog.TaxConfig
+	tax_behavior                *productcatalog.TaxBehavior
+	service_period_start        *time.Time
+	service_period_end          *time.Time
+	quantity                    *alpacadecimal.Decimal
+	invoicing_app_external_id   *string
+	child_unique_reference_id   *string
+	per_unit_amount             *alpacadecimal.Decimal
+	category                    *stddetailedline.Category
+	payment_term                *productcatalog.PaymentTermType
+	index                       *int
+	addindex                    *int
+	credits_applied             **creditsapplied.CreditsApplied
 	annotations                 *models.Annotations
 	namespace                   *string
 	metadata                    *map[string]string
@@ -30364,9 +30384,6 @@ type BillingStandardInvoiceDetailedLineMutation struct {
 	deleted_at                  *time.Time
 	name                        *string
 	description                 *string
-	currency                    *currencyx.Code
-	tax_config                  *productcatalog.TaxConfig
-	tax_behavior                *productcatalog.TaxBehavior
 	amount                      *alpacadecimal.Decimal
 	taxes_total                 *alpacadecimal.Decimal
 	taxes_inclusive_total       *alpacadecimal.Decimal
@@ -30375,17 +30392,6 @@ type BillingStandardInvoiceDetailedLineMutation struct {
 	discounts_total             *alpacadecimal.Decimal
 	credits_total               *alpacadecimal.Decimal
 	total                       *alpacadecimal.Decimal
-	service_period_start        *time.Time
-	service_period_end          *time.Time
-	quantity                    *alpacadecimal.Decimal
-	invoicing_app_external_id   *string
-	child_unique_reference_id   *string
-	per_unit_amount             *alpacadecimal.Decimal
-	category                    *billing.FlatFeeCategory
-	payment_term                *productcatalog.PaymentTermType
-	index                       *int
-	addindex                    *int
-	credits_applied             **billing.CreditsApplied
 	clearedFields               map[string]struct{}
 	billing_invoice             *string
 	clearedbilling_invoice      bool
@@ -30503,6 +30509,622 @@ func (m *BillingStandardInvoiceDetailedLineMutation) IDs(ctx context.Context) ([
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
+}
+
+// SetCurrency sets the "currency" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) SetCurrency(c currencyx.Code) {
+	m.currency = &c
+}
+
+// Currency returns the value of the "currency" field in the mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) Currency() (r currencyx.Code, exists bool) {
+	v := m.currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCurrency returns the old "currency" field's value of the BillingStandardInvoiceDetailedLine entity.
+// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingStandardInvoiceDetailedLineMutation) OldCurrency(ctx context.Context) (v currencyx.Code, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCurrency requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
+	}
+	return oldValue.Currency, nil
+}
+
+// ResetCurrency resets all changes to the "currency" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ResetCurrency() {
+	m.currency = nil
+}
+
+// SetTaxConfig sets the "tax_config" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) SetTaxConfig(pc productcatalog.TaxConfig) {
+	m.tax_config = &pc
+}
+
+// TaxConfig returns the value of the "tax_config" field in the mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) TaxConfig() (r productcatalog.TaxConfig, exists bool) {
+	v := m.tax_config
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxConfig returns the old "tax_config" field's value of the BillingStandardInvoiceDetailedLine entity.
+// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingStandardInvoiceDetailedLineMutation) OldTaxConfig(ctx context.Context) (v productcatalog.TaxConfig, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxConfig is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxConfig requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxConfig: %w", err)
+	}
+	return oldValue.TaxConfig, nil
+}
+
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ClearTaxConfig() {
+	m.tax_config = nil
+	m.clearedFields[billingstandardinvoicedetailedline.FieldTaxConfig] = struct{}{}
+}
+
+// TaxConfigCleared returns if the "tax_config" field was cleared in this mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) TaxConfigCleared() bool {
+	_, ok := m.clearedFields[billingstandardinvoicedetailedline.FieldTaxConfig]
+	return ok
+}
+
+// ResetTaxConfig resets all changes to the "tax_config" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ResetTaxConfig() {
+	m.tax_config = nil
+	delete(m.clearedFields, billingstandardinvoicedetailedline.FieldTaxConfig)
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) SetTaxCodeID(s string) {
+	m.tax_code = &s
+}
+
+// TaxCodeID returns the value of the "tax_code_id" field in the mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) TaxCodeID() (r string, exists bool) {
+	v := m.tax_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxCodeID returns the old "tax_code_id" field's value of the BillingStandardInvoiceDetailedLine entity.
+// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingStandardInvoiceDetailedLineMutation) OldTaxCodeID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxCodeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxCodeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxCodeID: %w", err)
+	}
+	return oldValue.TaxCodeID, nil
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ClearTaxCodeID() {
+	m.tax_code = nil
+	m.clearedFields[billingstandardinvoicedetailedline.FieldTaxCodeID] = struct{}{}
+}
+
+// TaxCodeIDCleared returns if the "tax_code_id" field was cleared in this mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) TaxCodeIDCleared() bool {
+	_, ok := m.clearedFields[billingstandardinvoicedetailedline.FieldTaxCodeID]
+	return ok
+}
+
+// ResetTaxCodeID resets all changes to the "tax_code_id" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ResetTaxCodeID() {
+	m.tax_code = nil
+	delete(m.clearedFields, billingstandardinvoicedetailedline.FieldTaxCodeID)
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) SetTaxBehavior(pb productcatalog.TaxBehavior) {
+	m.tax_behavior = &pb
+}
+
+// TaxBehavior returns the value of the "tax_behavior" field in the mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) TaxBehavior() (r productcatalog.TaxBehavior, exists bool) {
+	v := m.tax_behavior
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxBehavior returns the old "tax_behavior" field's value of the BillingStandardInvoiceDetailedLine entity.
+// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingStandardInvoiceDetailedLineMutation) OldTaxBehavior(ctx context.Context) (v *productcatalog.TaxBehavior, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxBehavior is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxBehavior requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxBehavior: %w", err)
+	}
+	return oldValue.TaxBehavior, nil
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ClearTaxBehavior() {
+	m.tax_behavior = nil
+	m.clearedFields[billingstandardinvoicedetailedline.FieldTaxBehavior] = struct{}{}
+}
+
+// TaxBehaviorCleared returns if the "tax_behavior" field was cleared in this mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) TaxBehaviorCleared() bool {
+	_, ok := m.clearedFields[billingstandardinvoicedetailedline.FieldTaxBehavior]
+	return ok
+}
+
+// ResetTaxBehavior resets all changes to the "tax_behavior" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ResetTaxBehavior() {
+	m.tax_behavior = nil
+	delete(m.clearedFields, billingstandardinvoicedetailedline.FieldTaxBehavior)
+}
+
+// SetServicePeriodStart sets the "service_period_start" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) SetServicePeriodStart(t time.Time) {
+	m.service_period_start = &t
+}
+
+// ServicePeriodStart returns the value of the "service_period_start" field in the mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) ServicePeriodStart() (r time.Time, exists bool) {
+	v := m.service_period_start
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldServicePeriodStart returns the old "service_period_start" field's value of the BillingStandardInvoiceDetailedLine entity.
+// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingStandardInvoiceDetailedLineMutation) OldServicePeriodStart(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldServicePeriodStart is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldServicePeriodStart requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldServicePeriodStart: %w", err)
+	}
+	return oldValue.ServicePeriodStart, nil
+}
+
+// ResetServicePeriodStart resets all changes to the "service_period_start" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ResetServicePeriodStart() {
+	m.service_period_start = nil
+}
+
+// SetServicePeriodEnd sets the "service_period_end" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) SetServicePeriodEnd(t time.Time) {
+	m.service_period_end = &t
+}
+
+// ServicePeriodEnd returns the value of the "service_period_end" field in the mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) ServicePeriodEnd() (r time.Time, exists bool) {
+	v := m.service_period_end
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldServicePeriodEnd returns the old "service_period_end" field's value of the BillingStandardInvoiceDetailedLine entity.
+// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingStandardInvoiceDetailedLineMutation) OldServicePeriodEnd(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldServicePeriodEnd is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldServicePeriodEnd requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldServicePeriodEnd: %w", err)
+	}
+	return oldValue.ServicePeriodEnd, nil
+}
+
+// ResetServicePeriodEnd resets all changes to the "service_period_end" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ResetServicePeriodEnd() {
+	m.service_period_end = nil
+}
+
+// SetQuantity sets the "quantity" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) SetQuantity(a alpacadecimal.Decimal) {
+	m.quantity = &a
+}
+
+// Quantity returns the value of the "quantity" field in the mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) Quantity() (r alpacadecimal.Decimal, exists bool) {
+	v := m.quantity
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldQuantity returns the old "quantity" field's value of the BillingStandardInvoiceDetailedLine entity.
+// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingStandardInvoiceDetailedLineMutation) OldQuantity(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldQuantity is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldQuantity requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldQuantity: %w", err)
+	}
+	return oldValue.Quantity, nil
+}
+
+// ResetQuantity resets all changes to the "quantity" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ResetQuantity() {
+	m.quantity = nil
+}
+
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) SetInvoicingAppExternalID(s string) {
+	m.invoicing_app_external_id = &s
+}
+
+// InvoicingAppExternalID returns the value of the "invoicing_app_external_id" field in the mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) InvoicingAppExternalID() (r string, exists bool) {
+	v := m.invoicing_app_external_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInvoicingAppExternalID returns the old "invoicing_app_external_id" field's value of the BillingStandardInvoiceDetailedLine entity.
+// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingStandardInvoiceDetailedLineMutation) OldInvoicingAppExternalID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInvoicingAppExternalID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInvoicingAppExternalID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInvoicingAppExternalID: %w", err)
+	}
+	return oldValue.InvoicingAppExternalID, nil
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ClearInvoicingAppExternalID() {
+	m.invoicing_app_external_id = nil
+	m.clearedFields[billingstandardinvoicedetailedline.FieldInvoicingAppExternalID] = struct{}{}
+}
+
+// InvoicingAppExternalIDCleared returns if the "invoicing_app_external_id" field was cleared in this mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) InvoicingAppExternalIDCleared() bool {
+	_, ok := m.clearedFields[billingstandardinvoicedetailedline.FieldInvoicingAppExternalID]
+	return ok
+}
+
+// ResetInvoicingAppExternalID resets all changes to the "invoicing_app_external_id" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ResetInvoicingAppExternalID() {
+	m.invoicing_app_external_id = nil
+	delete(m.clearedFields, billingstandardinvoicedetailedline.FieldInvoicingAppExternalID)
+}
+
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) SetChildUniqueReferenceID(s string) {
+	m.child_unique_reference_id = &s
+}
+
+// ChildUniqueReferenceID returns the value of the "child_unique_reference_id" field in the mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) ChildUniqueReferenceID() (r string, exists bool) {
+	v := m.child_unique_reference_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChildUniqueReferenceID returns the old "child_unique_reference_id" field's value of the BillingStandardInvoiceDetailedLine entity.
+// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingStandardInvoiceDetailedLineMutation) OldChildUniqueReferenceID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChildUniqueReferenceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChildUniqueReferenceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChildUniqueReferenceID: %w", err)
+	}
+	return oldValue.ChildUniqueReferenceID, nil
+}
+
+// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ClearChildUniqueReferenceID() {
+	m.child_unique_reference_id = nil
+	m.clearedFields[billingstandardinvoicedetailedline.FieldChildUniqueReferenceID] = struct{}{}
+}
+
+// ChildUniqueReferenceIDCleared returns if the "child_unique_reference_id" field was cleared in this mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) ChildUniqueReferenceIDCleared() bool {
+	_, ok := m.clearedFields[billingstandardinvoicedetailedline.FieldChildUniqueReferenceID]
+	return ok
+}
+
+// ResetChildUniqueReferenceID resets all changes to the "child_unique_reference_id" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ResetChildUniqueReferenceID() {
+	m.child_unique_reference_id = nil
+	delete(m.clearedFields, billingstandardinvoicedetailedline.FieldChildUniqueReferenceID)
+}
+
+// SetPerUnitAmount sets the "per_unit_amount" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) SetPerUnitAmount(a alpacadecimal.Decimal) {
+	m.per_unit_amount = &a
+}
+
+// PerUnitAmount returns the value of the "per_unit_amount" field in the mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) PerUnitAmount() (r alpacadecimal.Decimal, exists bool) {
+	v := m.per_unit_amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPerUnitAmount returns the old "per_unit_amount" field's value of the BillingStandardInvoiceDetailedLine entity.
+// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingStandardInvoiceDetailedLineMutation) OldPerUnitAmount(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPerUnitAmount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPerUnitAmount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPerUnitAmount: %w", err)
+	}
+	return oldValue.PerUnitAmount, nil
+}
+
+// ResetPerUnitAmount resets all changes to the "per_unit_amount" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ResetPerUnitAmount() {
+	m.per_unit_amount = nil
+}
+
+// SetCategory sets the "category" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) SetCategory(s stddetailedline.Category) {
+	m.category = &s
+}
+
+// Category returns the value of the "category" field in the mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) Category() (r stddetailedline.Category, exists bool) {
+	v := m.category
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCategory returns the old "category" field's value of the BillingStandardInvoiceDetailedLine entity.
+// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingStandardInvoiceDetailedLineMutation) OldCategory(ctx context.Context) (v stddetailedline.Category, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCategory is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCategory requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCategory: %w", err)
+	}
+	return oldValue.Category, nil
+}
+
+// ResetCategory resets all changes to the "category" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ResetCategory() {
+	m.category = nil
+}
+
+// SetPaymentTerm sets the "payment_term" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) SetPaymentTerm(ptt productcatalog.PaymentTermType) {
+	m.payment_term = &ptt
+}
+
+// PaymentTerm returns the value of the "payment_term" field in the mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) PaymentTerm() (r productcatalog.PaymentTermType, exists bool) {
+	v := m.payment_term
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPaymentTerm returns the old "payment_term" field's value of the BillingStandardInvoiceDetailedLine entity.
+// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingStandardInvoiceDetailedLineMutation) OldPaymentTerm(ctx context.Context) (v productcatalog.PaymentTermType, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPaymentTerm is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPaymentTerm requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPaymentTerm: %w", err)
+	}
+	return oldValue.PaymentTerm, nil
+}
+
+// ResetPaymentTerm resets all changes to the "payment_term" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ResetPaymentTerm() {
+	m.payment_term = nil
+}
+
+// SetIndex sets the "index" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) SetIndex(i int) {
+	m.index = &i
+	m.addindex = nil
+}
+
+// Index returns the value of the "index" field in the mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) Index() (r int, exists bool) {
+	v := m.index
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIndex returns the old "index" field's value of the BillingStandardInvoiceDetailedLine entity.
+// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingStandardInvoiceDetailedLineMutation) OldIndex(ctx context.Context) (v *int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIndex is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIndex requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIndex: %w", err)
+	}
+	return oldValue.Index, nil
+}
+
+// AddIndex adds i to the "index" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) AddIndex(i int) {
+	if m.addindex != nil {
+		*m.addindex += i
+	} else {
+		m.addindex = &i
+	}
+}
+
+// AddedIndex returns the value that was added to the "index" field in this mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) AddedIndex() (r int, exists bool) {
+	v := m.addindex
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearIndex clears the value of the "index" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ClearIndex() {
+	m.index = nil
+	m.addindex = nil
+	m.clearedFields[billingstandardinvoicedetailedline.FieldIndex] = struct{}{}
+}
+
+// IndexCleared returns if the "index" field was cleared in this mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) IndexCleared() bool {
+	_, ok := m.clearedFields[billingstandardinvoicedetailedline.FieldIndex]
+	return ok
+}
+
+// ResetIndex resets all changes to the "index" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ResetIndex() {
+	m.index = nil
+	m.addindex = nil
+	delete(m.clearedFields, billingstandardinvoicedetailedline.FieldIndex)
+}
+
+// SetCreditsApplied sets the "credits_applied" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) SetCreditsApplied(ca *creditsapplied.CreditsApplied) {
+	m.credits_applied = &ca
+}
+
+// CreditsApplied returns the value of the "credits_applied" field in the mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) CreditsApplied() (r *creditsapplied.CreditsApplied, exists bool) {
+	v := m.credits_applied
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreditsApplied returns the old "credits_applied" field's value of the BillingStandardInvoiceDetailedLine entity.
+// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingStandardInvoiceDetailedLineMutation) OldCreditsApplied(ctx context.Context) (v *creditsapplied.CreditsApplied, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreditsApplied is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreditsApplied requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreditsApplied: %w", err)
+	}
+	return oldValue.CreditsApplied, nil
+}
+
+// ClearCreditsApplied clears the value of the "credits_applied" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ClearCreditsApplied() {
+	m.credits_applied = nil
+	m.clearedFields[billingstandardinvoicedetailedline.FieldCreditsApplied] = struct{}{}
+}
+
+// CreditsAppliedCleared returns if the "credits_applied" field was cleared in this mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) CreditsAppliedCleared() bool {
+	_, ok := m.clearedFields[billingstandardinvoicedetailedline.FieldCreditsApplied]
+	return ok
+}
+
+// ResetCreditsApplied resets all changes to the "credits_applied" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ResetCreditsApplied() {
+	m.credits_applied = nil
+	delete(m.clearedFields, billingstandardinvoicedetailedline.FieldCreditsApplied)
 }
 
 // SetAnnotations sets the "annotations" field.
@@ -30845,189 +31467,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ResetDescription() {
 	delete(m.clearedFields, billingstandardinvoicedetailedline.FieldDescription)
 }
 
-// SetCurrency sets the "currency" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) SetCurrency(c currencyx.Code) {
-	m.currency = &c
-}
-
-// Currency returns the value of the "currency" field in the mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) Currency() (r currencyx.Code, exists bool) {
-	v := m.currency
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCurrency returns the old "currency" field's value of the BillingStandardInvoiceDetailedLine entity.
-// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingStandardInvoiceDetailedLineMutation) OldCurrency(ctx context.Context) (v currencyx.Code, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCurrency requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
-	}
-	return oldValue.Currency, nil
-}
-
-// ResetCurrency resets all changes to the "currency" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ResetCurrency() {
-	m.currency = nil
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) SetTaxConfig(pc productcatalog.TaxConfig) {
-	m.tax_config = &pc
-}
-
-// TaxConfig returns the value of the "tax_config" field in the mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) TaxConfig() (r productcatalog.TaxConfig, exists bool) {
-	v := m.tax_config
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxConfig returns the old "tax_config" field's value of the BillingStandardInvoiceDetailedLine entity.
-// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingStandardInvoiceDetailedLineMutation) OldTaxConfig(ctx context.Context) (v productcatalog.TaxConfig, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxConfig is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxConfig requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxConfig: %w", err)
-	}
-	return oldValue.TaxConfig, nil
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ClearTaxConfig() {
-	m.tax_config = nil
-	m.clearedFields[billingstandardinvoicedetailedline.FieldTaxConfig] = struct{}{}
-}
-
-// TaxConfigCleared returns if the "tax_config" field was cleared in this mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) TaxConfigCleared() bool {
-	_, ok := m.clearedFields[billingstandardinvoicedetailedline.FieldTaxConfig]
-	return ok
-}
-
-// ResetTaxConfig resets all changes to the "tax_config" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ResetTaxConfig() {
-	m.tax_config = nil
-	delete(m.clearedFields, billingstandardinvoicedetailedline.FieldTaxConfig)
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) SetTaxCodeID(s string) {
-	m.tax_code = &s
-}
-
-// TaxCodeID returns the value of the "tax_code_id" field in the mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) TaxCodeID() (r string, exists bool) {
-	v := m.tax_code
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxCodeID returns the old "tax_code_id" field's value of the BillingStandardInvoiceDetailedLine entity.
-// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingStandardInvoiceDetailedLineMutation) OldTaxCodeID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxCodeID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxCodeID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxCodeID: %w", err)
-	}
-	return oldValue.TaxCodeID, nil
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ClearTaxCodeID() {
-	m.tax_code = nil
-	m.clearedFields[billingstandardinvoicedetailedline.FieldTaxCodeID] = struct{}{}
-}
-
-// TaxCodeIDCleared returns if the "tax_code_id" field was cleared in this mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) TaxCodeIDCleared() bool {
-	_, ok := m.clearedFields[billingstandardinvoicedetailedline.FieldTaxCodeID]
-	return ok
-}
-
-// ResetTaxCodeID resets all changes to the "tax_code_id" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ResetTaxCodeID() {
-	m.tax_code = nil
-	delete(m.clearedFields, billingstandardinvoicedetailedline.FieldTaxCodeID)
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) SetTaxBehavior(pb productcatalog.TaxBehavior) {
-	m.tax_behavior = &pb
-}
-
-// TaxBehavior returns the value of the "tax_behavior" field in the mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) TaxBehavior() (r productcatalog.TaxBehavior, exists bool) {
-	v := m.tax_behavior
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxBehavior returns the old "tax_behavior" field's value of the BillingStandardInvoiceDetailedLine entity.
-// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingStandardInvoiceDetailedLineMutation) OldTaxBehavior(ctx context.Context) (v *productcatalog.TaxBehavior, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxBehavior is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxBehavior requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxBehavior: %w", err)
-	}
-	return oldValue.TaxBehavior, nil
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ClearTaxBehavior() {
-	m.tax_behavior = nil
-	m.clearedFields[billingstandardinvoicedetailedline.FieldTaxBehavior] = struct{}{}
-}
-
-// TaxBehaviorCleared returns if the "tax_behavior" field was cleared in this mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) TaxBehaviorCleared() bool {
-	_, ok := m.clearedFields[billingstandardinvoicedetailedline.FieldTaxBehavior]
-	return ok
-}
-
-// ResetTaxBehavior resets all changes to the "tax_behavior" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ResetTaxBehavior() {
-	m.tax_behavior = nil
-	delete(m.clearedFields, billingstandardinvoicedetailedline.FieldTaxBehavior)
-}
-
 // SetAmount sets the "amount" field.
 func (m *BillingStandardInvoiceDetailedLineMutation) SetAmount(a alpacadecimal.Decimal) {
 	m.amount = &a
@@ -31316,78 +31755,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ResetTotal() {
 	m.total = nil
 }
 
-// SetServicePeriodStart sets the "service_period_start" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) SetServicePeriodStart(t time.Time) {
-	m.service_period_start = &t
-}
-
-// ServicePeriodStart returns the value of the "service_period_start" field in the mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) ServicePeriodStart() (r time.Time, exists bool) {
-	v := m.service_period_start
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldServicePeriodStart returns the old "service_period_start" field's value of the BillingStandardInvoiceDetailedLine entity.
-// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingStandardInvoiceDetailedLineMutation) OldServicePeriodStart(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldServicePeriodStart is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldServicePeriodStart requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldServicePeriodStart: %w", err)
-	}
-	return oldValue.ServicePeriodStart, nil
-}
-
-// ResetServicePeriodStart resets all changes to the "service_period_start" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ResetServicePeriodStart() {
-	m.service_period_start = nil
-}
-
-// SetServicePeriodEnd sets the "service_period_end" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) SetServicePeriodEnd(t time.Time) {
-	m.service_period_end = &t
-}
-
-// ServicePeriodEnd returns the value of the "service_period_end" field in the mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) ServicePeriodEnd() (r time.Time, exists bool) {
-	v := m.service_period_end
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldServicePeriodEnd returns the old "service_period_end" field's value of the BillingStandardInvoiceDetailedLine entity.
-// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingStandardInvoiceDetailedLineMutation) OldServicePeriodEnd(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldServicePeriodEnd is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldServicePeriodEnd requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldServicePeriodEnd: %w", err)
-	}
-	return oldValue.ServicePeriodEnd, nil
-}
-
-// ResetServicePeriodEnd resets all changes to the "service_period_end" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ResetServicePeriodEnd() {
-	m.service_period_end = nil
-}
-
 // SetInvoiceID sets the "invoice_id" field.
 func (m *BillingStandardInvoiceDetailedLineMutation) SetInvoiceID(s string) {
 	m.billing_invoice = &s
@@ -31458,367 +31825,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) OldParentLineID(ctx context
 // ResetParentLineID resets all changes to the "parent_line_id" field.
 func (m *BillingStandardInvoiceDetailedLineMutation) ResetParentLineID() {
 	m.billing_invoice_line = nil
-}
-
-// SetQuantity sets the "quantity" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) SetQuantity(a alpacadecimal.Decimal) {
-	m.quantity = &a
-}
-
-// Quantity returns the value of the "quantity" field in the mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) Quantity() (r alpacadecimal.Decimal, exists bool) {
-	v := m.quantity
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldQuantity returns the old "quantity" field's value of the BillingStandardInvoiceDetailedLine entity.
-// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingStandardInvoiceDetailedLineMutation) OldQuantity(ctx context.Context) (v alpacadecimal.Decimal, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldQuantity is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldQuantity requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldQuantity: %w", err)
-	}
-	return oldValue.Quantity, nil
-}
-
-// ResetQuantity resets all changes to the "quantity" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ResetQuantity() {
-	m.quantity = nil
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) SetInvoicingAppExternalID(s string) {
-	m.invoicing_app_external_id = &s
-}
-
-// InvoicingAppExternalID returns the value of the "invoicing_app_external_id" field in the mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) InvoicingAppExternalID() (r string, exists bool) {
-	v := m.invoicing_app_external_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldInvoicingAppExternalID returns the old "invoicing_app_external_id" field's value of the BillingStandardInvoiceDetailedLine entity.
-// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingStandardInvoiceDetailedLineMutation) OldInvoicingAppExternalID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInvoicingAppExternalID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInvoicingAppExternalID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInvoicingAppExternalID: %w", err)
-	}
-	return oldValue.InvoicingAppExternalID, nil
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ClearInvoicingAppExternalID() {
-	m.invoicing_app_external_id = nil
-	m.clearedFields[billingstandardinvoicedetailedline.FieldInvoicingAppExternalID] = struct{}{}
-}
-
-// InvoicingAppExternalIDCleared returns if the "invoicing_app_external_id" field was cleared in this mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) InvoicingAppExternalIDCleared() bool {
-	_, ok := m.clearedFields[billingstandardinvoicedetailedline.FieldInvoicingAppExternalID]
-	return ok
-}
-
-// ResetInvoicingAppExternalID resets all changes to the "invoicing_app_external_id" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ResetInvoicingAppExternalID() {
-	m.invoicing_app_external_id = nil
-	delete(m.clearedFields, billingstandardinvoicedetailedline.FieldInvoicingAppExternalID)
-}
-
-// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) SetChildUniqueReferenceID(s string) {
-	m.child_unique_reference_id = &s
-}
-
-// ChildUniqueReferenceID returns the value of the "child_unique_reference_id" field in the mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) ChildUniqueReferenceID() (r string, exists bool) {
-	v := m.child_unique_reference_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldChildUniqueReferenceID returns the old "child_unique_reference_id" field's value of the BillingStandardInvoiceDetailedLine entity.
-// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingStandardInvoiceDetailedLineMutation) OldChildUniqueReferenceID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldChildUniqueReferenceID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldChildUniqueReferenceID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldChildUniqueReferenceID: %w", err)
-	}
-	return oldValue.ChildUniqueReferenceID, nil
-}
-
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ClearChildUniqueReferenceID() {
-	m.child_unique_reference_id = nil
-	m.clearedFields[billingstandardinvoicedetailedline.FieldChildUniqueReferenceID] = struct{}{}
-}
-
-// ChildUniqueReferenceIDCleared returns if the "child_unique_reference_id" field was cleared in this mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) ChildUniqueReferenceIDCleared() bool {
-	_, ok := m.clearedFields[billingstandardinvoicedetailedline.FieldChildUniqueReferenceID]
-	return ok
-}
-
-// ResetChildUniqueReferenceID resets all changes to the "child_unique_reference_id" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ResetChildUniqueReferenceID() {
-	m.child_unique_reference_id = nil
-	delete(m.clearedFields, billingstandardinvoicedetailedline.FieldChildUniqueReferenceID)
-}
-
-// SetPerUnitAmount sets the "per_unit_amount" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) SetPerUnitAmount(a alpacadecimal.Decimal) {
-	m.per_unit_amount = &a
-}
-
-// PerUnitAmount returns the value of the "per_unit_amount" field in the mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) PerUnitAmount() (r alpacadecimal.Decimal, exists bool) {
-	v := m.per_unit_amount
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldPerUnitAmount returns the old "per_unit_amount" field's value of the BillingStandardInvoiceDetailedLine entity.
-// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingStandardInvoiceDetailedLineMutation) OldPerUnitAmount(ctx context.Context) (v alpacadecimal.Decimal, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldPerUnitAmount is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldPerUnitAmount requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldPerUnitAmount: %w", err)
-	}
-	return oldValue.PerUnitAmount, nil
-}
-
-// ResetPerUnitAmount resets all changes to the "per_unit_amount" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ResetPerUnitAmount() {
-	m.per_unit_amount = nil
-}
-
-// SetCategory sets the "category" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) SetCategory(bfc billing.FlatFeeCategory) {
-	m.category = &bfc
-}
-
-// Category returns the value of the "category" field in the mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) Category() (r billing.FlatFeeCategory, exists bool) {
-	v := m.category
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCategory returns the old "category" field's value of the BillingStandardInvoiceDetailedLine entity.
-// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingStandardInvoiceDetailedLineMutation) OldCategory(ctx context.Context) (v billing.FlatFeeCategory, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCategory is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCategory requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCategory: %w", err)
-	}
-	return oldValue.Category, nil
-}
-
-// ResetCategory resets all changes to the "category" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ResetCategory() {
-	m.category = nil
-}
-
-// SetPaymentTerm sets the "payment_term" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) SetPaymentTerm(ptt productcatalog.PaymentTermType) {
-	m.payment_term = &ptt
-}
-
-// PaymentTerm returns the value of the "payment_term" field in the mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) PaymentTerm() (r productcatalog.PaymentTermType, exists bool) {
-	v := m.payment_term
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldPaymentTerm returns the old "payment_term" field's value of the BillingStandardInvoiceDetailedLine entity.
-// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingStandardInvoiceDetailedLineMutation) OldPaymentTerm(ctx context.Context) (v productcatalog.PaymentTermType, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldPaymentTerm is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldPaymentTerm requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldPaymentTerm: %w", err)
-	}
-	return oldValue.PaymentTerm, nil
-}
-
-// ResetPaymentTerm resets all changes to the "payment_term" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ResetPaymentTerm() {
-	m.payment_term = nil
-}
-
-// SetIndex sets the "index" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) SetIndex(i int) {
-	m.index = &i
-	m.addindex = nil
-}
-
-// Index returns the value of the "index" field in the mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) Index() (r int, exists bool) {
-	v := m.index
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldIndex returns the old "index" field's value of the BillingStandardInvoiceDetailedLine entity.
-// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingStandardInvoiceDetailedLineMutation) OldIndex(ctx context.Context) (v *int, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldIndex is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldIndex requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldIndex: %w", err)
-	}
-	return oldValue.Index, nil
-}
-
-// AddIndex adds i to the "index" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) AddIndex(i int) {
-	if m.addindex != nil {
-		*m.addindex += i
-	} else {
-		m.addindex = &i
-	}
-}
-
-// AddedIndex returns the value that was added to the "index" field in this mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) AddedIndex() (r int, exists bool) {
-	v := m.addindex
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ClearIndex clears the value of the "index" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ClearIndex() {
-	m.index = nil
-	m.addindex = nil
-	m.clearedFields[billingstandardinvoicedetailedline.FieldIndex] = struct{}{}
-}
-
-// IndexCleared returns if the "index" field was cleared in this mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) IndexCleared() bool {
-	_, ok := m.clearedFields[billingstandardinvoicedetailedline.FieldIndex]
-	return ok
-}
-
-// ResetIndex resets all changes to the "index" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ResetIndex() {
-	m.index = nil
-	m.addindex = nil
-	delete(m.clearedFields, billingstandardinvoicedetailedline.FieldIndex)
-}
-
-// SetCreditsApplied sets the "credits_applied" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) SetCreditsApplied(ba *billing.CreditsApplied) {
-	m.credits_applied = &ba
-}
-
-// CreditsApplied returns the value of the "credits_applied" field in the mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) CreditsApplied() (r *billing.CreditsApplied, exists bool) {
-	v := m.credits_applied
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCreditsApplied returns the old "credits_applied" field's value of the BillingStandardInvoiceDetailedLine entity.
-// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingStandardInvoiceDetailedLineMutation) OldCreditsApplied(ctx context.Context) (v *billing.CreditsApplied, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCreditsApplied is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCreditsApplied requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCreditsApplied: %w", err)
-	}
-	return oldValue.CreditsApplied, nil
-}
-
-// ClearCreditsApplied clears the value of the "credits_applied" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ClearCreditsApplied() {
-	m.credits_applied = nil
-	m.clearedFields[billingstandardinvoicedetailedline.FieldCreditsApplied] = struct{}{}
-}
-
-// CreditsAppliedCleared returns if the "credits_applied" field was cleared in this mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) CreditsAppliedCleared() bool {
-	_, ok := m.clearedFields[billingstandardinvoicedetailedline.FieldCreditsApplied]
-	return ok
-}
-
-// ResetCreditsApplied resets all changes to the "credits_applied" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ResetCreditsApplied() {
-	m.credits_applied = nil
-	delete(m.clearedFields, billingstandardinvoicedetailedline.FieldCreditsApplied)
 }
 
 // SetBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by id.
@@ -32017,30 +32023,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) Type() string {
 // AddedFields().
 func (m *BillingStandardInvoiceDetailedLineMutation) Fields() []string {
 	fields := make([]string, 0, 32)
-	if m.annotations != nil {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldAnnotations)
-	}
-	if m.namespace != nil {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldNamespace)
-	}
-	if m.metadata != nil {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldMetadata)
-	}
-	if m.created_at != nil {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldCreatedAt)
-	}
-	if m.updated_at != nil {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldUpdatedAt)
-	}
-	if m.deleted_at != nil {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldDeletedAt)
-	}
-	if m.name != nil {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldName)
-	}
-	if m.description != nil {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldDescription)
-	}
 	if m.currency != nil {
 		fields = append(fields, billingstandardinvoicedetailedline.FieldCurrency)
 	}
@@ -32053,41 +32035,11 @@ func (m *BillingStandardInvoiceDetailedLineMutation) Fields() []string {
 	if m.tax_behavior != nil {
 		fields = append(fields, billingstandardinvoicedetailedline.FieldTaxBehavior)
 	}
-	if m.amount != nil {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldAmount)
-	}
-	if m.taxes_total != nil {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldTaxesTotal)
-	}
-	if m.taxes_inclusive_total != nil {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldTaxesInclusiveTotal)
-	}
-	if m.taxes_exclusive_total != nil {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldTaxesExclusiveTotal)
-	}
-	if m.charges_total != nil {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldChargesTotal)
-	}
-	if m.discounts_total != nil {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldDiscountsTotal)
-	}
-	if m.credits_total != nil {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldCreditsTotal)
-	}
-	if m.total != nil {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldTotal)
-	}
 	if m.service_period_start != nil {
 		fields = append(fields, billingstandardinvoicedetailedline.FieldServicePeriodStart)
 	}
 	if m.service_period_end != nil {
 		fields = append(fields, billingstandardinvoicedetailedline.FieldServicePeriodEnd)
-	}
-	if m.billing_invoice != nil {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldInvoiceID)
-	}
-	if m.billing_invoice_line != nil {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldParentLineID)
 	}
 	if m.quantity != nil {
 		fields = append(fields, billingstandardinvoicedetailedline.FieldQuantity)
@@ -32113,6 +32065,60 @@ func (m *BillingStandardInvoiceDetailedLineMutation) Fields() []string {
 	if m.credits_applied != nil {
 		fields = append(fields, billingstandardinvoicedetailedline.FieldCreditsApplied)
 	}
+	if m.annotations != nil {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldAnnotations)
+	}
+	if m.namespace != nil {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldNamespace)
+	}
+	if m.metadata != nil {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldMetadata)
+	}
+	if m.created_at != nil {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldDeletedAt)
+	}
+	if m.name != nil {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldName)
+	}
+	if m.description != nil {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldDescription)
+	}
+	if m.amount != nil {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldAmount)
+	}
+	if m.taxes_total != nil {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldTaxesTotal)
+	}
+	if m.taxes_inclusive_total != nil {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldTaxesInclusiveTotal)
+	}
+	if m.taxes_exclusive_total != nil {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldTaxesExclusiveTotal)
+	}
+	if m.charges_total != nil {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldChargesTotal)
+	}
+	if m.discounts_total != nil {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldDiscountsTotal)
+	}
+	if m.credits_total != nil {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldCreditsTotal)
+	}
+	if m.total != nil {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldTotal)
+	}
+	if m.billing_invoice != nil {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldInvoiceID)
+	}
+	if m.billing_invoice_line != nil {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldParentLineID)
+	}
 	return fields
 }
 
@@ -32121,22 +32127,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) Fields() []string {
 // schema.
 func (m *BillingStandardInvoiceDetailedLineMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case billingstandardinvoicedetailedline.FieldAnnotations:
-		return m.Annotations()
-	case billingstandardinvoicedetailedline.FieldNamespace:
-		return m.Namespace()
-	case billingstandardinvoicedetailedline.FieldMetadata:
-		return m.Metadata()
-	case billingstandardinvoicedetailedline.FieldCreatedAt:
-		return m.CreatedAt()
-	case billingstandardinvoicedetailedline.FieldUpdatedAt:
-		return m.UpdatedAt()
-	case billingstandardinvoicedetailedline.FieldDeletedAt:
-		return m.DeletedAt()
-	case billingstandardinvoicedetailedline.FieldName:
-		return m.Name()
-	case billingstandardinvoicedetailedline.FieldDescription:
-		return m.Description()
 	case billingstandardinvoicedetailedline.FieldCurrency:
 		return m.Currency()
 	case billingstandardinvoicedetailedline.FieldTaxConfig:
@@ -32145,30 +32135,10 @@ func (m *BillingStandardInvoiceDetailedLineMutation) Field(name string) (ent.Val
 		return m.TaxCodeID()
 	case billingstandardinvoicedetailedline.FieldTaxBehavior:
 		return m.TaxBehavior()
-	case billingstandardinvoicedetailedline.FieldAmount:
-		return m.Amount()
-	case billingstandardinvoicedetailedline.FieldTaxesTotal:
-		return m.TaxesTotal()
-	case billingstandardinvoicedetailedline.FieldTaxesInclusiveTotal:
-		return m.TaxesInclusiveTotal()
-	case billingstandardinvoicedetailedline.FieldTaxesExclusiveTotal:
-		return m.TaxesExclusiveTotal()
-	case billingstandardinvoicedetailedline.FieldChargesTotal:
-		return m.ChargesTotal()
-	case billingstandardinvoicedetailedline.FieldDiscountsTotal:
-		return m.DiscountsTotal()
-	case billingstandardinvoicedetailedline.FieldCreditsTotal:
-		return m.CreditsTotal()
-	case billingstandardinvoicedetailedline.FieldTotal:
-		return m.Total()
 	case billingstandardinvoicedetailedline.FieldServicePeriodStart:
 		return m.ServicePeriodStart()
 	case billingstandardinvoicedetailedline.FieldServicePeriodEnd:
 		return m.ServicePeriodEnd()
-	case billingstandardinvoicedetailedline.FieldInvoiceID:
-		return m.InvoiceID()
-	case billingstandardinvoicedetailedline.FieldParentLineID:
-		return m.ParentLineID()
 	case billingstandardinvoicedetailedline.FieldQuantity:
 		return m.Quantity()
 	case billingstandardinvoicedetailedline.FieldInvoicingAppExternalID:
@@ -32185,6 +32155,42 @@ func (m *BillingStandardInvoiceDetailedLineMutation) Field(name string) (ent.Val
 		return m.Index()
 	case billingstandardinvoicedetailedline.FieldCreditsApplied:
 		return m.CreditsApplied()
+	case billingstandardinvoicedetailedline.FieldAnnotations:
+		return m.Annotations()
+	case billingstandardinvoicedetailedline.FieldNamespace:
+		return m.Namespace()
+	case billingstandardinvoicedetailedline.FieldMetadata:
+		return m.Metadata()
+	case billingstandardinvoicedetailedline.FieldCreatedAt:
+		return m.CreatedAt()
+	case billingstandardinvoicedetailedline.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case billingstandardinvoicedetailedline.FieldDeletedAt:
+		return m.DeletedAt()
+	case billingstandardinvoicedetailedline.FieldName:
+		return m.Name()
+	case billingstandardinvoicedetailedline.FieldDescription:
+		return m.Description()
+	case billingstandardinvoicedetailedline.FieldAmount:
+		return m.Amount()
+	case billingstandardinvoicedetailedline.FieldTaxesTotal:
+		return m.TaxesTotal()
+	case billingstandardinvoicedetailedline.FieldTaxesInclusiveTotal:
+		return m.TaxesInclusiveTotal()
+	case billingstandardinvoicedetailedline.FieldTaxesExclusiveTotal:
+		return m.TaxesExclusiveTotal()
+	case billingstandardinvoicedetailedline.FieldChargesTotal:
+		return m.ChargesTotal()
+	case billingstandardinvoicedetailedline.FieldDiscountsTotal:
+		return m.DiscountsTotal()
+	case billingstandardinvoicedetailedline.FieldCreditsTotal:
+		return m.CreditsTotal()
+	case billingstandardinvoicedetailedline.FieldTotal:
+		return m.Total()
+	case billingstandardinvoicedetailedline.FieldInvoiceID:
+		return m.InvoiceID()
+	case billingstandardinvoicedetailedline.FieldParentLineID:
+		return m.ParentLineID()
 	}
 	return nil, false
 }
@@ -32194,22 +32200,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) Field(name string) (ent.Val
 // database failed.
 func (m *BillingStandardInvoiceDetailedLineMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case billingstandardinvoicedetailedline.FieldAnnotations:
-		return m.OldAnnotations(ctx)
-	case billingstandardinvoicedetailedline.FieldNamespace:
-		return m.OldNamespace(ctx)
-	case billingstandardinvoicedetailedline.FieldMetadata:
-		return m.OldMetadata(ctx)
-	case billingstandardinvoicedetailedline.FieldCreatedAt:
-		return m.OldCreatedAt(ctx)
-	case billingstandardinvoicedetailedline.FieldUpdatedAt:
-		return m.OldUpdatedAt(ctx)
-	case billingstandardinvoicedetailedline.FieldDeletedAt:
-		return m.OldDeletedAt(ctx)
-	case billingstandardinvoicedetailedline.FieldName:
-		return m.OldName(ctx)
-	case billingstandardinvoicedetailedline.FieldDescription:
-		return m.OldDescription(ctx)
 	case billingstandardinvoicedetailedline.FieldCurrency:
 		return m.OldCurrency(ctx)
 	case billingstandardinvoicedetailedline.FieldTaxConfig:
@@ -32218,30 +32208,10 @@ func (m *BillingStandardInvoiceDetailedLineMutation) OldField(ctx context.Contex
 		return m.OldTaxCodeID(ctx)
 	case billingstandardinvoicedetailedline.FieldTaxBehavior:
 		return m.OldTaxBehavior(ctx)
-	case billingstandardinvoicedetailedline.FieldAmount:
-		return m.OldAmount(ctx)
-	case billingstandardinvoicedetailedline.FieldTaxesTotal:
-		return m.OldTaxesTotal(ctx)
-	case billingstandardinvoicedetailedline.FieldTaxesInclusiveTotal:
-		return m.OldTaxesInclusiveTotal(ctx)
-	case billingstandardinvoicedetailedline.FieldTaxesExclusiveTotal:
-		return m.OldTaxesExclusiveTotal(ctx)
-	case billingstandardinvoicedetailedline.FieldChargesTotal:
-		return m.OldChargesTotal(ctx)
-	case billingstandardinvoicedetailedline.FieldDiscountsTotal:
-		return m.OldDiscountsTotal(ctx)
-	case billingstandardinvoicedetailedline.FieldCreditsTotal:
-		return m.OldCreditsTotal(ctx)
-	case billingstandardinvoicedetailedline.FieldTotal:
-		return m.OldTotal(ctx)
 	case billingstandardinvoicedetailedline.FieldServicePeriodStart:
 		return m.OldServicePeriodStart(ctx)
 	case billingstandardinvoicedetailedline.FieldServicePeriodEnd:
 		return m.OldServicePeriodEnd(ctx)
-	case billingstandardinvoicedetailedline.FieldInvoiceID:
-		return m.OldInvoiceID(ctx)
-	case billingstandardinvoicedetailedline.FieldParentLineID:
-		return m.OldParentLineID(ctx)
 	case billingstandardinvoicedetailedline.FieldQuantity:
 		return m.OldQuantity(ctx)
 	case billingstandardinvoicedetailedline.FieldInvoicingAppExternalID:
@@ -32258,6 +32228,42 @@ func (m *BillingStandardInvoiceDetailedLineMutation) OldField(ctx context.Contex
 		return m.OldIndex(ctx)
 	case billingstandardinvoicedetailedline.FieldCreditsApplied:
 		return m.OldCreditsApplied(ctx)
+	case billingstandardinvoicedetailedline.FieldAnnotations:
+		return m.OldAnnotations(ctx)
+	case billingstandardinvoicedetailedline.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case billingstandardinvoicedetailedline.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case billingstandardinvoicedetailedline.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case billingstandardinvoicedetailedline.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case billingstandardinvoicedetailedline.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case billingstandardinvoicedetailedline.FieldName:
+		return m.OldName(ctx)
+	case billingstandardinvoicedetailedline.FieldDescription:
+		return m.OldDescription(ctx)
+	case billingstandardinvoicedetailedline.FieldAmount:
+		return m.OldAmount(ctx)
+	case billingstandardinvoicedetailedline.FieldTaxesTotal:
+		return m.OldTaxesTotal(ctx)
+	case billingstandardinvoicedetailedline.FieldTaxesInclusiveTotal:
+		return m.OldTaxesInclusiveTotal(ctx)
+	case billingstandardinvoicedetailedline.FieldTaxesExclusiveTotal:
+		return m.OldTaxesExclusiveTotal(ctx)
+	case billingstandardinvoicedetailedline.FieldChargesTotal:
+		return m.OldChargesTotal(ctx)
+	case billingstandardinvoicedetailedline.FieldDiscountsTotal:
+		return m.OldDiscountsTotal(ctx)
+	case billingstandardinvoicedetailedline.FieldCreditsTotal:
+		return m.OldCreditsTotal(ctx)
+	case billingstandardinvoicedetailedline.FieldTotal:
+		return m.OldTotal(ctx)
+	case billingstandardinvoicedetailedline.FieldInvoiceID:
+		return m.OldInvoiceID(ctx)
+	case billingstandardinvoicedetailedline.FieldParentLineID:
+		return m.OldParentLineID(ctx)
 	}
 	return nil, fmt.Errorf("unknown BillingStandardInvoiceDetailedLine field %s", name)
 }
@@ -32267,6 +32273,104 @@ func (m *BillingStandardInvoiceDetailedLineMutation) OldField(ctx context.Contex
 // type.
 func (m *BillingStandardInvoiceDetailedLineMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case billingstandardinvoicedetailedline.FieldCurrency:
+		v, ok := value.(currencyx.Code)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrency(v)
+		return nil
+	case billingstandardinvoicedetailedline.FieldTaxConfig:
+		v, ok := value.(productcatalog.TaxConfig)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxConfig(v)
+		return nil
+	case billingstandardinvoicedetailedline.FieldTaxCodeID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxCodeID(v)
+		return nil
+	case billingstandardinvoicedetailedline.FieldTaxBehavior:
+		v, ok := value.(productcatalog.TaxBehavior)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxBehavior(v)
+		return nil
+	case billingstandardinvoicedetailedline.FieldServicePeriodStart:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetServicePeriodStart(v)
+		return nil
+	case billingstandardinvoicedetailedline.FieldServicePeriodEnd:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetServicePeriodEnd(v)
+		return nil
+	case billingstandardinvoicedetailedline.FieldQuantity:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetQuantity(v)
+		return nil
+	case billingstandardinvoicedetailedline.FieldInvoicingAppExternalID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInvoicingAppExternalID(v)
+		return nil
+	case billingstandardinvoicedetailedline.FieldChildUniqueReferenceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChildUniqueReferenceID(v)
+		return nil
+	case billingstandardinvoicedetailedline.FieldPerUnitAmount:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPerUnitAmount(v)
+		return nil
+	case billingstandardinvoicedetailedline.FieldCategory:
+		v, ok := value.(stddetailedline.Category)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCategory(v)
+		return nil
+	case billingstandardinvoicedetailedline.FieldPaymentTerm:
+		v, ok := value.(productcatalog.PaymentTermType)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPaymentTerm(v)
+		return nil
+	case billingstandardinvoicedetailedline.FieldIndex:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIndex(v)
+		return nil
+	case billingstandardinvoicedetailedline.FieldCreditsApplied:
+		v, ok := value.(*creditsapplied.CreditsApplied)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreditsApplied(v)
+		return nil
 	case billingstandardinvoicedetailedline.FieldAnnotations:
 		v, ok := value.(models.Annotations)
 		if !ok {
@@ -32322,34 +32426,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) SetField(name string, value
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDescription(v)
-		return nil
-	case billingstandardinvoicedetailedline.FieldCurrency:
-		v, ok := value.(currencyx.Code)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCurrency(v)
-		return nil
-	case billingstandardinvoicedetailedline.FieldTaxConfig:
-		v, ok := value.(productcatalog.TaxConfig)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxConfig(v)
-		return nil
-	case billingstandardinvoicedetailedline.FieldTaxCodeID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxCodeID(v)
-		return nil
-	case billingstandardinvoicedetailedline.FieldTaxBehavior:
-		v, ok := value.(productcatalog.TaxBehavior)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxBehavior(v)
 		return nil
 	case billingstandardinvoicedetailedline.FieldAmount:
 		v, ok := value.(alpacadecimal.Decimal)
@@ -32407,20 +32483,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) SetField(name string, value
 		}
 		m.SetTotal(v)
 		return nil
-	case billingstandardinvoicedetailedline.FieldServicePeriodStart:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetServicePeriodStart(v)
-		return nil
-	case billingstandardinvoicedetailedline.FieldServicePeriodEnd:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetServicePeriodEnd(v)
-		return nil
 	case billingstandardinvoicedetailedline.FieldInvoiceID:
 		v, ok := value.(string)
 		if !ok {
@@ -32434,62 +32496,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) SetField(name string, value
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetParentLineID(v)
-		return nil
-	case billingstandardinvoicedetailedline.FieldQuantity:
-		v, ok := value.(alpacadecimal.Decimal)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetQuantity(v)
-		return nil
-	case billingstandardinvoicedetailedline.FieldInvoicingAppExternalID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetInvoicingAppExternalID(v)
-		return nil
-	case billingstandardinvoicedetailedline.FieldChildUniqueReferenceID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetChildUniqueReferenceID(v)
-		return nil
-	case billingstandardinvoicedetailedline.FieldPerUnitAmount:
-		v, ok := value.(alpacadecimal.Decimal)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetPerUnitAmount(v)
-		return nil
-	case billingstandardinvoicedetailedline.FieldCategory:
-		v, ok := value.(billing.FlatFeeCategory)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCategory(v)
-		return nil
-	case billingstandardinvoicedetailedline.FieldPaymentTerm:
-		v, ok := value.(productcatalog.PaymentTermType)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetPaymentTerm(v)
-		return nil
-	case billingstandardinvoicedetailedline.FieldIndex:
-		v, ok := value.(int)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetIndex(v)
-		return nil
-	case billingstandardinvoicedetailedline.FieldCreditsApplied:
-		v, ok := value.(*billing.CreditsApplied)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCreditsApplied(v)
 		return nil
 	}
 	return fmt.Errorf("unknown BillingStandardInvoiceDetailedLine field %s", name)
@@ -32536,18 +32542,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) AddField(name string, value
 // mutation.
 func (m *BillingStandardInvoiceDetailedLineMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(billingstandardinvoicedetailedline.FieldAnnotations) {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldAnnotations)
-	}
-	if m.FieldCleared(billingstandardinvoicedetailedline.FieldMetadata) {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldMetadata)
-	}
-	if m.FieldCleared(billingstandardinvoicedetailedline.FieldDeletedAt) {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldDeletedAt)
-	}
-	if m.FieldCleared(billingstandardinvoicedetailedline.FieldDescription) {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldDescription)
-	}
 	if m.FieldCleared(billingstandardinvoicedetailedline.FieldTaxConfig) {
 		fields = append(fields, billingstandardinvoicedetailedline.FieldTaxConfig)
 	}
@@ -32569,6 +32563,18 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ClearedFields() []string {
 	if m.FieldCleared(billingstandardinvoicedetailedline.FieldCreditsApplied) {
 		fields = append(fields, billingstandardinvoicedetailedline.FieldCreditsApplied)
 	}
+	if m.FieldCleared(billingstandardinvoicedetailedline.FieldAnnotations) {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldAnnotations)
+	}
+	if m.FieldCleared(billingstandardinvoicedetailedline.FieldMetadata) {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldMetadata)
+	}
+	if m.FieldCleared(billingstandardinvoicedetailedline.FieldDeletedAt) {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldDeletedAt)
+	}
+	if m.FieldCleared(billingstandardinvoicedetailedline.FieldDescription) {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldDescription)
+	}
 	return fields
 }
 
@@ -32583,18 +32589,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) FieldCleared(name string) b
 // error if the field is not defined in the schema.
 func (m *BillingStandardInvoiceDetailedLineMutation) ClearField(name string) error {
 	switch name {
-	case billingstandardinvoicedetailedline.FieldAnnotations:
-		m.ClearAnnotations()
-		return nil
-	case billingstandardinvoicedetailedline.FieldMetadata:
-		m.ClearMetadata()
-		return nil
-	case billingstandardinvoicedetailedline.FieldDeletedAt:
-		m.ClearDeletedAt()
-		return nil
-	case billingstandardinvoicedetailedline.FieldDescription:
-		m.ClearDescription()
-		return nil
 	case billingstandardinvoicedetailedline.FieldTaxConfig:
 		m.ClearTaxConfig()
 		return nil
@@ -32616,6 +32610,18 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ClearField(name string) err
 	case billingstandardinvoicedetailedline.FieldCreditsApplied:
 		m.ClearCreditsApplied()
 		return nil
+	case billingstandardinvoicedetailedline.FieldAnnotations:
+		m.ClearAnnotations()
+		return nil
+	case billingstandardinvoicedetailedline.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	case billingstandardinvoicedetailedline.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case billingstandardinvoicedetailedline.FieldDescription:
+		m.ClearDescription()
+		return nil
 	}
 	return fmt.Errorf("unknown BillingStandardInvoiceDetailedLine nullable field %s", name)
 }
@@ -32624,6 +32630,48 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ClearField(name string) err
 // It returns an error if the field is not defined in the schema.
 func (m *BillingStandardInvoiceDetailedLineMutation) ResetField(name string) error {
 	switch name {
+	case billingstandardinvoicedetailedline.FieldCurrency:
+		m.ResetCurrency()
+		return nil
+	case billingstandardinvoicedetailedline.FieldTaxConfig:
+		m.ResetTaxConfig()
+		return nil
+	case billingstandardinvoicedetailedline.FieldTaxCodeID:
+		m.ResetTaxCodeID()
+		return nil
+	case billingstandardinvoicedetailedline.FieldTaxBehavior:
+		m.ResetTaxBehavior()
+		return nil
+	case billingstandardinvoicedetailedline.FieldServicePeriodStart:
+		m.ResetServicePeriodStart()
+		return nil
+	case billingstandardinvoicedetailedline.FieldServicePeriodEnd:
+		m.ResetServicePeriodEnd()
+		return nil
+	case billingstandardinvoicedetailedline.FieldQuantity:
+		m.ResetQuantity()
+		return nil
+	case billingstandardinvoicedetailedline.FieldInvoicingAppExternalID:
+		m.ResetInvoicingAppExternalID()
+		return nil
+	case billingstandardinvoicedetailedline.FieldChildUniqueReferenceID:
+		m.ResetChildUniqueReferenceID()
+		return nil
+	case billingstandardinvoicedetailedline.FieldPerUnitAmount:
+		m.ResetPerUnitAmount()
+		return nil
+	case billingstandardinvoicedetailedline.FieldCategory:
+		m.ResetCategory()
+		return nil
+	case billingstandardinvoicedetailedline.FieldPaymentTerm:
+		m.ResetPaymentTerm()
+		return nil
+	case billingstandardinvoicedetailedline.FieldIndex:
+		m.ResetIndex()
+		return nil
+	case billingstandardinvoicedetailedline.FieldCreditsApplied:
+		m.ResetCreditsApplied()
+		return nil
 	case billingstandardinvoicedetailedline.FieldAnnotations:
 		m.ResetAnnotations()
 		return nil
@@ -32647,18 +32695,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ResetField(name string) err
 		return nil
 	case billingstandardinvoicedetailedline.FieldDescription:
 		m.ResetDescription()
-		return nil
-	case billingstandardinvoicedetailedline.FieldCurrency:
-		m.ResetCurrency()
-		return nil
-	case billingstandardinvoicedetailedline.FieldTaxConfig:
-		m.ResetTaxConfig()
-		return nil
-	case billingstandardinvoicedetailedline.FieldTaxCodeID:
-		m.ResetTaxCodeID()
-		return nil
-	case billingstandardinvoicedetailedline.FieldTaxBehavior:
-		m.ResetTaxBehavior()
 		return nil
 	case billingstandardinvoicedetailedline.FieldAmount:
 		m.ResetAmount()
@@ -32684,41 +32720,11 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ResetField(name string) err
 	case billingstandardinvoicedetailedline.FieldTotal:
 		m.ResetTotal()
 		return nil
-	case billingstandardinvoicedetailedline.FieldServicePeriodStart:
-		m.ResetServicePeriodStart()
-		return nil
-	case billingstandardinvoicedetailedline.FieldServicePeriodEnd:
-		m.ResetServicePeriodEnd()
-		return nil
 	case billingstandardinvoicedetailedline.FieldInvoiceID:
 		m.ResetInvoiceID()
 		return nil
 	case billingstandardinvoicedetailedline.FieldParentLineID:
 		m.ResetParentLineID()
-		return nil
-	case billingstandardinvoicedetailedline.FieldQuantity:
-		m.ResetQuantity()
-		return nil
-	case billingstandardinvoicedetailedline.FieldInvoicingAppExternalID:
-		m.ResetInvoicingAppExternalID()
-		return nil
-	case billingstandardinvoicedetailedline.FieldChildUniqueReferenceID:
-		m.ResetChildUniqueReferenceID()
-		return nil
-	case billingstandardinvoicedetailedline.FieldPerUnitAmount:
-		m.ResetPerUnitAmount()
-		return nil
-	case billingstandardinvoicedetailedline.FieldCategory:
-		m.ResetCategory()
-		return nil
-	case billingstandardinvoicedetailedline.FieldPaymentTerm:
-		m.ResetPaymentTerm()
-		return nil
-	case billingstandardinvoicedetailedline.FieldIndex:
-		m.ResetIndex()
-		return nil
-	case billingstandardinvoicedetailedline.FieldCreditsApplied:
-		m.ResetCreditsApplied()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingStandardInvoiceDetailedLine field %s", name)
@@ -32872,10 +32878,10 @@ type BillingStandardInvoiceDetailedLineAmountDiscountMutation struct {
 	created_at                *time.Time
 	updated_at                *time.Time
 	deleted_at                *time.Time
+	invoicing_app_external_id *string
 	child_unique_reference_id *string
 	description               *string
 	reason                    *billing.DiscountReasonType
-	invoicing_app_external_id *string
 	amount                    *alpacadecimal.Decimal
 	rounding_amount           *alpacadecimal.Decimal
 	source_discount           **billing.DiscountReason
@@ -33148,6 +33154,55 @@ func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) ResetDeletedA
 	delete(m.clearedFields, billingstandardinvoicedetailedlineamountdiscount.FieldDeletedAt)
 }
 
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) SetInvoicingAppExternalID(s string) {
+	m.invoicing_app_external_id = &s
+}
+
+// InvoicingAppExternalID returns the value of the "invoicing_app_external_id" field in the mutation.
+func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) InvoicingAppExternalID() (r string, exists bool) {
+	v := m.invoicing_app_external_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInvoicingAppExternalID returns the old "invoicing_app_external_id" field's value of the BillingStandardInvoiceDetailedLineAmountDiscount entity.
+// If the BillingStandardInvoiceDetailedLineAmountDiscount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) OldInvoicingAppExternalID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInvoicingAppExternalID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInvoicingAppExternalID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInvoicingAppExternalID: %w", err)
+	}
+	return oldValue.InvoicingAppExternalID, nil
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) ClearInvoicingAppExternalID() {
+	m.invoicing_app_external_id = nil
+	m.clearedFields[billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID] = struct{}{}
+}
+
+// InvoicingAppExternalIDCleared returns if the "invoicing_app_external_id" field was cleared in this mutation.
+func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) InvoicingAppExternalIDCleared() bool {
+	_, ok := m.clearedFields[billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID]
+	return ok
+}
+
+// ResetInvoicingAppExternalID resets all changes to the "invoicing_app_external_id" field.
+func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) ResetInvoicingAppExternalID() {
+	m.invoicing_app_external_id = nil
+	delete(m.clearedFields, billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID)
+}
+
 // SetLineID sets the "line_id" field.
 func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) SetLineID(s string) {
 	m.detailed_line = &s
@@ -33316,55 +33371,6 @@ func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) OldReason(ctx
 // ResetReason resets all changes to the "reason" field.
 func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) ResetReason() {
 	m.reason = nil
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) SetInvoicingAppExternalID(s string) {
-	m.invoicing_app_external_id = &s
-}
-
-// InvoicingAppExternalID returns the value of the "invoicing_app_external_id" field in the mutation.
-func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) InvoicingAppExternalID() (r string, exists bool) {
-	v := m.invoicing_app_external_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldInvoicingAppExternalID returns the old "invoicing_app_external_id" field's value of the BillingStandardInvoiceDetailedLineAmountDiscount entity.
-// If the BillingStandardInvoiceDetailedLineAmountDiscount object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) OldInvoicingAppExternalID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInvoicingAppExternalID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInvoicingAppExternalID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInvoicingAppExternalID: %w", err)
-	}
-	return oldValue.InvoicingAppExternalID, nil
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) ClearInvoicingAppExternalID() {
-	m.invoicing_app_external_id = nil
-	m.clearedFields[billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID] = struct{}{}
-}
-
-// InvoicingAppExternalIDCleared returns if the "invoicing_app_external_id" field was cleared in this mutation.
-func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) InvoicingAppExternalIDCleared() bool {
-	_, ok := m.clearedFields[billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID]
-	return ok
-}
-
-// ResetInvoicingAppExternalID resets all changes to the "invoicing_app_external_id" field.
-func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) ResetInvoicingAppExternalID() {
-	m.invoicing_app_external_id = nil
-	delete(m.clearedFields, billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID)
 }
 
 // SetAmount sets the "amount" field.
@@ -33588,6 +33594,9 @@ func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) Fields() []st
 	if m.deleted_at != nil {
 		fields = append(fields, billingstandardinvoicedetailedlineamountdiscount.FieldDeletedAt)
 	}
+	if m.invoicing_app_external_id != nil {
+		fields = append(fields, billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID)
+	}
 	if m.detailed_line != nil {
 		fields = append(fields, billingstandardinvoicedetailedlineamountdiscount.FieldLineID)
 	}
@@ -33599,9 +33608,6 @@ func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) Fields() []st
 	}
 	if m.reason != nil {
 		fields = append(fields, billingstandardinvoicedetailedlineamountdiscount.FieldReason)
-	}
-	if m.invoicing_app_external_id != nil {
-		fields = append(fields, billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID)
 	}
 	if m.amount != nil {
 		fields = append(fields, billingstandardinvoicedetailedlineamountdiscount.FieldAmount)
@@ -33628,6 +33634,8 @@ func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) Field(name st
 		return m.UpdatedAt()
 	case billingstandardinvoicedetailedlineamountdiscount.FieldDeletedAt:
 		return m.DeletedAt()
+	case billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID:
+		return m.InvoicingAppExternalID()
 	case billingstandardinvoicedetailedlineamountdiscount.FieldLineID:
 		return m.LineID()
 	case billingstandardinvoicedetailedlineamountdiscount.FieldChildUniqueReferenceID:
@@ -33636,8 +33644,6 @@ func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) Field(name st
 		return m.Description()
 	case billingstandardinvoicedetailedlineamountdiscount.FieldReason:
 		return m.Reason()
-	case billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID:
-		return m.InvoicingAppExternalID()
 	case billingstandardinvoicedetailedlineamountdiscount.FieldAmount:
 		return m.Amount()
 	case billingstandardinvoicedetailedlineamountdiscount.FieldRoundingAmount:
@@ -33661,6 +33667,8 @@ func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) OldField(ctx 
 		return m.OldUpdatedAt(ctx)
 	case billingstandardinvoicedetailedlineamountdiscount.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
+	case billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID:
+		return m.OldInvoicingAppExternalID(ctx)
 	case billingstandardinvoicedetailedlineamountdiscount.FieldLineID:
 		return m.OldLineID(ctx)
 	case billingstandardinvoicedetailedlineamountdiscount.FieldChildUniqueReferenceID:
@@ -33669,8 +33677,6 @@ func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) OldField(ctx 
 		return m.OldDescription(ctx)
 	case billingstandardinvoicedetailedlineamountdiscount.FieldReason:
 		return m.OldReason(ctx)
-	case billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID:
-		return m.OldInvoicingAppExternalID(ctx)
 	case billingstandardinvoicedetailedlineamountdiscount.FieldAmount:
 		return m.OldAmount(ctx)
 	case billingstandardinvoicedetailedlineamountdiscount.FieldRoundingAmount:
@@ -33714,6 +33720,13 @@ func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) SetField(name
 		}
 		m.SetDeletedAt(v)
 		return nil
+	case billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInvoicingAppExternalID(v)
+		return nil
 	case billingstandardinvoicedetailedlineamountdiscount.FieldLineID:
 		v, ok := value.(string)
 		if !ok {
@@ -33741,13 +33754,6 @@ func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) SetField(name
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetReason(v)
-		return nil
-	case billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetInvoicingAppExternalID(v)
 		return nil
 	case billingstandardinvoicedetailedlineamountdiscount.FieldAmount:
 		v, ok := value.(alpacadecimal.Decimal)
@@ -33803,14 +33809,14 @@ func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) ClearedFields
 	if m.FieldCleared(billingstandardinvoicedetailedlineamountdiscount.FieldDeletedAt) {
 		fields = append(fields, billingstandardinvoicedetailedlineamountdiscount.FieldDeletedAt)
 	}
+	if m.FieldCleared(billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID) {
+		fields = append(fields, billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID)
+	}
 	if m.FieldCleared(billingstandardinvoicedetailedlineamountdiscount.FieldChildUniqueReferenceID) {
 		fields = append(fields, billingstandardinvoicedetailedlineamountdiscount.FieldChildUniqueReferenceID)
 	}
 	if m.FieldCleared(billingstandardinvoicedetailedlineamountdiscount.FieldDescription) {
 		fields = append(fields, billingstandardinvoicedetailedlineamountdiscount.FieldDescription)
-	}
-	if m.FieldCleared(billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID) {
-		fields = append(fields, billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID)
 	}
 	if m.FieldCleared(billingstandardinvoicedetailedlineamountdiscount.FieldRoundingAmount) {
 		fields = append(fields, billingstandardinvoicedetailedlineamountdiscount.FieldRoundingAmount)
@@ -33835,14 +33841,14 @@ func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) ClearField(na
 	case billingstandardinvoicedetailedlineamountdiscount.FieldDeletedAt:
 		m.ClearDeletedAt()
 		return nil
+	case billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID:
+		m.ClearInvoicingAppExternalID()
+		return nil
 	case billingstandardinvoicedetailedlineamountdiscount.FieldChildUniqueReferenceID:
 		m.ClearChildUniqueReferenceID()
 		return nil
 	case billingstandardinvoicedetailedlineamountdiscount.FieldDescription:
 		m.ClearDescription()
-		return nil
-	case billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID:
-		m.ClearInvoicingAppExternalID()
 		return nil
 	case billingstandardinvoicedetailedlineamountdiscount.FieldRoundingAmount:
 		m.ClearRoundingAmount()
@@ -33870,6 +33876,9 @@ func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) ResetField(na
 	case billingstandardinvoicedetailedlineamountdiscount.FieldDeletedAt:
 		m.ResetDeletedAt()
 		return nil
+	case billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID:
+		m.ResetInvoicingAppExternalID()
+		return nil
 	case billingstandardinvoicedetailedlineamountdiscount.FieldLineID:
 		m.ResetLineID()
 		return nil
@@ -33881,9 +33890,6 @@ func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) ResetField(na
 		return nil
 	case billingstandardinvoicedetailedlineamountdiscount.FieldReason:
 		m.ResetReason()
-		return nil
-	case billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID:
-		m.ResetInvoicingAppExternalID()
 		return nil
 	case billingstandardinvoicedetailedlineamountdiscount.FieldAmount:
 		m.ResetAmount()
@@ -42535,6 +42541,9 @@ type ChargeFlatFeeMutation struct {
 	credit_allocations        map[string]struct{}
 	removedcredit_allocations map[string]struct{}
 	clearedcredit_allocations bool
+	detailed_lines            map[string]struct{}
+	removeddetailed_lines     map[string]struct{}
+	cleareddetailed_lines     bool
 	invoiced_usage            *string
 	clearedinvoiced_usage     bool
 	payment                   *string
@@ -44058,6 +44067,60 @@ func (m *ChargeFlatFeeMutation) ResetCreditAllocations() {
 	m.removedcredit_allocations = nil
 }
 
+// AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeFlatFeeDetailedLine entity by ids.
+func (m *ChargeFlatFeeMutation) AddDetailedLineIDs(ids ...string) {
+	if m.detailed_lines == nil {
+		m.detailed_lines = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.detailed_lines[ids[i]] = struct{}{}
+	}
+}
+
+// ClearDetailedLines clears the "detailed_lines" edge to the ChargeFlatFeeDetailedLine entity.
+func (m *ChargeFlatFeeMutation) ClearDetailedLines() {
+	m.cleareddetailed_lines = true
+}
+
+// DetailedLinesCleared reports if the "detailed_lines" edge to the ChargeFlatFeeDetailedLine entity was cleared.
+func (m *ChargeFlatFeeMutation) DetailedLinesCleared() bool {
+	return m.cleareddetailed_lines
+}
+
+// RemoveDetailedLineIDs removes the "detailed_lines" edge to the ChargeFlatFeeDetailedLine entity by IDs.
+func (m *ChargeFlatFeeMutation) RemoveDetailedLineIDs(ids ...string) {
+	if m.removeddetailed_lines == nil {
+		m.removeddetailed_lines = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.detailed_lines, ids[i])
+		m.removeddetailed_lines[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedDetailedLines returns the removed IDs of the "detailed_lines" edge to the ChargeFlatFeeDetailedLine entity.
+func (m *ChargeFlatFeeMutation) RemovedDetailedLinesIDs() (ids []string) {
+	for id := range m.removeddetailed_lines {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// DetailedLinesIDs returns the "detailed_lines" edge IDs in the mutation.
+func (m *ChargeFlatFeeMutation) DetailedLinesIDs() (ids []string) {
+	for id := range m.detailed_lines {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetDetailedLines resets all changes to the "detailed_lines" edge.
+func (m *ChargeFlatFeeMutation) ResetDetailedLines() {
+	m.detailed_lines = nil
+	m.cleareddetailed_lines = false
+	m.removeddetailed_lines = nil
+}
+
 // SetInvoicedUsageID sets the "invoiced_usage" edge to the ChargeFlatFeeInvoicedUsage entity by id.
 func (m *ChargeFlatFeeMutation) SetInvoicedUsageID(id string) {
 	m.invoiced_usage = &id
@@ -45062,9 +45125,12 @@ func (m *ChargeFlatFeeMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeFlatFeeMutation) AddedEdges() []string {
-	edges := make([]string, 0, 9)
+	edges := make([]string, 0, 10)
 	if m.credit_allocations != nil {
 		edges = append(edges, chargeflatfee.EdgeCreditAllocations)
+	}
+	if m.detailed_lines != nil {
+		edges = append(edges, chargeflatfee.EdgeDetailedLines)
 	}
 	if m.invoiced_usage != nil {
 		edges = append(edges, chargeflatfee.EdgeInvoicedUsage)
@@ -45100,6 +45166,12 @@ func (m *ChargeFlatFeeMutation) AddedIDs(name string) []ent.Value {
 	case chargeflatfee.EdgeCreditAllocations:
 		ids := make([]ent.Value, 0, len(m.credit_allocations))
 		for id := range m.credit_allocations {
+			ids = append(ids, id)
+		}
+		return ids
+	case chargeflatfee.EdgeDetailedLines:
+		ids := make([]ent.Value, 0, len(m.detailed_lines))
+		for id := range m.detailed_lines {
 			ids = append(ids, id)
 		}
 		return ids
@@ -45141,9 +45213,12 @@ func (m *ChargeFlatFeeMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ChargeFlatFeeMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 9)
+	edges := make([]string, 0, 10)
 	if m.removedcredit_allocations != nil {
 		edges = append(edges, chargeflatfee.EdgeCreditAllocations)
+	}
+	if m.removeddetailed_lines != nil {
+		edges = append(edges, chargeflatfee.EdgeDetailedLines)
 	}
 	return edges
 }
@@ -45158,15 +45233,24 @@ func (m *ChargeFlatFeeMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case chargeflatfee.EdgeDetailedLines:
+		ids := make([]ent.Value, 0, len(m.removeddetailed_lines))
+		for id := range m.removeddetailed_lines {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeFlatFeeMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 9)
+	edges := make([]string, 0, 10)
 	if m.clearedcredit_allocations {
 		edges = append(edges, chargeflatfee.EdgeCreditAllocations)
+	}
+	if m.cleareddetailed_lines {
+		edges = append(edges, chargeflatfee.EdgeDetailedLines)
 	}
 	if m.clearedinvoiced_usage {
 		edges = append(edges, chargeflatfee.EdgeInvoicedUsage)
@@ -45201,6 +45285,8 @@ func (m *ChargeFlatFeeMutation) EdgeCleared(name string) bool {
 	switch name {
 	case chargeflatfee.EdgeCreditAllocations:
 		return m.clearedcredit_allocations
+	case chargeflatfee.EdgeDetailedLines:
+		return m.cleareddetailed_lines
 	case chargeflatfee.EdgeInvoicedUsage:
 		return m.clearedinvoiced_usage
 	case chargeflatfee.EdgePayment:
@@ -45259,6 +45345,9 @@ func (m *ChargeFlatFeeMutation) ResetEdge(name string) error {
 	switch name {
 	case chargeflatfee.EdgeCreditAllocations:
 		m.ResetCreditAllocations()
+		return nil
+	case chargeflatfee.EdgeDetailedLines:
+		m.ResetDetailedLines()
 		return nil
 	case chargeflatfee.EdgeInvoicedUsage:
 		m.ResetInvoicedUsage()
@@ -46705,6 +46794,2307 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeFlatFeeCreditAllocations edge %s", name)
+}
+
+// ChargeFlatFeeDetailedLineMutation represents an operation that mutates the ChargeFlatFeeDetailedLine nodes in the graph.
+type ChargeFlatFeeDetailedLineMutation struct {
+	config
+	op                        Op
+	typ                       string
+	id                        *string
+	currency                  *currencyx.Code
+	tax_config                *productcatalog.TaxConfig
+	tax_behavior              *productcatalog.TaxBehavior
+	service_period_start      *time.Time
+	service_period_end        *time.Time
+	quantity                  *alpacadecimal.Decimal
+	invoicing_app_external_id *string
+	child_unique_reference_id *string
+	per_unit_amount           *alpacadecimal.Decimal
+	category                  *stddetailedline.Category
+	payment_term              *productcatalog.PaymentTermType
+	index                     *int
+	addindex                  *int
+	credits_applied           **creditsapplied.CreditsApplied
+	annotations               *models.Annotations
+	namespace                 *string
+	metadata                  *map[string]string
+	created_at                *time.Time
+	updated_at                *time.Time
+	deleted_at                *time.Time
+	name                      *string
+	description               *string
+	amount                    *alpacadecimal.Decimal
+	taxes_total               *alpacadecimal.Decimal
+	taxes_inclusive_total     *alpacadecimal.Decimal
+	taxes_exclusive_total     *alpacadecimal.Decimal
+	charges_total             *alpacadecimal.Decimal
+	discounts_total           *alpacadecimal.Decimal
+	credits_total             *alpacadecimal.Decimal
+	total                     *alpacadecimal.Decimal
+	clearedFields             map[string]struct{}
+	charge                    *string
+	clearedcharge             bool
+	tax_code                  *string
+	clearedtax_code           bool
+	done                      bool
+	oldValue                  func(context.Context) (*ChargeFlatFeeDetailedLine, error)
+	predicates                []predicate.ChargeFlatFeeDetailedLine
+}
+
+var _ ent.Mutation = (*ChargeFlatFeeDetailedLineMutation)(nil)
+
+// chargeflatfeedetailedlineOption allows management of the mutation configuration using functional options.
+type chargeflatfeedetailedlineOption func(*ChargeFlatFeeDetailedLineMutation)
+
+// newChargeFlatFeeDetailedLineMutation creates new mutation for the ChargeFlatFeeDetailedLine entity.
+func newChargeFlatFeeDetailedLineMutation(c config, op Op, opts ...chargeflatfeedetailedlineOption) *ChargeFlatFeeDetailedLineMutation {
+	m := &ChargeFlatFeeDetailedLineMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeChargeFlatFeeDetailedLine,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withChargeFlatFeeDetailedLineID sets the ID field of the mutation.
+func withChargeFlatFeeDetailedLineID(id string) chargeflatfeedetailedlineOption {
+	return func(m *ChargeFlatFeeDetailedLineMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ChargeFlatFeeDetailedLine
+		)
+		m.oldValue = func(ctx context.Context) (*ChargeFlatFeeDetailedLine, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ChargeFlatFeeDetailedLine.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withChargeFlatFeeDetailedLine sets the old ChargeFlatFeeDetailedLine of the mutation.
+func withChargeFlatFeeDetailedLine(node *ChargeFlatFeeDetailedLine) chargeflatfeedetailedlineOption {
+	return func(m *ChargeFlatFeeDetailedLineMutation) {
+		m.oldValue = func(context.Context) (*ChargeFlatFeeDetailedLine, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ChargeFlatFeeDetailedLineMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ChargeFlatFeeDetailedLineMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ChargeFlatFeeDetailedLine entities.
+func (m *ChargeFlatFeeDetailedLineMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ChargeFlatFeeDetailedLineMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ChargeFlatFeeDetailedLine.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCurrency sets the "currency" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetCurrency(c currencyx.Code) {
+	m.currency = &c
+}
+
+// Currency returns the value of the "currency" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) Currency() (r currencyx.Code, exists bool) {
+	v := m.currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCurrency returns the old "currency" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldCurrency(ctx context.Context) (v currencyx.Code, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCurrency requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
+	}
+	return oldValue.Currency, nil
+}
+
+// ResetCurrency resets all changes to the "currency" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetCurrency() {
+	m.currency = nil
+}
+
+// SetTaxConfig sets the "tax_config" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetTaxConfig(pc productcatalog.TaxConfig) {
+	m.tax_config = &pc
+}
+
+// TaxConfig returns the value of the "tax_config" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) TaxConfig() (r productcatalog.TaxConfig, exists bool) {
+	v := m.tax_config
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxConfig returns the old "tax_config" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldTaxConfig(ctx context.Context) (v productcatalog.TaxConfig, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxConfig is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxConfig requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxConfig: %w", err)
+	}
+	return oldValue.TaxConfig, nil
+}
+
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ClearTaxConfig() {
+	m.tax_config = nil
+	m.clearedFields[chargeflatfeedetailedline.FieldTaxConfig] = struct{}{}
+}
+
+// TaxConfigCleared returns if the "tax_config" field was cleared in this mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) TaxConfigCleared() bool {
+	_, ok := m.clearedFields[chargeflatfeedetailedline.FieldTaxConfig]
+	return ok
+}
+
+// ResetTaxConfig resets all changes to the "tax_config" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetTaxConfig() {
+	m.tax_config = nil
+	delete(m.clearedFields, chargeflatfeedetailedline.FieldTaxConfig)
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetTaxCodeID(s string) {
+	m.tax_code = &s
+}
+
+// TaxCodeID returns the value of the "tax_code_id" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) TaxCodeID() (r string, exists bool) {
+	v := m.tax_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxCodeID returns the old "tax_code_id" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldTaxCodeID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxCodeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxCodeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxCodeID: %w", err)
+	}
+	return oldValue.TaxCodeID, nil
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ClearTaxCodeID() {
+	m.tax_code = nil
+	m.clearedFields[chargeflatfeedetailedline.FieldTaxCodeID] = struct{}{}
+}
+
+// TaxCodeIDCleared returns if the "tax_code_id" field was cleared in this mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) TaxCodeIDCleared() bool {
+	_, ok := m.clearedFields[chargeflatfeedetailedline.FieldTaxCodeID]
+	return ok
+}
+
+// ResetTaxCodeID resets all changes to the "tax_code_id" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetTaxCodeID() {
+	m.tax_code = nil
+	delete(m.clearedFields, chargeflatfeedetailedline.FieldTaxCodeID)
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetTaxBehavior(pb productcatalog.TaxBehavior) {
+	m.tax_behavior = &pb
+}
+
+// TaxBehavior returns the value of the "tax_behavior" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) TaxBehavior() (r productcatalog.TaxBehavior, exists bool) {
+	v := m.tax_behavior
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxBehavior returns the old "tax_behavior" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldTaxBehavior(ctx context.Context) (v *productcatalog.TaxBehavior, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxBehavior is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxBehavior requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxBehavior: %w", err)
+	}
+	return oldValue.TaxBehavior, nil
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ClearTaxBehavior() {
+	m.tax_behavior = nil
+	m.clearedFields[chargeflatfeedetailedline.FieldTaxBehavior] = struct{}{}
+}
+
+// TaxBehaviorCleared returns if the "tax_behavior" field was cleared in this mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) TaxBehaviorCleared() bool {
+	_, ok := m.clearedFields[chargeflatfeedetailedline.FieldTaxBehavior]
+	return ok
+}
+
+// ResetTaxBehavior resets all changes to the "tax_behavior" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetTaxBehavior() {
+	m.tax_behavior = nil
+	delete(m.clearedFields, chargeflatfeedetailedline.FieldTaxBehavior)
+}
+
+// SetServicePeriodStart sets the "service_period_start" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetServicePeriodStart(t time.Time) {
+	m.service_period_start = &t
+}
+
+// ServicePeriodStart returns the value of the "service_period_start" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) ServicePeriodStart() (r time.Time, exists bool) {
+	v := m.service_period_start
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldServicePeriodStart returns the old "service_period_start" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldServicePeriodStart(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldServicePeriodStart is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldServicePeriodStart requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldServicePeriodStart: %w", err)
+	}
+	return oldValue.ServicePeriodStart, nil
+}
+
+// ResetServicePeriodStart resets all changes to the "service_period_start" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetServicePeriodStart() {
+	m.service_period_start = nil
+}
+
+// SetServicePeriodEnd sets the "service_period_end" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetServicePeriodEnd(t time.Time) {
+	m.service_period_end = &t
+}
+
+// ServicePeriodEnd returns the value of the "service_period_end" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) ServicePeriodEnd() (r time.Time, exists bool) {
+	v := m.service_period_end
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldServicePeriodEnd returns the old "service_period_end" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldServicePeriodEnd(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldServicePeriodEnd is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldServicePeriodEnd requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldServicePeriodEnd: %w", err)
+	}
+	return oldValue.ServicePeriodEnd, nil
+}
+
+// ResetServicePeriodEnd resets all changes to the "service_period_end" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetServicePeriodEnd() {
+	m.service_period_end = nil
+}
+
+// SetQuantity sets the "quantity" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetQuantity(a alpacadecimal.Decimal) {
+	m.quantity = &a
+}
+
+// Quantity returns the value of the "quantity" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) Quantity() (r alpacadecimal.Decimal, exists bool) {
+	v := m.quantity
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldQuantity returns the old "quantity" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldQuantity(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldQuantity is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldQuantity requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldQuantity: %w", err)
+	}
+	return oldValue.Quantity, nil
+}
+
+// ResetQuantity resets all changes to the "quantity" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetQuantity() {
+	m.quantity = nil
+}
+
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetInvoicingAppExternalID(s string) {
+	m.invoicing_app_external_id = &s
+}
+
+// InvoicingAppExternalID returns the value of the "invoicing_app_external_id" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) InvoicingAppExternalID() (r string, exists bool) {
+	v := m.invoicing_app_external_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInvoicingAppExternalID returns the old "invoicing_app_external_id" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldInvoicingAppExternalID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInvoicingAppExternalID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInvoicingAppExternalID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInvoicingAppExternalID: %w", err)
+	}
+	return oldValue.InvoicingAppExternalID, nil
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ClearInvoicingAppExternalID() {
+	m.invoicing_app_external_id = nil
+	m.clearedFields[chargeflatfeedetailedline.FieldInvoicingAppExternalID] = struct{}{}
+}
+
+// InvoicingAppExternalIDCleared returns if the "invoicing_app_external_id" field was cleared in this mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) InvoicingAppExternalIDCleared() bool {
+	_, ok := m.clearedFields[chargeflatfeedetailedline.FieldInvoicingAppExternalID]
+	return ok
+}
+
+// ResetInvoicingAppExternalID resets all changes to the "invoicing_app_external_id" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetInvoicingAppExternalID() {
+	m.invoicing_app_external_id = nil
+	delete(m.clearedFields, chargeflatfeedetailedline.FieldInvoicingAppExternalID)
+}
+
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetChildUniqueReferenceID(s string) {
+	m.child_unique_reference_id = &s
+}
+
+// ChildUniqueReferenceID returns the value of the "child_unique_reference_id" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) ChildUniqueReferenceID() (r string, exists bool) {
+	v := m.child_unique_reference_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChildUniqueReferenceID returns the old "child_unique_reference_id" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldChildUniqueReferenceID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChildUniqueReferenceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChildUniqueReferenceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChildUniqueReferenceID: %w", err)
+	}
+	return oldValue.ChildUniqueReferenceID, nil
+}
+
+// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ClearChildUniqueReferenceID() {
+	m.child_unique_reference_id = nil
+	m.clearedFields[chargeflatfeedetailedline.FieldChildUniqueReferenceID] = struct{}{}
+}
+
+// ChildUniqueReferenceIDCleared returns if the "child_unique_reference_id" field was cleared in this mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) ChildUniqueReferenceIDCleared() bool {
+	_, ok := m.clearedFields[chargeflatfeedetailedline.FieldChildUniqueReferenceID]
+	return ok
+}
+
+// ResetChildUniqueReferenceID resets all changes to the "child_unique_reference_id" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetChildUniqueReferenceID() {
+	m.child_unique_reference_id = nil
+	delete(m.clearedFields, chargeflatfeedetailedline.FieldChildUniqueReferenceID)
+}
+
+// SetPerUnitAmount sets the "per_unit_amount" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetPerUnitAmount(a alpacadecimal.Decimal) {
+	m.per_unit_amount = &a
+}
+
+// PerUnitAmount returns the value of the "per_unit_amount" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) PerUnitAmount() (r alpacadecimal.Decimal, exists bool) {
+	v := m.per_unit_amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPerUnitAmount returns the old "per_unit_amount" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldPerUnitAmount(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPerUnitAmount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPerUnitAmount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPerUnitAmount: %w", err)
+	}
+	return oldValue.PerUnitAmount, nil
+}
+
+// ResetPerUnitAmount resets all changes to the "per_unit_amount" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetPerUnitAmount() {
+	m.per_unit_amount = nil
+}
+
+// SetCategory sets the "category" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetCategory(s stddetailedline.Category) {
+	m.category = &s
+}
+
+// Category returns the value of the "category" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) Category() (r stddetailedline.Category, exists bool) {
+	v := m.category
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCategory returns the old "category" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldCategory(ctx context.Context) (v stddetailedline.Category, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCategory is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCategory requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCategory: %w", err)
+	}
+	return oldValue.Category, nil
+}
+
+// ResetCategory resets all changes to the "category" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetCategory() {
+	m.category = nil
+}
+
+// SetPaymentTerm sets the "payment_term" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetPaymentTerm(ptt productcatalog.PaymentTermType) {
+	m.payment_term = &ptt
+}
+
+// PaymentTerm returns the value of the "payment_term" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) PaymentTerm() (r productcatalog.PaymentTermType, exists bool) {
+	v := m.payment_term
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPaymentTerm returns the old "payment_term" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldPaymentTerm(ctx context.Context) (v productcatalog.PaymentTermType, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPaymentTerm is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPaymentTerm requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPaymentTerm: %w", err)
+	}
+	return oldValue.PaymentTerm, nil
+}
+
+// ResetPaymentTerm resets all changes to the "payment_term" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetPaymentTerm() {
+	m.payment_term = nil
+}
+
+// SetIndex sets the "index" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetIndex(i int) {
+	m.index = &i
+	m.addindex = nil
+}
+
+// Index returns the value of the "index" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) Index() (r int, exists bool) {
+	v := m.index
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIndex returns the old "index" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldIndex(ctx context.Context) (v *int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIndex is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIndex requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIndex: %w", err)
+	}
+	return oldValue.Index, nil
+}
+
+// AddIndex adds i to the "index" field.
+func (m *ChargeFlatFeeDetailedLineMutation) AddIndex(i int) {
+	if m.addindex != nil {
+		*m.addindex += i
+	} else {
+		m.addindex = &i
+	}
+}
+
+// AddedIndex returns the value that was added to the "index" field in this mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) AddedIndex() (r int, exists bool) {
+	v := m.addindex
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearIndex clears the value of the "index" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ClearIndex() {
+	m.index = nil
+	m.addindex = nil
+	m.clearedFields[chargeflatfeedetailedline.FieldIndex] = struct{}{}
+}
+
+// IndexCleared returns if the "index" field was cleared in this mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) IndexCleared() bool {
+	_, ok := m.clearedFields[chargeflatfeedetailedline.FieldIndex]
+	return ok
+}
+
+// ResetIndex resets all changes to the "index" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetIndex() {
+	m.index = nil
+	m.addindex = nil
+	delete(m.clearedFields, chargeflatfeedetailedline.FieldIndex)
+}
+
+// SetCreditsApplied sets the "credits_applied" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetCreditsApplied(ca *creditsapplied.CreditsApplied) {
+	m.credits_applied = &ca
+}
+
+// CreditsApplied returns the value of the "credits_applied" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) CreditsApplied() (r *creditsapplied.CreditsApplied, exists bool) {
+	v := m.credits_applied
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreditsApplied returns the old "credits_applied" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldCreditsApplied(ctx context.Context) (v *creditsapplied.CreditsApplied, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreditsApplied is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreditsApplied requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreditsApplied: %w", err)
+	}
+	return oldValue.CreditsApplied, nil
+}
+
+// ClearCreditsApplied clears the value of the "credits_applied" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ClearCreditsApplied() {
+	m.credits_applied = nil
+	m.clearedFields[chargeflatfeedetailedline.FieldCreditsApplied] = struct{}{}
+}
+
+// CreditsAppliedCleared returns if the "credits_applied" field was cleared in this mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) CreditsAppliedCleared() bool {
+	_, ok := m.clearedFields[chargeflatfeedetailedline.FieldCreditsApplied]
+	return ok
+}
+
+// ResetCreditsApplied resets all changes to the "credits_applied" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetCreditsApplied() {
+	m.credits_applied = nil
+	delete(m.clearedFields, chargeflatfeedetailedline.FieldCreditsApplied)
+}
+
+// SetAnnotations sets the "annotations" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetAnnotations(value models.Annotations) {
+	m.annotations = &value
+}
+
+// Annotations returns the value of the "annotations" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) Annotations() (r models.Annotations, exists bool) {
+	v := m.annotations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnnotations returns the old "annotations" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldAnnotations(ctx context.Context) (v models.Annotations, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnnotations requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnnotations: %w", err)
+	}
+	return oldValue.Annotations, nil
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ClearAnnotations() {
+	m.annotations = nil
+	m.clearedFields[chargeflatfeedetailedline.FieldAnnotations] = struct{}{}
+}
+
+// AnnotationsCleared returns if the "annotations" field was cleared in this mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) AnnotationsCleared() bool {
+	_, ok := m.clearedFields[chargeflatfeedetailedline.FieldAnnotations]
+	return ok
+}
+
+// ResetAnnotations resets all changes to the "annotations" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetAnnotations() {
+	m.annotations = nil
+	delete(m.clearedFields, chargeflatfeedetailedline.FieldAnnotations)
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetMetadata(value map[string]string) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) Metadata() (r map[string]string, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[chargeflatfeedetailedline.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[chargeflatfeedetailedline.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, chargeflatfeedetailedline.FieldMetadata)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[chargeflatfeedetailedline.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[chargeflatfeedetailedline.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, chargeflatfeedetailedline.FieldDeletedAt)
+}
+
+// SetName sets the "name" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetName() {
+	m.name = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldDescription(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ClearDescription clears the value of the "description" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ClearDescription() {
+	m.description = nil
+	m.clearedFields[chargeflatfeedetailedline.FieldDescription] = struct{}{}
+}
+
+// DescriptionCleared returns if the "description" field was cleared in this mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) DescriptionCleared() bool {
+	_, ok := m.clearedFields[chargeflatfeedetailedline.FieldDescription]
+	return ok
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetDescription() {
+	m.description = nil
+	delete(m.clearedFields, chargeflatfeedetailedline.FieldDescription)
+}
+
+// SetAmount sets the "amount" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetAmount(a alpacadecimal.Decimal) {
+	m.amount = &a
+}
+
+// Amount returns the value of the "amount" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) Amount() (r alpacadecimal.Decimal, exists bool) {
+	v := m.amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAmount returns the old "amount" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldAmount(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAmount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAmount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAmount: %w", err)
+	}
+	return oldValue.Amount, nil
+}
+
+// ResetAmount resets all changes to the "amount" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetAmount() {
+	m.amount = nil
+}
+
+// SetTaxesTotal sets the "taxes_total" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetTaxesTotal(a alpacadecimal.Decimal) {
+	m.taxes_total = &a
+}
+
+// TaxesTotal returns the value of the "taxes_total" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) TaxesTotal() (r alpacadecimal.Decimal, exists bool) {
+	v := m.taxes_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxesTotal returns the old "taxes_total" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldTaxesTotal(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxesTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxesTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxesTotal: %w", err)
+	}
+	return oldValue.TaxesTotal, nil
+}
+
+// ResetTaxesTotal resets all changes to the "taxes_total" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetTaxesTotal() {
+	m.taxes_total = nil
+}
+
+// SetTaxesInclusiveTotal sets the "taxes_inclusive_total" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetTaxesInclusiveTotal(a alpacadecimal.Decimal) {
+	m.taxes_inclusive_total = &a
+}
+
+// TaxesInclusiveTotal returns the value of the "taxes_inclusive_total" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) TaxesInclusiveTotal() (r alpacadecimal.Decimal, exists bool) {
+	v := m.taxes_inclusive_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxesInclusiveTotal returns the old "taxes_inclusive_total" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldTaxesInclusiveTotal(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxesInclusiveTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxesInclusiveTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxesInclusiveTotal: %w", err)
+	}
+	return oldValue.TaxesInclusiveTotal, nil
+}
+
+// ResetTaxesInclusiveTotal resets all changes to the "taxes_inclusive_total" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetTaxesInclusiveTotal() {
+	m.taxes_inclusive_total = nil
+}
+
+// SetTaxesExclusiveTotal sets the "taxes_exclusive_total" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetTaxesExclusiveTotal(a alpacadecimal.Decimal) {
+	m.taxes_exclusive_total = &a
+}
+
+// TaxesExclusiveTotal returns the value of the "taxes_exclusive_total" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) TaxesExclusiveTotal() (r alpacadecimal.Decimal, exists bool) {
+	v := m.taxes_exclusive_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxesExclusiveTotal returns the old "taxes_exclusive_total" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldTaxesExclusiveTotal(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxesExclusiveTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxesExclusiveTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxesExclusiveTotal: %w", err)
+	}
+	return oldValue.TaxesExclusiveTotal, nil
+}
+
+// ResetTaxesExclusiveTotal resets all changes to the "taxes_exclusive_total" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetTaxesExclusiveTotal() {
+	m.taxes_exclusive_total = nil
+}
+
+// SetChargesTotal sets the "charges_total" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetChargesTotal(a alpacadecimal.Decimal) {
+	m.charges_total = &a
+}
+
+// ChargesTotal returns the value of the "charges_total" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) ChargesTotal() (r alpacadecimal.Decimal, exists bool) {
+	v := m.charges_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChargesTotal returns the old "charges_total" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldChargesTotal(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChargesTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChargesTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChargesTotal: %w", err)
+	}
+	return oldValue.ChargesTotal, nil
+}
+
+// ResetChargesTotal resets all changes to the "charges_total" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetChargesTotal() {
+	m.charges_total = nil
+}
+
+// SetDiscountsTotal sets the "discounts_total" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetDiscountsTotal(a alpacadecimal.Decimal) {
+	m.discounts_total = &a
+}
+
+// DiscountsTotal returns the value of the "discounts_total" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) DiscountsTotal() (r alpacadecimal.Decimal, exists bool) {
+	v := m.discounts_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDiscountsTotal returns the old "discounts_total" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldDiscountsTotal(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDiscountsTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDiscountsTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDiscountsTotal: %w", err)
+	}
+	return oldValue.DiscountsTotal, nil
+}
+
+// ResetDiscountsTotal resets all changes to the "discounts_total" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetDiscountsTotal() {
+	m.discounts_total = nil
+}
+
+// SetCreditsTotal sets the "credits_total" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetCreditsTotal(a alpacadecimal.Decimal) {
+	m.credits_total = &a
+}
+
+// CreditsTotal returns the value of the "credits_total" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) CreditsTotal() (r alpacadecimal.Decimal, exists bool) {
+	v := m.credits_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreditsTotal returns the old "credits_total" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldCreditsTotal(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreditsTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreditsTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreditsTotal: %w", err)
+	}
+	return oldValue.CreditsTotal, nil
+}
+
+// ResetCreditsTotal resets all changes to the "credits_total" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetCreditsTotal() {
+	m.credits_total = nil
+}
+
+// SetTotal sets the "total" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetTotal(a alpacadecimal.Decimal) {
+	m.total = &a
+}
+
+// Total returns the value of the "total" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) Total() (r alpacadecimal.Decimal, exists bool) {
+	v := m.total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTotal returns the old "total" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldTotal(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTotal: %w", err)
+	}
+	return oldValue.Total, nil
+}
+
+// ResetTotal resets all changes to the "total" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetTotal() {
+	m.total = nil
+}
+
+// SetChargeID sets the "charge_id" field.
+func (m *ChargeFlatFeeDetailedLineMutation) SetChargeID(s string) {
+	m.charge = &s
+}
+
+// ChargeID returns the value of the "charge_id" field in the mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) ChargeID() (r string, exists bool) {
+	v := m.charge
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChargeID returns the old "charge_id" field's value of the ChargeFlatFeeDetailedLine entity.
+// If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeDetailedLineMutation) OldChargeID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChargeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChargeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChargeID: %w", err)
+	}
+	return oldValue.ChargeID, nil
+}
+
+// ResetChargeID resets all changes to the "charge_id" field.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetChargeID() {
+	m.charge = nil
+}
+
+// ClearCharge clears the "charge" edge to the ChargeFlatFee entity.
+func (m *ChargeFlatFeeDetailedLineMutation) ClearCharge() {
+	m.clearedcharge = true
+	m.clearedFields[chargeflatfeedetailedline.FieldChargeID] = struct{}{}
+}
+
+// ChargeCleared reports if the "charge" edge to the ChargeFlatFee entity was cleared.
+func (m *ChargeFlatFeeDetailedLineMutation) ChargeCleared() bool {
+	return m.clearedcharge
+}
+
+// ChargeIDs returns the "charge" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ChargeID instead. It exists only for internal usage by the builders.
+func (m *ChargeFlatFeeDetailedLineMutation) ChargeIDs() (ids []string) {
+	if id := m.charge; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCharge resets all changes to the "charge" edge.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetCharge() {
+	m.charge = nil
+	m.clearedcharge = false
+}
+
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (m *ChargeFlatFeeDetailedLineMutation) ClearTaxCode() {
+	m.clearedtax_code = true
+	m.clearedFields[chargeflatfeedetailedline.FieldTaxCodeID] = struct{}{}
+}
+
+// TaxCodeCleared reports if the "tax_code" edge to the TaxCode entity was cleared.
+func (m *ChargeFlatFeeDetailedLineMutation) TaxCodeCleared() bool {
+	return m.TaxCodeIDCleared() || m.clearedtax_code
+}
+
+// TaxCodeIDs returns the "tax_code" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// TaxCodeID instead. It exists only for internal usage by the builders.
+func (m *ChargeFlatFeeDetailedLineMutation) TaxCodeIDs() (ids []string) {
+	if id := m.tax_code; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetTaxCode resets all changes to the "tax_code" edge.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetTaxCode() {
+	m.tax_code = nil
+	m.clearedtax_code = false
+}
+
+// Where appends a list predicates to the ChargeFlatFeeDetailedLineMutation builder.
+func (m *ChargeFlatFeeDetailedLineMutation) Where(ps ...predicate.ChargeFlatFeeDetailedLine) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ChargeFlatFeeDetailedLineMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ChargeFlatFeeDetailedLineMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ChargeFlatFeeDetailedLine, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ChargeFlatFeeDetailedLineMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ChargeFlatFeeDetailedLineMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ChargeFlatFeeDetailedLine).
+func (m *ChargeFlatFeeDetailedLineMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ChargeFlatFeeDetailedLineMutation) Fields() []string {
+	fields := make([]string, 0, 31)
+	if m.currency != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldCurrency)
+	}
+	if m.tax_config != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldTaxConfig)
+	}
+	if m.tax_code != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldTaxCodeID)
+	}
+	if m.tax_behavior != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldTaxBehavior)
+	}
+	if m.service_period_start != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldServicePeriodStart)
+	}
+	if m.service_period_end != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldServicePeriodEnd)
+	}
+	if m.quantity != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldQuantity)
+	}
+	if m.invoicing_app_external_id != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldInvoicingAppExternalID)
+	}
+	if m.child_unique_reference_id != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldChildUniqueReferenceID)
+	}
+	if m.per_unit_amount != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldPerUnitAmount)
+	}
+	if m.category != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldCategory)
+	}
+	if m.payment_term != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldPaymentTerm)
+	}
+	if m.index != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldIndex)
+	}
+	if m.credits_applied != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldCreditsApplied)
+	}
+	if m.annotations != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldAnnotations)
+	}
+	if m.namespace != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldNamespace)
+	}
+	if m.metadata != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldMetadata)
+	}
+	if m.created_at != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldDeletedAt)
+	}
+	if m.name != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldName)
+	}
+	if m.description != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldDescription)
+	}
+	if m.amount != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldAmount)
+	}
+	if m.taxes_total != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldTaxesTotal)
+	}
+	if m.taxes_inclusive_total != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldTaxesInclusiveTotal)
+	}
+	if m.taxes_exclusive_total != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldTaxesExclusiveTotal)
+	}
+	if m.charges_total != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldChargesTotal)
+	}
+	if m.discounts_total != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldDiscountsTotal)
+	}
+	if m.credits_total != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldCreditsTotal)
+	}
+	if m.total != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldTotal)
+	}
+	if m.charge != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldChargeID)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ChargeFlatFeeDetailedLineMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case chargeflatfeedetailedline.FieldCurrency:
+		return m.Currency()
+	case chargeflatfeedetailedline.FieldTaxConfig:
+		return m.TaxConfig()
+	case chargeflatfeedetailedline.FieldTaxCodeID:
+		return m.TaxCodeID()
+	case chargeflatfeedetailedline.FieldTaxBehavior:
+		return m.TaxBehavior()
+	case chargeflatfeedetailedline.FieldServicePeriodStart:
+		return m.ServicePeriodStart()
+	case chargeflatfeedetailedline.FieldServicePeriodEnd:
+		return m.ServicePeriodEnd()
+	case chargeflatfeedetailedline.FieldQuantity:
+		return m.Quantity()
+	case chargeflatfeedetailedline.FieldInvoicingAppExternalID:
+		return m.InvoicingAppExternalID()
+	case chargeflatfeedetailedline.FieldChildUniqueReferenceID:
+		return m.ChildUniqueReferenceID()
+	case chargeflatfeedetailedline.FieldPerUnitAmount:
+		return m.PerUnitAmount()
+	case chargeflatfeedetailedline.FieldCategory:
+		return m.Category()
+	case chargeflatfeedetailedline.FieldPaymentTerm:
+		return m.PaymentTerm()
+	case chargeflatfeedetailedline.FieldIndex:
+		return m.Index()
+	case chargeflatfeedetailedline.FieldCreditsApplied:
+		return m.CreditsApplied()
+	case chargeflatfeedetailedline.FieldAnnotations:
+		return m.Annotations()
+	case chargeflatfeedetailedline.FieldNamespace:
+		return m.Namespace()
+	case chargeflatfeedetailedline.FieldMetadata:
+		return m.Metadata()
+	case chargeflatfeedetailedline.FieldCreatedAt:
+		return m.CreatedAt()
+	case chargeflatfeedetailedline.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case chargeflatfeedetailedline.FieldDeletedAt:
+		return m.DeletedAt()
+	case chargeflatfeedetailedline.FieldName:
+		return m.Name()
+	case chargeflatfeedetailedline.FieldDescription:
+		return m.Description()
+	case chargeflatfeedetailedline.FieldAmount:
+		return m.Amount()
+	case chargeflatfeedetailedline.FieldTaxesTotal:
+		return m.TaxesTotal()
+	case chargeflatfeedetailedline.FieldTaxesInclusiveTotal:
+		return m.TaxesInclusiveTotal()
+	case chargeflatfeedetailedline.FieldTaxesExclusiveTotal:
+		return m.TaxesExclusiveTotal()
+	case chargeflatfeedetailedline.FieldChargesTotal:
+		return m.ChargesTotal()
+	case chargeflatfeedetailedline.FieldDiscountsTotal:
+		return m.DiscountsTotal()
+	case chargeflatfeedetailedline.FieldCreditsTotal:
+		return m.CreditsTotal()
+	case chargeflatfeedetailedline.FieldTotal:
+		return m.Total()
+	case chargeflatfeedetailedline.FieldChargeID:
+		return m.ChargeID()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ChargeFlatFeeDetailedLineMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case chargeflatfeedetailedline.FieldCurrency:
+		return m.OldCurrency(ctx)
+	case chargeflatfeedetailedline.FieldTaxConfig:
+		return m.OldTaxConfig(ctx)
+	case chargeflatfeedetailedline.FieldTaxCodeID:
+		return m.OldTaxCodeID(ctx)
+	case chargeflatfeedetailedline.FieldTaxBehavior:
+		return m.OldTaxBehavior(ctx)
+	case chargeflatfeedetailedline.FieldServicePeriodStart:
+		return m.OldServicePeriodStart(ctx)
+	case chargeflatfeedetailedline.FieldServicePeriodEnd:
+		return m.OldServicePeriodEnd(ctx)
+	case chargeflatfeedetailedline.FieldQuantity:
+		return m.OldQuantity(ctx)
+	case chargeflatfeedetailedline.FieldInvoicingAppExternalID:
+		return m.OldInvoicingAppExternalID(ctx)
+	case chargeflatfeedetailedline.FieldChildUniqueReferenceID:
+		return m.OldChildUniqueReferenceID(ctx)
+	case chargeflatfeedetailedline.FieldPerUnitAmount:
+		return m.OldPerUnitAmount(ctx)
+	case chargeflatfeedetailedline.FieldCategory:
+		return m.OldCategory(ctx)
+	case chargeflatfeedetailedline.FieldPaymentTerm:
+		return m.OldPaymentTerm(ctx)
+	case chargeflatfeedetailedline.FieldIndex:
+		return m.OldIndex(ctx)
+	case chargeflatfeedetailedline.FieldCreditsApplied:
+		return m.OldCreditsApplied(ctx)
+	case chargeflatfeedetailedline.FieldAnnotations:
+		return m.OldAnnotations(ctx)
+	case chargeflatfeedetailedline.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case chargeflatfeedetailedline.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case chargeflatfeedetailedline.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case chargeflatfeedetailedline.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case chargeflatfeedetailedline.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case chargeflatfeedetailedline.FieldName:
+		return m.OldName(ctx)
+	case chargeflatfeedetailedline.FieldDescription:
+		return m.OldDescription(ctx)
+	case chargeflatfeedetailedline.FieldAmount:
+		return m.OldAmount(ctx)
+	case chargeflatfeedetailedline.FieldTaxesTotal:
+		return m.OldTaxesTotal(ctx)
+	case chargeflatfeedetailedline.FieldTaxesInclusiveTotal:
+		return m.OldTaxesInclusiveTotal(ctx)
+	case chargeflatfeedetailedline.FieldTaxesExclusiveTotal:
+		return m.OldTaxesExclusiveTotal(ctx)
+	case chargeflatfeedetailedline.FieldChargesTotal:
+		return m.OldChargesTotal(ctx)
+	case chargeflatfeedetailedline.FieldDiscountsTotal:
+		return m.OldDiscountsTotal(ctx)
+	case chargeflatfeedetailedline.FieldCreditsTotal:
+		return m.OldCreditsTotal(ctx)
+	case chargeflatfeedetailedline.FieldTotal:
+		return m.OldTotal(ctx)
+	case chargeflatfeedetailedline.FieldChargeID:
+		return m.OldChargeID(ctx)
+	}
+	return nil, fmt.Errorf("unknown ChargeFlatFeeDetailedLine field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ChargeFlatFeeDetailedLineMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case chargeflatfeedetailedline.FieldCurrency:
+		v, ok := value.(currencyx.Code)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrency(v)
+		return nil
+	case chargeflatfeedetailedline.FieldTaxConfig:
+		v, ok := value.(productcatalog.TaxConfig)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxConfig(v)
+		return nil
+	case chargeflatfeedetailedline.FieldTaxCodeID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxCodeID(v)
+		return nil
+	case chargeflatfeedetailedline.FieldTaxBehavior:
+		v, ok := value.(productcatalog.TaxBehavior)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxBehavior(v)
+		return nil
+	case chargeflatfeedetailedline.FieldServicePeriodStart:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetServicePeriodStart(v)
+		return nil
+	case chargeflatfeedetailedline.FieldServicePeriodEnd:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetServicePeriodEnd(v)
+		return nil
+	case chargeflatfeedetailedline.FieldQuantity:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetQuantity(v)
+		return nil
+	case chargeflatfeedetailedline.FieldInvoicingAppExternalID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInvoicingAppExternalID(v)
+		return nil
+	case chargeflatfeedetailedline.FieldChildUniqueReferenceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChildUniqueReferenceID(v)
+		return nil
+	case chargeflatfeedetailedline.FieldPerUnitAmount:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPerUnitAmount(v)
+		return nil
+	case chargeflatfeedetailedline.FieldCategory:
+		v, ok := value.(stddetailedline.Category)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCategory(v)
+		return nil
+	case chargeflatfeedetailedline.FieldPaymentTerm:
+		v, ok := value.(productcatalog.PaymentTermType)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPaymentTerm(v)
+		return nil
+	case chargeflatfeedetailedline.FieldIndex:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIndex(v)
+		return nil
+	case chargeflatfeedetailedline.FieldCreditsApplied:
+		v, ok := value.(*creditsapplied.CreditsApplied)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreditsApplied(v)
+		return nil
+	case chargeflatfeedetailedline.FieldAnnotations:
+		v, ok := value.(models.Annotations)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnnotations(v)
+		return nil
+	case chargeflatfeedetailedline.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case chargeflatfeedetailedline.FieldMetadata:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case chargeflatfeedetailedline.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case chargeflatfeedetailedline.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case chargeflatfeedetailedline.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case chargeflatfeedetailedline.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case chargeflatfeedetailedline.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	case chargeflatfeedetailedline.FieldAmount:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAmount(v)
+		return nil
+	case chargeflatfeedetailedline.FieldTaxesTotal:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxesTotal(v)
+		return nil
+	case chargeflatfeedetailedline.FieldTaxesInclusiveTotal:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxesInclusiveTotal(v)
+		return nil
+	case chargeflatfeedetailedline.FieldTaxesExclusiveTotal:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxesExclusiveTotal(v)
+		return nil
+	case chargeflatfeedetailedline.FieldChargesTotal:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChargesTotal(v)
+		return nil
+	case chargeflatfeedetailedline.FieldDiscountsTotal:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDiscountsTotal(v)
+		return nil
+	case chargeflatfeedetailedline.FieldCreditsTotal:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreditsTotal(v)
+		return nil
+	case chargeflatfeedetailedline.FieldTotal:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTotal(v)
+		return nil
+	case chargeflatfeedetailedline.FieldChargeID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChargeID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeFlatFeeDetailedLine field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) AddedFields() []string {
+	var fields []string
+	if m.addindex != nil {
+		fields = append(fields, chargeflatfeedetailedline.FieldIndex)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ChargeFlatFeeDetailedLineMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case chargeflatfeedetailedline.FieldIndex:
+		return m.AddedIndex()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ChargeFlatFeeDetailedLineMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case chargeflatfeedetailedline.FieldIndex:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddIndex(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeFlatFeeDetailedLine numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(chargeflatfeedetailedline.FieldTaxConfig) {
+		fields = append(fields, chargeflatfeedetailedline.FieldTaxConfig)
+	}
+	if m.FieldCleared(chargeflatfeedetailedline.FieldTaxCodeID) {
+		fields = append(fields, chargeflatfeedetailedline.FieldTaxCodeID)
+	}
+	if m.FieldCleared(chargeflatfeedetailedline.FieldTaxBehavior) {
+		fields = append(fields, chargeflatfeedetailedline.FieldTaxBehavior)
+	}
+	if m.FieldCleared(chargeflatfeedetailedline.FieldInvoicingAppExternalID) {
+		fields = append(fields, chargeflatfeedetailedline.FieldInvoicingAppExternalID)
+	}
+	if m.FieldCleared(chargeflatfeedetailedline.FieldChildUniqueReferenceID) {
+		fields = append(fields, chargeflatfeedetailedline.FieldChildUniqueReferenceID)
+	}
+	if m.FieldCleared(chargeflatfeedetailedline.FieldIndex) {
+		fields = append(fields, chargeflatfeedetailedline.FieldIndex)
+	}
+	if m.FieldCleared(chargeflatfeedetailedline.FieldCreditsApplied) {
+		fields = append(fields, chargeflatfeedetailedline.FieldCreditsApplied)
+	}
+	if m.FieldCleared(chargeflatfeedetailedline.FieldAnnotations) {
+		fields = append(fields, chargeflatfeedetailedline.FieldAnnotations)
+	}
+	if m.FieldCleared(chargeflatfeedetailedline.FieldMetadata) {
+		fields = append(fields, chargeflatfeedetailedline.FieldMetadata)
+	}
+	if m.FieldCleared(chargeflatfeedetailedline.FieldDeletedAt) {
+		fields = append(fields, chargeflatfeedetailedline.FieldDeletedAt)
+	}
+	if m.FieldCleared(chargeflatfeedetailedline.FieldDescription) {
+		fields = append(fields, chargeflatfeedetailedline.FieldDescription)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ChargeFlatFeeDetailedLineMutation) ClearField(name string) error {
+	switch name {
+	case chargeflatfeedetailedline.FieldTaxConfig:
+		m.ClearTaxConfig()
+		return nil
+	case chargeflatfeedetailedline.FieldTaxCodeID:
+		m.ClearTaxCodeID()
+		return nil
+	case chargeflatfeedetailedline.FieldTaxBehavior:
+		m.ClearTaxBehavior()
+		return nil
+	case chargeflatfeedetailedline.FieldInvoicingAppExternalID:
+		m.ClearInvoicingAppExternalID()
+		return nil
+	case chargeflatfeedetailedline.FieldChildUniqueReferenceID:
+		m.ClearChildUniqueReferenceID()
+		return nil
+	case chargeflatfeedetailedline.FieldIndex:
+		m.ClearIndex()
+		return nil
+	case chargeflatfeedetailedline.FieldCreditsApplied:
+		m.ClearCreditsApplied()
+		return nil
+	case chargeflatfeedetailedline.FieldAnnotations:
+		m.ClearAnnotations()
+		return nil
+	case chargeflatfeedetailedline.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	case chargeflatfeedetailedline.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case chargeflatfeedetailedline.FieldDescription:
+		m.ClearDescription()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeFlatFeeDetailedLine nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetField(name string) error {
+	switch name {
+	case chargeflatfeedetailedline.FieldCurrency:
+		m.ResetCurrency()
+		return nil
+	case chargeflatfeedetailedline.FieldTaxConfig:
+		m.ResetTaxConfig()
+		return nil
+	case chargeflatfeedetailedline.FieldTaxCodeID:
+		m.ResetTaxCodeID()
+		return nil
+	case chargeflatfeedetailedline.FieldTaxBehavior:
+		m.ResetTaxBehavior()
+		return nil
+	case chargeflatfeedetailedline.FieldServicePeriodStart:
+		m.ResetServicePeriodStart()
+		return nil
+	case chargeflatfeedetailedline.FieldServicePeriodEnd:
+		m.ResetServicePeriodEnd()
+		return nil
+	case chargeflatfeedetailedline.FieldQuantity:
+		m.ResetQuantity()
+		return nil
+	case chargeflatfeedetailedline.FieldInvoicingAppExternalID:
+		m.ResetInvoicingAppExternalID()
+		return nil
+	case chargeflatfeedetailedline.FieldChildUniqueReferenceID:
+		m.ResetChildUniqueReferenceID()
+		return nil
+	case chargeflatfeedetailedline.FieldPerUnitAmount:
+		m.ResetPerUnitAmount()
+		return nil
+	case chargeflatfeedetailedline.FieldCategory:
+		m.ResetCategory()
+		return nil
+	case chargeflatfeedetailedline.FieldPaymentTerm:
+		m.ResetPaymentTerm()
+		return nil
+	case chargeflatfeedetailedline.FieldIndex:
+		m.ResetIndex()
+		return nil
+	case chargeflatfeedetailedline.FieldCreditsApplied:
+		m.ResetCreditsApplied()
+		return nil
+	case chargeflatfeedetailedline.FieldAnnotations:
+		m.ResetAnnotations()
+		return nil
+	case chargeflatfeedetailedline.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case chargeflatfeedetailedline.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case chargeflatfeedetailedline.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case chargeflatfeedetailedline.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case chargeflatfeedetailedline.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case chargeflatfeedetailedline.FieldName:
+		m.ResetName()
+		return nil
+	case chargeflatfeedetailedline.FieldDescription:
+		m.ResetDescription()
+		return nil
+	case chargeflatfeedetailedline.FieldAmount:
+		m.ResetAmount()
+		return nil
+	case chargeflatfeedetailedline.FieldTaxesTotal:
+		m.ResetTaxesTotal()
+		return nil
+	case chargeflatfeedetailedline.FieldTaxesInclusiveTotal:
+		m.ResetTaxesInclusiveTotal()
+		return nil
+	case chargeflatfeedetailedline.FieldTaxesExclusiveTotal:
+		m.ResetTaxesExclusiveTotal()
+		return nil
+	case chargeflatfeedetailedline.FieldChargesTotal:
+		m.ResetChargesTotal()
+		return nil
+	case chargeflatfeedetailedline.FieldDiscountsTotal:
+		m.ResetDiscountsTotal()
+		return nil
+	case chargeflatfeedetailedline.FieldCreditsTotal:
+		m.ResetCreditsTotal()
+		return nil
+	case chargeflatfeedetailedline.FieldTotal:
+		m.ResetTotal()
+		return nil
+	case chargeflatfeedetailedline.FieldChargeID:
+		m.ResetChargeID()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeFlatFeeDetailedLine field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.charge != nil {
+		edges = append(edges, chargeflatfeedetailedline.EdgeCharge)
+	}
+	if m.tax_code != nil {
+		edges = append(edges, chargeflatfeedetailedline.EdgeTaxCode)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case chargeflatfeedetailedline.EdgeCharge:
+		if id := m.charge; id != nil {
+			return []ent.Value{*id}
+		}
+	case chargeflatfeedetailedline.EdgeTaxCode:
+		if id := m.tax_code; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedcharge {
+		edges = append(edges, chargeflatfeedetailedline.EdgeCharge)
+	}
+	if m.clearedtax_code {
+		edges = append(edges, chargeflatfeedetailedline.EdgeTaxCode)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ChargeFlatFeeDetailedLineMutation) EdgeCleared(name string) bool {
+	switch name {
+	case chargeflatfeedetailedline.EdgeCharge:
+		return m.clearedcharge
+	case chargeflatfeedetailedline.EdgeTaxCode:
+		return m.clearedtax_code
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ChargeFlatFeeDetailedLineMutation) ClearEdge(name string) error {
+	switch name {
+	case chargeflatfeedetailedline.EdgeCharge:
+		m.ClearCharge()
+		return nil
+	case chargeflatfeedetailedline.EdgeTaxCode:
+		m.ClearTaxCode()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeFlatFeeDetailedLine unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ChargeFlatFeeDetailedLineMutation) ResetEdge(name string) error {
+	switch name {
+	case chargeflatfeedetailedline.EdgeCharge:
+		m.ResetCharge()
+		return nil
+	case chargeflatfeedetailedline.EdgeTaxCode:
+		m.ResetTaxCode()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeFlatFeeDetailedLine edge %s", name)
 }
 
 // ChargeFlatFeeInvoicedUsageMutation represents an operation that mutates the ChargeFlatFeeInvoicedUsage nodes in the graph.
@@ -49636,6 +52026,9 @@ type ChargeUsageBasedMutation struct {
 	runs                      map[string]struct{}
 	removedruns               map[string]struct{}
 	clearedruns               bool
+	detailed_lines            map[string]struct{}
+	removeddetailed_lines     map[string]struct{}
+	cleareddetailed_lines     bool
 	current_run               *string
 	clearedcurrent_run        bool
 	charge                    *string
@@ -51072,6 +53465,60 @@ func (m *ChargeUsageBasedMutation) ResetRuns() {
 	m.removedruns = nil
 }
 
+// AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity by ids.
+func (m *ChargeUsageBasedMutation) AddDetailedLineIDs(ids ...string) {
+	if m.detailed_lines == nil {
+		m.detailed_lines = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.detailed_lines[ids[i]] = struct{}{}
+	}
+}
+
+// ClearDetailedLines clears the "detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity.
+func (m *ChargeUsageBasedMutation) ClearDetailedLines() {
+	m.cleareddetailed_lines = true
+}
+
+// DetailedLinesCleared reports if the "detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity was cleared.
+func (m *ChargeUsageBasedMutation) DetailedLinesCleared() bool {
+	return m.cleareddetailed_lines
+}
+
+// RemoveDetailedLineIDs removes the "detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity by IDs.
+func (m *ChargeUsageBasedMutation) RemoveDetailedLineIDs(ids ...string) {
+	if m.removeddetailed_lines == nil {
+		m.removeddetailed_lines = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.detailed_lines, ids[i])
+		m.removeddetailed_lines[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedDetailedLines returns the removed IDs of the "detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity.
+func (m *ChargeUsageBasedMutation) RemovedDetailedLinesIDs() (ids []string) {
+	for id := range m.removeddetailed_lines {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// DetailedLinesIDs returns the "detailed_lines" edge IDs in the mutation.
+func (m *ChargeUsageBasedMutation) DetailedLinesIDs() (ids []string) {
+	for id := range m.detailed_lines {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetDetailedLines resets all changes to the "detailed_lines" edge.
+func (m *ChargeUsageBasedMutation) ResetDetailedLines() {
+	m.detailed_lines = nil
+	m.cleareddetailed_lines = false
+	m.removeddetailed_lines = nil
+}
+
 // SetCurrentRunID sets the "current_run" edge to the ChargeUsageBasedRuns entity by id.
 func (m *ChargeUsageBasedMutation) SetCurrentRunID(id string) {
 	m.current_run = &id
@@ -51998,9 +54445,12 @@ func (m *ChargeUsageBasedMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeUsageBasedMutation) AddedEdges() []string {
-	edges := make([]string, 0, 8)
+	edges := make([]string, 0, 9)
 	if m.runs != nil {
 		edges = append(edges, chargeusagebased.EdgeRuns)
+	}
+	if m.detailed_lines != nil {
+		edges = append(edges, chargeusagebased.EdgeDetailedLines)
 	}
 	if m.current_run != nil {
 		edges = append(edges, chargeusagebased.EdgeCurrentRun)
@@ -52033,6 +54483,12 @@ func (m *ChargeUsageBasedMutation) AddedIDs(name string) []ent.Value {
 	case chargeusagebased.EdgeRuns:
 		ids := make([]ent.Value, 0, len(m.runs))
 		for id := range m.runs {
+			ids = append(ids, id)
+		}
+		return ids
+	case chargeusagebased.EdgeDetailedLines:
+		ids := make([]ent.Value, 0, len(m.detailed_lines))
+		for id := range m.detailed_lines {
 			ids = append(ids, id)
 		}
 		return ids
@@ -52070,9 +54526,12 @@ func (m *ChargeUsageBasedMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ChargeUsageBasedMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 8)
+	edges := make([]string, 0, 9)
 	if m.removedruns != nil {
 		edges = append(edges, chargeusagebased.EdgeRuns)
+	}
+	if m.removeddetailed_lines != nil {
+		edges = append(edges, chargeusagebased.EdgeDetailedLines)
 	}
 	return edges
 }
@@ -52087,15 +54546,24 @@ func (m *ChargeUsageBasedMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case chargeusagebased.EdgeDetailedLines:
+		ids := make([]ent.Value, 0, len(m.removeddetailed_lines))
+		for id := range m.removeddetailed_lines {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeUsageBasedMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 8)
+	edges := make([]string, 0, 9)
 	if m.clearedruns {
 		edges = append(edges, chargeusagebased.EdgeRuns)
+	}
+	if m.cleareddetailed_lines {
+		edges = append(edges, chargeusagebased.EdgeDetailedLines)
 	}
 	if m.clearedcurrent_run {
 		edges = append(edges, chargeusagebased.EdgeCurrentRun)
@@ -52127,6 +54595,8 @@ func (m *ChargeUsageBasedMutation) EdgeCleared(name string) bool {
 	switch name {
 	case chargeusagebased.EdgeRuns:
 		return m.clearedruns
+	case chargeusagebased.EdgeDetailedLines:
+		return m.cleareddetailed_lines
 	case chargeusagebased.EdgeCurrentRun:
 		return m.clearedcurrent_run
 	case chargeusagebased.EdgeCharge:
@@ -52180,6 +54650,9 @@ func (m *ChargeUsageBasedMutation) ResetEdge(name string) error {
 	switch name {
 	case chargeusagebased.EdgeRuns:
 		m.ResetRuns()
+		return nil
+	case chargeusagebased.EdgeDetailedLines:
+		m.ResetDetailedLines()
 		return nil
 	case chargeusagebased.EdgeCurrentRun:
 		m.ResetCurrentRun()
@@ -53551,6 +56024,2407 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) ResetEdge(name string) er
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeUsageBasedRunCreditAllocations edge %s", name)
+}
+
+// ChargeUsageBasedRunDetailedLineMutation represents an operation that mutates the ChargeUsageBasedRunDetailedLine nodes in the graph.
+type ChargeUsageBasedRunDetailedLineMutation struct {
+	config
+	op                        Op
+	typ                       string
+	id                        *string
+	currency                  *currencyx.Code
+	tax_config                *productcatalog.TaxConfig
+	tax_behavior              *productcatalog.TaxBehavior
+	service_period_start      *time.Time
+	service_period_end        *time.Time
+	quantity                  *alpacadecimal.Decimal
+	invoicing_app_external_id *string
+	child_unique_reference_id *string
+	per_unit_amount           *alpacadecimal.Decimal
+	category                  *stddetailedline.Category
+	payment_term              *productcatalog.PaymentTermType
+	index                     *int
+	addindex                  *int
+	credits_applied           **creditsapplied.CreditsApplied
+	annotations               *models.Annotations
+	namespace                 *string
+	metadata                  *map[string]string
+	created_at                *time.Time
+	updated_at                *time.Time
+	deleted_at                *time.Time
+	name                      *string
+	description               *string
+	amount                    *alpacadecimal.Decimal
+	taxes_total               *alpacadecimal.Decimal
+	taxes_inclusive_total     *alpacadecimal.Decimal
+	taxes_exclusive_total     *alpacadecimal.Decimal
+	charges_total             *alpacadecimal.Decimal
+	discounts_total           *alpacadecimal.Decimal
+	credits_total             *alpacadecimal.Decimal
+	total                     *alpacadecimal.Decimal
+	clearedFields             map[string]struct{}
+	charge                    *string
+	clearedcharge             bool
+	run                       *string
+	clearedrun                bool
+	tax_code                  *string
+	clearedtax_code           bool
+	done                      bool
+	oldValue                  func(context.Context) (*ChargeUsageBasedRunDetailedLine, error)
+	predicates                []predicate.ChargeUsageBasedRunDetailedLine
+}
+
+var _ ent.Mutation = (*ChargeUsageBasedRunDetailedLineMutation)(nil)
+
+// chargeusagebasedrundetailedlineOption allows management of the mutation configuration using functional options.
+type chargeusagebasedrundetailedlineOption func(*ChargeUsageBasedRunDetailedLineMutation)
+
+// newChargeUsageBasedRunDetailedLineMutation creates new mutation for the ChargeUsageBasedRunDetailedLine entity.
+func newChargeUsageBasedRunDetailedLineMutation(c config, op Op, opts ...chargeusagebasedrundetailedlineOption) *ChargeUsageBasedRunDetailedLineMutation {
+	m := &ChargeUsageBasedRunDetailedLineMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeChargeUsageBasedRunDetailedLine,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withChargeUsageBasedRunDetailedLineID sets the ID field of the mutation.
+func withChargeUsageBasedRunDetailedLineID(id string) chargeusagebasedrundetailedlineOption {
+	return func(m *ChargeUsageBasedRunDetailedLineMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ChargeUsageBasedRunDetailedLine
+		)
+		m.oldValue = func(ctx context.Context) (*ChargeUsageBasedRunDetailedLine, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ChargeUsageBasedRunDetailedLine.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withChargeUsageBasedRunDetailedLine sets the old ChargeUsageBasedRunDetailedLine of the mutation.
+func withChargeUsageBasedRunDetailedLine(node *ChargeUsageBasedRunDetailedLine) chargeusagebasedrundetailedlineOption {
+	return func(m *ChargeUsageBasedRunDetailedLineMutation) {
+		m.oldValue = func(context.Context) (*ChargeUsageBasedRunDetailedLine, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ChargeUsageBasedRunDetailedLineMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ChargeUsageBasedRunDetailedLineMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ChargeUsageBasedRunDetailedLine entities.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ChargeUsageBasedRunDetailedLine.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCurrency sets the "currency" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetCurrency(c currencyx.Code) {
+	m.currency = &c
+}
+
+// Currency returns the value of the "currency" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) Currency() (r currencyx.Code, exists bool) {
+	v := m.currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCurrency returns the old "currency" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldCurrency(ctx context.Context) (v currencyx.Code, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCurrency requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
+	}
+	return oldValue.Currency, nil
+}
+
+// ResetCurrency resets all changes to the "currency" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetCurrency() {
+	m.currency = nil
+}
+
+// SetTaxConfig sets the "tax_config" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetTaxConfig(pc productcatalog.TaxConfig) {
+	m.tax_config = &pc
+}
+
+// TaxConfig returns the value of the "tax_config" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) TaxConfig() (r productcatalog.TaxConfig, exists bool) {
+	v := m.tax_config
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxConfig returns the old "tax_config" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldTaxConfig(ctx context.Context) (v productcatalog.TaxConfig, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxConfig is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxConfig requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxConfig: %w", err)
+	}
+	return oldValue.TaxConfig, nil
+}
+
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ClearTaxConfig() {
+	m.tax_config = nil
+	m.clearedFields[chargeusagebasedrundetailedline.FieldTaxConfig] = struct{}{}
+}
+
+// TaxConfigCleared returns if the "tax_config" field was cleared in this mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) TaxConfigCleared() bool {
+	_, ok := m.clearedFields[chargeusagebasedrundetailedline.FieldTaxConfig]
+	return ok
+}
+
+// ResetTaxConfig resets all changes to the "tax_config" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetTaxConfig() {
+	m.tax_config = nil
+	delete(m.clearedFields, chargeusagebasedrundetailedline.FieldTaxConfig)
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetTaxCodeID(s string) {
+	m.tax_code = &s
+}
+
+// TaxCodeID returns the value of the "tax_code_id" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) TaxCodeID() (r string, exists bool) {
+	v := m.tax_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxCodeID returns the old "tax_code_id" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldTaxCodeID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxCodeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxCodeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxCodeID: %w", err)
+	}
+	return oldValue.TaxCodeID, nil
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ClearTaxCodeID() {
+	m.tax_code = nil
+	m.clearedFields[chargeusagebasedrundetailedline.FieldTaxCodeID] = struct{}{}
+}
+
+// TaxCodeIDCleared returns if the "tax_code_id" field was cleared in this mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) TaxCodeIDCleared() bool {
+	_, ok := m.clearedFields[chargeusagebasedrundetailedline.FieldTaxCodeID]
+	return ok
+}
+
+// ResetTaxCodeID resets all changes to the "tax_code_id" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetTaxCodeID() {
+	m.tax_code = nil
+	delete(m.clearedFields, chargeusagebasedrundetailedline.FieldTaxCodeID)
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetTaxBehavior(pb productcatalog.TaxBehavior) {
+	m.tax_behavior = &pb
+}
+
+// TaxBehavior returns the value of the "tax_behavior" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) TaxBehavior() (r productcatalog.TaxBehavior, exists bool) {
+	v := m.tax_behavior
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxBehavior returns the old "tax_behavior" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldTaxBehavior(ctx context.Context) (v *productcatalog.TaxBehavior, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxBehavior is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxBehavior requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxBehavior: %w", err)
+	}
+	return oldValue.TaxBehavior, nil
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ClearTaxBehavior() {
+	m.tax_behavior = nil
+	m.clearedFields[chargeusagebasedrundetailedline.FieldTaxBehavior] = struct{}{}
+}
+
+// TaxBehaviorCleared returns if the "tax_behavior" field was cleared in this mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) TaxBehaviorCleared() bool {
+	_, ok := m.clearedFields[chargeusagebasedrundetailedline.FieldTaxBehavior]
+	return ok
+}
+
+// ResetTaxBehavior resets all changes to the "tax_behavior" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetTaxBehavior() {
+	m.tax_behavior = nil
+	delete(m.clearedFields, chargeusagebasedrundetailedline.FieldTaxBehavior)
+}
+
+// SetServicePeriodStart sets the "service_period_start" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetServicePeriodStart(t time.Time) {
+	m.service_period_start = &t
+}
+
+// ServicePeriodStart returns the value of the "service_period_start" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ServicePeriodStart() (r time.Time, exists bool) {
+	v := m.service_period_start
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldServicePeriodStart returns the old "service_period_start" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldServicePeriodStart(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldServicePeriodStart is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldServicePeriodStart requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldServicePeriodStart: %w", err)
+	}
+	return oldValue.ServicePeriodStart, nil
+}
+
+// ResetServicePeriodStart resets all changes to the "service_period_start" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetServicePeriodStart() {
+	m.service_period_start = nil
+}
+
+// SetServicePeriodEnd sets the "service_period_end" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetServicePeriodEnd(t time.Time) {
+	m.service_period_end = &t
+}
+
+// ServicePeriodEnd returns the value of the "service_period_end" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ServicePeriodEnd() (r time.Time, exists bool) {
+	v := m.service_period_end
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldServicePeriodEnd returns the old "service_period_end" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldServicePeriodEnd(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldServicePeriodEnd is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldServicePeriodEnd requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldServicePeriodEnd: %w", err)
+	}
+	return oldValue.ServicePeriodEnd, nil
+}
+
+// ResetServicePeriodEnd resets all changes to the "service_period_end" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetServicePeriodEnd() {
+	m.service_period_end = nil
+}
+
+// SetQuantity sets the "quantity" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetQuantity(a alpacadecimal.Decimal) {
+	m.quantity = &a
+}
+
+// Quantity returns the value of the "quantity" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) Quantity() (r alpacadecimal.Decimal, exists bool) {
+	v := m.quantity
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldQuantity returns the old "quantity" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldQuantity(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldQuantity is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldQuantity requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldQuantity: %w", err)
+	}
+	return oldValue.Quantity, nil
+}
+
+// ResetQuantity resets all changes to the "quantity" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetQuantity() {
+	m.quantity = nil
+}
+
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetInvoicingAppExternalID(s string) {
+	m.invoicing_app_external_id = &s
+}
+
+// InvoicingAppExternalID returns the value of the "invoicing_app_external_id" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) InvoicingAppExternalID() (r string, exists bool) {
+	v := m.invoicing_app_external_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInvoicingAppExternalID returns the old "invoicing_app_external_id" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldInvoicingAppExternalID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInvoicingAppExternalID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInvoicingAppExternalID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInvoicingAppExternalID: %w", err)
+	}
+	return oldValue.InvoicingAppExternalID, nil
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ClearInvoicingAppExternalID() {
+	m.invoicing_app_external_id = nil
+	m.clearedFields[chargeusagebasedrundetailedline.FieldInvoicingAppExternalID] = struct{}{}
+}
+
+// InvoicingAppExternalIDCleared returns if the "invoicing_app_external_id" field was cleared in this mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) InvoicingAppExternalIDCleared() bool {
+	_, ok := m.clearedFields[chargeusagebasedrundetailedline.FieldInvoicingAppExternalID]
+	return ok
+}
+
+// ResetInvoicingAppExternalID resets all changes to the "invoicing_app_external_id" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetInvoicingAppExternalID() {
+	m.invoicing_app_external_id = nil
+	delete(m.clearedFields, chargeusagebasedrundetailedline.FieldInvoicingAppExternalID)
+}
+
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetChildUniqueReferenceID(s string) {
+	m.child_unique_reference_id = &s
+}
+
+// ChildUniqueReferenceID returns the value of the "child_unique_reference_id" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ChildUniqueReferenceID() (r string, exists bool) {
+	v := m.child_unique_reference_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChildUniqueReferenceID returns the old "child_unique_reference_id" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldChildUniqueReferenceID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChildUniqueReferenceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChildUniqueReferenceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChildUniqueReferenceID: %w", err)
+	}
+	return oldValue.ChildUniqueReferenceID, nil
+}
+
+// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ClearChildUniqueReferenceID() {
+	m.child_unique_reference_id = nil
+	m.clearedFields[chargeusagebasedrundetailedline.FieldChildUniqueReferenceID] = struct{}{}
+}
+
+// ChildUniqueReferenceIDCleared returns if the "child_unique_reference_id" field was cleared in this mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ChildUniqueReferenceIDCleared() bool {
+	_, ok := m.clearedFields[chargeusagebasedrundetailedline.FieldChildUniqueReferenceID]
+	return ok
+}
+
+// ResetChildUniqueReferenceID resets all changes to the "child_unique_reference_id" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetChildUniqueReferenceID() {
+	m.child_unique_reference_id = nil
+	delete(m.clearedFields, chargeusagebasedrundetailedline.FieldChildUniqueReferenceID)
+}
+
+// SetPerUnitAmount sets the "per_unit_amount" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetPerUnitAmount(a alpacadecimal.Decimal) {
+	m.per_unit_amount = &a
+}
+
+// PerUnitAmount returns the value of the "per_unit_amount" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) PerUnitAmount() (r alpacadecimal.Decimal, exists bool) {
+	v := m.per_unit_amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPerUnitAmount returns the old "per_unit_amount" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldPerUnitAmount(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPerUnitAmount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPerUnitAmount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPerUnitAmount: %w", err)
+	}
+	return oldValue.PerUnitAmount, nil
+}
+
+// ResetPerUnitAmount resets all changes to the "per_unit_amount" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetPerUnitAmount() {
+	m.per_unit_amount = nil
+}
+
+// SetCategory sets the "category" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetCategory(s stddetailedline.Category) {
+	m.category = &s
+}
+
+// Category returns the value of the "category" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) Category() (r stddetailedline.Category, exists bool) {
+	v := m.category
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCategory returns the old "category" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldCategory(ctx context.Context) (v stddetailedline.Category, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCategory is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCategory requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCategory: %w", err)
+	}
+	return oldValue.Category, nil
+}
+
+// ResetCategory resets all changes to the "category" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetCategory() {
+	m.category = nil
+}
+
+// SetPaymentTerm sets the "payment_term" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetPaymentTerm(ptt productcatalog.PaymentTermType) {
+	m.payment_term = &ptt
+}
+
+// PaymentTerm returns the value of the "payment_term" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) PaymentTerm() (r productcatalog.PaymentTermType, exists bool) {
+	v := m.payment_term
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPaymentTerm returns the old "payment_term" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldPaymentTerm(ctx context.Context) (v productcatalog.PaymentTermType, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPaymentTerm is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPaymentTerm requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPaymentTerm: %w", err)
+	}
+	return oldValue.PaymentTerm, nil
+}
+
+// ResetPaymentTerm resets all changes to the "payment_term" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetPaymentTerm() {
+	m.payment_term = nil
+}
+
+// SetIndex sets the "index" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetIndex(i int) {
+	m.index = &i
+	m.addindex = nil
+}
+
+// Index returns the value of the "index" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) Index() (r int, exists bool) {
+	v := m.index
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIndex returns the old "index" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldIndex(ctx context.Context) (v *int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIndex is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIndex requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIndex: %w", err)
+	}
+	return oldValue.Index, nil
+}
+
+// AddIndex adds i to the "index" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) AddIndex(i int) {
+	if m.addindex != nil {
+		*m.addindex += i
+	} else {
+		m.addindex = &i
+	}
+}
+
+// AddedIndex returns the value that was added to the "index" field in this mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) AddedIndex() (r int, exists bool) {
+	v := m.addindex
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearIndex clears the value of the "index" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ClearIndex() {
+	m.index = nil
+	m.addindex = nil
+	m.clearedFields[chargeusagebasedrundetailedline.FieldIndex] = struct{}{}
+}
+
+// IndexCleared returns if the "index" field was cleared in this mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) IndexCleared() bool {
+	_, ok := m.clearedFields[chargeusagebasedrundetailedline.FieldIndex]
+	return ok
+}
+
+// ResetIndex resets all changes to the "index" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetIndex() {
+	m.index = nil
+	m.addindex = nil
+	delete(m.clearedFields, chargeusagebasedrundetailedline.FieldIndex)
+}
+
+// SetCreditsApplied sets the "credits_applied" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetCreditsApplied(ca *creditsapplied.CreditsApplied) {
+	m.credits_applied = &ca
+}
+
+// CreditsApplied returns the value of the "credits_applied" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) CreditsApplied() (r *creditsapplied.CreditsApplied, exists bool) {
+	v := m.credits_applied
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreditsApplied returns the old "credits_applied" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldCreditsApplied(ctx context.Context) (v *creditsapplied.CreditsApplied, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreditsApplied is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreditsApplied requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreditsApplied: %w", err)
+	}
+	return oldValue.CreditsApplied, nil
+}
+
+// ClearCreditsApplied clears the value of the "credits_applied" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ClearCreditsApplied() {
+	m.credits_applied = nil
+	m.clearedFields[chargeusagebasedrundetailedline.FieldCreditsApplied] = struct{}{}
+}
+
+// CreditsAppliedCleared returns if the "credits_applied" field was cleared in this mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) CreditsAppliedCleared() bool {
+	_, ok := m.clearedFields[chargeusagebasedrundetailedline.FieldCreditsApplied]
+	return ok
+}
+
+// ResetCreditsApplied resets all changes to the "credits_applied" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetCreditsApplied() {
+	m.credits_applied = nil
+	delete(m.clearedFields, chargeusagebasedrundetailedline.FieldCreditsApplied)
+}
+
+// SetAnnotations sets the "annotations" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetAnnotations(value models.Annotations) {
+	m.annotations = &value
+}
+
+// Annotations returns the value of the "annotations" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) Annotations() (r models.Annotations, exists bool) {
+	v := m.annotations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnnotations returns the old "annotations" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldAnnotations(ctx context.Context) (v models.Annotations, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnnotations requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnnotations: %w", err)
+	}
+	return oldValue.Annotations, nil
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ClearAnnotations() {
+	m.annotations = nil
+	m.clearedFields[chargeusagebasedrundetailedline.FieldAnnotations] = struct{}{}
+}
+
+// AnnotationsCleared returns if the "annotations" field was cleared in this mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) AnnotationsCleared() bool {
+	_, ok := m.clearedFields[chargeusagebasedrundetailedline.FieldAnnotations]
+	return ok
+}
+
+// ResetAnnotations resets all changes to the "annotations" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetAnnotations() {
+	m.annotations = nil
+	delete(m.clearedFields, chargeusagebasedrundetailedline.FieldAnnotations)
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetMetadata(value map[string]string) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) Metadata() (r map[string]string, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[chargeusagebasedrundetailedline.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[chargeusagebasedrundetailedline.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, chargeusagebasedrundetailedline.FieldMetadata)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[chargeusagebasedrundetailedline.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[chargeusagebasedrundetailedline.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, chargeusagebasedrundetailedline.FieldDeletedAt)
+}
+
+// SetName sets the "name" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetName() {
+	m.name = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldDescription(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ClearDescription clears the value of the "description" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ClearDescription() {
+	m.description = nil
+	m.clearedFields[chargeusagebasedrundetailedline.FieldDescription] = struct{}{}
+}
+
+// DescriptionCleared returns if the "description" field was cleared in this mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) DescriptionCleared() bool {
+	_, ok := m.clearedFields[chargeusagebasedrundetailedline.FieldDescription]
+	return ok
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetDescription() {
+	m.description = nil
+	delete(m.clearedFields, chargeusagebasedrundetailedline.FieldDescription)
+}
+
+// SetAmount sets the "amount" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetAmount(a alpacadecimal.Decimal) {
+	m.amount = &a
+}
+
+// Amount returns the value of the "amount" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) Amount() (r alpacadecimal.Decimal, exists bool) {
+	v := m.amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAmount returns the old "amount" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldAmount(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAmount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAmount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAmount: %w", err)
+	}
+	return oldValue.Amount, nil
+}
+
+// ResetAmount resets all changes to the "amount" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetAmount() {
+	m.amount = nil
+}
+
+// SetTaxesTotal sets the "taxes_total" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetTaxesTotal(a alpacadecimal.Decimal) {
+	m.taxes_total = &a
+}
+
+// TaxesTotal returns the value of the "taxes_total" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) TaxesTotal() (r alpacadecimal.Decimal, exists bool) {
+	v := m.taxes_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxesTotal returns the old "taxes_total" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldTaxesTotal(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxesTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxesTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxesTotal: %w", err)
+	}
+	return oldValue.TaxesTotal, nil
+}
+
+// ResetTaxesTotal resets all changes to the "taxes_total" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetTaxesTotal() {
+	m.taxes_total = nil
+}
+
+// SetTaxesInclusiveTotal sets the "taxes_inclusive_total" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetTaxesInclusiveTotal(a alpacadecimal.Decimal) {
+	m.taxes_inclusive_total = &a
+}
+
+// TaxesInclusiveTotal returns the value of the "taxes_inclusive_total" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) TaxesInclusiveTotal() (r alpacadecimal.Decimal, exists bool) {
+	v := m.taxes_inclusive_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxesInclusiveTotal returns the old "taxes_inclusive_total" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldTaxesInclusiveTotal(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxesInclusiveTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxesInclusiveTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxesInclusiveTotal: %w", err)
+	}
+	return oldValue.TaxesInclusiveTotal, nil
+}
+
+// ResetTaxesInclusiveTotal resets all changes to the "taxes_inclusive_total" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetTaxesInclusiveTotal() {
+	m.taxes_inclusive_total = nil
+}
+
+// SetTaxesExclusiveTotal sets the "taxes_exclusive_total" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetTaxesExclusiveTotal(a alpacadecimal.Decimal) {
+	m.taxes_exclusive_total = &a
+}
+
+// TaxesExclusiveTotal returns the value of the "taxes_exclusive_total" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) TaxesExclusiveTotal() (r alpacadecimal.Decimal, exists bool) {
+	v := m.taxes_exclusive_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxesExclusiveTotal returns the old "taxes_exclusive_total" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldTaxesExclusiveTotal(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxesExclusiveTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxesExclusiveTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxesExclusiveTotal: %w", err)
+	}
+	return oldValue.TaxesExclusiveTotal, nil
+}
+
+// ResetTaxesExclusiveTotal resets all changes to the "taxes_exclusive_total" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetTaxesExclusiveTotal() {
+	m.taxes_exclusive_total = nil
+}
+
+// SetChargesTotal sets the "charges_total" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetChargesTotal(a alpacadecimal.Decimal) {
+	m.charges_total = &a
+}
+
+// ChargesTotal returns the value of the "charges_total" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ChargesTotal() (r alpacadecimal.Decimal, exists bool) {
+	v := m.charges_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChargesTotal returns the old "charges_total" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldChargesTotal(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChargesTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChargesTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChargesTotal: %w", err)
+	}
+	return oldValue.ChargesTotal, nil
+}
+
+// ResetChargesTotal resets all changes to the "charges_total" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetChargesTotal() {
+	m.charges_total = nil
+}
+
+// SetDiscountsTotal sets the "discounts_total" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetDiscountsTotal(a alpacadecimal.Decimal) {
+	m.discounts_total = &a
+}
+
+// DiscountsTotal returns the value of the "discounts_total" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) DiscountsTotal() (r alpacadecimal.Decimal, exists bool) {
+	v := m.discounts_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDiscountsTotal returns the old "discounts_total" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldDiscountsTotal(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDiscountsTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDiscountsTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDiscountsTotal: %w", err)
+	}
+	return oldValue.DiscountsTotal, nil
+}
+
+// ResetDiscountsTotal resets all changes to the "discounts_total" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetDiscountsTotal() {
+	m.discounts_total = nil
+}
+
+// SetCreditsTotal sets the "credits_total" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetCreditsTotal(a alpacadecimal.Decimal) {
+	m.credits_total = &a
+}
+
+// CreditsTotal returns the value of the "credits_total" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) CreditsTotal() (r alpacadecimal.Decimal, exists bool) {
+	v := m.credits_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreditsTotal returns the old "credits_total" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldCreditsTotal(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreditsTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreditsTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreditsTotal: %w", err)
+	}
+	return oldValue.CreditsTotal, nil
+}
+
+// ResetCreditsTotal resets all changes to the "credits_total" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetCreditsTotal() {
+	m.credits_total = nil
+}
+
+// SetTotal sets the "total" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetTotal(a alpacadecimal.Decimal) {
+	m.total = &a
+}
+
+// Total returns the value of the "total" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) Total() (r alpacadecimal.Decimal, exists bool) {
+	v := m.total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTotal returns the old "total" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldTotal(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTotal: %w", err)
+	}
+	return oldValue.Total, nil
+}
+
+// ResetTotal resets all changes to the "total" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetTotal() {
+	m.total = nil
+}
+
+// SetChargeID sets the "charge_id" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetChargeID(s string) {
+	m.charge = &s
+}
+
+// ChargeID returns the value of the "charge_id" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ChargeID() (r string, exists bool) {
+	v := m.charge
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChargeID returns the old "charge_id" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldChargeID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChargeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChargeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChargeID: %w", err)
+	}
+	return oldValue.ChargeID, nil
+}
+
+// ResetChargeID resets all changes to the "charge_id" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetChargeID() {
+	m.charge = nil
+}
+
+// SetRunID sets the "run_id" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetRunID(s string) {
+	m.run = &s
+}
+
+// RunID returns the value of the "run_id" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) RunID() (r string, exists bool) {
+	v := m.run
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRunID returns the old "run_id" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldRunID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRunID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRunID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRunID: %w", err)
+	}
+	return oldValue.RunID, nil
+}
+
+// ResetRunID resets all changes to the "run_id" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetRunID() {
+	m.run = nil
+}
+
+// ClearCharge clears the "charge" edge to the ChargeUsageBased entity.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ClearCharge() {
+	m.clearedcharge = true
+	m.clearedFields[chargeusagebasedrundetailedline.FieldChargeID] = struct{}{}
+}
+
+// ChargeCleared reports if the "charge" edge to the ChargeUsageBased entity was cleared.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ChargeCleared() bool {
+	return m.clearedcharge
+}
+
+// ChargeIDs returns the "charge" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ChargeID instead. It exists only for internal usage by the builders.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ChargeIDs() (ids []string) {
+	if id := m.charge; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCharge resets all changes to the "charge" edge.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetCharge() {
+	m.charge = nil
+	m.clearedcharge = false
+}
+
+// ClearRun clears the "run" edge to the ChargeUsageBasedRuns entity.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ClearRun() {
+	m.clearedrun = true
+	m.clearedFields[chargeusagebasedrundetailedline.FieldRunID] = struct{}{}
+}
+
+// RunCleared reports if the "run" edge to the ChargeUsageBasedRuns entity was cleared.
+func (m *ChargeUsageBasedRunDetailedLineMutation) RunCleared() bool {
+	return m.clearedrun
+}
+
+// RunIDs returns the "run" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// RunID instead. It exists only for internal usage by the builders.
+func (m *ChargeUsageBasedRunDetailedLineMutation) RunIDs() (ids []string) {
+	if id := m.run; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetRun resets all changes to the "run" edge.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetRun() {
+	m.run = nil
+	m.clearedrun = false
+}
+
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ClearTaxCode() {
+	m.clearedtax_code = true
+	m.clearedFields[chargeusagebasedrundetailedline.FieldTaxCodeID] = struct{}{}
+}
+
+// TaxCodeCleared reports if the "tax_code" edge to the TaxCode entity was cleared.
+func (m *ChargeUsageBasedRunDetailedLineMutation) TaxCodeCleared() bool {
+	return m.TaxCodeIDCleared() || m.clearedtax_code
+}
+
+// TaxCodeIDs returns the "tax_code" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// TaxCodeID instead. It exists only for internal usage by the builders.
+func (m *ChargeUsageBasedRunDetailedLineMutation) TaxCodeIDs() (ids []string) {
+	if id := m.tax_code; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetTaxCode resets all changes to the "tax_code" edge.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetTaxCode() {
+	m.tax_code = nil
+	m.clearedtax_code = false
+}
+
+// Where appends a list predicates to the ChargeUsageBasedRunDetailedLineMutation builder.
+func (m *ChargeUsageBasedRunDetailedLineMutation) Where(ps ...predicate.ChargeUsageBasedRunDetailedLine) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ChargeUsageBasedRunDetailedLineMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ChargeUsageBasedRunDetailedLineMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ChargeUsageBasedRunDetailedLine, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ChargeUsageBasedRunDetailedLineMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ChargeUsageBasedRunDetailedLine).
+func (m *ChargeUsageBasedRunDetailedLineMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ChargeUsageBasedRunDetailedLineMutation) Fields() []string {
+	fields := make([]string, 0, 32)
+	if m.currency != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldCurrency)
+	}
+	if m.tax_config != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldTaxConfig)
+	}
+	if m.tax_code != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldTaxCodeID)
+	}
+	if m.tax_behavior != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldTaxBehavior)
+	}
+	if m.service_period_start != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldServicePeriodStart)
+	}
+	if m.service_period_end != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldServicePeriodEnd)
+	}
+	if m.quantity != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldQuantity)
+	}
+	if m.invoicing_app_external_id != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldInvoicingAppExternalID)
+	}
+	if m.child_unique_reference_id != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldChildUniqueReferenceID)
+	}
+	if m.per_unit_amount != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldPerUnitAmount)
+	}
+	if m.category != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldCategory)
+	}
+	if m.payment_term != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldPaymentTerm)
+	}
+	if m.index != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldIndex)
+	}
+	if m.credits_applied != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldCreditsApplied)
+	}
+	if m.annotations != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldAnnotations)
+	}
+	if m.namespace != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldNamespace)
+	}
+	if m.metadata != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldMetadata)
+	}
+	if m.created_at != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldDeletedAt)
+	}
+	if m.name != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldName)
+	}
+	if m.description != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldDescription)
+	}
+	if m.amount != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldAmount)
+	}
+	if m.taxes_total != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldTaxesTotal)
+	}
+	if m.taxes_inclusive_total != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldTaxesInclusiveTotal)
+	}
+	if m.taxes_exclusive_total != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldTaxesExclusiveTotal)
+	}
+	if m.charges_total != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldChargesTotal)
+	}
+	if m.discounts_total != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldDiscountsTotal)
+	}
+	if m.credits_total != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldCreditsTotal)
+	}
+	if m.total != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldTotal)
+	}
+	if m.charge != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldChargeID)
+	}
+	if m.run != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldRunID)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ChargeUsageBasedRunDetailedLineMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case chargeusagebasedrundetailedline.FieldCurrency:
+		return m.Currency()
+	case chargeusagebasedrundetailedline.FieldTaxConfig:
+		return m.TaxConfig()
+	case chargeusagebasedrundetailedline.FieldTaxCodeID:
+		return m.TaxCodeID()
+	case chargeusagebasedrundetailedline.FieldTaxBehavior:
+		return m.TaxBehavior()
+	case chargeusagebasedrundetailedline.FieldServicePeriodStart:
+		return m.ServicePeriodStart()
+	case chargeusagebasedrundetailedline.FieldServicePeriodEnd:
+		return m.ServicePeriodEnd()
+	case chargeusagebasedrundetailedline.FieldQuantity:
+		return m.Quantity()
+	case chargeusagebasedrundetailedline.FieldInvoicingAppExternalID:
+		return m.InvoicingAppExternalID()
+	case chargeusagebasedrundetailedline.FieldChildUniqueReferenceID:
+		return m.ChildUniqueReferenceID()
+	case chargeusagebasedrundetailedline.FieldPerUnitAmount:
+		return m.PerUnitAmount()
+	case chargeusagebasedrundetailedline.FieldCategory:
+		return m.Category()
+	case chargeusagebasedrundetailedline.FieldPaymentTerm:
+		return m.PaymentTerm()
+	case chargeusagebasedrundetailedline.FieldIndex:
+		return m.Index()
+	case chargeusagebasedrundetailedline.FieldCreditsApplied:
+		return m.CreditsApplied()
+	case chargeusagebasedrundetailedline.FieldAnnotations:
+		return m.Annotations()
+	case chargeusagebasedrundetailedline.FieldNamespace:
+		return m.Namespace()
+	case chargeusagebasedrundetailedline.FieldMetadata:
+		return m.Metadata()
+	case chargeusagebasedrundetailedline.FieldCreatedAt:
+		return m.CreatedAt()
+	case chargeusagebasedrundetailedline.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case chargeusagebasedrundetailedline.FieldDeletedAt:
+		return m.DeletedAt()
+	case chargeusagebasedrundetailedline.FieldName:
+		return m.Name()
+	case chargeusagebasedrundetailedline.FieldDescription:
+		return m.Description()
+	case chargeusagebasedrundetailedline.FieldAmount:
+		return m.Amount()
+	case chargeusagebasedrundetailedline.FieldTaxesTotal:
+		return m.TaxesTotal()
+	case chargeusagebasedrundetailedline.FieldTaxesInclusiveTotal:
+		return m.TaxesInclusiveTotal()
+	case chargeusagebasedrundetailedline.FieldTaxesExclusiveTotal:
+		return m.TaxesExclusiveTotal()
+	case chargeusagebasedrundetailedline.FieldChargesTotal:
+		return m.ChargesTotal()
+	case chargeusagebasedrundetailedline.FieldDiscountsTotal:
+		return m.DiscountsTotal()
+	case chargeusagebasedrundetailedline.FieldCreditsTotal:
+		return m.CreditsTotal()
+	case chargeusagebasedrundetailedline.FieldTotal:
+		return m.Total()
+	case chargeusagebasedrundetailedline.FieldChargeID:
+		return m.ChargeID()
+	case chargeusagebasedrundetailedline.FieldRunID:
+		return m.RunID()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case chargeusagebasedrundetailedline.FieldCurrency:
+		return m.OldCurrency(ctx)
+	case chargeusagebasedrundetailedline.FieldTaxConfig:
+		return m.OldTaxConfig(ctx)
+	case chargeusagebasedrundetailedline.FieldTaxCodeID:
+		return m.OldTaxCodeID(ctx)
+	case chargeusagebasedrundetailedline.FieldTaxBehavior:
+		return m.OldTaxBehavior(ctx)
+	case chargeusagebasedrundetailedline.FieldServicePeriodStart:
+		return m.OldServicePeriodStart(ctx)
+	case chargeusagebasedrundetailedline.FieldServicePeriodEnd:
+		return m.OldServicePeriodEnd(ctx)
+	case chargeusagebasedrundetailedline.FieldQuantity:
+		return m.OldQuantity(ctx)
+	case chargeusagebasedrundetailedline.FieldInvoicingAppExternalID:
+		return m.OldInvoicingAppExternalID(ctx)
+	case chargeusagebasedrundetailedline.FieldChildUniqueReferenceID:
+		return m.OldChildUniqueReferenceID(ctx)
+	case chargeusagebasedrundetailedline.FieldPerUnitAmount:
+		return m.OldPerUnitAmount(ctx)
+	case chargeusagebasedrundetailedline.FieldCategory:
+		return m.OldCategory(ctx)
+	case chargeusagebasedrundetailedline.FieldPaymentTerm:
+		return m.OldPaymentTerm(ctx)
+	case chargeusagebasedrundetailedline.FieldIndex:
+		return m.OldIndex(ctx)
+	case chargeusagebasedrundetailedline.FieldCreditsApplied:
+		return m.OldCreditsApplied(ctx)
+	case chargeusagebasedrundetailedline.FieldAnnotations:
+		return m.OldAnnotations(ctx)
+	case chargeusagebasedrundetailedline.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case chargeusagebasedrundetailedline.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case chargeusagebasedrundetailedline.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case chargeusagebasedrundetailedline.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case chargeusagebasedrundetailedline.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case chargeusagebasedrundetailedline.FieldName:
+		return m.OldName(ctx)
+	case chargeusagebasedrundetailedline.FieldDescription:
+		return m.OldDescription(ctx)
+	case chargeusagebasedrundetailedline.FieldAmount:
+		return m.OldAmount(ctx)
+	case chargeusagebasedrundetailedline.FieldTaxesTotal:
+		return m.OldTaxesTotal(ctx)
+	case chargeusagebasedrundetailedline.FieldTaxesInclusiveTotal:
+		return m.OldTaxesInclusiveTotal(ctx)
+	case chargeusagebasedrundetailedline.FieldTaxesExclusiveTotal:
+		return m.OldTaxesExclusiveTotal(ctx)
+	case chargeusagebasedrundetailedline.FieldChargesTotal:
+		return m.OldChargesTotal(ctx)
+	case chargeusagebasedrundetailedline.FieldDiscountsTotal:
+		return m.OldDiscountsTotal(ctx)
+	case chargeusagebasedrundetailedline.FieldCreditsTotal:
+		return m.OldCreditsTotal(ctx)
+	case chargeusagebasedrundetailedline.FieldTotal:
+		return m.OldTotal(ctx)
+	case chargeusagebasedrundetailedline.FieldChargeID:
+		return m.OldChargeID(ctx)
+	case chargeusagebasedrundetailedline.FieldRunID:
+		return m.OldRunID(ctx)
+	}
+	return nil, fmt.Errorf("unknown ChargeUsageBasedRunDetailedLine field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case chargeusagebasedrundetailedline.FieldCurrency:
+		v, ok := value.(currencyx.Code)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrency(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldTaxConfig:
+		v, ok := value.(productcatalog.TaxConfig)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxConfig(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldTaxCodeID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxCodeID(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldTaxBehavior:
+		v, ok := value.(productcatalog.TaxBehavior)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxBehavior(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldServicePeriodStart:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetServicePeriodStart(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldServicePeriodEnd:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetServicePeriodEnd(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldQuantity:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetQuantity(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldInvoicingAppExternalID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInvoicingAppExternalID(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldChildUniqueReferenceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChildUniqueReferenceID(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldPerUnitAmount:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPerUnitAmount(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldCategory:
+		v, ok := value.(stddetailedline.Category)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCategory(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldPaymentTerm:
+		v, ok := value.(productcatalog.PaymentTermType)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPaymentTerm(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldIndex:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIndex(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldCreditsApplied:
+		v, ok := value.(*creditsapplied.CreditsApplied)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreditsApplied(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldAnnotations:
+		v, ok := value.(models.Annotations)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnnotations(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldMetadata:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldAmount:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAmount(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldTaxesTotal:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxesTotal(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldTaxesInclusiveTotal:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxesInclusiveTotal(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldTaxesExclusiveTotal:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxesExclusiveTotal(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldChargesTotal:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChargesTotal(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldDiscountsTotal:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDiscountsTotal(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldCreditsTotal:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreditsTotal(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldTotal:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTotal(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldChargeID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChargeID(v)
+		return nil
+	case chargeusagebasedrundetailedline.FieldRunID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRunID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeUsageBasedRunDetailedLine field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) AddedFields() []string {
+	var fields []string
+	if m.addindex != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldIndex)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ChargeUsageBasedRunDetailedLineMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case chargeusagebasedrundetailedline.FieldIndex:
+		return m.AddedIndex()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ChargeUsageBasedRunDetailedLineMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case chargeusagebasedrundetailedline.FieldIndex:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddIndex(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeUsageBasedRunDetailedLine numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(chargeusagebasedrundetailedline.FieldTaxConfig) {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldTaxConfig)
+	}
+	if m.FieldCleared(chargeusagebasedrundetailedline.FieldTaxCodeID) {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldTaxCodeID)
+	}
+	if m.FieldCleared(chargeusagebasedrundetailedline.FieldTaxBehavior) {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldTaxBehavior)
+	}
+	if m.FieldCleared(chargeusagebasedrundetailedline.FieldInvoicingAppExternalID) {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldInvoicingAppExternalID)
+	}
+	if m.FieldCleared(chargeusagebasedrundetailedline.FieldChildUniqueReferenceID) {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldChildUniqueReferenceID)
+	}
+	if m.FieldCleared(chargeusagebasedrundetailedline.FieldIndex) {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldIndex)
+	}
+	if m.FieldCleared(chargeusagebasedrundetailedline.FieldCreditsApplied) {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldCreditsApplied)
+	}
+	if m.FieldCleared(chargeusagebasedrundetailedline.FieldAnnotations) {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldAnnotations)
+	}
+	if m.FieldCleared(chargeusagebasedrundetailedline.FieldMetadata) {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldMetadata)
+	}
+	if m.FieldCleared(chargeusagebasedrundetailedline.FieldDeletedAt) {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldDeletedAt)
+	}
+	if m.FieldCleared(chargeusagebasedrundetailedline.FieldDescription) {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldDescription)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ClearField(name string) error {
+	switch name {
+	case chargeusagebasedrundetailedline.FieldTaxConfig:
+		m.ClearTaxConfig()
+		return nil
+	case chargeusagebasedrundetailedline.FieldTaxCodeID:
+		m.ClearTaxCodeID()
+		return nil
+	case chargeusagebasedrundetailedline.FieldTaxBehavior:
+		m.ClearTaxBehavior()
+		return nil
+	case chargeusagebasedrundetailedline.FieldInvoicingAppExternalID:
+		m.ClearInvoicingAppExternalID()
+		return nil
+	case chargeusagebasedrundetailedline.FieldChildUniqueReferenceID:
+		m.ClearChildUniqueReferenceID()
+		return nil
+	case chargeusagebasedrundetailedline.FieldIndex:
+		m.ClearIndex()
+		return nil
+	case chargeusagebasedrundetailedline.FieldCreditsApplied:
+		m.ClearCreditsApplied()
+		return nil
+	case chargeusagebasedrundetailedline.FieldAnnotations:
+		m.ClearAnnotations()
+		return nil
+	case chargeusagebasedrundetailedline.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	case chargeusagebasedrundetailedline.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case chargeusagebasedrundetailedline.FieldDescription:
+		m.ClearDescription()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeUsageBasedRunDetailedLine nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetField(name string) error {
+	switch name {
+	case chargeusagebasedrundetailedline.FieldCurrency:
+		m.ResetCurrency()
+		return nil
+	case chargeusagebasedrundetailedline.FieldTaxConfig:
+		m.ResetTaxConfig()
+		return nil
+	case chargeusagebasedrundetailedline.FieldTaxCodeID:
+		m.ResetTaxCodeID()
+		return nil
+	case chargeusagebasedrundetailedline.FieldTaxBehavior:
+		m.ResetTaxBehavior()
+		return nil
+	case chargeusagebasedrundetailedline.FieldServicePeriodStart:
+		m.ResetServicePeriodStart()
+		return nil
+	case chargeusagebasedrundetailedline.FieldServicePeriodEnd:
+		m.ResetServicePeriodEnd()
+		return nil
+	case chargeusagebasedrundetailedline.FieldQuantity:
+		m.ResetQuantity()
+		return nil
+	case chargeusagebasedrundetailedline.FieldInvoicingAppExternalID:
+		m.ResetInvoicingAppExternalID()
+		return nil
+	case chargeusagebasedrundetailedline.FieldChildUniqueReferenceID:
+		m.ResetChildUniqueReferenceID()
+		return nil
+	case chargeusagebasedrundetailedline.FieldPerUnitAmount:
+		m.ResetPerUnitAmount()
+		return nil
+	case chargeusagebasedrundetailedline.FieldCategory:
+		m.ResetCategory()
+		return nil
+	case chargeusagebasedrundetailedline.FieldPaymentTerm:
+		m.ResetPaymentTerm()
+		return nil
+	case chargeusagebasedrundetailedline.FieldIndex:
+		m.ResetIndex()
+		return nil
+	case chargeusagebasedrundetailedline.FieldCreditsApplied:
+		m.ResetCreditsApplied()
+		return nil
+	case chargeusagebasedrundetailedline.FieldAnnotations:
+		m.ResetAnnotations()
+		return nil
+	case chargeusagebasedrundetailedline.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case chargeusagebasedrundetailedline.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case chargeusagebasedrundetailedline.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case chargeusagebasedrundetailedline.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case chargeusagebasedrundetailedline.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case chargeusagebasedrundetailedline.FieldName:
+		m.ResetName()
+		return nil
+	case chargeusagebasedrundetailedline.FieldDescription:
+		m.ResetDescription()
+		return nil
+	case chargeusagebasedrundetailedline.FieldAmount:
+		m.ResetAmount()
+		return nil
+	case chargeusagebasedrundetailedline.FieldTaxesTotal:
+		m.ResetTaxesTotal()
+		return nil
+	case chargeusagebasedrundetailedline.FieldTaxesInclusiveTotal:
+		m.ResetTaxesInclusiveTotal()
+		return nil
+	case chargeusagebasedrundetailedline.FieldTaxesExclusiveTotal:
+		m.ResetTaxesExclusiveTotal()
+		return nil
+	case chargeusagebasedrundetailedline.FieldChargesTotal:
+		m.ResetChargesTotal()
+		return nil
+	case chargeusagebasedrundetailedline.FieldDiscountsTotal:
+		m.ResetDiscountsTotal()
+		return nil
+	case chargeusagebasedrundetailedline.FieldCreditsTotal:
+		m.ResetCreditsTotal()
+		return nil
+	case chargeusagebasedrundetailedline.FieldTotal:
+		m.ResetTotal()
+		return nil
+	case chargeusagebasedrundetailedline.FieldChargeID:
+		m.ResetChargeID()
+		return nil
+	case chargeusagebasedrundetailedline.FieldRunID:
+		m.ResetRunID()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeUsageBasedRunDetailedLine field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) AddedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.charge != nil {
+		edges = append(edges, chargeusagebasedrundetailedline.EdgeCharge)
+	}
+	if m.run != nil {
+		edges = append(edges, chargeusagebasedrundetailedline.EdgeRun)
+	}
+	if m.tax_code != nil {
+		edges = append(edges, chargeusagebasedrundetailedline.EdgeTaxCode)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case chargeusagebasedrundetailedline.EdgeCharge:
+		if id := m.charge; id != nil {
+			return []ent.Value{*id}
+		}
+	case chargeusagebasedrundetailedline.EdgeRun:
+		if id := m.run; id != nil {
+			return []ent.Value{*id}
+		}
+	case chargeusagebasedrundetailedline.EdgeTaxCode:
+		if id := m.tax_code; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 3)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.clearedcharge {
+		edges = append(edges, chargeusagebasedrundetailedline.EdgeCharge)
+	}
+	if m.clearedrun {
+		edges = append(edges, chargeusagebasedrundetailedline.EdgeRun)
+	}
+	if m.clearedtax_code {
+		edges = append(edges, chargeusagebasedrundetailedline.EdgeTaxCode)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) EdgeCleared(name string) bool {
+	switch name {
+	case chargeusagebasedrundetailedline.EdgeCharge:
+		return m.clearedcharge
+	case chargeusagebasedrundetailedline.EdgeRun:
+		return m.clearedrun
+	case chargeusagebasedrundetailedline.EdgeTaxCode:
+		return m.clearedtax_code
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ClearEdge(name string) error {
+	switch name {
+	case chargeusagebasedrundetailedline.EdgeCharge:
+		m.ClearCharge()
+		return nil
+	case chargeusagebasedrundetailedline.EdgeRun:
+		m.ClearRun()
+		return nil
+	case chargeusagebasedrundetailedline.EdgeTaxCode:
+		m.ClearTaxCode()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeUsageBasedRunDetailedLine unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetEdge(name string) error {
+	switch name {
+	case chargeusagebasedrundetailedline.EdgeCharge:
+		m.ResetCharge()
+		return nil
+	case chargeusagebasedrundetailedline.EdgeRun:
+		m.ResetRun()
+		return nil
+	case chargeusagebasedrundetailedline.EdgeTaxCode:
+		m.ResetTaxCode()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeUsageBasedRunDetailedLine edge %s", name)
 }
 
 // ChargeUsageBasedRunInvoicedUsageMutation represents an operation that mutates the ChargeUsageBasedRunInvoicedUsage nodes in the graph.
@@ -56335,6 +61209,9 @@ type ChargeUsageBasedRunsMutation struct {
 	credit_allocations          map[string]struct{}
 	removedcredit_allocations   map[string]struct{}
 	clearedcredit_allocations   bool
+	detailed_lines              map[string]struct{}
+	removeddetailed_lines       map[string]struct{}
+	cleareddetailed_lines       bool
 	invoiced_usage              *string
 	clearedinvoiced_usage       bool
 	payment                     *string
@@ -57319,6 +62196,60 @@ func (m *ChargeUsageBasedRunsMutation) ResetCreditAllocations() {
 	m.removedcredit_allocations = nil
 }
 
+// AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity by ids.
+func (m *ChargeUsageBasedRunsMutation) AddDetailedLineIDs(ids ...string) {
+	if m.detailed_lines == nil {
+		m.detailed_lines = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.detailed_lines[ids[i]] = struct{}{}
+	}
+}
+
+// ClearDetailedLines clears the "detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity.
+func (m *ChargeUsageBasedRunsMutation) ClearDetailedLines() {
+	m.cleareddetailed_lines = true
+}
+
+// DetailedLinesCleared reports if the "detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity was cleared.
+func (m *ChargeUsageBasedRunsMutation) DetailedLinesCleared() bool {
+	return m.cleareddetailed_lines
+}
+
+// RemoveDetailedLineIDs removes the "detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity by IDs.
+func (m *ChargeUsageBasedRunsMutation) RemoveDetailedLineIDs(ids ...string) {
+	if m.removeddetailed_lines == nil {
+		m.removeddetailed_lines = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.detailed_lines, ids[i])
+		m.removeddetailed_lines[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedDetailedLines returns the removed IDs of the "detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity.
+func (m *ChargeUsageBasedRunsMutation) RemovedDetailedLinesIDs() (ids []string) {
+	for id := range m.removeddetailed_lines {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// DetailedLinesIDs returns the "detailed_lines" edge IDs in the mutation.
+func (m *ChargeUsageBasedRunsMutation) DetailedLinesIDs() (ids []string) {
+	for id := range m.detailed_lines {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetDetailedLines resets all changes to the "detailed_lines" edge.
+func (m *ChargeUsageBasedRunsMutation) ResetDetailedLines() {
+	m.detailed_lines = nil
+	m.cleareddetailed_lines = false
+	m.removeddetailed_lines = nil
+}
+
 // SetInvoicedUsageID sets the "invoiced_usage" edge to the ChargeUsageBasedRunInvoicedUsage entity by id.
 func (m *ChargeUsageBasedRunsMutation) SetInvoicedUsageID(id string) {
 	m.invoiced_usage = &id
@@ -57851,7 +62782,7 @@ func (m *ChargeUsageBasedRunsMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeUsageBasedRunsMutation) AddedEdges() []string {
-	edges := make([]string, 0, 6)
+	edges := make([]string, 0, 7)
 	if m.usage_based != nil {
 		edges = append(edges, chargeusagebasedruns.EdgeUsageBased)
 	}
@@ -57863,6 +62794,9 @@ func (m *ChargeUsageBasedRunsMutation) AddedEdges() []string {
 	}
 	if m.credit_allocations != nil {
 		edges = append(edges, chargeusagebasedruns.EdgeCreditAllocations)
+	}
+	if m.detailed_lines != nil {
+		edges = append(edges, chargeusagebasedruns.EdgeDetailedLines)
 	}
 	if m.invoiced_usage != nil {
 		edges = append(edges, chargeusagebasedruns.EdgeInvoicedUsage)
@@ -57895,6 +62829,12 @@ func (m *ChargeUsageBasedRunsMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case chargeusagebasedruns.EdgeDetailedLines:
+		ids := make([]ent.Value, 0, len(m.detailed_lines))
+		for id := range m.detailed_lines {
+			ids = append(ids, id)
+		}
+		return ids
 	case chargeusagebasedruns.EdgeInvoicedUsage:
 		if id := m.invoiced_usage; id != nil {
 			return []ent.Value{*id}
@@ -57909,9 +62849,12 @@ func (m *ChargeUsageBasedRunsMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ChargeUsageBasedRunsMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 6)
+	edges := make([]string, 0, 7)
 	if m.removedcredit_allocations != nil {
 		edges = append(edges, chargeusagebasedruns.EdgeCreditAllocations)
+	}
+	if m.removeddetailed_lines != nil {
+		edges = append(edges, chargeusagebasedruns.EdgeDetailedLines)
 	}
 	return edges
 }
@@ -57926,13 +62869,19 @@ func (m *ChargeUsageBasedRunsMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case chargeusagebasedruns.EdgeDetailedLines:
+		ids := make([]ent.Value, 0, len(m.removeddetailed_lines))
+		for id := range m.removeddetailed_lines {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeUsageBasedRunsMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 6)
+	edges := make([]string, 0, 7)
 	if m.clearedusage_based {
 		edges = append(edges, chargeusagebasedruns.EdgeUsageBased)
 	}
@@ -57944,6 +62893,9 @@ func (m *ChargeUsageBasedRunsMutation) ClearedEdges() []string {
 	}
 	if m.clearedcredit_allocations {
 		edges = append(edges, chargeusagebasedruns.EdgeCreditAllocations)
+	}
+	if m.cleareddetailed_lines {
+		edges = append(edges, chargeusagebasedruns.EdgeDetailedLines)
 	}
 	if m.clearedinvoiced_usage {
 		edges = append(edges, chargeusagebasedruns.EdgeInvoicedUsage)
@@ -57966,6 +62918,8 @@ func (m *ChargeUsageBasedRunsMutation) EdgeCleared(name string) bool {
 		return m.clearedbilling_invoice_line
 	case chargeusagebasedruns.EdgeCreditAllocations:
 		return m.clearedcredit_allocations
+	case chargeusagebasedruns.EdgeDetailedLines:
+		return m.cleareddetailed_lines
 	case chargeusagebasedruns.EdgeInvoicedUsage:
 		return m.clearedinvoiced_usage
 	case chargeusagebasedruns.EdgePayment:
@@ -58012,6 +62966,9 @@ func (m *ChargeUsageBasedRunsMutation) ResetEdge(name string) error {
 		return nil
 	case chargeusagebasedruns.EdgeCreditAllocations:
 		m.ResetCreditAllocations()
+		return nil
+	case chargeusagebasedruns.EdgeDetailedLines:
+		m.ResetDetailedLines()
 		return nil
 	case chargeusagebasedruns.EdgeInvoicedUsage:
 		m.ResetInvoicedUsage()
@@ -97025,6 +101982,12 @@ type TaxCodeMutation struct {
 	billing_standard_invoice_detailed_lines        map[string]struct{}
 	removedbilling_standard_invoice_detailed_lines map[string]struct{}
 	clearedbilling_standard_invoice_detailed_lines bool
+	charge_usage_based_run_detailed_lines          map[string]struct{}
+	removedcharge_usage_based_run_detailed_lines   map[string]struct{}
+	clearedcharge_usage_based_run_detailed_lines   bool
+	charge_flat_fee_detailed_lines                 map[string]struct{}
+	removedcharge_flat_fee_detailed_lines          map[string]struct{}
+	clearedcharge_flat_fee_detailed_lines          bool
 	subscription_items                             map[string]struct{}
 	removedsubscription_items                      map[string]struct{}
 	clearedsubscription_items                      bool
@@ -97838,6 +102801,114 @@ func (m *TaxCodeMutation) ResetBillingStandardInvoiceDetailedLines() {
 	m.removedbilling_standard_invoice_detailed_lines = nil
 }
 
+// AddChargeUsageBasedRunDetailedLineIDs adds the "charge_usage_based_run_detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity by ids.
+func (m *TaxCodeMutation) AddChargeUsageBasedRunDetailedLineIDs(ids ...string) {
+	if m.charge_usage_based_run_detailed_lines == nil {
+		m.charge_usage_based_run_detailed_lines = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.charge_usage_based_run_detailed_lines[ids[i]] = struct{}{}
+	}
+}
+
+// ClearChargeUsageBasedRunDetailedLines clears the "charge_usage_based_run_detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity.
+func (m *TaxCodeMutation) ClearChargeUsageBasedRunDetailedLines() {
+	m.clearedcharge_usage_based_run_detailed_lines = true
+}
+
+// ChargeUsageBasedRunDetailedLinesCleared reports if the "charge_usage_based_run_detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity was cleared.
+func (m *TaxCodeMutation) ChargeUsageBasedRunDetailedLinesCleared() bool {
+	return m.clearedcharge_usage_based_run_detailed_lines
+}
+
+// RemoveChargeUsageBasedRunDetailedLineIDs removes the "charge_usage_based_run_detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity by IDs.
+func (m *TaxCodeMutation) RemoveChargeUsageBasedRunDetailedLineIDs(ids ...string) {
+	if m.removedcharge_usage_based_run_detailed_lines == nil {
+		m.removedcharge_usage_based_run_detailed_lines = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.charge_usage_based_run_detailed_lines, ids[i])
+		m.removedcharge_usage_based_run_detailed_lines[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedChargeUsageBasedRunDetailedLines returns the removed IDs of the "charge_usage_based_run_detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity.
+func (m *TaxCodeMutation) RemovedChargeUsageBasedRunDetailedLinesIDs() (ids []string) {
+	for id := range m.removedcharge_usage_based_run_detailed_lines {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ChargeUsageBasedRunDetailedLinesIDs returns the "charge_usage_based_run_detailed_lines" edge IDs in the mutation.
+func (m *TaxCodeMutation) ChargeUsageBasedRunDetailedLinesIDs() (ids []string) {
+	for id := range m.charge_usage_based_run_detailed_lines {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetChargeUsageBasedRunDetailedLines resets all changes to the "charge_usage_based_run_detailed_lines" edge.
+func (m *TaxCodeMutation) ResetChargeUsageBasedRunDetailedLines() {
+	m.charge_usage_based_run_detailed_lines = nil
+	m.clearedcharge_usage_based_run_detailed_lines = false
+	m.removedcharge_usage_based_run_detailed_lines = nil
+}
+
+// AddChargeFlatFeeDetailedLineIDs adds the "charge_flat_fee_detailed_lines" edge to the ChargeFlatFeeDetailedLine entity by ids.
+func (m *TaxCodeMutation) AddChargeFlatFeeDetailedLineIDs(ids ...string) {
+	if m.charge_flat_fee_detailed_lines == nil {
+		m.charge_flat_fee_detailed_lines = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.charge_flat_fee_detailed_lines[ids[i]] = struct{}{}
+	}
+}
+
+// ClearChargeFlatFeeDetailedLines clears the "charge_flat_fee_detailed_lines" edge to the ChargeFlatFeeDetailedLine entity.
+func (m *TaxCodeMutation) ClearChargeFlatFeeDetailedLines() {
+	m.clearedcharge_flat_fee_detailed_lines = true
+}
+
+// ChargeFlatFeeDetailedLinesCleared reports if the "charge_flat_fee_detailed_lines" edge to the ChargeFlatFeeDetailedLine entity was cleared.
+func (m *TaxCodeMutation) ChargeFlatFeeDetailedLinesCleared() bool {
+	return m.clearedcharge_flat_fee_detailed_lines
+}
+
+// RemoveChargeFlatFeeDetailedLineIDs removes the "charge_flat_fee_detailed_lines" edge to the ChargeFlatFeeDetailedLine entity by IDs.
+func (m *TaxCodeMutation) RemoveChargeFlatFeeDetailedLineIDs(ids ...string) {
+	if m.removedcharge_flat_fee_detailed_lines == nil {
+		m.removedcharge_flat_fee_detailed_lines = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.charge_flat_fee_detailed_lines, ids[i])
+		m.removedcharge_flat_fee_detailed_lines[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedChargeFlatFeeDetailedLines returns the removed IDs of the "charge_flat_fee_detailed_lines" edge to the ChargeFlatFeeDetailedLine entity.
+func (m *TaxCodeMutation) RemovedChargeFlatFeeDetailedLinesIDs() (ids []string) {
+	for id := range m.removedcharge_flat_fee_detailed_lines {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ChargeFlatFeeDetailedLinesIDs returns the "charge_flat_fee_detailed_lines" edge IDs in the mutation.
+func (m *TaxCodeMutation) ChargeFlatFeeDetailedLinesIDs() (ids []string) {
+	for id := range m.charge_flat_fee_detailed_lines {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetChargeFlatFeeDetailedLines resets all changes to the "charge_flat_fee_detailed_lines" edge.
+func (m *TaxCodeMutation) ResetChargeFlatFeeDetailedLines() {
+	m.charge_flat_fee_detailed_lines = nil
+	m.clearedcharge_flat_fee_detailed_lines = false
+	m.removedcharge_flat_fee_detailed_lines = nil
+}
+
 // AddSubscriptionItemIDs adds the "subscription_items" edge to the SubscriptionItem entity by ids.
 func (m *TaxCodeMutation) AddSubscriptionItemIDs(ids ...string) {
 	if m.subscription_items == nil {
@@ -98319,7 +103390,7 @@ func (m *TaxCodeMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *TaxCodeMutation) AddedEdges() []string {
-	edges := make([]string, 0, 8)
+	edges := make([]string, 0, 10)
 	if m.billing_workflow_configs != nil {
 		edges = append(edges, dbtaxcode.EdgeBillingWorkflowConfigs)
 	}
@@ -98334,6 +103405,12 @@ func (m *TaxCodeMutation) AddedEdges() []string {
 	}
 	if m.billing_standard_invoice_detailed_lines != nil {
 		edges = append(edges, dbtaxcode.EdgeBillingStandardInvoiceDetailedLines)
+	}
+	if m.charge_usage_based_run_detailed_lines != nil {
+		edges = append(edges, dbtaxcode.EdgeChargeUsageBasedRunDetailedLines)
+	}
+	if m.charge_flat_fee_detailed_lines != nil {
+		edges = append(edges, dbtaxcode.EdgeChargeFlatFeeDetailedLines)
 	}
 	if m.subscription_items != nil {
 		edges = append(edges, dbtaxcode.EdgeSubscriptionItems)
@@ -98381,6 +103458,18 @@ func (m *TaxCodeMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case dbtaxcode.EdgeChargeUsageBasedRunDetailedLines:
+		ids := make([]ent.Value, 0, len(m.charge_usage_based_run_detailed_lines))
+		for id := range m.charge_usage_based_run_detailed_lines {
+			ids = append(ids, id)
+		}
+		return ids
+	case dbtaxcode.EdgeChargeFlatFeeDetailedLines:
+		ids := make([]ent.Value, 0, len(m.charge_flat_fee_detailed_lines))
+		for id := range m.charge_flat_fee_detailed_lines {
+			ids = append(ids, id)
+		}
+		return ids
 	case dbtaxcode.EdgeSubscriptionItems:
 		ids := make([]ent.Value, 0, len(m.subscription_items))
 		for id := range m.subscription_items {
@@ -98405,7 +103494,7 @@ func (m *TaxCodeMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *TaxCodeMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 8)
+	edges := make([]string, 0, 10)
 	if m.removedbilling_workflow_configs != nil {
 		edges = append(edges, dbtaxcode.EdgeBillingWorkflowConfigs)
 	}
@@ -98420,6 +103509,12 @@ func (m *TaxCodeMutation) RemovedEdges() []string {
 	}
 	if m.removedbilling_standard_invoice_detailed_lines != nil {
 		edges = append(edges, dbtaxcode.EdgeBillingStandardInvoiceDetailedLines)
+	}
+	if m.removedcharge_usage_based_run_detailed_lines != nil {
+		edges = append(edges, dbtaxcode.EdgeChargeUsageBasedRunDetailedLines)
+	}
+	if m.removedcharge_flat_fee_detailed_lines != nil {
+		edges = append(edges, dbtaxcode.EdgeChargeFlatFeeDetailedLines)
 	}
 	if m.removedsubscription_items != nil {
 		edges = append(edges, dbtaxcode.EdgeSubscriptionItems)
@@ -98467,6 +103562,18 @@ func (m *TaxCodeMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case dbtaxcode.EdgeChargeUsageBasedRunDetailedLines:
+		ids := make([]ent.Value, 0, len(m.removedcharge_usage_based_run_detailed_lines))
+		for id := range m.removedcharge_usage_based_run_detailed_lines {
+			ids = append(ids, id)
+		}
+		return ids
+	case dbtaxcode.EdgeChargeFlatFeeDetailedLines:
+		ids := make([]ent.Value, 0, len(m.removedcharge_flat_fee_detailed_lines))
+		for id := range m.removedcharge_flat_fee_detailed_lines {
+			ids = append(ids, id)
+		}
+		return ids
 	case dbtaxcode.EdgeSubscriptionItems:
 		ids := make([]ent.Value, 0, len(m.removedsubscription_items))
 		for id := range m.removedsubscription_items {
@@ -98491,7 +103598,7 @@ func (m *TaxCodeMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *TaxCodeMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 8)
+	edges := make([]string, 0, 10)
 	if m.clearedbilling_workflow_configs {
 		edges = append(edges, dbtaxcode.EdgeBillingWorkflowConfigs)
 	}
@@ -98506,6 +103613,12 @@ func (m *TaxCodeMutation) ClearedEdges() []string {
 	}
 	if m.clearedbilling_standard_invoice_detailed_lines {
 		edges = append(edges, dbtaxcode.EdgeBillingStandardInvoiceDetailedLines)
+	}
+	if m.clearedcharge_usage_based_run_detailed_lines {
+		edges = append(edges, dbtaxcode.EdgeChargeUsageBasedRunDetailedLines)
+	}
+	if m.clearedcharge_flat_fee_detailed_lines {
+		edges = append(edges, dbtaxcode.EdgeChargeFlatFeeDetailedLines)
 	}
 	if m.clearedsubscription_items {
 		edges = append(edges, dbtaxcode.EdgeSubscriptionItems)
@@ -98533,6 +103646,10 @@ func (m *TaxCodeMutation) EdgeCleared(name string) bool {
 		return m.clearedbilling_invoice_split_line_groups
 	case dbtaxcode.EdgeBillingStandardInvoiceDetailedLines:
 		return m.clearedbilling_standard_invoice_detailed_lines
+	case dbtaxcode.EdgeChargeUsageBasedRunDetailedLines:
+		return m.clearedcharge_usage_based_run_detailed_lines
+	case dbtaxcode.EdgeChargeFlatFeeDetailedLines:
+		return m.clearedcharge_flat_fee_detailed_lines
 	case dbtaxcode.EdgeSubscriptionItems:
 		return m.clearedsubscription_items
 	case dbtaxcode.EdgePlanRateCards:
@@ -98569,6 +103686,12 @@ func (m *TaxCodeMutation) ResetEdge(name string) error {
 		return nil
 	case dbtaxcode.EdgeBillingStandardInvoiceDetailedLines:
 		m.ResetBillingStandardInvoiceDetailedLines()
+		return nil
+	case dbtaxcode.EdgeChargeUsageBasedRunDetailedLines:
+		m.ResetChargeUsageBasedRunDetailedLines()
+		return nil
+	case dbtaxcode.EdgeChargeFlatFeeDetailedLines:
+		m.ResetChargeFlatFeeDetailedLines()
 		return nil
 	case dbtaxcode.EdgeSubscriptionItems:
 		m.ResetSubscriptionItems()

@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/entitydiff"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -52,17 +53,21 @@ func TestInvoiceLineDiffing(t *testing.T) {
 			DetailedLines: billing.DetailedLines{
 				{
 					DetailedLineBase: billing.DetailedLineBase{
-						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-							ID: "2.1",
-						}),
+						Base: stddetailedline.Base{
+							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+								ID: "2.1",
+							}),
+						},
 					},
 					AmountDiscounts: newDetailedLineAmountDiscountsWithIDs("D2.1.1"),
 				},
 				{
 					DetailedLineBase: billing.DetailedLineBase{
-						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-							ID: "2.2",
-						}),
+						Base: stddetailedline.Base{
+							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+								ID: "2.2",
+							}),
+						},
 					},
 				},
 			},

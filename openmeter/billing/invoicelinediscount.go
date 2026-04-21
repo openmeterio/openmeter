@@ -7,6 +7,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -18,10 +19,10 @@ const (
 )
 
 type LineDiscountBase struct {
-	Description            *string         `json:"description,omitempty"`
-	ChildUniqueReferenceID *string         `json:"childUniqueReferenceId,omitempty"`
-	ExternalIDs            LineExternalIDs `json:"externalIDs,omitempty"`
-	Reason                 DiscountReason  `json:"reason,omitempty"`
+	Description            *string                    `json:"description,omitempty"`
+	ChildUniqueReferenceID *string                    `json:"childUniqueReferenceId,omitempty"`
+	ExternalIDs            externalid.LineExternalIDs `json:"externalIDs,omitempty"`
+	Reason                 DiscountReason             `json:"reason,omitempty"`
 }
 
 func (i LineDiscountBase) Validate() error {

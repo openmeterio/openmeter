@@ -47,10 +47,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecreditallocations"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeinvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
@@ -162,6 +164,8 @@ type Client struct {
 	ChargeFlatFee *ChargeFlatFeeClient
 	// ChargeFlatFeeCreditAllocations is the client for interacting with the ChargeFlatFeeCreditAllocations builders.
 	ChargeFlatFeeCreditAllocations *ChargeFlatFeeCreditAllocationsClient
+	// ChargeFlatFeeDetailedLine is the client for interacting with the ChargeFlatFeeDetailedLine builders.
+	ChargeFlatFeeDetailedLine *ChargeFlatFeeDetailedLineClient
 	// ChargeFlatFeeInvoicedUsage is the client for interacting with the ChargeFlatFeeInvoicedUsage builders.
 	ChargeFlatFeeInvoicedUsage *ChargeFlatFeeInvoicedUsageClient
 	// ChargeFlatFeePayment is the client for interacting with the ChargeFlatFeePayment builders.
@@ -170,6 +174,8 @@ type Client struct {
 	ChargeUsageBased *ChargeUsageBasedClient
 	// ChargeUsageBasedRunCreditAllocations is the client for interacting with the ChargeUsageBasedRunCreditAllocations builders.
 	ChargeUsageBasedRunCreditAllocations *ChargeUsageBasedRunCreditAllocationsClient
+	// ChargeUsageBasedRunDetailedLine is the client for interacting with the ChargeUsageBasedRunDetailedLine builders.
+	ChargeUsageBasedRunDetailedLine *ChargeUsageBasedRunDetailedLineClient
 	// ChargeUsageBasedRunInvoicedUsage is the client for interacting with the ChargeUsageBasedRunInvoicedUsage builders.
 	ChargeUsageBasedRunInvoicedUsage *ChargeUsageBasedRunInvoicedUsageClient
 	// ChargeUsageBasedRunPayment is the client for interacting with the ChargeUsageBasedRunPayment builders.
@@ -291,10 +297,12 @@ func (c *Client) init() {
 	c.ChargeCreditPurchaseInvoicedPayment = NewChargeCreditPurchaseInvoicedPaymentClient(c.config)
 	c.ChargeFlatFee = NewChargeFlatFeeClient(c.config)
 	c.ChargeFlatFeeCreditAllocations = NewChargeFlatFeeCreditAllocationsClient(c.config)
+	c.ChargeFlatFeeDetailedLine = NewChargeFlatFeeDetailedLineClient(c.config)
 	c.ChargeFlatFeeInvoicedUsage = NewChargeFlatFeeInvoicedUsageClient(c.config)
 	c.ChargeFlatFeePayment = NewChargeFlatFeePaymentClient(c.config)
 	c.ChargeUsageBased = NewChargeUsageBasedClient(c.config)
 	c.ChargeUsageBasedRunCreditAllocations = NewChargeUsageBasedRunCreditAllocationsClient(c.config)
+	c.ChargeUsageBasedRunDetailedLine = NewChargeUsageBasedRunDetailedLineClient(c.config)
 	c.ChargeUsageBasedRunInvoicedUsage = NewChargeUsageBasedRunInvoicedUsageClient(c.config)
 	c.ChargeUsageBasedRunPayment = NewChargeUsageBasedRunPaymentClient(c.config)
 	c.ChargeUsageBasedRuns = NewChargeUsageBasedRunsClient(c.config)
@@ -458,10 +466,12 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ChargeCreditPurchaseInvoicedPayment:              NewChargeCreditPurchaseInvoicedPaymentClient(cfg),
 		ChargeFlatFee:                                    NewChargeFlatFeeClient(cfg),
 		ChargeFlatFeeCreditAllocations:                   NewChargeFlatFeeCreditAllocationsClient(cfg),
+		ChargeFlatFeeDetailedLine:                        NewChargeFlatFeeDetailedLineClient(cfg),
 		ChargeFlatFeeInvoicedUsage:                       NewChargeFlatFeeInvoicedUsageClient(cfg),
 		ChargeFlatFeePayment:                             NewChargeFlatFeePaymentClient(cfg),
 		ChargeUsageBased:                                 NewChargeUsageBasedClient(cfg),
 		ChargeUsageBasedRunCreditAllocations:             NewChargeUsageBasedRunCreditAllocationsClient(cfg),
+		ChargeUsageBasedRunDetailedLine:                  NewChargeUsageBasedRunDetailedLineClient(cfg),
 		ChargeUsageBasedRunInvoicedUsage:                 NewChargeUsageBasedRunInvoicedUsageClient(cfg),
 		ChargeUsageBasedRunPayment:                       NewChargeUsageBasedRunPaymentClient(cfg),
 		ChargeUsageBasedRuns:                             NewChargeUsageBasedRunsClient(cfg),
@@ -552,10 +562,12 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ChargeCreditPurchaseInvoicedPayment:              NewChargeCreditPurchaseInvoicedPaymentClient(cfg),
 		ChargeFlatFee:                                    NewChargeFlatFeeClient(cfg),
 		ChargeFlatFeeCreditAllocations:                   NewChargeFlatFeeCreditAllocationsClient(cfg),
+		ChargeFlatFeeDetailedLine:                        NewChargeFlatFeeDetailedLineClient(cfg),
 		ChargeFlatFeeInvoicedUsage:                       NewChargeFlatFeeInvoicedUsageClient(cfg),
 		ChargeFlatFeePayment:                             NewChargeFlatFeePaymentClient(cfg),
 		ChargeUsageBased:                                 NewChargeUsageBasedClient(cfg),
 		ChargeUsageBasedRunCreditAllocations:             NewChargeUsageBasedRunCreditAllocationsClient(cfg),
+		ChargeUsageBasedRunDetailedLine:                  NewChargeUsageBasedRunDetailedLineClient(cfg),
 		ChargeUsageBasedRunInvoicedUsage:                 NewChargeUsageBasedRunInvoicedUsageClient(cfg),
 		ChargeUsageBasedRunPayment:                       NewChargeUsageBasedRunPaymentClient(cfg),
 		ChargeUsageBasedRuns:                             NewChargeUsageBasedRunsClient(cfg),
@@ -636,16 +648,16 @@ func (c *Client) Use(hooks ...Hook) {
 		c.BillingStandardInvoiceDetailedLineAmountDiscount, c.BillingWorkflowConfig,
 		c.Charge, c.ChargeCreditPurchase, c.ChargeCreditPurchaseCreditGrant,
 		c.ChargeCreditPurchaseExternalPayment, c.ChargeCreditPurchaseInvoicedPayment,
-		c.ChargeFlatFee, c.ChargeFlatFeeCreditAllocations,
+		c.ChargeFlatFee, c.ChargeFlatFeeCreditAllocations, c.ChargeFlatFeeDetailedLine,
 		c.ChargeFlatFeeInvoicedUsage, c.ChargeFlatFeePayment, c.ChargeUsageBased,
-		c.ChargeUsageBasedRunCreditAllocations, c.ChargeUsageBasedRunInvoicedUsage,
-		c.ChargeUsageBasedRunPayment, c.ChargeUsageBasedRuns,
-		c.CreditRealizationLineage, c.CreditRealizationLineageSegment,
-		c.CurrencyCostBasis, c.CustomCurrency, c.Customer, c.CustomerSubjects,
-		c.Entitlement, c.Feature, c.Grant, c.LLMCostPrice, c.LedgerAccount,
-		c.LedgerCustomerAccount, c.LedgerEntry, c.LedgerSubAccount,
-		c.LedgerSubAccountRoute, c.LedgerTransaction, c.LedgerTransactionGroup,
-		c.Meter, c.NotificationChannel, c.NotificationEvent,
+		c.ChargeUsageBasedRunCreditAllocations, c.ChargeUsageBasedRunDetailedLine,
+		c.ChargeUsageBasedRunInvoicedUsage, c.ChargeUsageBasedRunPayment,
+		c.ChargeUsageBasedRuns, c.CreditRealizationLineage,
+		c.CreditRealizationLineageSegment, c.CurrencyCostBasis, c.CustomCurrency,
+		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant,
+		c.LLMCostPrice, c.LedgerAccount, c.LedgerCustomerAccount, c.LedgerEntry,
+		c.LedgerSubAccount, c.LedgerSubAccountRoute, c.LedgerTransaction,
+		c.LedgerTransactionGroup, c.Meter, c.NotificationChannel, c.NotificationEvent,
 		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanAddon,
 		c.PlanPhase, c.PlanRateCard, c.Subject, c.Subscription, c.SubscriptionAddon,
 		c.SubscriptionAddonQuantity, c.SubscriptionBillingSyncState,
@@ -671,16 +683,16 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.BillingStandardInvoiceDetailedLineAmountDiscount, c.BillingWorkflowConfig,
 		c.Charge, c.ChargeCreditPurchase, c.ChargeCreditPurchaseCreditGrant,
 		c.ChargeCreditPurchaseExternalPayment, c.ChargeCreditPurchaseInvoicedPayment,
-		c.ChargeFlatFee, c.ChargeFlatFeeCreditAllocations,
+		c.ChargeFlatFee, c.ChargeFlatFeeCreditAllocations, c.ChargeFlatFeeDetailedLine,
 		c.ChargeFlatFeeInvoicedUsage, c.ChargeFlatFeePayment, c.ChargeUsageBased,
-		c.ChargeUsageBasedRunCreditAllocations, c.ChargeUsageBasedRunInvoicedUsage,
-		c.ChargeUsageBasedRunPayment, c.ChargeUsageBasedRuns, c.ChargesSearchV1,
-		c.CreditRealizationLineage, c.CreditRealizationLineageSegment,
-		c.CurrencyCostBasis, c.CustomCurrency, c.Customer, c.CustomerSubjects,
-		c.Entitlement, c.Feature, c.Grant, c.LLMCostPrice, c.LedgerAccount,
-		c.LedgerCustomerAccount, c.LedgerEntry, c.LedgerSubAccount,
-		c.LedgerSubAccountRoute, c.LedgerTransaction, c.LedgerTransactionGroup,
-		c.Meter, c.NotificationChannel, c.NotificationEvent,
+		c.ChargeUsageBasedRunCreditAllocations, c.ChargeUsageBasedRunDetailedLine,
+		c.ChargeUsageBasedRunInvoicedUsage, c.ChargeUsageBasedRunPayment,
+		c.ChargeUsageBasedRuns, c.ChargesSearchV1, c.CreditRealizationLineage,
+		c.CreditRealizationLineageSegment, c.CurrencyCostBasis, c.CustomCurrency,
+		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant,
+		c.LLMCostPrice, c.LedgerAccount, c.LedgerCustomerAccount, c.LedgerEntry,
+		c.LedgerSubAccount, c.LedgerSubAccountRoute, c.LedgerTransaction,
+		c.LedgerTransactionGroup, c.Meter, c.NotificationChannel, c.NotificationEvent,
 		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanAddon,
 		c.PlanPhase, c.PlanRateCard, c.Subject, c.Subscription, c.SubscriptionAddon,
 		c.SubscriptionAddonQuantity, c.SubscriptionBillingSyncState,
@@ -757,6 +769,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ChargeFlatFee.mutate(ctx, m)
 	case *ChargeFlatFeeCreditAllocationsMutation:
 		return c.ChargeFlatFeeCreditAllocations.mutate(ctx, m)
+	case *ChargeFlatFeeDetailedLineMutation:
+		return c.ChargeFlatFeeDetailedLine.mutate(ctx, m)
 	case *ChargeFlatFeeInvoicedUsageMutation:
 		return c.ChargeFlatFeeInvoicedUsage.mutate(ctx, m)
 	case *ChargeFlatFeePaymentMutation:
@@ -765,6 +779,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ChargeUsageBased.mutate(ctx, m)
 	case *ChargeUsageBasedRunCreditAllocationsMutation:
 		return c.ChargeUsageBasedRunCreditAllocations.mutate(ctx, m)
+	case *ChargeUsageBasedRunDetailedLineMutation:
+		return c.ChargeUsageBasedRunDetailedLine.mutate(ctx, m)
 	case *ChargeUsageBasedRunInvoicedUsageMutation:
 		return c.ChargeUsageBasedRunInvoicedUsage.mutate(ctx, m)
 	case *ChargeUsageBasedRunPaymentMutation:
@@ -6496,6 +6512,22 @@ func (c *ChargeFlatFeeClient) QueryCreditAllocations(_m *ChargeFlatFee) *ChargeF
 	return query
 }
 
+// QueryDetailedLines queries the detailed_lines edge of a ChargeFlatFee.
+func (c *ChargeFlatFeeClient) QueryDetailedLines(_m *ChargeFlatFee) *ChargeFlatFeeDetailedLineQuery {
+	query := (&ChargeFlatFeeDetailedLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, id),
+			sqlgraph.To(chargeflatfeedetailedline.Table, chargeflatfeedetailedline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, chargeflatfee.DetailedLinesTable, chargeflatfee.DetailedLinesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryInvoicedUsage queries the invoiced_usage edge of a ChargeFlatFee.
 func (c *ChargeFlatFeeClient) QueryInvoicedUsage(_m *ChargeFlatFee) *ChargeFlatFeeInvoicedUsageQuery {
 	query := (&ChargeFlatFeeInvoicedUsageClient{config: c.config}).Query()
@@ -6843,6 +6875,171 @@ func (c *ChargeFlatFeeCreditAllocationsClient) mutate(ctx context.Context, m *Ch
 		return (&ChargeFlatFeeCreditAllocationsDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown ChargeFlatFeeCreditAllocations mutation op: %q", m.Op())
+	}
+}
+
+// ChargeFlatFeeDetailedLineClient is a client for the ChargeFlatFeeDetailedLine schema.
+type ChargeFlatFeeDetailedLineClient struct {
+	config
+}
+
+// NewChargeFlatFeeDetailedLineClient returns a client for the ChargeFlatFeeDetailedLine from the given config.
+func NewChargeFlatFeeDetailedLineClient(c config) *ChargeFlatFeeDetailedLineClient {
+	return &ChargeFlatFeeDetailedLineClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `chargeflatfeedetailedline.Hooks(f(g(h())))`.
+func (c *ChargeFlatFeeDetailedLineClient) Use(hooks ...Hook) {
+	c.hooks.ChargeFlatFeeDetailedLine = append(c.hooks.ChargeFlatFeeDetailedLine, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `chargeflatfeedetailedline.Intercept(f(g(h())))`.
+func (c *ChargeFlatFeeDetailedLineClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ChargeFlatFeeDetailedLine = append(c.inters.ChargeFlatFeeDetailedLine, interceptors...)
+}
+
+// Create returns a builder for creating a ChargeFlatFeeDetailedLine entity.
+func (c *ChargeFlatFeeDetailedLineClient) Create() *ChargeFlatFeeDetailedLineCreate {
+	mutation := newChargeFlatFeeDetailedLineMutation(c.config, OpCreate)
+	return &ChargeFlatFeeDetailedLineCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ChargeFlatFeeDetailedLine entities.
+func (c *ChargeFlatFeeDetailedLineClient) CreateBulk(builders ...*ChargeFlatFeeDetailedLineCreate) *ChargeFlatFeeDetailedLineCreateBulk {
+	return &ChargeFlatFeeDetailedLineCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ChargeFlatFeeDetailedLineClient) MapCreateBulk(slice any, setFunc func(*ChargeFlatFeeDetailedLineCreate, int)) *ChargeFlatFeeDetailedLineCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ChargeFlatFeeDetailedLineCreateBulk{err: fmt.Errorf("calling to ChargeFlatFeeDetailedLineClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ChargeFlatFeeDetailedLineCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ChargeFlatFeeDetailedLineCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ChargeFlatFeeDetailedLine.
+func (c *ChargeFlatFeeDetailedLineClient) Update() *ChargeFlatFeeDetailedLineUpdate {
+	mutation := newChargeFlatFeeDetailedLineMutation(c.config, OpUpdate)
+	return &ChargeFlatFeeDetailedLineUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ChargeFlatFeeDetailedLineClient) UpdateOne(_m *ChargeFlatFeeDetailedLine) *ChargeFlatFeeDetailedLineUpdateOne {
+	mutation := newChargeFlatFeeDetailedLineMutation(c.config, OpUpdateOne, withChargeFlatFeeDetailedLine(_m))
+	return &ChargeFlatFeeDetailedLineUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ChargeFlatFeeDetailedLineClient) UpdateOneID(id string) *ChargeFlatFeeDetailedLineUpdateOne {
+	mutation := newChargeFlatFeeDetailedLineMutation(c.config, OpUpdateOne, withChargeFlatFeeDetailedLineID(id))
+	return &ChargeFlatFeeDetailedLineUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ChargeFlatFeeDetailedLine.
+func (c *ChargeFlatFeeDetailedLineClient) Delete() *ChargeFlatFeeDetailedLineDelete {
+	mutation := newChargeFlatFeeDetailedLineMutation(c.config, OpDelete)
+	return &ChargeFlatFeeDetailedLineDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ChargeFlatFeeDetailedLineClient) DeleteOne(_m *ChargeFlatFeeDetailedLine) *ChargeFlatFeeDetailedLineDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ChargeFlatFeeDetailedLineClient) DeleteOneID(id string) *ChargeFlatFeeDetailedLineDeleteOne {
+	builder := c.Delete().Where(chargeflatfeedetailedline.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ChargeFlatFeeDetailedLineDeleteOne{builder}
+}
+
+// Query returns a query builder for ChargeFlatFeeDetailedLine.
+func (c *ChargeFlatFeeDetailedLineClient) Query() *ChargeFlatFeeDetailedLineQuery {
+	return &ChargeFlatFeeDetailedLineQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeChargeFlatFeeDetailedLine},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ChargeFlatFeeDetailedLine entity by its id.
+func (c *ChargeFlatFeeDetailedLineClient) Get(ctx context.Context, id string) (*ChargeFlatFeeDetailedLine, error) {
+	return c.Query().Where(chargeflatfeedetailedline.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ChargeFlatFeeDetailedLineClient) GetX(ctx context.Context, id string) *ChargeFlatFeeDetailedLine {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryCharge queries the charge edge of a ChargeFlatFeeDetailedLine.
+func (c *ChargeFlatFeeDetailedLineClient) QueryCharge(_m *ChargeFlatFeeDetailedLine) *ChargeFlatFeeQuery {
+	query := (&ChargeFlatFeeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfeedetailedline.Table, chargeflatfeedetailedline.FieldID, id),
+			sqlgraph.To(chargeflatfee.Table, chargeflatfee.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeflatfeedetailedline.ChargeTable, chargeflatfeedetailedline.ChargeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTaxCode queries the tax_code edge of a ChargeFlatFeeDetailedLine.
+func (c *ChargeFlatFeeDetailedLineClient) QueryTaxCode(_m *ChargeFlatFeeDetailedLine) *TaxCodeQuery {
+	query := (&TaxCodeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfeedetailedline.Table, chargeflatfeedetailedline.FieldID, id),
+			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeflatfeedetailedline.TaxCodeTable, chargeflatfeedetailedline.TaxCodeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ChargeFlatFeeDetailedLineClient) Hooks() []Hook {
+	return c.hooks.ChargeFlatFeeDetailedLine
+}
+
+// Interceptors returns the client interceptors.
+func (c *ChargeFlatFeeDetailedLineClient) Interceptors() []Interceptor {
+	return c.inters.ChargeFlatFeeDetailedLine
+}
+
+func (c *ChargeFlatFeeDetailedLineClient) mutate(ctx context.Context, m *ChargeFlatFeeDetailedLineMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ChargeFlatFeeDetailedLineCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ChargeFlatFeeDetailedLineUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ChargeFlatFeeDetailedLineUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ChargeFlatFeeDetailedLineDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown ChargeFlatFeeDetailedLine mutation op: %q", m.Op())
 	}
 }
 
@@ -7300,6 +7497,22 @@ func (c *ChargeUsageBasedClient) QueryRuns(_m *ChargeUsageBased) *ChargeUsageBas
 	return query
 }
 
+// QueryDetailedLines queries the detailed_lines edge of a ChargeUsageBased.
+func (c *ChargeUsageBasedClient) QueryDetailedLines(_m *ChargeUsageBased) *ChargeUsageBasedRunDetailedLineQuery {
+	query := (&ChargeUsageBasedRunDetailedLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, id),
+			sqlgraph.To(chargeusagebasedrundetailedline.Table, chargeusagebasedrundetailedline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, chargeusagebased.DetailedLinesTable, chargeusagebased.DetailedLinesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryCurrentRun queries the current_run edge of a ChargeUsageBased.
 func (c *ChargeUsageBasedClient) QueryCurrentRun(_m *ChargeUsageBased) *ChargeUsageBasedRunsQuery {
 	query := (&ChargeUsageBasedRunsClient{config: c.config}).Query()
@@ -7615,6 +7828,187 @@ func (c *ChargeUsageBasedRunCreditAllocationsClient) mutate(ctx context.Context,
 		return (&ChargeUsageBasedRunCreditAllocationsDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown ChargeUsageBasedRunCreditAllocations mutation op: %q", m.Op())
+	}
+}
+
+// ChargeUsageBasedRunDetailedLineClient is a client for the ChargeUsageBasedRunDetailedLine schema.
+type ChargeUsageBasedRunDetailedLineClient struct {
+	config
+}
+
+// NewChargeUsageBasedRunDetailedLineClient returns a client for the ChargeUsageBasedRunDetailedLine from the given config.
+func NewChargeUsageBasedRunDetailedLineClient(c config) *ChargeUsageBasedRunDetailedLineClient {
+	return &ChargeUsageBasedRunDetailedLineClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `chargeusagebasedrundetailedline.Hooks(f(g(h())))`.
+func (c *ChargeUsageBasedRunDetailedLineClient) Use(hooks ...Hook) {
+	c.hooks.ChargeUsageBasedRunDetailedLine = append(c.hooks.ChargeUsageBasedRunDetailedLine, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `chargeusagebasedrundetailedline.Intercept(f(g(h())))`.
+func (c *ChargeUsageBasedRunDetailedLineClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ChargeUsageBasedRunDetailedLine = append(c.inters.ChargeUsageBasedRunDetailedLine, interceptors...)
+}
+
+// Create returns a builder for creating a ChargeUsageBasedRunDetailedLine entity.
+func (c *ChargeUsageBasedRunDetailedLineClient) Create() *ChargeUsageBasedRunDetailedLineCreate {
+	mutation := newChargeUsageBasedRunDetailedLineMutation(c.config, OpCreate)
+	return &ChargeUsageBasedRunDetailedLineCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ChargeUsageBasedRunDetailedLine entities.
+func (c *ChargeUsageBasedRunDetailedLineClient) CreateBulk(builders ...*ChargeUsageBasedRunDetailedLineCreate) *ChargeUsageBasedRunDetailedLineCreateBulk {
+	return &ChargeUsageBasedRunDetailedLineCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ChargeUsageBasedRunDetailedLineClient) MapCreateBulk(slice any, setFunc func(*ChargeUsageBasedRunDetailedLineCreate, int)) *ChargeUsageBasedRunDetailedLineCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ChargeUsageBasedRunDetailedLineCreateBulk{err: fmt.Errorf("calling to ChargeUsageBasedRunDetailedLineClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ChargeUsageBasedRunDetailedLineCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ChargeUsageBasedRunDetailedLineCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ChargeUsageBasedRunDetailedLine.
+func (c *ChargeUsageBasedRunDetailedLineClient) Update() *ChargeUsageBasedRunDetailedLineUpdate {
+	mutation := newChargeUsageBasedRunDetailedLineMutation(c.config, OpUpdate)
+	return &ChargeUsageBasedRunDetailedLineUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ChargeUsageBasedRunDetailedLineClient) UpdateOne(_m *ChargeUsageBasedRunDetailedLine) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	mutation := newChargeUsageBasedRunDetailedLineMutation(c.config, OpUpdateOne, withChargeUsageBasedRunDetailedLine(_m))
+	return &ChargeUsageBasedRunDetailedLineUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ChargeUsageBasedRunDetailedLineClient) UpdateOneID(id string) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	mutation := newChargeUsageBasedRunDetailedLineMutation(c.config, OpUpdateOne, withChargeUsageBasedRunDetailedLineID(id))
+	return &ChargeUsageBasedRunDetailedLineUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ChargeUsageBasedRunDetailedLine.
+func (c *ChargeUsageBasedRunDetailedLineClient) Delete() *ChargeUsageBasedRunDetailedLineDelete {
+	mutation := newChargeUsageBasedRunDetailedLineMutation(c.config, OpDelete)
+	return &ChargeUsageBasedRunDetailedLineDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ChargeUsageBasedRunDetailedLineClient) DeleteOne(_m *ChargeUsageBasedRunDetailedLine) *ChargeUsageBasedRunDetailedLineDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ChargeUsageBasedRunDetailedLineClient) DeleteOneID(id string) *ChargeUsageBasedRunDetailedLineDeleteOne {
+	builder := c.Delete().Where(chargeusagebasedrundetailedline.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ChargeUsageBasedRunDetailedLineDeleteOne{builder}
+}
+
+// Query returns a query builder for ChargeUsageBasedRunDetailedLine.
+func (c *ChargeUsageBasedRunDetailedLineClient) Query() *ChargeUsageBasedRunDetailedLineQuery {
+	return &ChargeUsageBasedRunDetailedLineQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeChargeUsageBasedRunDetailedLine},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ChargeUsageBasedRunDetailedLine entity by its id.
+func (c *ChargeUsageBasedRunDetailedLineClient) Get(ctx context.Context, id string) (*ChargeUsageBasedRunDetailedLine, error) {
+	return c.Query().Where(chargeusagebasedrundetailedline.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ChargeUsageBasedRunDetailedLineClient) GetX(ctx context.Context, id string) *ChargeUsageBasedRunDetailedLine {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryCharge queries the charge edge of a ChargeUsageBasedRunDetailedLine.
+func (c *ChargeUsageBasedRunDetailedLineClient) QueryCharge(_m *ChargeUsageBasedRunDetailedLine) *ChargeUsageBasedQuery {
+	query := (&ChargeUsageBasedClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedrundetailedline.Table, chargeusagebasedrundetailedline.FieldID, id),
+			sqlgraph.To(chargeusagebased.Table, chargeusagebased.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedrundetailedline.ChargeTable, chargeusagebasedrundetailedline.ChargeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryRun queries the run edge of a ChargeUsageBasedRunDetailedLine.
+func (c *ChargeUsageBasedRunDetailedLineClient) QueryRun(_m *ChargeUsageBasedRunDetailedLine) *ChargeUsageBasedRunsQuery {
+	query := (&ChargeUsageBasedRunsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedrundetailedline.Table, chargeusagebasedrundetailedline.FieldID, id),
+			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedrundetailedline.RunTable, chargeusagebasedrundetailedline.RunColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTaxCode queries the tax_code edge of a ChargeUsageBasedRunDetailedLine.
+func (c *ChargeUsageBasedRunDetailedLineClient) QueryTaxCode(_m *ChargeUsageBasedRunDetailedLine) *TaxCodeQuery {
+	query := (&TaxCodeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedrundetailedline.Table, chargeusagebasedrundetailedline.FieldID, id),
+			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedrundetailedline.TaxCodeTable, chargeusagebasedrundetailedline.TaxCodeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ChargeUsageBasedRunDetailedLineClient) Hooks() []Hook {
+	return c.hooks.ChargeUsageBasedRunDetailedLine
+}
+
+// Interceptors returns the client interceptors.
+func (c *ChargeUsageBasedRunDetailedLineClient) Interceptors() []Interceptor {
+	return c.inters.ChargeUsageBasedRunDetailedLine
+}
+
+func (c *ChargeUsageBasedRunDetailedLineClient) mutate(ctx context.Context, m *ChargeUsageBasedRunDetailedLineMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ChargeUsageBasedRunDetailedLineCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ChargeUsageBasedRunDetailedLineUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ChargeUsageBasedRunDetailedLineUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ChargeUsageBasedRunDetailedLineDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown ChargeUsageBasedRunDetailedLine mutation op: %q", m.Op())
 	}
 }
 
@@ -8081,6 +8475,22 @@ func (c *ChargeUsageBasedRunsClient) QueryCreditAllocations(_m *ChargeUsageBased
 			sqlgraph.From(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID, id),
 			sqlgraph.To(chargeusagebasedruncreditallocations.Table, chargeusagebasedruncreditallocations.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, chargeusagebasedruns.CreditAllocationsTable, chargeusagebasedruns.CreditAllocationsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryDetailedLines queries the detailed_lines edge of a ChargeUsageBasedRuns.
+func (c *ChargeUsageBasedRunsClient) QueryDetailedLines(_m *ChargeUsageBasedRuns) *ChargeUsageBasedRunDetailedLineQuery {
+	query := (&ChargeUsageBasedRunDetailedLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID, id),
+			sqlgraph.To(chargeusagebasedrundetailedline.Table, chargeusagebasedrundetailedline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, chargeusagebasedruns.DetailedLinesTable, chargeusagebasedruns.DetailedLinesColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -14160,6 +14570,38 @@ func (c *TaxCodeClient) QueryBillingStandardInvoiceDetailedLines(_m *TaxCode) *B
 	return query
 }
 
+// QueryChargeUsageBasedRunDetailedLines queries the charge_usage_based_run_detailed_lines edge of a TaxCode.
+func (c *TaxCodeClient) QueryChargeUsageBasedRunDetailedLines(_m *TaxCode) *ChargeUsageBasedRunDetailedLineQuery {
+	query := (&ChargeUsageBasedRunDetailedLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, id),
+			sqlgraph.To(chargeusagebasedrundetailedline.Table, chargeusagebasedrundetailedline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.ChargeUsageBasedRunDetailedLinesTable, dbtaxcode.ChargeUsageBasedRunDetailedLinesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChargeFlatFeeDetailedLines queries the charge_flat_fee_detailed_lines edge of a TaxCode.
+func (c *TaxCodeClient) QueryChargeFlatFeeDetailedLines(_m *TaxCode) *ChargeFlatFeeDetailedLineQuery {
+	query := (&ChargeFlatFeeDetailedLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, id),
+			sqlgraph.To(chargeflatfeedetailedline.Table, chargeflatfeedetailedline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.ChargeFlatFeeDetailedLinesTable, dbtaxcode.ChargeFlatFeeDetailedLinesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QuerySubscriptionItems queries the subscription_items edge of a TaxCode.
 func (c *TaxCodeClient) QuerySubscriptionItems(_m *TaxCode) *SubscriptionItemQuery {
 	query := (&SubscriptionItemClient{config: c.config}).Query()
@@ -14396,8 +14838,9 @@ type (
 		BillingStandardInvoiceDetailedLineAmountDiscount, BillingWorkflowConfig,
 		Charge, ChargeCreditPurchase, ChargeCreditPurchaseCreditGrant,
 		ChargeCreditPurchaseExternalPayment, ChargeCreditPurchaseInvoicedPayment,
-		ChargeFlatFee, ChargeFlatFeeCreditAllocations, ChargeFlatFeeInvoicedUsage,
-		ChargeFlatFeePayment, ChargeUsageBased, ChargeUsageBasedRunCreditAllocations,
+		ChargeFlatFee, ChargeFlatFeeCreditAllocations, ChargeFlatFeeDetailedLine,
+		ChargeFlatFeeInvoicedUsage, ChargeFlatFeePayment, ChargeUsageBased,
+		ChargeUsageBasedRunCreditAllocations, ChargeUsageBasedRunDetailedLine,
 		ChargeUsageBasedRunInvoicedUsage, ChargeUsageBasedRunPayment,
 		ChargeUsageBasedRuns, CreditRealizationLineage,
 		CreditRealizationLineageSegment, CurrencyCostBasis, CustomCurrency, Customer,
@@ -14421,8 +14864,9 @@ type (
 		BillingStandardInvoiceDetailedLineAmountDiscount, BillingWorkflowConfig,
 		Charge, ChargeCreditPurchase, ChargeCreditPurchaseCreditGrant,
 		ChargeCreditPurchaseExternalPayment, ChargeCreditPurchaseInvoicedPayment,
-		ChargeFlatFee, ChargeFlatFeeCreditAllocations, ChargeFlatFeeInvoicedUsage,
-		ChargeFlatFeePayment, ChargeUsageBased, ChargeUsageBasedRunCreditAllocations,
+		ChargeFlatFee, ChargeFlatFeeCreditAllocations, ChargeFlatFeeDetailedLine,
+		ChargeFlatFeeInvoicedUsage, ChargeFlatFeePayment, ChargeUsageBased,
+		ChargeUsageBasedRunCreditAllocations, ChargeUsageBasedRunDetailedLine,
 		ChargeUsageBasedRunInvoicedUsage, ChargeUsageBasedRunPayment,
 		ChargeUsageBasedRuns, ChargesSearchV1, CreditRealizationLineage,
 		CreditRealizationLineageSegment, CurrencyCostBasis, CustomCurrency, Customer,

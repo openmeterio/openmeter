@@ -35,6 +35,8 @@ Primary packages:
 
 `openmeter/billing/charges` is the root facade for charge operations.
 
+For charge-owned detailed lines, the shared invoice-agnostic base belongs in `openmeter/billing/models/stddetailedline`. Keep charge wrappers thin by adding only `charge_id` / `run_id`-style ownership fields around `stddetailedline.Base`, and reuse shared detailed-line base mapping helpers instead of duplicating the common field assembly in charge adapters.
+
 Charge-backed invoicing no longer relies on a charges-side `InvoicePendingLines(...)` wrapper. Billing owns invoice creation and dispatches gathering lines by `billing.LineEngineType`, while charge packages provide charge-specific line engines where needed.
 
 Important layers:

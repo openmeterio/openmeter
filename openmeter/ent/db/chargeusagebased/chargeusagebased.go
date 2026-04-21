@@ -84,6 +84,8 @@ const (
 	FieldStatusDetailed = "status_detailed"
 	// EdgeRuns holds the string denoting the runs edge name in mutations.
 	EdgeRuns = "runs"
+	// EdgeDetailedLines holds the string denoting the detailed_lines edge name in mutations.
+	EdgeDetailedLines = "detailed_lines"
 	// EdgeCurrentRun holds the string denoting the current_run edge name in mutations.
 	EdgeCurrentRun = "current_run"
 	// EdgeCharge holds the string denoting the charge edge name in mutations.
@@ -107,6 +109,13 @@ const (
 	RunsInverseTable = "charge_usage_based_runs"
 	// RunsColumn is the table column denoting the runs relation/edge.
 	RunsColumn = "charge_id"
+	// DetailedLinesTable is the table that holds the detailed_lines relation/edge.
+	DetailedLinesTable = "charge_usage_based_run_detailed_line"
+	// DetailedLinesInverseTable is the table name for the ChargeUsageBasedRunDetailedLine entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeusagebasedrundetailedline" package.
+	DetailedLinesInverseTable = "charge_usage_based_run_detailed_line"
+	// DetailedLinesColumn is the table column denoting the detailed_lines relation/edge.
+	DetailedLinesColumn = "charge_id"
 	// CurrentRunTable is the table that holds the current_run relation/edge.
 	CurrentRunTable = "charge_usage_based"
 	// CurrentRunInverseTable is the table name for the ChargeUsageBasedRuns entity.
@@ -437,6 +446,20 @@ func ByRuns(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
+// ByDetailedLinesCount orders the results by detailed_lines count.
+func ByDetailedLinesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newDetailedLinesStep(), opts...)
+	}
+}
+
+// ByDetailedLines orders the results by detailed_lines terms.
+func ByDetailedLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newDetailedLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByCurrentRunField orders the results by current_run field.
 func ByCurrentRunField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -490,6 +513,13 @@ func newRunsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(RunsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, RunsTable, RunsColumn),
+	)
+}
+func newDetailedLinesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(DetailedLinesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, DetailedLinesTable, DetailedLinesColumn),
 	)
 }
 func newCurrentRunStep() *sqlgraph.Step {

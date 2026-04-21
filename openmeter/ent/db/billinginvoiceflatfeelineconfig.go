@@ -9,7 +9,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
@@ -24,7 +24,7 @@ type BillingInvoiceFlatFeeLineConfig struct {
 	// PerUnitAmount holds the value of the "per_unit_amount" field.
 	PerUnitAmount alpacadecimal.Decimal `json:"per_unit_amount,omitempty"`
 	// Category holds the value of the "category" field.
-	Category billing.FlatFeeCategory `json:"category,omitempty"`
+	Category stddetailedline.Category `json:"category,omitempty"`
 	// PaymentTerm holds the value of the "payment_term" field.
 	PaymentTerm productcatalog.PaymentTermType `json:"payment_term,omitempty"`
 	// Index holds the value of the "index" field.
@@ -80,7 +80,7 @@ func (_m *BillingInvoiceFlatFeeLineConfig) assignValues(columns []string, values
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field category", values[i])
 			} else if value.Valid {
-				_m.Category = billing.FlatFeeCategory(value.String)
+				_m.Category = stddetailedline.Category(value.String)
 			}
 		case billinginvoiceflatfeelineconfig.FieldPaymentTerm:
 			if value, ok := values[i].(*sql.NullString); !ok {

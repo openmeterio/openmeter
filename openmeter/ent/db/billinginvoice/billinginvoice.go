@@ -70,6 +70,12 @@ const (
 	FieldCreditsTotal = "credits_total"
 	// FieldTotal holds the string denoting the total field in the database.
 	FieldTotal = "total"
+	// FieldInvoicingAppExternalID holds the string denoting the invoicing_app_external_id field in the database.
+	FieldInvoicingAppExternalID = "invoicing_app_external_id"
+	// FieldPaymentAppExternalID holds the string denoting the payment_app_external_id field in the database.
+	FieldPaymentAppExternalID = "payment_app_external_id"
+	// FieldTaxAppExternalID holds the string denoting the tax_app_external_id field in the database.
+	FieldTaxAppExternalID = "tax_app_external_id"
 	// FieldSupplierName holds the string denoting the supplier_name field in the database.
 	FieldSupplierName = "supplier_name"
 	// FieldSupplierTaxCode holds the string denoting the supplier_tax_code field in the database.
@@ -116,12 +122,6 @@ const (
 	FieldInvoicingAppID = "invoicing_app_id"
 	// FieldPaymentAppID holds the string denoting the payment_app_id field in the database.
 	FieldPaymentAppID = "payment_app_id"
-	// FieldInvoicingAppExternalID holds the string denoting the invoicing_app_external_id field in the database.
-	FieldInvoicingAppExternalID = "invoicing_app_external_id"
-	// FieldPaymentAppExternalID holds the string denoting the payment_app_external_id field in the database.
-	FieldPaymentAppExternalID = "payment_app_external_id"
-	// FieldTaxAppExternalID holds the string denoting the tax_app_external_id field in the database.
-	FieldTaxAppExternalID = "tax_app_external_id"
 	// FieldPeriodStart holds the string denoting the period_start field in the database.
 	FieldPeriodStart = "period_start"
 	// FieldPeriodEnd holds the string denoting the period_end field in the database.
@@ -247,6 +247,9 @@ var Columns = []string{
 	FieldDiscountsTotal,
 	FieldCreditsTotal,
 	FieldTotal,
+	FieldInvoicingAppExternalID,
+	FieldPaymentAppExternalID,
+	FieldTaxAppExternalID,
 	FieldSupplierName,
 	FieldSupplierTaxCode,
 	FieldCustomerKey,
@@ -270,9 +273,6 @@ var Columns = []string{
 	FieldTaxAppID,
 	FieldInvoicingAppID,
 	FieldPaymentAppID,
-	FieldInvoicingAppExternalID,
-	FieldPaymentAppExternalID,
-	FieldTaxAppExternalID,
 	FieldPeriodStart,
 	FieldPeriodEnd,
 	FieldCollectionAt,
@@ -479,6 +479,21 @@ func ByTotal(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTotal, opts...).ToFunc()
 }
 
+// ByInvoicingAppExternalID orders the results by the invoicing_app_external_id field.
+func ByInvoicingAppExternalID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoicingAppExternalID, opts...).ToFunc()
+}
+
+// ByPaymentAppExternalID orders the results by the payment_app_external_id field.
+func ByPaymentAppExternalID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPaymentAppExternalID, opts...).ToFunc()
+}
+
+// ByTaxAppExternalID orders the results by the tax_app_external_id field.
+func ByTaxAppExternalID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxAppExternalID, opts...).ToFunc()
+}
+
 // BySupplierName orders the results by the supplier_name field.
 func BySupplierName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSupplierName, opts...).ToFunc()
@@ -582,21 +597,6 @@ func ByInvoicingAppID(opts ...sql.OrderTermOption) OrderOption {
 // ByPaymentAppID orders the results by the payment_app_id field.
 func ByPaymentAppID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPaymentAppID, opts...).ToFunc()
-}
-
-// ByInvoicingAppExternalID orders the results by the invoicing_app_external_id field.
-func ByInvoicingAppExternalID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldInvoicingAppExternalID, opts...).ToFunc()
-}
-
-// ByPaymentAppExternalID orders the results by the payment_app_external_id field.
-func ByPaymentAppExternalID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPaymentAppExternalID, opts...).ToFunc()
-}
-
-// ByTaxAppExternalID orders the results by the tax_app_external_id field.
-func ByTaxAppExternalID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTaxAppExternalID, opts...).ToFunc()
 }
 
 // ByPeriodStart orders the results by the period_start field.

@@ -4,6 +4,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -14,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
@@ -83,6 +85,8 @@ func (ChargeFlatFee) Edges() []ent.Edge {
 		edge.To("credit_allocations", ChargeFlatFeeCreditAllocations.Type).
 			StorageKey(edge.Symbol("charge_ff_credit_alloc_flat_fee")).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("detailed_lines", ChargeFlatFeeDetailedLine.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("invoiced_usage", ChargeFlatFeeInvoicedUsage.Type).
 			Unique().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
@@ -118,6 +122,57 @@ func (ChargeFlatFee) Edges() []ent.Edge {
 			Ref("flat_fee_charges").
 			Field("feature_id").
 			Unique(),
+	}
+}
+
+type ChargeFlatFeeDetailedLine struct {
+	ent.Schema
+}
+
+func (ChargeFlatFeeDetailedLine) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		stddetailedline.Mixin{},
+	}
+}
+
+func (ChargeFlatFeeDetailedLine) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("charge_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+	}
+}
+
+func (ChargeFlatFeeDetailedLine) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("charge", ChargeFlatFee.Type).
+			Ref("detailed_lines").
+			Field("charge_id").
+			Unique().
+			Required(),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("charge_flat_fee_detailed_lines").
+			Field("tax_code_id").
+			Unique(),
+	}
+}
+
+func (ChargeFlatFeeDetailedLine) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "charge_id"),
+		index.Fields("namespace", "charge_id", "child_unique_reference_id").
+			Annotations(
+				entsql.IndexWhere("child_unique_reference_id IS NOT NULL AND deleted_at IS NULL"),
+			).
+			StorageKey("chargeffdetailedline_ns_charge_child_id").
+			Unique(),
+	}
+}
+
+func (ChargeFlatFeeDetailedLine) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Annotation{Table: "charge_flat_fee_detailed_line"},
 	}
 }
 

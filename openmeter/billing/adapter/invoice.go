@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -538,10 +539,7 @@ func (a *adapter) UpdateStandardInvoice(ctx context.Context, in billing.UpdateSt
 				ClearCustomerAddressPhoneNumber()
 		}
 
-		// ExternalIDs
-		updateQuery = updateQuery.
-			SetOrClearInvoicingAppExternalID(lo.EmptyableToPtr(in.ExternalIDs.Invoicing)).
-			SetOrClearPaymentAppExternalID(lo.EmptyableToPtr(in.ExternalIDs.Payment))
+		updateQuery = externalid.UpdateInvoiceExternalID(updateQuery, in.ExternalIDs)
 
 		_, err = updateQuery.Save(ctx)
 		if err != nil {
@@ -699,10 +697,7 @@ func (a *adapter) mapStandardInvoiceBaseFromDB(invoice *db.BillingInvoice) billi
 		CollectionAt:               lo.ToPtr(invoice.CollectionAt.In(time.UTC)),
 		PaymentProcessingEnteredAt: convert.TimePtrIn(invoice.PaymentProcessingEnteredAt, time.UTC),
 
-		ExternalIDs: billing.InvoiceExternalIDs{
-			Invoicing: lo.FromPtr(invoice.InvoicingAppExternalID),
-			Payment:   lo.FromPtr(invoice.PaymentAppExternalID),
-		},
+		ExternalIDs: externalid.MapInvoiceExternalIDFromDB(invoice),
 
 		SchemaLevel: invoice.SchemaLevel,
 	}

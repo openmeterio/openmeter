@@ -8,6 +8,8 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -102,9 +104,7 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 			RateCardDiscounts: lo.FromPtr(dbLine.RatecardDiscounts),
 			CreditsApplied:    creditsApplied,
 			Totals:            totals.FromDB(dbLine),
-			ExternalIDs: billing.LineExternalIDs{
-				Invoicing: lo.FromPtr(dbLine.InvoicingAppExternalID),
-			},
+			ExternalIDs:       externalid.MapLineExternalIDFromDB(dbLine),
 		},
 	}
 
@@ -163,41 +163,37 @@ func (a *adapter) mapStandardInvoiceDetailedLineFromDB(dbLine *db.BillingInvoice
 	}
 
 	detailedLineBase := billing.DetailedLineBase{
-		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-			Namespace:   dbLine.Namespace,
-			ID:          dbLine.ID,
-			CreatedAt:   dbLine.CreatedAt.In(time.UTC),
-			UpdatedAt:   dbLine.UpdatedAt.In(time.UTC),
-			DeletedAt:   convert.TimePtrIn(dbLine.DeletedAt, time.UTC),
-			Name:        dbLine.Name,
-			Description: dbLine.Description,
-		}),
-
-		InvoiceID:              dbLine.InvoiceID,
-		ChildUniqueReferenceID: dbLine.ChildUniqueReferenceID,
-		FeeLineConfigID:        dbLine.Edges.FlatFeeLine.ID,
-
-		ServicePeriod: timeutil.ClosedPeriod{
-			From: dbLine.PeriodStart.In(time.UTC),
-			To:   dbLine.PeriodEnd.In(time.UTC),
-		},
-		PerUnitAmount: dbLine.Edges.FlatFeeLine.PerUnitAmount,
-		Quantity:      lo.FromPtr(dbLine.Quantity),
-		Category:      dbLine.Edges.FlatFeeLine.Category,
-		PaymentTerm:   dbLine.Edges.FlatFeeLine.PaymentTerm,
-		Index:         dbLine.Edges.FlatFeeLine.Index,
-
-		Currency: dbLine.Currency,
-
-		CreditsApplied: creditsApplied,
-		TaxConfig: backfillTaxConfigReferences(
-			lo.EmptyableToPtr(dbLine.TaxConfig),
-			dbLine.TaxBehavior,
-			taxCodeFromInvoiceLineEdge(dbLine),
-		),
-		Totals: totals.FromDB(dbLine),
-		ExternalIDs: billing.LineExternalIDs{
-			Invoicing: lo.FromPtr(dbLine.InvoicingAppExternalID),
+		InvoiceID:       dbLine.InvoiceID,
+		FeeLineConfigID: dbLine.Edges.FlatFeeLine.ID,
+		Base: stddetailedline.Base{
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Namespace:   dbLine.Namespace,
+				ID:          dbLine.ID,
+				CreatedAt:   dbLine.CreatedAt.In(time.UTC),
+				UpdatedAt:   dbLine.UpdatedAt.In(time.UTC),
+				DeletedAt:   convert.TimePtrIn(dbLine.DeletedAt, time.UTC),
+				Name:        dbLine.Name,
+				Description: dbLine.Description,
+			}),
+			ChildUniqueReferenceID: dbLine.ChildUniqueReferenceID,
+			ServicePeriod: timeutil.ClosedPeriod{
+				From: dbLine.PeriodStart.In(time.UTC),
+				To:   dbLine.PeriodEnd.In(time.UTC),
+			},
+			PerUnitAmount:  dbLine.Edges.FlatFeeLine.PerUnitAmount,
+			Quantity:       lo.FromPtr(dbLine.Quantity),
+			Category:       dbLine.Edges.FlatFeeLine.Category,
+			PaymentTerm:    dbLine.Edges.FlatFeeLine.PaymentTerm,
+			Index:          dbLine.Edges.FlatFeeLine.Index,
+			Currency:       dbLine.Currency,
+			CreditsApplied: creditsApplied,
+			TaxConfig: backfillTaxConfigReferences(
+				lo.EmptyableToPtr(dbLine.TaxConfig),
+				dbLine.TaxBehavior,
+				taxCodeFromInvoiceLineEdge(dbLine),
+			),
+			Totals:      totals.FromDB(dbLine),
+			ExternalIDs: externalid.MapLineExternalIDFromDB(dbLine),
 		},
 	}
 
@@ -219,40 +215,36 @@ func (a *adapter) mapStandardInvoiceDetailedLineV2FromDB(dbLine *db.BillingStand
 	}
 
 	detailedLineBase := billing.DetailedLineBase{
-		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-			Namespace:   dbLine.Namespace,
-			ID:          dbLine.ID,
-			CreatedAt:   dbLine.CreatedAt.In(time.UTC),
-			UpdatedAt:   dbLine.UpdatedAt.In(time.UTC),
-			DeletedAt:   convert.TimePtrIn(dbLine.DeletedAt, time.UTC),
-			Name:        dbLine.Name,
-			Description: dbLine.Description,
-		}),
-
-		InvoiceID:              dbLine.InvoiceID,
-		ChildUniqueReferenceID: dbLine.ChildUniqueReferenceID,
-
-		ServicePeriod: timeutil.ClosedPeriod{
-			From: dbLine.ServicePeriodStart.In(time.UTC),
-			To:   dbLine.ServicePeriodEnd.In(time.UTC),
-		},
-		PerUnitAmount: dbLine.PerUnitAmount,
-		Quantity:      dbLine.Quantity,
-		Category:      dbLine.Category,
-		PaymentTerm:   dbLine.PaymentTerm,
-		Index:         dbLine.Index,
-
-		Currency: dbLine.Currency,
-
-		CreditsApplied: creditsApplied,
-		TaxConfig: backfillTaxConfigReferences(
-			lo.EmptyableToPtr(dbLine.TaxConfig),
-			dbLine.TaxBehavior,
-			taxCodeFromDetailedLineV2Edge(dbLine),
-		),
-		Totals: totals.FromDB(dbLine),
-		ExternalIDs: billing.LineExternalIDs{
-			Invoicing: lo.FromPtr(dbLine.InvoicingAppExternalID),
+		InvoiceID: dbLine.InvoiceID,
+		Base: stddetailedline.Base{
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Namespace:   dbLine.Namespace,
+				ID:          dbLine.ID,
+				CreatedAt:   dbLine.CreatedAt.In(time.UTC),
+				UpdatedAt:   dbLine.UpdatedAt.In(time.UTC),
+				DeletedAt:   convert.TimePtrIn(dbLine.DeletedAt, time.UTC),
+				Name:        dbLine.Name,
+				Description: dbLine.Description,
+			}),
+			ChildUniqueReferenceID: dbLine.ChildUniqueReferenceID,
+			ServicePeriod: timeutil.ClosedPeriod{
+				From: dbLine.ServicePeriodStart.In(time.UTC),
+				To:   dbLine.ServicePeriodEnd.In(time.UTC),
+			},
+			PerUnitAmount:  dbLine.PerUnitAmount,
+			Quantity:       dbLine.Quantity,
+			Category:       dbLine.Category,
+			PaymentTerm:    dbLine.PaymentTerm,
+			Index:          dbLine.Index,
+			Currency:       dbLine.Currency,
+			CreditsApplied: creditsApplied,
+			TaxConfig: backfillTaxConfigReferences(
+				lo.EmptyableToPtr(dbLine.TaxConfig),
+				dbLine.TaxBehavior,
+				taxCodeFromDetailedLineV2Edge(dbLine),
+			),
+			Totals:      totals.FromDB(dbLine),
+			ExternalIDs: externalid.MapLineExternalIDFromDB(dbLine),
 		},
 	}
 
@@ -271,9 +263,7 @@ func (a *adapter) mapStandardInvoiceLineUsageDiscountFromDB(dbDiscount *db.Billi
 	base := billing.LineDiscountBase{
 		Description:            dbDiscount.Description,
 		ChildUniqueReferenceID: dbDiscount.ChildUniqueReferenceID,
-		ExternalIDs: billing.LineExternalIDs{
-			Invoicing: lo.FromPtr(dbDiscount.InvoicingAppExternalID),
-		},
+		ExternalIDs:            externalid.MapLineExternalIDFromDB(dbDiscount),
 	}
 
 	if dbDiscount.Reason == billing.MaximumSpendDiscountReason && dbDiscount.ReasonDetails == nil {
@@ -309,9 +299,7 @@ func (a *adapter) mapStandardInvoiceLineAmountDiscountFromDB(dbDiscount *db.Bill
 	base := billing.LineDiscountBase{
 		Description:            dbDiscount.Description,
 		ChildUniqueReferenceID: dbDiscount.ChildUniqueReferenceID,
-		ExternalIDs: billing.LineExternalIDs{
-			Invoicing: lo.FromPtr(dbDiscount.InvoicingAppExternalID),
-		},
+		ExternalIDs:            externalid.MapLineExternalIDFromDB(dbDiscount),
 	}
 
 	if dbDiscount.Reason == billing.MaximumSpendDiscountReason && dbDiscount.SourceDiscount == nil {
@@ -408,9 +396,7 @@ func (a *adapter) mapStandardInvoiceDetailedLineAmountDiscountFromDB(dbDiscount 
 	base := billing.LineDiscountBase{
 		Description:            dbDiscount.Description,
 		ChildUniqueReferenceID: dbDiscount.ChildUniqueReferenceID,
-		ExternalIDs: billing.LineExternalIDs{
-			Invoicing: lo.FromPtr(dbDiscount.InvoicingAppExternalID),
-		},
+		ExternalIDs:            externalid.MapLineExternalIDFromDB(dbDiscount),
 	}
 
 	if dbDiscount.Reason == billing.MaximumSpendDiscountReason && dbDiscount.SourceDiscount == nil {

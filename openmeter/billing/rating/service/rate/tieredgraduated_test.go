@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating/service/rate"
@@ -225,7 +226,7 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					Period:                 lo.ToPtr(testutil.TestFullPeriod),
 					ChildUniqueReferenceID: rating.MinSpendChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					Category:               billing.FlatFeeCategoryCommitment,
+					Category:               stddetailedline.CategoryCommitment,
 					Totals: totals.Totals{
 						ChargesTotal: alpacadecimal.NewFromFloat(900),
 						Total:        alpacadecimal.NewFromFloat(900),
@@ -258,7 +259,7 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					Period:                 lo.ToPtr(testutil.TestFullPeriod),
 					ChildUniqueReferenceID: rating.MinSpendChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					Category:               billing.FlatFeeCategoryCommitment,
+					Category:               stddetailedline.CategoryCommitment,
 					Totals: totals.Totals{
 						ChargesTotal: alpacadecimal.NewFromFloat(900),
 						Total:        alpacadecimal.NewFromFloat(900),

@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecreditallocations"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeinvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
@@ -405,6 +406,21 @@ func (_u *ChargeFlatFeeUpdate) AddCreditAllocations(v ...*ChargeFlatFeeCreditAll
 	return _u.AddCreditAllocationIDs(ids...)
 }
 
+// AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeFlatFeeDetailedLine entity by IDs.
+func (_u *ChargeFlatFeeUpdate) AddDetailedLineIDs(ids ...string) *ChargeFlatFeeUpdate {
+	_u.mutation.AddDetailedLineIDs(ids...)
+	return _u
+}
+
+// AddDetailedLines adds the "detailed_lines" edges to the ChargeFlatFeeDetailedLine entity.
+func (_u *ChargeFlatFeeUpdate) AddDetailedLines(v ...*ChargeFlatFeeDetailedLine) *ChargeFlatFeeUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddDetailedLineIDs(ids...)
+}
+
 // SetInvoicedUsageID sets the "invoiced_usage" edge to the ChargeFlatFeeInvoicedUsage entity by ID.
 func (_u *ChargeFlatFeeUpdate) SetInvoicedUsageID(id string) *ChargeFlatFeeUpdate {
 	_u.mutation.SetInvoicedUsageID(id)
@@ -472,6 +488,27 @@ func (_u *ChargeFlatFeeUpdate) RemoveCreditAllocations(v ...*ChargeFlatFeeCredit
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveCreditAllocationIDs(ids...)
+}
+
+// ClearDetailedLines clears all "detailed_lines" edges to the ChargeFlatFeeDetailedLine entity.
+func (_u *ChargeFlatFeeUpdate) ClearDetailedLines() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearDetailedLines()
+	return _u
+}
+
+// RemoveDetailedLineIDs removes the "detailed_lines" edge to ChargeFlatFeeDetailedLine entities by IDs.
+func (_u *ChargeFlatFeeUpdate) RemoveDetailedLineIDs(ids ...string) *ChargeFlatFeeUpdate {
+	_u.mutation.RemoveDetailedLineIDs(ids...)
+	return _u
+}
+
+// RemoveDetailedLines removes "detailed_lines" edges to ChargeFlatFeeDetailedLine entities.
+func (_u *ChargeFlatFeeUpdate) RemoveDetailedLines(v ...*ChargeFlatFeeDetailedLine) *ChargeFlatFeeUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveDetailedLineIDs(ids...)
 }
 
 // ClearInvoicedUsage clears the "invoiced_usage" edge to the ChargeFlatFeeInvoicedUsage entity.
@@ -718,6 +755,51 @@ func (_u *ChargeFlatFeeUpdate) sqlSave(ctx context.Context) (_node int, err erro
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.DetailedLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeflatfee.DetailedLinesTable,
+			Columns: []string{chargeflatfee.DetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeedetailedline.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedDetailedLinesIDs(); len(nodes) > 0 && !_u.mutation.DetailedLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeflatfee.DetailedLinesTable,
+			Columns: []string{chargeflatfee.DetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeedetailedline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.DetailedLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeflatfee.DetailedLinesTable,
+			Columns: []string{chargeflatfee.DetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeedetailedline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1199,6 +1281,21 @@ func (_u *ChargeFlatFeeUpdateOne) AddCreditAllocations(v ...*ChargeFlatFeeCredit
 	return _u.AddCreditAllocationIDs(ids...)
 }
 
+// AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeFlatFeeDetailedLine entity by IDs.
+func (_u *ChargeFlatFeeUpdateOne) AddDetailedLineIDs(ids ...string) *ChargeFlatFeeUpdateOne {
+	_u.mutation.AddDetailedLineIDs(ids...)
+	return _u
+}
+
+// AddDetailedLines adds the "detailed_lines" edges to the ChargeFlatFeeDetailedLine entity.
+func (_u *ChargeFlatFeeUpdateOne) AddDetailedLines(v ...*ChargeFlatFeeDetailedLine) *ChargeFlatFeeUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddDetailedLineIDs(ids...)
+}
+
 // SetInvoicedUsageID sets the "invoiced_usage" edge to the ChargeFlatFeeInvoicedUsage entity by ID.
 func (_u *ChargeFlatFeeUpdateOne) SetInvoicedUsageID(id string) *ChargeFlatFeeUpdateOne {
 	_u.mutation.SetInvoicedUsageID(id)
@@ -1266,6 +1363,27 @@ func (_u *ChargeFlatFeeUpdateOne) RemoveCreditAllocations(v ...*ChargeFlatFeeCre
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveCreditAllocationIDs(ids...)
+}
+
+// ClearDetailedLines clears all "detailed_lines" edges to the ChargeFlatFeeDetailedLine entity.
+func (_u *ChargeFlatFeeUpdateOne) ClearDetailedLines() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearDetailedLines()
+	return _u
+}
+
+// RemoveDetailedLineIDs removes the "detailed_lines" edge to ChargeFlatFeeDetailedLine entities by IDs.
+func (_u *ChargeFlatFeeUpdateOne) RemoveDetailedLineIDs(ids ...string) *ChargeFlatFeeUpdateOne {
+	_u.mutation.RemoveDetailedLineIDs(ids...)
+	return _u
+}
+
+// RemoveDetailedLines removes "detailed_lines" edges to ChargeFlatFeeDetailedLine entities.
+func (_u *ChargeFlatFeeUpdateOne) RemoveDetailedLines(v ...*ChargeFlatFeeDetailedLine) *ChargeFlatFeeUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveDetailedLineIDs(ids...)
 }
 
 // ClearInvoicedUsage clears the "invoiced_usage" edge to the ChargeFlatFeeInvoicedUsage entity.
@@ -1542,6 +1660,51 @@ func (_u *ChargeFlatFeeUpdateOne) sqlSave(ctx context.Context) (_node *ChargeFla
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.DetailedLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeflatfee.DetailedLinesTable,
+			Columns: []string{chargeflatfee.DetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeedetailedline.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedDetailedLinesIDs(); len(nodes) > 0 && !_u.mutation.DetailedLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeflatfee.DetailedLinesTable,
+			Columns: []string{chargeflatfee.DetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeedetailedline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.DetailedLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeflatfee.DetailedLinesTable,
+			Columns: []string{chargeflatfee.DetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeedetailedline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
