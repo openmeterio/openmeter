@@ -86,6 +86,7 @@ func (s *DetailedLineAdapterSuite) TearDownSuite() {
 
 func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDeletesByChildUniqueReferenceID() {
 	ctx := s.T().Context()
+	ctx := s.T().Context()
 	namespace := "usagebased-detailedline-adapter"
 	customerID := s.createCustomer(namespace)
 	s.createFeature(namespace, "feature-1")
