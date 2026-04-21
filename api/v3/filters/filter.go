@@ -91,18 +91,6 @@ type FilterULID struct {
 	// Neq requires the field to not match the provided value (case-sensitive).
 	Neq *string `json:"neq,omitempty"`
 
-	// Gt requires the field to be greater than the provided value.
-	Gt *string `json:"gt,omitempty"`
-
-	// Gte requires the field to be greater than or equal to the provided value.
-	Gte *string `json:"gte,omitempty"`
-
-	// Lt requires the field to be less than the provided value.
-	Lt *string `json:"lt,omitempty"`
-
-	// Lte requires the field to be less than or equal to the provided value.
-	Lte *string `json:"lte,omitempty"`
-
 	// Contains requires the field to contain the provided value (case-insensitive).
 	Contains *string `json:"contains,omitempty"`
 

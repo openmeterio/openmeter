@@ -292,14 +292,6 @@ func parseFilterULID(qs url.Values, field string) (FilterULID, error) {
 			f.Neq = &p.value
 		case OpContains:
 			f.Contains = &p.value
-		case OpGt:
-			f.Gt = &p.value
-		case OpGte:
-			f.Gte = &p.value
-		case OpLt:
-			f.Lt = &p.value
-		case OpLte:
-			f.Lte = &p.value
 		case OpOeq:
 			items, err := parseCommaSeparatedField(field, p.op, p.value)
 			if err != nil {

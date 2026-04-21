@@ -80,18 +80,6 @@ func FromAPIFilterULID(f *FilterULID) (*filter.FilterULID, error) {
 	if f.Contains != nil {
 		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{Contains: f.Contains}})
 	}
-	if f.Gt != nil {
-		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{Gt: f.Gt}})
-	}
-	if f.Gte != nil {
-		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{Gte: f.Gte}})
-	}
-	if f.Lt != nil {
-		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{Lt: f.Lt}})
-	}
-	if f.Lte != nil {
-		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{Lte: f.Lte}})
-	}
 	if len(f.Oeq) > 0 {
 		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{In: convert.SliceToPointer(f.Oeq)}})
 	}
