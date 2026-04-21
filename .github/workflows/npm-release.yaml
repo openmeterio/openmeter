@@ -43,36 +43,22 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Nix
-        uses: nixbuild/nix-quick-install-action@2c9db80fb984ceb1bcaa77cdda3fdf8cfba92035 # v34
-        with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-          nix_conf: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            keep-env-derivations = true
-            keep-outputs = true
-
-      - name: Restore Nix store
-        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
-        with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
-          restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-main-
-            ${{ runner.os }}-openmeter-nix-build-
-
       # Trusted publishing requires npm CLI >= 11.5.1 on PATH so npm can
       # perform the OIDC handshake. setup-node provides a current npm and
       # writes a registry-scoped .npmrc with no _authToken.
       - name: Set up Node.js
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
-          node-version: 22.x
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: api/client/javascript/pnpm-lock.yaml
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Publish NPM package
-        run: nix develop --impure .#ci -c make -C api/client/javascript publish-javascript-sdk
+        run: make -C api/client/javascript publish-javascript-sdk
         env:
           JS_SDK_RELEASE_VERSION: ${{ inputs.version }}
           JS_SDK_RELEASE_TAG: ${{ inputs.dist-tag }}

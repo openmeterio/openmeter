@@ -97,6 +97,18 @@ jobs:
       - name: Validate Nix flake
         run: nix flake check --impure
 
+      - name: Validate Node version file
+        run: |
+          NIX_NODE_VERSION="$(nix develop --impure .#ci -c node -v)"
+          FILE_NODE_VERSION="$(tr -d '\n' < .nvmrc)"
+
+          if [ "$NIX_NODE_VERSION" != "$FILE_NODE_VERSION" ]; then
+            echo ".nvmrc is out of sync with the Nix CI shell"
+            echo "nix develop --impure .#ci -c node -v => $NIX_NODE_VERSION"
+            echo ".nvmrc => $FILE_NODE_VERSION"
+            exit 1
+          fi
+
       - name: Build components
         run: |
           # On Depot runners, cgo external linking can spill large temporary linker
@@ -218,9 +230,19 @@ jobs:
             ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
             ${{ runner.os }}-openmeter-go-modules-main
 
+      - name: Set up Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: api/client/javascript/pnpm-lock.yaml
+
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Ensure code generators are run
         run: |
-          nix develop --impure .#ci -c make generate-javascript-sdk
+          make generate-javascript-sdk
 
           # does not detect new files
           if [ -n "$(git diff --exit-code)" ]; then

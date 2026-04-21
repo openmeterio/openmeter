@@ -12,6 +12,7 @@ OpenMeter is a metering and billing platform with usage based pricing and access
 If during your work anything confuses you or something isn't trivial for you, please augment AGENTS.md with your findings so next time it will be easier for you. AGENTS.md files are for you to edit and update as you go so you can interact with the codebase the most effectively.
 
 Development commands are run via `Makefile`, it contains all commonly used commands during development. A `justfile` is also present but seldom used. Use the Makefile commands for common tasks like running tests, generating code, linting, etc.
+The committed `.nvmrc` is the GitHub Actions source of truth for Node-based jobs on GitHub-hosted runners. Keep it aligned with the Nix `.#ci` shell's `node -v`; `flake.nix` refreshes it in `enterShell`, and CI validates the file against the Nix shell before running builds.
 
 ## AGENTS.md maintenance
 
