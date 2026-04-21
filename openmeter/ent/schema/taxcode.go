@@ -56,7 +56,7 @@ func (TaxCode) Edges() []ent.Edge {
 		edge.To("billing_invoice_lines", BillingInvoiceLine.Type),
 		edge.To("billing_invoice_split_line_groups", BillingInvoiceSplitLineGroup.Type),
 		edge.To("billing_standard_invoice_detailed_lines", BillingStandardInvoiceDetailedLine.Type),
-		edge.To("charge_usage_based_detailed_lines", ChargeUsageBasedDetailedLine.Type),
+		edge.To("charge_usage_based_run_detailed_lines", ChargeUsageBasedRunDetailedLine.Type),
 		edge.To("charge_flat_fee_detailed_lines", ChargeFlatFeeDetailedLine.Type),
 		edge.To("subscription_items", SubscriptionItem.Type),
 		edge.To("plan_rate_cards", PlanRateCard.Type),

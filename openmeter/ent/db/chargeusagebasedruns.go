@@ -79,7 +79,7 @@ type ChargeUsageBasedRunsEdges struct {
 	// CreditAllocations holds the value of the credit_allocations edge.
 	CreditAllocations []*ChargeUsageBasedRunCreditAllocations `json:"credit_allocations,omitempty"`
 	// DetailedLines holds the value of the detailed_lines edge.
-	DetailedLines []*ChargeUsageBasedDetailedLine `json:"detailed_lines,omitempty"`
+	DetailedLines []*ChargeUsageBasedRunDetailedLine `json:"detailed_lines,omitempty"`
 	// InvoicedUsage holds the value of the invoiced_usage edge.
 	InvoicedUsage *ChargeUsageBasedRunInvoicedUsage `json:"invoiced_usage,omitempty"`
 	// Payment holds the value of the payment edge.
@@ -133,7 +133,7 @@ func (e ChargeUsageBasedRunsEdges) CreditAllocationsOrErr() ([]*ChargeUsageBased
 
 // DetailedLinesOrErr returns the DetailedLines value or an error if the edge
 // was not loaded in eager-loading.
-func (e ChargeUsageBasedRunsEdges) DetailedLinesOrErr() ([]*ChargeUsageBasedDetailedLine, error) {
+func (e ChargeUsageBasedRunsEdges) DetailedLinesOrErr() ([]*ChargeUsageBasedRunDetailedLine, error) {
 	if e.loadedTypes[4] {
 		return e.DetailedLines, nil
 	}
@@ -344,7 +344,7 @@ func (_m *ChargeUsageBasedRuns) QueryCreditAllocations() *ChargeUsageBasedRunCre
 }
 
 // QueryDetailedLines queries the "detailed_lines" edge of the ChargeUsageBasedRuns entity.
-func (_m *ChargeUsageBasedRuns) QueryDetailedLines() *ChargeUsageBasedDetailedLineQuery {
+func (_m *ChargeUsageBasedRuns) QueryDetailedLines() *ChargeUsageBasedRunDetailedLineQuery {
 	return NewChargeUsageBasedRunsClient(_m.config).QueryDetailedLines(_m)
 }
 

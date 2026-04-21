@@ -13,19 +13,19 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebaseddetailedline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 )
 
-// ChargeUsageBasedDetailedLineQuery is the builder for querying ChargeUsageBasedDetailedLine entities.
-type ChargeUsageBasedDetailedLineQuery struct {
+// ChargeUsageBasedRunDetailedLineQuery is the builder for querying ChargeUsageBasedRunDetailedLine entities.
+type ChargeUsageBasedRunDetailedLineQuery struct {
 	config
 	ctx         *QueryContext
-	order       []chargeusagebaseddetailedline.OrderOption
+	order       []chargeusagebasedrundetailedline.OrderOption
 	inters      []Interceptor
-	predicates  []predicate.ChargeUsageBasedDetailedLine
+	predicates  []predicate.ChargeUsageBasedRunDetailedLine
 	withCharge  *ChargeUsageBasedQuery
 	withRun     *ChargeUsageBasedRunsQuery
 	withTaxCode *TaxCodeQuery
@@ -35,39 +35,39 @@ type ChargeUsageBasedDetailedLineQuery struct {
 	path func(context.Context) (*sql.Selector, error)
 }
 
-// Where adds a new predicate for the ChargeUsageBasedDetailedLineQuery builder.
-func (_q *ChargeUsageBasedDetailedLineQuery) Where(ps ...predicate.ChargeUsageBasedDetailedLine) *ChargeUsageBasedDetailedLineQuery {
+// Where adds a new predicate for the ChargeUsageBasedRunDetailedLineQuery builder.
+func (_q *ChargeUsageBasedRunDetailedLineQuery) Where(ps ...predicate.ChargeUsageBasedRunDetailedLine) *ChargeUsageBasedRunDetailedLineQuery {
 	_q.predicates = append(_q.predicates, ps...)
 	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (_q *ChargeUsageBasedDetailedLineQuery) Limit(limit int) *ChargeUsageBasedDetailedLineQuery {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) Limit(limit int) *ChargeUsageBasedRunDetailedLineQuery {
 	_q.ctx.Limit = &limit
 	return _q
 }
 
 // Offset to start from.
-func (_q *ChargeUsageBasedDetailedLineQuery) Offset(offset int) *ChargeUsageBasedDetailedLineQuery {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) Offset(offset int) *ChargeUsageBasedRunDetailedLineQuery {
 	_q.ctx.Offset = &offset
 	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (_q *ChargeUsageBasedDetailedLineQuery) Unique(unique bool) *ChargeUsageBasedDetailedLineQuery {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) Unique(unique bool) *ChargeUsageBasedRunDetailedLineQuery {
 	_q.ctx.Unique = &unique
 	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (_q *ChargeUsageBasedDetailedLineQuery) Order(o ...chargeusagebaseddetailedline.OrderOption) *ChargeUsageBasedDetailedLineQuery {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) Order(o ...chargeusagebasedrundetailedline.OrderOption) *ChargeUsageBasedRunDetailedLineQuery {
 	_q.order = append(_q.order, o...)
 	return _q
 }
 
 // QueryCharge chains the current query on the "charge" edge.
-func (_q *ChargeUsageBasedDetailedLineQuery) QueryCharge() *ChargeUsageBasedQuery {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) QueryCharge() *ChargeUsageBasedQuery {
 	query := (&ChargeUsageBasedClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
@@ -78,9 +78,9 @@ func (_q *ChargeUsageBasedDetailedLineQuery) QueryCharge() *ChargeUsageBasedQuer
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(chargeusagebaseddetailedline.Table, chargeusagebaseddetailedline.FieldID, selector),
+			sqlgraph.From(chargeusagebasedrundetailedline.Table, chargeusagebasedrundetailedline.FieldID, selector),
 			sqlgraph.To(chargeusagebased.Table, chargeusagebased.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebaseddetailedline.ChargeTable, chargeusagebaseddetailedline.ChargeColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedrundetailedline.ChargeTable, chargeusagebasedrundetailedline.ChargeColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -89,7 +89,7 @@ func (_q *ChargeUsageBasedDetailedLineQuery) QueryCharge() *ChargeUsageBasedQuer
 }
 
 // QueryRun chains the current query on the "run" edge.
-func (_q *ChargeUsageBasedDetailedLineQuery) QueryRun() *ChargeUsageBasedRunsQuery {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) QueryRun() *ChargeUsageBasedRunsQuery {
 	query := (&ChargeUsageBasedRunsClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
@@ -100,9 +100,9 @@ func (_q *ChargeUsageBasedDetailedLineQuery) QueryRun() *ChargeUsageBasedRunsQue
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(chargeusagebaseddetailedline.Table, chargeusagebaseddetailedline.FieldID, selector),
+			sqlgraph.From(chargeusagebasedrundetailedline.Table, chargeusagebasedrundetailedline.FieldID, selector),
 			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebaseddetailedline.RunTable, chargeusagebaseddetailedline.RunColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedrundetailedline.RunTable, chargeusagebasedrundetailedline.RunColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -111,7 +111,7 @@ func (_q *ChargeUsageBasedDetailedLineQuery) QueryRun() *ChargeUsageBasedRunsQue
 }
 
 // QueryTaxCode chains the current query on the "tax_code" edge.
-func (_q *ChargeUsageBasedDetailedLineQuery) QueryTaxCode() *TaxCodeQuery {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) QueryTaxCode() *TaxCodeQuery {
 	query := (&TaxCodeClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
@@ -122,9 +122,9 @@ func (_q *ChargeUsageBasedDetailedLineQuery) QueryTaxCode() *TaxCodeQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(chargeusagebaseddetailedline.Table, chargeusagebaseddetailedline.FieldID, selector),
+			sqlgraph.From(chargeusagebasedrundetailedline.Table, chargeusagebasedrundetailedline.FieldID, selector),
 			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebaseddetailedline.TaxCodeTable, chargeusagebaseddetailedline.TaxCodeColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedrundetailedline.TaxCodeTable, chargeusagebasedrundetailedline.TaxCodeColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -132,21 +132,21 @@ func (_q *ChargeUsageBasedDetailedLineQuery) QueryTaxCode() *TaxCodeQuery {
 	return query
 }
 
-// First returns the first ChargeUsageBasedDetailedLine entity from the query.
-// Returns a *NotFoundError when no ChargeUsageBasedDetailedLine was found.
-func (_q *ChargeUsageBasedDetailedLineQuery) First(ctx context.Context) (*ChargeUsageBasedDetailedLine, error) {
+// First returns the first ChargeUsageBasedRunDetailedLine entity from the query.
+// Returns a *NotFoundError when no ChargeUsageBasedRunDetailedLine was found.
+func (_q *ChargeUsageBasedRunDetailedLineQuery) First(ctx context.Context) (*ChargeUsageBasedRunDetailedLine, error) {
 	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
-		return nil, &NotFoundError{chargeusagebaseddetailedline.Label}
+		return nil, &NotFoundError{chargeusagebasedrundetailedline.Label}
 	}
 	return nodes[0], nil
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (_q *ChargeUsageBasedDetailedLineQuery) FirstX(ctx context.Context) *ChargeUsageBasedDetailedLine {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) FirstX(ctx context.Context) *ChargeUsageBasedRunDetailedLine {
 	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -154,22 +154,22 @@ func (_q *ChargeUsageBasedDetailedLineQuery) FirstX(ctx context.Context) *Charge
 	return node
 }
 
-// FirstID returns the first ChargeUsageBasedDetailedLine ID from the query.
-// Returns a *NotFoundError when no ChargeUsageBasedDetailedLine ID was found.
-func (_q *ChargeUsageBasedDetailedLineQuery) FirstID(ctx context.Context) (id string, err error) {
+// FirstID returns the first ChargeUsageBasedRunDetailedLine ID from the query.
+// Returns a *NotFoundError when no ChargeUsageBasedRunDetailedLine ID was found.
+func (_q *ChargeUsageBasedRunDetailedLineQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
-		err = &NotFoundError{chargeusagebaseddetailedline.Label}
+		err = &NotFoundError{chargeusagebasedrundetailedline.Label}
 		return
 	}
 	return ids[0], nil
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *ChargeUsageBasedDetailedLineQuery) FirstIDX(ctx context.Context) string {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) FirstIDX(ctx context.Context) string {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -177,10 +177,10 @@ func (_q *ChargeUsageBasedDetailedLineQuery) FirstIDX(ctx context.Context) strin
 	return id
 }
 
-// Only returns a single ChargeUsageBasedDetailedLine entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when more than one ChargeUsageBasedDetailedLine entity is found.
-// Returns a *NotFoundError when no ChargeUsageBasedDetailedLine entities are found.
-func (_q *ChargeUsageBasedDetailedLineQuery) Only(ctx context.Context) (*ChargeUsageBasedDetailedLine, error) {
+// Only returns a single ChargeUsageBasedRunDetailedLine entity found by the query, ensuring it only returns one.
+// Returns a *NotSingularError when more than one ChargeUsageBasedRunDetailedLine entity is found.
+// Returns a *NotFoundError when no ChargeUsageBasedRunDetailedLine entities are found.
+func (_q *ChargeUsageBasedRunDetailedLineQuery) Only(ctx context.Context) (*ChargeUsageBasedRunDetailedLine, error) {
 	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
@@ -189,14 +189,14 @@ func (_q *ChargeUsageBasedDetailedLineQuery) Only(ctx context.Context) (*ChargeU
 	case 1:
 		return nodes[0], nil
 	case 0:
-		return nil, &NotFoundError{chargeusagebaseddetailedline.Label}
+		return nil, &NotFoundError{chargeusagebasedrundetailedline.Label}
 	default:
-		return nil, &NotSingularError{chargeusagebaseddetailedline.Label}
+		return nil, &NotSingularError{chargeusagebasedrundetailedline.Label}
 	}
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (_q *ChargeUsageBasedDetailedLineQuery) OnlyX(ctx context.Context) *ChargeUsageBasedDetailedLine {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) OnlyX(ctx context.Context) *ChargeUsageBasedRunDetailedLine {
 	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
@@ -204,10 +204,10 @@ func (_q *ChargeUsageBasedDetailedLineQuery) OnlyX(ctx context.Context) *ChargeU
 	return node
 }
 
-// OnlyID is like Only, but returns the only ChargeUsageBasedDetailedLine ID in the query.
-// Returns a *NotSingularError when more than one ChargeUsageBasedDetailedLine ID is found.
+// OnlyID is like Only, but returns the only ChargeUsageBasedRunDetailedLine ID in the query.
+// Returns a *NotSingularError when more than one ChargeUsageBasedRunDetailedLine ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *ChargeUsageBasedDetailedLineQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
@@ -216,15 +216,15 @@ func (_q *ChargeUsageBasedDetailedLineQuery) OnlyID(ctx context.Context) (id str
 	case 1:
 		id = ids[0]
 	case 0:
-		err = &NotFoundError{chargeusagebaseddetailedline.Label}
+		err = &NotFoundError{chargeusagebasedrundetailedline.Label}
 	default:
-		err = &NotSingularError{chargeusagebaseddetailedline.Label}
+		err = &NotSingularError{chargeusagebasedrundetailedline.Label}
 	}
 	return
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *ChargeUsageBasedDetailedLineQuery) OnlyIDX(ctx context.Context) string {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) OnlyIDX(ctx context.Context) string {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -232,18 +232,18 @@ func (_q *ChargeUsageBasedDetailedLineQuery) OnlyIDX(ctx context.Context) string
 	return id
 }
 
-// All executes the query and returns a list of ChargeUsageBasedDetailedLines.
-func (_q *ChargeUsageBasedDetailedLineQuery) All(ctx context.Context) ([]*ChargeUsageBasedDetailedLine, error) {
+// All executes the query and returns a list of ChargeUsageBasedRunDetailedLines.
+func (_q *ChargeUsageBasedRunDetailedLineQuery) All(ctx context.Context) ([]*ChargeUsageBasedRunDetailedLine, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
-	qr := querierAll[[]*ChargeUsageBasedDetailedLine, *ChargeUsageBasedDetailedLineQuery]()
-	return withInterceptors[[]*ChargeUsageBasedDetailedLine](ctx, _q, qr, _q.inters)
+	qr := querierAll[[]*ChargeUsageBasedRunDetailedLine, *ChargeUsageBasedRunDetailedLineQuery]()
+	return withInterceptors[[]*ChargeUsageBasedRunDetailedLine](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (_q *ChargeUsageBasedDetailedLineQuery) AllX(ctx context.Context) []*ChargeUsageBasedDetailedLine {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) AllX(ctx context.Context) []*ChargeUsageBasedRunDetailedLine {
 	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
@@ -251,20 +251,20 @@ func (_q *ChargeUsageBasedDetailedLineQuery) AllX(ctx context.Context) []*Charge
 	return nodes
 }
 
-// IDs executes the query and returns a list of ChargeUsageBasedDetailedLine IDs.
-func (_q *ChargeUsageBasedDetailedLineQuery) IDs(ctx context.Context) (ids []string, err error) {
+// IDs executes the query and returns a list of ChargeUsageBasedRunDetailedLine IDs.
+func (_q *ChargeUsageBasedRunDetailedLineQuery) IDs(ctx context.Context) (ids []string, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
-	if err = _q.Select(chargeusagebaseddetailedline.FieldID).Scan(ctx, &ids); err != nil {
+	if err = _q.Select(chargeusagebasedrundetailedline.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *ChargeUsageBasedDetailedLineQuery) IDsX(ctx context.Context) []string {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) IDsX(ctx context.Context) []string {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -273,16 +273,16 @@ func (_q *ChargeUsageBasedDetailedLineQuery) IDsX(ctx context.Context) []string 
 }
 
 // Count returns the count of the given query.
-func (_q *ChargeUsageBasedDetailedLineQuery) Count(ctx context.Context) (int, error) {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) Count(ctx context.Context) (int, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, _q, querierCount[*ChargeUsageBasedDetailedLineQuery](), _q.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*ChargeUsageBasedRunDetailedLineQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (_q *ChargeUsageBasedDetailedLineQuery) CountX(ctx context.Context) int {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) CountX(ctx context.Context) int {
 	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
@@ -291,7 +291,7 @@ func (_q *ChargeUsageBasedDetailedLineQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (_q *ChargeUsageBasedDetailedLineQuery) Exist(ctx context.Context) (bool, error) {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) Exist(ctx context.Context) (bool, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
 	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
@@ -304,7 +304,7 @@ func (_q *ChargeUsageBasedDetailedLineQuery) Exist(ctx context.Context) (bool, e
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (_q *ChargeUsageBasedDetailedLineQuery) ExistX(ctx context.Context) bool {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) ExistX(ctx context.Context) bool {
 	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
@@ -312,18 +312,18 @@ func (_q *ChargeUsageBasedDetailedLineQuery) ExistX(ctx context.Context) bool {
 	return exist
 }
 
-// Clone returns a duplicate of the ChargeUsageBasedDetailedLineQuery builder, including all associated steps. It can be
+// Clone returns a duplicate of the ChargeUsageBasedRunDetailedLineQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (_q *ChargeUsageBasedDetailedLineQuery) Clone() *ChargeUsageBasedDetailedLineQuery {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) Clone() *ChargeUsageBasedRunDetailedLineQuery {
 	if _q == nil {
 		return nil
 	}
-	return &ChargeUsageBasedDetailedLineQuery{
+	return &ChargeUsageBasedRunDetailedLineQuery{
 		config:      _q.config,
 		ctx:         _q.ctx.Clone(),
-		order:       append([]chargeusagebaseddetailedline.OrderOption{}, _q.order...),
+		order:       append([]chargeusagebasedrundetailedline.OrderOption{}, _q.order...),
 		inters:      append([]Interceptor{}, _q.inters...),
-		predicates:  append([]predicate.ChargeUsageBasedDetailedLine{}, _q.predicates...),
+		predicates:  append([]predicate.ChargeUsageBasedRunDetailedLine{}, _q.predicates...),
 		withCharge:  _q.withCharge.Clone(),
 		withRun:     _q.withRun.Clone(),
 		withTaxCode: _q.withTaxCode.Clone(),
@@ -335,7 +335,7 @@ func (_q *ChargeUsageBasedDetailedLineQuery) Clone() *ChargeUsageBasedDetailedLi
 
 // WithCharge tells the query-builder to eager-load the nodes that are connected to
 // the "charge" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *ChargeUsageBasedDetailedLineQuery) WithCharge(opts ...func(*ChargeUsageBasedQuery)) *ChargeUsageBasedDetailedLineQuery {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) WithCharge(opts ...func(*ChargeUsageBasedQuery)) *ChargeUsageBasedRunDetailedLineQuery {
 	query := (&ChargeUsageBasedClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
@@ -346,7 +346,7 @@ func (_q *ChargeUsageBasedDetailedLineQuery) WithCharge(opts ...func(*ChargeUsag
 
 // WithRun tells the query-builder to eager-load the nodes that are connected to
 // the "run" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *ChargeUsageBasedDetailedLineQuery) WithRun(opts ...func(*ChargeUsageBasedRunsQuery)) *ChargeUsageBasedDetailedLineQuery {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) WithRun(opts ...func(*ChargeUsageBasedRunsQuery)) *ChargeUsageBasedRunDetailedLineQuery {
 	query := (&ChargeUsageBasedRunsClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
@@ -357,7 +357,7 @@ func (_q *ChargeUsageBasedDetailedLineQuery) WithRun(opts ...func(*ChargeUsageBa
 
 // WithTaxCode tells the query-builder to eager-load the nodes that are connected to
 // the "tax_code" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *ChargeUsageBasedDetailedLineQuery) WithTaxCode(opts ...func(*TaxCodeQuery)) *ChargeUsageBasedDetailedLineQuery {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) WithTaxCode(opts ...func(*TaxCodeQuery)) *ChargeUsageBasedRunDetailedLineQuery {
 	query := (&TaxCodeClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
@@ -376,15 +376,15 @@ func (_q *ChargeUsageBasedDetailedLineQuery) WithTaxCode(opts ...func(*TaxCodeQu
 //		Count int `json:"count,omitempty"`
 //	}
 //
-//	client.ChargeUsageBasedDetailedLine.Query().
-//		GroupBy(chargeusagebaseddetailedline.FieldCurrency).
+//	client.ChargeUsageBasedRunDetailedLine.Query().
+//		GroupBy(chargeusagebasedrundetailedline.FieldCurrency).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (_q *ChargeUsageBasedDetailedLineQuery) GroupBy(field string, fields ...string) *ChargeUsageBasedDetailedLineGroupBy {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) GroupBy(field string, fields ...string) *ChargeUsageBasedRunDetailedLineGroupBy {
 	_q.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &ChargeUsageBasedDetailedLineGroupBy{build: _q}
+	grbuild := &ChargeUsageBasedRunDetailedLineGroupBy{build: _q}
 	grbuild.flds = &_q.ctx.Fields
-	grbuild.label = chargeusagebaseddetailedline.Label
+	grbuild.label = chargeusagebasedrundetailedline.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
 }
@@ -398,23 +398,23 @@ func (_q *ChargeUsageBasedDetailedLineQuery) GroupBy(field string, fields ...str
 //		Currency currencyx.Code `json:"currency,omitempty"`
 //	}
 //
-//	client.ChargeUsageBasedDetailedLine.Query().
-//		Select(chargeusagebaseddetailedline.FieldCurrency).
+//	client.ChargeUsageBasedRunDetailedLine.Query().
+//		Select(chargeusagebasedrundetailedline.FieldCurrency).
 //		Scan(ctx, &v)
-func (_q *ChargeUsageBasedDetailedLineQuery) Select(fields ...string) *ChargeUsageBasedDetailedLineSelect {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) Select(fields ...string) *ChargeUsageBasedRunDetailedLineSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
-	sbuild := &ChargeUsageBasedDetailedLineSelect{ChargeUsageBasedDetailedLineQuery: _q}
-	sbuild.label = chargeusagebaseddetailedline.Label
+	sbuild := &ChargeUsageBasedRunDetailedLineSelect{ChargeUsageBasedRunDetailedLineQuery: _q}
+	sbuild.label = chargeusagebasedrundetailedline.Label
 	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
-// Aggregate returns a ChargeUsageBasedDetailedLineSelect configured with the given aggregations.
-func (_q *ChargeUsageBasedDetailedLineQuery) Aggregate(fns ...AggregateFunc) *ChargeUsageBasedDetailedLineSelect {
+// Aggregate returns a ChargeUsageBasedRunDetailedLineSelect configured with the given aggregations.
+func (_q *ChargeUsageBasedRunDetailedLineQuery) Aggregate(fns ...AggregateFunc) *ChargeUsageBasedRunDetailedLineSelect {
 	return _q.Select().Aggregate(fns...)
 }
 
-func (_q *ChargeUsageBasedDetailedLineQuery) prepareQuery(ctx context.Context) error {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) prepareQuery(ctx context.Context) error {
 	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
@@ -426,7 +426,7 @@ func (_q *ChargeUsageBasedDetailedLineQuery) prepareQuery(ctx context.Context) e
 		}
 	}
 	for _, f := range _q.ctx.Fields {
-		if !chargeusagebaseddetailedline.ValidColumn(f) {
+		if !chargeusagebasedrundetailedline.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
@@ -440,9 +440,9 @@ func (_q *ChargeUsageBasedDetailedLineQuery) prepareQuery(ctx context.Context) e
 	return nil
 }
 
-func (_q *ChargeUsageBasedDetailedLineQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*ChargeUsageBasedDetailedLine, error) {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*ChargeUsageBasedRunDetailedLine, error) {
 	var (
-		nodes       = []*ChargeUsageBasedDetailedLine{}
+		nodes       = []*ChargeUsageBasedRunDetailedLine{}
 		_spec       = _q.querySpec()
 		loadedTypes = [3]bool{
 			_q.withCharge != nil,
@@ -451,10 +451,10 @@ func (_q *ChargeUsageBasedDetailedLineQuery) sqlAll(ctx context.Context, hooks .
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
-		return (*ChargeUsageBasedDetailedLine).scanValues(nil, columns)
+		return (*ChargeUsageBasedRunDetailedLine).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &ChargeUsageBasedDetailedLine{config: _q.config}
+		node := &ChargeUsageBasedRunDetailedLine{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
@@ -473,28 +473,28 @@ func (_q *ChargeUsageBasedDetailedLineQuery) sqlAll(ctx context.Context, hooks .
 	}
 	if query := _q.withCharge; query != nil {
 		if err := _q.loadCharge(ctx, query, nodes, nil,
-			func(n *ChargeUsageBasedDetailedLine, e *ChargeUsageBased) { n.Edges.Charge = e }); err != nil {
+			func(n *ChargeUsageBasedRunDetailedLine, e *ChargeUsageBased) { n.Edges.Charge = e }); err != nil {
 			return nil, err
 		}
 	}
 	if query := _q.withRun; query != nil {
 		if err := _q.loadRun(ctx, query, nodes, nil,
-			func(n *ChargeUsageBasedDetailedLine, e *ChargeUsageBasedRuns) { n.Edges.Run = e }); err != nil {
+			func(n *ChargeUsageBasedRunDetailedLine, e *ChargeUsageBasedRuns) { n.Edges.Run = e }); err != nil {
 			return nil, err
 		}
 	}
 	if query := _q.withTaxCode; query != nil {
 		if err := _q.loadTaxCode(ctx, query, nodes, nil,
-			func(n *ChargeUsageBasedDetailedLine, e *TaxCode) { n.Edges.TaxCode = e }); err != nil {
+			func(n *ChargeUsageBasedRunDetailedLine, e *TaxCode) { n.Edges.TaxCode = e }); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
 }
 
-func (_q *ChargeUsageBasedDetailedLineQuery) loadCharge(ctx context.Context, query *ChargeUsageBasedQuery, nodes []*ChargeUsageBasedDetailedLine, init func(*ChargeUsageBasedDetailedLine), assign func(*ChargeUsageBasedDetailedLine, *ChargeUsageBased)) error {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) loadCharge(ctx context.Context, query *ChargeUsageBasedQuery, nodes []*ChargeUsageBasedRunDetailedLine, init func(*ChargeUsageBasedRunDetailedLine), assign func(*ChargeUsageBasedRunDetailedLine, *ChargeUsageBased)) error {
 	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*ChargeUsageBasedDetailedLine)
+	nodeids := make(map[string][]*ChargeUsageBasedRunDetailedLine)
 	for i := range nodes {
 		fk := nodes[i].ChargeID
 		if _, ok := nodeids[fk]; !ok {
@@ -521,9 +521,9 @@ func (_q *ChargeUsageBasedDetailedLineQuery) loadCharge(ctx context.Context, que
 	}
 	return nil
 }
-func (_q *ChargeUsageBasedDetailedLineQuery) loadRun(ctx context.Context, query *ChargeUsageBasedRunsQuery, nodes []*ChargeUsageBasedDetailedLine, init func(*ChargeUsageBasedDetailedLine), assign func(*ChargeUsageBasedDetailedLine, *ChargeUsageBasedRuns)) error {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) loadRun(ctx context.Context, query *ChargeUsageBasedRunsQuery, nodes []*ChargeUsageBasedRunDetailedLine, init func(*ChargeUsageBasedRunDetailedLine), assign func(*ChargeUsageBasedRunDetailedLine, *ChargeUsageBasedRuns)) error {
 	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*ChargeUsageBasedDetailedLine)
+	nodeids := make(map[string][]*ChargeUsageBasedRunDetailedLine)
 	for i := range nodes {
 		fk := nodes[i].RunID
 		if _, ok := nodeids[fk]; !ok {
@@ -550,9 +550,9 @@ func (_q *ChargeUsageBasedDetailedLineQuery) loadRun(ctx context.Context, query 
 	}
 	return nil
 }
-func (_q *ChargeUsageBasedDetailedLineQuery) loadTaxCode(ctx context.Context, query *TaxCodeQuery, nodes []*ChargeUsageBasedDetailedLine, init func(*ChargeUsageBasedDetailedLine), assign func(*ChargeUsageBasedDetailedLine, *TaxCode)) error {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) loadTaxCode(ctx context.Context, query *TaxCodeQuery, nodes []*ChargeUsageBasedRunDetailedLine, init func(*ChargeUsageBasedRunDetailedLine), assign func(*ChargeUsageBasedRunDetailedLine, *TaxCode)) error {
 	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*ChargeUsageBasedDetailedLine)
+	nodeids := make(map[string][]*ChargeUsageBasedRunDetailedLine)
 	for i := range nodes {
 		if nodes[i].TaxCodeID == nil {
 			continue
@@ -583,7 +583,7 @@ func (_q *ChargeUsageBasedDetailedLineQuery) loadTaxCode(ctx context.Context, qu
 	return nil
 }
 
-func (_q *ChargeUsageBasedDetailedLineQuery) sqlCount(ctx context.Context) (int, error) {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
 	if len(_q.modifiers) > 0 {
 		_spec.Modifiers = _q.modifiers
@@ -595,8 +595,8 @@ func (_q *ChargeUsageBasedDetailedLineQuery) sqlCount(ctx context.Context) (int,
 	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (_q *ChargeUsageBasedDetailedLineQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(chargeusagebaseddetailedline.Table, chargeusagebaseddetailedline.Columns, sqlgraph.NewFieldSpec(chargeusagebaseddetailedline.FieldID, field.TypeString))
+func (_q *ChargeUsageBasedRunDetailedLineQuery) querySpec() *sqlgraph.QuerySpec {
+	_spec := sqlgraph.NewQuerySpec(chargeusagebasedrundetailedline.Table, chargeusagebasedrundetailedline.Columns, sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
@@ -605,20 +605,20 @@ func (_q *ChargeUsageBasedDetailedLineQuery) querySpec() *sqlgraph.QuerySpec {
 	}
 	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, chargeusagebaseddetailedline.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, chargeusagebasedrundetailedline.FieldID)
 		for i := range fields {
-			if fields[i] != chargeusagebaseddetailedline.FieldID {
+			if fields[i] != chargeusagebasedrundetailedline.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
 		if _q.withCharge != nil {
-			_spec.Node.AddColumnOnce(chargeusagebaseddetailedline.FieldChargeID)
+			_spec.Node.AddColumnOnce(chargeusagebasedrundetailedline.FieldChargeID)
 		}
 		if _q.withRun != nil {
-			_spec.Node.AddColumnOnce(chargeusagebaseddetailedline.FieldRunID)
+			_spec.Node.AddColumnOnce(chargeusagebasedrundetailedline.FieldRunID)
 		}
 		if _q.withTaxCode != nil {
-			_spec.Node.AddColumnOnce(chargeusagebaseddetailedline.FieldTaxCodeID)
+			_spec.Node.AddColumnOnce(chargeusagebasedrundetailedline.FieldTaxCodeID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {
@@ -644,12 +644,12 @@ func (_q *ChargeUsageBasedDetailedLineQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (_q *ChargeUsageBasedDetailedLineQuery) sqlQuery(ctx context.Context) *sql.Selector {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(_q.driver.Dialect())
-	t1 := builder.Table(chargeusagebaseddetailedline.Table)
+	t1 := builder.Table(chargeusagebasedrundetailedline.Table)
 	columns := _q.ctx.Fields
 	if len(columns) == 0 {
-		columns = chargeusagebaseddetailedline.Columns
+		columns = chargeusagebasedrundetailedline.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
 	if _q.sql != nil {
@@ -682,7 +682,7 @@ func (_q *ChargeUsageBasedDetailedLineQuery) sqlQuery(ctx context.Context) *sql.
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (_q *ChargeUsageBasedDetailedLineQuery) ForUpdate(opts ...sql.LockOption) *ChargeUsageBasedDetailedLineQuery {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) ForUpdate(opts ...sql.LockOption) *ChargeUsageBasedRunDetailedLineQuery {
 	if _q.driver.Dialect() == dialect.Postgres {
 		_q.Unique(false)
 	}
@@ -695,7 +695,7 @@ func (_q *ChargeUsageBasedDetailedLineQuery) ForUpdate(opts ...sql.LockOption) *
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (_q *ChargeUsageBasedDetailedLineQuery) ForShare(opts ...sql.LockOption) *ChargeUsageBasedDetailedLineQuery {
+func (_q *ChargeUsageBasedRunDetailedLineQuery) ForShare(opts ...sql.LockOption) *ChargeUsageBasedRunDetailedLineQuery {
 	if _q.driver.Dialect() == dialect.Postgres {
 		_q.Unique(false)
 	}
@@ -705,28 +705,28 @@ func (_q *ChargeUsageBasedDetailedLineQuery) ForShare(opts ...sql.LockOption) *C
 	return _q
 }
 
-// ChargeUsageBasedDetailedLineGroupBy is the group-by builder for ChargeUsageBasedDetailedLine entities.
-type ChargeUsageBasedDetailedLineGroupBy struct {
+// ChargeUsageBasedRunDetailedLineGroupBy is the group-by builder for ChargeUsageBasedRunDetailedLine entities.
+type ChargeUsageBasedRunDetailedLineGroupBy struct {
 	selector
-	build *ChargeUsageBasedDetailedLineQuery
+	build *ChargeUsageBasedRunDetailedLineQuery
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (_g *ChargeUsageBasedDetailedLineGroupBy) Aggregate(fns ...AggregateFunc) *ChargeUsageBasedDetailedLineGroupBy {
+func (_g *ChargeUsageBasedRunDetailedLineGroupBy) Aggregate(fns ...AggregateFunc) *ChargeUsageBasedRunDetailedLineGroupBy {
 	_g.fns = append(_g.fns, fns...)
 	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_g *ChargeUsageBasedDetailedLineGroupBy) Scan(ctx context.Context, v any) error {
+func (_g *ChargeUsageBasedRunDetailedLineGroupBy) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
 	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*ChargeUsageBasedDetailedLineQuery, *ChargeUsageBasedDetailedLineGroupBy](ctx, _g.build, _g, _g.build.inters, v)
+	return scanWithInterceptors[*ChargeUsageBasedRunDetailedLineQuery, *ChargeUsageBasedRunDetailedLineGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (_g *ChargeUsageBasedDetailedLineGroupBy) sqlScan(ctx context.Context, root *ChargeUsageBasedDetailedLineQuery, v any) error {
+func (_g *ChargeUsageBasedRunDetailedLineGroupBy) sqlScan(ctx context.Context, root *ChargeUsageBasedRunDetailedLineQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
 	aggregation := make([]string, 0, len(_g.fns))
 	for _, fn := range _g.fns {
@@ -753,28 +753,28 @@ func (_g *ChargeUsageBasedDetailedLineGroupBy) sqlScan(ctx context.Context, root
 	return sql.ScanSlice(rows, v)
 }
 
-// ChargeUsageBasedDetailedLineSelect is the builder for selecting fields of ChargeUsageBasedDetailedLine entities.
-type ChargeUsageBasedDetailedLineSelect struct {
-	*ChargeUsageBasedDetailedLineQuery
+// ChargeUsageBasedRunDetailedLineSelect is the builder for selecting fields of ChargeUsageBasedRunDetailedLine entities.
+type ChargeUsageBasedRunDetailedLineSelect struct {
+	*ChargeUsageBasedRunDetailedLineQuery
 	selector
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (_s *ChargeUsageBasedDetailedLineSelect) Aggregate(fns ...AggregateFunc) *ChargeUsageBasedDetailedLineSelect {
+func (_s *ChargeUsageBasedRunDetailedLineSelect) Aggregate(fns ...AggregateFunc) *ChargeUsageBasedRunDetailedLineSelect {
 	_s.fns = append(_s.fns, fns...)
 	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_s *ChargeUsageBasedDetailedLineSelect) Scan(ctx context.Context, v any) error {
+func (_s *ChargeUsageBasedRunDetailedLineSelect) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
 	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*ChargeUsageBasedDetailedLineQuery, *ChargeUsageBasedDetailedLineSelect](ctx, _s.ChargeUsageBasedDetailedLineQuery, _s, _s.inters, v)
+	return scanWithInterceptors[*ChargeUsageBasedRunDetailedLineQuery, *ChargeUsageBasedRunDetailedLineSelect](ctx, _s.ChargeUsageBasedRunDetailedLineQuery, _s, _s.inters, v)
 }
 
-func (_s *ChargeUsageBasedDetailedLineSelect) sqlScan(ctx context.Context, root *ChargeUsageBasedDetailedLineQuery, v any) error {
+func (_s *ChargeUsageBasedRunDetailedLineSelect) sqlScan(ctx context.Context, root *ChargeUsageBasedRunDetailedLineQuery, v any) error {
 	selector := root.sqlQuery(ctx)
 	aggregation := make([]string, 0, len(_s.fns))
 	for _, fn := range _s.fns {

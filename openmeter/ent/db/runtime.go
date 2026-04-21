@@ -46,8 +46,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargessearchv1"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebaseddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
@@ -1272,33 +1272,6 @@ func init() {
 	chargeusagebasedDescID := chargeusagebasedMixinFields0[16].Descriptor()
 	// chargeusagebased.DefaultID holds the default value on creation for the id field.
 	chargeusagebased.DefaultID = chargeusagebasedDescID.Default.(func() string)
-	chargeusagebaseddetailedlineMixin := schema.ChargeUsageBasedDetailedLine{}.Mixin()
-	chargeusagebaseddetailedlineMixinFields0 := chargeusagebaseddetailedlineMixin[0].Fields()
-	_ = chargeusagebaseddetailedlineMixinFields0
-	chargeusagebaseddetailedlineFields := schema.ChargeUsageBasedDetailedLine{}.Fields()
-	_ = chargeusagebaseddetailedlineFields
-	// chargeusagebaseddetailedlineDescCurrency is the schema descriptor for currency field.
-	chargeusagebaseddetailedlineDescCurrency := chargeusagebaseddetailedlineMixinFields0[0].Descriptor()
-	// chargeusagebaseddetailedline.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
-	chargeusagebaseddetailedline.CurrencyValidator = chargeusagebaseddetailedlineDescCurrency.Validators[0].(func(string) error)
-	// chargeusagebaseddetailedlineDescNamespace is the schema descriptor for namespace field.
-	chargeusagebaseddetailedlineDescNamespace := chargeusagebaseddetailedlineMixinFields0[16].Descriptor()
-	// chargeusagebaseddetailedline.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
-	chargeusagebaseddetailedline.NamespaceValidator = chargeusagebaseddetailedlineDescNamespace.Validators[0].(func(string) error)
-	// chargeusagebaseddetailedlineDescCreatedAt is the schema descriptor for created_at field.
-	chargeusagebaseddetailedlineDescCreatedAt := chargeusagebaseddetailedlineMixinFields0[18].Descriptor()
-	// chargeusagebaseddetailedline.DefaultCreatedAt holds the default value on creation for the created_at field.
-	chargeusagebaseddetailedline.DefaultCreatedAt = chargeusagebaseddetailedlineDescCreatedAt.Default.(func() time.Time)
-	// chargeusagebaseddetailedlineDescUpdatedAt is the schema descriptor for updated_at field.
-	chargeusagebaseddetailedlineDescUpdatedAt := chargeusagebaseddetailedlineMixinFields0[19].Descriptor()
-	// chargeusagebaseddetailedline.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	chargeusagebaseddetailedline.DefaultUpdatedAt = chargeusagebaseddetailedlineDescUpdatedAt.Default.(func() time.Time)
-	// chargeusagebaseddetailedline.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	chargeusagebaseddetailedline.UpdateDefaultUpdatedAt = chargeusagebaseddetailedlineDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// chargeusagebaseddetailedlineDescID is the schema descriptor for id field.
-	chargeusagebaseddetailedlineDescID := chargeusagebaseddetailedlineMixinFields0[15].Descriptor()
-	// chargeusagebaseddetailedline.DefaultID holds the default value on creation for the id field.
-	chargeusagebaseddetailedline.DefaultID = chargeusagebaseddetailedlineDescID.Default.(func() string)
 	chargeusagebasedruncreditallocationsMixin := schema.ChargeUsageBasedRunCreditAllocations{}.Mixin()
 	chargeusagebasedruncreditallocationsMixinFields0 := chargeusagebasedruncreditallocationsMixin[0].Fields()
 	_ = chargeusagebasedruncreditallocationsMixinFields0
@@ -1334,6 +1307,33 @@ func init() {
 	chargeusagebasedruncreditallocationsDescID := chargeusagebasedruncreditallocationsMixinFields0[9].Descriptor()
 	// chargeusagebasedruncreditallocations.DefaultID holds the default value on creation for the id field.
 	chargeusagebasedruncreditallocations.DefaultID = chargeusagebasedruncreditallocationsDescID.Default.(func() string)
+	chargeusagebasedrundetailedlineMixin := schema.ChargeUsageBasedRunDetailedLine{}.Mixin()
+	chargeusagebasedrundetailedlineMixinFields0 := chargeusagebasedrundetailedlineMixin[0].Fields()
+	_ = chargeusagebasedrundetailedlineMixinFields0
+	chargeusagebasedrundetailedlineFields := schema.ChargeUsageBasedRunDetailedLine{}.Fields()
+	_ = chargeusagebasedrundetailedlineFields
+	// chargeusagebasedrundetailedlineDescCurrency is the schema descriptor for currency field.
+	chargeusagebasedrundetailedlineDescCurrency := chargeusagebasedrundetailedlineMixinFields0[0].Descriptor()
+	// chargeusagebasedrundetailedline.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
+	chargeusagebasedrundetailedline.CurrencyValidator = chargeusagebasedrundetailedlineDescCurrency.Validators[0].(func(string) error)
+	// chargeusagebasedrundetailedlineDescNamespace is the schema descriptor for namespace field.
+	chargeusagebasedrundetailedlineDescNamespace := chargeusagebasedrundetailedlineMixinFields0[16].Descriptor()
+	// chargeusagebasedrundetailedline.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	chargeusagebasedrundetailedline.NamespaceValidator = chargeusagebasedrundetailedlineDescNamespace.Validators[0].(func(string) error)
+	// chargeusagebasedrundetailedlineDescCreatedAt is the schema descriptor for created_at field.
+	chargeusagebasedrundetailedlineDescCreatedAt := chargeusagebasedrundetailedlineMixinFields0[18].Descriptor()
+	// chargeusagebasedrundetailedline.DefaultCreatedAt holds the default value on creation for the created_at field.
+	chargeusagebasedrundetailedline.DefaultCreatedAt = chargeusagebasedrundetailedlineDescCreatedAt.Default.(func() time.Time)
+	// chargeusagebasedrundetailedlineDescUpdatedAt is the schema descriptor for updated_at field.
+	chargeusagebasedrundetailedlineDescUpdatedAt := chargeusagebasedrundetailedlineMixinFields0[19].Descriptor()
+	// chargeusagebasedrundetailedline.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	chargeusagebasedrundetailedline.DefaultUpdatedAt = chargeusagebasedrundetailedlineDescUpdatedAt.Default.(func() time.Time)
+	// chargeusagebasedrundetailedline.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	chargeusagebasedrundetailedline.UpdateDefaultUpdatedAt = chargeusagebasedrundetailedlineDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// chargeusagebasedrundetailedlineDescID is the schema descriptor for id field.
+	chargeusagebasedrundetailedlineDescID := chargeusagebasedrundetailedlineMixinFields0[15].Descriptor()
+	// chargeusagebasedrundetailedline.DefaultID holds the default value on creation for the id field.
+	chargeusagebasedrundetailedline.DefaultID = chargeusagebasedrundetailedlineDescID.Default.(func() string)
 	chargeusagebasedruninvoicedusageMixin := schema.ChargeUsageBasedRunInvoicedUsage{}.Mixin()
 	chargeusagebasedruninvoicedusageMixinFields0 := chargeusagebasedruninvoicedusageMixin[0].Fields()
 	_ = chargeusagebasedruninvoicedusageMixinFields0

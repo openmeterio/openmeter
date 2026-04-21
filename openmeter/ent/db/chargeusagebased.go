@@ -104,7 +104,7 @@ type ChargeUsageBasedEdges struct {
 	// Runs holds the value of the runs edge.
 	Runs []*ChargeUsageBasedRuns `json:"runs,omitempty"`
 	// DetailedLines holds the value of the detailed_lines edge.
-	DetailedLines []*ChargeUsageBasedDetailedLine `json:"detailed_lines,omitempty"`
+	DetailedLines []*ChargeUsageBasedRunDetailedLine `json:"detailed_lines,omitempty"`
 	// CurrentRun holds the value of the current_run edge.
 	CurrentRun *ChargeUsageBasedRuns `json:"current_run,omitempty"`
 	// Charge holds the value of the charge edge.
@@ -135,7 +135,7 @@ func (e ChargeUsageBasedEdges) RunsOrErr() ([]*ChargeUsageBasedRuns, error) {
 
 // DetailedLinesOrErr returns the DetailedLines value or an error if the edge
 // was not loaded in eager-loading.
-func (e ChargeUsageBasedEdges) DetailedLinesOrErr() ([]*ChargeUsageBasedDetailedLine, error) {
+func (e ChargeUsageBasedEdges) DetailedLinesOrErr() ([]*ChargeUsageBasedRunDetailedLine, error) {
 	if e.loadedTypes[1] {
 		return e.DetailedLines, nil
 	}
@@ -472,7 +472,7 @@ func (_m *ChargeUsageBased) QueryRuns() *ChargeUsageBasedRunsQuery {
 }
 
 // QueryDetailedLines queries the "detailed_lines" edge of the ChargeUsageBased entity.
-func (_m *ChargeUsageBased) QueryDetailedLines() *ChargeUsageBasedDetailedLineQuery {
+func (_m *ChargeUsageBased) QueryDetailedLines() *ChargeUsageBasedRunDetailedLineQuery {
 	return NewChargeUsageBasedClient(_m.config).QueryDetailedLines(_m)
 }
 

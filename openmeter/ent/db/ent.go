@@ -50,8 +50,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargessearchv1"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebaseddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
@@ -190,8 +190,8 @@ func checkColumn(t, c string) error {
 			chargeflatfeeinvoicedusage.Table:                       chargeflatfeeinvoicedusage.ValidColumn,
 			chargeflatfeepayment.Table:                             chargeflatfeepayment.ValidColumn,
 			chargeusagebased.Table:                                 chargeusagebased.ValidColumn,
-			chargeusagebaseddetailedline.Table:                     chargeusagebaseddetailedline.ValidColumn,
 			chargeusagebasedruncreditallocations.Table:             chargeusagebasedruncreditallocations.ValidColumn,
+			chargeusagebasedrundetailedline.Table:                  chargeusagebasedrundetailedline.ValidColumn,
 			chargeusagebasedruninvoicedusage.Table:                 chargeusagebasedruninvoicedusage.ValidColumn,
 			chargeusagebasedrunpayment.Table:                       chargeusagebasedrunpayment.ValidColumn,
 			chargeusagebasedruns.Table:                             chargeusagebasedruns.ValidColumn,

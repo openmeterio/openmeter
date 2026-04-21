@@ -110,10 +110,10 @@ const (
 	// RunsColumn is the table column denoting the runs relation/edge.
 	RunsColumn = "charge_id"
 	// DetailedLinesTable is the table that holds the detailed_lines relation/edge.
-	DetailedLinesTable = "charge_usage_based_detailed_line"
-	// DetailedLinesInverseTable is the table name for the ChargeUsageBasedDetailedLine entity.
-	// It exists in this package in order to avoid circular dependency with the "chargeusagebaseddetailedline" package.
-	DetailedLinesInverseTable = "charge_usage_based_detailed_line"
+	DetailedLinesTable = "charge_usage_based_run_detailed_line"
+	// DetailedLinesInverseTable is the table name for the ChargeUsageBasedRunDetailedLine entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeusagebasedrundetailedline" package.
+	DetailedLinesInverseTable = "charge_usage_based_run_detailed_line"
 	// DetailedLinesColumn is the table column denoting the detailed_lines relation/edge.
 	DetailedLinesColumn = "charge_id"
 	// CurrentRunTable is the table that holds the current_run relation/edge.

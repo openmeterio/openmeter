@@ -15,7 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebaseddetailedline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -327,14 +327,14 @@ func (_u *ChargeUsageBasedUpdate) AddRuns(v ...*ChargeUsageBasedRuns) *ChargeUsa
 	return _u.AddRunIDs(ids...)
 }
 
-// AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeUsageBasedDetailedLine entity by IDs.
+// AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity by IDs.
 func (_u *ChargeUsageBasedUpdate) AddDetailedLineIDs(ids ...string) *ChargeUsageBasedUpdate {
 	_u.mutation.AddDetailedLineIDs(ids...)
 	return _u
 }
 
-// AddDetailedLines adds the "detailed_lines" edges to the ChargeUsageBasedDetailedLine entity.
-func (_u *ChargeUsageBasedUpdate) AddDetailedLines(v ...*ChargeUsageBasedDetailedLine) *ChargeUsageBasedUpdate {
+// AddDetailedLines adds the "detailed_lines" edges to the ChargeUsageBasedRunDetailedLine entity.
+func (_u *ChargeUsageBasedUpdate) AddDetailedLines(v ...*ChargeUsageBasedRunDetailedLine) *ChargeUsageBasedUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
@@ -392,20 +392,20 @@ func (_u *ChargeUsageBasedUpdate) RemoveRuns(v ...*ChargeUsageBasedRuns) *Charge
 	return _u.RemoveRunIDs(ids...)
 }
 
-// ClearDetailedLines clears all "detailed_lines" edges to the ChargeUsageBasedDetailedLine entity.
+// ClearDetailedLines clears all "detailed_lines" edges to the ChargeUsageBasedRunDetailedLine entity.
 func (_u *ChargeUsageBasedUpdate) ClearDetailedLines() *ChargeUsageBasedUpdate {
 	_u.mutation.ClearDetailedLines()
 	return _u
 }
 
-// RemoveDetailedLineIDs removes the "detailed_lines" edge to ChargeUsageBasedDetailedLine entities by IDs.
+// RemoveDetailedLineIDs removes the "detailed_lines" edge to ChargeUsageBasedRunDetailedLine entities by IDs.
 func (_u *ChargeUsageBasedUpdate) RemoveDetailedLineIDs(ids ...string) *ChargeUsageBasedUpdate {
 	_u.mutation.RemoveDetailedLineIDs(ids...)
 	return _u
 }
 
-// RemoveDetailedLines removes "detailed_lines" edges to ChargeUsageBasedDetailedLine entities.
-func (_u *ChargeUsageBasedUpdate) RemoveDetailedLines(v ...*ChargeUsageBasedDetailedLine) *ChargeUsageBasedUpdate {
+// RemoveDetailedLines removes "detailed_lines" edges to ChargeUsageBasedRunDetailedLine entities.
+func (_u *ChargeUsageBasedUpdate) RemoveDetailedLines(v ...*ChargeUsageBasedRunDetailedLine) *ChargeUsageBasedUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
@@ -638,7 +638,7 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 			Columns: []string{chargeusagebased.DetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeusagebaseddetailedline.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -651,7 +651,7 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 			Columns: []string{chargeusagebased.DetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeusagebaseddetailedline.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -667,7 +667,7 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 			Columns: []string{chargeusagebased.DetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeusagebaseddetailedline.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1044,14 +1044,14 @@ func (_u *ChargeUsageBasedUpdateOne) AddRuns(v ...*ChargeUsageBasedRuns) *Charge
 	return _u.AddRunIDs(ids...)
 }
 
-// AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeUsageBasedDetailedLine entity by IDs.
+// AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity by IDs.
 func (_u *ChargeUsageBasedUpdateOne) AddDetailedLineIDs(ids ...string) *ChargeUsageBasedUpdateOne {
 	_u.mutation.AddDetailedLineIDs(ids...)
 	return _u
 }
 
-// AddDetailedLines adds the "detailed_lines" edges to the ChargeUsageBasedDetailedLine entity.
-func (_u *ChargeUsageBasedUpdateOne) AddDetailedLines(v ...*ChargeUsageBasedDetailedLine) *ChargeUsageBasedUpdateOne {
+// AddDetailedLines adds the "detailed_lines" edges to the ChargeUsageBasedRunDetailedLine entity.
+func (_u *ChargeUsageBasedUpdateOne) AddDetailedLines(v ...*ChargeUsageBasedRunDetailedLine) *ChargeUsageBasedUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
@@ -1109,20 +1109,20 @@ func (_u *ChargeUsageBasedUpdateOne) RemoveRuns(v ...*ChargeUsageBasedRuns) *Cha
 	return _u.RemoveRunIDs(ids...)
 }
 
-// ClearDetailedLines clears all "detailed_lines" edges to the ChargeUsageBasedDetailedLine entity.
+// ClearDetailedLines clears all "detailed_lines" edges to the ChargeUsageBasedRunDetailedLine entity.
 func (_u *ChargeUsageBasedUpdateOne) ClearDetailedLines() *ChargeUsageBasedUpdateOne {
 	_u.mutation.ClearDetailedLines()
 	return _u
 }
 
-// RemoveDetailedLineIDs removes the "detailed_lines" edge to ChargeUsageBasedDetailedLine entities by IDs.
+// RemoveDetailedLineIDs removes the "detailed_lines" edge to ChargeUsageBasedRunDetailedLine entities by IDs.
 func (_u *ChargeUsageBasedUpdateOne) RemoveDetailedLineIDs(ids ...string) *ChargeUsageBasedUpdateOne {
 	_u.mutation.RemoveDetailedLineIDs(ids...)
 	return _u
 }
 
-// RemoveDetailedLines removes "detailed_lines" edges to ChargeUsageBasedDetailedLine entities.
-func (_u *ChargeUsageBasedUpdateOne) RemoveDetailedLines(v ...*ChargeUsageBasedDetailedLine) *ChargeUsageBasedUpdateOne {
+// RemoveDetailedLines removes "detailed_lines" edges to ChargeUsageBasedRunDetailedLine entities.
+func (_u *ChargeUsageBasedUpdateOne) RemoveDetailedLines(v ...*ChargeUsageBasedRunDetailedLine) *ChargeUsageBasedUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
@@ -1385,7 +1385,7 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 			Columns: []string{chargeusagebased.DetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeusagebaseddetailedline.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -1398,7 +1398,7 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 			Columns: []string{chargeusagebased.DetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeusagebaseddetailedline.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1414,7 +1414,7 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 			Columns: []string{chargeusagebased.DetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeusagebaseddetailedline.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

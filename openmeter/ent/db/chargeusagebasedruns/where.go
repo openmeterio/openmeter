@@ -1131,7 +1131,7 @@ func HasDetailedLines() predicate.ChargeUsageBasedRuns {
 }
 
 // HasDetailedLinesWith applies the HasEdge predicate on the "detailed_lines" edge with a given conditions (other predicates).
-func HasDetailedLinesWith(preds ...predicate.ChargeUsageBasedDetailedLine) predicate.ChargeUsageBasedRuns {
+func HasDetailedLinesWith(preds ...predicate.ChargeUsageBasedRunDetailedLine) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {
 		step := newDetailedLinesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {

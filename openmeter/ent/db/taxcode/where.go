@@ -645,21 +645,21 @@ func HasBillingStandardInvoiceDetailedLinesWith(preds ...predicate.BillingStanda
 	})
 }
 
-// HasChargeUsageBasedDetailedLines applies the HasEdge predicate on the "charge_usage_based_detailed_lines" edge.
-func HasChargeUsageBasedDetailedLines() predicate.TaxCode {
+// HasChargeUsageBasedRunDetailedLines applies the HasEdge predicate on the "charge_usage_based_run_detailed_lines" edge.
+func HasChargeUsageBasedRunDetailedLines() predicate.TaxCode {
 	return predicate.TaxCode(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, ChargeUsageBasedDetailedLinesTable, ChargeUsageBasedDetailedLinesColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, ChargeUsageBasedRunDetailedLinesTable, ChargeUsageBasedRunDetailedLinesColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasChargeUsageBasedDetailedLinesWith applies the HasEdge predicate on the "charge_usage_based_detailed_lines" edge with a given conditions (other predicates).
-func HasChargeUsageBasedDetailedLinesWith(preds ...predicate.ChargeUsageBasedDetailedLine) predicate.TaxCode {
+// HasChargeUsageBasedRunDetailedLinesWith applies the HasEdge predicate on the "charge_usage_based_run_detailed_lines" edge with a given conditions (other predicates).
+func HasChargeUsageBasedRunDetailedLinesWith(preds ...predicate.ChargeUsageBasedRunDetailedLine) predicate.TaxCode {
 	return predicate.TaxCode(func(s *sql.Selector) {
-		step := newChargeUsageBasedDetailedLinesStep()
+		step := newChargeUsageBasedRunDetailedLinesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

@@ -3112,160 +3112,6 @@ func (u *ChargeUsageBasedUpdateOne) SetOrClearCurrentRealizationRunID(value *str
 	return u.SetCurrentRealizationRunID(*value)
 }
 
-func (u *ChargeUsageBasedDetailedLineUpdate) SetOrClearTaxConfig(value *productcatalog.TaxConfig) *ChargeUsageBasedDetailedLineUpdate {
-	if value == nil {
-		return u.ClearTaxConfig()
-	}
-	return u.SetTaxConfig(*value)
-}
-
-func (u *ChargeUsageBasedDetailedLineUpdateOne) SetOrClearTaxConfig(value *productcatalog.TaxConfig) *ChargeUsageBasedDetailedLineUpdateOne {
-	if value == nil {
-		return u.ClearTaxConfig()
-	}
-	return u.SetTaxConfig(*value)
-}
-
-func (u *ChargeUsageBasedDetailedLineUpdate) SetOrClearTaxCodeID(value *string) *ChargeUsageBasedDetailedLineUpdate {
-	if value == nil {
-		return u.ClearTaxCodeID()
-	}
-	return u.SetTaxCodeID(*value)
-}
-
-func (u *ChargeUsageBasedDetailedLineUpdateOne) SetOrClearTaxCodeID(value *string) *ChargeUsageBasedDetailedLineUpdateOne {
-	if value == nil {
-		return u.ClearTaxCodeID()
-	}
-	return u.SetTaxCodeID(*value)
-}
-
-func (u *ChargeUsageBasedDetailedLineUpdate) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *ChargeUsageBasedDetailedLineUpdate {
-	if value == nil {
-		return u.ClearTaxBehavior()
-	}
-	return u.SetTaxBehavior(*value)
-}
-
-func (u *ChargeUsageBasedDetailedLineUpdateOne) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *ChargeUsageBasedDetailedLineUpdateOne {
-	if value == nil {
-		return u.ClearTaxBehavior()
-	}
-	return u.SetTaxBehavior(*value)
-}
-
-func (u *ChargeUsageBasedDetailedLineUpdate) SetOrClearInvoicingAppExternalID(value *string) *ChargeUsageBasedDetailedLineUpdate {
-	if value == nil {
-		return u.ClearInvoicingAppExternalID()
-	}
-	return u.SetInvoicingAppExternalID(*value)
-}
-
-func (u *ChargeUsageBasedDetailedLineUpdateOne) SetOrClearInvoicingAppExternalID(value *string) *ChargeUsageBasedDetailedLineUpdateOne {
-	if value == nil {
-		return u.ClearInvoicingAppExternalID()
-	}
-	return u.SetInvoicingAppExternalID(*value)
-}
-
-func (u *ChargeUsageBasedDetailedLineUpdate) SetOrClearChildUniqueReferenceID(value *string) *ChargeUsageBasedDetailedLineUpdate {
-	if value == nil {
-		return u.ClearChildUniqueReferenceID()
-	}
-	return u.SetChildUniqueReferenceID(*value)
-}
-
-func (u *ChargeUsageBasedDetailedLineUpdateOne) SetOrClearChildUniqueReferenceID(value *string) *ChargeUsageBasedDetailedLineUpdateOne {
-	if value == nil {
-		return u.ClearChildUniqueReferenceID()
-	}
-	return u.SetChildUniqueReferenceID(*value)
-}
-
-func (u *ChargeUsageBasedDetailedLineUpdate) SetOrClearIndex(value *int) *ChargeUsageBasedDetailedLineUpdate {
-	if value == nil {
-		return u.ClearIndex()
-	}
-	return u.SetIndex(*value)
-}
-
-func (u *ChargeUsageBasedDetailedLineUpdateOne) SetOrClearIndex(value *int) *ChargeUsageBasedDetailedLineUpdateOne {
-	if value == nil {
-		return u.ClearIndex()
-	}
-	return u.SetIndex(*value)
-}
-
-func (u *ChargeUsageBasedDetailedLineUpdate) SetOrClearCreditsApplied(value **creditsapplied.CreditsApplied) *ChargeUsageBasedDetailedLineUpdate {
-	if value == nil {
-		return u.ClearCreditsApplied()
-	}
-	return u.SetCreditsApplied(*value)
-}
-
-func (u *ChargeUsageBasedDetailedLineUpdateOne) SetOrClearCreditsApplied(value **creditsapplied.CreditsApplied) *ChargeUsageBasedDetailedLineUpdateOne {
-	if value == nil {
-		return u.ClearCreditsApplied()
-	}
-	return u.SetCreditsApplied(*value)
-}
-
-func (u *ChargeUsageBasedDetailedLineUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeUsageBasedDetailedLineUpdate {
-	if value == nil {
-		return u.ClearAnnotations()
-	}
-	return u.SetAnnotations(*value)
-}
-
-func (u *ChargeUsageBasedDetailedLineUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeUsageBasedDetailedLineUpdateOne {
-	if value == nil {
-		return u.ClearAnnotations()
-	}
-	return u.SetAnnotations(*value)
-}
-
-func (u *ChargeUsageBasedDetailedLineUpdate) SetOrClearMetadata(value *map[string]string) *ChargeUsageBasedDetailedLineUpdate {
-	if value == nil {
-		return u.ClearMetadata()
-	}
-	return u.SetMetadata(*value)
-}
-
-func (u *ChargeUsageBasedDetailedLineUpdateOne) SetOrClearMetadata(value *map[string]string) *ChargeUsageBasedDetailedLineUpdateOne {
-	if value == nil {
-		return u.ClearMetadata()
-	}
-	return u.SetMetadata(*value)
-}
-
-func (u *ChargeUsageBasedDetailedLineUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedDetailedLineUpdate {
-	if value == nil {
-		return u.ClearDeletedAt()
-	}
-	return u.SetDeletedAt(*value)
-}
-
-func (u *ChargeUsageBasedDetailedLineUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedDetailedLineUpdateOne {
-	if value == nil {
-		return u.ClearDeletedAt()
-	}
-	return u.SetDeletedAt(*value)
-}
-
-func (u *ChargeUsageBasedDetailedLineUpdate) SetOrClearDescription(value *string) *ChargeUsageBasedDetailedLineUpdate {
-	if value == nil {
-		return u.ClearDescription()
-	}
-	return u.SetDescription(*value)
-}
-
-func (u *ChargeUsageBasedDetailedLineUpdateOne) SetOrClearDescription(value *string) *ChargeUsageBasedDetailedLineUpdateOne {
-	if value == nil {
-		return u.ClearDescription()
-	}
-	return u.SetDescription(*value)
-}
-
 func (u *ChargeUsageBasedRunCreditAllocationsUpdate) SetOrClearLineID(value *string) *ChargeUsageBasedRunCreditAllocationsUpdate {
 	if value == nil {
 		return u.ClearLineID()
@@ -3320,6 +3166,160 @@ func (u *ChargeUsageBasedRunCreditAllocationsUpdateOne) SetOrClearAnnotations(va
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearTaxConfig(value *productcatalog.TaxConfig) *ChargeUsageBasedRunDetailedLineUpdate {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearTaxConfig(value *productcatalog.TaxConfig) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearTaxCodeID(value *string) *ChargeUsageBasedRunDetailedLineUpdate {
+	if value == nil {
+		return u.ClearTaxCodeID()
+	}
+	return u.SetTaxCodeID(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearTaxCodeID(value *string) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearTaxCodeID()
+	}
+	return u.SetTaxCodeID(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *ChargeUsageBasedRunDetailedLineUpdate {
+	if value == nil {
+		return u.ClearTaxBehavior()
+	}
+	return u.SetTaxBehavior(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearTaxBehavior()
+	}
+	return u.SetTaxBehavior(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearInvoicingAppExternalID(value *string) *ChargeUsageBasedRunDetailedLineUpdate {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearInvoicingAppExternalID(value *string) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearChildUniqueReferenceID(value *string) *ChargeUsageBasedRunDetailedLineUpdate {
+	if value == nil {
+		return u.ClearChildUniqueReferenceID()
+	}
+	return u.SetChildUniqueReferenceID(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearChildUniqueReferenceID(value *string) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearChildUniqueReferenceID()
+	}
+	return u.SetChildUniqueReferenceID(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearIndex(value *int) *ChargeUsageBasedRunDetailedLineUpdate {
+	if value == nil {
+		return u.ClearIndex()
+	}
+	return u.SetIndex(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearIndex(value *int) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearIndex()
+	}
+	return u.SetIndex(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearCreditsApplied(value **creditsapplied.CreditsApplied) *ChargeUsageBasedRunDetailedLineUpdate {
+	if value == nil {
+		return u.ClearCreditsApplied()
+	}
+	return u.SetCreditsApplied(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearCreditsApplied(value **creditsapplied.CreditsApplied) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearCreditsApplied()
+	}
+	return u.SetCreditsApplied(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeUsageBasedRunDetailedLineUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearMetadata(value *map[string]string) *ChargeUsageBasedRunDetailedLineUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearMetadata(value *map[string]string) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedRunDetailedLineUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearDescription(value *string) *ChargeUsageBasedRunDetailedLineUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearDescription(value *string) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
 }
 
 func (u *ChargeUsageBasedRunInvoicedUsageUpdate) SetOrClearLineID(value *string) *ChargeUsageBasedRunInvoicedUsageUpdate {

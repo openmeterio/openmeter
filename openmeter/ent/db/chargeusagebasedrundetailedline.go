@@ -14,7 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebaseddetailedline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -22,8 +22,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// ChargeUsageBasedDetailedLine is the model entity for the ChargeUsageBasedDetailedLine schema.
-type ChargeUsageBasedDetailedLine struct {
+// ChargeUsageBasedRunDetailedLine is the model entity for the ChargeUsageBasedRunDetailedLine schema.
+type ChargeUsageBasedRunDetailedLine struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
@@ -92,13 +92,13 @@ type ChargeUsageBasedDetailedLine struct {
 	// RunID holds the value of the "run_id" field.
 	RunID string `json:"run_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
-	// The values are being populated by the ChargeUsageBasedDetailedLineQuery when eager-loading is set.
-	Edges        ChargeUsageBasedDetailedLineEdges `json:"edges"`
+	// The values are being populated by the ChargeUsageBasedRunDetailedLineQuery when eager-loading is set.
+	Edges        ChargeUsageBasedRunDetailedLineEdges `json:"edges"`
 	selectValues sql.SelectValues
 }
 
-// ChargeUsageBasedDetailedLineEdges holds the relations/edges for other nodes in the graph.
-type ChargeUsageBasedDetailedLineEdges struct {
+// ChargeUsageBasedRunDetailedLineEdges holds the relations/edges for other nodes in the graph.
+type ChargeUsageBasedRunDetailedLineEdges struct {
 	// Charge holds the value of the charge edge.
 	Charge *ChargeUsageBased `json:"charge,omitempty"`
 	// Run holds the value of the run edge.
@@ -112,7 +112,7 @@ type ChargeUsageBasedDetailedLineEdges struct {
 
 // ChargeOrErr returns the Charge value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e ChargeUsageBasedDetailedLineEdges) ChargeOrErr() (*ChargeUsageBased, error) {
+func (e ChargeUsageBasedRunDetailedLineEdges) ChargeOrErr() (*ChargeUsageBased, error) {
 	if e.Charge != nil {
 		return e.Charge, nil
 	} else if e.loadedTypes[0] {
@@ -123,7 +123,7 @@ func (e ChargeUsageBasedDetailedLineEdges) ChargeOrErr() (*ChargeUsageBased, err
 
 // RunOrErr returns the Run value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e ChargeUsageBasedDetailedLineEdges) RunOrErr() (*ChargeUsageBasedRuns, error) {
+func (e ChargeUsageBasedRunDetailedLineEdges) RunOrErr() (*ChargeUsageBasedRuns, error) {
 	if e.Run != nil {
 		return e.Run, nil
 	} else if e.loadedTypes[1] {
@@ -134,7 +134,7 @@ func (e ChargeUsageBasedDetailedLineEdges) RunOrErr() (*ChargeUsageBasedRuns, er
 
 // TaxCodeOrErr returns the TaxCode value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e ChargeUsageBasedDetailedLineEdges) TaxCodeOrErr() (*TaxCode, error) {
+func (e ChargeUsageBasedRunDetailedLineEdges) TaxCodeOrErr() (*TaxCode, error) {
 	if e.TaxCode != nil {
 		return e.TaxCode, nil
 	} else if e.loadedTypes[2] {
@@ -144,19 +144,19 @@ func (e ChargeUsageBasedDetailedLineEdges) TaxCodeOrErr() (*TaxCode, error) {
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
-func (*ChargeUsageBasedDetailedLine) scanValues(columns []string) ([]any, error) {
+func (*ChargeUsageBasedRunDetailedLine) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case chargeusagebaseddetailedline.FieldTaxConfig, chargeusagebaseddetailedline.FieldCreditsApplied, chargeusagebaseddetailedline.FieldAnnotations, chargeusagebaseddetailedline.FieldMetadata:
+		case chargeusagebasedrundetailedline.FieldTaxConfig, chargeusagebasedrundetailedline.FieldCreditsApplied, chargeusagebasedrundetailedline.FieldAnnotations, chargeusagebasedrundetailedline.FieldMetadata:
 			values[i] = new([]byte)
-		case chargeusagebaseddetailedline.FieldQuantity, chargeusagebaseddetailedline.FieldPerUnitAmount, chargeusagebaseddetailedline.FieldAmount, chargeusagebaseddetailedline.FieldTaxesTotal, chargeusagebaseddetailedline.FieldTaxesInclusiveTotal, chargeusagebaseddetailedline.FieldTaxesExclusiveTotal, chargeusagebaseddetailedline.FieldChargesTotal, chargeusagebaseddetailedline.FieldDiscountsTotal, chargeusagebaseddetailedline.FieldCreditsTotal, chargeusagebaseddetailedline.FieldTotal:
+		case chargeusagebasedrundetailedline.FieldQuantity, chargeusagebasedrundetailedline.FieldPerUnitAmount, chargeusagebasedrundetailedline.FieldAmount, chargeusagebasedrundetailedline.FieldTaxesTotal, chargeusagebasedrundetailedline.FieldTaxesInclusiveTotal, chargeusagebasedrundetailedline.FieldTaxesExclusiveTotal, chargeusagebasedrundetailedline.FieldChargesTotal, chargeusagebasedrundetailedline.FieldDiscountsTotal, chargeusagebasedrundetailedline.FieldCreditsTotal, chargeusagebasedrundetailedline.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargeusagebaseddetailedline.FieldIndex:
+		case chargeusagebasedrundetailedline.FieldIndex:
 			values[i] = new(sql.NullInt64)
-		case chargeusagebaseddetailedline.FieldID, chargeusagebaseddetailedline.FieldCurrency, chargeusagebaseddetailedline.FieldTaxCodeID, chargeusagebaseddetailedline.FieldTaxBehavior, chargeusagebaseddetailedline.FieldInvoicingAppExternalID, chargeusagebaseddetailedline.FieldChildUniqueReferenceID, chargeusagebaseddetailedline.FieldCategory, chargeusagebaseddetailedline.FieldPaymentTerm, chargeusagebaseddetailedline.FieldNamespace, chargeusagebaseddetailedline.FieldName, chargeusagebaseddetailedline.FieldDescription, chargeusagebaseddetailedline.FieldChargeID, chargeusagebaseddetailedline.FieldRunID:
+		case chargeusagebasedrundetailedline.FieldID, chargeusagebasedrundetailedline.FieldCurrency, chargeusagebasedrundetailedline.FieldTaxCodeID, chargeusagebasedrundetailedline.FieldTaxBehavior, chargeusagebasedrundetailedline.FieldInvoicingAppExternalID, chargeusagebasedrundetailedline.FieldChildUniqueReferenceID, chargeusagebasedrundetailedline.FieldCategory, chargeusagebasedrundetailedline.FieldPaymentTerm, chargeusagebasedrundetailedline.FieldNamespace, chargeusagebasedrundetailedline.FieldName, chargeusagebasedrundetailedline.FieldDescription, chargeusagebasedrundetailedline.FieldChargeID, chargeusagebasedrundetailedline.FieldRunID:
 			values[i] = new(sql.NullString)
-		case chargeusagebaseddetailedline.FieldServicePeriodStart, chargeusagebaseddetailedline.FieldServicePeriodEnd, chargeusagebaseddetailedline.FieldCreatedAt, chargeusagebaseddetailedline.FieldUpdatedAt, chargeusagebaseddetailedline.FieldDeletedAt:
+		case chargeusagebasedrundetailedline.FieldServicePeriodStart, chargeusagebasedrundetailedline.FieldServicePeriodEnd, chargeusagebasedrundetailedline.FieldCreatedAt, chargeusagebasedrundetailedline.FieldUpdatedAt, chargeusagebasedrundetailedline.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -166,26 +166,26 @@ func (*ChargeUsageBasedDetailedLine) scanValues(columns []string) ([]any, error)
 }
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
-// to the ChargeUsageBasedDetailedLine fields.
-func (_m *ChargeUsageBasedDetailedLine) assignValues(columns []string, values []any) error {
+// to the ChargeUsageBasedRunDetailedLine fields.
+func (_m *ChargeUsageBasedRunDetailedLine) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
 	for i := range columns {
 		switch columns[i] {
-		case chargeusagebaseddetailedline.FieldID:
+		case chargeusagebasedrundetailedline.FieldID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
 				_m.ID = value.String
 			}
-		case chargeusagebaseddetailedline.FieldCurrency:
+		case chargeusagebasedrundetailedline.FieldCurrency:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
 				_m.Currency = currencyx.Code(value.String)
 			}
-		case chargeusagebaseddetailedline.FieldTaxConfig:
+		case chargeusagebasedrundetailedline.FieldTaxConfig:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field tax_config", values[i])
 			} else if value != nil && len(*value) > 0 {
@@ -193,78 +193,78 @@ func (_m *ChargeUsageBasedDetailedLine) assignValues(columns []string, values []
 					return fmt.Errorf("unmarshal field tax_config: %w", err)
 				}
 			}
-		case chargeusagebaseddetailedline.FieldTaxCodeID:
+		case chargeusagebasedrundetailedline.FieldTaxCodeID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field tax_code_id", values[i])
 			} else if value.Valid {
 				_m.TaxCodeID = new(string)
 				*_m.TaxCodeID = value.String
 			}
-		case chargeusagebaseddetailedline.FieldTaxBehavior:
+		case chargeusagebasedrundetailedline.FieldTaxBehavior:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
 			} else if value.Valid {
 				_m.TaxBehavior = new(productcatalog.TaxBehavior)
 				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
 			}
-		case chargeusagebaseddetailedline.FieldServicePeriodStart:
+		case chargeusagebasedrundetailedline.FieldServicePeriodStart:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field service_period_start", values[i])
 			} else if value.Valid {
 				_m.ServicePeriodStart = value.Time
 			}
-		case chargeusagebaseddetailedline.FieldServicePeriodEnd:
+		case chargeusagebasedrundetailedline.FieldServicePeriodEnd:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field service_period_end", values[i])
 			} else if value.Valid {
 				_m.ServicePeriodEnd = value.Time
 			}
-		case chargeusagebaseddetailedline.FieldQuantity:
+		case chargeusagebasedrundetailedline.FieldQuantity:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field quantity", values[i])
 			} else if value != nil {
 				_m.Quantity = *value
 			}
-		case chargeusagebaseddetailedline.FieldInvoicingAppExternalID:
+		case chargeusagebasedrundetailedline.FieldInvoicingAppExternalID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field invoicing_app_external_id", values[i])
 			} else if value.Valid {
 				_m.InvoicingAppExternalID = new(string)
 				*_m.InvoicingAppExternalID = value.String
 			}
-		case chargeusagebaseddetailedline.FieldChildUniqueReferenceID:
+		case chargeusagebasedrundetailedline.FieldChildUniqueReferenceID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field child_unique_reference_id", values[i])
 			} else if value.Valid {
 				_m.ChildUniqueReferenceID = new(string)
 				*_m.ChildUniqueReferenceID = value.String
 			}
-		case chargeusagebaseddetailedline.FieldPerUnitAmount:
+		case chargeusagebasedrundetailedline.FieldPerUnitAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field per_unit_amount", values[i])
 			} else if value != nil {
 				_m.PerUnitAmount = *value
 			}
-		case chargeusagebaseddetailedline.FieldCategory:
+		case chargeusagebasedrundetailedline.FieldCategory:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field category", values[i])
 			} else if value.Valid {
 				_m.Category = stddetailedline.Category(value.String)
 			}
-		case chargeusagebaseddetailedline.FieldPaymentTerm:
+		case chargeusagebasedrundetailedline.FieldPaymentTerm:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field payment_term", values[i])
 			} else if value.Valid {
 				_m.PaymentTerm = productcatalog.PaymentTermType(value.String)
 			}
-		case chargeusagebaseddetailedline.FieldIndex:
+		case chargeusagebasedrundetailedline.FieldIndex:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field index", values[i])
 			} else if value.Valid {
 				_m.Index = new(int)
 				*_m.Index = int(value.Int64)
 			}
-		case chargeusagebaseddetailedline.FieldCreditsApplied:
+		case chargeusagebasedrundetailedline.FieldCreditsApplied:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field credits_applied", values[i])
 			} else if value != nil && len(*value) > 0 {
@@ -272,7 +272,7 @@ func (_m *ChargeUsageBasedDetailedLine) assignValues(columns []string, values []
 					return fmt.Errorf("unmarshal field credits_applied: %w", err)
 				}
 			}
-		case chargeusagebaseddetailedline.FieldAnnotations:
+		case chargeusagebasedrundetailedline.FieldAnnotations:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field annotations", values[i])
 			} else if value != nil && len(*value) > 0 {
@@ -280,13 +280,13 @@ func (_m *ChargeUsageBasedDetailedLine) assignValues(columns []string, values []
 					return fmt.Errorf("unmarshal field annotations: %w", err)
 				}
 			}
-		case chargeusagebaseddetailedline.FieldNamespace:
+		case chargeusagebasedrundetailedline.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
 				_m.Namespace = value.String
 			}
-		case chargeusagebaseddetailedline.FieldMetadata:
+		case chargeusagebasedrundetailedline.FieldMetadata:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field metadata", values[i])
 			} else if value != nil && len(*value) > 0 {
@@ -294,93 +294,93 @@ func (_m *ChargeUsageBasedDetailedLine) assignValues(columns []string, values []
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
 			}
-		case chargeusagebaseddetailedline.FieldCreatedAt:
+		case chargeusagebasedrundetailedline.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
 				_m.CreatedAt = value.Time
 			}
-		case chargeusagebaseddetailedline.FieldUpdatedAt:
+		case chargeusagebasedrundetailedline.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				_m.UpdatedAt = value.Time
 			}
-		case chargeusagebaseddetailedline.FieldDeletedAt:
+		case chargeusagebasedrundetailedline.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
 				_m.DeletedAt = new(time.Time)
 				*_m.DeletedAt = value.Time
 			}
-		case chargeusagebaseddetailedline.FieldName:
+		case chargeusagebasedrundetailedline.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
 				_m.Name = value.String
 			}
-		case chargeusagebaseddetailedline.FieldDescription:
+		case chargeusagebasedrundetailedline.FieldDescription:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field description", values[i])
 			} else if value.Valid {
 				_m.Description = new(string)
 				*_m.Description = value.String
 			}
-		case chargeusagebaseddetailedline.FieldAmount:
+		case chargeusagebasedrundetailedline.FieldAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field amount", values[i])
 			} else if value != nil {
 				_m.Amount = *value
 			}
-		case chargeusagebaseddetailedline.FieldTaxesTotal:
+		case chargeusagebasedrundetailedline.FieldTaxesTotal:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field taxes_total", values[i])
 			} else if value != nil {
 				_m.TaxesTotal = *value
 			}
-		case chargeusagebaseddetailedline.FieldTaxesInclusiveTotal:
+		case chargeusagebasedrundetailedline.FieldTaxesInclusiveTotal:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field taxes_inclusive_total", values[i])
 			} else if value != nil {
 				_m.TaxesInclusiveTotal = *value
 			}
-		case chargeusagebaseddetailedline.FieldTaxesExclusiveTotal:
+		case chargeusagebasedrundetailedline.FieldTaxesExclusiveTotal:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field taxes_exclusive_total", values[i])
 			} else if value != nil {
 				_m.TaxesExclusiveTotal = *value
 			}
-		case chargeusagebaseddetailedline.FieldChargesTotal:
+		case chargeusagebasedrundetailedline.FieldChargesTotal:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field charges_total", values[i])
 			} else if value != nil {
 				_m.ChargesTotal = *value
 			}
-		case chargeusagebaseddetailedline.FieldDiscountsTotal:
+		case chargeusagebasedrundetailedline.FieldDiscountsTotal:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field discounts_total", values[i])
 			} else if value != nil {
 				_m.DiscountsTotal = *value
 			}
-		case chargeusagebaseddetailedline.FieldCreditsTotal:
+		case chargeusagebasedrundetailedline.FieldCreditsTotal:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field credits_total", values[i])
 			} else if value != nil {
 				_m.CreditsTotal = *value
 			}
-		case chargeusagebaseddetailedline.FieldTotal:
+		case chargeusagebasedrundetailedline.FieldTotal:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field total", values[i])
 			} else if value != nil {
 				_m.Total = *value
 			}
-		case chargeusagebaseddetailedline.FieldChargeID:
+		case chargeusagebasedrundetailedline.FieldChargeID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field charge_id", values[i])
 			} else if value.Valid {
 				_m.ChargeID = value.String
 			}
-		case chargeusagebaseddetailedline.FieldRunID:
+		case chargeusagebasedrundetailedline.FieldRunID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field run_id", values[i])
 			} else if value.Valid {
@@ -393,49 +393,49 @@ func (_m *ChargeUsageBasedDetailedLine) assignValues(columns []string, values []
 	return nil
 }
 
-// Value returns the ent.Value that was dynamically selected and assigned to the ChargeUsageBasedDetailedLine.
+// Value returns the ent.Value that was dynamically selected and assigned to the ChargeUsageBasedRunDetailedLine.
 // This includes values selected through modifiers, order, etc.
-func (_m *ChargeUsageBasedDetailedLine) Value(name string) (ent.Value, error) {
+func (_m *ChargeUsageBasedRunDetailedLine) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryCharge queries the "charge" edge of the ChargeUsageBasedDetailedLine entity.
-func (_m *ChargeUsageBasedDetailedLine) QueryCharge() *ChargeUsageBasedQuery {
-	return NewChargeUsageBasedDetailedLineClient(_m.config).QueryCharge(_m)
+// QueryCharge queries the "charge" edge of the ChargeUsageBasedRunDetailedLine entity.
+func (_m *ChargeUsageBasedRunDetailedLine) QueryCharge() *ChargeUsageBasedQuery {
+	return NewChargeUsageBasedRunDetailedLineClient(_m.config).QueryCharge(_m)
 }
 
-// QueryRun queries the "run" edge of the ChargeUsageBasedDetailedLine entity.
-func (_m *ChargeUsageBasedDetailedLine) QueryRun() *ChargeUsageBasedRunsQuery {
-	return NewChargeUsageBasedDetailedLineClient(_m.config).QueryRun(_m)
+// QueryRun queries the "run" edge of the ChargeUsageBasedRunDetailedLine entity.
+func (_m *ChargeUsageBasedRunDetailedLine) QueryRun() *ChargeUsageBasedRunsQuery {
+	return NewChargeUsageBasedRunDetailedLineClient(_m.config).QueryRun(_m)
 }
 
-// QueryTaxCode queries the "tax_code" edge of the ChargeUsageBasedDetailedLine entity.
-func (_m *ChargeUsageBasedDetailedLine) QueryTaxCode() *TaxCodeQuery {
-	return NewChargeUsageBasedDetailedLineClient(_m.config).QueryTaxCode(_m)
+// QueryTaxCode queries the "tax_code" edge of the ChargeUsageBasedRunDetailedLine entity.
+func (_m *ChargeUsageBasedRunDetailedLine) QueryTaxCode() *TaxCodeQuery {
+	return NewChargeUsageBasedRunDetailedLineClient(_m.config).QueryTaxCode(_m)
 }
 
-// Update returns a builder for updating this ChargeUsageBasedDetailedLine.
-// Note that you need to call ChargeUsageBasedDetailedLine.Unwrap() before calling this method if this ChargeUsageBasedDetailedLine
+// Update returns a builder for updating this ChargeUsageBasedRunDetailedLine.
+// Note that you need to call ChargeUsageBasedRunDetailedLine.Unwrap() before calling this method if this ChargeUsageBasedRunDetailedLine
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (_m *ChargeUsageBasedDetailedLine) Update() *ChargeUsageBasedDetailedLineUpdateOne {
-	return NewChargeUsageBasedDetailedLineClient(_m.config).UpdateOne(_m)
+func (_m *ChargeUsageBasedRunDetailedLine) Update() *ChargeUsageBasedRunDetailedLineUpdateOne {
+	return NewChargeUsageBasedRunDetailedLineClient(_m.config).UpdateOne(_m)
 }
 
-// Unwrap unwraps the ChargeUsageBasedDetailedLine entity that was returned from a transaction after it was closed,
+// Unwrap unwraps the ChargeUsageBasedRunDetailedLine entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (_m *ChargeUsageBasedDetailedLine) Unwrap() *ChargeUsageBasedDetailedLine {
+func (_m *ChargeUsageBasedRunDetailedLine) Unwrap() *ChargeUsageBasedRunDetailedLine {
 	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
-		panic("db: ChargeUsageBasedDetailedLine is not a transactional entity")
+		panic("db: ChargeUsageBasedRunDetailedLine is not a transactional entity")
 	}
 	_m.config.driver = _tx.drv
 	return _m
 }
 
 // String implements the fmt.Stringer.
-func (_m *ChargeUsageBasedDetailedLine) String() string {
+func (_m *ChargeUsageBasedRunDetailedLine) String() string {
 	var builder strings.Builder
-	builder.WriteString("ChargeUsageBasedDetailedLine(")
+	builder.WriteString("ChargeUsageBasedRunDetailedLine(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("currency=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
@@ -550,5 +550,5 @@ func (_m *ChargeUsageBasedDetailedLine) String() string {
 	return builder.String()
 }
 
-// ChargeUsageBasedDetailedLines is a parsable slice of ChargeUsageBasedDetailedLine.
-type ChargeUsageBasedDetailedLines []*ChargeUsageBasedDetailedLine
+// ChargeUsageBasedRunDetailedLines is a parsable slice of ChargeUsageBasedRunDetailedLine.
+type ChargeUsageBasedRunDetailedLines []*ChargeUsageBasedRunDetailedLine

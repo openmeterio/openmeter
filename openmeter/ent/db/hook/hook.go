@@ -441,18 +441,6 @@ func (f ChargeUsageBasedFunc) Mutate(ctx context.Context, m db.Mutation) (db.Val
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeUsageBasedMutation", m)
 }
 
-// The ChargeUsageBasedDetailedLineFunc type is an adapter to allow the use of ordinary
-// function as ChargeUsageBasedDetailedLine mutator.
-type ChargeUsageBasedDetailedLineFunc func(context.Context, *db.ChargeUsageBasedDetailedLineMutation) (db.Value, error)
-
-// Mutate calls f(ctx, m).
-func (f ChargeUsageBasedDetailedLineFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
-	if mv, ok := m.(*db.ChargeUsageBasedDetailedLineMutation); ok {
-		return f(ctx, mv)
-	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeUsageBasedDetailedLineMutation", m)
-}
-
 // The ChargeUsageBasedRunCreditAllocationsFunc type is an adapter to allow the use of ordinary
 // function as ChargeUsageBasedRunCreditAllocations mutator.
 type ChargeUsageBasedRunCreditAllocationsFunc func(context.Context, *db.ChargeUsageBasedRunCreditAllocationsMutation) (db.Value, error)
@@ -463,6 +451,18 @@ func (f ChargeUsageBasedRunCreditAllocationsFunc) Mutate(ctx context.Context, m 
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeUsageBasedRunCreditAllocationsMutation", m)
+}
+
+// The ChargeUsageBasedRunDetailedLineFunc type is an adapter to allow the use of ordinary
+// function as ChargeUsageBasedRunDetailedLine mutator.
+type ChargeUsageBasedRunDetailedLineFunc func(context.Context, *db.ChargeUsageBasedRunDetailedLineMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeUsageBasedRunDetailedLineFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeUsageBasedRunDetailedLineMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeUsageBasedRunDetailedLineMutation", m)
 }
 
 // The ChargeUsageBasedRunInvoicedUsageFunc type is an adapter to allow the use of ordinary

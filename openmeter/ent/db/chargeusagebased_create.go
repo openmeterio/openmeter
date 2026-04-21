@@ -17,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebaseddetailedline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
@@ -332,14 +332,14 @@ func (_c *ChargeUsageBasedCreate) AddRuns(v ...*ChargeUsageBasedRuns) *ChargeUsa
 	return _c.AddRunIDs(ids...)
 }
 
-// AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeUsageBasedDetailedLine entity by IDs.
+// AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity by IDs.
 func (_c *ChargeUsageBasedCreate) AddDetailedLineIDs(ids ...string) *ChargeUsageBasedCreate {
 	_c.mutation.AddDetailedLineIDs(ids...)
 	return _c
 }
 
-// AddDetailedLines adds the "detailed_lines" edges to the ChargeUsageBasedDetailedLine entity.
-func (_c *ChargeUsageBasedCreate) AddDetailedLines(v ...*ChargeUsageBasedDetailedLine) *ChargeUsageBasedCreate {
+// AddDetailedLines adds the "detailed_lines" edges to the ChargeUsageBasedRunDetailedLine entity.
+func (_c *ChargeUsageBasedCreate) AddDetailedLines(v ...*ChargeUsageBasedRunDetailedLine) *ChargeUsageBasedCreate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
@@ -753,7 +753,7 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 			Columns: []string{chargeusagebased.DetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeusagebaseddetailedline.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

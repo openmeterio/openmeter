@@ -161,9 +161,9 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		ChargeUsageBased: NewChargeUsageBasedClient(config),
 
-		ChargeUsageBasedDetailedLine: NewChargeUsageBasedDetailedLineClient(config),
-
 		ChargeUsageBasedRunCreditAllocations: NewChargeUsageBasedRunCreditAllocationsClient(config),
+
+		ChargeUsageBasedRunDetailedLine: NewChargeUsageBasedRunDetailedLineClient(config),
 
 		ChargeUsageBasedRunInvoicedUsage: NewChargeUsageBasedRunInvoicedUsageClient(config),
 

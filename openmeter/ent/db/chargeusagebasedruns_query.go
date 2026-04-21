@@ -15,8 +15,8 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebaseddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
@@ -35,7 +35,7 @@ type ChargeUsageBasedRunsQuery struct {
 	withFeature            *FeatureQuery
 	withBillingInvoiceLine *BillingInvoiceLineQuery
 	withCreditAllocations  *ChargeUsageBasedRunCreditAllocationsQuery
-	withDetailedLines      *ChargeUsageBasedDetailedLineQuery
+	withDetailedLines      *ChargeUsageBasedRunDetailedLineQuery
 	withInvoicedUsage      *ChargeUsageBasedRunInvoicedUsageQuery
 	withPayment            *ChargeUsageBasedRunPaymentQuery
 	modifiers              []func(*sql.Selector)
@@ -164,8 +164,8 @@ func (_q *ChargeUsageBasedRunsQuery) QueryCreditAllocations() *ChargeUsageBasedR
 }
 
 // QueryDetailedLines chains the current query on the "detailed_lines" edge.
-func (_q *ChargeUsageBasedRunsQuery) QueryDetailedLines() *ChargeUsageBasedDetailedLineQuery {
-	query := (&ChargeUsageBasedDetailedLineClient{config: _q.config}).Query()
+func (_q *ChargeUsageBasedRunsQuery) QueryDetailedLines() *ChargeUsageBasedRunDetailedLineQuery {
+	query := (&ChargeUsageBasedRunDetailedLineClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -176,7 +176,7 @@ func (_q *ChargeUsageBasedRunsQuery) QueryDetailedLines() *ChargeUsageBasedDetai
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID, selector),
-			sqlgraph.To(chargeusagebaseddetailedline.Table, chargeusagebaseddetailedline.FieldID),
+			sqlgraph.To(chargeusagebasedrundetailedline.Table, chargeusagebasedrundetailedline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, chargeusagebasedruns.DetailedLinesTable, chargeusagebasedruns.DetailedLinesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
@@ -480,8 +480,8 @@ func (_q *ChargeUsageBasedRunsQuery) WithCreditAllocations(opts ...func(*ChargeU
 
 // WithDetailedLines tells the query-builder to eager-load the nodes that are connected to
 // the "detailed_lines" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *ChargeUsageBasedRunsQuery) WithDetailedLines(opts ...func(*ChargeUsageBasedDetailedLineQuery)) *ChargeUsageBasedRunsQuery {
-	query := (&ChargeUsageBasedDetailedLineClient{config: _q.config}).Query()
+func (_q *ChargeUsageBasedRunsQuery) WithDetailedLines(opts ...func(*ChargeUsageBasedRunDetailedLineQuery)) *ChargeUsageBasedRunsQuery {
+	query := (&ChargeUsageBasedRunDetailedLineClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
@@ -649,8 +649,8 @@ func (_q *ChargeUsageBasedRunsQuery) sqlAll(ctx context.Context, hooks ...queryH
 	}
 	if query := _q.withDetailedLines; query != nil {
 		if err := _q.loadDetailedLines(ctx, query, nodes,
-			func(n *ChargeUsageBasedRuns) { n.Edges.DetailedLines = []*ChargeUsageBasedDetailedLine{} },
-			func(n *ChargeUsageBasedRuns, e *ChargeUsageBasedDetailedLine) {
+			func(n *ChargeUsageBasedRuns) { n.Edges.DetailedLines = []*ChargeUsageBasedRunDetailedLine{} },
+			func(n *ChargeUsageBasedRuns, e *ChargeUsageBasedRunDetailedLine) {
 				n.Edges.DetailedLines = append(n.Edges.DetailedLines, e)
 			}); err != nil {
 			return nil, err
@@ -791,7 +791,7 @@ func (_q *ChargeUsageBasedRunsQuery) loadCreditAllocations(ctx context.Context, 
 	}
 	return nil
 }
-func (_q *ChargeUsageBasedRunsQuery) loadDetailedLines(ctx context.Context, query *ChargeUsageBasedDetailedLineQuery, nodes []*ChargeUsageBasedRuns, init func(*ChargeUsageBasedRuns), assign func(*ChargeUsageBasedRuns, *ChargeUsageBasedDetailedLine)) error {
+func (_q *ChargeUsageBasedRunsQuery) loadDetailedLines(ctx context.Context, query *ChargeUsageBasedRunDetailedLineQuery, nodes []*ChargeUsageBasedRuns, init func(*ChargeUsageBasedRuns), assign func(*ChargeUsageBasedRuns, *ChargeUsageBasedRunDetailedLine)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*ChargeUsageBasedRuns)
 	for i := range nodes {
@@ -802,9 +802,9 @@ func (_q *ChargeUsageBasedRunsQuery) loadDetailedLines(ctx context.Context, quer
 		}
 	}
 	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(chargeusagebaseddetailedline.FieldRunID)
+		query.ctx.AppendFieldOnce(chargeusagebasedrundetailedline.FieldRunID)
 	}
-	query.Where(predicate.ChargeUsageBasedDetailedLine(func(s *sql.Selector) {
+	query.Where(predicate.ChargeUsageBasedRunDetailedLine(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(chargeusagebasedruns.DetailedLinesColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)

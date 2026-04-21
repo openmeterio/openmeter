@@ -3,7 +3,6 @@ package stddetailedline
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"slices"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -67,10 +66,6 @@ var _ models.Validator = (*Base)(nil)
 func (l Base) Validate() error {
 	errs := []error{}
 
-	if err := l.ManagedResource.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("managed resource: %w", err))
-	}
-
 	if err := l.Category.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("category: %w", err))
 	}
@@ -116,5 +111,5 @@ func (l Base) Clone() Base {
 }
 
 func (l Base) Equal(other Base) bool {
-	return reflect.DeepEqual(l, other)
+	return deriveEqualBase(&l, &other)
 }

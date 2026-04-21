@@ -235,11 +235,11 @@ func ChargeUsageBasedOrErr(p ChargeUsageBased, err error) ChargeUsageBased {
 	}
 }
 
-// ChargeUsageBasedDetailedLine is the predicate function for chargeusagebaseddetailedline builders.
-type ChargeUsageBasedDetailedLine func(*sql.Selector)
-
 // ChargeUsageBasedRunCreditAllocations is the predicate function for chargeusagebasedruncreditallocations builders.
 type ChargeUsageBasedRunCreditAllocations func(*sql.Selector)
+
+// ChargeUsageBasedRunDetailedLine is the predicate function for chargeusagebasedrundetailedline builders.
+type ChargeUsageBasedRunDetailedLine func(*sql.Selector)
 
 // ChargeUsageBasedRunInvoicedUsage is the predicate function for chargeusagebasedruninvoicedusage builders.
 type ChargeUsageBasedRunInvoicedUsage func(*sql.Selector)

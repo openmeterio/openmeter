@@ -58,8 +58,8 @@ type TaxCodeEdges struct {
 	BillingInvoiceSplitLineGroups []*BillingInvoiceSplitLineGroup `json:"billing_invoice_split_line_groups,omitempty"`
 	// BillingStandardInvoiceDetailedLines holds the value of the billing_standard_invoice_detailed_lines edge.
 	BillingStandardInvoiceDetailedLines []*BillingStandardInvoiceDetailedLine `json:"billing_standard_invoice_detailed_lines,omitempty"`
-	// ChargeUsageBasedDetailedLines holds the value of the charge_usage_based_detailed_lines edge.
-	ChargeUsageBasedDetailedLines []*ChargeUsageBasedDetailedLine `json:"charge_usage_based_detailed_lines,omitempty"`
+	// ChargeUsageBasedRunDetailedLines holds the value of the charge_usage_based_run_detailed_lines edge.
+	ChargeUsageBasedRunDetailedLines []*ChargeUsageBasedRunDetailedLine `json:"charge_usage_based_run_detailed_lines,omitempty"`
 	// ChargeFlatFeeDetailedLines holds the value of the charge_flat_fee_detailed_lines edge.
 	ChargeFlatFeeDetailedLines []*ChargeFlatFeeDetailedLine `json:"charge_flat_fee_detailed_lines,omitempty"`
 	// SubscriptionItems holds the value of the subscription_items edge.
@@ -118,13 +118,13 @@ func (e TaxCodeEdges) BillingStandardInvoiceDetailedLinesOrErr() ([]*BillingStan
 	return nil, &NotLoadedError{edge: "billing_standard_invoice_detailed_lines"}
 }
 
-// ChargeUsageBasedDetailedLinesOrErr returns the ChargeUsageBasedDetailedLines value or an error if the edge
+// ChargeUsageBasedRunDetailedLinesOrErr returns the ChargeUsageBasedRunDetailedLines value or an error if the edge
 // was not loaded in eager-loading.
-func (e TaxCodeEdges) ChargeUsageBasedDetailedLinesOrErr() ([]*ChargeUsageBasedDetailedLine, error) {
+func (e TaxCodeEdges) ChargeUsageBasedRunDetailedLinesOrErr() ([]*ChargeUsageBasedRunDetailedLine, error) {
 	if e.loadedTypes[5] {
-		return e.ChargeUsageBasedDetailedLines, nil
+		return e.ChargeUsageBasedRunDetailedLines, nil
 	}
-	return nil, &NotLoadedError{edge: "charge_usage_based_detailed_lines"}
+	return nil, &NotLoadedError{edge: "charge_usage_based_run_detailed_lines"}
 }
 
 // ChargeFlatFeeDetailedLinesOrErr returns the ChargeFlatFeeDetailedLines value or an error if the edge
@@ -301,9 +301,9 @@ func (_m *TaxCode) QueryBillingStandardInvoiceDetailedLines() *BillingStandardIn
 	return NewTaxCodeClient(_m.config).QueryBillingStandardInvoiceDetailedLines(_m)
 }
 
-// QueryChargeUsageBasedDetailedLines queries the "charge_usage_based_detailed_lines" edge of the TaxCode entity.
-func (_m *TaxCode) QueryChargeUsageBasedDetailedLines() *ChargeUsageBasedDetailedLineQuery {
-	return NewTaxCodeClient(_m.config).QueryChargeUsageBasedDetailedLines(_m)
+// QueryChargeUsageBasedRunDetailedLines queries the "charge_usage_based_run_detailed_lines" edge of the TaxCode entity.
+func (_m *TaxCode) QueryChargeUsageBasedRunDetailedLines() *ChargeUsageBasedRunDetailedLineQuery {
+	return NewTaxCodeClient(_m.config).QueryChargeUsageBasedRunDetailedLines(_m)
 }
 
 // QueryChargeFlatFeeDetailedLines queries the "charge_flat_fee_detailed_lines" edge of the TaxCode entity.

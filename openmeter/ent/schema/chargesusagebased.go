@@ -83,7 +83,7 @@ func (ChargeUsageBased) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("runs", ChargeUsageBasedRuns.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
-		edge.To("detailed_lines", ChargeUsageBasedDetailedLine.Type).
+		edge.To("detailed_lines", ChargeUsageBasedRunDetailedLine.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("current_run", ChargeUsageBasedRuns.Type).
 			Field("current_realization_run_id").
@@ -206,7 +206,7 @@ func (ChargeUsageBasedRuns) Edges() []ent.Edge {
 		edge.To("credit_allocations", ChargeUsageBasedRunCreditAllocations.Type).
 			StorageKey(edge.Symbol("charge_ub_run_credit_alloc_run")).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
-		edge.To("detailed_lines", ChargeUsageBasedDetailedLine.Type).
+		edge.To("detailed_lines", ChargeUsageBasedRunDetailedLine.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("invoiced_usage", ChargeUsageBasedRunInvoicedUsage.Type).
 			Unique().
@@ -223,17 +223,17 @@ func (ChargeUsageBasedRuns) Indexes() []ent.Index {
 	}
 }
 
-type ChargeUsageBasedDetailedLine struct {
+type ChargeUsageBasedRunDetailedLine struct {
 	ent.Schema
 }
 
-func (ChargeUsageBasedDetailedLine) Mixin() []ent.Mixin {
+func (ChargeUsageBasedRunDetailedLine) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		stddetailedline.Mixin{},
 	}
 }
 
-func (ChargeUsageBasedDetailedLine) Fields() []ent.Field {
+func (ChargeUsageBasedRunDetailedLine) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("charge_id").
 			SchemaType(map[string]string{
@@ -247,7 +247,7 @@ func (ChargeUsageBasedDetailedLine) Fields() []ent.Field {
 	}
 }
 
-func (ChargeUsageBasedDetailedLine) Edges() []ent.Edge {
+func (ChargeUsageBasedRunDetailedLine) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("charge", ChargeUsageBased.Type).
 			Ref("detailed_lines").
@@ -260,13 +260,13 @@ func (ChargeUsageBasedDetailedLine) Edges() []ent.Edge {
 			Unique().
 			Required(),
 		edge.From("tax_code", TaxCode.Type).
-			Ref("charge_usage_based_detailed_lines").
+			Ref("charge_usage_based_run_detailed_lines").
 			Field("tax_code_id").
 			Unique(),
 	}
 }
 
-func (ChargeUsageBasedDetailedLine) Indexes() []ent.Index {
+func (ChargeUsageBasedRunDetailedLine) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "charge_id"),
 		index.Fields("namespace", "run_id"),
@@ -279,9 +279,9 @@ func (ChargeUsageBasedDetailedLine) Indexes() []ent.Index {
 	}
 }
 
-func (ChargeUsageBasedDetailedLine) Annotations() []schema.Annotation {
+func (ChargeUsageBasedRunDetailedLine) Annotations() []schema.Annotation {
 	return []schema.Annotation{
-		entsql.Annotation{Table: "charge_usage_based_detailed_line"},
+		entsql.Annotation{Table: "charge_usage_based_run_detailed_line"},
 	}
 }
 
