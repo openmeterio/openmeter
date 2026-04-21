@@ -528,7 +528,7 @@ jobs:
     with:
       publish: ${{ github.event_name == 'push' }}
       # detect if the source is a fork
-      untrusted_source: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+      untrusted_source: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
     permissions:
       contents: read
       packages: write
@@ -579,7 +579,7 @@ jobs:
           persist-credentials: false
 
       - name: Create override files for quickstart
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         env:
           DEPOT_IMAGE_URL: ${{ needs.artifacts.outputs.container-image-url-depot }}
         run: |
@@ -609,7 +609,7 @@ jobs:
           docker network ls
           echo "### DEBUG"
       - name: Build as part of quickstart
-        if: github.event.pull_request.head.repo.full_name != github.repository
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
         run: |
           cat > quickstart/docker-compose.override.yaml <<EOF
           services:

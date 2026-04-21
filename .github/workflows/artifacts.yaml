@@ -96,7 +96,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           push: ${{ inputs.publish }}
-          save: ${{ not inputs.untrusted_source }}
+          save: ${{ !inputs.untrusted_source }}
           project: ${{ vars.DEPOT_PROJECT }}
 
       - name: Set image ref
@@ -108,7 +108,7 @@ jobs:
 
       - name: Retrieve pull token
         id: pull-token
-        if: not inputs.untrusted_source
+        if: ${{ !inputs.untrusted_source }}
         run: |
           PULL_TOKEN="$(depot pull-token --project ${VARS_DEPOT_PROJECT})"
           echo "token=$PULL_TOKEN" >> "$GITHUB_OUTPUT"
@@ -204,7 +204,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           push: ${{ inputs.publish }}
-          save: ${{ not inputs.untrusted_source }}
+          save: ${{ !inputs.untrusted_source }}
           project: ${{ vars.DEPOT_PROJECT }}
 
       - name: Set image ref
@@ -216,7 +216,7 @@ jobs:
 
       - name: Retrieve pull token
         id: pull-token
-        if: not inputs.untrusted_source
+        if: ${{ !inputs.untrusted_source }}
         run: |
           PULL_TOKEN="$(depot pull-token --project ${VARS_DEPOT_PROJECT})"
           echo "token=$PULL_TOKEN" >> "$GITHUB_OUTPUT"
