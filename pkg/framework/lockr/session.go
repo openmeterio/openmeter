@@ -2,16 +2,15 @@ package lockr
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
 	"sync"
 	"sync/atomic"
 
-	dbsql "database/sql"
-
 	"entgo.io/ent/dialect"
-	"entgo.io/ent/dialect/sql"
+	entsql "entgo.io/ent/dialect/sql"
 
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 )
@@ -32,7 +31,7 @@ type SessionLockerConfig struct {
 
 type SessionLocker struct {
 	logger *slog.Logger
-	conn   *dbsql.Conn
+	conn   *sql.Conn
 
 	closed atomic.Bool
 	closer func()
@@ -80,8 +79,8 @@ func (l *SessionLocker) lock(ctx context.Context, key Key, nonblocking bool) (Re
 		lockFunc = "pg_try_advisory_lock"
 	}
 
-	q, args := sql.Dialect(dialect.Postgres).
-		SelectExpr(sql.ExprFunc(func(b *sql.Builder) {
+	q, args := entsql.Dialect(dialect.Postgres).
+		SelectExpr(entsql.ExprFunc(func(b *entsql.Builder) {
 			b.WriteString(lockFunc)
 			b.WriteString("(")
 			b.Arg(int64(key.Hash64()))
@@ -147,8 +146,8 @@ func (l *SessionLocker) Lock(ctx context.Context, key Key) (Releaser, error) {
 }
 
 func (l *SessionLocker) Release(ctx context.Context, key Key) error {
-	q, args := sql.Dialect(dialect.Postgres).
-		SelectExpr(sql.ExprFunc(func(b *sql.Builder) {
+	q, args := entsql.Dialect(dialect.Postgres).
+		SelectExpr(entsql.ExprFunc(func(b *entsql.Builder) {
 			b.WriteString("pg_advisory_unlock")
 			b.WriteString("(")
 			b.Arg(int64(key.Hash64()))
