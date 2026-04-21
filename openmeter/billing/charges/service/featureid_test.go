@@ -196,7 +196,7 @@ func (s *ChargeFeatureIDTestSuite) TestUsageBasedActivationRecalculatesFeatureID
 		ChargeID: activatedCharge.GetChargeID(),
 	})
 	s.NoError(err)
-	s.True(alpacadecimal.NewFromInt(7).Equal(currentTotals.Quantity))
+	s.True(alpacadecimal.NewFromInt(21).Equal(currentTotals.DueTotals.Total))
 
 	clock.SetTime(servicePeriod.To.Add(2 * time.Hour))
 	s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
