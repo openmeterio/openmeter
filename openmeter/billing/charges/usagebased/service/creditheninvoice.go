@@ -183,7 +183,7 @@ func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context
 
 	storedAtOffset := meta.NormalizeTimestamp(currentRun.CollectionEnd)
 
-	ratingResult, err := s.Rater.GetRatingForUsage(ctx, usagebasedrating.GetRatingForUsageInput{
+	ratingResult, err := s.Rater.GetDetailedLinesForUsage(ctx, usagebasedrating.GetRatingForUsageInput{
 		Charge:         s.Charge,
 		Customer:       s.CustomerOverride,
 		FeatureMeter:   s.FeatureMeter,

@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/alpacahq/alpacadecimal"
-
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
@@ -176,6 +174,5 @@ func (i GetCurrentTotalsInput) Validate() error {
 
 type GetCurrentTotalsResult struct {
 	Charge    Charge
-	Quantity  alpacadecimal.Decimal
 	DueTotals totals.Totals
 }

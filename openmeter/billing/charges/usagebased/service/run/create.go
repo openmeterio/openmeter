@@ -109,7 +109,7 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 		return CreateRatedRunResult{}, err
 	}
 
-	ratingResult, err := s.rater.GetRatingForUsage(ctx, usagebasedrating.GetRatingForUsageInput{
+	ratingResult, err := s.rater.GetDetailedLinesForUsage(ctx, usagebasedrating.GetRatingForUsageInput{
 		Charge:         in.Charge,
 		Customer:       in.CustomerOverride,
 		FeatureMeter:   in.FeatureMeter,

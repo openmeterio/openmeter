@@ -48,19 +48,18 @@ func (s *service) GetCurrentTotals(ctx context.Context, input usagebased.GetCurr
 		return usagebased.GetCurrentTotalsResult{}, err
 	}
 
-	ratingResult, err := s.rater.GetRatingForUsage(ctx, usagebasedrating.GetRatingForUsageInput{
+	dueTotals, err := s.rater.GetTotalsForUsage(ctx, usagebasedrating.GetRatingForUsageInput{
 		Charge:         charge,
 		Customer:       customerOverride,
 		FeatureMeter:   featureMeter,
 		StoredAtOffset: clock.Now(),
 	})
 	if err != nil {
-		return usagebased.GetCurrentTotalsResult{}, fmt.Errorf("get rating for usage: %w", err)
+		return usagebased.GetCurrentTotalsResult{}, fmt.Errorf("get totals for usage: %w", err)
 	}
 
 	return usagebased.GetCurrentTotalsResult{
 		Charge:    charge,
-		Quantity:  ratingResult.Quantity,
-		DueTotals: ratingResult.Totals,
+		DueTotals: dueTotals,
 	}, nil
 }

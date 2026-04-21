@@ -1,7 +1,6 @@
 package rating
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -80,33 +79,4 @@ func (i GetRatingForUsageInput) Validate() error {
 	}
 
 	return nil
-}
-
-func (s *Service) GetRatingForUsage(ctx context.Context, in GetRatingForUsageInput) (GetRatingForUsageResult, error) {
-	if err := in.Validate(); err != nil {
-		return GetRatingForUsageResult{}, err
-	}
-
-	snapshotQuantity, err := s.snapshotQuantity(ctx, snapshotQuantityInput{
-		Customer:       in.Customer.Customer,
-		FeatureMeter:   in.FeatureMeter,
-		ServicePeriod:  in.Charge.Intent.ServicePeriod,
-		StoredAtOffset: in.StoredAtOffset,
-	})
-	if err != nil {
-		return GetRatingForUsageResult{}, fmt.Errorf("get snapshot quantity: %w", err)
-	}
-
-	ratingResult, err := s.ratingService.GenerateDetailedLines(usagebased.RateableIntent{
-		Intent:     in.Charge.Intent,
-		MeterValue: snapshotQuantity,
-	})
-	if err != nil {
-		return GetRatingForUsageResult{}, fmt.Errorf("rating: %w", err)
-	}
-
-	return GetRatingForUsageResult{
-		GenerateDetailedLinesResult: ratingResult,
-		Quantity:                    snapshotQuantity,
-	}, nil
 }
