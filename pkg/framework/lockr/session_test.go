@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/testutils"
-	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 )
 
@@ -22,28 +21,19 @@ func newTestSessionLocker(t *testing.T, dbConn string, opts ...pgdriver.Option) 
 		t.Fatalf("failed to get postgres driver: %s", err)
 	}
 
-	entDriver := entdriver.NewEntPostgresDriver(postgresDriver.DB())
-
-	entClient := entDriver.Client()
-
 	t.Cleanup(func() {
-		if err := entClient.Close(); err != nil {
-			t.Errorf("failed to close ent client: %v", err)
-		}
-
-		if err := entDriver.Close(); err != nil {
-			t.Errorf("failed to close ent driver: %v", err)
-		}
-
 		if err := postgresDriver.Close(); err != nil {
 			t.Errorf("failed to close postgres driver: %v", err)
 		}
 	})
 
-	return NewSessionLockr(SessionLockerConfig{
-		Logger:   testutils.NewLogger(t),
-		DBClient: entClient,
+	locker, err := NewSessionLockr(SessionLockerConfig{
+		Logger:         testutils.NewLogger(t),
+		PostgresDriver: postgresDriver,
 	})
+	require.NoError(t, err)
+
+	return locker
 }
 
 func Test_SessionLocker(t *testing.T) {
@@ -54,6 +44,7 @@ func Test_SessionLocker(t *testing.T) {
 
 	t.Run("Lock and release", func(t *testing.T) {
 		locker := newTestSessionLocker(t, testDB.URL)
+		defer locker.Close()
 
 		k, err := NewKey("test", "lock-release")
 		require.NoError(t, err)
@@ -68,6 +59,7 @@ func Test_SessionLocker(t *testing.T) {
 
 	t.Run("TryLock and release", func(t *testing.T) {
 		locker := newTestSessionLocker(t, testDB.URL)
+		defer locker.Close()
 
 		k, err := NewKey("test", "trylock-release")
 		require.NoError(t, err)
@@ -82,6 +74,7 @@ func Test_SessionLocker(t *testing.T) {
 
 	t.Run("Same session can acquire the same lock twice", func(t *testing.T) {
 		locker := newTestSessionLocker(t, testDB.URL)
+		defer locker.Close()
 
 		k, err := NewKey("test", "reentrant")
 		require.NoError(t, err)
@@ -100,7 +93,10 @@ func Test_SessionLocker(t *testing.T) {
 
 	t.Run("TryLock fails when lock is held by another session", func(t *testing.T) {
 		locker1 := newTestSessionLocker(t, testDB.URL)
+		defer locker1.Close()
+
 		locker2 := newTestSessionLocker(t, testDB.URL)
+		defer locker2.Close()
 
 		k, err := NewKey("test", "trylock-contention")
 		require.NoError(t, err)
@@ -123,7 +119,10 @@ func Test_SessionLocker(t *testing.T) {
 
 	t.Run("Different keys do not conflict", func(t *testing.T) {
 		locker1 := newTestSessionLocker(t, testDB.URL)
+		defer locker1.Close()
+
 		locker2 := newTestSessionLocker(t, testDB.URL)
+		defer locker2.Close()
 
 		key1, err := NewKey("test", "key-a")
 		require.NoError(t, err)
@@ -144,7 +143,10 @@ func Test_SessionLocker(t *testing.T) {
 
 	t.Run("Lock blocks until released by another session", func(t *testing.T) {
 		locker1 := newTestSessionLocker(t, testDB.URL)
+		defer locker1.Close()
+
 		locker2 := newTestSessionLocker(t, testDB.URL)
+		defer locker2.Close()
 
 		k, err := NewKey("test", "blocking")
 		require.NoError(t, err)
@@ -205,6 +207,7 @@ func Test_SessionLocker(t *testing.T) {
 
 	t.Run("Release without lock is a no-op", func(t *testing.T) {
 		locker := newTestSessionLocker(t, testDB.URL)
+		defer locker.Close()
 
 		key, err := NewKey("test", "release-noop")
 		require.NoError(t, err)
@@ -216,7 +219,10 @@ func Test_SessionLocker(t *testing.T) {
 
 	t.Run("Lock respects context cancellation", func(t *testing.T) {
 		locker1 := newTestSessionLocker(t, testDB.URL)
+		defer locker1.Close()
+
 		locker2 := newTestSessionLocker(t, testDB.URL)
+		defer locker2.Close()
 
 		k, err := NewKey("test", "ctx-cancel")
 		require.NoError(t, err)
@@ -243,7 +249,10 @@ func Test_SessionLocker(t *testing.T) {
 		}
 
 		locker1 := newTestSessionLocker(t, testDB.URL, opts...)
+		defer locker1.Close()
+
 		locker2 := newTestSessionLocker(t, testDB.URL, opts...)
+		defer locker2.Close()
 
 		k, err := NewKey("test", "timeout")
 		require.NoError(t, err)
@@ -277,6 +286,7 @@ func Test_SessionLocker(t *testing.T) {
 
 	t.Run("Multiple locks held and released independently", func(t *testing.T) {
 		locker := newTestSessionLocker(t, testDB.URL)
+		defer locker.Close()
 
 		key1, err := NewKey("test", "multi-a")
 		require.NoError(t, err)
@@ -304,7 +314,10 @@ func Test_SessionLocker(t *testing.T) {
 
 	t.Run("TryLock succeeds after blocking Lock is released", func(t *testing.T) {
 		locker1 := newTestSessionLocker(t, testDB.URL)
+		defer locker1.Close()
+
 		locker2 := newTestSessionLocker(t, testDB.URL)
+		defer locker2.Close()
 
 		k, err := NewKey("test", "trylock-after-release")
 		require.NoError(t, err)
