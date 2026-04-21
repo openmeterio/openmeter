@@ -46,6 +46,11 @@ jobs:
       # Trusted publishing requires npm CLI >= 11.5.1 on PATH so npm can
       # perform the OIDC handshake. setup-node provides a current npm and
       # writes a registry-scoped .npmrc with no _authToken.
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          package_json_file: api/client/javascript/package.json
+
       - name: Set up Node.js
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
@@ -53,9 +58,6 @@ jobs:
           cache: pnpm
           cache-dependency-path: api/client/javascript/pnpm-lock.yaml
           registry-url: 'https://registry.npmjs.org'
-
-      - name: Enable Corepack
-        run: corepack enable
 
       - name: Publish NPM package
         run: make -C api/client/javascript publish-javascript-sdk
