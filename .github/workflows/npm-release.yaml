@@ -1,0 +1,78 @@
+# Reusable workflow: publish @openmeter/sdk to npm via OIDC Trusted Publishing.
+#
+# npm validates the top-level (caller) workflow filename for trusted publishing,
+# not this reusable file. The trusted publisher entry on npmjs.com is therefore
+# configured against the caller workflow (e.g. release.yaml) + environment prod.
+# See: https://github.com/npm/documentation/issues/1755
+
+name: NPM Release
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Version to publish (without leading v; pnpm strips it anyway)."
+        required: true
+        type: string
+      dist-tag:
+        description: "npm dist-tag to publish under (e.g. latest, beta)."
+        required: true
+        type: string
+
+# Restrictive default; the publish job opens id-token: write itself.
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish @openmeter/sdk
+    runs-on: depot-ubuntu-latest-8
+    environment: prod
+
+    # npm Trusted Publishing: GitHub mints a short-lived OIDC token that npm
+    # exchanges for a publish token. Requires id-token: write and a matching
+    # trusted publisher configuration on npmjs.com.
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Nix
+        uses: nixbuild/nix-quick-install-action@2c9db80fb984ceb1bcaa77cdda3fdf8cfba92035 # v34
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          nix_conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: Restore Nix store
+        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+        with:
+          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          restore-prefixes-first-match: |
+            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
+            ${{ runner.os }}-openmeter-nix-build-main-
+            ${{ runner.os }}-openmeter-nix-build-
+
+      # Trusted publishing requires npm CLI >= 11.5.1 on PATH so npm can
+      # perform the OIDC handshake. setup-node provides a current npm and
+      # writes a registry-scoped .npmrc with no _authToken.
+      - name: Set up Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 22.x
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Publish NPM package
+        run: nix develop --impure .#ci -c make -C api/client/javascript publish-javascript-sdk
+        env:
+          JS_SDK_RELEASE_VERSION: ${{ inputs.version }}
+          JS_SDK_RELEASE_TAG: ${{ inputs.dist-tag }}
+          NPM_CONFIG_PROVENANCE: "true"

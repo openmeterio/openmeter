@@ -3,8 +3,6 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     devenv.url = "github:cachix/devenv";
-    dagger.url = "github:dagger/nix";
-    dagger.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs@{ flake-parts, ... }:
@@ -21,7 +19,6 @@
 
           overlays = [
             (final: prev: {
-              dagger = inputs'.dagger.packages.dagger;
               atlasx = self'.packages.atlasx;
             })
           ];
@@ -128,8 +125,6 @@
               just
               semver-tool
 
-              dagger
-
               go-migrate
 
               sqlc
@@ -159,19 +154,6 @@
           };
 
           ci = devenv.shells.default;
-
-          # Lighteweight target to use inside dagger
-          dagger = {
-            languages = {
-              go = devenv.shells.default.languages.go;
-            };
-            packages = with pkgs; [
-              gnumake
-              git
-              atlasx
-            ];
-            containers = devenv.shells.default.containers;
-          };
         };
 
         packages = {
