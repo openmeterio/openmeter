@@ -181,7 +181,7 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 
 	storedAtOffset := meta.NormalizeTimestamp(clock.Now().Add(-usagebased.InternalCollectionPeriod))
 
-	ratingResult, err := s.Rater.GetRatingForUsage(ctx, usagebasedrating.GetRatingForUsageInput{
+	ratingResult, err := s.Rater.GetDetailedLinesForUsage(ctx, usagebasedrating.GetRatingForUsageInput{
 		Charge:         s.Charge,
 		Customer:       s.CustomerOverride,
 		FeatureMeter:   s.FeatureMeter,
