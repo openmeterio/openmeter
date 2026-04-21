@@ -99,8 +99,8 @@ jobs:
 
       - name: Validate Node version file
         run: |
+          FILE_NODE_VERSION="$(tr -d '\r\n' < .nvmrc)"
           NIX_NODE_VERSION="$(nix develop --impure .#ci -c node -v)"
-          FILE_NODE_VERSION="$(tr -d '\n' < .nvmrc)"
 
           if [ "$NIX_NODE_VERSION" != "$FILE_NODE_VERSION" ]; then
             echo ".nvmrc is out of sync with the Nix CI shell"
