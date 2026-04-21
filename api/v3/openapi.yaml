@@ -1178,6 +1178,16 @@ paths:
       description: List all features.
       parameters:
         - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter features returned in the response.
+
+            To filter features by meter_id add the following query param: filter[meter_id][oeq]=<id>
+          schema:
+            $ref: '#/components/schemas/ListFeatureParamsFilter'
+          style: deepObject
       responses:
         '200':
           description: Page paginated response.
@@ -7362,6 +7372,12 @@ components:
             - $ref: '#/components/schemas/StringFieldFilter'
           description: Filter customers by primary email.
       description: Filter options for listing customers.
+    ListFeatureParamsFilter:
+      type: object
+      properties:
+        meter_id:
+          $ref: '#/components/schemas/ULIDFieldFilter'
+      description: Filter options for listing features.
     ListLLMCostPricesParamsFilter:
       type: object
       properties:
@@ -8129,6 +8145,43 @@ components:
       description: ULID (Universally Unique Lexicographically Sortable Identifier).
       title: ULID
       example: 01G65Z755AFWAKHE12NY0CQ9FH
+    ULIDFieldFilter:
+      anyOf:
+        - $ref: '#/components/schemas/ULID'
+        - type: object
+          properties:
+            eq:
+              allOf:
+                - $ref: '#/components/schemas/ULID'
+              description: Value strictly equals the given ULID value.
+            neq:
+              allOf:
+                - $ref: '#/components/schemas/ULID'
+              description: Value does not equal the given ULID value.
+            contains:
+              type: string
+              description: Value contains the given string value (fuzzy match).
+            ocontains:
+              type: string
+              items:
+                type: string
+              format: ArrayEncoding.commaDelimited
+              description: Returns entities that fuzzy-match any of the comma-delimited strings in the filter string.
+            oeq:
+              type: string
+              items:
+                $ref: '#/components/schemas/ULID'
+              format: ArrayEncoding.commaDelimited
+              description: Returns entities that exact match any of the comma-delimited ULIDs in the filter string.
+            exists:
+              type: boolean
+              description: When true, the field must be present (non-null); when false, the field must be absent (null).
+      description: |-
+        Filters on the given ULID field value by either exact or fuzzy match.
+        All properties are optional; provide exactly one to specify the comparison.
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/api/v3/filters
+      x-go-type: filters.FilterULID
     UpdateCreditGrantExternalSettlementRequest:
       type: object
       required:

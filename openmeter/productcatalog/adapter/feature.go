@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -289,9 +290,7 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.List
 		}).
 		Where(dbfeature.Namespace(params.Namespace))
 
-	if len(params.MeterIDs) > 0 {
-		query = query.Where(dbfeature.MeterIDIn(params.MeterIDs...))
-	}
+	query = filter.ApplyToQuery(query, params.MeterIDs, dbfeature.FieldMeterID)
 
 	if len(params.MeterSlugs) > 0 {
 		query = query.Where(dbfeature.HasMeterWith(dbmeter.KeyIn(params.MeterSlugs...)))

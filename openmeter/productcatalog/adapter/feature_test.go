@@ -126,7 +126,18 @@ func TestCreateFeature(t *testing.T) {
 				_, err := connector.CreateFeature(ctx, featureIn1)
 				assert.NoError(t, err)
 
-				time.Sleep(100 * time.Millisecond)
+				assert.Eventually(t, func() bool {
+					featureList, err := connector.ListFeatures(ctx, feature.ListFeaturesParams{
+						Namespace: namespace,
+						MeterIDs: &filter.FilterULID{FilterString: filter.FilterString{
+							Eq: lo.ToPtr(meterID),
+						}},
+					})
+					if err != nil {
+						return false
+					}
+					return len(featureList.Items) > 0
+				}, 100*time.Millisecond, 10*time.Millisecond)
 
 				_, err = connector.CreateFeature(ctx, featureIn2)
 				assert.NoError(t, err)
@@ -185,6 +196,58 @@ func TestCreateFeature(t *testing.T) {
 
 				assert.Len(t, features.Items, 1)
 				assert.Equal(t, "feature-3", features.Items[0].Name)
+			},
+		},
+		{
+			name: "Should search by meter_id",
+			run: func(t *testing.T, connector feature.FeatureRepo) {
+				ctx := context.Background()
+
+				// made up meter id, only here for testing or condition
+				meterID2 := ulid.Make().String()
+
+				_, err := connector.CreateFeature(ctx, testFeature)
+				assert.NoError(t, err)
+
+				// ?filter[meter_id][oeq]=<meterID>
+				features, err := connector.ListFeatures(ctx, feature.ListFeaturesParams{
+					Namespace: namespace,
+					MeterIDs: &filter.FilterULID{
+						FilterString: filter.FilterString{
+							In: lo.ToPtr([]string{meterID}),
+						},
+					},
+				})
+				assert.NoError(t, err)
+
+				assert.Len(t, features.Items, 1)
+				assert.Equal(t, "feature-1", features.Items[0].Name)
+
+				// ?filter[meter_id][oeq]=<meterID>,<meterID2>
+				features, err = connector.ListFeatures(ctx, feature.ListFeaturesParams{
+					Namespace: namespace,
+					MeterIDs: &filter.FilterULID{
+						FilterString: filter.FilterString{
+							In: lo.ToPtr([]string{meterID, meterID2}),
+						},
+					},
+				})
+				assert.NoError(t, err)
+
+				assert.Len(t, features.Items, 1)
+
+				// ?filter[meter_id][oeq]=invalid
+				features, err = connector.ListFeatures(ctx, feature.ListFeaturesParams{
+					Namespace: namespace,
+					MeterIDs: &filter.FilterULID{
+						FilterString: filter.FilterString{
+							In: lo.ToPtr([]string{"invalidid"}),
+						},
+					},
+				})
+				assert.NoError(t, err)
+
+				assert.Len(t, features.Items, 0)
 			},
 		},
 		{
