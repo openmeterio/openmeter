@@ -312,6 +312,44 @@ func Test_SessionLocker(t *testing.T) {
 		require.NoError(t, releaser3(t.Context()))
 	})
 
+	t.Run("Releaser only releases lock once", func(t *testing.T) {
+		locker1 := newTestSessionLocker(t, testDB.URL)
+		defer locker1.Close()
+
+		locker2 := newTestSessionLocker(t, testDB.URL)
+		defer locker2.Close()
+
+		k, err := NewKey("test", "release-once")
+		require.NoError(t, err)
+
+		// Session 1 acquires the lock twice (reentrant)
+		releaser1a, err := locker1.Lock(t.Context(), k)
+		require.NoError(t, err)
+
+		releaser1b, err := locker1.Lock(t.Context(), k)
+		require.NoError(t, err)
+
+		// Release the second acquisition
+		require.NoError(t, releaser1b(t.Context()))
+
+		// Call releaser1b again — should be a no-op (sync.Once), so the first
+		// acquisition still holds the lock and session 2 cannot acquire it.
+		require.NoError(t, releaser1b(t.Context()))
+
+		// Session 2 should still be unable to acquire because session 1's first
+		// lock acquisition has not been released yet.
+		_, err = locker2.TryLock(t.Context(), k)
+		require.ErrorIs(t, err, ErrNoLockAcquired)
+
+		// Now release the first acquisition
+		require.NoError(t, releaser1a(t.Context()))
+
+		// Session 2 can now acquire the lock
+		releaser2, err := locker2.TryLock(t.Context(), k)
+		require.NoError(t, err)
+		require.NoError(t, releaser2(t.Context()))
+	})
+
 	t.Run("TryLock succeeds after blocking Lock is released", func(t *testing.T) {
 		locker1 := newTestSessionLocker(t, testDB.URL)
 		defer locker1.Close()

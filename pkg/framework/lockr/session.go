@@ -123,8 +123,18 @@ func (l *SessionLocker) lock(ctx context.Context, key Key, nonblocking bool) (Re
 		return nil, checkForTimeout(err)
 	}
 
+	r := &struct {
+		once sync.Once
+	}{}
+
 	return func(rCtx context.Context) error {
-		return l.Release(rCtx, key)
+		var err error
+
+		r.once.Do(func() {
+			err = l.Release(rCtx, key)
+		})
+
+		return err
 	}, nil
 }
 
