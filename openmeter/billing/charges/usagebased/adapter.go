@@ -31,6 +31,8 @@ type ChargeAdapter interface {
 type RealizationRunAdapter interface {
 	CreateRealizationRun(ctx context.Context, chargeID meta.ChargeID, input CreateRealizationRunInput) (RealizationRunBase, error)
 	UpdateRealizationRun(ctx context.Context, input UpdateRealizationRunInput) (RealizationRunBase, error)
+	UpsertRunDetailedLines(ctx context.Context, chargeID meta.ChargeID, runID RealizationRunID, lines DetailedLines) error
+	FetchDetailedLines(ctx context.Context, charge Charge) (Charge, error)
 }
 
 type RealizationRunCreditAllocationAdapter interface {

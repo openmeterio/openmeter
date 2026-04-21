@@ -26,7 +26,7 @@ type stateMachine struct {
 	Logger *slog.Logger
 
 	Adapter usagebased.Adapter
-	Rater   *usagebasedrating.Service
+	Rater   usagebasedrating.Service
 	Runs    *usagebasedrun.Service
 
 	CustomerOverride   billing.CustomerOverrideWithDetails
@@ -39,7 +39,7 @@ type StateMachine = chargestatemachine.StateMachine[usagebased.Charge]
 type StateMachineConfig struct {
 	Charge             usagebased.Charge
 	Adapter            usagebased.Adapter
-	Rater              *usagebasedrating.Service
+	Rater              usagebasedrating.Service
 	Runs               *usagebasedrun.Service
 	Logger             *slog.Logger
 	CustomerOverride   billing.CustomerOverrideWithDetails
@@ -184,4 +184,25 @@ func (s *stateMachine) getCurrentRunCollectionEnd() (time.Time, error) {
 	}
 
 	return meta.NormalizeTimestamp(currentRun.CollectionEnd), nil
+}
+
+func (s *stateMachine) ensureDetailedLinesLoadedForRating(ctx context.Context) error {
+	if len(s.Charge.Realizations) == 0 {
+		return nil
+	}
+
+	if lo.EveryBy(s.Charge.Realizations, func(run usagebased.RealizationRun) bool {
+		return run.DetailedLines.IsPresent()
+	}) {
+		return nil
+	}
+
+	expandedCharge, err := s.Adapter.FetchDetailedLines(ctx, s.Charge)
+	if err != nil {
+		return fmt.Errorf("fetch detailed lines: %w", err)
+	}
+
+	s.Charge = expandedCharge
+
+	return nil
 }

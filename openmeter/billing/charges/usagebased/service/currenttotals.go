@@ -48,7 +48,7 @@ func (s *service) GetCurrentTotals(ctx context.Context, input usagebased.GetCurr
 		return usagebased.GetCurrentTotalsResult{}, err
 	}
 
-	dueTotals, err := s.rater.GetTotalsForUsage(ctx, usagebasedrating.GetRatingForUsageInput{
+	dueTotals, err := s.rater.GetTotalsForUsage(ctx, usagebasedrating.GetTotalsForUsageInput{
 		Charge:         charge,
 		Customer:       customerOverride,
 		FeatureMeter:   featureMeter,

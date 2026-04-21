@@ -192,9 +192,10 @@ func newTestEnv(t *testing.T) *testEnv {
 			},
 			collectorService,
 		),
-		Lineage:     lineageService,
-		MetaAdapter: metaAdapter,
-		Locker:      locker,
+		Lineage:       lineageService,
+		MetaAdapter:   metaAdapter,
+		Locker:        locker,
+		RatingService: billingratingservice.New(),
 	})
 	require.NoError(t, err)
 

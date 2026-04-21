@@ -213,6 +213,7 @@ type RealizationRun struct {
 	CreditsAllocated creditrealization.Realizations `json:"creditsAllocated"`
 	InvoiceUsage     *invoicedusage.AccruedUsage    `json:"invoicedUsage"`
 	Payment          *payment.Invoiced              `json:"payment"`
+	DetailedLines    mo.Option[DetailedLines]       `json:"detailedLines,omitempty"`
 }
 
 func (r RealizationRun) Validate() error {
@@ -235,6 +236,12 @@ func (r RealizationRun) Validate() error {
 	if r.Payment != nil {
 		if err := r.Payment.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("payment: %w", err))
+		}
+	}
+
+	if r.DetailedLines.IsPresent() {
+		if err := r.DetailedLines.OrEmpty().Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("detailed lines: %w", err))
 		}
 	}
 
@@ -267,6 +274,12 @@ func (r RealizationRuns) GetByID(id string) (RealizationRun, error) {
 		}
 	}
 	return RealizationRun{}, fmt.Errorf("realization run not found [id=%s]", id)
+}
+
+func (r RealizationRuns) Without(id RealizationRunID) RealizationRuns {
+	return lo.Filter(r, func(run RealizationRun, _ int) bool {
+		return run.ID != id
+	})
 }
 
 func (r *RealizationRuns) SetRealizationRun(updatedRun RealizationRun) error {

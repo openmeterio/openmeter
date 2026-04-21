@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
@@ -228,6 +229,7 @@ type Realizations struct {
 	CreditRealizations creditrealization.Realizations `json:"creditRealizations"`
 	AccruedUsage       *invoicedusage.AccruedUsage    `json:"accruedUsage"`
 	Payment            *payment.Invoiced              `json:"payment"`
+	DetailedLines      mo.Option[DetailedLines]       `json:"detailedLines,omitempty"`
 }
 
 func (r Realizations) Validate() error {
@@ -248,6 +250,12 @@ func (r Realizations) Validate() error {
 	if r.AccruedUsage != nil {
 		if err := r.AccruedUsage.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("accrued usage[id=%s]: %w", r.AccruedUsage.ID, err))
+		}
+	}
+
+	if r.DetailedLines.IsPresent() {
+		if err := r.DetailedLines.OrEmpty().Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("detailed lines: %w", err))
 		}
 	}
 

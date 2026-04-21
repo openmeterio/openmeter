@@ -17,6 +17,7 @@ import (
 
 type Adapter interface {
 	ChargeAdapter
+	ChargeDetailedLineAdapter
 	ChargeCreditAllocationAdapter
 	ChargeInvoicedUsageAdapter
 	ChargePaymentAdapter
@@ -30,6 +31,11 @@ type ChargeAdapter interface {
 	DeleteCharge(ctx context.Context, charge Charge) error
 	GetByIDs(ctx context.Context, ids GetByIDsInput) ([]Charge, error)
 	GetByID(ctx context.Context, id GetByIDInput) (Charge, error)
+}
+
+type ChargeDetailedLineAdapter interface {
+	UpsertDetailedLines(ctx context.Context, chargeID meta.ChargeID, lines DetailedLines) error
+	FetchDetailedLines(ctx context.Context, charge Charge) (Charge, error)
 }
 
 type ChargeInvoicedUsageAdapter interface {
@@ -89,7 +95,7 @@ func (i GetByIDsInput) Validate() error {
 		}
 	}
 
-	if err := i.Expands.Validate(); err != nil {
+	if err := validateExpands(i.Expands); err != nil {
 		errs = append(errs, fmt.Errorf("expands: %w", err))
 	}
 
@@ -107,7 +113,7 @@ func (i GetByIDInput) Validate() error {
 		errs = append(errs, fmt.Errorf("charge ID: %w", err))
 	}
 
-	if err := i.Expands.Validate(); err != nil {
+	if err := validateExpands(i.Expands); err != nil {
 		errs = append(errs, fmt.Errorf("expands: %w", err))
 	}
 
@@ -133,4 +139,16 @@ func (i CreateChargesInput) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func validateExpands(expands meta.Expands) error {
+	if err := expands.Validate(); err != nil {
+		return err
+	}
+
+	if expands.Has(meta.ExpandDetailedLines) && !expands.Has(meta.ExpandRealizations) {
+		return fmt.Errorf("%q requires %q", meta.ExpandDetailedLines, meta.ExpandRealizations)
+	}
+
+	return nil
 }

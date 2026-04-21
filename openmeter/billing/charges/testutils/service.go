@@ -15,7 +15,6 @@ import (
 	creditpurchaseservice "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
-	flatfeelineengine "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/lineengine"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
 	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
 	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
@@ -137,25 +136,18 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 	}
 
 	flatFeeService, err := flatfeeservice.New(flatfeeservice.Config{
-		Adapter:     flatFeeAdapter,
-		Handler:     config.FlatFeeHandler,
-		Lineage:     lineageService,
-		MetaAdapter: metaAdapter,
-		Locker:      locker,
+		Adapter:       flatFeeAdapter,
+		Handler:       config.FlatFeeHandler,
+		Lineage:       lineageService,
+		MetaAdapter:   metaAdapter,
+		Locker:        locker,
+		RatingService: billingratingservice.New(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating flat fee service: %w", err)
 	}
 
-	flatFeeLineEngine, err := flatfeelineengine.New(flatfeelineengine.Config{
-		FlatFeeService: flatFeeService,
-		RatingService:  billingratingservice.New(),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("creating flat fee line engine: %w", err)
-	}
-
-	if err := config.BillingService.RegisterLineEngine(flatFeeLineEngine); err != nil {
+	if err := config.BillingService.RegisterLineEngine(flatFeeService.GetLineEngine()); err != nil {
 		return nil, fmt.Errorf("registering flat fee line engine: %w", err)
 	}
 

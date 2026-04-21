@@ -1,11 +1,14 @@
 package stddetailedline
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
@@ -116,4 +119,61 @@ func (l Base) Clone() Base {
 
 func (l Base) Equal(other Base) bool {
 	return deriveEqualBase(&l, &other)
+}
+
+func (l Base) GetIndex() *int {
+	return l.Index
+}
+
+func (l Base) GetCreatedAt() time.Time {
+	return l.CreatedAt
+}
+
+func (l Base) GetID() string {
+	return l.ID
+}
+
+type Comparable interface {
+	GetIndex() *int
+	GetCreatedAt() time.Time
+	GetID() string
+}
+
+func Compare[T Comparable](a, b T) int {
+	if a.GetIndex() == nil && b.GetIndex() != nil {
+		return 1
+	}
+	if a.GetIndex() != nil && b.GetIndex() == nil {
+		return -1
+	}
+	if a.GetIndex() != nil && b.GetIndex() != nil {
+		if c := cmp.Compare(*a.GetIndex(), *b.GetIndex()); c != 0 {
+			return c
+		}
+	}
+	if c := a.GetCreatedAt().Compare(b.GetCreatedAt()); c != 0 {
+		return c
+	}
+	return cmp.Compare(a.GetID(), b.GetID())
+}
+
+func BackfillTaxConfig(snapshotted *productcatalog.TaxConfig, behavior *productcatalog.TaxBehavior, resolvedTaxCodeID *string) *productcatalog.TaxConfig {
+	if snapshotted == nil && behavior == nil && resolvedTaxCodeID == nil {
+		return nil
+	}
+
+	var out productcatalog.TaxConfig
+	if snapshotted != nil {
+		out = *snapshotted
+	}
+
+	if behavior != nil {
+		out.Behavior = behavior
+	}
+
+	if resolvedTaxCodeID != nil {
+		out.TaxCodeID = lo.ToPtr(*resolvedTaxCodeID)
+	}
+
+	return &out
 }
