@@ -886,17 +886,14 @@ func (s *CreditsTestSuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 		s.NotNil(updatedCharge.Realizations[0].InvoiceUsage)
 		s.Equal(float64(7.5), updatedCharge.Realizations[0].InvoiceUsage.Totals.Total.InexactFloat64())
 
-		// Aggregate open receivable still includes the promotional grant route.
-		// At this point:
-		// - promotional grant receivable (cost basis 0) is -5
-		// - invoice-backed receivable (cost basis 1) is -7.5
-		// so the aggregate open receivable is -12.5.
-		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-5)))
+		// Promotional grants settle immediately through wash, so only the
+		// invoice-backed receivable remains open at this point.
+		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
 		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-7.5)))
-		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-12.5)))
+		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-7.5)))
 		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero))
 		s.True(s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(12.5)))
-		s.True(s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.Zero))
+		s.True(s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(-5)))
 	})
 
 	s.Run("the payment is authorized", func() {
@@ -914,12 +911,12 @@ func (s *CreditsTestSuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 		s.NotNil(updatedCharge.Realizations[0].Payment.Authorized)
 		s.Nil(updatedCharge.Realizations[0].Payment.Settled)
 
-		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-5)))
+		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
 		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-7.5)))
-		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-12.5)))
+		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-7.5)))
 		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromFloat(7.5)))
 		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromFloat(7.5)))
-		s.True(s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(-7.5)))
+		s.True(s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(-12.5)))
 	})
 
 	s.Run("the payment is settled and the charge reaches final", func() {
@@ -939,12 +936,12 @@ func (s *CreditsTestSuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 		s.Equal(payment.StatusSettled, updatedCharge.Realizations[0].Payment.Status)
 		s.NotNil(updatedCharge.Realizations[0].Payment.Settled)
 
-		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-5)))
+		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
 		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
-		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-5)))
+		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
 		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero))
 		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero))
-		s.True(s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(-7.5)))
+		s.True(s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(-12.5)))
 	})
 }
 

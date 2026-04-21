@@ -231,6 +231,30 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, charge 
 		})
 	}
 
+	switch charge.Intent.Settlement.Type() {
+	case chargecreditpurchase.SettlementTypePromotional:
+		// Promotional grants settle immediately through wash so the credited FBO balance
+		// does not leave an unsettled receivable behind.
+		templates = append(templates,
+			transactions.FundCustomerReceivableTemplate{
+				At:        charge.CreatedAt,
+				Amount:    charge.Intent.CreditAmount,
+				Currency:  charge.Intent.Currency,
+				CostBasis: &costBasis,
+			},
+			transactions.SettleCustomerReceivablePaymentTemplate{
+				At:        charge.CreatedAt,
+				Amount:    charge.Intent.CreditAmount,
+				Currency:  charge.Intent.Currency,
+				CostBasis: &costBasis,
+			},
+		)
+	case chargecreditpurchase.SettlementTypeExternal, chargecreditpurchase.SettlementTypeInvoice:
+		// Deferred settlement modes are handled by later lifecycle events.
+	default:
+		return ledgertransaction.GroupReference{}, fmt.Errorf("unsupported settlement type: %s", charge.Intent.Settlement.Type())
+	}
+
 	if len(templates) == 0 {
 		return ledgertransaction.GroupReference{}, nil
 	}
