@@ -632,21 +632,27 @@ jobs:
           cat > quickstart/docker-compose.override.yaml <<EOF
           services:
             openmeter:
+              image: openmeter-quickstart-openmeter:ci
               pull_policy: build
               build: ..
             sink-worker:
+              image: openmeter-quickstart-sink-worker:ci
               pull_policy: build
               build: ..
             balance-worker:
+              image: openmeter-quickstart-balance-worker:ci
               pull_policy: build
               build: ..
             notification-service:
+              image: openmeter-quickstart-notification-service:ci
               pull_policy: build
               build: ..
             billing-worker:
+              image: openmeter-quickstart-billing-worker:ci
               pull_policy: build
               build: ..
             openmeter-jobs:
+              image: openmeter-quickstart-openmeter-jobs:ci
               pull_policy: build
               build: ..
           EOF
