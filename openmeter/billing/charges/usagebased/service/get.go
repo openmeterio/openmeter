@@ -182,7 +182,7 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 
 		dueTotals, ok := dueTotalsAny.(totals.Totals)
 		if !ok {
-			return charge, fmt.Errorf("totals result not found for charge %s", charge.ID)
+			return charge, fmt.Errorf("invalid totals type for charge %s", charge.ID)
 		}
 
 		charge.Expands.RealtimeUsage = &dueTotals
