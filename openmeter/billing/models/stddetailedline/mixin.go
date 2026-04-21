@@ -3,6 +3,8 @@ package stddetailedline
 import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"entgo.io/ent/schema/mixin"
@@ -78,8 +80,7 @@ func (mixinBase) Fields() []ent.Field {
 		// and identifying lines created for the same reason (e.g. tiered price tier)
 		// between different invoices.
 		field.String("child_unique_reference_id").
-			Optional().
-			Nillable(),
+			NotEmpty(),
 
 		field.Other("per_unit_amount", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
@@ -107,5 +108,13 @@ func (mixinBase) Fields() []ent.Field {
 func (mixinBase) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("tax_code_id"),
+	}
+}
+
+func (mixinBase) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Checks(map[string]string{
+			"child_unique_reference_id_not_empty": `child_unique_reference_id <> ''`,
+		}),
 	}
 }

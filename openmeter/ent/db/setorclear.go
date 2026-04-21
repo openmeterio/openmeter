@@ -2034,20 +2034,6 @@ func (u *BillingStandardInvoiceDetailedLineUpdateOne) SetOrClearInvoicingAppExte
 	return u.SetInvoicingAppExternalID(*value)
 }
 
-func (u *BillingStandardInvoiceDetailedLineUpdate) SetOrClearChildUniqueReferenceID(value *string) *BillingStandardInvoiceDetailedLineUpdate {
-	if value == nil {
-		return u.ClearChildUniqueReferenceID()
-	}
-	return u.SetChildUniqueReferenceID(*value)
-}
-
-func (u *BillingStandardInvoiceDetailedLineUpdateOne) SetOrClearChildUniqueReferenceID(value *string) *BillingStandardInvoiceDetailedLineUpdateOne {
-	if value == nil {
-		return u.ClearChildUniqueReferenceID()
-	}
-	return u.SetChildUniqueReferenceID(*value)
-}
-
 func (u *BillingStandardInvoiceDetailedLineUpdate) SetOrClearIndex(value *int) *BillingStandardInvoiceDetailedLineUpdate {
 	if value == nil {
 		return u.ClearIndex()
@@ -2776,20 +2762,6 @@ func (u *ChargeFlatFeeDetailedLineUpdateOne) SetOrClearInvoicingAppExternalID(va
 	return u.SetInvoicingAppExternalID(*value)
 }
 
-func (u *ChargeFlatFeeDetailedLineUpdate) SetOrClearChildUniqueReferenceID(value *string) *ChargeFlatFeeDetailedLineUpdate {
-	if value == nil {
-		return u.ClearChildUniqueReferenceID()
-	}
-	return u.SetChildUniqueReferenceID(*value)
-}
-
-func (u *ChargeFlatFeeDetailedLineUpdateOne) SetOrClearChildUniqueReferenceID(value *string) *ChargeFlatFeeDetailedLineUpdateOne {
-	if value == nil {
-		return u.ClearChildUniqueReferenceID()
-	}
-	return u.SetChildUniqueReferenceID(*value)
-}
-
 func (u *ChargeFlatFeeDetailedLineUpdate) SetOrClearIndex(value *int) *ChargeFlatFeeDetailedLineUpdate {
 	if value == nil {
 		return u.ClearIndex()
@@ -3222,20 +3194,6 @@ func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearInvoicingAppExterna
 		return u.ClearInvoicingAppExternalID()
 	}
 	return u.SetInvoicingAppExternalID(*value)
-}
-
-func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearChildUniqueReferenceID(value *string) *ChargeUsageBasedRunDetailedLineUpdate {
-	if value == nil {
-		return u.ClearChildUniqueReferenceID()
-	}
-	return u.SetChildUniqueReferenceID(*value)
-}
-
-func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearChildUniqueReferenceID(value *string) *ChargeUsageBasedRunDetailedLineUpdateOne {
-	if value == nil {
-		return u.ClearChildUniqueReferenceID()
-	}
-	return u.SetChildUniqueReferenceID(*value)
 }
 
 func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearIndex(value *int) *ChargeUsageBasedRunDetailedLineUpdate {

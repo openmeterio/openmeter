@@ -749,7 +749,7 @@ func (e *BillingStandardInvoiceDetailedLine) GetInvoicingAppExternalID() *string
 	return e.InvoicingAppExternalID
 }
 
-func (e *BillingStandardInvoiceDetailedLine) GetChildUniqueReferenceID() *string {
+func (e *BillingStandardInvoiceDetailedLine) GetChildUniqueReferenceID() string {
 	return e.ChildUniqueReferenceID
 }
 
@@ -1337,7 +1337,7 @@ func (e *ChargeFlatFeeDetailedLine) GetInvoicingAppExternalID() *string {
 	return e.InvoicingAppExternalID
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetChildUniqueReferenceID() *string {
+func (e *ChargeFlatFeeDetailedLine) GetChildUniqueReferenceID() string {
 	return e.ChildUniqueReferenceID
 }
 
@@ -1753,7 +1753,7 @@ func (e *ChargeUsageBasedRunDetailedLine) GetInvoicingAppExternalID() *string {
 	return e.InvoicingAppExternalID
 }
 
-func (e *ChargeUsageBasedRunDetailedLine) GetChildUniqueReferenceID() *string {
+func (e *ChargeUsageBasedRunDetailedLine) GetChildUniqueReferenceID() string {
 	return e.ChildUniqueReferenceID
 }
 

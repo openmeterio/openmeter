@@ -117,14 +117,6 @@ func (_c *ChargeFlatFeeDetailedLineCreate) SetChildUniqueReferenceID(v string) *
 	return _c
 }
 
-// SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
-func (_c *ChargeFlatFeeDetailedLineCreate) SetNillableChildUniqueReferenceID(v *string) *ChargeFlatFeeDetailedLineCreate {
-	if v != nil {
-		_c.SetChildUniqueReferenceID(*v)
-	}
-	return _c
-}
-
 // SetPerUnitAmount sets the "per_unit_amount" field.
 func (_c *ChargeFlatFeeDetailedLineCreate) SetPerUnitAmount(v alpacadecimal.Decimal) *ChargeFlatFeeDetailedLineCreate {
 	_c.mutation.SetPerUnitAmount(v)
@@ -423,6 +415,14 @@ func (_c *ChargeFlatFeeDetailedLineCreate) check() error {
 	if _, ok := _c.mutation.Quantity(); !ok {
 		return &ValidationError{Name: "quantity", err: errors.New(`db: missing required field "ChargeFlatFeeDetailedLine.quantity"`)}
 	}
+	if _, ok := _c.mutation.ChildUniqueReferenceID(); !ok {
+		return &ValidationError{Name: "child_unique_reference_id", err: errors.New(`db: missing required field "ChargeFlatFeeDetailedLine.child_unique_reference_id"`)}
+	}
+	if v, ok := _c.mutation.ChildUniqueReferenceID(); ok {
+		if err := chargeflatfeedetailedline.ChildUniqueReferenceIDValidator(v); err != nil {
+			return &ValidationError{Name: "child_unique_reference_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeDetailedLine.child_unique_reference_id": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.PerUnitAmount(); !ok {
 		return &ValidationError{Name: "per_unit_amount", err: errors.New(`db: missing required field "ChargeFlatFeeDetailedLine.per_unit_amount"`)}
 	}
@@ -560,7 +560,7 @@ func (_c *ChargeFlatFeeDetailedLineCreate) createSpec() (*ChargeFlatFeeDetailedL
 	}
 	if value, ok := _c.mutation.ChildUniqueReferenceID(); ok {
 		_spec.SetField(chargeflatfeedetailedline.FieldChildUniqueReferenceID, field.TypeString, value)
-		_node.ChildUniqueReferenceID = &value
+		_node.ChildUniqueReferenceID = value
 	}
 	if value, ok := _c.mutation.PerUnitAmount(); ok {
 		_spec.SetField(chargeflatfeedetailedline.FieldPerUnitAmount, field.TypeOther, value)
@@ -849,12 +849,6 @@ func (u *ChargeFlatFeeDetailedLineUpsert) SetChildUniqueReferenceID(v string) *C
 // UpdateChildUniqueReferenceID sets the "child_unique_reference_id" field to the value that was provided on create.
 func (u *ChargeFlatFeeDetailedLineUpsert) UpdateChildUniqueReferenceID() *ChargeFlatFeeDetailedLineUpsert {
 	u.SetExcluded(chargeflatfeedetailedline.FieldChildUniqueReferenceID)
-	return u
-}
-
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (u *ChargeFlatFeeDetailedLineUpsert) ClearChildUniqueReferenceID() *ChargeFlatFeeDetailedLineUpsert {
-	u.SetNull(chargeflatfeedetailedline.FieldChildUniqueReferenceID)
 	return u
 }
 
@@ -1334,13 +1328,6 @@ func (u *ChargeFlatFeeDetailedLineUpsertOne) SetChildUniqueReferenceID(v string)
 func (u *ChargeFlatFeeDetailedLineUpsertOne) UpdateChildUniqueReferenceID() *ChargeFlatFeeDetailedLineUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeDetailedLineUpsert) {
 		s.UpdateChildUniqueReferenceID()
-	})
-}
-
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (u *ChargeFlatFeeDetailedLineUpsertOne) ClearChildUniqueReferenceID() *ChargeFlatFeeDetailedLineUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeDetailedLineUpsert) {
-		s.ClearChildUniqueReferenceID()
 	})
 }
 
@@ -2034,13 +2021,6 @@ func (u *ChargeFlatFeeDetailedLineUpsertBulk) SetChildUniqueReferenceID(v string
 func (u *ChargeFlatFeeDetailedLineUpsertBulk) UpdateChildUniqueReferenceID() *ChargeFlatFeeDetailedLineUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeDetailedLineUpsert) {
 		s.UpdateChildUniqueReferenceID()
-	})
-}
-
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (u *ChargeFlatFeeDetailedLineUpsertBulk) ClearChildUniqueReferenceID() *ChargeFlatFeeDetailedLineUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeDetailedLineUpsert) {
-		s.ClearChildUniqueReferenceID()
 	})
 }
 

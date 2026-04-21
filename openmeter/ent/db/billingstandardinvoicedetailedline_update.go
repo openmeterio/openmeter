@@ -173,12 +173,6 @@ func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableChildUniqueRefere
 	return _u
 }
 
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) ClearChildUniqueReferenceID() *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.ClearChildUniqueReferenceID()
-	return _u
-}
-
 // SetPerUnitAmount sets the "per_unit_amount" field.
 func (_u *BillingStandardInvoiceDetailedLineUpdate) SetPerUnitAmount(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpdate {
 	_u.mutation.SetPerUnitAmount(v)
@@ -618,6 +612,11 @@ func (_u *BillingStandardInvoiceDetailedLineUpdate) check() error {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingStandardInvoiceDetailedLine.tax_behavior": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.ChildUniqueReferenceID(); ok {
+		if err := billingstandardinvoicedetailedline.ChildUniqueReferenceIDValidator(v); err != nil {
+			return &ValidationError{Name: "child_unique_reference_id", err: fmt.Errorf(`db: validator failed for field "BillingStandardInvoiceDetailedLine.child_unique_reference_id": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Category(); ok {
 		if err := billingstandardinvoicedetailedline.CategoryValidator(v); err != nil {
 			return &ValidationError{Name: "category", err: fmt.Errorf(`db: validator failed for field "BillingStandardInvoiceDetailedLine.category": %w`, err)}
@@ -683,9 +682,6 @@ func (_u *BillingStandardInvoiceDetailedLineUpdate) sqlSave(ctx context.Context)
 	}
 	if value, ok := _u.mutation.ChildUniqueReferenceID(); ok {
 		_spec.SetField(billingstandardinvoicedetailedline.FieldChildUniqueReferenceID, field.TypeString, value)
-	}
-	if _u.mutation.ChildUniqueReferenceIDCleared() {
-		_spec.ClearField(billingstandardinvoicedetailedline.FieldChildUniqueReferenceID, field.TypeString)
 	}
 	if value, ok := _u.mutation.PerUnitAmount(); ok {
 		_spec.SetField(billingstandardinvoicedetailedline.FieldPerUnitAmount, field.TypeOther, value)
@@ -1050,12 +1046,6 @@ func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableChildUniqueRef
 	if v != nil {
 		_u.SetChildUniqueReferenceID(*v)
 	}
-	return _u
-}
-
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) ClearChildUniqueReferenceID() *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.ClearChildUniqueReferenceID()
 	return _u
 }
 
@@ -1511,6 +1501,11 @@ func (_u *BillingStandardInvoiceDetailedLineUpdateOne) check() error {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingStandardInvoiceDetailedLine.tax_behavior": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.ChildUniqueReferenceID(); ok {
+		if err := billingstandardinvoicedetailedline.ChildUniqueReferenceIDValidator(v); err != nil {
+			return &ValidationError{Name: "child_unique_reference_id", err: fmt.Errorf(`db: validator failed for field "BillingStandardInvoiceDetailedLine.child_unique_reference_id": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Category(); ok {
 		if err := billingstandardinvoicedetailedline.CategoryValidator(v); err != nil {
 			return &ValidationError{Name: "category", err: fmt.Errorf(`db: validator failed for field "BillingStandardInvoiceDetailedLine.category": %w`, err)}
@@ -1593,9 +1588,6 @@ func (_u *BillingStandardInvoiceDetailedLineUpdateOne) sqlSave(ctx context.Conte
 	}
 	if value, ok := _u.mutation.ChildUniqueReferenceID(); ok {
 		_spec.SetField(billingstandardinvoicedetailedline.FieldChildUniqueReferenceID, field.TypeString, value)
-	}
-	if _u.mutation.ChildUniqueReferenceIDCleared() {
-		_spec.ClearField(billingstandardinvoicedetailedline.FieldChildUniqueReferenceID, field.TypeString)
 	}
 	if value, ok := _u.mutation.PerUnitAmount(); ok {
 		_spec.SetField(billingstandardinvoicedetailedline.FieldPerUnitAmount, field.TypeOther, value)

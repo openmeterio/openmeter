@@ -30868,7 +30868,7 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ChildUniqueReferenceID() (r
 // OldChildUniqueReferenceID returns the old "child_unique_reference_id" field's value of the BillingStandardInvoiceDetailedLine entity.
 // If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingStandardInvoiceDetailedLineMutation) OldChildUniqueReferenceID(ctx context.Context) (v *string, err error) {
+func (m *BillingStandardInvoiceDetailedLineMutation) OldChildUniqueReferenceID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldChildUniqueReferenceID is only allowed on UpdateOne operations")
 	}
@@ -30882,22 +30882,9 @@ func (m *BillingStandardInvoiceDetailedLineMutation) OldChildUniqueReferenceID(c
 	return oldValue.ChildUniqueReferenceID, nil
 }
 
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ClearChildUniqueReferenceID() {
-	m.child_unique_reference_id = nil
-	m.clearedFields[billingstandardinvoicedetailedline.FieldChildUniqueReferenceID] = struct{}{}
-}
-
-// ChildUniqueReferenceIDCleared returns if the "child_unique_reference_id" field was cleared in this mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) ChildUniqueReferenceIDCleared() bool {
-	_, ok := m.clearedFields[billingstandardinvoicedetailedline.FieldChildUniqueReferenceID]
-	return ok
-}
-
 // ResetChildUniqueReferenceID resets all changes to the "child_unique_reference_id" field.
 func (m *BillingStandardInvoiceDetailedLineMutation) ResetChildUniqueReferenceID() {
 	m.child_unique_reference_id = nil
-	delete(m.clearedFields, billingstandardinvoicedetailedline.FieldChildUniqueReferenceID)
 }
 
 // SetPerUnitAmount sets the "per_unit_amount" field.
@@ -32554,9 +32541,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ClearedFields() []string {
 	if m.FieldCleared(billingstandardinvoicedetailedline.FieldInvoicingAppExternalID) {
 		fields = append(fields, billingstandardinvoicedetailedline.FieldInvoicingAppExternalID)
 	}
-	if m.FieldCleared(billingstandardinvoicedetailedline.FieldChildUniqueReferenceID) {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldChildUniqueReferenceID)
-	}
 	if m.FieldCleared(billingstandardinvoicedetailedline.FieldIndex) {
 		fields = append(fields, billingstandardinvoicedetailedline.FieldIndex)
 	}
@@ -32600,9 +32584,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ClearField(name string) err
 		return nil
 	case billingstandardinvoicedetailedline.FieldInvoicingAppExternalID:
 		m.ClearInvoicingAppExternalID()
-		return nil
-	case billingstandardinvoicedetailedline.FieldChildUniqueReferenceID:
-		m.ClearChildUniqueReferenceID()
 		return nil
 	case billingstandardinvoicedetailedline.FieldIndex:
 		m.ClearIndex()
@@ -47303,7 +47284,7 @@ func (m *ChargeFlatFeeDetailedLineMutation) ChildUniqueReferenceID() (r string, 
 // OldChildUniqueReferenceID returns the old "child_unique_reference_id" field's value of the ChargeFlatFeeDetailedLine entity.
 // If the ChargeFlatFeeDetailedLine object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeDetailedLineMutation) OldChildUniqueReferenceID(ctx context.Context) (v *string, err error) {
+func (m *ChargeFlatFeeDetailedLineMutation) OldChildUniqueReferenceID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldChildUniqueReferenceID is only allowed on UpdateOne operations")
 	}
@@ -47317,22 +47298,9 @@ func (m *ChargeFlatFeeDetailedLineMutation) OldChildUniqueReferenceID(ctx contex
 	return oldValue.ChildUniqueReferenceID, nil
 }
 
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (m *ChargeFlatFeeDetailedLineMutation) ClearChildUniqueReferenceID() {
-	m.child_unique_reference_id = nil
-	m.clearedFields[chargeflatfeedetailedline.FieldChildUniqueReferenceID] = struct{}{}
-}
-
-// ChildUniqueReferenceIDCleared returns if the "child_unique_reference_id" field was cleared in this mutation.
-func (m *ChargeFlatFeeDetailedLineMutation) ChildUniqueReferenceIDCleared() bool {
-	_, ok := m.clearedFields[chargeflatfeedetailedline.FieldChildUniqueReferenceID]
-	return ok
-}
-
 // ResetChildUniqueReferenceID resets all changes to the "child_unique_reference_id" field.
 func (m *ChargeFlatFeeDetailedLineMutation) ResetChildUniqueReferenceID() {
 	m.child_unique_reference_id = nil
-	delete(m.clearedFields, chargeflatfeedetailedline.FieldChildUniqueReferenceID)
 }
 
 // SetPerUnitAmount sets the "per_unit_amount" field.
@@ -48832,9 +48800,6 @@ func (m *ChargeFlatFeeDetailedLineMutation) ClearedFields() []string {
 	if m.FieldCleared(chargeflatfeedetailedline.FieldInvoicingAppExternalID) {
 		fields = append(fields, chargeflatfeedetailedline.FieldInvoicingAppExternalID)
 	}
-	if m.FieldCleared(chargeflatfeedetailedline.FieldChildUniqueReferenceID) {
-		fields = append(fields, chargeflatfeedetailedline.FieldChildUniqueReferenceID)
-	}
 	if m.FieldCleared(chargeflatfeedetailedline.FieldIndex) {
 		fields = append(fields, chargeflatfeedetailedline.FieldIndex)
 	}
@@ -48878,9 +48843,6 @@ func (m *ChargeFlatFeeDetailedLineMutation) ClearField(name string) error {
 		return nil
 	case chargeflatfeedetailedline.FieldInvoicingAppExternalID:
 		m.ClearInvoicingAppExternalID()
-		return nil
-	case chargeflatfeedetailedline.FieldChildUniqueReferenceID:
-		m.ClearChildUniqueReferenceID()
 		return nil
 	case chargeflatfeedetailedline.FieldIndex:
 		m.ClearIndex()
@@ -56535,7 +56497,7 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) ChildUniqueReferenceID() (r st
 // OldChildUniqueReferenceID returns the old "child_unique_reference_id" field's value of the ChargeUsageBasedRunDetailedLine entity.
 // If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedRunDetailedLineMutation) OldChildUniqueReferenceID(ctx context.Context) (v *string, err error) {
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldChildUniqueReferenceID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldChildUniqueReferenceID is only allowed on UpdateOne operations")
 	}
@@ -56549,22 +56511,9 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) OldChildUniqueReferenceID(ctx 
 	return oldValue.ChildUniqueReferenceID, nil
 }
 
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (m *ChargeUsageBasedRunDetailedLineMutation) ClearChildUniqueReferenceID() {
-	m.child_unique_reference_id = nil
-	m.clearedFields[chargeusagebasedrundetailedline.FieldChildUniqueReferenceID] = struct{}{}
-}
-
-// ChildUniqueReferenceIDCleared returns if the "child_unique_reference_id" field was cleared in this mutation.
-func (m *ChargeUsageBasedRunDetailedLineMutation) ChildUniqueReferenceIDCleared() bool {
-	_, ok := m.clearedFields[chargeusagebasedrundetailedline.FieldChildUniqueReferenceID]
-	return ok
-}
-
 // ResetChildUniqueReferenceID resets all changes to the "child_unique_reference_id" field.
 func (m *ChargeUsageBasedRunDetailedLineMutation) ResetChildUniqueReferenceID() {
 	m.child_unique_reference_id = nil
-	delete(m.clearedFields, chargeusagebasedrundetailedline.FieldChildUniqueReferenceID)
 }
 
 // SetPerUnitAmount sets the "per_unit_amount" field.
@@ -58141,9 +58090,6 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) ClearedFields() []string {
 	if m.FieldCleared(chargeusagebasedrundetailedline.FieldInvoicingAppExternalID) {
 		fields = append(fields, chargeusagebasedrundetailedline.FieldInvoicingAppExternalID)
 	}
-	if m.FieldCleared(chargeusagebasedrundetailedline.FieldChildUniqueReferenceID) {
-		fields = append(fields, chargeusagebasedrundetailedline.FieldChildUniqueReferenceID)
-	}
 	if m.FieldCleared(chargeusagebasedrundetailedline.FieldIndex) {
 		fields = append(fields, chargeusagebasedrundetailedline.FieldIndex)
 	}
@@ -58187,9 +58133,6 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) ClearField(name string) error 
 		return nil
 	case chargeusagebasedrundetailedline.FieldInvoicingAppExternalID:
 		m.ClearInvoicingAppExternalID()
-		return nil
-	case chargeusagebasedrundetailedline.FieldChildUniqueReferenceID:
-		m.ClearChildUniqueReferenceID()
 		return nil
 	case chargeusagebasedrundetailedline.FieldIndex:
 		m.ClearIndex()

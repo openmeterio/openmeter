@@ -815,7 +815,7 @@ func (c StandardLine) DetailedLinesWithIDReuse(l DetailedLines) DetailedLines {
 	childrenRefToLine := make(map[string]DetailedLine, len(existingItems))
 
 	for _, child := range existingItems {
-		if child.ChildUniqueReferenceID == nil {
+		if child.ChildUniqueReferenceID == "" {
 			continue
 		}
 
@@ -824,17 +824,17 @@ func (c StandardLine) DetailedLinesWithIDReuse(l DetailedLines) DetailedLines {
 			continue
 		}
 
-		childrenRefToLine[*child.ChildUniqueReferenceID] = child
+		childrenRefToLine[child.ChildUniqueReferenceID] = child
 	}
 
 	for idx := range clonedNewLines {
 		newChild := &clonedNewLines[idx]
 
-		if newChild.ChildUniqueReferenceID == nil {
+		if newChild.ChildUniqueReferenceID == "" {
 			continue
 		}
 
-		if existing, ok := childrenRefToLine[*newChild.ChildUniqueReferenceID]; ok {
+		if existing, ok := childrenRefToLine[newChild.ChildUniqueReferenceID]; ok {
 			// Let's retain the database ID to achieve an update instead of a delete/create
 			newChild.ID = existing.ID
 			newChild.FeeLineConfigID = existing.FeeLineConfigID

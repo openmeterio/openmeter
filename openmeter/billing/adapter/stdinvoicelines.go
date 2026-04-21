@@ -318,7 +318,7 @@ func (a *adapter) upsertDetailedLines(ctx context.Context, in detailedLineDiff) 
 				SetName(line.Name).
 				SetNillableDescription(line.Description).
 				SetCurrency(line.Currency).
-				SetNillableChildUniqueReferenceID(line.ChildUniqueReferenceID)
+				SetNillableChildUniqueReferenceID(lo.EmptyableToPtr(line.ChildUniqueReferenceID))
 
 			create = externalid.CreateLineExternalID(create, line.ExternalIDs)
 			create = totals.Set(create, line.Totals)
@@ -430,7 +430,7 @@ func (a *adapter) upsertDetailedLinesV2(ctx context.Context, in detailedLineDiff
 				SetCurrency(line.Currency).
 				SetQuantity(line.Quantity).
 				SetPerUnitAmount(line.PerUnitAmount).
-				SetNillableChildUniqueReferenceID(line.ChildUniqueReferenceID).
+				SetChildUniqueReferenceID(line.ChildUniqueReferenceID).
 				SetCategory(line.Category).
 				SetPaymentTerm(line.PaymentTerm).
 				SetNillableIndex(line.Index)

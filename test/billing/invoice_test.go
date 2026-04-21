@@ -3041,7 +3041,7 @@ func requireDetailedLines(t *testing.T, line *billing.StandardLine, expectations
 	require.Len(t, detailedLines, len(expectations.Details))
 
 	detailsById := lo.GroupBy(detailedLines, func(l billing.DetailedLine) string {
-		return *l.ChildUniqueReferenceID
+		return l.ChildUniqueReferenceID
 	})
 
 	for key, expect := range expectations.Details {

@@ -33,6 +33,7 @@ After any schema change, regenerate with `make generate` before running tests.
 - **Foreign keys** use `char(26)` schema type to match ULID IDs.
 - **Cascade deletes** use `entsql.OnDelete(entsql.Cascade)` on the parent edge.
 - **JSONB fields** use `entutils.JSONStringValueScanner` — see `openmeter/ent/schema/llmcostprice.go`.
+- **Non-empty strings at the DB layer**: `field.String(...).NotEmpty()` enforces Ent-side validation, but Atlas may still diff only `SET NOT NULL` for existing tables. If the database must reject empty strings too, add an explicit `entsql.Checks(...)` annotation in the schema or mixin alongside `NotEmpty()`.
 
 ## Regeneration
 

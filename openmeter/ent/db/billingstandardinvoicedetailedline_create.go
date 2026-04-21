@@ -119,14 +119,6 @@ func (_c *BillingStandardInvoiceDetailedLineCreate) SetChildUniqueReferenceID(v 
 	return _c
 }
 
-// SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
-func (_c *BillingStandardInvoiceDetailedLineCreate) SetNillableChildUniqueReferenceID(v *string) *BillingStandardInvoiceDetailedLineCreate {
-	if v != nil {
-		_c.SetChildUniqueReferenceID(*v)
-	}
-	return _c
-}
-
 // SetPerUnitAmount sets the "per_unit_amount" field.
 func (_c *BillingStandardInvoiceDetailedLineCreate) SetPerUnitAmount(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineCreate {
 	_c.mutation.SetPerUnitAmount(v)
@@ -463,6 +455,14 @@ func (_c *BillingStandardInvoiceDetailedLineCreate) check() error {
 	if _, ok := _c.mutation.Quantity(); !ok {
 		return &ValidationError{Name: "quantity", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.quantity"`)}
 	}
+	if _, ok := _c.mutation.ChildUniqueReferenceID(); !ok {
+		return &ValidationError{Name: "child_unique_reference_id", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.child_unique_reference_id"`)}
+	}
+	if v, ok := _c.mutation.ChildUniqueReferenceID(); ok {
+		if err := billingstandardinvoicedetailedline.ChildUniqueReferenceIDValidator(v); err != nil {
+			return &ValidationError{Name: "child_unique_reference_id", err: fmt.Errorf(`db: validator failed for field "BillingStandardInvoiceDetailedLine.child_unique_reference_id": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.PerUnitAmount(); !ok {
 		return &ValidationError{Name: "per_unit_amount", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.per_unit_amount"`)}
 	}
@@ -606,7 +606,7 @@ func (_c *BillingStandardInvoiceDetailedLineCreate) createSpec() (*BillingStanda
 	}
 	if value, ok := _c.mutation.ChildUniqueReferenceID(); ok {
 		_spec.SetField(billingstandardinvoicedetailedline.FieldChildUniqueReferenceID, field.TypeString, value)
-		_node.ChildUniqueReferenceID = &value
+		_node.ChildUniqueReferenceID = value
 	}
 	if value, ok := _c.mutation.PerUnitAmount(); ok {
 		_spec.SetField(billingstandardinvoicedetailedline.FieldPerUnitAmount, field.TypeOther, value)
@@ -928,12 +928,6 @@ func (u *BillingStandardInvoiceDetailedLineUpsert) SetChildUniqueReferenceID(v s
 // UpdateChildUniqueReferenceID sets the "child_unique_reference_id" field to the value that was provided on create.
 func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateChildUniqueReferenceID() *BillingStandardInvoiceDetailedLineUpsert {
 	u.SetExcluded(billingstandardinvoicedetailedline.FieldChildUniqueReferenceID)
-	return u
-}
-
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (u *BillingStandardInvoiceDetailedLineUpsert) ClearChildUniqueReferenceID() *BillingStandardInvoiceDetailedLineUpsert {
-	u.SetNull(billingstandardinvoicedetailedline.FieldChildUniqueReferenceID)
 	return u
 }
 
@@ -1425,13 +1419,6 @@ func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetChildUniqueReferenceID(
 func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateChildUniqueReferenceID() *BillingStandardInvoiceDetailedLineUpsertOne {
 	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
 		s.UpdateChildUniqueReferenceID()
-	})
-}
-
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) ClearChildUniqueReferenceID() *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.ClearChildUniqueReferenceID()
 	})
 }
 
@@ -2139,13 +2126,6 @@ func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetChildUniqueReferenceID
 func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateChildUniqueReferenceID() *BillingStandardInvoiceDetailedLineUpsertBulk {
 	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
 		s.UpdateChildUniqueReferenceID()
-	})
-}
-
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) ClearChildUniqueReferenceID() *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.ClearChildUniqueReferenceID()
 	})
 }
 

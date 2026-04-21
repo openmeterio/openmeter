@@ -118,14 +118,6 @@ func (_c *ChargeUsageBasedRunDetailedLineCreate) SetChildUniqueReferenceID(v str
 	return _c
 }
 
-// SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
-func (_c *ChargeUsageBasedRunDetailedLineCreate) SetNillableChildUniqueReferenceID(v *string) *ChargeUsageBasedRunDetailedLineCreate {
-	if v != nil {
-		_c.SetChildUniqueReferenceID(*v)
-	}
-	return _c
-}
-
 // SetPerUnitAmount sets the "per_unit_amount" field.
 func (_c *ChargeUsageBasedRunDetailedLineCreate) SetPerUnitAmount(v alpacadecimal.Decimal) *ChargeUsageBasedRunDetailedLineCreate {
 	_c.mutation.SetPerUnitAmount(v)
@@ -435,6 +427,14 @@ func (_c *ChargeUsageBasedRunDetailedLineCreate) check() error {
 	if _, ok := _c.mutation.Quantity(); !ok {
 		return &ValidationError{Name: "quantity", err: errors.New(`db: missing required field "ChargeUsageBasedRunDetailedLine.quantity"`)}
 	}
+	if _, ok := _c.mutation.ChildUniqueReferenceID(); !ok {
+		return &ValidationError{Name: "child_unique_reference_id", err: errors.New(`db: missing required field "ChargeUsageBasedRunDetailedLine.child_unique_reference_id"`)}
+	}
+	if v, ok := _c.mutation.ChildUniqueReferenceID(); ok {
+		if err := chargeusagebasedrundetailedline.ChildUniqueReferenceIDValidator(v); err != nil {
+			return &ValidationError{Name: "child_unique_reference_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.child_unique_reference_id": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.PerUnitAmount(); !ok {
 		return &ValidationError{Name: "per_unit_amount", err: errors.New(`db: missing required field "ChargeUsageBasedRunDetailedLine.per_unit_amount"`)}
 	}
@@ -578,7 +578,7 @@ func (_c *ChargeUsageBasedRunDetailedLineCreate) createSpec() (*ChargeUsageBased
 	}
 	if value, ok := _c.mutation.ChildUniqueReferenceID(); ok {
 		_spec.SetField(chargeusagebasedrundetailedline.FieldChildUniqueReferenceID, field.TypeString, value)
-		_node.ChildUniqueReferenceID = &value
+		_node.ChildUniqueReferenceID = value
 	}
 	if value, ok := _c.mutation.PerUnitAmount(); ok {
 		_spec.SetField(chargeusagebasedrundetailedline.FieldPerUnitAmount, field.TypeOther, value)
@@ -884,12 +884,6 @@ func (u *ChargeUsageBasedRunDetailedLineUpsert) SetChildUniqueReferenceID(v stri
 // UpdateChildUniqueReferenceID sets the "child_unique_reference_id" field to the value that was provided on create.
 func (u *ChargeUsageBasedRunDetailedLineUpsert) UpdateChildUniqueReferenceID() *ChargeUsageBasedRunDetailedLineUpsert {
 	u.SetExcluded(chargeusagebasedrundetailedline.FieldChildUniqueReferenceID)
-	return u
-}
-
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (u *ChargeUsageBasedRunDetailedLineUpsert) ClearChildUniqueReferenceID() *ChargeUsageBasedRunDetailedLineUpsert {
-	u.SetNull(chargeusagebasedrundetailedline.FieldChildUniqueReferenceID)
 	return u
 }
 
@@ -1381,13 +1375,6 @@ func (u *ChargeUsageBasedRunDetailedLineUpsertOne) SetChildUniqueReferenceID(v s
 func (u *ChargeUsageBasedRunDetailedLineUpsertOne) UpdateChildUniqueReferenceID() *ChargeUsageBasedRunDetailedLineUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
 		s.UpdateChildUniqueReferenceID()
-	})
-}
-
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (u *ChargeUsageBasedRunDetailedLineUpsertOne) ClearChildUniqueReferenceID() *ChargeUsageBasedRunDetailedLineUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
-		s.ClearChildUniqueReferenceID()
 	})
 }
 
@@ -2095,13 +2082,6 @@ func (u *ChargeUsageBasedRunDetailedLineUpsertBulk) SetChildUniqueReferenceID(v 
 func (u *ChargeUsageBasedRunDetailedLineUpsertBulk) UpdateChildUniqueReferenceID() *ChargeUsageBasedRunDetailedLineUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
 		s.UpdateChildUniqueReferenceID()
-	})
-}
-
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (u *ChargeUsageBasedRunDetailedLineUpsertBulk) ClearChildUniqueReferenceID() *ChargeUsageBasedRunDetailedLineUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
-		s.ClearChildUniqueReferenceID()
 	})
 }
 

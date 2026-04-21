@@ -828,6 +828,10 @@ func init() {
 	billingstandardinvoicedetailedlineDescCurrency := billingstandardinvoicedetailedlineMixinFields0[0].Descriptor()
 	// billingstandardinvoicedetailedline.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	billingstandardinvoicedetailedline.CurrencyValidator = billingstandardinvoicedetailedlineDescCurrency.Validators[0].(func(string) error)
+	// billingstandardinvoicedetailedlineDescChildUniqueReferenceID is the schema descriptor for child_unique_reference_id field.
+	billingstandardinvoicedetailedlineDescChildUniqueReferenceID := billingstandardinvoicedetailedlineMixinFields0[8].Descriptor()
+	// billingstandardinvoicedetailedline.ChildUniqueReferenceIDValidator is a validator for the "child_unique_reference_id" field. It is called by the builders before save.
+	billingstandardinvoicedetailedline.ChildUniqueReferenceIDValidator = billingstandardinvoicedetailedlineDescChildUniqueReferenceID.Validators[0].(func(string) error)
 	// billingstandardinvoicedetailedlineDescNamespace is the schema descriptor for namespace field.
 	billingstandardinvoicedetailedlineDescNamespace := billingstandardinvoicedetailedlineMixinFields0[16].Descriptor()
 	// billingstandardinvoicedetailedline.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
@@ -1147,6 +1151,10 @@ func init() {
 	chargeflatfeedetailedlineDescCurrency := chargeflatfeedetailedlineMixinFields0[0].Descriptor()
 	// chargeflatfeedetailedline.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	chargeflatfeedetailedline.CurrencyValidator = chargeflatfeedetailedlineDescCurrency.Validators[0].(func(string) error)
+	// chargeflatfeedetailedlineDescChildUniqueReferenceID is the schema descriptor for child_unique_reference_id field.
+	chargeflatfeedetailedlineDescChildUniqueReferenceID := chargeflatfeedetailedlineMixinFields0[8].Descriptor()
+	// chargeflatfeedetailedline.ChildUniqueReferenceIDValidator is a validator for the "child_unique_reference_id" field. It is called by the builders before save.
+	chargeflatfeedetailedline.ChildUniqueReferenceIDValidator = chargeflatfeedetailedlineDescChildUniqueReferenceID.Validators[0].(func(string) error)
 	// chargeflatfeedetailedlineDescNamespace is the schema descriptor for namespace field.
 	chargeflatfeedetailedlineDescNamespace := chargeflatfeedetailedlineMixinFields0[16].Descriptor()
 	// chargeflatfeedetailedline.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
@@ -1316,6 +1324,10 @@ func init() {
 	chargeusagebasedrundetailedlineDescCurrency := chargeusagebasedrundetailedlineMixinFields0[0].Descriptor()
 	// chargeusagebasedrundetailedline.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	chargeusagebasedrundetailedline.CurrencyValidator = chargeusagebasedrundetailedlineDescCurrency.Validators[0].(func(string) error)
+	// chargeusagebasedrundetailedlineDescChildUniqueReferenceID is the schema descriptor for child_unique_reference_id field.
+	chargeusagebasedrundetailedlineDescChildUniqueReferenceID := chargeusagebasedrundetailedlineMixinFields0[8].Descriptor()
+	// chargeusagebasedrundetailedline.ChildUniqueReferenceIDValidator is a validator for the "child_unique_reference_id" field. It is called by the builders before save.
+	chargeusagebasedrundetailedline.ChildUniqueReferenceIDValidator = chargeusagebasedrundetailedlineDescChildUniqueReferenceID.Validators[0].(func(string) error)
 	// chargeusagebasedrundetailedlineDescNamespace is the schema descriptor for namespace field.
 	chargeusagebasedrundetailedlineDescNamespace := chargeusagebasedrundetailedlineMixinFields0[16].Descriptor()
 	// chargeusagebasedrundetailedline.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.

@@ -43,7 +43,7 @@ type ChargeFlatFeeDetailedLine struct {
 	// InvoicingAppExternalID holds the value of the "invoicing_app_external_id" field.
 	InvoicingAppExternalID *string `json:"invoicing_app_external_id,omitempty"`
 	// ChildUniqueReferenceID holds the value of the "child_unique_reference_id" field.
-	ChildUniqueReferenceID *string `json:"child_unique_reference_id,omitempty"`
+	ChildUniqueReferenceID string `json:"child_unique_reference_id,omitempty"`
 	// PerUnitAmount holds the value of the "per_unit_amount" field.
 	PerUnitAmount alpacadecimal.Decimal `json:"per_unit_amount,omitempty"`
 	// Category holds the value of the "category" field.
@@ -220,8 +220,7 @@ func (_m *ChargeFlatFeeDetailedLine) assignValues(columns []string, values []any
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field child_unique_reference_id", values[i])
 			} else if value.Valid {
-				_m.ChildUniqueReferenceID = new(string)
-				*_m.ChildUniqueReferenceID = value.String
+				_m.ChildUniqueReferenceID = value.String
 			}
 		case chargeflatfeedetailedline.FieldPerUnitAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
@@ -440,10 +439,8 @@ func (_m *ChargeFlatFeeDetailedLine) String() string {
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := _m.ChildUniqueReferenceID; v != nil {
-		builder.WriteString("child_unique_reference_id=")
-		builder.WriteString(*v)
-	}
+	builder.WriteString("child_unique_reference_id=")
+	builder.WriteString(_m.ChildUniqueReferenceID)
 	builder.WriteString(", ")
 	builder.WriteString("per_unit_amount=")
 	builder.WriteString(fmt.Sprintf("%v", _m.PerUnitAmount))
