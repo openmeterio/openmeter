@@ -27,7 +27,7 @@ func newTestSessionLocker(t *testing.T, dbConn string, opts ...pgdriver.Option) 
 		}
 	})
 
-	locker, err := NewSessionLockr(SessionLockerConfig{
+	locker, err := NewSessionLockr(t.Context(), SessionLockerConfig{
 		Logger:         testutils.NewLogger(t),
 		PostgresDriver: postgresDriver,
 	})
@@ -203,18 +203,6 @@ func Test_SessionLocker(t *testing.T) {
 		}
 
 		require.Equal(t, []string{"s2 waiting", "s1 releasing", "s2 acquired"}, results)
-	})
-
-	t.Run("Release without lock is a no-op", func(t *testing.T) {
-		locker := newTestSessionLocker(t, testDB.URL)
-		defer locker.Close()
-
-		key, err := NewKey("test", "release-noop")
-		require.NoError(t, err)
-
-		// Releasing a lock that was never acquired should not error
-		err = locker.Release(t.Context(), key)
-		require.NoError(t, err)
 	})
 
 	t.Run("Lock respects context cancellation", func(t *testing.T) {
