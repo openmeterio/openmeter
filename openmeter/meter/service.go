@@ -7,10 +7,15 @@ import (
 	"slices"
 	"time"
 
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
+
+// maxListMeterFilterDepth caps the And/Or nesting depth for Key and Name filters
+// in ListMetersParams to prevent overly complex filter trees from reaching the DB.
+const maxListMeterFilterDepth = 2
 
 // Meter is an interface for the meter service.
 type Service interface {
@@ -64,8 +69,11 @@ type ListMetersParams struct {
 
 	Namespace string
 
-	IDFilter   *[]string
-	SlugFilter *[]string
+	// AIP-style filters
+	Key  *filter.FilterString `json:"key,omitempty"`
+	Name *filter.FilterString `json:"name,omitempty"`
+
+	IDFilter *[]string
 
 	// WithoutNamespace is a flag to list meters without a namespace.
 	// We do this instead of letting the namespace be empty to avoid
@@ -95,18 +103,22 @@ func (p ListMetersParams) Validate() error {
 		errs = append(errs, fmt.Errorf("invalid order: %s", p.Order))
 	}
 
+	if p.Key != nil {
+		if err := p.Key.ValidateWithComplexity(maxListMeterFilterDepth); err != nil {
+			errs = append(errs, fmt.Errorf("invalid key filter: %w", err))
+		}
+	}
+
+	if p.Name != nil {
+		if err := p.Name.ValidateWithComplexity(maxListMeterFilterDepth); err != nil {
+			errs = append(errs, fmt.Errorf("invalid name filter: %w", err))
+		}
+	}
+
 	if p.IDFilter != nil {
 		for _, id := range *p.IDFilter {
 			if id == "" {
 				errs = append(errs, errors.New("id filter must not contain empty string"))
-			}
-		}
-	}
-
-	if p.SlugFilter != nil {
-		for _, slug := range *p.SlugFilter {
-			if slug == "" {
-				errs = append(errs, errors.New("slug filter must not contain empty string"))
 			}
 		}
 	}

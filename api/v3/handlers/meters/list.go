@@ -8,6 +8,7 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/api/v3/filters"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -53,22 +54,37 @@ func (h *handler) ListMeters() ListMetersHandler {
 				Page:      page,
 			}
 
+			if params.Filter != nil {
+				key, err := filters.FromAPIFilterString(params.Filter.Key)
+				if err != nil {
+					return ListMetersRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[key]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.Key = key
+
+				name, err := filters.FromAPIFilterString(params.Filter.Name)
+				if err != nil {
+					return ListMetersRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[name]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.Name = name
+			}
+
 			return req, nil
 		},
 		func(ctx context.Context, request ListMetersRequest) (ListMetersResponse, error) {
-			resp, err := h.service.ListMeters(ctx, meter.ListMetersParams{
-				Namespace: request.Namespace,
-				Page:      request.Page,
-			})
+			resp, err := h.service.ListMeters(ctx, request)
 			if err != nil {
 				return ListMetersResponse{}, err
 			}
 
-			meters := lo.Map(resp.Items, func(item meter.Meter, _ int) api.Meter {
+			items := lo.Map(resp.Items, func(item meter.Meter, _ int) api.Meter {
 				return ToAPIMeter(item)
 			})
 
-			r := response.NewPagePaginationResponse(meters, response.PageMetaPage{
+			r := response.NewPagePaginationResponse(items, response.PageMetaPage{
 				Size:   request.Page.PageSize,
 				Number: request.Page.PageNumber,
 				Total:  lo.ToPtr(resp.TotalCount),
