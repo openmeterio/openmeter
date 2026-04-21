@@ -546,10 +546,10 @@ jobs:
     needs:
       - trusted-artifacts
       - untrusted-artifacts
-    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') }}
+    if: ${{ always() }}
     uses: ./.github/workflows/workflow-result.yaml
     with:
-      result: "pass"
+      result: ${{ contains(needs.*.result, 'failure') && 'fail' || 'pass' }}
 
   dependency-review:
     name: Dependency review
@@ -632,16 +632,22 @@ jobs:
           cat > quickstart/docker-compose.override.yaml <<EOF
           services:
             openmeter:
+              pull_policy: build
               build: ..
             sink-worker:
+              pull_policy: build
               build: ..
             balance-worker:
+              pull_policy: build
               build: ..
             notification-service:
+              pull_policy: build
               build: ..
             billing-worker:
+              pull_policy: build
               build: ..
             openmeter-jobs:
+              pull_policy: build
               build: ..
           EOF
       - name: Launch Docker Compose
