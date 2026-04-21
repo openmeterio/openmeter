@@ -19,6 +19,8 @@ services:
     extends:
       file: ../docker-compose.base.yaml
       service: postgres
+    ports:
+      - "127.0.0.1:35432:5432"
 
 configs:
   svix_sql:

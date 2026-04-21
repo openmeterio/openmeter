@@ -177,6 +177,7 @@ All builds use `GO_BUILD_FLAGS=-tags=dynamic`.
 - Load the repository environment with `direnv`, or run commands with `direnv exec . <command>`, so project-specific environment variables and tool configuration are applied consistently
 - Key settings: `postgres.url`, `postgres.autoMigrate`, `billing`, `notification`, meter definitions
 - `credits.enabled` needs explicit guarding at multiple layers: ledger-backed customer credit handlers in `api/v3/server`, customer ledger hooks, and namespace/default-account provisioning are wired separately and must each stay disabled when credits are off.
+- When `credits.enabled` is `false`, `app/common` wires ledger account services/resolvers to noop implementations. Any ledger account backfill that must write real `ledger_accounts` / `ledger_customer_accounts` rows needs to construct concrete ledger account + resolver adapters directly instead of relying on the default DI outputs.
 - Make targets for running services will warn if `config.yaml` is outdated vs `config.example.yaml`
 
 ## Coding Conventions
