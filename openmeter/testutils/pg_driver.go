@@ -57,32 +57,85 @@ type TestDB struct {
 	URL       string
 }
 
-func InitPostgresDB(t *testing.T) *TestDB {
-	t.Helper()
-
-	// Set POSTGRES_HOST to point tests at your local Postgres.
-	// For example to use the Postgres in docker compose you can run `POSTGRES_HOST=localhost go test ./internal/credit/...`
-	host := os.Getenv("POSTGRES_HOST")
-	if host == "" {
-		t.Skip("POSTGRES_HOST not set")
+func (d *TestDB) Close(t *testing.T) {
+	if err := d.EntDriver.Close(); err != nil {
+		t.Errorf("failed to close Ent driver: %v", err)
 	}
 
-	// TODO: fix migrations
-	dbConf := pgtestdb.Custom(t, pgtestdb.Config{
-		DriverName: "pgx",
-		User:       "postgres",
-		Password:   "postgres",
-		Host:       host,
-		Port:       "5432",
-		Options:    "sslmode=disable",
-	}, &NoopMigrator{})
+	if err := d.PGDriver.Close(); err != nil {
+		t.Errorf("failed to close Postgres driver: %v", err)
+	}
+}
+
+type options struct {
+	config        pgtestdb.Config
+	migrator      pgtestdb.Migrator
+	driverOptions []pgdriver.Option
+}
+
+type Option interface {
+	apply(*options)
+}
+
+type optionFunc func(c *options)
+
+func (fn optionFunc) apply(c *options) {
+	fn(c)
+}
+
+func WithPostgresConfig(config pgtestdb.Config) Option {
+	return optionFunc(func(o *options) {
+		o.config = config
+	})
+}
+
+func WithMigrator(migrator pgtestdb.Migrator) Option {
+	return optionFunc(func(o *options) {
+		o.migrator = migrator
+	})
+}
+
+func WithDriverOptions(opts []pgdriver.Option) Option {
+	return optionFunc(func(o *options) {
+		o.driverOptions = opts
+	})
+}
+
+func InitPostgresDB(t *testing.T, opts ...Option) *TestDB {
+	t.Helper()
+
+	o := options{
+		config: pgtestdb.Config{
+			DriverName: "pgx",
+			User:       "postgres",
+			Password:   "postgres",
+			Host:       os.Getenv("POSTGRES_HOST"),
+			Port:       "5432",
+			Options:    "sslmode=disable",
+		},
+		migrator: &NoopMigrator{}, // TODO: fix migrations
+	}
+
+	for _, opt := range opts {
+		opt.apply(&o)
+	}
+
+	if o.config.Host == "" {
+		t.Skip("postgres host is not set. Either set POSTGRES_HOST environment variable or use WithPostgresConfig option")
+	}
+
+	dbConf := pgtestdb.Custom(t, o.config, o.migrator)
+	if dbConf == nil {
+		t.Fatalf("failed to get db config")
+	}
 
 	postgresDriver, err := pgdriver.NewPostgresDriver(
-		context.TODO(),
+		t.Context(),
 		dbConf.URL(),
+		o.driverOptions...,
 	)
 	if err != nil {
-		t.Fatalf("failed to get pg driver: %s", err)
+		t.Fatalf("failed to get postgres driver: %s", err)
 	}
 
 	entDriver := entdriver.NewEntPostgresDriver(postgresDriver.DB())
