@@ -229,7 +229,6 @@ type Realizations struct {
 	CreditRealizations creditrealization.Realizations `json:"creditRealizations"`
 	AccruedUsage       *invoicedusage.AccruedUsage    `json:"accruedUsage"`
 	Payment            *payment.Invoiced              `json:"payment"`
-<<<<<<< HEAD
 	DetailedLines      mo.Option[DetailedLines]       `json:"detailedLines,omitzero"`
 }
 
