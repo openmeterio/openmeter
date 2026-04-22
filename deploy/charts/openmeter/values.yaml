@@ -125,9 +125,6 @@ kafka:
   # **Not recommended for production environments.**
   enabled: true
 
-  image:
-    registry: registry.bitnami.com
-
   listeners:
     client:
       name: plain
@@ -213,9 +210,6 @@ redis:
   # All further values can be configured in the `redis` section.
   enabled: true
 
-  image:
-    registry: registry.bitnami.com
-
   auth:
     enabled: false
 
@@ -226,9 +220,6 @@ postgresql:
   # **Not recommended for production environments.**
   # All further values can be configured in the `postgres` section.
   enabled: true
-
-  image:
-    registry: registry.bitnami.com
 
   nameOverride: postgres
 
