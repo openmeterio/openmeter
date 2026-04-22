@@ -209,43 +209,16 @@ func (a *adapter) mapStandardInvoiceDetailedLineFromDB(dbLine *db.BillingInvoice
 }
 
 func (a *adapter) mapStandardInvoiceDetailedLineV2FromDB(dbLine *db.BillingStandardInvoiceDetailedLine) (billing.DetailedLine, error) {
-	creditsApplied := lo.FromPtr(dbLine.CreditsApplied)
-	if len(creditsApplied) == 0 {
-		creditsApplied = nil
-	}
-
 	detailedLineBase := billing.DetailedLineBase{
 		InvoiceID: dbLine.InvoiceID,
-		Base: stddetailedline.Base{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Namespace:   dbLine.Namespace,
-				ID:          dbLine.ID,
-				CreatedAt:   dbLine.CreatedAt.In(time.UTC),
-				UpdatedAt:   dbLine.UpdatedAt.In(time.UTC),
-				DeletedAt:   convert.TimePtrIn(dbLine.DeletedAt, time.UTC),
-				Name:        dbLine.Name,
-				Description: dbLine.Description,
-			}),
-			ChildUniqueReferenceID: dbLine.ChildUniqueReferenceID,
-			ServicePeriod: timeutil.ClosedPeriod{
-				From: dbLine.ServicePeriodStart.In(time.UTC),
-				To:   dbLine.ServicePeriodEnd.In(time.UTC),
-			},
-			PerUnitAmount:  dbLine.PerUnitAmount,
-			Quantity:       dbLine.Quantity,
-			Category:       dbLine.Category,
-			PaymentTerm:    dbLine.PaymentTerm,
-			Index:          dbLine.Index,
-			Currency:       dbLine.Currency,
-			CreditsApplied: creditsApplied,
-			TaxConfig: backfillTaxConfigReferences(
+		Base: stddetailedline.FromDB(
+			dbLine,
+			backfillTaxConfigReferences(
 				lo.EmptyableToPtr(dbLine.TaxConfig),
 				dbLine.TaxBehavior,
 				taxCodeFromDetailedLineV2Edge(dbLine),
 			),
-			Totals:      totals.FromDB(dbLine),
-			ExternalIDs: externalid.MapLineExternalIDFromDB(dbLine),
-		},
+		),
 	}
 
 	discounts, err := slicesx.MapWithErr(dbLine.Edges.AmountDiscounts, a.mapStandardInvoiceDetailedLineAmountDiscountFromDB)

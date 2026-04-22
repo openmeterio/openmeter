@@ -113,7 +113,7 @@ type service struct {
 	featureService          feature.FeatureConnector
 	ratingService           rating.Service
 
-	rater *usagebasedrating.Service
+	rater usagebasedrating.Service
 	runs  *usagebasedrun.Service
 }
 

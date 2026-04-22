@@ -13,7 +13,6 @@ import (
 	creditpurchaseservice "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
-	flatfeelineengine "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/lineengine"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
@@ -146,13 +145,15 @@ func NewChargesFlatFeeService(
 	lineageService lineage.Service,
 	metaAdapter meta.Adapter,
 	locker *lockr.Locker,
+	ratingService rating.Service,
 ) (flatfee.Service, error) {
 	flatFeeSvc, err := flatfeeservice.New(flatfeeservice.Config{
-		Adapter:     flatFeeAdapter,
-		Handler:     flatFeeHandler,
-		Lineage:     lineageService,
-		MetaAdapter: metaAdapter,
-		Locker:      locker,
+		Adapter:       flatFeeAdapter,
+		Handler:       flatFeeHandler,
+		Lineage:       lineageService,
+		MetaAdapter:   metaAdapter,
+		Locker:        locker,
+		RatingService: ratingService,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create charges flat fee service: %w", err)
@@ -325,20 +326,12 @@ func newChargesRegistry(
 		return nil, err
 	}
 
-	flatFeeSvc, err := NewChargesFlatFeeService(flatFeeAdapter, flatFeeHandler, lineageService, metaAdapter, locker)
+	flatFeeSvc, err := NewChargesFlatFeeService(flatFeeAdapter, flatFeeHandler, lineageService, metaAdapter, locker, ratingService)
 	if err != nil {
 		return nil, err
 	}
 
-	flatFeeLineEngine, err := flatfeelineengine.New(flatfeelineengine.Config{
-		FlatFeeService: flatFeeSvc,
-		RatingService:  ratingService,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create charges flat fee line engine: %w", err)
-	}
-
-	if err := billingService.RegisterLineEngine(flatFeeLineEngine); err != nil {
+	if err := billingService.RegisterLineEngine(flatFeeSvc.GetLineEngine()); err != nil {
 		return nil, fmt.Errorf("failed to register charges flat fee line engine: %w", err)
 	}
 

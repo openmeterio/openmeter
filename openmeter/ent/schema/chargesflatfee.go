@@ -163,7 +163,7 @@ func (ChargeFlatFeeDetailedLine) Indexes() []ent.Index {
 		index.Fields("namespace", "charge_id"),
 		index.Fields("namespace", "charge_id", "child_unique_reference_id").
 			Annotations(
-				entsql.IndexWhere("child_unique_reference_id IS NOT NULL AND deleted_at IS NULL"),
+				entsql.IndexWhere("deleted_at IS NULL"),
 			).
 			StorageKey("chargeffdetailedline_ns_charge_child_id").
 			Unique(),

@@ -174,6 +174,10 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 		return fmt.Errorf("no realization run in progress [charge_id=%s]", s.Charge.ID)
 	}
 
+	if err := s.ensureDetailedLinesLoadedForRating(ctx); err != nil {
+		return err
+	}
+
 	currentRun, err := s.Charge.Realizations.GetByID(*s.Charge.State.CurrentRealizationRunID)
 	if err != nil {
 		return fmt.Errorf("get current realization run: %w", err)
@@ -181,8 +185,9 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 
 	storedAtOffset := meta.NormalizeTimestamp(clock.Now().Add(-usagebased.InternalCollectionPeriod))
 
-	ratingResult, err := s.Rater.GetDetailedLinesForUsage(ctx, usagebasedrating.GetRatingForUsageInput{
+	ratingResult, err := s.Rater.GetDetailedLinesForUsage(ctx, usagebasedrating.GetDetailedLinesForUsageInput{
 		Charge:         s.Charge,
+		PriorRuns:      s.Charge.Realizations.Without(currentRun.ID),
 		Customer:       s.CustomerOverride,
 		FeatureMeter:   s.FeatureMeter,
 		StoredAtOffset: storedAtOffset,
@@ -207,6 +212,12 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 
 	currentTotals.CreditsTotal = currentTotals.CreditsTotal.Add(targetCreditsTotal)
 	currentTotals.Total = alpacadecimal.Zero
+
+	runDetailedLines, err := s.Runs.PersistRunDetailedLines(ctx, s.Charge, currentRun, ratingResult)
+	if err != nil {
+		return err
+	}
+	currentRun.DetailedLines = mo.Some(runDetailedLines)
 
 	if _, err := s.Adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
 		ID:         currentRun.ID,

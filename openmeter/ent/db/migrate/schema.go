@@ -1459,7 +1459,7 @@ var (
 				Unique:  true,
 				Columns: []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[15], BillingStandardInvoiceDetailedLinesColumns[31], BillingStandardInvoiceDetailedLinesColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
-					Where: "child_unique_reference_id IS NOT NULL AND deleted_at IS NULL",
+					Where: "deleted_at IS NULL",
 				},
 			},
 		},
@@ -2167,7 +2167,7 @@ var (
 				Unique:  true,
 				Columns: []*schema.Column{ChargeFlatFeeDetailedLineColumns[15], ChargeFlatFeeDetailedLineColumns[30], ChargeFlatFeeDetailedLineColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
-					Where: "child_unique_reference_id IS NOT NULL AND deleted_at IS NULL",
+					Where: "deleted_at IS NULL",
 				},
 			},
 		},
@@ -2585,7 +2585,7 @@ var (
 				Unique:  true,
 				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[15], ChargeUsageBasedRunDetailedLineColumns[30], ChargeUsageBasedRunDetailedLineColumns[31], ChargeUsageBasedRunDetailedLineColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
-					Where: "child_unique_reference_id IS NOT NULL AND deleted_at IS NULL",
+					Where: "deleted_at IS NULL",
 				},
 			},
 		},

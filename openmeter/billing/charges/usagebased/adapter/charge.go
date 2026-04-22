@@ -155,6 +155,15 @@ func (a *adapter) GetByIDs(ctx context.Context, input usagebased.GetByIDsInput) 
 			return nil, err
 		}
 
+		if input.Expands.Has(meta.ExpandDetailedLines) {
+			out, err = slicesx.MapWithErr(out, func(charge usagebased.Charge) (usagebased.Charge, error) {
+				return tx.FetchDetailedLines(ctx, charge)
+			})
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		return out, nil
 	})
 }
@@ -185,6 +194,13 @@ func (a *adapter) GetByID(ctx context.Context, input usagebased.GetByIDInput) (u
 		charge, err := MapChargeFromDB(entity, input.Expands)
 		if err != nil {
 			return usagebased.Charge{}, err
+		}
+
+		if input.Expands.Has(meta.ExpandDetailedLines) {
+			charge, err = tx.FetchDetailedLines(ctx, charge)
+			if err != nil {
+				return usagebased.Charge{}, err
+			}
 		}
 
 		return charge, nil

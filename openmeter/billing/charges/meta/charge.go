@@ -69,12 +69,14 @@ type Expand string
 const (
 	ExpandRealizations  Expand = "realizations"
 	ExpandRealtimeUsage Expand = "realtime_usage"
+	ExpandDetailedLines Expand = "detailed_lines"
 )
 
 func (e Expand) Values() []Expand {
 	return []Expand{
 		ExpandRealizations,
 		ExpandRealtimeUsage,
+		ExpandDetailedLines,
 	}
 }
 

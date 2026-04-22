@@ -63,6 +63,10 @@ func (s *service) PostInvoiceIssued(ctx context.Context, charge flatfee.Charge, 
 			return fmt.Errorf("postInvoiceIssued: line is nil")
 		}
 
+		if err := s.persistDetailedLines(ctx, charge, *lineWithHeader.Line); err != nil {
+			return fmt.Errorf("persisting detailed lines: %w", err)
+		}
+
 		if lineWithHeader.Line.Totals.Total.IsZero() {
 			return nil
 		}

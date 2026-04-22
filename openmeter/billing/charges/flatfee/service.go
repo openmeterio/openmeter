@@ -14,6 +14,7 @@ import (
 
 type Service interface {
 	FlatFeeService
+	GetLineEngine() billing.LineEngine
 	InvoiceLifecycleHooks
 }
 

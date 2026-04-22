@@ -122,7 +122,6 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 
 		flatFeeChargeID = flatFeeCharge.GetChargeID()
 	})
-
 	var stdInvoiceID billing.InvoiceID
 	var stdLineID billing.LineID
 	s.Run("invoice pending lines creates partial credit realizations", func() {
@@ -213,11 +212,18 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		s.Equal(float64(30), creditRealizationDetail.Amount.InexactFloat64())
 		s.Equal(creditRealization.ID, creditRealizationDetail.CreditRealizationID)
 
+		flatFeeWithDetailedLines := s.mustGetFlatFeeChargeByIDWithDetailedLines(flatFeeChargeID)
+		s.True(flatFeeWithDetailedLines.Realizations.DetailedLines.IsPresent())
+		s.Len(flatFeeWithDetailedLines.Realizations.DetailedLines.OrEmpty(), 1)
+		s.Equal(detailedLine.ChildUniqueReferenceID, flatFeeWithDetailedLines.Realizations.DetailedLines.OrEmpty()[0].ChildUniqueReferenceID)
+		s.Equal(detailedLine.Totals.Total.String(), flatFeeWithDetailedLines.Realizations.DetailedLines.OrEmpty()[0].Totals.Total.String())
+		s.Equal(detailedLine.Quantity.String(), flatFeeWithDetailedLines.Realizations.DetailedLines.OrEmpty()[0].Quantity.String())
+		s.Len(flatFeeWithDetailedLines.Realizations.DetailedLines.OrEmpty()[0].CreditsApplied, 1)
+
 		stdInvoiceID = invoice.GetInvoiceID()
 		s.NotEmpty(stdInvoiceID)
 		s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
 	})
-
 	s.Run("approve invoice accrues usage without authorizing payment", func() {
 		defer s.FlatFeeTestHandler.Reset()
 
@@ -393,6 +399,10 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedDo
 		s.NoError(err)
 		s.Len(updatedFlatFeeCharge.Realizations.CreditRealizations, 1)
 		s.Nil(updatedFlatFeeCharge.Realizations.AccruedUsage)
+
+		flatFeeWithDetailedLines := s.mustGetFlatFeeChargeByIDWithDetailedLines(flatFeeChargeID)
+		s.True(flatFeeWithDetailedLines.Realizations.DetailedLines.IsPresent())
+		s.Len(flatFeeWithDetailedLines.Realizations.DetailedLines.OrEmpty(), len(invoice.Lines.OrEmpty()[0].DetailedLines))
 	})
 
 	s.Run("post invoice issued without invoice usage accrual", func() {
@@ -412,10 +422,10 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedDo
 		s.NoError(err)
 		s.Equal(0, invoiceUsageAccruedCallback.nrInvocations)
 
-		charge = s.mustGetChargeByID(flatFeeChargeID)
-		updatedFlatFeeCharge, err := charge.AsFlatFeeCharge()
-		s.NoError(err)
+		updatedFlatFeeCharge := s.mustGetFlatFeeChargeByIDWithDetailedLines(flatFeeChargeID)
 		s.Nil(updatedFlatFeeCharge.Realizations.AccruedUsage)
+		s.True(updatedFlatFeeCharge.Realizations.DetailedLines.IsPresent())
+		s.Len(updatedFlatFeeCharge.Realizations.DetailedLines.OrEmpty(), len(invoice.Lines.OrEmpty()[0].DetailedLines))
 	})
 }
 
@@ -910,6 +920,15 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 		s.Len(currentRun.CreditsAllocated, 1)
 		s.Equal(creditrealization.TypeAllocation, currentRun.CreditsAllocated[0].Type)
 		s.Equal(float64(20), currentRun.CreditsAllocated[0].Amount.InexactFloat64())
+
+		expandedCharge := s.mustGetUsageBasedChargeByIDWithDetailedLines(usageBasedChargeID)
+		expandedRun, err := expandedCharge.Realizations.GetByID(*expandedCharge.State.CurrentRealizationRunID)
+		s.NoError(err)
+		s.True(expandedRun.DetailedLines.IsPresent())
+		s.Len(expandedRun.DetailedLines.OrEmpty(), 1)
+		s.Equal("volume-tiered-price@[2026-01-01T00:00:00Z..2026-02-01T00:00:00Z]", expandedRun.DetailedLines.OrEmpty()[0].ChildUniqueReferenceID)
+		s.Equal(float64(10), expandedRun.DetailedLines.OrEmpty()[0].Quantity.InexactFloat64())
+		s.Equal(float64(2), expandedRun.DetailedLines.OrEmpty()[0].PerUnitAmount.InexactFloat64())
 	})
 
 	s.Run("#4 finalize with persisted negative correction", func() {
@@ -993,6 +1012,14 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 		s.Equal(creditrealization.TypeCorrection, finalRun.CreditsAllocated[1].Type)
 		s.Equal(float64(-9), finalRun.CreditsAllocated[1].Amount.InexactFloat64())
 		s.Equal(finalRun.CreditsAllocated[0].ID, lo.FromPtr(finalRun.CreditsAllocated[1].CorrectsRealizationID))
+
+		expandedCharge := s.mustGetUsageBasedChargeByIDWithDetailedLines(usageBasedChargeID)
+		s.Len(expandedCharge.Realizations, 1)
+		s.True(expandedCharge.Realizations[0].DetailedLines.IsPresent())
+		s.Len(expandedCharge.Realizations[0].DetailedLines.OrEmpty(), 1)
+		s.Equal("volume-tiered-price@[2026-01-01T00:00:00Z..2026-02-01T00:00:00Z]", expandedCharge.Realizations[0].DetailedLines.OrEmpty()[0].ChildUniqueReferenceID)
+		s.Equal(float64(11), expandedCharge.Realizations[0].DetailedLines.OrEmpty()[0].Quantity.InexactFloat64())
+		s.Equal(float64(1), expandedCharge.Realizations[0].DetailedLines.OrEmpty()[0].PerUnitAmount.InexactFloat64())
 	})
 }
 
@@ -1121,6 +1148,15 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		s.Len(currentRun.CreditsAllocated, 1)
 		s.Equal(float64(5), currentRun.CreditsAllocated[0].Amount.InexactFloat64())
 		s.True((*remainingCredits).IsZero())
+
+		expandedCharge := s.mustGetUsageBasedChargeByIDWithDetailedLines(usageBasedChargeID)
+		expandedRun, err := expandedCharge.GetCurrentRealizationRun()
+		s.NoError(err)
+		s.True(expandedRun.DetailedLines.IsPresent())
+		s.Len(expandedRun.DetailedLines.OrEmpty(), 1)
+		s.Equal("unit-price-usage@[2026-01-01T00:00:00Z..2026-02-01T00:00:00Z]", expandedRun.DetailedLines.OrEmpty()[0].ChildUniqueReferenceID)
+		s.Equal(float64(100), expandedRun.DetailedLines.OrEmpty()[0].Quantity.InexactFloat64())
+		s.Equal(float64(0.1), expandedRun.DetailedLines.OrEmpty()[0].PerUnitAmount.InexactFloat64())
 	})
 
 	s.Run("#5 advance invoice at collection period end", func() {
@@ -1169,6 +1205,15 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		s.Equal(float64(5), currentRun.CreditsAllocated[0].Amount.InexactFloat64())
 		s.Equal(float64(3), currentRun.CreditsAllocated[1].Amount.InexactFloat64())
 		s.True((*remainingCredits).IsZero())
+
+		expandedCharge := s.mustGetUsageBasedChargeByIDWithDetailedLines(usageBasedChargeID)
+		expandedRun, err := expandedCharge.GetCurrentRealizationRun()
+		s.NoError(err)
+		s.True(expandedRun.DetailedLines.IsPresent())
+		s.Len(expandedRun.DetailedLines.OrEmpty(), 1)
+		s.Equal("unit-price-usage@[2026-01-01T00:00:00Z..2026-02-01T00:00:00Z]", expandedRun.DetailedLines.OrEmpty()[0].ChildUniqueReferenceID)
+		s.Equal(float64(125), expandedRun.DetailedLines.OrEmpty()[0].Quantity.InexactFloat64())
+		s.Equal(float64(0.1), expandedRun.DetailedLines.OrEmpty()[0].PerUnitAmount.InexactFloat64())
 	})
 
 	s.Run("#6 approve invoice and finalize the realization run at issuance", func() {
@@ -2073,4 +2118,40 @@ func (s *InvoicableChargesTestSuite) mustGetUsageBasedChargeByID(chargeID meta.C
 	s.NoError(err)
 
 	return usageBasedCharge
+}
+
+func (s *InvoicableChargesTestSuite) mustGetUsageBasedChargeByIDWithDetailedLines(chargeID meta.ChargeID) usagebased.Charge {
+	s.T().Helper()
+
+	charge, err := s.Charges.GetByID(s.T().Context(), charges.GetByIDInput{
+		ChargeID: chargeID,
+		Expands: meta.Expands{
+			meta.ExpandRealizations,
+			meta.ExpandDetailedLines,
+		},
+	})
+	s.NoError(err)
+
+	usageBasedCharge, err := charge.AsUsageBasedCharge()
+	s.NoError(err)
+
+	return usageBasedCharge
+}
+
+func (s *InvoicableChargesTestSuite) mustGetFlatFeeChargeByIDWithDetailedLines(chargeID meta.ChargeID) flatfee.Charge {
+	s.T().Helper()
+
+	charge, err := s.Charges.GetByID(s.T().Context(), charges.GetByIDInput{
+		ChargeID: chargeID,
+		Expands: meta.Expands{
+			meta.ExpandRealizations,
+			meta.ExpandDetailedLines,
+		},
+	})
+	s.NoError(err)
+
+	flatFeeCharge, err := charge.AsFlatFeeCharge()
+	s.NoError(err)
+
+	return flatFeeCharge
 }

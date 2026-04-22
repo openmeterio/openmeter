@@ -12,6 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -421,22 +422,9 @@ func (a *adapter) upsertDetailedLinesV2(ctx context.Context, in detailedLineDiff
 				SetID(line.ID).
 				SetNamespace(line.Namespace).
 				SetInvoiceID(line.InvoiceID).
-				SetServicePeriodStart(line.ServicePeriod.From.In(time.UTC)).
-				SetServicePeriodEnd(line.ServicePeriod.To.In(time.UTC)).
-				SetParentLineID(lineWithParent.Parent.ID).
-				SetNillableDeletedAt(line.DeletedAt).
-				SetName(line.Name).
-				SetNillableDescription(line.Description).
-				SetCurrency(line.Currency).
-				SetQuantity(line.Quantity).
-				SetPerUnitAmount(line.PerUnitAmount).
-				SetChildUniqueReferenceID(line.ChildUniqueReferenceID).
-				SetCategory(line.Category).
-				SetPaymentTerm(line.PaymentTerm).
-				SetNillableIndex(line.Index)
+				SetParentLineID(lineWithParent.Parent.ID)
 
-			create = externalid.CreateLineExternalID(create, line.ExternalIDs)
-			create = totals.Set(create, line.Totals)
+			create = stddetailedline.Create(create, line.Base)
 
 			if len(line.CreditsApplied) > 0 {
 				create = create.SetCreditsApplied(&line.CreditsApplied)
