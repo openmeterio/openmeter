@@ -299,6 +299,57 @@ func TestV3PlanAddonInstanceTypeMaxQuantityMatrix(t *testing.T) {
 	}
 }
 
+// Updating a multiple-instance plan-addon with MaxQuantity=nil must be
+// rejected now that UpdatePlanAddon validates post-merge state.
+func TestV3PlanAddonUpdateMaxQuantityValidation(t *testing.T) {
+	c := newV3Client(t)
+
+	status, plan, problem := c.CreatePlan(validPlanRequest("upd_mq_plan"))
+	require.Equal(t, http.StatusCreated, status, "create plan: %+v", problem)
+	require.NotNil(t, plan)
+
+	addonBody := validAddonRequest("upd_mq_addon")
+	addonBody.InstanceType = apiv3.AddonInstanceTypeMultiple
+
+	status, addon, problem := c.CreateAddon(addonBody)
+	require.Equal(t, http.StatusCreated, status, "create addon: %+v", problem)
+
+	status, _, problem = c.PublishAddon(addon.Id)
+	require.Equal(t, http.StatusOK, status, "publish addon: %+v", problem)
+
+	body := validPlanAddonRequest(plan.Phases[0].Key, addon.Id)
+	body.MaxQuantity = lo.ToPtr(5)
+
+	status, planAddon, problem := c.AttachAddon(plan.Id, body)
+	require.Equal(t, http.StatusCreated, status, "attach: %+v", problem)
+	require.NotNil(t, planAddon)
+
+	t.Run("clearing MaxQuantity on a multiple-instance addon must be rejected", func(t *testing.T) {
+		update := apiv3.UpsertPlanAddonRequest{
+			Name:          "Updated Plan Addon",
+			FromPlanPhase: planAddon.FromPlanPhase,
+			MaxQuantity:   nil,
+		}
+
+		status, _, problem := c.UpdatePlanAddon(plan.Id, planAddon.Id, update)
+		assert.Equal(t, http.StatusBadRequest, status, "problem: %+v", problem)
+		assertValidationCode(t, problem, "plan_addon_max_quantity_must_be_set")
+	})
+
+	t.Run("updating MaxQuantity to a valid value must succeed", func(t *testing.T) {
+		update := apiv3.UpsertPlanAddonRequest{
+			Name:          "Updated Plan Addon",
+			FromPlanPhase: planAddon.FromPlanPhase,
+			MaxQuantity:   lo.ToPtr(10),
+		}
+
+		status, updated, problem := c.UpdatePlanAddon(plan.Id, planAddon.Id, update)
+		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		require.NotNil(t, updated)
+		assert.Equal(t, lo.ToPtr(10), updated.MaxQuantity)
+	})
+}
+
 // Detach rules by plan status. The "scheduled plan" row is omitted because
 // the v3 publish endpoint hardcodes EffectiveFrom = clock.Now(), so a
 // scheduled plan is unreachable via the public API.
