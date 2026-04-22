@@ -92,7 +92,9 @@ interface MetersOperations {
   delete(
     @path meterId: Shared.ULID,
   ): Shared.DeleteResponse | Common.NotFound | Common.ErrorResponses;
+}
 
+interface MetersQueryOperations {
   /**
    * Query a meter for usage.
    *
