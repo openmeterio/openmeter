@@ -3,7 +3,7 @@ package customerbalance
 import (
 	"context"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -18,7 +18,7 @@ func newFundedCreditTransactionLoader(s *service) creditTransactionLoader {
 }
 
 func (l *fundedCreditTransactionLoader) Load(ctx context.Context, input creditTransactionLoaderInput) (creditTransactionLoaderResult, error) {
-	result, err := l.service.ChargesService.ListFundedCreditActivities(ctx, charges.ListFundedCreditActivitiesInput{
+	result, err := l.service.CreditPurchaseSvc.ListFundedCreditActivities(ctx, creditpurchase.ListFundedCreditActivitiesInput{
 		Customer: input.CustomerID,
 		Limit:    input.Limit,
 		After:    toFundedCreditActivityCursor(input.After),
@@ -54,12 +54,12 @@ func (l *fundedCreditTransactionLoader) Load(ctx context.Context, input creditTr
 	}, nil
 }
 
-func toFundedCreditActivityCursor(cursor *ledger.TransactionCursor) *charges.FundedCreditActivityCursor {
+func toFundedCreditActivityCursor(cursor *ledger.TransactionCursor) *creditpurchase.FundedCreditActivityCursor {
 	if cursor == nil {
 		return nil
 	}
 
-	return &charges.FundedCreditActivityCursor{
+	return &creditpurchase.FundedCreditActivityCursor{
 		FundedAt:        cursor.BookedAt,
 		ChargeCreatedAt: cursor.CreatedAt,
 		ChargeID:        chargesFundedCursorChargeID(cursor.ID),

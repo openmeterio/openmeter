@@ -17,7 +17,6 @@ import (
 
 type Service interface {
 	ChargeService
-	ChargeActivityService
 
 	// Facade interfaces provide convinience helpers for the API layer.
 	CreditPurchaseFacadeService
@@ -35,12 +34,6 @@ type ChargeService interface {
 	// going through the temporary delete+create remap.
 	ApplyPatches(ctx context.Context, input ApplyPatchesInput) error
 	ListCharges(ctx context.Context, input ListChargesInput) (pagination.Result[Charge], error)
-}
-
-// ChargeActivityService provides charge-based activity listing helpers for
-// downstream projections (for example customer credit activity).
-type ChargeActivityService interface {
-	ListFundedCreditActivities(ctx context.Context, input ListFundedCreditActivitiesInput) (ListFundedCreditActivitiesResult, error)
 }
 
 type CreditPurchaseFacadeService interface {

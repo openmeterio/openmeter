@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	charges "github.com/openmeterio/openmeter/openmeter/billing/charges"
 	chargeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/adapter"
+	creditpurchaseadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
@@ -225,6 +226,13 @@ func newTestEnv(t *testing.T) *testEnv {
 	})
 	require.NoError(t, err)
 
+	creditPurchaseAdapter, err := creditpurchaseadapter.New(creditpurchaseadapter.Config{
+		Client:      base.DB,
+		Logger:      logger,
+		MetaAdapter: metaAdapter,
+	})
+	require.NoError(t, err)
+
 	service, err := New(Config{
 		AccountResolver:   base.Deps.ResolversService,
 		SubAccountService: base.Deps.AccountService,
@@ -233,6 +241,7 @@ func newTestEnv(t *testing.T) *testEnv {
 			flatFeeService:    flatFeeService,
 			usageBasedService: usageService,
 		},
+		CreditPurchaseSvc: creditPurchaseAdapter,
 		UsageBasedService: usageService,
 		Ledger:            base.Deps.HistoricalLedger,
 	})
@@ -550,10 +559,6 @@ func (l chargeStore) ListCharges(ctx context.Context, input charges.ListChargesI
 		TotalCount: searchResult.TotalCount,
 		Items:      items,
 	}, nil
-}
-
-func (l chargeStore) ListFundedCreditActivities(ctx context.Context, input charges.ListFundedCreditActivitiesInput) (charges.ListFundedCreditActivitiesResult, error) {
-	return l.search.ListFundedCreditActivities(ctx, input)
 }
 
 type mockCustomerOverrideService struct {

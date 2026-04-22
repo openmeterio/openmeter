@@ -1,4 +1,4 @@
-package charges
+package creditpurchase
 
 import (
 	"errors"

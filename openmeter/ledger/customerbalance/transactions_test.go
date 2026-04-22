@@ -262,7 +262,3 @@ func (s staticChargeService) GetByIDs(_ context.Context, input charges.GetByIDsI
 func (s staticChargeService) ListCharges(context.Context, charges.ListChargesInput) (pagination.Result[charges.Charge], error) {
 	return pagination.Result[charges.Charge]{}, nil
 }
-
-func (s staticChargeService) ListFundedCreditActivities(context.Context, charges.ListFundedCreditActivitiesInput) (charges.ListFundedCreditActivitiesResult, error) {
-	return charges.ListFundedCreditActivitiesResult{}, nil
-}

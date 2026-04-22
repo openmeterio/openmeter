@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"slices"
 
-	entsql "entgo.io/ent/dialect/sql"
 	sql "entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqljson"
 	"github.com/alpacahq/alpacadecimal"
@@ -305,7 +304,7 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 
 	// Filter by annotation key-value matches.
 	for key, value := range input.AnnotationFilters {
-		query = query.Where(func(s *entsql.Selector) {
+		query = query.Where(func(s *sql.Selector) {
 			s.Where(sqljson.ValueEQ(ledgertransactiondb.FieldAnnotations, value, sqljson.Path(key)))
 		})
 	}
@@ -433,9 +432,9 @@ func ledgerTransactionBeforeCursorPredicate(cursor ledger.TransactionCursor) pre
 }
 
 func listTransactionsOrdering(before bool) []ledgertransactiondb.OrderOption {
-	order := entsql.OrderDesc()
+	order := sql.OrderDesc()
 	if before {
-		order = entsql.OrderAsc()
+		order = sql.OrderAsc()
 	}
 
 	return []ledgertransactiondb.OrderOption{
