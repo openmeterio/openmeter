@@ -33,6 +33,10 @@ func (i CreateRatedRunInput) Validate() error {
 		return fmt.Errorf("charge: %w", err)
 	}
 
+	if i.Charge.State.CurrentRealizationRunID != nil {
+		return fmt.Errorf("charge: current realization run already exists [charge_id=%s]", i.Charge.GetChargeID())
+	}
+
 	if i.CustomerOverride.Customer == nil {
 		return fmt.Errorf("expanded customer is required")
 	}

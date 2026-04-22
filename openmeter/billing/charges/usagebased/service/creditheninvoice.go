@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/statelessx"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type CreditThenInvoiceStateMachine struct {
@@ -56,9 +57,15 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 			s.AdvanceAfterServicePeriodFrom,
 		)
 
+	// Active
+
 	s.Configure(usagebased.StatusActive).
 		Permit(
-			meta.TriggerInvoiceCreated,
+			meta.TriggerPartialInvoiceCreated,
+			usagebased.StatusActivePartialInvoiceStarted,
+		).
+		Permit(
+			meta.TriggerFinalInvoiceCreated,
 			usagebased.StatusActiveFinalRealizationStarted,
 			statelessx.BoolFn(s.IsAfterServicePeriod),
 		).
@@ -70,13 +77,80 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 			),
 		)
 
+	// ############################################################
+	// Partial invoice realizations
+	// ############################################################
+
+	s.Configure(usagebased.StatusActivePartialInvoiceStarted).
+		Permit(
+			meta.TriggerFinalInvoiceCreated,
+			usagebased.StatusActiveFinalRealizationStarted,
+			statelessx.BoolFn(s.IsAfterServicePeriod),
+		).
+		Permit(
+			meta.TriggerNext,
+			usagebased.StatusActivePartialInvoiceWaitingForCollection,
+		).
+		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
+		OnEntry(statelessx.WithParameters(s.StartPartialInvoiceRun))
+
+	s.Configure(usagebased.StatusActivePartialInvoiceWaitingForCollection).
+		Permit(
+			meta.TriggerFinalInvoiceCreated,
+			usagebased.StatusActiveFinalRealizationStarted,
+			statelessx.BoolFn(s.IsAfterServicePeriod),
+		).
+		Permit(
+			meta.TriggerCollectionCompleted,
+			usagebased.StatusActivePartialInvoiceProcessing,
+		).
+		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
+		OnActive(s.AdvanceAfterCollectionPeriodEnd)
+
+	s.Configure(usagebased.StatusActivePartialInvoiceProcessing).
+		Permit(
+			meta.TriggerFinalInvoiceCreated,
+			usagebased.StatusActiveFinalRealizationStarted,
+			statelessx.BoolFn(s.IsAfterServicePeriod),
+		).
+		Permit(
+			meta.TriggerInvoiceIssued,
+			usagebased.StatusActivePartialInvoiceIssuing,
+		).
+		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
+		OnActive(
+			s.SnapshotInvoiceUsage,
+		)
+
+	s.Configure(usagebased.StatusActivePartialInvoiceIssuing).
+		Permit(
+			meta.TriggerFinalInvoiceCreated,
+			usagebased.StatusActiveFinalRealizationStarted,
+			statelessx.BoolFn(s.IsAfterServicePeriod),
+		).
+		Permit(
+			meta.TriggerNext,
+			usagebased.StatusActivePartialInvoiceCompleted,
+		).
+		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
+		OnEntryFrom(meta.TriggerInvoiceIssued, statelessx.WithParameters(s.FinalizeInvoiceRun))
+
+	s.Configure(usagebased.StatusActivePartialInvoiceCompleted).
+		Permit(
+			meta.TriggerNext,
+			usagebased.StatusActive,
+		).
+		Permit(meta.TriggerDelete, usagebased.StatusDeleted)
+
+	// Final (invoice) realizations
+
 	s.Configure(usagebased.StatusActiveFinalRealizationStarted).
 		Permit(
 			meta.TriggerNext,
 			usagebased.StatusActiveFinalRealizationWaitingForCollection,
 		).
 		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
-		OnEntry(statelessx.WithParameters(s.StartInvoiceCreatedRun))
+		OnEntry(statelessx.WithParameters(s.StartFinalInvoiceRun))
 
 	s.Configure(usagebased.StatusActiveFinalRealizationWaitingForCollection).
 		Permit(
@@ -88,34 +162,37 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 
 	s.Configure(usagebased.StatusActiveFinalRealizationProcessing).
 		Permit(
-			meta.TriggerNext,
-			usagebased.StatusActiveFinalRealizationCompleted,
+			meta.TriggerInvoiceIssued,
+			usagebased.StatusActiveFinalRealizationIssuing,
 		).
 		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
 		OnActive(
 			s.SnapshotInvoiceUsage,
 		)
 
-	s.Configure(usagebased.StatusActiveFinalRealizationCompleted).
+	s.Configure(usagebased.StatusActiveFinalRealizationIssuing).
 		Permit(
-			meta.TriggerInvoiceIssued,
-			usagebased.StatusActivePaymentPending,
+			meta.TriggerNext,
+			usagebased.StatusActiveFinalRealizationCompleted,
 		).
-		Permit(meta.TriggerDelete, usagebased.StatusDeleted)
-
-	s.Configure(usagebased.StatusActivePaymentPending).
-		Permit(meta.TriggerInvoicePaymentAuthorized, usagebased.StatusActiveAuthorized).
 		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
 		OnEntryFrom(meta.TriggerInvoiceIssued, statelessx.WithParameters(s.FinalizeInvoiceRun))
 
-	s.Configure(usagebased.StatusActiveAuthorized).
-		Permit(meta.TriggerInvoicePaymentSettled, usagebased.StatusFinal).
-		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
-		OnEntryFrom(meta.TriggerInvoicePaymentAuthorized, statelessx.WithParameters(s.RecordPaymentAuthorized))
+	s.Configure(usagebased.StatusActiveFinalRealizationCompleted).
+		Permit(
+			meta.TriggerNext,
+			usagebased.StatusActiveAwaitingPaymentSettlement,
+		).
+		Permit(meta.TriggerDelete, usagebased.StatusDeleted)
+
+	// Payment + final
+
+	s.Configure(usagebased.StatusActiveAwaitingPaymentSettlement).
+		Permit(meta.TriggerAllPaymentsSettled, usagebased.StatusFinal, statelessx.BoolFn(s.AreAllInvoicedRunsSettled)).
+		Permit(meta.TriggerDelete, usagebased.StatusDeleted)
 
 	s.Configure(usagebased.StatusFinal).
-		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
-		OnEntryFrom(meta.TriggerInvoicePaymentSettled, statelessx.WithParameters(s.RecordPaymentSettled))
+		Permit(meta.TriggerDelete, usagebased.StatusDeleted)
 
 	s.Configure(usagebased.StatusDeleted).
 		OnEntry(statelessx.WithParameters(s.DeleteCharge))
@@ -145,7 +222,11 @@ func (i invoiceCreatedInput) Validate() error {
 	return nil
 }
 
-func (s *CreditThenInvoiceStateMachine) StartInvoiceCreatedRun(ctx context.Context, input invoiceCreatedInput) error {
+func (s *CreditThenInvoiceStateMachine) startInvoiceCreatedRun(
+	ctx context.Context,
+	input invoiceCreatedInput,
+	runType usagebased.RealizationRunType,
+) error {
 	storedAtOffset := meta.NormalizeTimestamp(clock.Now())
 	collectionEnd, err := s.GetCollectionPeriodEnd(ctx)
 	if err != nil {
@@ -156,7 +237,7 @@ func (s *CreditThenInvoiceStateMachine) StartInvoiceCreatedRun(ctx context.Conte
 		Charge:             s.Charge,
 		CustomerOverride:   s.CustomerOverride,
 		FeatureMeter:       s.FeatureMeter,
-		Type:               usagebased.RealizationRunTypeFinalRealization,
+		Type:               runType,
 		AsOf:               storedAtOffset,
 		CollectionEnd:      collectionEnd,
 		LineID:             lo.ToPtr(input.LineID),
@@ -169,6 +250,26 @@ func (s *CreditThenInvoiceStateMachine) StartInvoiceCreatedRun(ctx context.Conte
 
 	s.Charge = result.Charge
 	return nil
+}
+
+func (s *CreditThenInvoiceStateMachine) StartPartialInvoiceRun(ctx context.Context, input invoiceCreatedInput) error {
+	return s.startInvoiceCreatedRun(ctx, input, usagebased.RealizationRunTypePartialInvoice)
+}
+
+func (s *CreditThenInvoiceStateMachine) StartFinalInvoiceRun(ctx context.Context, input invoiceCreatedInput) error {
+	return s.startInvoiceCreatedRun(ctx, input, usagebased.RealizationRunTypeFinalRealization)
+}
+
+func resolveInvoiceCreatedTrigger(charge usagebased.Charge, billedPeriod timeutil.ClosedPeriod) meta.Trigger {
+	if meta.NormalizeTimestamp(billedPeriod.To).Equal(meta.NormalizeTimestamp(charge.Intent.ServicePeriod.To)) {
+		return meta.TriggerFinalInvoiceCreated
+	}
+
+	return meta.TriggerPartialInvoiceCreated
+}
+
+func (s *CreditThenInvoiceStateMachine) AreAllInvoicedRunsSettled() bool {
+	return areAllInvoicedRunsSettled(s.Charge)
 }
 
 func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context) error {
@@ -282,62 +383,8 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceRun(ctx context.Context, 
 	return nil
 }
 
-func (s *CreditThenInvoiceStateMachine) RecordPaymentAuthorized(ctx context.Context, input billing.StandardLineWithInvoiceHeader) error {
-	if err := input.Validate(); err != nil {
-		return err
-	}
-
-	run, err := s.getRunForLine(input.Line.ID)
-	if err != nil {
-		return err
-	}
-
-	result, err := s.Runs.BookInvoicedPaymentAuthorized(ctx, usagebasedrun.BookInvoicedPaymentAuthorizedInput{
-		Charge:  s.Charge,
-		Run:     run,
-		Invoice: input.Invoice,
-		Line:    *input.Line,
-	})
-	if err != nil {
-		return fmt.Errorf("authorize invoice payment: %w", err)
-	}
-
-	if err := s.Charge.Realizations.SetRealizationRun(result.Run); err != nil {
-		return fmt.Errorf("update realization run: %w", err)
-	}
-
-	return nil
-}
-
-func (s *CreditThenInvoiceStateMachine) RecordPaymentSettled(ctx context.Context, input billing.StandardLineWithInvoiceHeader) error {
-	if err := input.Validate(); err != nil {
-		return err
-	}
-
-	run, err := s.getRunForLine(input.Line.ID)
-	if err != nil {
-		return err
-	}
-
-	result, err := s.Runs.SettleInvoicedPayment(ctx, usagebasedrun.SettleInvoicedPaymentInput{
-		Charge:  s.Charge,
-		Run:     run,
-		Invoice: input.Invoice,
-		Line:    *input.Line,
-	})
-	if err != nil {
-		return fmt.Errorf("settle invoice payment: %w", err)
-	}
-
-	if err := s.Charge.Realizations.SetRealizationRun(result.Run); err != nil {
-		return fmt.Errorf("update realization run: %w", err)
-	}
-
-	return nil
-}
-
-func (s *CreditThenInvoiceStateMachine) getRunForLine(lineID string) (usagebased.RealizationRun, error) {
-	for _, run := range s.Charge.Realizations {
+func getRunForLine(charge usagebased.Charge, lineID string) (usagebased.RealizationRun, error) {
+	for _, run := range charge.Realizations {
 		if run.LineID != nil && *run.LineID == lineID {
 			return run, nil
 		}

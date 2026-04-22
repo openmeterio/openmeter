@@ -185,7 +185,7 @@ func newUsageBasedCharge() usagebased.Charge {
 				FeatureKey:     "api_requests",
 				Price:          *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
 			},
-			Status: usagebased.StatusActivePaymentPending,
+			Status: usagebased.StatusActiveAwaitingPaymentSettlement,
 			State: usagebased.State{
 				FeatureID: "feature-1",
 			},

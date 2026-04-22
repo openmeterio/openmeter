@@ -12,6 +12,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -30,17 +32,72 @@ func (e *LineEngine) IsLineBillableAsOf(_ context.Context, input billing.IsLineB
 		return false, fmt.Errorf("validating input: %w", err)
 	}
 
-	if input.ProgressiveBilling {
-		// TODO[later]: support progressive billing for usage-based charge lines once the
-		// collection-complete lifecycle is wired through the usage-based charge state machine.
-		return false, nil
-	}
-
 	return !input.AsOf.Before(input.ResolvedBillablePeriod.To), nil
 }
 
-func (e *LineEngine) SplitGatheringLine(_ context.Context, _ billing.SplitGatheringLineInput) (billing.SplitGatheringLineResult, error) {
-	return billing.SplitGatheringLineResult{}, fmt.Errorf("usage based charge line is not progressively billed")
+func (e *LineEngine) SplitGatheringLine(_ context.Context, input billing.SplitGatheringLineInput) (billing.SplitGatheringLineResult, error) {
+	res := billing.SplitGatheringLineResult{}
+
+	if err := input.Validate(); err != nil {
+		return res, fmt.Errorf("validating input: %w", err)
+	}
+
+	line := input.Line
+	if line.ChargeID == nil || *line.ChargeID == "" {
+		return res, fmt.Errorf("usage based gathering line[%s]: charge id is required", line.ID)
+	}
+
+	if !line.ServicePeriod.Contains(input.SplitAt) {
+		return res, fmt.Errorf("usage based gathering line[%s]: splitAt is not within the line period", line.ID)
+	}
+
+	postSplitAtLine, err := line.CloneForCreate(func(l *billing.GatheringLine) {
+		l.ServicePeriod.From = input.SplitAt
+		l.ChildUniqueReferenceID = nil
+	})
+	if err != nil {
+		return res, fmt.Errorf("cloning post split line: %w", err)
+	}
+
+	postSplitAtLineEmpty, err := isUsageBasedSplitPeriodEmpty(postSplitAtLine)
+	if err != nil {
+		return res, fmt.Errorf("checking if post split line is empty: %w", err)
+	}
+
+	if !postSplitAtLineEmpty {
+		if err := postSplitAtLine.Validate(); err != nil {
+			return res, fmt.Errorf("validating post split line: %w", err)
+		}
+	}
+
+	line.ServicePeriod.To = input.SplitAt
+	line.InvoiceAt = input.SplitAt
+	line.ChildUniqueReferenceID = nil
+
+	preSplitAtLine := line
+
+	preSplitAtLineEmpty, err := isUsageBasedSplitPeriodEmpty(preSplitAtLine)
+	if err != nil {
+		return res, fmt.Errorf("checking if pre split line is empty: %w", err)
+	}
+
+	if preSplitAtLineEmpty {
+		preSplitAtLine.DeletedAt = lo.ToPtr(clock.Now())
+	} else {
+		if err := preSplitAtLine.Validate(); err != nil {
+			return res, fmt.Errorf("validating pre split line: %w", err)
+		}
+	}
+
+	var postSplitAtLinePtr *billing.GatheringLine
+	if !postSplitAtLineEmpty {
+		postSplitAtLinePtr = &postSplitAtLine
+	}
+
+	return billing.SplitGatheringLineResult{
+		PreSplitAtLine:  preSplitAtLine,
+		PostSplitAtLine: postSplitAtLinePtr,
+	}, nil
 }
 
 func (e *LineEngine) BuildStandardInvoiceLines(ctx context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {
@@ -85,14 +142,22 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 			return nil, fmt.Errorf("advancing usage based charge[%s]: %w", stateMachine.GetCharge().ID, err)
 		}
 
-		if err := stateMachine.FireAndActivate(ctx, meta.TriggerInvoiceCreated, invoiceCreatedInput{
+		trigger := resolveInvoiceCreatedTrigger(stateMachine.GetCharge(), stdLine.Period)
+
+		if stateMachine.GetCharge().State.CurrentRealizationRunID != nil {
+			return nil, billing.ValidationError{
+				Err: fmt.Errorf("line[%s]: %w", stdLine.ID, usagebased.ErrActiveRealizationRunAlreadyExists),
+			}
+		}
+
+		if err := stateMachine.FireAndActivate(ctx, trigger, invoiceCreatedInput{
 			LineID: stdLine.ID,
 		}); err != nil {
-			return nil, fmt.Errorf("triggering invoice_created for charge[%s]: %w", stateMachine.GetCharge().ID, err)
+			return nil, fmt.Errorf("triggering %s for charge[%s]: %w", trigger, stateMachine.GetCharge().ID, err)
 		}
 
 		if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
-			return nil, fmt.Errorf("advancing usage based charge[%s] after invoice_created: %w", stateMachine.GetCharge().ID, err)
+			return nil, fmt.Errorf("advancing usage based charge[%s] after %s: %w", stateMachine.GetCharge().ID, trigger, err)
 		}
 
 		currentRun, err := stateMachine.GetCharge().GetCurrentRealizationRun()
@@ -166,12 +231,17 @@ func (e *LineEngine) OnInvoiceIssued(ctx context.Context, input billing.OnInvoic
 		return fmt.Errorf("validating input: %w", err)
 	}
 
-	return e.fireLineTrigger(ctx, input.Lines, meta.TriggerInvoiceIssued, func(stdLine *billing.StandardLine) any {
-		return billing.StandardLineWithInvoiceHeader{
-			Line:    stdLine,
-			Invoice: input.Invoice,
-		}
-	}, true)
+	return e.fireLineTrigger(ctx, fireLineTriggerInput{
+		Lines:   input.Lines,
+		Trigger: meta.TriggerInvoiceIssued,
+		InputFn: func(stdLine *billing.StandardLine) any {
+			return billing.StandardLineWithInvoiceHeader{
+				Line:    stdLine,
+				Invoice: input.Invoice,
+			}
+		},
+		AdvanceUntilStateStable: true,
+	})
 }
 
 func (e *LineEngine) OnPaymentAuthorized(ctx context.Context, input billing.OnPaymentAuthorizedInput) error {
@@ -179,12 +249,11 @@ func (e *LineEngine) OnPaymentAuthorized(ctx context.Context, input billing.OnPa
 		return fmt.Errorf("validating input: %w", err)
 	}
 
-	return e.fireLineTrigger(ctx, input.Lines, meta.TriggerInvoicePaymentAuthorized, func(stdLine *billing.StandardLine) any {
-		return billing.StandardLineWithInvoiceHeader{
-			Line:    stdLine,
-			Invoice: input.Invoice,
-		}
-	}, false)
+	return e.recordRunPayments(ctx, recordRunPaymentsInput{
+		Lines:    input.Lines,
+		Invoice:  input.Invoice,
+		RecordFn: e.recordPaymentAuthorized,
+	})
 }
 
 func (e *LineEngine) OnPaymentSettled(ctx context.Context, input billing.OnPaymentSettledInput) error {
@@ -192,12 +261,11 @@ func (e *LineEngine) OnPaymentSettled(ctx context.Context, input billing.OnPayme
 		return fmt.Errorf("validating input: %w", err)
 	}
 
-	return e.fireLineTrigger(ctx, input.Lines, meta.TriggerInvoicePaymentSettled, func(stdLine *billing.StandardLine) any {
-		return billing.StandardLineWithInvoiceHeader{
-			Line:    stdLine,
-			Invoice: input.Invoice,
-		}
-	}, false)
+	return e.recordRunPayments(ctx, recordRunPaymentsInput{
+		Lines:    input.Lines,
+		Invoice:  input.Invoice,
+		RecordFn: e.recordPaymentSettled,
+	})
 }
 
 func (e *LineEngine) CalculateLines(input billing.CalculateLinesInput) (billing.StandardLines, error) {
@@ -251,22 +319,43 @@ func populateUsageBasedStandardLineFromRun(stdLine *billing.StandardLine, run us
 	return nil
 }
 
-func (e *LineEngine) fireLineTrigger(
-	ctx context.Context,
-	lines billing.StandardLines,
-	trigger meta.Trigger,
-	inputFn func(*billing.StandardLine) any,
-	advanceAfter bool,
-) error {
-	for _, stdLine := range lines {
+type fireLineTriggerInput struct {
+	Lines                   billing.StandardLines
+	Trigger                 meta.Trigger
+	InputFn                 func(*billing.StandardLine) any
+	AdvanceUntilStateStable bool
+}
+
+func (i fireLineTriggerInput) Validate() error {
+	if len(i.Lines) == 0 {
+		return fmt.Errorf("lines are required")
+	}
+
+	if i.Trigger == "" {
+		return fmt.Errorf("trigger is required")
+	}
+
+	if i.InputFn == nil {
+		return fmt.Errorf("inputFn is required")
+	}
+
+	return nil
+}
+
+func (e *LineEngine) fireLineTrigger(ctx context.Context, input fireLineTriggerInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("validating fire line trigger input: %w", err)
+	}
+
+	for _, stdLine := range input.Lines {
 		stateMachine, err := e.newStateMachineForStandardLine(ctx, stdLine)
 		if err != nil {
 			return err
 		}
 
-		canFire, err := stateMachine.CanFire(ctx, trigger)
+		canFire, err := stateMachine.CanFire(ctx, input.Trigger)
 		if err != nil {
-			return fmt.Errorf("checking %s for charge[%s]: %w", trigger, stateMachine.GetCharge().ID, err)
+			return fmt.Errorf("checking %s for charge[%s]: %w", input.Trigger, stateMachine.GetCharge().ID, err)
 		}
 
 		if !canFire {
@@ -274,18 +363,18 @@ func (e *LineEngine) fireLineTrigger(
 				"charge[%s] in status %s cannot handle %s for standard line[%s]",
 				stateMachine.GetCharge().ID,
 				stateMachine.GetCharge().Status,
-				trigger,
+				input.Trigger,
 				stdLine.ID,
 			)
 		}
 
-		if err := stateMachine.FireAndActivate(ctx, trigger, inputFn(stdLine)); err != nil {
-			return fmt.Errorf("triggering %s for charge[%s]: %w", trigger, stateMachine.GetCharge().ID, err)
+		if err := stateMachine.FireAndActivate(ctx, input.Trigger, input.InputFn(stdLine)); err != nil {
+			return fmt.Errorf("triggering %s for charge[%s]: %w", input.Trigger, stateMachine.GetCharge().ID, err)
 		}
 
-		if advanceAfter {
+		if input.AdvanceUntilStateStable {
 			if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
-				return fmt.Errorf("advancing usage based charge[%s] after %s: %w", stateMachine.GetCharge().ID, trigger, err)
+				return fmt.Errorf("advancing usage based charge[%s] after %s: %w", stateMachine.GetCharge().ID, input.Trigger, err)
 			}
 		}
 	}
@@ -320,4 +409,16 @@ func (e *LineEngine) newStateMachineForStandardLine(ctx context.Context, stdLine
 	}
 
 	return stateMachine, nil
+}
+func isUsageBasedSplitPeriodEmpty(line billing.GatheringLine) (bool, error) {
+	price := line.GetPrice()
+	if price == nil {
+		return false, fmt.Errorf("price is nil")
+	}
+
+	if price.Type() == productcatalog.FlatPriceType {
+		return false, nil
+	}
+
+	return line.GetServicePeriod().Truncate(streaming.MinimumWindowSizeDuration).IsEmpty(), nil
 }

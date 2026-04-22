@@ -22,11 +22,13 @@ type RealizationRunType string
 
 const (
 	RealizationRunTypeFinalRealization RealizationRunType = "final_realization"
+	RealizationRunTypePartialInvoice   RealizationRunType = "partial_invoice"
 )
 
 func (t RealizationRunType) Values() []string {
 	return []string{
 		string(RealizationRunTypeFinalRealization),
+		string(RealizationRunTypePartialInvoice),
 	}
 }
 
