@@ -2331,7 +2331,7 @@ var (
 		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "feature_key", Type: field.TypeString},
 		{Name: "price", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "status_detailed", Type: field.TypeEnum, Enums: []string{"created", "active", "active.partial_invoice.started", "active.partial_invoice.waiting_for_collection", "active.partial_invoice.processing", "active.partial_invoice.completed", "active.partial_invoice.issuing", "active.final_realization.started", "active.final_realization.waiting_for_collection", "active.final_realization.processing", "active.final_realization.completed", "active.final_realization.issuing", "active.awaiting_payment_settlement", "final", "deleted"}},
+		{Name: "status_detailed", Type: field.TypeEnum, Enums: []string{"created", "active", "active.partial_invoice.started", "active.partial_invoice.waiting_for_collection", "active.partial_invoice.processing", "active.partial_invoice.issuing", "active.partial_invoice.completed", "active.final_realization.started", "active.final_realization.waiting_for_collection", "active.final_realization.processing", "active.final_realization.issuing", "active.final_realization.completed", "active.awaiting_payment_settlement", "final", "deleted"}},
 		{Name: "current_realization_run_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "feature_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
