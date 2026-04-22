@@ -240,7 +240,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodPost,
 				contentType: "application/json",
-				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID,
+				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID + "/query",
 				body:        apiv3.MeterQueryRequest{},
 			},
 			res: testResponse{
@@ -273,7 +273,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodPost,
 				contentType: "application/json",
-				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID,
+				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID + "/query",
 				body: apiv3.MeterQueryRequest{
 					GroupByDimensions: &[]string{"path", "method"},
 				},
@@ -303,7 +303,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodPost,
 				contentType: "application/json",
-				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID,
+				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID + "/query",
 				body: apiv3.MeterQueryRequest{
 					GroupByDimensions: &[]string{"subject"},
 				},
@@ -322,7 +322,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodPost,
 				contentType: "application/json",
-				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID,
+				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID + "/query",
 				body: apiv3.MeterQueryRequest{
 					Filters: &apiv3.MeterQueryFilters{
 						Dimensions: &map[string]apiv3.QueryFilterStringMapItem{
@@ -360,7 +360,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodPost,
 				contentType: "application/json",
-				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID,
+				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID + "/query",
 				body: apiv3.MeterQueryRequest{
 					GroupByDimensions: &[]string{"foo"},
 				},
@@ -392,7 +392,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodPost,
 				contentType: "application/json",
-				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID,
+				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID + "/query",
 				body: apiv3.MeterQueryRequest{
 					Filters: &apiv3.MeterQueryFilters{
 						Dimensions: &map[string]apiv3.QueryFilterStringMapItem{
@@ -447,7 +447,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodPost,
 				contentType: "application/json",
-				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID,
+				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID + "/query",
 				body: apiv3.MeterQueryRequest{
 					Filters: &apiv3.MeterQueryFilters{
 						Dimensions: &map[string]apiv3.QueryFilterStringMapItem{
@@ -497,7 +497,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodPost,
 				contentType: "application/json",
-				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID,
+				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID + "/query",
 				body: apiv3.MeterQueryRequest{
 					Filters: &apiv3.MeterQueryFilters{
 						Dimensions: &map[string]apiv3.QueryFilterStringMapItem{
