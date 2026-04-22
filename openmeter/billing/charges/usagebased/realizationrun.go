@@ -215,7 +215,6 @@ type RealizationRun struct {
 	CreditsAllocated creditrealization.Realizations `json:"creditsAllocated"`
 	InvoiceUsage     *invoicedusage.AccruedUsage    `json:"invoicedUsage"`
 	Payment          *payment.Invoiced              `json:"payment"`
-<<<<<<< HEAD
 	DetailedLines    mo.Option[DetailedLines]       `json:"detailedLines,omitzero"`
 }
 
