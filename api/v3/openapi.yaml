@@ -1683,6 +1683,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - Meters
+  /openmeter/meters/{meterId}/query:
     post:
       operationId: query-meter
       parameters:

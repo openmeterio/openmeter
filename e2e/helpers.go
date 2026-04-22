@@ -80,7 +80,7 @@ func QueryMeterV3(t *testing.T, meterID string, body apiv3.MeterQueryRequest) (i
 	req, err := http.NewRequestWithContext(
 		context.Background(),
 		http.MethodPost,
-		strings.TrimRight(address, "/")+"/api/v3/openmeter/meters/"+meterID,
+		strings.TrimRight(address, "/")+"/api/v3/openmeter/meters/"+meterID+"/query",
 		bytes.NewReader(payload),
 	)
 	if err != nil {
