@@ -20,14 +20,12 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-func TestLedgerCreditMovement_AdjustedReturnsEmpty(t *testing.T) {
-	txType := CreditTransactionTypeAdjusted
+func TestCreditTransactionLoaders_InvalidType(t *testing.T) {
+	s := &service{}
+	invalid := CreditTransactionType("invalid")
 
-	movement, empty, err := ledgerCreditMovement(&txType)
-
-	require.NoError(t, err)
-	require.Equal(t, ledger.ListTransactionsCreditMovementUnspecified, movement)
-	require.True(t, empty)
+	_, err := s.creditTransactionLoaders(&invalid)
+	require.Error(t, err)
 }
 
 func TestFBOAccountIDFromCustomerAccounts_ReturnsOnlyFBO(t *testing.T) {
@@ -121,6 +119,45 @@ func TestApplyChargeMetadataToCreditTransactions(t *testing.T) {
 	require.Equal(t, description, *items[0].Description)
 	require.Equal(t, "", items[1].Name)
 	require.Nil(t, items[1].Description)
+}
+
+func TestMergeSortedLists_ByCursorDesc(t *testing.T) {
+	base := time.Date(2026, 4, 10, 9, 0, 0, 0, time.UTC)
+	toTx := func(id string, bookedAt, createdAt time.Time) CreditTransaction {
+		return CreditTransaction{
+			ID: models.NamespacedID{
+				Namespace: "ns",
+				ID:        id,
+			},
+			BookedAt:  bookedAt,
+			CreatedAt: createdAt,
+		}
+	}
+
+	funded := []CreditTransaction{
+		toTx("tx-6", base.Add(-10*time.Second), base.Add(-10*time.Second)),
+		toTx("tx-4", base.Add(-30*time.Second), base.Add(-30*time.Second)),
+		toTx("tx-2", base.Add(-50*time.Second), base.Add(-50*time.Second)),
+	}
+
+	consumed := []CreditTransaction{
+		toTx("tx-5", base.Add(-20*time.Second), base.Add(-20*time.Second)),
+		toTx("tx-3", base.Add(-40*time.Second), base.Add(-40*time.Second)),
+		toTx("tx-1", base.Add(-60*time.Second), base.Add(-60*time.Second)),
+	}
+
+	merged, hasMore := mergeSortedLists(
+		[][]CreditTransaction{funded, consumed},
+		4,
+		compareCreditTransactionsByCursor,
+	)
+
+	require.True(t, hasMore)
+	require.Len(t, merged, 4)
+	require.Equal(t, "tx-6", merged[0].ID.ID)
+	require.Equal(t, "tx-5", merged[1].ID.ID)
+	require.Equal(t, "tx-4", merged[2].ID.ID)
+	require.Equal(t, "tx-3", merged[3].ID.ID)
 }
 
 func mustCustomerFBOAccount(t *testing.T, namespace, id string) *ledgeraccount.CustomerFBOAccount {
@@ -224,4 +261,8 @@ func (s staticChargeService) GetByIDs(_ context.Context, input charges.GetByIDsI
 
 func (s staticChargeService) ListCharges(context.Context, charges.ListChargesInput) (pagination.Result[charges.Charge], error) {
 	return pagination.Result[charges.Charge]{}, nil
+}
+
+func (s staticChargeService) ListFundedCreditActivities(context.Context, charges.ListFundedCreditActivitiesInput) (charges.ListFundedCreditActivitiesResult, error) {
+	return charges.ListFundedCreditActivitiesResult{}, nil
 }

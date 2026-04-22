@@ -16,7 +16,6 @@ import (
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
-	pagepagination "github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type CreditTransactionType string
@@ -24,12 +23,11 @@ type CreditTransactionType string
 const (
 	CreditTransactionTypeFunded   CreditTransactionType = "funded"
 	CreditTransactionTypeConsumed CreditTransactionType = "consumed"
-	CreditTransactionTypeAdjusted CreditTransactionType = "adjusted"
 )
 
 func (t CreditTransactionType) Validate() error {
 	switch t {
-	case CreditTransactionTypeFunded, CreditTransactionTypeConsumed, CreditTransactionTypeAdjusted:
+	case CreditTransactionTypeFunded, CreditTransactionTypeConsumed:
 		return nil
 	default:
 		return fmt.Errorf("invalid credit transaction type: %s", t)
@@ -38,7 +36,9 @@ func (t CreditTransactionType) Validate() error {
 
 type ListCreditTransactionsInput struct {
 	CustomerID customer.CustomerID
-	Page       pagepagination.Page
+	Limit      int
+	After      *ledger.TransactionCursor
+	Before     *ledger.TransactionCursor
 
 	Type     *CreditTransactionType
 	Currency *currencyx.Code
@@ -51,8 +51,24 @@ func (i ListCreditTransactionsInput) Validate() error {
 		errs = append(errs, fmt.Errorf("customer ID: %w", err))
 	}
 
-	if err := i.Page.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("page: %w", err))
+	if i.Limit < 1 {
+		errs = append(errs, fmt.Errorf("limit must be greater than 0"))
+	}
+
+	if i.After != nil {
+		if err := i.After.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("after: %w", err))
+		}
+	}
+
+	if i.Before != nil {
+		if err := i.Before.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("before: %w", err))
+		}
+	}
+
+	if i.After != nil && i.Before != nil {
+		errs = append(errs, fmt.Errorf("after and before cannot be set together"))
 	}
 
 	if i.Type != nil {
@@ -88,19 +104,15 @@ type CreditTransactionBalance struct {
 	After  alpacadecimal.Decimal
 }
 
-type ListCreditTransactionsResult = pagepagination.Result[CreditTransaction]
+type ListCreditTransactionsResult struct {
+	Items          []CreditTransaction
+	NextCursor     *ledger.TransactionCursor
+	PreviousCursor *ledger.TransactionCursor
+}
 
 func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTransactionsInput) (ListCreditTransactionsResult, error) {
 	if err := input.Validate(); err != nil {
 		return ListCreditTransactionsResult{}, err
-	}
-
-	creditMovement, empty, err := ledgerCreditMovement(input.Type)
-	if err != nil {
-		return ListCreditTransactionsResult{}, err
-	}
-	if empty {
-		return emptyCreditTransactions(input.Page), nil
 	}
 
 	accountID, err := s.customerFBOAccountID(ctx, input.CustomerID)
@@ -108,65 +120,83 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 		return ListCreditTransactionsResult{}, fmt.Errorf("resolve customer FBO account: %w", err)
 	}
 	if accountID == "" {
-		return emptyCreditTransactions(input.Page), nil
+		return emptyCreditTransactions(), nil
 	}
 
-	result, err := s.Ledger.ListTransactionsByPage(ctx, ledger.ListTransactionsByPageInput{
-		Page:           input.Page,
-		Namespace:      input.CustomerID.Namespace,
-		AccountIDs:     []string{accountID},
-		Currency:       input.Currency,
-		CreditMovement: creditMovement,
-	})
-	if err != nil {
-		return ListCreditTransactionsResult{}, fmt.Errorf("list ledger transactions: %w", err)
-	}
-
-	items, err := creditTransactionsFromLedgerTransactions(result.Items)
+	loaders, err := s.creditTransactionLoaders(input.Type)
 	if err != nil {
 		return ListCreditTransactionsResult{}, err
 	}
 
+	loaderInput := creditTransactionLoaderInput{
+		Limit:      input.Limit,
+		After:      input.After,
+		Before:     input.Before,
+		CustomerID: input.CustomerID,
+		AccountID:  accountID,
+		Currency:   input.Currency,
+	}
+
+	loadedLists := make([][]CreditTransaction, 0, len(loaders))
+	loadersHaveMore := false
+	for i, loader := range loaders {
+		loaded, err := loader.Load(ctx, loaderInput)
+		if err != nil {
+			return ListCreditTransactionsResult{}, fmt.Errorf("load transactions from loader %d: %w", i, err)
+		}
+
+		loadedLists = append(loadedLists, loaded.Items)
+		loadersHaveMore = loadersHaveMore || loaded.HasMore
+	}
+
+	mergedItems, bufferedHasMore := mergeSortedLists(
+		loadedLists,
+		input.Limit,
+		compareCreditTransactionsByCursor,
+	)
+	// bufferedHasMore only reflects whether there are still items in the fetched in-memory lists.
+	// loadersHaveMore captures additional records in the requested cursor direction beyond each loader's in-memory window.
+	hasMoreInQueryDirection := bufferedHasMore || loadersHaveMore
+
+	items := mergedItems
 	s.applyChargeMetadataToCreditTransactions(ctx, input.CustomerID.Namespace, items)
 
 	if len(items) > 0 {
-		runningBalance, err := s.GetBalance(ctx, input.CustomerID, items[0].Currency, lo.ToPtr(result.Items[0].Cursor()))
+		runningBalance, err := s.GetBalance(ctx, input.CustomerID, items[0].Currency, lo.ToPtr(creditTransactionCursor(items[0])))
 		if err != nil {
-			return ListCreditTransactionsResult{}, fmt.Errorf("get FBO balance after transaction %s: %w", result.Items[0].ID().ID, err)
+			return ListCreditTransactionsResult{}, fmt.Errorf("get FBO balance after transaction %s: %w", items[0].ID.ID, err)
 		}
 
 		applyCreditTransactionBalances(items, runningBalance.Settled())
 	}
 
+	var (
+		nextCursor     *ledger.TransactionCursor
+		previousCursor *ledger.TransactionCursor
+	)
+	if len(mergedItems) > 0 {
+		lastCursor := creditTransactionCursor(mergedItems[len(mergedItems)-1])
+		firstCursor := creditTransactionCursor(mergedItems[0])
+
+		if input.Before != nil || hasMoreInQueryDirection {
+			nextCursor = lo.ToPtr(lastCursor)
+		}
+
+		if (input.Before != nil && hasMoreInQueryDirection) || input.After != nil {
+			previousCursor = lo.ToPtr(firstCursor)
+		}
+	}
+
 	return ListCreditTransactionsResult{
-		Page:       result.Page,
-		TotalCount: result.TotalCount,
-		Items:      items,
+		Items:          items,
+		NextCursor:     nextCursor,
+		PreviousCursor: previousCursor,
 	}, nil
 }
 
-func emptyCreditTransactions(page pagepagination.Page) ListCreditTransactionsResult {
+func emptyCreditTransactions() ListCreditTransactionsResult {
 	return ListCreditTransactionsResult{
-		Page:       page,
-		TotalCount: 0,
-		Items:      []CreditTransaction{},
-	}
-}
-
-func ledgerCreditMovement(txType *CreditTransactionType) (ledger.ListTransactionsCreditMovement, bool, error) {
-	if txType == nil {
-		return ledger.ListTransactionsCreditMovementUnspecified, false, nil
-	}
-
-	switch *txType {
-	case CreditTransactionTypeFunded:
-		return ledger.ListTransactionsCreditMovementPositive, false, nil
-	case CreditTransactionTypeConsumed:
-		return ledger.ListTransactionsCreditMovementNegative, false, nil
-	case CreditTransactionTypeAdjusted:
-		return ledger.ListTransactionsCreditMovementUnspecified, true, nil
-	default:
-		return ledger.ListTransactionsCreditMovementUnspecified, false, fmt.Errorf("unsupported credit transaction type: %s", *txType)
+		Items: []CreditTransaction{},
 	}
 }
 
@@ -249,11 +279,7 @@ func creditTransactionType(fboImpact alpacadecimal.Decimal) CreditTransactionTyp
 		return CreditTransactionTypeFunded
 	}
 
-	if fboImpact.IsNegative() {
-		return CreditTransactionTypeConsumed
-	}
-
-	return CreditTransactionTypeAdjusted
+	return CreditTransactionTypeConsumed
 }
 
 type chargeDisplayMetadata struct {

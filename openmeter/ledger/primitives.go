@@ -12,8 +12,6 @@ import (
 
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
-	pagepagination "github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
 // ----------------------------------------------------------------------------
@@ -173,24 +171,30 @@ type Ledger interface {
 	// ListTransactions lists transactions on the Ledger according to some filters
 	//
 	// TODO: Cursoring gets problematic due to diff between wall_clock and booked_at. It would be convenient to return in order of booked_at as that simplifies parsing. This API will likely change.
-	ListTransactions(ctx context.Context, params ListTransactionsInput) (pagination.Result[Transaction], error)
-
-	// ListTransactionsByPage lists transactions using page-based pagination.
-	ListTransactionsByPage(ctx context.Context, params ListTransactionsByPageInput) (pagepagination.Result[Transaction], error)
+	ListTransactions(ctx context.Context, params ListTransactionsInput) (ListTransactionsResult, error)
 }
 
 type ListTransactionsInput struct {
 	Namespace string
-	Cursor    *pagination.Cursor
+	Cursor    *TransactionCursor
+	Before    *TransactionCursor
 	Limit     int
 
 	TransactionID *models.NamespacedID
 
 	// AccountIDs scopes the query to transactions with entries on these accounts.
 	AccountIDs []string
+	Currency   *currencyx.Code
+
+	CreditMovement ListTransactionsCreditMovement
 
 	// AnnotationFilters matches transactions whose annotations contain all the given key-value pairs.
 	AnnotationFilters map[string]string
+}
+
+type ListTransactionsResult struct {
+	Items      []Transaction
+	NextCursor *TransactionCursor
 }
 
 func (i ListTransactionsInput) Validate() error {
@@ -198,6 +202,32 @@ func (i ListTransactionsInput) Validate() error {
 		return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{
 			"reason": "limit_invalid",
 			"limit":  i.Limit,
+		})
+	}
+
+	if i.Cursor != nil {
+		if err := i.Cursor.Validate(); err != nil {
+			return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{
+				"reason": "cursor_invalid",
+				"cursor": i.Cursor,
+				"error":  err,
+			})
+		}
+	}
+
+	if i.Before != nil {
+		if err := i.Before.Validate(); err != nil {
+			return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{
+				"reason": "before_invalid",
+				"before": i.Before,
+				"error":  err,
+			})
+		}
+	}
+
+	if i.Cursor != nil && i.Before != nil {
+		return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{
+			"reason": "after_before_both_set",
 		})
 	}
 
@@ -211,6 +241,25 @@ func (i ListTransactionsInput) Validate() error {
 		}
 	}
 
+	if i.Currency != nil {
+		if err := i.Currency.Validate(); err != nil {
+			return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{
+				"reason":   "currency_invalid",
+				"currency": i.Currency,
+				"error":    err,
+			})
+		}
+	}
+
+	switch i.CreditMovement {
+	case ListTransactionsCreditMovementUnspecified, ListTransactionsCreditMovementPositive, ListTransactionsCreditMovementNegative:
+	default:
+		return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{
+			"reason":          "credit_movement_invalid",
+			"credit_movement": i.CreditMovement,
+		})
+	}
+
 	return nil
 }
 
@@ -221,26 +270,3 @@ const (
 	ListTransactionsCreditMovementPositive
 	ListTransactionsCreditMovementNegative
 )
-
-type ListTransactionsByPageInput struct {
-	pagepagination.Page
-
-	Namespace  string
-	AccountIDs []string
-	Currency   *currencyx.Code
-
-	CreditMovement    ListTransactionsCreditMovement
-	AnnotationFilters map[string]string
-}
-
-func (i ListTransactionsByPageInput) Validate() error {
-	if err := i.Page.Validate(); err != nil {
-		return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{
-			"reason": "page_invalid",
-			"page":   i.Page,
-			"error":  err,
-		})
-	}
-
-	return nil
-}

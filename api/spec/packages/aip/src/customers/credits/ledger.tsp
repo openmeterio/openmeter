@@ -7,29 +7,63 @@ namespace Customers;
  * The type of the credit transaction.
  *
  * - `funded`: Credit granted and available for consumption.
- * - `consumed`: Credit consumed.
- * - `adjusted`: Manual or system adjustment.
+ * - `consumed`: Credit consumed by usage or fees.
  */
-// * - `expired`: Credit expired.
-//  * - `voided`: Credit voided.
 @friendlyName("BillingCreditTransactionType")
 enum CreditTransactionType {
   // Credit granted and available for consumption.
   Funded: "funded",
 
-  // Credit consumed.
+  // Credit consumed by usage or fees.
   Consumed: "consumed",
+}
 
-  // // Credit expired.
-  // Expired: "expired",
+/**
+ * Cursor pagination metadata for credit transactions.
+ *
+ * NOTE: We intentionally return opaque cursor tokens (not URI links) in
+ * `first`, `last`, `next`, and `previous`. This matches existing OpenMeter
+ * cursor implementations and avoids coupling response construction to
+ * externally visible URL shape behind proxies/gateways.
+ */
+@friendlyName("BillingCreditTransactionCursorMetaPage")
+model CreditTransactionCursorMetaPage {
+  /**
+   * Opaque cursor for loading the next page (older records).
+   */
+  next?: string;
 
-  // // Credit voided.
-  // Voided: "voided",
+  /**
+   * Opaque cursor for loading the previous page (newer records).
+   */
+  previous?: string;
 
-  // Manual or system adjustment (e.g., correction grants, balance reconciliation).
-  Adjusted: "adjusted",
+  /**
+   * Requested page size.
+   */
+  size: integer;
+}
 
-  // TODO: add other types and do they have additional metadata?
+/**
+ * Cursor metadata container for credit transactions.
+ */
+@friendlyName("BillingCreditTransactionCursorMeta")
+model CreditTransactionCursorMeta {
+  /**
+   * Cursor page metadata.
+   */
+  page: CreditTransactionCursorMetaPage;
+}
+
+/**
+ * Cursor paginated response for credit transactions.
+ */
+@friendlyName("CreditTransactionPaginatedResponse")
+model CreditTransactionPaginatedResponse {
+  @pageItems
+  data: CreditTransaction[];
+
+  meta: CreditTransactionCursorMeta;
 }
 
 // /**

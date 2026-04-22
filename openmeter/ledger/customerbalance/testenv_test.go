@@ -552,6 +552,10 @@ func (l chargeStore) ListCharges(ctx context.Context, input charges.ListChargesI
 	}, nil
 }
 
+func (l chargeStore) ListFundedCreditActivities(ctx context.Context, input charges.ListFundedCreditActivitiesInput) (charges.ListFundedCreditActivitiesResult, error) {
+	return l.search.ListFundedCreditActivities(ctx, input)
+}
+
 type mockCustomerOverrideService struct {
 	customer customer.Customer
 }

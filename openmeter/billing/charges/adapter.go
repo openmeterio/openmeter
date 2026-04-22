@@ -22,6 +22,7 @@ type ChargesSearchAdapter interface {
 	GetByIDs(ctx context.Context, input GetByIDsInput) (ChargeSearchItems, error)
 	ListCharges(ctx context.Context, input ListChargesInput) (pagination.Result[ChargeSearchItem], error)
 	ListCustomersToAdvance(ctx context.Context, input ListCustomersToAdvanceInput) (pagination.Result[customer.CustomerID], error)
+	ListFundedCreditActivities(ctx context.Context, input ListFundedCreditActivitiesInput) (ListFundedCreditActivitiesResult, error)
 }
 
 type ChargeSearchItem struct {

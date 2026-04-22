@@ -12,7 +12,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	pagepagination "github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 func TestFacadeGetBalancesWithExplicitCurrencies(t *testing.T) {
@@ -115,9 +114,9 @@ func TestFacadeGetBalanceAfterTransactionCursor(t *testing.T) {
 	receivableAccount, ok := env.CustomerAccounts.ReceivableAccount.(*ledgeraccount.CustomerReceivableAccount)
 	require.True(t, ok)
 
-	pagedBeforeSecondIssue, err := env.Deps.HistoricalLedger.ListTransactionsByPage(t.Context(), ledger.ListTransactionsByPageInput{
-		Page:       pagepagination.NewPage(1, 10),
+	pagedBeforeSecondIssue, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
 		Namespace:  env.Namespace,
+		Limit:      10,
 		AccountIDs: []string{receivableAccount.ID().ID},
 		Currency:   &env.Currency,
 	})

@@ -32,6 +32,7 @@ type Service interface {
 type chargesService interface {
 	GetByIDs(ctx context.Context, input charges.GetByIDsInput) (charges.Charges, error)
 	ListCharges(ctx context.Context, input charges.ListChargesInput) (pagination.Result[charges.Charge], error)
+	ListFundedCreditActivities(ctx context.Context, input charges.ListFundedCreditActivitiesInput) (charges.ListFundedCreditActivitiesResult, error)
 }
 
 type subAccountLister interface {

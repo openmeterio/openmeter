@@ -173,8 +173,8 @@ interface CustomerCreditTransactionOperations {
   /**
    * List credit transactions for a customer.
    *
-   * Returns an immutable, chronological record of all credit movements:
-   * grants funded, credits consumed, expirations, voids, and adjustments.
+   * Returns an immutable, chronological record of credit movements:
+   * funded credits and consumed credits.
    * Transactions are returned in reverse chronological order by default.
    */
   @get
@@ -182,14 +182,14 @@ interface CustomerCreditTransactionOperations {
   @summary("List credit transactions")
   list(
     @path customerId: Shared.ULID,
-    ...Common.PagePaginationQuery,
+    ...Common.CursorPaginationQuery,
 
     /**
      * Filter credit transactions returned in the response.
      */
     @query(#{ style: "deepObject", explode: true })
     filter?: ListCreditTransactionsParamsFilter,
-  ): Shared.PagePaginatedResponse<CreditTransaction> | Common.NotFound | Common.ErrorResponses;
+  ): CreditTransactionPaginatedResponse | Common.NotFound | Common.ErrorResponses;
 }
 
 interface CustomerCreditAdjustmentsOperations {
