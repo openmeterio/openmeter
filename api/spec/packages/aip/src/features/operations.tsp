@@ -50,9 +50,10 @@ interface FeatureOperations {
     /**
      * Sort features returned in the response.
      * Supported sort attributes are:
-     * - `id`
-     * - `name` (default)
-     * - `created_at`
+     * - `key`
+     * - `name`
+     * - `created_at` (default)
+     * - `updated_at`
      *
      * The `asc` suffix is optional as the default sort order is ascending.
      * The `desc` suffix is used to specify a descending order.
