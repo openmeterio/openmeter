@@ -97,8 +97,18 @@ func (f FeatureOrderBy) Values() []FeatureOrderBy {
 	}
 }
 
+func (f FeatureOrderBy) Validate() error {
+	if !slices.Contains(f.Values(), f) {
+		return models.NewGenericValidationError(fmt.Errorf("invalid feature order by: %s", f))
+	}
+
+	return nil
+}
+
 type ListFeaturesParams struct {
 	IDsOrKeys       []string
+	Key             *filter.FilterString
+	Name            *filter.FilterString
 	Namespace       string
 	MeterIDs        *filter.FilterULID
 	MeterSlugs      []string // Kept for ingest pipeline compat (queries via ent edge on meter key)
@@ -125,6 +135,21 @@ func (p ListFeaturesParams) Validate() error {
 	}
 	if !p.Page.IsZero() {
 		if err := p.Page.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if p.Key != nil {
+		if err := p.Key.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if p.Name != nil {
+		if err := p.Name.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if p.OrderBy != "" {
+		if err := p.OrderBy.Validate(); err != nil {
 			errs = append(errs, err)
 		}
 	}

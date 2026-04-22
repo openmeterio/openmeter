@@ -18,8 +18,20 @@ namespace Features;
  */
 @friendlyName("ListFeatureParamsFilter")
 model ListFeaturesParamsFilter {
-  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  /**
+   * Filter features by meter ID.
+   */
   meter_id?: Common.ULIDFieldFilter;
+
+  /**
+   * Filter features by key.
+   */
+  key?: Common.StringFieldFilter;
+
+  /**
+   * Filter features by name.
+   */
+  name?: Common.StringFieldFilter;
 }
 
 interface FeatureOperations {
@@ -34,6 +46,19 @@ interface FeatureOperations {
   @extension(Shared.InternalExtension, true)
   list(
     ...Common.PagePaginationQuery,
+
+    /**
+     * Sort features returned in the response.
+     * Supported sort attributes are:
+     * - `id`
+     * - `name` (default)
+     * - `created_at`
+     *
+     * The `asc` suffix is optional as the default sort order is ascending.
+     * The `desc` suffix is used to specify a descending order.
+     */
+    @query(#{ name: "sort" })
+    sort?: Common.SortQuery,
 
     /**
      * Filter features returned in the response.

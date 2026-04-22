@@ -9,6 +9,7 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/filters"
+	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -62,6 +63,34 @@ func (h *handler) ListFeatures() ListFeaturesHandler {
 					})
 				}
 				req.MeterIDs = meterIDs
+
+				key, err := filters.FromAPIFilterString(params.Filter.Key)
+				if err != nil {
+					return ListFeaturesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[key]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.Key = key
+
+				name, err := filters.FromAPIFilterString(params.Filter.Name)
+				if err != nil {
+					return ListFeaturesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[name]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.Name = name
+			}
+
+			if params.Sort != nil {
+				sort, err := request.ParseSortBy(*params.Sort)
+				if err != nil {
+					return ListFeaturesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+
+				req.OrderBy = feature.FeatureOrderBy(sort.Field)
+				req.Order = sort.Order.ToSortxOrder()
 			}
 
 			return req, nil

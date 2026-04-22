@@ -290,6 +290,8 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.List
 		}).
 		Where(dbfeature.Namespace(params.Namespace))
 
+	query = filter.ApplyToQuery(query, params.Key, dbfeature.FieldKey)
+	query = filter.ApplyToQuery(query, params.Name, dbfeature.FieldName)
 	query = filter.ApplyToQuery(query, params.MeterIDs, dbfeature.FieldMeterID)
 
 	if len(params.MeterSlugs) > 0 {
