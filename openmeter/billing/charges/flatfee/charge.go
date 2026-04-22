@@ -229,7 +229,7 @@ type Realizations struct {
 	CreditRealizations creditrealization.Realizations `json:"creditRealizations"`
 	AccruedUsage       *invoicedusage.AccruedUsage    `json:"accruedUsage"`
 	Payment            *payment.Invoiced              `json:"payment"`
-	DetailedLines      mo.Option[DetailedLines]       `json:"detailedLines,omitempty"`
+	DetailedLines      mo.Option[DetailedLines]       `json:"detailedLines,omitzero"`
 }
 
 func (r Realizations) Validate() error {
