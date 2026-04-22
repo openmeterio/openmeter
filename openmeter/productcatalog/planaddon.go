@@ -82,7 +82,7 @@ func (c PlanAddon) Validate() error {
 
 	switch c.Addon.InstanceType {
 	case AddonInstanceTypeMultiple:
-		if c.MaxQuantity == nil || *c.MaxQuantity <= 0 {
+		if c.MaxQuantity != nil && *c.MaxQuantity <= 0 {
 			errs = append(errs, ErrPlanAddonMaxQuantityMustBeSet)
 		}
 	case AddonInstanceTypeSingle:

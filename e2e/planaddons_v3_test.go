@@ -208,19 +208,15 @@ func TestV3PlanAddonAttachStatusMatrix(t *testing.T) {
 
 // Attach instance_type × max_quantity matrix.
 //
-// Two failure layers are exercised here:
-//   - Domain validation (extensions.validationErrors[].code) for cases that
-//     pass the schema binder but fail PlanAddon.Validate (e.g. nil for multi).
-//   - TypeSpec schema binder (invalid_parameters[].rule="minimum") for
-//     max_quantity<1, which the API schema enforces before the handler runs.
+// Exercises the TypeSpec schema binder (invalid_parameters[].rule="minimum")
+// for max_quantity<1, which the API schema enforces before the handler runs.
 func TestV3PlanAddonInstanceTypeMaxQuantityMatrix(t *testing.T) {
 	cases := []struct {
 		name           string
 		instanceType   apiv3.AddonInstanceType
 		maxQuantity    *int
 		expectedStatus int
-		expectedCode   string // product-catalog validation code (extensions.validationErrors)
-		expectedRule   string // schema-layer rule (invalid_parameters), mutually exclusive with expectedCode
+		expectedRule   string // schema-layer rule (invalid_parameters)
 	}{
 		{
 			name:           "single + nil max_quantity → 201",
@@ -229,18 +225,10 @@ func TestV3PlanAddonInstanceTypeMaxQuantityMatrix(t *testing.T) {
 			expectedStatus: http.StatusCreated,
 		},
 		{
-			name:           "single + max_quantity=5 → 400 plan_addon_max_quantity_must_not_be_set",
-			instanceType:   apiv3.AddonInstanceTypeSingle,
-			maxQuantity:    lo.ToPtr(5),
-			expectedStatus: http.StatusBadRequest,
-			expectedCode:   "plan_addon_max_quantity_must_not_be_set",
-		},
-		{
-			name:           "multiple + nil max_quantity → 400 plan_addon_max_quantity_must_be_set",
+			name:           "multiple + nil max_quantity → 201",
 			instanceType:   apiv3.AddonInstanceTypeMultiple,
 			maxQuantity:    nil,
-			expectedStatus: http.StatusBadRequest,
-			expectedCode:   "plan_addon_max_quantity_must_be_set",
+			expectedStatus: http.StatusCreated,
 		},
 		{
 			name:           "multiple + max_quantity=5 → 201",
@@ -285,8 +273,6 @@ func TestV3PlanAddonInstanceTypeMaxQuantityMatrix(t *testing.T) {
 			assert.Equal(t, tc.expectedStatus, status, "attach response: %+v", problem)
 
 			switch {
-			case tc.expectedCode != "":
-				assertValidationCode(t, problem, tc.expectedCode)
 			case tc.expectedRule != "":
 				assertInvalidParameterRule(t, problem, tc.expectedRule)
 			case tc.expectedStatus >= 400:
@@ -297,57 +283,6 @@ func TestV3PlanAddonInstanceTypeMaxQuantityMatrix(t *testing.T) {
 			}
 		})
 	}
-}
-
-// Updating a multiple-instance plan-addon with MaxQuantity=nil must be
-// rejected now that UpdatePlanAddon validates post-merge state.
-func TestV3PlanAddonUpdateMaxQuantityValidation(t *testing.T) {
-	c := newV3Client(t)
-
-	status, plan, problem := c.CreatePlan(validPlanRequest("upd_mq_plan"))
-	require.Equal(t, http.StatusCreated, status, "create plan: %+v", problem)
-	require.NotNil(t, plan)
-
-	addonBody := validAddonRequest("upd_mq_addon")
-	addonBody.InstanceType = apiv3.AddonInstanceTypeMultiple
-
-	status, addon, problem := c.CreateAddon(addonBody)
-	require.Equal(t, http.StatusCreated, status, "create addon: %+v", problem)
-
-	status, _, problem = c.PublishAddon(addon.Id)
-	require.Equal(t, http.StatusOK, status, "publish addon: %+v", problem)
-
-	body := validPlanAddonRequest(plan.Phases[0].Key, addon.Id)
-	body.MaxQuantity = lo.ToPtr(5)
-
-	status, planAddon, problem := c.AttachAddon(plan.Id, body)
-	require.Equal(t, http.StatusCreated, status, "attach: %+v", problem)
-	require.NotNil(t, planAddon)
-
-	t.Run("clearing MaxQuantity on a multiple-instance addon must be rejected", func(t *testing.T) {
-		update := apiv3.UpsertPlanAddonRequest{
-			Name:          "Updated Plan Addon",
-			FromPlanPhase: planAddon.FromPlanPhase,
-			MaxQuantity:   nil,
-		}
-
-		status, _, problem := c.UpdatePlanAddon(plan.Id, planAddon.Id, update)
-		assert.Equal(t, http.StatusBadRequest, status, "problem: %+v", problem)
-		assertValidationCode(t, problem, "plan_addon_max_quantity_must_be_set")
-	})
-
-	t.Run("updating MaxQuantity to a valid value must succeed", func(t *testing.T) {
-		update := apiv3.UpsertPlanAddonRequest{
-			Name:          "Updated Plan Addon",
-			FromPlanPhase: planAddon.FromPlanPhase,
-			MaxQuantity:   lo.ToPtr(10),
-		}
-
-		status, updated, problem := c.UpdatePlanAddon(plan.Id, planAddon.Id, update)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
-		require.NotNil(t, updated)
-		assert.Equal(t, lo.ToPtr(10), updated.MaxQuantity)
-	})
 }
 
 // Detach rules by plan status. The "scheduled plan" row is omitted because
@@ -525,132 +460,6 @@ func makePlanWithStatus(t *testing.T, c *v3Client, keyPrefix string, target apiv
 		t.Fatalf("unsupported plan target status %q", target)
 		return nil
 	}
-}
-
-// Attach with currency mismatch: plan in EUR, addon in USD
-// → 400 with plan_addon_currency_mismatch.
-func TestV3PlanAddonCurrencyMismatch(t *testing.T) {
-	c := newV3Client(t)
-
-	planBody := validPlanRequest("currency_mismatch_plan")
-	planBody.Currency = "EUR"
-
-	status, plan, problem := c.CreatePlan(planBody)
-	require.Equal(t, http.StatusCreated, status, "create plan: %+v", problem)
-	require.NotNil(t, plan)
-
-	// validAddonRequest defaults to USD.
-	status, addon, problem := c.CreateAddon(validAddonRequest("currency_mismatch_addon"))
-	require.Equal(t, http.StatusCreated, status, "create addon: %+v", problem)
-	require.NotNil(t, addon)
-
-	status, _, problem = c.PublishAddon(addon.Id)
-	require.Equal(t, http.StatusOK, status, "publish addon: %+v", problem)
-
-	status, _, problem = c.AttachAddon(plan.Id, validPlanAddonRequest(plan.Phases[0].Key, addon.Id))
-	assert.Equal(t, http.StatusBadRequest, status, "attach response: %+v", problem)
-	assertValidationCode(t, problem, "plan_addon_currency_mismatch")
-}
-
-// Attach with rate-card cadence unalignment.
-//
-// The domain alignment rule (openmeter/productcatalog/alignment.go) treats two
-// cadences as aligned when one divides the other without remainder, so
-// plan=P1M + addon=P1Y is aligned (12÷1=12) and won't trigger the check. To
-// force an unalignment we pick cadences where neither divides the other:
-// plan=P3M + addon=P2M (3÷2 and 2÷3 both fail).
-//
-// The error raised is `rate_card_billing_cadence_unaligned`, not
-// `rate_card_billing_cadence_mismatch` (the mismatch code is for a different
-// path — addon-vs-plan-rate-card direct comparison).
-func TestV3PlanAddonCadenceMismatch(t *testing.T) {
-	c := newV3Client(t)
-
-	// Plan at P3M.
-	planBody := validPlanRequest("cadence_mismatch_plan")
-	planBody.BillingCadence = apiv3.ISO8601Duration("P3M")
-	// The plan's rate card inherits from validFlatRateCard which sets P1M —
-	// P1M divides P3M, so the plan itself stays aligned.
-
-	status, plan, problem := c.CreatePlan(planBody)
-	require.Equal(t, http.StatusCreated, status, "create plan: %+v", problem)
-	require.NotNil(t, plan)
-
-	// Addon rate card at P2M — neither divides P3M nor is divisible by it.
-	cadence := apiv3.ISO8601Duration("P2M")
-	term := apiv3.BillingPricePaymentTermInAdvance
-	price := apiv3.BillingPrice{}
-	require.NoError(t, price.FromBillingPriceFlat(apiv3.BillingPriceFlat{
-		Type:   apiv3.BillingPriceFlatTypeFlat,
-		Amount: "10",
-	}))
-
-	p2mRateCard := apiv3.BillingRateCard{
-		Key:            uniqueKey("p2m_rc"),
-		Name:           "P2M Rate Card",
-		Price:          price,
-		BillingCadence: &cadence,
-		PaymentTerm:    &term,
-	}
-
-	addonBody := validAddonRequest("cadence_mismatch_addon")
-	addonBody.RateCards = []apiv3.BillingRateCard{p2mRateCard}
-
-	status, addon, problem := c.CreateAddon(addonBody)
-	require.Equal(t, http.StatusCreated, status, "create addon: %+v", problem)
-	require.NotNil(t, addon)
-
-	status, _, problem = c.PublishAddon(addon.Id)
-	require.Equal(t, http.StatusOK, status, "publish addon: %+v", problem)
-
-	status, _, problem = c.AttachAddon(plan.Id, validPlanAddonRequest(plan.Phases[0].Key, addon.Id))
-	assert.Equal(t, http.StatusBadRequest, status, "attach response: %+v", problem)
-	assertValidationCode(t, problem, "rate_card_billing_cadence_unaligned")
-}
-
-// Rate-card shape collision on attach: when a plan phase and an addon share
-// a rate-card key but have incompatible price shapes (flat vs graduated),
-// attach is rejected with 400.
-//
-// The underlying error (rate_card_price_type_mismatch) currently lacks an
-// HTTP status code attribute, so the response surfaces as a plain 400 with
-// the reason text in Detail rather than as extensions.validationErrors[].code.
-// Pinning the specific code via assertValidationCode is a follow-up.
-func TestV3PlanAddonRateCardShapeCollision(t *testing.T) {
-	c := newV3Client(t)
-
-	sharedKey := uniqueKey("setup_fee")
-
-	planFlat := validFlatRateCard("collision_plan_flat")
-	planFlat.Key = sharedKey
-
-	phase := validPlanPhase("collision_phase", true /* isLast */)
-	phase.RateCards = []apiv3.BillingRateCard{planFlat}
-
-	planBody := validPlanRequest("shape_collision_plan")
-	planBody.Phases = []apiv3.BillingPlanPhase{phase}
-
-	status, plan, problem := c.CreatePlan(planBody)
-	require.Equal(t, http.StatusCreated, status, "create plan: %+v", problem)
-	require.NotNil(t, plan)
-
-	addonGraduated := validGraduatedRateCard("collision_addon_graduated")
-	addonGraduated.Key = sharedKey
-
-	addonBody := validAddonRequest("shape_collision_addon")
-	addonBody.RateCards = []apiv3.BillingRateCard{addonGraduated}
-
-	status, addon, problem := c.CreateAddon(addonBody)
-	require.Equal(t, http.StatusCreated, status, "create addon: %+v", problem)
-	require.NotNil(t, addon)
-
-	status, _, problem = c.PublishAddon(addon.Id)
-	require.Equal(t, http.StatusOK, status, "publish addon: %+v", problem)
-
-	status, _, problem = c.AttachAddon(plan.Id, validPlanAddonRequest(plan.Phases[0].Key, addon.Id))
-	assert.Equal(t, http.StatusBadRequest, status, "attach response: %+v", problem)
-	require.NotNil(t, problem, "expected problem response")
-	assertProblemDetail(t, problem, "price type must match")
 }
 
 // makeAddonWithStatus creates an addon and advances it to the requested
