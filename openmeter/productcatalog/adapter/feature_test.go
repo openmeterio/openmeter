@@ -251,6 +251,70 @@ func TestCreateFeature(t *testing.T) {
 			},
 		},
 		{
+			name: "Should search by name",
+			run: func(t *testing.T, connector feature.FeatureRepo) {
+				ctx := context.Background()
+
+				_, err := connector.CreateFeature(ctx, testFeature)
+				assert.NoError(t, err)
+
+				// ?filter[name][eq]=<name>
+				features, err := connector.ListFeatures(ctx, feature.ListFeaturesParams{
+					Namespace: namespace,
+					Name: &filter.FilterString{
+						Eq: lo.ToPtr("feature-1"),
+					},
+				})
+				assert.NoError(t, err)
+
+				assert.Len(t, features.Items, 1)
+				assert.Equal(t, "feature-1", features.Items[0].Name)
+
+				// ?filter[name][eq]=invalid
+				features, err = connector.ListFeatures(ctx, feature.ListFeaturesParams{
+					Namespace: namespace,
+					Name: &filter.FilterString{
+						Eq: lo.ToPtr("invalidid"),
+					},
+				})
+				assert.NoError(t, err)
+
+				assert.Len(t, features.Items, 0)
+			},
+		},
+		{
+			name: "Should search by key",
+			run: func(t *testing.T, connector feature.FeatureRepo) {
+				ctx := context.Background()
+
+				_, err := connector.CreateFeature(ctx, testFeature)
+				assert.NoError(t, err)
+
+				// ?filter[key][eq]=<key>
+				features, err := connector.ListFeatures(ctx, feature.ListFeaturesParams{
+					Namespace: namespace,
+					Key: &filter.FilterString{
+						Eq: lo.ToPtr("feature-1"),
+					},
+				})
+				assert.NoError(t, err)
+
+				assert.Len(t, features.Items, 1)
+				assert.Equal(t, "feature-1", features.Items[0].Name)
+
+				// ?filter[key][eq]=invalid
+				features, err = connector.ListFeatures(ctx, feature.ListFeaturesParams{
+					Namespace: namespace,
+					Key: &filter.FilterString{
+						Eq: lo.ToPtr("invalidid"),
+					},
+				})
+				assert.NoError(t, err)
+
+				assert.Len(t, features.Items, 0)
+			},
+		},
+		{
 			name: "Should find by name",
 			run: func(t *testing.T, connector feature.FeatureRepo) {
 				ctx := context.Background()

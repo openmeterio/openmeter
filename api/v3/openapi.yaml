@@ -1178,6 +1178,23 @@ paths:
       description: List all features.
       parameters:
         - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort features returned in the response.
+            Supported sort attributes are:
+            - `key`
+            - `name`
+            - `created_at` (default)
+            - `updated_at`
+
+            The `asc` suffix is optional as the default sort order is ascending.
+            The `desc` suffix is used to specify a descending order.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
         - name: filter
           in: query
           required: false
@@ -7408,6 +7425,10 @@ components:
       properties:
         meter_id:
           $ref: '#/components/schemas/ULIDFieldFilter'
+        key:
+          $ref: '#/components/schemas/StringFieldFilter'
+        name:
+          $ref: '#/components/schemas/StringFieldFilter'
       description: Filter options for listing features.
     ListLLMCostPricesParamsFilter:
       type: object
