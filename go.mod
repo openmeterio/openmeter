@@ -25,7 +25,7 @@ require (
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-chi/cors v1.2.2
 	github.com/go-chi/render v1.0.3
-	github.com/go-co-op/gocron/v2 v2.20.0
+	github.com/go-co-op/gocron/v2 v2.21.0
 	github.com/go-resty/resty/v2 v2.17.2
 	github.com/go-slog/otelslog v0.3.0
 	github.com/go-viper/mapstructure/v2 v2.5.0
@@ -36,7 +36,7 @@ require (
 	github.com/google/wire v0.7.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/huandu/go-sqlbuilder v1.40.2
-	github.com/invopop/gobl v0.309.0
+	github.com/invopop/gobl v0.400.1
 	github.com/jackc/pgx/v5 v5.9.1
 	github.com/lmittmann/tint v1.1.3
 	github.com/mitchellh/mapstructure v1.5.0
@@ -88,7 +88,7 @@ require (
 	google.golang.org/grpc v1.80.0
 	google.golang.org/protobuf v1.36.11
 	k8s.io/api v0.35.3
-	k8s.io/apimachinery v0.35.3
+	k8s.io/apimachinery v0.35.4
 	k8s.io/client-go v0.35.3
 	sigs.k8s.io/controller-runtime v0.23.3
 )
@@ -133,6 +133,7 @@ require (
 	github.com/envoyproxy/go-control-plane/envoy v1.36.0 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.3.0 // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
+	github.com/expr-lang/expr v1.17.8 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.8.0 // indirect
 	github.com/go-git/go-git/v5 v5.18.0 // indirect
@@ -145,7 +146,6 @@ require (
 	github.com/googleapis/go-sql-spanner v1.16.0 // indirect
 	github.com/hamba/avro/v2 v2.29.0 // indirect
 	github.com/huandu/go-clone v1.7.3 // indirect
-	github.com/invopop/validation v0.8.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jcmturner/goidentity/v6 v6.0.1 // indirect
 	github.com/jmattheis/goverter v1.9.3 // indirect
@@ -383,7 +383,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/influxdata/go-syslog/v3 v3.0.0 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c // indirect
-	github.com/invopop/jsonschema v0.12.0 // indirect
+	github.com/invopop/jsonschema v0.13.1-0.20260331224545-b36d455c19d3 // indirect
 	github.com/invopop/yaml v0.3.1
 	github.com/itchyny/gojq v0.12.17 // indirect
 	github.com/itchyny/timefmt-go v0.1.6 // indirect

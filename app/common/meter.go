@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter/service"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/filter"
 )
 
 type MeterConfigInitializer = func(ctx context.Context) error
@@ -122,8 +123,8 @@ func createConfigMetersInDatabase(
 	})
 
 	meterList, err := meterService.ListMeters(ctx, meter.ListMetersParams{
-		Namespace:  namespaceManager.GetDefaultNamespace(),
-		SlugFilter: &configMeterSlugs,
+		Namespace: namespaceManager.GetDefaultNamespace(),
+		Key:       &filter.FilterString{In: &configMeterSlugs},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to list meters: %w", err)

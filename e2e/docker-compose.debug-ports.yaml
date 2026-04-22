@@ -14,7 +14,3 @@ services:
   redis:
     ports:
       - "127.0.0.1:36379:6379"
-
-  postgres:
-    ports:
-      - "127.0.0.1:35432:5432"

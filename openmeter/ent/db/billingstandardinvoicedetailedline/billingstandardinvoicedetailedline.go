@@ -8,8 +8,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
@@ -18,22 +17,6 @@ const (
 	Label = "billing_standard_invoice_detailed_line"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
-	// FieldAnnotations holds the string denoting the annotations field in the database.
-	FieldAnnotations = "annotations"
-	// FieldNamespace holds the string denoting the namespace field in the database.
-	FieldNamespace = "namespace"
-	// FieldMetadata holds the string denoting the metadata field in the database.
-	FieldMetadata = "metadata"
-	// FieldCreatedAt holds the string denoting the created_at field in the database.
-	FieldCreatedAt = "created_at"
-	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
-	FieldUpdatedAt = "updated_at"
-	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
-	FieldDeletedAt = "deleted_at"
-	// FieldName holds the string denoting the name field in the database.
-	FieldName = "name"
-	// FieldDescription holds the string denoting the description field in the database.
-	FieldDescription = "description"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
 	// FieldTaxConfig holds the string denoting the tax_config field in the database.
@@ -42,30 +25,10 @@ const (
 	FieldTaxCodeID = "tax_code_id"
 	// FieldTaxBehavior holds the string denoting the tax_behavior field in the database.
 	FieldTaxBehavior = "tax_behavior"
-	// FieldAmount holds the string denoting the amount field in the database.
-	FieldAmount = "amount"
-	// FieldTaxesTotal holds the string denoting the taxes_total field in the database.
-	FieldTaxesTotal = "taxes_total"
-	// FieldTaxesInclusiveTotal holds the string denoting the taxes_inclusive_total field in the database.
-	FieldTaxesInclusiveTotal = "taxes_inclusive_total"
-	// FieldTaxesExclusiveTotal holds the string denoting the taxes_exclusive_total field in the database.
-	FieldTaxesExclusiveTotal = "taxes_exclusive_total"
-	// FieldChargesTotal holds the string denoting the charges_total field in the database.
-	FieldChargesTotal = "charges_total"
-	// FieldDiscountsTotal holds the string denoting the discounts_total field in the database.
-	FieldDiscountsTotal = "discounts_total"
-	// FieldCreditsTotal holds the string denoting the credits_total field in the database.
-	FieldCreditsTotal = "credits_total"
-	// FieldTotal holds the string denoting the total field in the database.
-	FieldTotal = "total"
 	// FieldServicePeriodStart holds the string denoting the service_period_start field in the database.
 	FieldServicePeriodStart = "service_period_start"
 	// FieldServicePeriodEnd holds the string denoting the service_period_end field in the database.
 	FieldServicePeriodEnd = "service_period_end"
-	// FieldInvoiceID holds the string denoting the invoice_id field in the database.
-	FieldInvoiceID = "invoice_id"
-	// FieldParentLineID holds the string denoting the parent_line_id field in the database.
-	FieldParentLineID = "parent_line_id"
 	// FieldQuantity holds the string denoting the quantity field in the database.
 	FieldQuantity = "quantity"
 	// FieldInvoicingAppExternalID holds the string denoting the invoicing_app_external_id field in the database.
@@ -82,6 +45,42 @@ const (
 	FieldIndex = "index"
 	// FieldCreditsApplied holds the string denoting the credits_applied field in the database.
 	FieldCreditsApplied = "credits_applied"
+	// FieldAnnotations holds the string denoting the annotations field in the database.
+	FieldAnnotations = "annotations"
+	// FieldNamespace holds the string denoting the namespace field in the database.
+	FieldNamespace = "namespace"
+	// FieldMetadata holds the string denoting the metadata field in the database.
+	FieldMetadata = "metadata"
+	// FieldCreatedAt holds the string denoting the created_at field in the database.
+	FieldCreatedAt = "created_at"
+	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
+	FieldUpdatedAt = "updated_at"
+	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
+	FieldDeletedAt = "deleted_at"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
+	// FieldDescription holds the string denoting the description field in the database.
+	FieldDescription = "description"
+	// FieldAmount holds the string denoting the amount field in the database.
+	FieldAmount = "amount"
+	// FieldTaxesTotal holds the string denoting the taxes_total field in the database.
+	FieldTaxesTotal = "taxes_total"
+	// FieldTaxesInclusiveTotal holds the string denoting the taxes_inclusive_total field in the database.
+	FieldTaxesInclusiveTotal = "taxes_inclusive_total"
+	// FieldTaxesExclusiveTotal holds the string denoting the taxes_exclusive_total field in the database.
+	FieldTaxesExclusiveTotal = "taxes_exclusive_total"
+	// FieldChargesTotal holds the string denoting the charges_total field in the database.
+	FieldChargesTotal = "charges_total"
+	// FieldDiscountsTotal holds the string denoting the discounts_total field in the database.
+	FieldDiscountsTotal = "discounts_total"
+	// FieldCreditsTotal holds the string denoting the credits_total field in the database.
+	FieldCreditsTotal = "credits_total"
+	// FieldTotal holds the string denoting the total field in the database.
+	FieldTotal = "total"
+	// FieldInvoiceID holds the string denoting the invoice_id field in the database.
+	FieldInvoiceID = "invoice_id"
+	// FieldParentLineID holds the string denoting the parent_line_id field in the database.
+	FieldParentLineID = "parent_line_id"
 	// EdgeBillingInvoice holds the string denoting the billing_invoice edge name in mutations.
 	EdgeBillingInvoice = "billing_invoice"
 	// EdgeBillingInvoiceLine holds the string denoting the billing_invoice_line edge name in mutations.
@@ -125,30 +124,12 @@ const (
 // Columns holds all SQL columns for billingstandardinvoicedetailedline fields.
 var Columns = []string{
 	FieldID,
-	FieldAnnotations,
-	FieldNamespace,
-	FieldMetadata,
-	FieldCreatedAt,
-	FieldUpdatedAt,
-	FieldDeletedAt,
-	FieldName,
-	FieldDescription,
 	FieldCurrency,
 	FieldTaxConfig,
 	FieldTaxCodeID,
 	FieldTaxBehavior,
-	FieldAmount,
-	FieldTaxesTotal,
-	FieldTaxesInclusiveTotal,
-	FieldTaxesExclusiveTotal,
-	FieldChargesTotal,
-	FieldDiscountsTotal,
-	FieldCreditsTotal,
-	FieldTotal,
 	FieldServicePeriodStart,
 	FieldServicePeriodEnd,
-	FieldInvoiceID,
-	FieldParentLineID,
 	FieldQuantity,
 	FieldInvoicingAppExternalID,
 	FieldChildUniqueReferenceID,
@@ -157,6 +138,24 @@ var Columns = []string{
 	FieldPaymentTerm,
 	FieldIndex,
 	FieldCreditsApplied,
+	FieldAnnotations,
+	FieldNamespace,
+	FieldMetadata,
+	FieldCreatedAt,
+	FieldUpdatedAt,
+	FieldDeletedAt,
+	FieldName,
+	FieldDescription,
+	FieldAmount,
+	FieldTaxesTotal,
+	FieldTaxesInclusiveTotal,
+	FieldTaxesExclusiveTotal,
+	FieldChargesTotal,
+	FieldDiscountsTotal,
+	FieldCreditsTotal,
+	FieldTotal,
+	FieldInvoiceID,
+	FieldParentLineID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -170,6 +169,10 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
+	CurrencyValidator func(string) error
+	// ChildUniqueReferenceIDValidator is a validator for the "child_unique_reference_id" field. It is called by the builders before save.
+	ChildUniqueReferenceIDValidator func(string) error
 	// NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	NamespaceValidator func(string) error
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
@@ -178,14 +181,8 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
-	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
-	CurrencyValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
-	// ValueScanner of all BillingStandardInvoiceDetailedLine fields.
-	ValueScanner struct {
-		CreditsApplied field.TypeValueScanner[*billing.CreditsApplied]
-	}
 )
 
 // TaxBehaviorValidator is a validator for the "tax_behavior" field enum values. It is called by the builders before save.
@@ -198,10 +195,10 @@ func TaxBehaviorValidator(tb productcatalog.TaxBehavior) error {
 	}
 }
 
-const DefaultCategory billing.FlatFeeCategory = "regular"
+const DefaultCategory stddetailedline.Category = "regular"
 
 // CategoryValidator is a validator for the "category" field enum values. It is called by the builders before save.
-func CategoryValidator(c billing.FlatFeeCategory) error {
+func CategoryValidator(c stddetailedline.Category) error {
 	switch c {
 	case "regular", "commitment":
 		return nil
@@ -228,6 +225,66 @@ type OrderOption func(*sql.Selector)
 // ByID orders the results by the id field.
 func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
+}
+
+// ByCurrency orders the results by the currency field.
+func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+}
+
+// ByTaxCodeID orders the results by the tax_code_id field.
+func ByTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxCodeID, opts...).ToFunc()
+}
+
+// ByTaxBehavior orders the results by the tax_behavior field.
+func ByTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxBehavior, opts...).ToFunc()
+}
+
+// ByServicePeriodStart orders the results by the service_period_start field.
+func ByServicePeriodStart(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldServicePeriodStart, opts...).ToFunc()
+}
+
+// ByServicePeriodEnd orders the results by the service_period_end field.
+func ByServicePeriodEnd(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldServicePeriodEnd, opts...).ToFunc()
+}
+
+// ByQuantity orders the results by the quantity field.
+func ByQuantity(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldQuantity, opts...).ToFunc()
+}
+
+// ByInvoicingAppExternalID orders the results by the invoicing_app_external_id field.
+func ByInvoicingAppExternalID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoicingAppExternalID, opts...).ToFunc()
+}
+
+// ByChildUniqueReferenceID orders the results by the child_unique_reference_id field.
+func ByChildUniqueReferenceID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldChildUniqueReferenceID, opts...).ToFunc()
+}
+
+// ByPerUnitAmount orders the results by the per_unit_amount field.
+func ByPerUnitAmount(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPerUnitAmount, opts...).ToFunc()
+}
+
+// ByCategory orders the results by the category field.
+func ByCategory(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCategory, opts...).ToFunc()
+}
+
+// ByPaymentTerm orders the results by the payment_term field.
+func ByPaymentTerm(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPaymentTerm, opts...).ToFunc()
+}
+
+// ByIndex orders the results by the index field.
+func ByIndex(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIndex, opts...).ToFunc()
 }
 
 // ByNamespace orders the results by the namespace field.
@@ -258,21 +315,6 @@ func ByName(opts ...sql.OrderTermOption) OrderOption {
 // ByDescription orders the results by the description field.
 func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDescription, opts...).ToFunc()
-}
-
-// ByCurrency orders the results by the currency field.
-func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
-}
-
-// ByTaxCodeID orders the results by the tax_code_id field.
-func ByTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTaxCodeID, opts...).ToFunc()
-}
-
-// ByTaxBehavior orders the results by the tax_behavior field.
-func ByTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTaxBehavior, opts...).ToFunc()
 }
 
 // ByAmount orders the results by the amount field.
@@ -315,16 +357,6 @@ func ByTotal(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTotal, opts...).ToFunc()
 }
 
-// ByServicePeriodStart orders the results by the service_period_start field.
-func ByServicePeriodStart(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldServicePeriodStart, opts...).ToFunc()
-}
-
-// ByServicePeriodEnd orders the results by the service_period_end field.
-func ByServicePeriodEnd(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldServicePeriodEnd, opts...).ToFunc()
-}
-
 // ByInvoiceID orders the results by the invoice_id field.
 func ByInvoiceID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInvoiceID, opts...).ToFunc()
@@ -333,46 +365,6 @@ func ByInvoiceID(opts ...sql.OrderTermOption) OrderOption {
 // ByParentLineID orders the results by the parent_line_id field.
 func ByParentLineID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldParentLineID, opts...).ToFunc()
-}
-
-// ByQuantity orders the results by the quantity field.
-func ByQuantity(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldQuantity, opts...).ToFunc()
-}
-
-// ByInvoicingAppExternalID orders the results by the invoicing_app_external_id field.
-func ByInvoicingAppExternalID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldInvoicingAppExternalID, opts...).ToFunc()
-}
-
-// ByChildUniqueReferenceID orders the results by the child_unique_reference_id field.
-func ByChildUniqueReferenceID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldChildUniqueReferenceID, opts...).ToFunc()
-}
-
-// ByPerUnitAmount orders the results by the per_unit_amount field.
-func ByPerUnitAmount(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPerUnitAmount, opts...).ToFunc()
-}
-
-// ByCategory orders the results by the category field.
-func ByCategory(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCategory, opts...).ToFunc()
-}
-
-// ByPaymentTerm orders the results by the payment_term field.
-func ByPaymentTerm(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPaymentTerm, opts...).ToFunc()
-}
-
-// ByIndex orders the results by the index field.
-func ByIndex(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldIndex, opts...).ToFunc()
-}
-
-// ByCreditsApplied orders the results by the credits_applied field.
-func ByCreditsApplied(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCreditsApplied, opts...).ToFunc()
 }
 
 // ByBillingInvoiceField orders the results by billing_invoice field.

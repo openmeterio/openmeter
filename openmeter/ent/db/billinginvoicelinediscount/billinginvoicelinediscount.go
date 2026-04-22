@@ -25,6 +25,8 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
+	// FieldInvoicingAppExternalID holds the string denoting the invoicing_app_external_id field in the database.
+	FieldInvoicingAppExternalID = "invoicing_app_external_id"
 	// FieldLineID holds the string denoting the line_id field in the database.
 	FieldLineID = "line_id"
 	// FieldChildUniqueReferenceID holds the string denoting the child_unique_reference_id field in the database.
@@ -33,8 +35,6 @@ const (
 	FieldDescription = "description"
 	// FieldReason holds the string denoting the reason field in the database.
 	FieldReason = "reason"
-	// FieldInvoicingAppExternalID holds the string denoting the invoicing_app_external_id field in the database.
-	FieldInvoicingAppExternalID = "invoicing_app_external_id"
 	// FieldAmount holds the string denoting the amount field in the database.
 	FieldAmount = "amount"
 	// FieldRoundingAmount holds the string denoting the rounding_amount field in the database.
@@ -67,11 +67,11 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
+	FieldInvoicingAppExternalID,
 	FieldLineID,
 	FieldChildUniqueReferenceID,
 	FieldDescription,
 	FieldReason,
-	FieldInvoicingAppExternalID,
 	FieldAmount,
 	FieldRoundingAmount,
 	FieldSourceDiscount,
@@ -147,6 +147,11 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
 }
 
+// ByInvoicingAppExternalID orders the results by the invoicing_app_external_id field.
+func ByInvoicingAppExternalID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoicingAppExternalID, opts...).ToFunc()
+}
+
 // ByLineID orders the results by the line_id field.
 func ByLineID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLineID, opts...).ToFunc()
@@ -165,11 +170,6 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // ByReason orders the results by the reason field.
 func ByReason(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldReason, opts...).ToFunc()
-}
-
-// ByInvoicingAppExternalID orders the results by the invoicing_app_external_id field.
-func ByInvoicingAppExternalID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldInvoicingAppExternalID, opts...).ToFunc()
 }
 
 // ByAmount orders the results by the amount field.

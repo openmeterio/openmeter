@@ -7,6 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -96,28 +97,28 @@ func newDetailedLines(line *billing.StandardLine, inputs ...rating.DetailedLine)
 		}
 
 		if in.Category == "" {
-			in.Category = billing.FlatFeeCategoryRegular
+			in.Category = stddetailedline.CategoryRegular
 		}
 
 		line := billing.DetailedLine{
 			DetailedLineBase: billing.DetailedLineBase{
-				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-					Namespace: line.Namespace,
-					Name:      in.Name,
-				}),
-
-				ServicePeriod:          period,
-				InvoiceID:              line.InvoiceID,
-				Currency:               line.Currency,
-				ChildUniqueReferenceID: &in.ChildUniqueReferenceID,
-				TaxConfig:              line.TaxConfig,
-
-				PaymentTerm:    lo.CoalesceOrEmpty(in.PaymentTerm, productcatalog.InArrearsPaymentTerm),
-				PerUnitAmount:  in.PerUnitAmount,
-				Quantity:       in.Quantity,
-				Category:       in.Category,
-				CreditsApplied: in.CreditsApplied,
-				Totals:         in.Totals,
+				InvoiceID: line.InvoiceID,
+				Base: stddetailedline.Base{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+						Namespace: line.Namespace,
+						Name:      in.Name,
+					}),
+					ServicePeriod:          period,
+					Currency:               line.Currency,
+					ChildUniqueReferenceID: in.ChildUniqueReferenceID,
+					TaxConfig:              line.TaxConfig,
+					PaymentTerm:            lo.CoalesceOrEmpty(in.PaymentTerm, productcatalog.InArrearsPaymentTerm),
+					PerUnitAmount:          in.PerUnitAmount,
+					Quantity:               in.Quantity,
+					Category:               in.Category,
+					CreditsApplied:         in.CreditsApplied,
+					Totals:                 in.Totals,
+				},
 			},
 			AmountDiscounts: in.AmountDiscounts,
 		}

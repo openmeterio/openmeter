@@ -1,0 +1,67 @@
+# Reusable workflow: publish @openmeter/sdk to npm via OIDC Trusted Publishing.
+#
+# npm validates the top-level (caller) workflow filename for trusted publishing,
+# not this reusable file. The trusted publisher entry on npmjs.com is therefore
+# configured against the caller workflow (e.g. release.yaml) + environment prod.
+# See: https://github.com/npm/documentation/issues/1755
+
+name: NPM Release
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Version to publish (without leading v; pnpm strips it anyway)."
+        required: true
+        type: string
+      dist-tag:
+        description: "npm dist-tag to publish under (e.g. latest, beta)."
+        required: true
+        type: string
+
+# Restrictive default; the publish job opens id-token: write itself.
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish @openmeter/sdk
+    # npm trusted publishing with provenance currently requires a GitHub-hosted runner.
+    runs-on: ubuntu-latest
+    environment: prod
+
+    # npm Trusted Publishing: GitHub mints a short-lived OIDC token that npm
+    # exchanges for a publish token. Requires id-token: write and a matching
+    # trusted publisher configuration on npmjs.com.
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      # Trusted publishing requires npm CLI >= 11.5.1 on PATH so npm can
+      # perform the OIDC handshake. setup-node provides a current npm and
+      # writes a registry-scoped .npmrc with no _authToken.
+      - name: Set up pnpm
+        uses: pnpm/action-setup@903f9c1a6ebcba6cf41d87230be49611ac97822e # v6
+        with:
+          package_json_file: api/client/javascript/package.json
+
+      - name: Set up Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: api/client/javascript/pnpm-lock.yaml
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Publish NPM package
+        run: make -C api/client/javascript publish-javascript-sdk
+        env:
+          JS_SDK_RELEASE_VERSION: ${{ inputs.version }}
+          JS_SDK_RELEASE_TAG: ${{ inputs.dist-tag }}
+          NPM_CONFIG_PROVENANCE: "true"

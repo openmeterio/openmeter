@@ -7,6 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -21,7 +22,7 @@ type DetailedLine struct {
 	Period                 *timeutil.ClosedPeriod `json:"period,omitempty"`
 	// PaymentTerm is the payment term for the detailed line, defaults to arrears
 	PaymentTerm productcatalog.PaymentTermType `json:"paymentTerm,omitempty"`
-	Category    billing.FlatFeeCategory        `json:"category,omitempty"`
+	Category    stddetailedline.Category       `json:"category,omitempty"`
 
 	AmountDiscounts billing.AmountLineDiscountsManaged `json:"amountDiscounts,omitempty"`
 	CreditsApplied  billing.CreditsApplied             `json:"creditsApplied,omitempty"`

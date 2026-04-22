@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -141,19 +142,19 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 				}
 			}()
 
-			var ratingResult usagebasedrating.GetRatingForUsageResult
-			ratingResult, err = s.rater.GetRatingForUsage(ctx, usagebasedrating.GetRatingForUsageInput{
+			var dueTotals totals.Totals
+			dueTotals, err = s.rater.GetTotalsForUsage(ctx, usagebasedrating.GetTotalsForUsageInput{
 				Charge:         charge,
 				Customer:       customerOverridesById[charge.GetCustomerID()],
 				FeatureMeter:   featureMeter,
 				StoredAtOffset: storedAt,
 			})
 			if err != nil {
-				err = fmt.Errorf("rating charge %s: %w", charge.ID, err)
+				err = fmt.Errorf("get totals for charge %s: %w", charge.ID, err)
 				return
 			}
 
-			ratingResults.Store(charge.GetChargeID(), ratingResult)
+			ratingResults.Store(charge.GetChargeID(), dueTotals)
 		})
 	}
 
@@ -174,17 +175,17 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 	}
 
 	return slicesx.MapWithErr(charges, func(charge usagebased.Charge) (usagebased.Charge, error) {
-		ratingResultAny, ok := ratingResults.Load(charge.GetChargeID())
+		dueTotalsAny, ok := ratingResults.Load(charge.GetChargeID())
 		if !ok {
-			return charge, fmt.Errorf("rating result not found for charge %s", charge.ID)
+			return charge, fmt.Errorf("totals result not found for charge %s", charge.ID)
 		}
 
-		ratingResult, ok := ratingResultAny.(usagebasedrating.GetRatingForUsageResult)
+		dueTotals, ok := dueTotalsAny.(totals.Totals)
 		if !ok {
-			return charge, fmt.Errorf("rating result not found for charge %s", charge.ID)
+			return charge, fmt.Errorf("invalid totals type for charge %s", charge.ID)
 		}
 
-		charge.Expands.RealtimeUsage = &ratingResult.Totals
+		charge.Expands.RealtimeUsage = &dueTotals
 		return charge, nil
 	})
 }

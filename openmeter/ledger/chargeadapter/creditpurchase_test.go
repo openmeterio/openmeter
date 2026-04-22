@@ -35,7 +35,27 @@ func TestOnPromotionalCreditPurchase(t *testing.T) {
 	)
 
 	require.True(t, env.sumBalance(t, env.fboSubAccount(t, alpacadecimal.Zero)).Equal(alpacadecimal.NewFromInt(100)))
-	require.True(t, env.sumBalance(t, env.receivableSubAccount(t, alpacadecimal.Zero)).Equal(alpacadecimal.NewFromInt(-100)))
+	require.True(t, env.sumBalance(t, env.receivableSubAccount(t, alpacadecimal.Zero)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t, alpacadecimal.Zero)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.washSubAccount(t, alpacadecimal.Zero)).Equal(alpacadecimal.NewFromInt(-100)))
+}
+
+func TestOnPromotionalCreditPurchase_BacksAdvanceBeforeTopUp(t *testing.T) {
+	env := newCreditPurchaseHandlerTestEnv(t)
+	env.createAdvanceExposure(t, alpacadecimal.NewFromInt(40))
+
+	charge := env.newPromotionalCharge(alpacadecimal.NewFromInt(100))
+	ref, err := env.handler.OnPromotionalCreditPurchase(t.Context(), charge)
+	require.NoError(t, err)
+	require.NotEmpty(t, ref.TransactionGroupID)
+
+	require.True(t, env.sumBalance(t, env.receivableSubAccount(t, alpacadecimal.Zero)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t, alpacadecimal.Zero)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.unknownReceivableSubAccount(t)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.unknownAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.accruedSubAccount(t, alpacadecimal.Zero)).Equal(alpacadecimal.NewFromInt(40)))
+	require.True(t, env.sumBalance(t, env.fboSubAccount(t, alpacadecimal.Zero)).Equal(alpacadecimal.NewFromInt(60)))
+	require.True(t, env.sumBalance(t, env.washSubAccount(t, alpacadecimal.Zero)).Equal(alpacadecimal.NewFromInt(-100)))
 }
 
 func TestOnCreditPurchaseInitiated(t *testing.T) {

@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/alpacahq/alpacadecimal"
-
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
@@ -110,7 +108,7 @@ func (i GetByIDsInput) Validate() error {
 		errs = append(errs, errors.New("namespace is required"))
 	}
 
-	if err := i.Expands.Validate(); err != nil {
+	if err := validateExpands(i.Expands); err != nil {
 		errs = append(errs, fmt.Errorf("expands: %w", err))
 	}
 
@@ -155,7 +153,7 @@ func (i GetByIDInput) Validate() error {
 		errs = append(errs, fmt.Errorf("charge ID: %w", err))
 	}
 
-	if err := i.Expands.Validate(); err != nil {
+	if err := validateExpands(i.Expands); err != nil {
 		errs = append(errs, fmt.Errorf("expands: %w", err))
 	}
 
@@ -176,6 +174,17 @@ func (i GetCurrentTotalsInput) Validate() error {
 
 type GetCurrentTotalsResult struct {
 	Charge    Charge
-	Quantity  alpacadecimal.Decimal
 	DueTotals totals.Totals
+}
+
+func validateExpands(expands meta.Expands) error {
+	if err := expands.Validate(); err != nil {
+		return err
+	}
+
+	if expands.Has(meta.ExpandDetailedLines) && !expands.Has(meta.ExpandRealizations) {
+		return fmt.Errorf("%q requires %q", meta.ExpandDetailedLines, meta.ExpandRealizations)
+	}
+
+	return nil
 }

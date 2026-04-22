@@ -393,6 +393,18 @@ func (f ChargeFlatFeeCreditAllocationsFunc) Mutate(ctx context.Context, m db.Mut
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeFlatFeeCreditAllocationsMutation", m)
 }
 
+// The ChargeFlatFeeDetailedLineFunc type is an adapter to allow the use of ordinary
+// function as ChargeFlatFeeDetailedLine mutator.
+type ChargeFlatFeeDetailedLineFunc func(context.Context, *db.ChargeFlatFeeDetailedLineMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeFlatFeeDetailedLineFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeFlatFeeDetailedLineMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeFlatFeeDetailedLineMutation", m)
+}
+
 // The ChargeFlatFeeInvoicedUsageFunc type is an adapter to allow the use of ordinary
 // function as ChargeFlatFeeInvoicedUsage mutator.
 type ChargeFlatFeeInvoicedUsageFunc func(context.Context, *db.ChargeFlatFeeInvoicedUsageMutation) (db.Value, error)
@@ -439,6 +451,18 @@ func (f ChargeUsageBasedRunCreditAllocationsFunc) Mutate(ctx context.Context, m 
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeUsageBasedRunCreditAllocationsMutation", m)
+}
+
+// The ChargeUsageBasedRunDetailedLineFunc type is an adapter to allow the use of ordinary
+// function as ChargeUsageBasedRunDetailedLine mutator.
+type ChargeUsageBasedRunDetailedLineFunc func(context.Context, *db.ChargeUsageBasedRunDetailedLineMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeUsageBasedRunDetailedLineFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeUsageBasedRunDetailedLineMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeUsageBasedRunDetailedLineMutation", m)
 }
 
 // The ChargeUsageBasedRunInvoicedUsageFunc type is an adapter to allow the use of ordinary

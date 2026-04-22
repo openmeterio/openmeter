@@ -35,6 +35,8 @@ Primary packages:
 
 `openmeter/billing/charges` is the root facade for charge operations.
 
+For charge-owned detailed lines, the shared invoice-agnostic base belongs in `openmeter/billing/models/stddetailedline`. Prefer using `type DetailedLine = stddetailedline.Base` in charge packages and keep ownership implicit through containment in the parent aggregate (`flatfee.Realizations` or `usagebased.RealizationRun`) rather than duplicating `charge_id` / `run_id` fields in the domain type. Reuse the shared detailed-line base mapping and create helpers instead of duplicating common field assembly in charge adapters.
+
 Charge-backed invoicing no longer relies on a charges-side `InvoicePendingLines(...)` wrapper. Billing owns invoice creation and dispatches gathering lines by `billing.LineEngineType`, while charge packages provide charge-specific line engines where needed.
 
 Important layers:
@@ -71,6 +73,7 @@ Important types:
   - `CreditRealizations`
   - `AccruedUsage`
   - `Payment`
+  - `DetailedLines`
 - `flatfee.Intent.CalculateAmountAfterProration()` computes the prorated amount from `AmountBeforeProration`, `ServicePeriod/FullServicePeriod` ratio, and `ProRating` config, with currency-precision rounding
 - Charge-backed targets do not use invoice-style semantic proration or empty-period filtering; the charge stack materializes and prorates state itself, and the flat fee charge is responsible for omitting empty lines
 - `usagebased.Intent` carries `FeatureKey`, `Price`, `SettlementMode`, `InvoiceAt`, and `ServicePeriod`
@@ -84,6 +87,15 @@ Important types:
   - `CollectionEnd`
   - `MeterValue`
   - `Totals`
+- `usagebased.RealizationRun` can expand:
+  - `DetailedLines`
+
+Detailed-line expansion rules:
+
+- `meta.ExpandDetailedLines` is not standalone for charge reads; it requires `meta.ExpandRealizations`
+- usage-based detailed lines live under `RealizationRun.DetailedLines`
+- flat-fee detailed lines also live under `Charge.Realizations.DetailedLines`, not on the root charge
+- `mo.None()` means detailed lines were not expanded; present options mean expanded data, even when the underlying slice is nil/empty
 
 ## Billing Line Engines
 
@@ -97,7 +109,7 @@ Current engine values:
 
 Current implementations:
 
-- flat fee line engine: `openmeter/billing/charges/flatfee/lineengine`
+- flat fee line engine: `openmeter/billing/charges/flatfee/service/lineengine.go`
 - credit purchase line engine: `openmeter/billing/charges/creditpurchase/lineengine`
 - usage-based line engine: `openmeter/billing/charges/usagebased/service/lineengine.go`
 
@@ -110,6 +122,8 @@ Important rules:
 - charge test setups must also register those engines explicitly; keep this in `openmeter/billing/charges/testutils`
 - if a charge create path stamps a new `LineEngineType`, app wiring and charge test wiring must register a matching implementation in the same change
 - usage-based exposes its billing line engine from `usagebased.Service.GetLineEngine()`; register that returned engine instead of reusing the service type directly
+- flat-fee now follows the same pattern: `flatfee.Service.GetLineEngine()` returns the engine owned by the service package
+- because flat-fee owns its line engine, `flatfee/service.New(...)` requires a `rating.Service`; forgetting that dependency breaks app/test wiring with `rating service cannot be null`
 
 Operational consequence:
 

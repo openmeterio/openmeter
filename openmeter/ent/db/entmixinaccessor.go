@@ -10,6 +10,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -383,6 +385,18 @@ func (e *BillingInvoice) GetTotal() alpacadecimal.Decimal {
 	return e.Total
 }
 
+func (e *BillingInvoice) GetInvoicingAppExternalID() *string {
+	return e.InvoicingAppExternalID
+}
+
+func (e *BillingInvoice) GetPaymentAppExternalID() *string {
+	return e.PaymentAppExternalID
+}
+
+func (e *BillingInvoice) GetTaxAppExternalID() *string {
+	return e.TaxAppExternalID
+}
+
 func (e *BillingInvoiceFlatFeeLineConfig) GetID() string {
 	return e.ID
 }
@@ -475,6 +489,10 @@ func (e *BillingInvoiceLine) GetTotal() alpacadecimal.Decimal {
 	return e.Total
 }
 
+func (e *BillingInvoiceLine) GetInvoicingAppExternalID() *string {
+	return e.InvoicingAppExternalID
+}
+
 func (e *BillingInvoiceLineDiscount) GetID() string {
 	return e.ID
 }
@@ -495,6 +513,10 @@ func (e *BillingInvoiceLineDiscount) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
+func (e *BillingInvoiceLineDiscount) GetInvoicingAppExternalID() *string {
+	return e.InvoicingAppExternalID
+}
+
 func (e *BillingInvoiceLineDiscount) GetLineID() string {
 	return e.LineID
 }
@@ -509,10 +531,6 @@ func (e *BillingInvoiceLineDiscount) GetDescription() *string {
 
 func (e *BillingInvoiceLineDiscount) GetReason() billing.DiscountReasonType {
 	return e.Reason
-}
-
-func (e *BillingInvoiceLineDiscount) GetInvoicingAppExternalID() *string {
-	return e.InvoicingAppExternalID
 }
 
 func (e *BillingInvoiceLineUsageDiscount) GetID() string {
@@ -535,6 +553,10 @@ func (e *BillingInvoiceLineUsageDiscount) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
+func (e *BillingInvoiceLineUsageDiscount) GetInvoicingAppExternalID() *string {
+	return e.InvoicingAppExternalID
+}
+
 func (e *BillingInvoiceLineUsageDiscount) GetLineID() string {
 	return e.LineID
 }
@@ -549,10 +571,6 @@ func (e *BillingInvoiceLineUsageDiscount) GetDescription() *string {
 
 func (e *BillingInvoiceLineUsageDiscount) GetReason() billing.DiscountReasonType {
 	return e.Reason
-}
-
-func (e *BillingInvoiceLineUsageDiscount) GetInvoicingAppExternalID() *string {
-	return e.InvoicingAppExternalID
 }
 
 func (e *BillingInvoiceSplitLineGroup) GetID() string {
@@ -699,6 +717,62 @@ func (e *BillingStandardInvoiceDetailedLine) GetID() string {
 	return e.ID
 }
 
+func (e *BillingStandardInvoiceDetailedLine) GetCurrency() currencyx.Code {
+	return e.Currency
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetTaxConfig() productcatalog.TaxConfig {
+	return e.TaxConfig
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetTaxCodeID() *string {
+	return e.TaxCodeID
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetTaxBehavior() *productcatalog.TaxBehavior {
+	return e.TaxBehavior
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetServicePeriodStart() time.Time {
+	return e.ServicePeriodStart
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetServicePeriodEnd() time.Time {
+	return e.ServicePeriodEnd
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetQuantity() alpacadecimal.Decimal {
+	return e.Quantity
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetInvoicingAppExternalID() *string {
+	return e.InvoicingAppExternalID
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetChildUniqueReferenceID() string {
+	return e.ChildUniqueReferenceID
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetPerUnitAmount() alpacadecimal.Decimal {
+	return e.PerUnitAmount
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetCategory() stddetailedline.Category {
+	return e.Category
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetPaymentTerm() productcatalog.PaymentTermType {
+	return e.PaymentTerm
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetIndex() *int {
+	return e.Index
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetCreditsApplied() *creditsapplied.CreditsApplied {
+	return e.CreditsApplied
+}
+
 func (e *BillingStandardInvoiceDetailedLine) GetAnnotations() models.Annotations {
 	return e.Annotations
 }
@@ -729,22 +803,6 @@ func (e *BillingStandardInvoiceDetailedLine) GetName() string {
 
 func (e *BillingStandardInvoiceDetailedLine) GetDescription() *string {
 	return e.Description
-}
-
-func (e *BillingStandardInvoiceDetailedLine) GetCurrency() currencyx.Code {
-	return e.Currency
-}
-
-func (e *BillingStandardInvoiceDetailedLine) GetTaxConfig() productcatalog.TaxConfig {
-	return e.TaxConfig
-}
-
-func (e *BillingStandardInvoiceDetailedLine) GetTaxCodeID() *string {
-	return e.TaxCodeID
-}
-
-func (e *BillingStandardInvoiceDetailedLine) GetTaxBehavior() *productcatalog.TaxBehavior {
-	return e.TaxBehavior
 }
 
 func (e *BillingStandardInvoiceDetailedLine) GetAmount() alpacadecimal.Decimal {
@@ -799,6 +857,10 @@ func (e *BillingStandardInvoiceDetailedLineAmountDiscount) GetDeletedAt() *time.
 	return e.DeletedAt
 }
 
+func (e *BillingStandardInvoiceDetailedLineAmountDiscount) GetInvoicingAppExternalID() *string {
+	return e.InvoicingAppExternalID
+}
+
 func (e *BillingStandardInvoiceDetailedLineAmountDiscount) GetLineID() string {
 	return e.LineID
 }
@@ -813,10 +875,6 @@ func (e *BillingStandardInvoiceDetailedLineAmountDiscount) GetDescription() *str
 
 func (e *BillingStandardInvoiceDetailedLineAmountDiscount) GetReason() billing.DiscountReasonType {
 	return e.Reason
-}
-
-func (e *BillingStandardInvoiceDetailedLineAmountDiscount) GetInvoicingAppExternalID() *string {
-	return e.InvoicingAppExternalID
 }
 
 func (e *BillingWorkflowConfig) GetID() string {
@@ -1243,6 +1301,130 @@ func (e *ChargeFlatFeeCreditAllocations) GetAnnotations() models.Annotations {
 	return e.Annotations
 }
 
+func (e *ChargeFlatFeeDetailedLine) GetID() string {
+	return e.ID
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetCurrency() currencyx.Code {
+	return e.Currency
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetTaxConfig() productcatalog.TaxConfig {
+	return e.TaxConfig
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetTaxCodeID() *string {
+	return e.TaxCodeID
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetTaxBehavior() *productcatalog.TaxBehavior {
+	return e.TaxBehavior
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetServicePeriodStart() time.Time {
+	return e.ServicePeriodStart
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetServicePeriodEnd() time.Time {
+	return e.ServicePeriodEnd
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetQuantity() alpacadecimal.Decimal {
+	return e.Quantity
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetInvoicingAppExternalID() *string {
+	return e.InvoicingAppExternalID
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetChildUniqueReferenceID() string {
+	return e.ChildUniqueReferenceID
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetPerUnitAmount() alpacadecimal.Decimal {
+	return e.PerUnitAmount
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetCategory() stddetailedline.Category {
+	return e.Category
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetPaymentTerm() productcatalog.PaymentTermType {
+	return e.PaymentTerm
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetIndex() *int {
+	return e.Index
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetCreditsApplied() *creditsapplied.CreditsApplied {
+	return e.CreditsApplied
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetMetadata() map[string]string {
+	return e.Metadata
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetName() string {
+	return e.Name
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetDescription() *string {
+	return e.Description
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetAmount() alpacadecimal.Decimal {
+	return e.Amount
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetTaxesTotal() alpacadecimal.Decimal {
+	return e.TaxesTotal
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetTaxesInclusiveTotal() alpacadecimal.Decimal {
+	return e.TaxesInclusiveTotal
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetTaxesExclusiveTotal() alpacadecimal.Decimal {
+	return e.TaxesExclusiveTotal
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetChargesTotal() alpacadecimal.Decimal {
+	return e.ChargesTotal
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetDiscountsTotal() alpacadecimal.Decimal {
+	return e.DiscountsTotal
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetCreditsTotal() alpacadecimal.Decimal {
+	return e.CreditsTotal
+}
+
+func (e *ChargeFlatFeeDetailedLine) GetTotal() alpacadecimal.Decimal {
+	return e.Total
+}
+
 func (e *ChargeFlatFeeInvoicedUsage) GetID() string {
 	return e.ID
 }
@@ -1533,6 +1715,130 @@ func (e *ChargeUsageBasedRunCreditAllocations) GetDeletedAt() *time.Time {
 
 func (e *ChargeUsageBasedRunCreditAllocations) GetAnnotations() models.Annotations {
 	return e.Annotations
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetID() string {
+	return e.ID
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetCurrency() currencyx.Code {
+	return e.Currency
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetTaxConfig() productcatalog.TaxConfig {
+	return e.TaxConfig
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetTaxCodeID() *string {
+	return e.TaxCodeID
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetTaxBehavior() *productcatalog.TaxBehavior {
+	return e.TaxBehavior
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetServicePeriodStart() time.Time {
+	return e.ServicePeriodStart
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetServicePeriodEnd() time.Time {
+	return e.ServicePeriodEnd
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetQuantity() alpacadecimal.Decimal {
+	return e.Quantity
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetInvoicingAppExternalID() *string {
+	return e.InvoicingAppExternalID
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetChildUniqueReferenceID() string {
+	return e.ChildUniqueReferenceID
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetPerUnitAmount() alpacadecimal.Decimal {
+	return e.PerUnitAmount
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetCategory() stddetailedline.Category {
+	return e.Category
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetPaymentTerm() productcatalog.PaymentTermType {
+	return e.PaymentTerm
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetIndex() *int {
+	return e.Index
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetCreditsApplied() *creditsapplied.CreditsApplied {
+	return e.CreditsApplied
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetMetadata() map[string]string {
+	return e.Metadata
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetName() string {
+	return e.Name
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetDescription() *string {
+	return e.Description
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetAmount() alpacadecimal.Decimal {
+	return e.Amount
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetTaxesTotal() alpacadecimal.Decimal {
+	return e.TaxesTotal
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetTaxesInclusiveTotal() alpacadecimal.Decimal {
+	return e.TaxesInclusiveTotal
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetTaxesExclusiveTotal() alpacadecimal.Decimal {
+	return e.TaxesExclusiveTotal
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetChargesTotal() alpacadecimal.Decimal {
+	return e.ChargesTotal
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetDiscountsTotal() alpacadecimal.Decimal {
+	return e.DiscountsTotal
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetCreditsTotal() alpacadecimal.Decimal {
+	return e.CreditsTotal
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetTotal() alpacadecimal.Decimal {
+	return e.Total
 }
 
 func (e *ChargeUsageBasedRunInvoicedUsage) GetID() string {

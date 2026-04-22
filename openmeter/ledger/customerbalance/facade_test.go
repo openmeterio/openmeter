@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -20,7 +19,9 @@ func TestFacadeGetBalancesWithExplicitCurrencies(t *testing.T) {
 	env := newTestEnv(t)
 
 	env.bookFBOBalanceInCurrency(t, alpacadecimal.NewFromInt(100), "USD")
+	env.fundOpenReceivableInCurrency(t, alpacadecimal.NewFromInt(100), "USD")
 	env.bookFBOBalanceInCurrency(t, alpacadecimal.NewFromInt(200), "EUR")
+	env.fundOpenReceivableInCurrency(t, alpacadecimal.NewFromInt(200), "EUR")
 	env.createFlatFeeChargeInCurrency(t, alpacadecimal.NewFromInt(30), productcatalog.CreditOnlySettlementMode, env.sp(), "USD")
 	env.createFlatFeeChargeInCurrency(t, alpacadecimal.NewFromInt(70), productcatalog.CreditOnlySettlementMode, env.sp(), "EUR")
 
@@ -49,7 +50,9 @@ func TestFacadeGetBalancesWithDiscoveredCurrencies(t *testing.T) {
 	env := newTestEnv(t)
 
 	env.bookFBOBalanceInCurrency(t, alpacadecimal.NewFromInt(100), "USD")
+	env.fundOpenReceivableInCurrency(t, alpacadecimal.NewFromInt(100), "USD")
 	env.bookFBOBalanceInCurrency(t, alpacadecimal.NewFromInt(200), "EUR")
+	env.fundOpenReceivableInCurrency(t, alpacadecimal.NewFromInt(200), "EUR")
 	env.createFlatFeeChargeInCurrency(t, alpacadecimal.NewFromInt(30), productcatalog.CreditOnlySettlementMode, env.sp(), "USD")
 	env.createFlatFeeChargeInCurrency(t, alpacadecimal.NewFromInt(70), productcatalog.CreditOnlySettlementMode, env.sp(), "EUR")
 	facade, err := NewFacade(env.Service)
@@ -107,30 +110,33 @@ func TestFacadeGetBalanceAfterTransactionCursor(t *testing.T) {
 	clock.SetTime(firstBookedAt)
 	defer clock.ResetTime()
 	env.bookFBOBalance(t, alpacadecimal.NewFromInt(100))
+	env.fundOpenReceivable(t, alpacadecimal.NewFromInt(100))
 
-	clock.SetTime(secondBookedAt)
-	env.bookFBOBalance(t, alpacadecimal.NewFromInt(20))
-
-	fboAccount, ok := env.CustomerAccounts.FBOAccount.(*ledgeraccount.CustomerFBOAccount)
+	receivableAccount, ok := env.CustomerAccounts.ReceivableAccount.(*ledgeraccount.CustomerReceivableAccount)
 	require.True(t, ok)
 
-	paged, err := env.Deps.HistoricalLedger.ListTransactionsByPage(t.Context(), ledger.ListTransactionsByPageInput{
+	pagedBeforeSecondIssue, err := env.Deps.HistoricalLedger.ListTransactionsByPage(t.Context(), ledger.ListTransactionsByPageInput{
 		Page:       pagepagination.NewPage(1, 10),
 		Namespace:  env.Namespace,
-		AccountIDs: []string{fboAccount.ID().ID},
+		AccountIDs: []string{receivableAccount.ID().ID},
 		Currency:   &env.Currency,
 	})
 	require.NoError(t, err)
-	require.Len(t, paged.Items, 2)
+	require.Len(t, pagedBeforeSecondIssue.Items, 3)
 
-	olderTx := paged.Items[1]
+	cursorAfterFunding := pagedBeforeSecondIssue.Items[0].Cursor()
+
+	clock.SetTime(secondBookedAt)
+	env.bookFBOBalance(t, alpacadecimal.NewFromInt(20))
+	env.fundOpenReceivable(t, alpacadecimal.NewFromInt(20))
+
 	balanceAfterOlderTx, err := facade.GetBalance(t.Context(), GetBalanceInput{
 		CustomerID: env.CustomerID,
 		Currency:   env.Currency,
-		After:      lo.ToPtr(olderTx.Cursor()),
+		After:      &cursorAfterFunding,
 	})
 	require.NoError(t, err)
-	require.True(t, balanceAfterOlderTx.Equal(alpacadecimal.NewFromInt(100)))
+	require.True(t, balanceAfterOlderTx.Equal(alpacadecimal.NewFromInt(100)), "balance after older tx: %s", balanceAfterOlderTx)
 
 	currentBalance, err := facade.GetBalance(t.Context(), GetBalanceInput{
 		CustomerID: env.CustomerID,

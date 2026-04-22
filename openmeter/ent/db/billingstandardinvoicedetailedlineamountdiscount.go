@@ -28,6 +28,8 @@ type BillingStandardInvoiceDetailedLineAmountDiscount struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// InvoicingAppExternalID holds the value of the "invoicing_app_external_id" field.
+	InvoicingAppExternalID *string `json:"invoicing_app_external_id,omitempty"`
 	// LineID holds the value of the "line_id" field.
 	LineID string `json:"line_id,omitempty"`
 	// ChildUniqueReferenceID holds the value of the "child_unique_reference_id" field.
@@ -36,8 +38,6 @@ type BillingStandardInvoiceDetailedLineAmountDiscount struct {
 	Description *string `json:"description,omitempty"`
 	// Reason holds the value of the "reason" field.
 	Reason billing.DiscountReasonType `json:"reason,omitempty"`
-	// InvoicingAppExternalID holds the value of the "invoicing_app_external_id" field.
-	InvoicingAppExternalID *string `json:"invoicing_app_external_id,omitempty"`
 	// Amount holds the value of the "amount" field.
 	Amount alpacadecimal.Decimal `json:"amount,omitempty"`
 	// RoundingAmount holds the value of the "rounding_amount" field.
@@ -79,7 +79,7 @@ func (*BillingStandardInvoiceDetailedLineAmountDiscount) scanValues(columns []st
 			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
 		case billingstandardinvoicedetailedlineamountdiscount.FieldAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case billingstandardinvoicedetailedlineamountdiscount.FieldID, billingstandardinvoicedetailedlineamountdiscount.FieldNamespace, billingstandardinvoicedetailedlineamountdiscount.FieldLineID, billingstandardinvoicedetailedlineamountdiscount.FieldChildUniqueReferenceID, billingstandardinvoicedetailedlineamountdiscount.FieldDescription, billingstandardinvoicedetailedlineamountdiscount.FieldReason, billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID:
+		case billingstandardinvoicedetailedlineamountdiscount.FieldID, billingstandardinvoicedetailedlineamountdiscount.FieldNamespace, billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID, billingstandardinvoicedetailedlineamountdiscount.FieldLineID, billingstandardinvoicedetailedlineamountdiscount.FieldChildUniqueReferenceID, billingstandardinvoicedetailedlineamountdiscount.FieldDescription, billingstandardinvoicedetailedlineamountdiscount.FieldReason:
 			values[i] = new(sql.NullString)
 		case billingstandardinvoicedetailedlineamountdiscount.FieldCreatedAt, billingstandardinvoicedetailedlineamountdiscount.FieldUpdatedAt, billingstandardinvoicedetailedlineamountdiscount.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -131,6 +131,13 @@ func (_m *BillingStandardInvoiceDetailedLineAmountDiscount) assignValues(columns
 				_m.DeletedAt = new(time.Time)
 				*_m.DeletedAt = value.Time
 			}
+		case billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field invoicing_app_external_id", values[i])
+			} else if value.Valid {
+				_m.InvoicingAppExternalID = new(string)
+				*_m.InvoicingAppExternalID = value.String
+			}
 		case billingstandardinvoicedetailedlineamountdiscount.FieldLineID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field line_id", values[i])
@@ -156,13 +163,6 @@ func (_m *BillingStandardInvoiceDetailedLineAmountDiscount) assignValues(columns
 				return fmt.Errorf("unexpected type %T for field reason", values[i])
 			} else if value.Valid {
 				_m.Reason = billing.DiscountReasonType(value.String)
-			}
-		case billingstandardinvoicedetailedlineamountdiscount.FieldInvoicingAppExternalID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field invoicing_app_external_id", values[i])
-			} else if value.Valid {
-				_m.InvoicingAppExternalID = new(string)
-				*_m.InvoicingAppExternalID = value.String
 			}
 		case billingstandardinvoicedetailedlineamountdiscount.FieldAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
@@ -238,6 +238,11 @@ func (_m *BillingStandardInvoiceDetailedLineAmountDiscount) String() string {
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
+	if v := _m.InvoicingAppExternalID; v != nil {
+		builder.WriteString("invoicing_app_external_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
 	builder.WriteString("line_id=")
 	builder.WriteString(_m.LineID)
 	builder.WriteString(", ")
@@ -253,11 +258,6 @@ func (_m *BillingStandardInvoiceDetailedLineAmountDiscount) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("reason=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Reason))
-	builder.WriteString(", ")
-	if v := _m.InvoicingAppExternalID; v != nil {
-		builder.WriteString("invoicing_app_external_id=")
-		builder.WriteString(*v)
-	}
 	builder.WriteString(", ")
 	builder.WriteString("amount=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Amount))

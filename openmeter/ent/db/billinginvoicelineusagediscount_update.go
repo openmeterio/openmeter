@@ -57,6 +57,26 @@ func (_u *BillingInvoiceLineUsageDiscountUpdate) ClearDeletedAt() *BillingInvoic
 	return _u
 }
 
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (_u *BillingInvoiceLineUsageDiscountUpdate) SetInvoicingAppExternalID(v string) *BillingInvoiceLineUsageDiscountUpdate {
+	_u.mutation.SetInvoicingAppExternalID(v)
+	return _u
+}
+
+// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
+func (_u *BillingInvoiceLineUsageDiscountUpdate) SetNillableInvoicingAppExternalID(v *string) *BillingInvoiceLineUsageDiscountUpdate {
+	if v != nil {
+		_u.SetInvoicingAppExternalID(*v)
+	}
+	return _u
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (_u *BillingInvoiceLineUsageDiscountUpdate) ClearInvoicingAppExternalID() *BillingInvoiceLineUsageDiscountUpdate {
+	_u.mutation.ClearInvoicingAppExternalID()
+	return _u
+}
+
 // SetLineID sets the "line_id" field.
 func (_u *BillingInvoiceLineUsageDiscountUpdate) SetLineID(v string) *BillingInvoiceLineUsageDiscountUpdate {
 	_u.mutation.SetLineID(v)
@@ -122,26 +142,6 @@ func (_u *BillingInvoiceLineUsageDiscountUpdate) SetNillableReason(v *billing.Di
 	if v != nil {
 		_u.SetReason(*v)
 	}
-	return _u
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (_u *BillingInvoiceLineUsageDiscountUpdate) SetInvoicingAppExternalID(v string) *BillingInvoiceLineUsageDiscountUpdate {
-	_u.mutation.SetInvoicingAppExternalID(v)
-	return _u
-}
-
-// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
-func (_u *BillingInvoiceLineUsageDiscountUpdate) SetNillableInvoicingAppExternalID(v *string) *BillingInvoiceLineUsageDiscountUpdate {
-	if v != nil {
-		_u.SetInvoicingAppExternalID(*v)
-	}
-	return _u
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (_u *BillingInvoiceLineUsageDiscountUpdate) ClearInvoicingAppExternalID() *BillingInvoiceLineUsageDiscountUpdate {
-	_u.mutation.ClearInvoicingAppExternalID()
 	return _u
 }
 
@@ -288,6 +288,12 @@ func (_u *BillingInvoiceLineUsageDiscountUpdate) sqlSave(ctx context.Context) (_
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(billinginvoicelineusagediscount.FieldDeletedAt, field.TypeTime)
 	}
+	if value, ok := _u.mutation.InvoicingAppExternalID(); ok {
+		_spec.SetField(billinginvoicelineusagediscount.FieldInvoicingAppExternalID, field.TypeString, value)
+	}
+	if _u.mutation.InvoicingAppExternalIDCleared() {
+		_spec.ClearField(billinginvoicelineusagediscount.FieldInvoicingAppExternalID, field.TypeString)
+	}
 	if value, ok := _u.mutation.ChildUniqueReferenceID(); ok {
 		_spec.SetField(billinginvoicelineusagediscount.FieldChildUniqueReferenceID, field.TypeString, value)
 	}
@@ -302,12 +308,6 @@ func (_u *BillingInvoiceLineUsageDiscountUpdate) sqlSave(ctx context.Context) (_
 	}
 	if value, ok := _u.mutation.Reason(); ok {
 		_spec.SetField(billinginvoicelineusagediscount.FieldReason, field.TypeEnum, value)
-	}
-	if value, ok := _u.mutation.InvoicingAppExternalID(); ok {
-		_spec.SetField(billinginvoicelineusagediscount.FieldInvoicingAppExternalID, field.TypeString, value)
-	}
-	if _u.mutation.InvoicingAppExternalIDCleared() {
-		_spec.ClearField(billinginvoicelineusagediscount.FieldInvoicingAppExternalID, field.TypeString)
 	}
 	if value, ok := _u.mutation.Quantity(); ok {
 		_spec.SetField(billinginvoicelineusagediscount.FieldQuantity, field.TypeOther, value)
@@ -403,6 +403,26 @@ func (_u *BillingInvoiceLineUsageDiscountUpdateOne) ClearDeletedAt() *BillingInv
 	return _u
 }
 
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (_u *BillingInvoiceLineUsageDiscountUpdateOne) SetInvoicingAppExternalID(v string) *BillingInvoiceLineUsageDiscountUpdateOne {
+	_u.mutation.SetInvoicingAppExternalID(v)
+	return _u
+}
+
+// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
+func (_u *BillingInvoiceLineUsageDiscountUpdateOne) SetNillableInvoicingAppExternalID(v *string) *BillingInvoiceLineUsageDiscountUpdateOne {
+	if v != nil {
+		_u.SetInvoicingAppExternalID(*v)
+	}
+	return _u
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (_u *BillingInvoiceLineUsageDiscountUpdateOne) ClearInvoicingAppExternalID() *BillingInvoiceLineUsageDiscountUpdateOne {
+	_u.mutation.ClearInvoicingAppExternalID()
+	return _u
+}
+
 // SetLineID sets the "line_id" field.
 func (_u *BillingInvoiceLineUsageDiscountUpdateOne) SetLineID(v string) *BillingInvoiceLineUsageDiscountUpdateOne {
 	_u.mutation.SetLineID(v)
@@ -468,26 +488,6 @@ func (_u *BillingInvoiceLineUsageDiscountUpdateOne) SetNillableReason(v *billing
 	if v != nil {
 		_u.SetReason(*v)
 	}
-	return _u
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (_u *BillingInvoiceLineUsageDiscountUpdateOne) SetInvoicingAppExternalID(v string) *BillingInvoiceLineUsageDiscountUpdateOne {
-	_u.mutation.SetInvoicingAppExternalID(v)
-	return _u
-}
-
-// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
-func (_u *BillingInvoiceLineUsageDiscountUpdateOne) SetNillableInvoicingAppExternalID(v *string) *BillingInvoiceLineUsageDiscountUpdateOne {
-	if v != nil {
-		_u.SetInvoicingAppExternalID(*v)
-	}
-	return _u
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (_u *BillingInvoiceLineUsageDiscountUpdateOne) ClearInvoicingAppExternalID() *BillingInvoiceLineUsageDiscountUpdateOne {
-	_u.mutation.ClearInvoicingAppExternalID()
 	return _u
 }
 
@@ -664,6 +664,12 @@ func (_u *BillingInvoiceLineUsageDiscountUpdateOne) sqlSave(ctx context.Context)
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(billinginvoicelineusagediscount.FieldDeletedAt, field.TypeTime)
 	}
+	if value, ok := _u.mutation.InvoicingAppExternalID(); ok {
+		_spec.SetField(billinginvoicelineusagediscount.FieldInvoicingAppExternalID, field.TypeString, value)
+	}
+	if _u.mutation.InvoicingAppExternalIDCleared() {
+		_spec.ClearField(billinginvoicelineusagediscount.FieldInvoicingAppExternalID, field.TypeString)
+	}
 	if value, ok := _u.mutation.ChildUniqueReferenceID(); ok {
 		_spec.SetField(billinginvoicelineusagediscount.FieldChildUniqueReferenceID, field.TypeString, value)
 	}
@@ -678,12 +684,6 @@ func (_u *BillingInvoiceLineUsageDiscountUpdateOne) sqlSave(ctx context.Context)
 	}
 	if value, ok := _u.mutation.Reason(); ok {
 		_spec.SetField(billinginvoicelineusagediscount.FieldReason, field.TypeEnum, value)
-	}
-	if value, ok := _u.mutation.InvoicingAppExternalID(); ok {
-		_spec.SetField(billinginvoicelineusagediscount.FieldInvoicingAppExternalID, field.TypeString, value)
-	}
-	if _u.mutation.InvoicingAppExternalIDCleared() {
-		_spec.ClearField(billinginvoicelineusagediscount.FieldInvoicingAppExternalID, field.TypeString)
 	}
 	if value, ok := _u.mutation.Quantity(); ok {
 		_spec.SetField(billinginvoicelineusagediscount.FieldQuantity, field.TypeOther, value)

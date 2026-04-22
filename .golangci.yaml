@@ -40,8 +40,6 @@ linters:
       - legacy
       - std-error-handling
     paths:
-      - .dagger/internal
-      - .dagger/dagger.gen.go
       - collector/benthos/internal
       - third_party$
       - builtin$
@@ -64,8 +62,6 @@ formatters:
   exclusions:
     generated: lax
     paths:
-      - .dagger/internal
-      - .dagger/dagger.gen.go
       - collector/benthos/internal
       - third_party$
       - builtin$

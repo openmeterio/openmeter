@@ -13,7 +13,8 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
@@ -30,6 +31,146 @@ type BillingStandardInvoiceDetailedLineCreate struct {
 	mutation *BillingStandardInvoiceDetailedLineMutation
 	hooks    []Hook
 	conflict []sql.ConflictOption
+}
+
+// SetCurrency sets the "currency" field.
+func (_c *BillingStandardInvoiceDetailedLineCreate) SetCurrency(v currencyx.Code) *BillingStandardInvoiceDetailedLineCreate {
+	_c.mutation.SetCurrency(v)
+	return _c
+}
+
+// SetTaxConfig sets the "tax_config" field.
+func (_c *BillingStandardInvoiceDetailedLineCreate) SetTaxConfig(v productcatalog.TaxConfig) *BillingStandardInvoiceDetailedLineCreate {
+	_c.mutation.SetTaxConfig(v)
+	return _c
+}
+
+// SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
+func (_c *BillingStandardInvoiceDetailedLineCreate) SetNillableTaxConfig(v *productcatalog.TaxConfig) *BillingStandardInvoiceDetailedLineCreate {
+	if v != nil {
+		_c.SetTaxConfig(*v)
+	}
+	return _c
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_c *BillingStandardInvoiceDetailedLineCreate) SetTaxCodeID(v string) *BillingStandardInvoiceDetailedLineCreate {
+	_c.mutation.SetTaxCodeID(v)
+	return _c
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_c *BillingStandardInvoiceDetailedLineCreate) SetNillableTaxCodeID(v *string) *BillingStandardInvoiceDetailedLineCreate {
+	if v != nil {
+		_c.SetTaxCodeID(*v)
+	}
+	return _c
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_c *BillingStandardInvoiceDetailedLineCreate) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineCreate {
+	_c.mutation.SetTaxBehavior(v)
+	return _c
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_c *BillingStandardInvoiceDetailedLineCreate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineCreate {
+	if v != nil {
+		_c.SetTaxBehavior(*v)
+	}
+	return _c
+}
+
+// SetServicePeriodStart sets the "service_period_start" field.
+func (_c *BillingStandardInvoiceDetailedLineCreate) SetServicePeriodStart(v time.Time) *BillingStandardInvoiceDetailedLineCreate {
+	_c.mutation.SetServicePeriodStart(v)
+	return _c
+}
+
+// SetServicePeriodEnd sets the "service_period_end" field.
+func (_c *BillingStandardInvoiceDetailedLineCreate) SetServicePeriodEnd(v time.Time) *BillingStandardInvoiceDetailedLineCreate {
+	_c.mutation.SetServicePeriodEnd(v)
+	return _c
+}
+
+// SetQuantity sets the "quantity" field.
+func (_c *BillingStandardInvoiceDetailedLineCreate) SetQuantity(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineCreate {
+	_c.mutation.SetQuantity(v)
+	return _c
+}
+
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (_c *BillingStandardInvoiceDetailedLineCreate) SetInvoicingAppExternalID(v string) *BillingStandardInvoiceDetailedLineCreate {
+	_c.mutation.SetInvoicingAppExternalID(v)
+	return _c
+}
+
+// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
+func (_c *BillingStandardInvoiceDetailedLineCreate) SetNillableInvoicingAppExternalID(v *string) *BillingStandardInvoiceDetailedLineCreate {
+	if v != nil {
+		_c.SetInvoicingAppExternalID(*v)
+	}
+	return _c
+}
+
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (_c *BillingStandardInvoiceDetailedLineCreate) SetChildUniqueReferenceID(v string) *BillingStandardInvoiceDetailedLineCreate {
+	_c.mutation.SetChildUniqueReferenceID(v)
+	return _c
+}
+
+// SetPerUnitAmount sets the "per_unit_amount" field.
+func (_c *BillingStandardInvoiceDetailedLineCreate) SetPerUnitAmount(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineCreate {
+	_c.mutation.SetPerUnitAmount(v)
+	return _c
+}
+
+// SetCategory sets the "category" field.
+func (_c *BillingStandardInvoiceDetailedLineCreate) SetCategory(v stddetailedline.Category) *BillingStandardInvoiceDetailedLineCreate {
+	_c.mutation.SetCategory(v)
+	return _c
+}
+
+// SetNillableCategory sets the "category" field if the given value is not nil.
+func (_c *BillingStandardInvoiceDetailedLineCreate) SetNillableCategory(v *stddetailedline.Category) *BillingStandardInvoiceDetailedLineCreate {
+	if v != nil {
+		_c.SetCategory(*v)
+	}
+	return _c
+}
+
+// SetPaymentTerm sets the "payment_term" field.
+func (_c *BillingStandardInvoiceDetailedLineCreate) SetPaymentTerm(v productcatalog.PaymentTermType) *BillingStandardInvoiceDetailedLineCreate {
+	_c.mutation.SetPaymentTerm(v)
+	return _c
+}
+
+// SetNillablePaymentTerm sets the "payment_term" field if the given value is not nil.
+func (_c *BillingStandardInvoiceDetailedLineCreate) SetNillablePaymentTerm(v *productcatalog.PaymentTermType) *BillingStandardInvoiceDetailedLineCreate {
+	if v != nil {
+		_c.SetPaymentTerm(*v)
+	}
+	return _c
+}
+
+// SetIndex sets the "index" field.
+func (_c *BillingStandardInvoiceDetailedLineCreate) SetIndex(v int) *BillingStandardInvoiceDetailedLineCreate {
+	_c.mutation.SetIndex(v)
+	return _c
+}
+
+// SetNillableIndex sets the "index" field if the given value is not nil.
+func (_c *BillingStandardInvoiceDetailedLineCreate) SetNillableIndex(v *int) *BillingStandardInvoiceDetailedLineCreate {
+	if v != nil {
+		_c.SetIndex(*v)
+	}
+	return _c
+}
+
+// SetCreditsApplied sets the "credits_applied" field.
+func (_c *BillingStandardInvoiceDetailedLineCreate) SetCreditsApplied(v *creditsapplied.CreditsApplied) *BillingStandardInvoiceDetailedLineCreate {
+	_c.mutation.SetCreditsApplied(v)
+	return _c
 }
 
 // SetAnnotations sets the "annotations" field.
@@ -112,54 +253,6 @@ func (_c *BillingStandardInvoiceDetailedLineCreate) SetNillableDescription(v *st
 	return _c
 }
 
-// SetCurrency sets the "currency" field.
-func (_c *BillingStandardInvoiceDetailedLineCreate) SetCurrency(v currencyx.Code) *BillingStandardInvoiceDetailedLineCreate {
-	_c.mutation.SetCurrency(v)
-	return _c
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (_c *BillingStandardInvoiceDetailedLineCreate) SetTaxConfig(v productcatalog.TaxConfig) *BillingStandardInvoiceDetailedLineCreate {
-	_c.mutation.SetTaxConfig(v)
-	return _c
-}
-
-// SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (_c *BillingStandardInvoiceDetailedLineCreate) SetNillableTaxConfig(v *productcatalog.TaxConfig) *BillingStandardInvoiceDetailedLineCreate {
-	if v != nil {
-		_c.SetTaxConfig(*v)
-	}
-	return _c
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (_c *BillingStandardInvoiceDetailedLineCreate) SetTaxCodeID(v string) *BillingStandardInvoiceDetailedLineCreate {
-	_c.mutation.SetTaxCodeID(v)
-	return _c
-}
-
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_c *BillingStandardInvoiceDetailedLineCreate) SetNillableTaxCodeID(v *string) *BillingStandardInvoiceDetailedLineCreate {
-	if v != nil {
-		_c.SetTaxCodeID(*v)
-	}
-	return _c
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (_c *BillingStandardInvoiceDetailedLineCreate) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineCreate {
-	_c.mutation.SetTaxBehavior(v)
-	return _c
-}
-
-// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
-func (_c *BillingStandardInvoiceDetailedLineCreate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineCreate {
-	if v != nil {
-		_c.SetTaxBehavior(*v)
-	}
-	return _c
-}
-
 // SetAmount sets the "amount" field.
 func (_c *BillingStandardInvoiceDetailedLineCreate) SetAmount(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineCreate {
 	_c.mutation.SetAmount(v)
@@ -208,18 +301,6 @@ func (_c *BillingStandardInvoiceDetailedLineCreate) SetTotal(v alpacadecimal.Dec
 	return _c
 }
 
-// SetServicePeriodStart sets the "service_period_start" field.
-func (_c *BillingStandardInvoiceDetailedLineCreate) SetServicePeriodStart(v time.Time) *BillingStandardInvoiceDetailedLineCreate {
-	_c.mutation.SetServicePeriodStart(v)
-	return _c
-}
-
-// SetServicePeriodEnd sets the "service_period_end" field.
-func (_c *BillingStandardInvoiceDetailedLineCreate) SetServicePeriodEnd(v time.Time) *BillingStandardInvoiceDetailedLineCreate {
-	_c.mutation.SetServicePeriodEnd(v)
-	return _c
-}
-
 // SetInvoiceID sets the "invoice_id" field.
 func (_c *BillingStandardInvoiceDetailedLineCreate) SetInvoiceID(v string) *BillingStandardInvoiceDetailedLineCreate {
 	_c.mutation.SetInvoiceID(v)
@@ -229,94 +310,6 @@ func (_c *BillingStandardInvoiceDetailedLineCreate) SetInvoiceID(v string) *Bill
 // SetParentLineID sets the "parent_line_id" field.
 func (_c *BillingStandardInvoiceDetailedLineCreate) SetParentLineID(v string) *BillingStandardInvoiceDetailedLineCreate {
 	_c.mutation.SetParentLineID(v)
-	return _c
-}
-
-// SetQuantity sets the "quantity" field.
-func (_c *BillingStandardInvoiceDetailedLineCreate) SetQuantity(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineCreate {
-	_c.mutation.SetQuantity(v)
-	return _c
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (_c *BillingStandardInvoiceDetailedLineCreate) SetInvoicingAppExternalID(v string) *BillingStandardInvoiceDetailedLineCreate {
-	_c.mutation.SetInvoicingAppExternalID(v)
-	return _c
-}
-
-// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
-func (_c *BillingStandardInvoiceDetailedLineCreate) SetNillableInvoicingAppExternalID(v *string) *BillingStandardInvoiceDetailedLineCreate {
-	if v != nil {
-		_c.SetInvoicingAppExternalID(*v)
-	}
-	return _c
-}
-
-// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
-func (_c *BillingStandardInvoiceDetailedLineCreate) SetChildUniqueReferenceID(v string) *BillingStandardInvoiceDetailedLineCreate {
-	_c.mutation.SetChildUniqueReferenceID(v)
-	return _c
-}
-
-// SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
-func (_c *BillingStandardInvoiceDetailedLineCreate) SetNillableChildUniqueReferenceID(v *string) *BillingStandardInvoiceDetailedLineCreate {
-	if v != nil {
-		_c.SetChildUniqueReferenceID(*v)
-	}
-	return _c
-}
-
-// SetPerUnitAmount sets the "per_unit_amount" field.
-func (_c *BillingStandardInvoiceDetailedLineCreate) SetPerUnitAmount(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineCreate {
-	_c.mutation.SetPerUnitAmount(v)
-	return _c
-}
-
-// SetCategory sets the "category" field.
-func (_c *BillingStandardInvoiceDetailedLineCreate) SetCategory(v billing.FlatFeeCategory) *BillingStandardInvoiceDetailedLineCreate {
-	_c.mutation.SetCategory(v)
-	return _c
-}
-
-// SetNillableCategory sets the "category" field if the given value is not nil.
-func (_c *BillingStandardInvoiceDetailedLineCreate) SetNillableCategory(v *billing.FlatFeeCategory) *BillingStandardInvoiceDetailedLineCreate {
-	if v != nil {
-		_c.SetCategory(*v)
-	}
-	return _c
-}
-
-// SetPaymentTerm sets the "payment_term" field.
-func (_c *BillingStandardInvoiceDetailedLineCreate) SetPaymentTerm(v productcatalog.PaymentTermType) *BillingStandardInvoiceDetailedLineCreate {
-	_c.mutation.SetPaymentTerm(v)
-	return _c
-}
-
-// SetNillablePaymentTerm sets the "payment_term" field if the given value is not nil.
-func (_c *BillingStandardInvoiceDetailedLineCreate) SetNillablePaymentTerm(v *productcatalog.PaymentTermType) *BillingStandardInvoiceDetailedLineCreate {
-	if v != nil {
-		_c.SetPaymentTerm(*v)
-	}
-	return _c
-}
-
-// SetIndex sets the "index" field.
-func (_c *BillingStandardInvoiceDetailedLineCreate) SetIndex(v int) *BillingStandardInvoiceDetailedLineCreate {
-	_c.mutation.SetIndex(v)
-	return _c
-}
-
-// SetNillableIndex sets the "index" field if the given value is not nil.
-func (_c *BillingStandardInvoiceDetailedLineCreate) SetNillableIndex(v *int) *BillingStandardInvoiceDetailedLineCreate {
-	if v != nil {
-		_c.SetIndex(*v)
-	}
-	return _c
-}
-
-// SetCreditsApplied sets the "credits_applied" field.
-func (_c *BillingStandardInvoiceDetailedLineCreate) SetCreditsApplied(v *billing.CreditsApplied) *BillingStandardInvoiceDetailedLineCreate {
-	_c.mutation.SetCreditsApplied(v)
 	return _c
 }
 
@@ -411,14 +404,6 @@ func (_c *BillingStandardInvoiceDetailedLineCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *BillingStandardInvoiceDetailedLineCreate) defaults() {
-	if _, ok := _c.mutation.CreatedAt(); !ok {
-		v := billingstandardinvoicedetailedline.DefaultCreatedAt()
-		_c.mutation.SetCreatedAt(v)
-	}
-	if _, ok := _c.mutation.UpdatedAt(); !ok {
-		v := billingstandardinvoicedetailedline.DefaultUpdatedAt()
-		_c.mutation.SetUpdatedAt(v)
-	}
 	if _, ok := _c.mutation.Category(); !ok {
 		v := billingstandardinvoicedetailedline.DefaultCategory
 		_c.mutation.SetCategory(v)
@@ -426,6 +411,14 @@ func (_c *BillingStandardInvoiceDetailedLineCreate) defaults() {
 	if _, ok := _c.mutation.PaymentTerm(); !ok {
 		v := billingstandardinvoicedetailedline.DefaultPaymentTerm
 		_c.mutation.SetPaymentTerm(v)
+	}
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		v := billingstandardinvoicedetailedline.DefaultCreatedAt()
+		_c.mutation.SetCreatedAt(v)
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		v := billingstandardinvoicedetailedline.DefaultUpdatedAt()
+		_c.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := billingstandardinvoicedetailedline.DefaultID()
@@ -435,23 +428,6 @@ func (_c *BillingStandardInvoiceDetailedLineCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *BillingStandardInvoiceDetailedLineCreate) check() error {
-	if _, ok := _c.mutation.Namespace(); !ok {
-		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.namespace"`)}
-	}
-	if v, ok := _c.mutation.Namespace(); ok {
-		if err := billingstandardinvoicedetailedline.NamespaceValidator(v); err != nil {
-			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "BillingStandardInvoiceDetailedLine.namespace": %w`, err)}
-		}
-	}
-	if _, ok := _c.mutation.CreatedAt(); !ok {
-		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.created_at"`)}
-	}
-	if _, ok := _c.mutation.UpdatedAt(); !ok {
-		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.updated_at"`)}
-	}
-	if _, ok := _c.mutation.Name(); !ok {
-		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.name"`)}
-	}
 	if _, ok := _c.mutation.Currency(); !ok {
 		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.currency"`)}
 	}
@@ -470,44 +446,22 @@ func (_c *BillingStandardInvoiceDetailedLineCreate) check() error {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingStandardInvoiceDetailedLine.tax_behavior": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.Amount(); !ok {
-		return &ValidationError{Name: "amount", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.amount"`)}
-	}
-	if _, ok := _c.mutation.TaxesTotal(); !ok {
-		return &ValidationError{Name: "taxes_total", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.taxes_total"`)}
-	}
-	if _, ok := _c.mutation.TaxesInclusiveTotal(); !ok {
-		return &ValidationError{Name: "taxes_inclusive_total", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.taxes_inclusive_total"`)}
-	}
-	if _, ok := _c.mutation.TaxesExclusiveTotal(); !ok {
-		return &ValidationError{Name: "taxes_exclusive_total", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.taxes_exclusive_total"`)}
-	}
-	if _, ok := _c.mutation.ChargesTotal(); !ok {
-		return &ValidationError{Name: "charges_total", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.charges_total"`)}
-	}
-	if _, ok := _c.mutation.DiscountsTotal(); !ok {
-		return &ValidationError{Name: "discounts_total", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.discounts_total"`)}
-	}
-	if _, ok := _c.mutation.CreditsTotal(); !ok {
-		return &ValidationError{Name: "credits_total", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.credits_total"`)}
-	}
-	if _, ok := _c.mutation.Total(); !ok {
-		return &ValidationError{Name: "total", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.total"`)}
-	}
 	if _, ok := _c.mutation.ServicePeriodStart(); !ok {
 		return &ValidationError{Name: "service_period_start", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.service_period_start"`)}
 	}
 	if _, ok := _c.mutation.ServicePeriodEnd(); !ok {
 		return &ValidationError{Name: "service_period_end", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.service_period_end"`)}
 	}
-	if _, ok := _c.mutation.InvoiceID(); !ok {
-		return &ValidationError{Name: "invoice_id", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.invoice_id"`)}
-	}
-	if _, ok := _c.mutation.ParentLineID(); !ok {
-		return &ValidationError{Name: "parent_line_id", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.parent_line_id"`)}
-	}
 	if _, ok := _c.mutation.Quantity(); !ok {
 		return &ValidationError{Name: "quantity", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.quantity"`)}
+	}
+	if _, ok := _c.mutation.ChildUniqueReferenceID(); !ok {
+		return &ValidationError{Name: "child_unique_reference_id", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.child_unique_reference_id"`)}
+	}
+	if v, ok := _c.mutation.ChildUniqueReferenceID(); ok {
+		if err := billingstandardinvoicedetailedline.ChildUniqueReferenceIDValidator(v); err != nil {
+			return &ValidationError{Name: "child_unique_reference_id", err: fmt.Errorf(`db: validator failed for field "BillingStandardInvoiceDetailedLine.child_unique_reference_id": %w`, err)}
+		}
 	}
 	if _, ok := _c.mutation.PerUnitAmount(); !ok {
 		return &ValidationError{Name: "per_unit_amount", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.per_unit_amount"`)}
@@ -533,6 +487,53 @@ func (_c *BillingStandardInvoiceDetailedLineCreate) check() error {
 			return &ValidationError{Name: "credits_applied", err: fmt.Errorf(`db: validator failed for field "BillingStandardInvoiceDetailedLine.credits_applied": %w`, err)}
 		}
 	}
+	if _, ok := _c.mutation.Namespace(); !ok {
+		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.namespace"`)}
+	}
+	if v, ok := _c.mutation.Namespace(); ok {
+		if err := billingstandardinvoicedetailedline.NamespaceValidator(v); err != nil {
+			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "BillingStandardInvoiceDetailedLine.namespace": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.created_at"`)}
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.updated_at"`)}
+	}
+	if _, ok := _c.mutation.Name(); !ok {
+		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.name"`)}
+	}
+	if _, ok := _c.mutation.Amount(); !ok {
+		return &ValidationError{Name: "amount", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.amount"`)}
+	}
+	if _, ok := _c.mutation.TaxesTotal(); !ok {
+		return &ValidationError{Name: "taxes_total", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.taxes_total"`)}
+	}
+	if _, ok := _c.mutation.TaxesInclusiveTotal(); !ok {
+		return &ValidationError{Name: "taxes_inclusive_total", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.taxes_inclusive_total"`)}
+	}
+	if _, ok := _c.mutation.TaxesExclusiveTotal(); !ok {
+		return &ValidationError{Name: "taxes_exclusive_total", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.taxes_exclusive_total"`)}
+	}
+	if _, ok := _c.mutation.ChargesTotal(); !ok {
+		return &ValidationError{Name: "charges_total", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.charges_total"`)}
+	}
+	if _, ok := _c.mutation.DiscountsTotal(); !ok {
+		return &ValidationError{Name: "discounts_total", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.discounts_total"`)}
+	}
+	if _, ok := _c.mutation.CreditsTotal(); !ok {
+		return &ValidationError{Name: "credits_total", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.credits_total"`)}
+	}
+	if _, ok := _c.mutation.Total(); !ok {
+		return &ValidationError{Name: "total", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.total"`)}
+	}
+	if _, ok := _c.mutation.InvoiceID(); !ok {
+		return &ValidationError{Name: "invoice_id", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.invoice_id"`)}
+	}
+	if _, ok := _c.mutation.ParentLineID(); !ok {
+		return &ValidationError{Name: "parent_line_id", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.parent_line_id"`)}
+	}
 	if len(_c.mutation.BillingInvoiceIDs()) == 0 {
 		return &ValidationError{Name: "billing_invoice", err: errors.New(`db: missing required edge "BillingStandardInvoiceDetailedLine.billing_invoice"`)}
 	}
@@ -546,10 +547,7 @@ func (_c *BillingStandardInvoiceDetailedLineCreate) sqlSave(ctx context.Context)
 	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec, err := _c.createSpec()
-	if err != nil {
-		return nil, err
-	}
+	_node, _spec := _c.createSpec()
 	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -568,7 +566,7 @@ func (_c *BillingStandardInvoiceDetailedLineCreate) sqlSave(ctx context.Context)
 	return _node, nil
 }
 
-func (_c *BillingStandardInvoiceDetailedLineCreate) createSpec() (*BillingStandardInvoiceDetailedLine, *sqlgraph.CreateSpec, error) {
+func (_c *BillingStandardInvoiceDetailedLineCreate) createSpec() (*BillingStandardInvoiceDetailedLine, *sqlgraph.CreateSpec) {
 	var (
 		_node = &BillingStandardInvoiceDetailedLine{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(billingstandardinvoicedetailedline.Table, sqlgraph.NewFieldSpec(billingstandardinvoicedetailedline.FieldID, field.TypeString))
@@ -577,6 +575,58 @@ func (_c *BillingStandardInvoiceDetailedLineCreate) createSpec() (*BillingStanda
 	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
+	}
+	if value, ok := _c.mutation.Currency(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldCurrency, field.TypeString, value)
+		_node.Currency = value
+	}
+	if value, ok := _c.mutation.TaxConfig(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldTaxConfig, field.TypeJSON, value)
+		_node.TaxConfig = value
+	}
+	if value, ok := _c.mutation.TaxBehavior(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldTaxBehavior, field.TypeEnum, value)
+		_node.TaxBehavior = &value
+	}
+	if value, ok := _c.mutation.ServicePeriodStart(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldServicePeriodStart, field.TypeTime, value)
+		_node.ServicePeriodStart = value
+	}
+	if value, ok := _c.mutation.ServicePeriodEnd(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldServicePeriodEnd, field.TypeTime, value)
+		_node.ServicePeriodEnd = value
+	}
+	if value, ok := _c.mutation.Quantity(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldQuantity, field.TypeOther, value)
+		_node.Quantity = value
+	}
+	if value, ok := _c.mutation.InvoicingAppExternalID(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldInvoicingAppExternalID, field.TypeString, value)
+		_node.InvoicingAppExternalID = &value
+	}
+	if value, ok := _c.mutation.ChildUniqueReferenceID(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldChildUniqueReferenceID, field.TypeString, value)
+		_node.ChildUniqueReferenceID = value
+	}
+	if value, ok := _c.mutation.PerUnitAmount(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldPerUnitAmount, field.TypeOther, value)
+		_node.PerUnitAmount = value
+	}
+	if value, ok := _c.mutation.Category(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldCategory, field.TypeEnum, value)
+		_node.Category = value
+	}
+	if value, ok := _c.mutation.PaymentTerm(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldPaymentTerm, field.TypeEnum, value)
+		_node.PaymentTerm = value
+	}
+	if value, ok := _c.mutation.Index(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldIndex, field.TypeInt, value)
+		_node.Index = &value
+	}
+	if value, ok := _c.mutation.CreditsApplied(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldCreditsApplied, field.TypeJSON, value)
+		_node.CreditsApplied = value
 	}
 	if value, ok := _c.mutation.Annotations(); ok {
 		_spec.SetField(billingstandardinvoicedetailedline.FieldAnnotations, field.TypeJSON, value)
@@ -610,18 +660,6 @@ func (_c *BillingStandardInvoiceDetailedLineCreate) createSpec() (*BillingStanda
 		_spec.SetField(billingstandardinvoicedetailedline.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
-	if value, ok := _c.mutation.Currency(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldCurrency, field.TypeString, value)
-		_node.Currency = value
-	}
-	if value, ok := _c.mutation.TaxConfig(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldTaxConfig, field.TypeJSON, value)
-		_node.TaxConfig = value
-	}
-	if value, ok := _c.mutation.TaxBehavior(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldTaxBehavior, field.TypeEnum, value)
-		_node.TaxBehavior = &value
-	}
 	if value, ok := _c.mutation.Amount(); ok {
 		_spec.SetField(billingstandardinvoicedetailedline.FieldAmount, field.TypeOther, value)
 		_node.Amount = value
@@ -653,50 +691,6 @@ func (_c *BillingStandardInvoiceDetailedLineCreate) createSpec() (*BillingStanda
 	if value, ok := _c.mutation.Total(); ok {
 		_spec.SetField(billingstandardinvoicedetailedline.FieldTotal, field.TypeOther, value)
 		_node.Total = value
-	}
-	if value, ok := _c.mutation.ServicePeriodStart(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldServicePeriodStart, field.TypeTime, value)
-		_node.ServicePeriodStart = value
-	}
-	if value, ok := _c.mutation.ServicePeriodEnd(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldServicePeriodEnd, field.TypeTime, value)
-		_node.ServicePeriodEnd = value
-	}
-	if value, ok := _c.mutation.Quantity(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldQuantity, field.TypeOther, value)
-		_node.Quantity = value
-	}
-	if value, ok := _c.mutation.InvoicingAppExternalID(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldInvoicingAppExternalID, field.TypeString, value)
-		_node.InvoicingAppExternalID = &value
-	}
-	if value, ok := _c.mutation.ChildUniqueReferenceID(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldChildUniqueReferenceID, field.TypeString, value)
-		_node.ChildUniqueReferenceID = &value
-	}
-	if value, ok := _c.mutation.PerUnitAmount(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldPerUnitAmount, field.TypeOther, value)
-		_node.PerUnitAmount = value
-	}
-	if value, ok := _c.mutation.Category(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldCategory, field.TypeEnum, value)
-		_node.Category = value
-	}
-	if value, ok := _c.mutation.PaymentTerm(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldPaymentTerm, field.TypeEnum, value)
-		_node.PaymentTerm = value
-	}
-	if value, ok := _c.mutation.Index(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldIndex, field.TypeInt, value)
-		_node.Index = &value
-	}
-	if value, ok := _c.mutation.CreditsApplied(); ok {
-		vv, err := billingstandardinvoicedetailedline.ValueScanner.CreditsApplied.Value(value)
-		if err != nil {
-			return nil, nil, err
-		}
-		_spec.SetField(billingstandardinvoicedetailedline.FieldCreditsApplied, field.TypeString, vv)
-		_node.CreditsApplied = value
 	}
 	if nodes := _c.mutation.BillingInvoiceIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -765,14 +759,14 @@ func (_c *BillingStandardInvoiceDetailedLineCreate) createSpec() (*BillingStanda
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	return _node, _spec, nil
+	return _node, _spec
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
 // of the `INSERT` statement. For example:
 //
 //	client.BillingStandardInvoiceDetailedLine.Create().
-//		SetAnnotations(v).
+//		SetCurrency(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -781,7 +775,7 @@ func (_c *BillingStandardInvoiceDetailedLineCreate) createSpec() (*BillingStanda
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.BillingStandardInvoiceDetailedLineUpsert) {
-//			SetAnnotations(v+v).
+//			SetCurrency(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *BillingStandardInvoiceDetailedLineCreate) OnConflict(opts ...sql.ConflictOption) *BillingStandardInvoiceDetailedLineUpsertOne {
@@ -816,6 +810,204 @@ type (
 		*sql.UpdateSet
 	}
 )
+
+// SetTaxConfig sets the "tax_config" field.
+func (u *BillingStandardInvoiceDetailedLineUpsert) SetTaxConfig(v productcatalog.TaxConfig) *BillingStandardInvoiceDetailedLineUpsert {
+	u.Set(billingstandardinvoicedetailedline.FieldTaxConfig, v)
+	return u
+}
+
+// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateTaxConfig() *BillingStandardInvoiceDetailedLineUpsert {
+	u.SetExcluded(billingstandardinvoicedetailedline.FieldTaxConfig)
+	return u
+}
+
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (u *BillingStandardInvoiceDetailedLineUpsert) ClearTaxConfig() *BillingStandardInvoiceDetailedLineUpsert {
+	u.SetNull(billingstandardinvoicedetailedline.FieldTaxConfig)
+	return u
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (u *BillingStandardInvoiceDetailedLineUpsert) SetTaxCodeID(v string) *BillingStandardInvoiceDetailedLineUpsert {
+	u.Set(billingstandardinvoicedetailedline.FieldTaxCodeID, v)
+	return u
+}
+
+// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateTaxCodeID() *BillingStandardInvoiceDetailedLineUpsert {
+	u.SetExcluded(billingstandardinvoicedetailedline.FieldTaxCodeID)
+	return u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (u *BillingStandardInvoiceDetailedLineUpsert) ClearTaxCodeID() *BillingStandardInvoiceDetailedLineUpsert {
+	u.SetNull(billingstandardinvoicedetailedline.FieldTaxCodeID)
+	return u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *BillingStandardInvoiceDetailedLineUpsert) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineUpsert {
+	u.Set(billingstandardinvoicedetailedline.FieldTaxBehavior, v)
+	return u
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateTaxBehavior() *BillingStandardInvoiceDetailedLineUpsert {
+	u.SetExcluded(billingstandardinvoicedetailedline.FieldTaxBehavior)
+	return u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *BillingStandardInvoiceDetailedLineUpsert) ClearTaxBehavior() *BillingStandardInvoiceDetailedLineUpsert {
+	u.SetNull(billingstandardinvoicedetailedline.FieldTaxBehavior)
+	return u
+}
+
+// SetServicePeriodStart sets the "service_period_start" field.
+func (u *BillingStandardInvoiceDetailedLineUpsert) SetServicePeriodStart(v time.Time) *BillingStandardInvoiceDetailedLineUpsert {
+	u.Set(billingstandardinvoicedetailedline.FieldServicePeriodStart, v)
+	return u
+}
+
+// UpdateServicePeriodStart sets the "service_period_start" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateServicePeriodStart() *BillingStandardInvoiceDetailedLineUpsert {
+	u.SetExcluded(billingstandardinvoicedetailedline.FieldServicePeriodStart)
+	return u
+}
+
+// SetServicePeriodEnd sets the "service_period_end" field.
+func (u *BillingStandardInvoiceDetailedLineUpsert) SetServicePeriodEnd(v time.Time) *BillingStandardInvoiceDetailedLineUpsert {
+	u.Set(billingstandardinvoicedetailedline.FieldServicePeriodEnd, v)
+	return u
+}
+
+// UpdateServicePeriodEnd sets the "service_period_end" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateServicePeriodEnd() *BillingStandardInvoiceDetailedLineUpsert {
+	u.SetExcluded(billingstandardinvoicedetailedline.FieldServicePeriodEnd)
+	return u
+}
+
+// SetQuantity sets the "quantity" field.
+func (u *BillingStandardInvoiceDetailedLineUpsert) SetQuantity(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpsert {
+	u.Set(billingstandardinvoicedetailedline.FieldQuantity, v)
+	return u
+}
+
+// UpdateQuantity sets the "quantity" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateQuantity() *BillingStandardInvoiceDetailedLineUpsert {
+	u.SetExcluded(billingstandardinvoicedetailedline.FieldQuantity)
+	return u
+}
+
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (u *BillingStandardInvoiceDetailedLineUpsert) SetInvoicingAppExternalID(v string) *BillingStandardInvoiceDetailedLineUpsert {
+	u.Set(billingstandardinvoicedetailedline.FieldInvoicingAppExternalID, v)
+	return u
+}
+
+// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateInvoicingAppExternalID() *BillingStandardInvoiceDetailedLineUpsert {
+	u.SetExcluded(billingstandardinvoicedetailedline.FieldInvoicingAppExternalID)
+	return u
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (u *BillingStandardInvoiceDetailedLineUpsert) ClearInvoicingAppExternalID() *BillingStandardInvoiceDetailedLineUpsert {
+	u.SetNull(billingstandardinvoicedetailedline.FieldInvoicingAppExternalID)
+	return u
+}
+
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (u *BillingStandardInvoiceDetailedLineUpsert) SetChildUniqueReferenceID(v string) *BillingStandardInvoiceDetailedLineUpsert {
+	u.Set(billingstandardinvoicedetailedline.FieldChildUniqueReferenceID, v)
+	return u
+}
+
+// UpdateChildUniqueReferenceID sets the "child_unique_reference_id" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateChildUniqueReferenceID() *BillingStandardInvoiceDetailedLineUpsert {
+	u.SetExcluded(billingstandardinvoicedetailedline.FieldChildUniqueReferenceID)
+	return u
+}
+
+// SetPerUnitAmount sets the "per_unit_amount" field.
+func (u *BillingStandardInvoiceDetailedLineUpsert) SetPerUnitAmount(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpsert {
+	u.Set(billingstandardinvoicedetailedline.FieldPerUnitAmount, v)
+	return u
+}
+
+// UpdatePerUnitAmount sets the "per_unit_amount" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsert) UpdatePerUnitAmount() *BillingStandardInvoiceDetailedLineUpsert {
+	u.SetExcluded(billingstandardinvoicedetailedline.FieldPerUnitAmount)
+	return u
+}
+
+// SetCategory sets the "category" field.
+func (u *BillingStandardInvoiceDetailedLineUpsert) SetCategory(v stddetailedline.Category) *BillingStandardInvoiceDetailedLineUpsert {
+	u.Set(billingstandardinvoicedetailedline.FieldCategory, v)
+	return u
+}
+
+// UpdateCategory sets the "category" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateCategory() *BillingStandardInvoiceDetailedLineUpsert {
+	u.SetExcluded(billingstandardinvoicedetailedline.FieldCategory)
+	return u
+}
+
+// SetPaymentTerm sets the "payment_term" field.
+func (u *BillingStandardInvoiceDetailedLineUpsert) SetPaymentTerm(v productcatalog.PaymentTermType) *BillingStandardInvoiceDetailedLineUpsert {
+	u.Set(billingstandardinvoicedetailedline.FieldPaymentTerm, v)
+	return u
+}
+
+// UpdatePaymentTerm sets the "payment_term" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsert) UpdatePaymentTerm() *BillingStandardInvoiceDetailedLineUpsert {
+	u.SetExcluded(billingstandardinvoicedetailedline.FieldPaymentTerm)
+	return u
+}
+
+// SetIndex sets the "index" field.
+func (u *BillingStandardInvoiceDetailedLineUpsert) SetIndex(v int) *BillingStandardInvoiceDetailedLineUpsert {
+	u.Set(billingstandardinvoicedetailedline.FieldIndex, v)
+	return u
+}
+
+// UpdateIndex sets the "index" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateIndex() *BillingStandardInvoiceDetailedLineUpsert {
+	u.SetExcluded(billingstandardinvoicedetailedline.FieldIndex)
+	return u
+}
+
+// AddIndex adds v to the "index" field.
+func (u *BillingStandardInvoiceDetailedLineUpsert) AddIndex(v int) *BillingStandardInvoiceDetailedLineUpsert {
+	u.Add(billingstandardinvoicedetailedline.FieldIndex, v)
+	return u
+}
+
+// ClearIndex clears the value of the "index" field.
+func (u *BillingStandardInvoiceDetailedLineUpsert) ClearIndex() *BillingStandardInvoiceDetailedLineUpsert {
+	u.SetNull(billingstandardinvoicedetailedline.FieldIndex)
+	return u
+}
+
+// SetCreditsApplied sets the "credits_applied" field.
+func (u *BillingStandardInvoiceDetailedLineUpsert) SetCreditsApplied(v *creditsapplied.CreditsApplied) *BillingStandardInvoiceDetailedLineUpsert {
+	u.Set(billingstandardinvoicedetailedline.FieldCreditsApplied, v)
+	return u
+}
+
+// UpdateCreditsApplied sets the "credits_applied" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateCreditsApplied() *BillingStandardInvoiceDetailedLineUpsert {
+	u.SetExcluded(billingstandardinvoicedetailedline.FieldCreditsApplied)
+	return u
+}
+
+// ClearCreditsApplied clears the value of the "credits_applied" field.
+func (u *BillingStandardInvoiceDetailedLineUpsert) ClearCreditsApplied() *BillingStandardInvoiceDetailedLineUpsert {
+	u.SetNull(billingstandardinvoicedetailedline.FieldCreditsApplied)
+	return u
+}
 
 // SetAnnotations sets the "annotations" field.
 func (u *BillingStandardInvoiceDetailedLineUpsert) SetAnnotations(v models.Annotations) *BillingStandardInvoiceDetailedLineUpsert {
@@ -910,60 +1102,6 @@ func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateDescription() *BillingS
 // ClearDescription clears the value of the "description" field.
 func (u *BillingStandardInvoiceDetailedLineUpsert) ClearDescription() *BillingStandardInvoiceDetailedLineUpsert {
 	u.SetNull(billingstandardinvoicedetailedline.FieldDescription)
-	return u
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (u *BillingStandardInvoiceDetailedLineUpsert) SetTaxConfig(v productcatalog.TaxConfig) *BillingStandardInvoiceDetailedLineUpsert {
-	u.Set(billingstandardinvoicedetailedline.FieldTaxConfig, v)
-	return u
-}
-
-// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateTaxConfig() *BillingStandardInvoiceDetailedLineUpsert {
-	u.SetExcluded(billingstandardinvoicedetailedline.FieldTaxConfig)
-	return u
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (u *BillingStandardInvoiceDetailedLineUpsert) ClearTaxConfig() *BillingStandardInvoiceDetailedLineUpsert {
-	u.SetNull(billingstandardinvoicedetailedline.FieldTaxConfig)
-	return u
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (u *BillingStandardInvoiceDetailedLineUpsert) SetTaxCodeID(v string) *BillingStandardInvoiceDetailedLineUpsert {
-	u.Set(billingstandardinvoicedetailedline.FieldTaxCodeID, v)
-	return u
-}
-
-// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateTaxCodeID() *BillingStandardInvoiceDetailedLineUpsert {
-	u.SetExcluded(billingstandardinvoicedetailedline.FieldTaxCodeID)
-	return u
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (u *BillingStandardInvoiceDetailedLineUpsert) ClearTaxCodeID() *BillingStandardInvoiceDetailedLineUpsert {
-	u.SetNull(billingstandardinvoicedetailedline.FieldTaxCodeID)
-	return u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (u *BillingStandardInvoiceDetailedLineUpsert) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineUpsert {
-	u.Set(billingstandardinvoicedetailedline.FieldTaxBehavior, v)
-	return u
-}
-
-// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateTaxBehavior() *BillingStandardInvoiceDetailedLineUpsert {
-	u.SetExcluded(billingstandardinvoicedetailedline.FieldTaxBehavior)
-	return u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (u *BillingStandardInvoiceDetailedLineUpsert) ClearTaxBehavior() *BillingStandardInvoiceDetailedLineUpsert {
-	u.SetNull(billingstandardinvoicedetailedline.FieldTaxBehavior)
 	return u
 }
 
@@ -1063,30 +1201,6 @@ func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateTotal() *BillingStandar
 	return u
 }
 
-// SetServicePeriodStart sets the "service_period_start" field.
-func (u *BillingStandardInvoiceDetailedLineUpsert) SetServicePeriodStart(v time.Time) *BillingStandardInvoiceDetailedLineUpsert {
-	u.Set(billingstandardinvoicedetailedline.FieldServicePeriodStart, v)
-	return u
-}
-
-// UpdateServicePeriodStart sets the "service_period_start" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateServicePeriodStart() *BillingStandardInvoiceDetailedLineUpsert {
-	u.SetExcluded(billingstandardinvoicedetailedline.FieldServicePeriodStart)
-	return u
-}
-
-// SetServicePeriodEnd sets the "service_period_end" field.
-func (u *BillingStandardInvoiceDetailedLineUpsert) SetServicePeriodEnd(v time.Time) *BillingStandardInvoiceDetailedLineUpsert {
-	u.Set(billingstandardinvoicedetailedline.FieldServicePeriodEnd, v)
-	return u
-}
-
-// UpdateServicePeriodEnd sets the "service_period_end" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateServicePeriodEnd() *BillingStandardInvoiceDetailedLineUpsert {
-	u.SetExcluded(billingstandardinvoicedetailedline.FieldServicePeriodEnd)
-	return u
-}
-
 // SetInvoiceID sets the "invoice_id" field.
 func (u *BillingStandardInvoiceDetailedLineUpsert) SetInvoiceID(v string) *BillingStandardInvoiceDetailedLineUpsert {
 	u.Set(billingstandardinvoicedetailedline.FieldInvoiceID, v)
@@ -1111,132 +1225,6 @@ func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateParentLineID() *Billing
 	return u
 }
 
-// SetQuantity sets the "quantity" field.
-func (u *BillingStandardInvoiceDetailedLineUpsert) SetQuantity(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpsert {
-	u.Set(billingstandardinvoicedetailedline.FieldQuantity, v)
-	return u
-}
-
-// UpdateQuantity sets the "quantity" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateQuantity() *BillingStandardInvoiceDetailedLineUpsert {
-	u.SetExcluded(billingstandardinvoicedetailedline.FieldQuantity)
-	return u
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (u *BillingStandardInvoiceDetailedLineUpsert) SetInvoicingAppExternalID(v string) *BillingStandardInvoiceDetailedLineUpsert {
-	u.Set(billingstandardinvoicedetailedline.FieldInvoicingAppExternalID, v)
-	return u
-}
-
-// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateInvoicingAppExternalID() *BillingStandardInvoiceDetailedLineUpsert {
-	u.SetExcluded(billingstandardinvoicedetailedline.FieldInvoicingAppExternalID)
-	return u
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (u *BillingStandardInvoiceDetailedLineUpsert) ClearInvoicingAppExternalID() *BillingStandardInvoiceDetailedLineUpsert {
-	u.SetNull(billingstandardinvoicedetailedline.FieldInvoicingAppExternalID)
-	return u
-}
-
-// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
-func (u *BillingStandardInvoiceDetailedLineUpsert) SetChildUniqueReferenceID(v string) *BillingStandardInvoiceDetailedLineUpsert {
-	u.Set(billingstandardinvoicedetailedline.FieldChildUniqueReferenceID, v)
-	return u
-}
-
-// UpdateChildUniqueReferenceID sets the "child_unique_reference_id" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateChildUniqueReferenceID() *BillingStandardInvoiceDetailedLineUpsert {
-	u.SetExcluded(billingstandardinvoicedetailedline.FieldChildUniqueReferenceID)
-	return u
-}
-
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (u *BillingStandardInvoiceDetailedLineUpsert) ClearChildUniqueReferenceID() *BillingStandardInvoiceDetailedLineUpsert {
-	u.SetNull(billingstandardinvoicedetailedline.FieldChildUniqueReferenceID)
-	return u
-}
-
-// SetPerUnitAmount sets the "per_unit_amount" field.
-func (u *BillingStandardInvoiceDetailedLineUpsert) SetPerUnitAmount(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpsert {
-	u.Set(billingstandardinvoicedetailedline.FieldPerUnitAmount, v)
-	return u
-}
-
-// UpdatePerUnitAmount sets the "per_unit_amount" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsert) UpdatePerUnitAmount() *BillingStandardInvoiceDetailedLineUpsert {
-	u.SetExcluded(billingstandardinvoicedetailedline.FieldPerUnitAmount)
-	return u
-}
-
-// SetCategory sets the "category" field.
-func (u *BillingStandardInvoiceDetailedLineUpsert) SetCategory(v billing.FlatFeeCategory) *BillingStandardInvoiceDetailedLineUpsert {
-	u.Set(billingstandardinvoicedetailedline.FieldCategory, v)
-	return u
-}
-
-// UpdateCategory sets the "category" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateCategory() *BillingStandardInvoiceDetailedLineUpsert {
-	u.SetExcluded(billingstandardinvoicedetailedline.FieldCategory)
-	return u
-}
-
-// SetPaymentTerm sets the "payment_term" field.
-func (u *BillingStandardInvoiceDetailedLineUpsert) SetPaymentTerm(v productcatalog.PaymentTermType) *BillingStandardInvoiceDetailedLineUpsert {
-	u.Set(billingstandardinvoicedetailedline.FieldPaymentTerm, v)
-	return u
-}
-
-// UpdatePaymentTerm sets the "payment_term" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsert) UpdatePaymentTerm() *BillingStandardInvoiceDetailedLineUpsert {
-	u.SetExcluded(billingstandardinvoicedetailedline.FieldPaymentTerm)
-	return u
-}
-
-// SetIndex sets the "index" field.
-func (u *BillingStandardInvoiceDetailedLineUpsert) SetIndex(v int) *BillingStandardInvoiceDetailedLineUpsert {
-	u.Set(billingstandardinvoicedetailedline.FieldIndex, v)
-	return u
-}
-
-// UpdateIndex sets the "index" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateIndex() *BillingStandardInvoiceDetailedLineUpsert {
-	u.SetExcluded(billingstandardinvoicedetailedline.FieldIndex)
-	return u
-}
-
-// AddIndex adds v to the "index" field.
-func (u *BillingStandardInvoiceDetailedLineUpsert) AddIndex(v int) *BillingStandardInvoiceDetailedLineUpsert {
-	u.Add(billingstandardinvoicedetailedline.FieldIndex, v)
-	return u
-}
-
-// ClearIndex clears the value of the "index" field.
-func (u *BillingStandardInvoiceDetailedLineUpsert) ClearIndex() *BillingStandardInvoiceDetailedLineUpsert {
-	u.SetNull(billingstandardinvoicedetailedline.FieldIndex)
-	return u
-}
-
-// SetCreditsApplied sets the "credits_applied" field.
-func (u *BillingStandardInvoiceDetailedLineUpsert) SetCreditsApplied(v *billing.CreditsApplied) *BillingStandardInvoiceDetailedLineUpsert {
-	u.Set(billingstandardinvoicedetailedline.FieldCreditsApplied, v)
-	return u
-}
-
-// UpdateCreditsApplied sets the "credits_applied" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsert) UpdateCreditsApplied() *BillingStandardInvoiceDetailedLineUpsert {
-	u.SetExcluded(billingstandardinvoicedetailedline.FieldCreditsApplied)
-	return u
-}
-
-// ClearCreditsApplied clears the value of the "credits_applied" field.
-func (u *BillingStandardInvoiceDetailedLineUpsert) ClearCreditsApplied() *BillingStandardInvoiceDetailedLineUpsert {
-	u.SetNull(billingstandardinvoicedetailedline.FieldCreditsApplied)
-	return u
-}
-
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -1254,14 +1242,14 @@ func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateNewValues() *Billing
 		if _, exists := u.create.mutation.ID(); exists {
 			s.SetIgnore(billingstandardinvoicedetailedline.FieldID)
 		}
+		if _, exists := u.create.mutation.Currency(); exists {
+			s.SetIgnore(billingstandardinvoicedetailedline.FieldCurrency)
+		}
 		if _, exists := u.create.mutation.Namespace(); exists {
 			s.SetIgnore(billingstandardinvoicedetailedline.FieldNamespace)
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(billingstandardinvoicedetailedline.FieldCreatedAt)
-		}
-		if _, exists := u.create.mutation.Currency(); exists {
-			s.SetIgnore(billingstandardinvoicedetailedline.FieldCurrency)
 		}
 	}))
 	return u
@@ -1292,6 +1280,237 @@ func (u *BillingStandardInvoiceDetailedLineUpsertOne) Update(set func(*BillingSt
 		set(&BillingStandardInvoiceDetailedLineUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetTaxConfig sets the "tax_config" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetTaxConfig(v productcatalog.TaxConfig) *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetTaxConfig(v)
+	})
+}
+
+// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateTaxConfig() *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdateTaxConfig()
+	})
+}
+
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) ClearTaxConfig() *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.ClearTaxConfig()
+	})
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetTaxCodeID(v string) *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetTaxCodeID(v)
+	})
+}
+
+// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateTaxCodeID() *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdateTaxCodeID()
+	})
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) ClearTaxCodeID() *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.ClearTaxCodeID()
+	})
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetTaxBehavior(v)
+	})
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateTaxBehavior() *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdateTaxBehavior()
+	})
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) ClearTaxBehavior() *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.ClearTaxBehavior()
+	})
+}
+
+// SetServicePeriodStart sets the "service_period_start" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetServicePeriodStart(v time.Time) *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetServicePeriodStart(v)
+	})
+}
+
+// UpdateServicePeriodStart sets the "service_period_start" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateServicePeriodStart() *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdateServicePeriodStart()
+	})
+}
+
+// SetServicePeriodEnd sets the "service_period_end" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetServicePeriodEnd(v time.Time) *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetServicePeriodEnd(v)
+	})
+}
+
+// UpdateServicePeriodEnd sets the "service_period_end" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateServicePeriodEnd() *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdateServicePeriodEnd()
+	})
+}
+
+// SetQuantity sets the "quantity" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetQuantity(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetQuantity(v)
+	})
+}
+
+// UpdateQuantity sets the "quantity" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateQuantity() *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdateQuantity()
+	})
+}
+
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetInvoicingAppExternalID(v string) *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetInvoicingAppExternalID(v)
+	})
+}
+
+// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateInvoicingAppExternalID() *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdateInvoicingAppExternalID()
+	})
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) ClearInvoicingAppExternalID() *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.ClearInvoicingAppExternalID()
+	})
+}
+
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetChildUniqueReferenceID(v string) *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetChildUniqueReferenceID(v)
+	})
+}
+
+// UpdateChildUniqueReferenceID sets the "child_unique_reference_id" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateChildUniqueReferenceID() *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdateChildUniqueReferenceID()
+	})
+}
+
+// SetPerUnitAmount sets the "per_unit_amount" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetPerUnitAmount(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetPerUnitAmount(v)
+	})
+}
+
+// UpdatePerUnitAmount sets the "per_unit_amount" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdatePerUnitAmount() *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdatePerUnitAmount()
+	})
+}
+
+// SetCategory sets the "category" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetCategory(v stddetailedline.Category) *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetCategory(v)
+	})
+}
+
+// UpdateCategory sets the "category" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateCategory() *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdateCategory()
+	})
+}
+
+// SetPaymentTerm sets the "payment_term" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetPaymentTerm(v productcatalog.PaymentTermType) *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetPaymentTerm(v)
+	})
+}
+
+// UpdatePaymentTerm sets the "payment_term" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdatePaymentTerm() *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdatePaymentTerm()
+	})
+}
+
+// SetIndex sets the "index" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetIndex(v int) *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetIndex(v)
+	})
+}
+
+// AddIndex adds v to the "index" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) AddIndex(v int) *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.AddIndex(v)
+	})
+}
+
+// UpdateIndex sets the "index" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateIndex() *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdateIndex()
+	})
+}
+
+// ClearIndex clears the value of the "index" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) ClearIndex() *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.ClearIndex()
+	})
+}
+
+// SetCreditsApplied sets the "credits_applied" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetCreditsApplied(v *creditsapplied.CreditsApplied) *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetCreditsApplied(v)
+	})
+}
+
+// UpdateCreditsApplied sets the "credits_applied" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateCreditsApplied() *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdateCreditsApplied()
+	})
+}
+
+// ClearCreditsApplied clears the value of the "credits_applied" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertOne) ClearCreditsApplied() *BillingStandardInvoiceDetailedLineUpsertOne {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.ClearCreditsApplied()
+	})
 }
 
 // SetAnnotations sets the "annotations" field.
@@ -1403,69 +1622,6 @@ func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateDescription() *Billi
 func (u *BillingStandardInvoiceDetailedLineUpsertOne) ClearDescription() *BillingStandardInvoiceDetailedLineUpsertOne {
 	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
 		s.ClearDescription()
-	})
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetTaxConfig(v productcatalog.TaxConfig) *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetTaxConfig(v)
-	})
-}
-
-// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateTaxConfig() *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdateTaxConfig()
-	})
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) ClearTaxConfig() *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.ClearTaxConfig()
-	})
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetTaxCodeID(v string) *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetTaxCodeID(v)
-	})
-}
-
-// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateTaxCodeID() *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdateTaxCodeID()
-	})
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) ClearTaxCodeID() *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.ClearTaxCodeID()
-	})
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetTaxBehavior(v)
-	})
-}
-
-// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateTaxBehavior() *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdateTaxBehavior()
-	})
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) ClearTaxBehavior() *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.ClearTaxBehavior()
 	})
 }
 
@@ -1581,34 +1737,6 @@ func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateTotal() *BillingStan
 	})
 }
 
-// SetServicePeriodStart sets the "service_period_start" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetServicePeriodStart(v time.Time) *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetServicePeriodStart(v)
-	})
-}
-
-// UpdateServicePeriodStart sets the "service_period_start" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateServicePeriodStart() *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdateServicePeriodStart()
-	})
-}
-
-// SetServicePeriodEnd sets the "service_period_end" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetServicePeriodEnd(v time.Time) *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetServicePeriodEnd(v)
-	})
-}
-
-// UpdateServicePeriodEnd sets the "service_period_end" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateServicePeriodEnd() *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdateServicePeriodEnd()
-	})
-}
-
 // SetInvoiceID sets the "invoice_id" field.
 func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetInvoiceID(v string) *BillingStandardInvoiceDetailedLineUpsertOne {
 	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
@@ -1634,153 +1762,6 @@ func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetParentLineID(v string) 
 func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateParentLineID() *BillingStandardInvoiceDetailedLineUpsertOne {
 	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
 		s.UpdateParentLineID()
-	})
-}
-
-// SetQuantity sets the "quantity" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetQuantity(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetQuantity(v)
-	})
-}
-
-// UpdateQuantity sets the "quantity" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateQuantity() *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdateQuantity()
-	})
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetInvoicingAppExternalID(v string) *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetInvoicingAppExternalID(v)
-	})
-}
-
-// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateInvoicingAppExternalID() *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdateInvoicingAppExternalID()
-	})
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) ClearInvoicingAppExternalID() *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.ClearInvoicingAppExternalID()
-	})
-}
-
-// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetChildUniqueReferenceID(v string) *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetChildUniqueReferenceID(v)
-	})
-}
-
-// UpdateChildUniqueReferenceID sets the "child_unique_reference_id" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateChildUniqueReferenceID() *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdateChildUniqueReferenceID()
-	})
-}
-
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) ClearChildUniqueReferenceID() *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.ClearChildUniqueReferenceID()
-	})
-}
-
-// SetPerUnitAmount sets the "per_unit_amount" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetPerUnitAmount(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetPerUnitAmount(v)
-	})
-}
-
-// UpdatePerUnitAmount sets the "per_unit_amount" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdatePerUnitAmount() *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdatePerUnitAmount()
-	})
-}
-
-// SetCategory sets the "category" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetCategory(v billing.FlatFeeCategory) *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetCategory(v)
-	})
-}
-
-// UpdateCategory sets the "category" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateCategory() *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdateCategory()
-	})
-}
-
-// SetPaymentTerm sets the "payment_term" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetPaymentTerm(v productcatalog.PaymentTermType) *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetPaymentTerm(v)
-	})
-}
-
-// UpdatePaymentTerm sets the "payment_term" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdatePaymentTerm() *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdatePaymentTerm()
-	})
-}
-
-// SetIndex sets the "index" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetIndex(v int) *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetIndex(v)
-	})
-}
-
-// AddIndex adds v to the "index" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) AddIndex(v int) *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.AddIndex(v)
-	})
-}
-
-// UpdateIndex sets the "index" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateIndex() *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdateIndex()
-	})
-}
-
-// ClearIndex clears the value of the "index" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) ClearIndex() *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.ClearIndex()
-	})
-}
-
-// SetCreditsApplied sets the "credits_applied" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) SetCreditsApplied(v *billing.CreditsApplied) *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetCreditsApplied(v)
-	})
-}
-
-// UpdateCreditsApplied sets the "credits_applied" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) UpdateCreditsApplied() *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdateCreditsApplied()
-	})
-}
-
-// ClearCreditsApplied clears the value of the "credits_applied" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertOne) ClearCreditsApplied() *BillingStandardInvoiceDetailedLineUpsertOne {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.ClearCreditsApplied()
 	})
 }
 
@@ -1852,10 +1833,7 @@ func (_c *BillingStandardInvoiceDetailedLineCreateBulk) Save(ctx context.Context
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i], err = builder.createSpec()
-				if err != nil {
-					return nil, err
-				}
+				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
@@ -1923,7 +1901,7 @@ func (_c *BillingStandardInvoiceDetailedLineCreateBulk) ExecX(ctx context.Contex
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.BillingStandardInvoiceDetailedLineUpsert) {
-//			SetAnnotations(v+v).
+//			SetCurrency(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *BillingStandardInvoiceDetailedLineCreateBulk) OnConflict(opts ...sql.ConflictOption) *BillingStandardInvoiceDetailedLineUpsertBulk {
@@ -1970,14 +1948,14 @@ func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateNewValues() *Billin
 			if _, exists := b.mutation.ID(); exists {
 				s.SetIgnore(billingstandardinvoicedetailedline.FieldID)
 			}
+			if _, exists := b.mutation.Currency(); exists {
+				s.SetIgnore(billingstandardinvoicedetailedline.FieldCurrency)
+			}
 			if _, exists := b.mutation.Namespace(); exists {
 				s.SetIgnore(billingstandardinvoicedetailedline.FieldNamespace)
 			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(billingstandardinvoicedetailedline.FieldCreatedAt)
-			}
-			if _, exists := b.mutation.Currency(); exists {
-				s.SetIgnore(billingstandardinvoicedetailedline.FieldCurrency)
 			}
 		}
 	}))
@@ -2009,6 +1987,237 @@ func (u *BillingStandardInvoiceDetailedLineUpsertBulk) Update(set func(*BillingS
 		set(&BillingStandardInvoiceDetailedLineUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetTaxConfig sets the "tax_config" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetTaxConfig(v productcatalog.TaxConfig) *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetTaxConfig(v)
+	})
+}
+
+// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateTaxConfig() *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdateTaxConfig()
+	})
+}
+
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) ClearTaxConfig() *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.ClearTaxConfig()
+	})
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetTaxCodeID(v string) *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetTaxCodeID(v)
+	})
+}
+
+// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateTaxCodeID() *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdateTaxCodeID()
+	})
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) ClearTaxCodeID() *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.ClearTaxCodeID()
+	})
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetTaxBehavior(v)
+	})
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateTaxBehavior() *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdateTaxBehavior()
+	})
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) ClearTaxBehavior() *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.ClearTaxBehavior()
+	})
+}
+
+// SetServicePeriodStart sets the "service_period_start" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetServicePeriodStart(v time.Time) *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetServicePeriodStart(v)
+	})
+}
+
+// UpdateServicePeriodStart sets the "service_period_start" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateServicePeriodStart() *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdateServicePeriodStart()
+	})
+}
+
+// SetServicePeriodEnd sets the "service_period_end" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetServicePeriodEnd(v time.Time) *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetServicePeriodEnd(v)
+	})
+}
+
+// UpdateServicePeriodEnd sets the "service_period_end" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateServicePeriodEnd() *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdateServicePeriodEnd()
+	})
+}
+
+// SetQuantity sets the "quantity" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetQuantity(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetQuantity(v)
+	})
+}
+
+// UpdateQuantity sets the "quantity" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateQuantity() *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdateQuantity()
+	})
+}
+
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetInvoicingAppExternalID(v string) *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetInvoicingAppExternalID(v)
+	})
+}
+
+// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateInvoicingAppExternalID() *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdateInvoicingAppExternalID()
+	})
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) ClearInvoicingAppExternalID() *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.ClearInvoicingAppExternalID()
+	})
+}
+
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetChildUniqueReferenceID(v string) *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetChildUniqueReferenceID(v)
+	})
+}
+
+// UpdateChildUniqueReferenceID sets the "child_unique_reference_id" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateChildUniqueReferenceID() *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdateChildUniqueReferenceID()
+	})
+}
+
+// SetPerUnitAmount sets the "per_unit_amount" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetPerUnitAmount(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetPerUnitAmount(v)
+	})
+}
+
+// UpdatePerUnitAmount sets the "per_unit_amount" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdatePerUnitAmount() *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdatePerUnitAmount()
+	})
+}
+
+// SetCategory sets the "category" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetCategory(v stddetailedline.Category) *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetCategory(v)
+	})
+}
+
+// UpdateCategory sets the "category" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateCategory() *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdateCategory()
+	})
+}
+
+// SetPaymentTerm sets the "payment_term" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetPaymentTerm(v productcatalog.PaymentTermType) *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetPaymentTerm(v)
+	})
+}
+
+// UpdatePaymentTerm sets the "payment_term" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdatePaymentTerm() *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdatePaymentTerm()
+	})
+}
+
+// SetIndex sets the "index" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetIndex(v int) *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetIndex(v)
+	})
+}
+
+// AddIndex adds v to the "index" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) AddIndex(v int) *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.AddIndex(v)
+	})
+}
+
+// UpdateIndex sets the "index" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateIndex() *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdateIndex()
+	})
+}
+
+// ClearIndex clears the value of the "index" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) ClearIndex() *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.ClearIndex()
+	})
+}
+
+// SetCreditsApplied sets the "credits_applied" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetCreditsApplied(v *creditsapplied.CreditsApplied) *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.SetCreditsApplied(v)
+	})
+}
+
+// UpdateCreditsApplied sets the "credits_applied" field to the value that was provided on create.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateCreditsApplied() *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.UpdateCreditsApplied()
+	})
+}
+
+// ClearCreditsApplied clears the value of the "credits_applied" field.
+func (u *BillingStandardInvoiceDetailedLineUpsertBulk) ClearCreditsApplied() *BillingStandardInvoiceDetailedLineUpsertBulk {
+	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
+		s.ClearCreditsApplied()
+	})
 }
 
 // SetAnnotations sets the "annotations" field.
@@ -2120,69 +2329,6 @@ func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateDescription() *Bill
 func (u *BillingStandardInvoiceDetailedLineUpsertBulk) ClearDescription() *BillingStandardInvoiceDetailedLineUpsertBulk {
 	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
 		s.ClearDescription()
-	})
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetTaxConfig(v productcatalog.TaxConfig) *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetTaxConfig(v)
-	})
-}
-
-// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateTaxConfig() *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdateTaxConfig()
-	})
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) ClearTaxConfig() *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.ClearTaxConfig()
-	})
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetTaxCodeID(v string) *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetTaxCodeID(v)
-	})
-}
-
-// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateTaxCodeID() *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdateTaxCodeID()
-	})
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) ClearTaxCodeID() *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.ClearTaxCodeID()
-	})
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetTaxBehavior(v)
-	})
-}
-
-// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateTaxBehavior() *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdateTaxBehavior()
-	})
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) ClearTaxBehavior() *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.ClearTaxBehavior()
 	})
 }
 
@@ -2298,34 +2444,6 @@ func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateTotal() *BillingSta
 	})
 }
 
-// SetServicePeriodStart sets the "service_period_start" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetServicePeriodStart(v time.Time) *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetServicePeriodStart(v)
-	})
-}
-
-// UpdateServicePeriodStart sets the "service_period_start" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateServicePeriodStart() *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdateServicePeriodStart()
-	})
-}
-
-// SetServicePeriodEnd sets the "service_period_end" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetServicePeriodEnd(v time.Time) *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetServicePeriodEnd(v)
-	})
-}
-
-// UpdateServicePeriodEnd sets the "service_period_end" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateServicePeriodEnd() *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdateServicePeriodEnd()
-	})
-}
-
 // SetInvoiceID sets the "invoice_id" field.
 func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetInvoiceID(v string) *BillingStandardInvoiceDetailedLineUpsertBulk {
 	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
@@ -2351,153 +2469,6 @@ func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetParentLineID(v string)
 func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateParentLineID() *BillingStandardInvoiceDetailedLineUpsertBulk {
 	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
 		s.UpdateParentLineID()
-	})
-}
-
-// SetQuantity sets the "quantity" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetQuantity(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetQuantity(v)
-	})
-}
-
-// UpdateQuantity sets the "quantity" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateQuantity() *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdateQuantity()
-	})
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetInvoicingAppExternalID(v string) *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetInvoicingAppExternalID(v)
-	})
-}
-
-// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateInvoicingAppExternalID() *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdateInvoicingAppExternalID()
-	})
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) ClearInvoicingAppExternalID() *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.ClearInvoicingAppExternalID()
-	})
-}
-
-// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetChildUniqueReferenceID(v string) *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetChildUniqueReferenceID(v)
-	})
-}
-
-// UpdateChildUniqueReferenceID sets the "child_unique_reference_id" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateChildUniqueReferenceID() *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdateChildUniqueReferenceID()
-	})
-}
-
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) ClearChildUniqueReferenceID() *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.ClearChildUniqueReferenceID()
-	})
-}
-
-// SetPerUnitAmount sets the "per_unit_amount" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetPerUnitAmount(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetPerUnitAmount(v)
-	})
-}
-
-// UpdatePerUnitAmount sets the "per_unit_amount" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdatePerUnitAmount() *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdatePerUnitAmount()
-	})
-}
-
-// SetCategory sets the "category" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetCategory(v billing.FlatFeeCategory) *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetCategory(v)
-	})
-}
-
-// UpdateCategory sets the "category" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateCategory() *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdateCategory()
-	})
-}
-
-// SetPaymentTerm sets the "payment_term" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetPaymentTerm(v productcatalog.PaymentTermType) *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetPaymentTerm(v)
-	})
-}
-
-// UpdatePaymentTerm sets the "payment_term" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdatePaymentTerm() *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdatePaymentTerm()
-	})
-}
-
-// SetIndex sets the "index" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetIndex(v int) *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetIndex(v)
-	})
-}
-
-// AddIndex adds v to the "index" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) AddIndex(v int) *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.AddIndex(v)
-	})
-}
-
-// UpdateIndex sets the "index" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateIndex() *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdateIndex()
-	})
-}
-
-// ClearIndex clears the value of the "index" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) ClearIndex() *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.ClearIndex()
-	})
-}
-
-// SetCreditsApplied sets the "credits_applied" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) SetCreditsApplied(v *billing.CreditsApplied) *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.SetCreditsApplied(v)
-	})
-}
-
-// UpdateCreditsApplied sets the "credits_applied" field to the value that was provided on create.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) UpdateCreditsApplied() *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.UpdateCreditsApplied()
-	})
-}
-
-// ClearCreditsApplied clears the value of the "credits_applied" field.
-func (u *BillingStandardInvoiceDetailedLineUpsertBulk) ClearCreditsApplied() *BillingStandardInvoiceDetailedLineUpsertBulk {
-	return u.Update(func(s *BillingStandardInvoiceDetailedLineUpsert) {
-		s.ClearCreditsApplied()
 	})
 }
 

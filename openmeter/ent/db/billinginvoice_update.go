@@ -465,6 +465,66 @@ func (_u *BillingInvoiceUpdate) SetNillableTotal(v *alpacadecimal.Decimal) *Bill
 	return _u
 }
 
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (_u *BillingInvoiceUpdate) SetInvoicingAppExternalID(v string) *BillingInvoiceUpdate {
+	_u.mutation.SetInvoicingAppExternalID(v)
+	return _u
+}
+
+// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
+func (_u *BillingInvoiceUpdate) SetNillableInvoicingAppExternalID(v *string) *BillingInvoiceUpdate {
+	if v != nil {
+		_u.SetInvoicingAppExternalID(*v)
+	}
+	return _u
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (_u *BillingInvoiceUpdate) ClearInvoicingAppExternalID() *BillingInvoiceUpdate {
+	_u.mutation.ClearInvoicingAppExternalID()
+	return _u
+}
+
+// SetPaymentAppExternalID sets the "payment_app_external_id" field.
+func (_u *BillingInvoiceUpdate) SetPaymentAppExternalID(v string) *BillingInvoiceUpdate {
+	_u.mutation.SetPaymentAppExternalID(v)
+	return _u
+}
+
+// SetNillablePaymentAppExternalID sets the "payment_app_external_id" field if the given value is not nil.
+func (_u *BillingInvoiceUpdate) SetNillablePaymentAppExternalID(v *string) *BillingInvoiceUpdate {
+	if v != nil {
+		_u.SetPaymentAppExternalID(*v)
+	}
+	return _u
+}
+
+// ClearPaymentAppExternalID clears the value of the "payment_app_external_id" field.
+func (_u *BillingInvoiceUpdate) ClearPaymentAppExternalID() *BillingInvoiceUpdate {
+	_u.mutation.ClearPaymentAppExternalID()
+	return _u
+}
+
+// SetTaxAppExternalID sets the "tax_app_external_id" field.
+func (_u *BillingInvoiceUpdate) SetTaxAppExternalID(v string) *BillingInvoiceUpdate {
+	_u.mutation.SetTaxAppExternalID(v)
+	return _u
+}
+
+// SetNillableTaxAppExternalID sets the "tax_app_external_id" field if the given value is not nil.
+func (_u *BillingInvoiceUpdate) SetNillableTaxAppExternalID(v *string) *BillingInvoiceUpdate {
+	if v != nil {
+		_u.SetTaxAppExternalID(*v)
+	}
+	return _u
+}
+
+// ClearTaxAppExternalID clears the value of the "tax_app_external_id" field.
+func (_u *BillingInvoiceUpdate) ClearTaxAppExternalID() *BillingInvoiceUpdate {
+	_u.mutation.ClearTaxAppExternalID()
+	return _u
+}
+
 // SetSupplierName sets the "supplier_name" field.
 func (_u *BillingInvoiceUpdate) SetSupplierName(v string) *BillingInvoiceUpdate {
 	_u.mutation.SetSupplierName(v)
@@ -758,66 +818,6 @@ func (_u *BillingInvoiceUpdate) SetNillableWorkflowConfigID(v *string) *BillingI
 	if v != nil {
 		_u.SetWorkflowConfigID(*v)
 	}
-	return _u
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (_u *BillingInvoiceUpdate) SetInvoicingAppExternalID(v string) *BillingInvoiceUpdate {
-	_u.mutation.SetInvoicingAppExternalID(v)
-	return _u
-}
-
-// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
-func (_u *BillingInvoiceUpdate) SetNillableInvoicingAppExternalID(v *string) *BillingInvoiceUpdate {
-	if v != nil {
-		_u.SetInvoicingAppExternalID(*v)
-	}
-	return _u
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (_u *BillingInvoiceUpdate) ClearInvoicingAppExternalID() *BillingInvoiceUpdate {
-	_u.mutation.ClearInvoicingAppExternalID()
-	return _u
-}
-
-// SetPaymentAppExternalID sets the "payment_app_external_id" field.
-func (_u *BillingInvoiceUpdate) SetPaymentAppExternalID(v string) *BillingInvoiceUpdate {
-	_u.mutation.SetPaymentAppExternalID(v)
-	return _u
-}
-
-// SetNillablePaymentAppExternalID sets the "payment_app_external_id" field if the given value is not nil.
-func (_u *BillingInvoiceUpdate) SetNillablePaymentAppExternalID(v *string) *BillingInvoiceUpdate {
-	if v != nil {
-		_u.SetPaymentAppExternalID(*v)
-	}
-	return _u
-}
-
-// ClearPaymentAppExternalID clears the value of the "payment_app_external_id" field.
-func (_u *BillingInvoiceUpdate) ClearPaymentAppExternalID() *BillingInvoiceUpdate {
-	_u.mutation.ClearPaymentAppExternalID()
-	return _u
-}
-
-// SetTaxAppExternalID sets the "tax_app_external_id" field.
-func (_u *BillingInvoiceUpdate) SetTaxAppExternalID(v string) *BillingInvoiceUpdate {
-	_u.mutation.SetTaxAppExternalID(v)
-	return _u
-}
-
-// SetNillableTaxAppExternalID sets the "tax_app_external_id" field if the given value is not nil.
-func (_u *BillingInvoiceUpdate) SetNillableTaxAppExternalID(v *string) *BillingInvoiceUpdate {
-	if v != nil {
-		_u.SetTaxAppExternalID(*v)
-	}
-	return _u
-}
-
-// ClearTaxAppExternalID clears the value of the "tax_app_external_id" field.
-func (_u *BillingInvoiceUpdate) ClearTaxAppExternalID() *BillingInvoiceUpdate {
-	_u.mutation.ClearTaxAppExternalID()
 	return _u
 }
 
@@ -1281,6 +1281,24 @@ func (_u *BillingInvoiceUpdate) sqlSave(ctx context.Context) (_node int, err err
 	if value, ok := _u.mutation.Total(); ok {
 		_spec.SetField(billinginvoice.FieldTotal, field.TypeOther, value)
 	}
+	if value, ok := _u.mutation.InvoicingAppExternalID(); ok {
+		_spec.SetField(billinginvoice.FieldInvoicingAppExternalID, field.TypeString, value)
+	}
+	if _u.mutation.InvoicingAppExternalIDCleared() {
+		_spec.ClearField(billinginvoice.FieldInvoicingAppExternalID, field.TypeString)
+	}
+	if value, ok := _u.mutation.PaymentAppExternalID(); ok {
+		_spec.SetField(billinginvoice.FieldPaymentAppExternalID, field.TypeString, value)
+	}
+	if _u.mutation.PaymentAppExternalIDCleared() {
+		_spec.ClearField(billinginvoice.FieldPaymentAppExternalID, field.TypeString)
+	}
+	if value, ok := _u.mutation.TaxAppExternalID(); ok {
+		_spec.SetField(billinginvoice.FieldTaxAppExternalID, field.TypeString, value)
+	}
+	if _u.mutation.TaxAppExternalIDCleared() {
+		_spec.ClearField(billinginvoice.FieldTaxAppExternalID, field.TypeString)
+	}
 	if value, ok := _u.mutation.SupplierName(); ok {
 		_spec.SetField(billinginvoice.FieldSupplierName, field.TypeString, value)
 	}
@@ -1361,24 +1379,6 @@ func (_u *BillingInvoiceUpdate) sqlSave(ctx context.Context) (_node int, err err
 	}
 	if _u.mutation.StatusDetailsCacheCleared() {
 		_spec.ClearField(billinginvoice.FieldStatusDetailsCache, field.TypeJSON)
-	}
-	if value, ok := _u.mutation.InvoicingAppExternalID(); ok {
-		_spec.SetField(billinginvoice.FieldInvoicingAppExternalID, field.TypeString, value)
-	}
-	if _u.mutation.InvoicingAppExternalIDCleared() {
-		_spec.ClearField(billinginvoice.FieldInvoicingAppExternalID, field.TypeString)
-	}
-	if value, ok := _u.mutation.PaymentAppExternalID(); ok {
-		_spec.SetField(billinginvoice.FieldPaymentAppExternalID, field.TypeString, value)
-	}
-	if _u.mutation.PaymentAppExternalIDCleared() {
-		_spec.ClearField(billinginvoice.FieldPaymentAppExternalID, field.TypeString)
-	}
-	if value, ok := _u.mutation.TaxAppExternalID(); ok {
-		_spec.SetField(billinginvoice.FieldTaxAppExternalID, field.TypeString, value)
-	}
-	if _u.mutation.TaxAppExternalIDCleared() {
-		_spec.ClearField(billinginvoice.FieldTaxAppExternalID, field.TypeString)
 	}
 	if value, ok := _u.mutation.PeriodStart(); ok {
 		_spec.SetField(billinginvoice.FieldPeriodStart, field.TypeTime, value)
@@ -2024,6 +2024,66 @@ func (_u *BillingInvoiceUpdateOne) SetNillableTotal(v *alpacadecimal.Decimal) *B
 	return _u
 }
 
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (_u *BillingInvoiceUpdateOne) SetInvoicingAppExternalID(v string) *BillingInvoiceUpdateOne {
+	_u.mutation.SetInvoicingAppExternalID(v)
+	return _u
+}
+
+// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
+func (_u *BillingInvoiceUpdateOne) SetNillableInvoicingAppExternalID(v *string) *BillingInvoiceUpdateOne {
+	if v != nil {
+		_u.SetInvoicingAppExternalID(*v)
+	}
+	return _u
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (_u *BillingInvoiceUpdateOne) ClearInvoicingAppExternalID() *BillingInvoiceUpdateOne {
+	_u.mutation.ClearInvoicingAppExternalID()
+	return _u
+}
+
+// SetPaymentAppExternalID sets the "payment_app_external_id" field.
+func (_u *BillingInvoiceUpdateOne) SetPaymentAppExternalID(v string) *BillingInvoiceUpdateOne {
+	_u.mutation.SetPaymentAppExternalID(v)
+	return _u
+}
+
+// SetNillablePaymentAppExternalID sets the "payment_app_external_id" field if the given value is not nil.
+func (_u *BillingInvoiceUpdateOne) SetNillablePaymentAppExternalID(v *string) *BillingInvoiceUpdateOne {
+	if v != nil {
+		_u.SetPaymentAppExternalID(*v)
+	}
+	return _u
+}
+
+// ClearPaymentAppExternalID clears the value of the "payment_app_external_id" field.
+func (_u *BillingInvoiceUpdateOne) ClearPaymentAppExternalID() *BillingInvoiceUpdateOne {
+	_u.mutation.ClearPaymentAppExternalID()
+	return _u
+}
+
+// SetTaxAppExternalID sets the "tax_app_external_id" field.
+func (_u *BillingInvoiceUpdateOne) SetTaxAppExternalID(v string) *BillingInvoiceUpdateOne {
+	_u.mutation.SetTaxAppExternalID(v)
+	return _u
+}
+
+// SetNillableTaxAppExternalID sets the "tax_app_external_id" field if the given value is not nil.
+func (_u *BillingInvoiceUpdateOne) SetNillableTaxAppExternalID(v *string) *BillingInvoiceUpdateOne {
+	if v != nil {
+		_u.SetTaxAppExternalID(*v)
+	}
+	return _u
+}
+
+// ClearTaxAppExternalID clears the value of the "tax_app_external_id" field.
+func (_u *BillingInvoiceUpdateOne) ClearTaxAppExternalID() *BillingInvoiceUpdateOne {
+	_u.mutation.ClearTaxAppExternalID()
+	return _u
+}
+
 // SetSupplierName sets the "supplier_name" field.
 func (_u *BillingInvoiceUpdateOne) SetSupplierName(v string) *BillingInvoiceUpdateOne {
 	_u.mutation.SetSupplierName(v)
@@ -2317,66 +2377,6 @@ func (_u *BillingInvoiceUpdateOne) SetNillableWorkflowConfigID(v *string) *Billi
 	if v != nil {
 		_u.SetWorkflowConfigID(*v)
 	}
-	return _u
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (_u *BillingInvoiceUpdateOne) SetInvoicingAppExternalID(v string) *BillingInvoiceUpdateOne {
-	_u.mutation.SetInvoicingAppExternalID(v)
-	return _u
-}
-
-// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
-func (_u *BillingInvoiceUpdateOne) SetNillableInvoicingAppExternalID(v *string) *BillingInvoiceUpdateOne {
-	if v != nil {
-		_u.SetInvoicingAppExternalID(*v)
-	}
-	return _u
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (_u *BillingInvoiceUpdateOne) ClearInvoicingAppExternalID() *BillingInvoiceUpdateOne {
-	_u.mutation.ClearInvoicingAppExternalID()
-	return _u
-}
-
-// SetPaymentAppExternalID sets the "payment_app_external_id" field.
-func (_u *BillingInvoiceUpdateOne) SetPaymentAppExternalID(v string) *BillingInvoiceUpdateOne {
-	_u.mutation.SetPaymentAppExternalID(v)
-	return _u
-}
-
-// SetNillablePaymentAppExternalID sets the "payment_app_external_id" field if the given value is not nil.
-func (_u *BillingInvoiceUpdateOne) SetNillablePaymentAppExternalID(v *string) *BillingInvoiceUpdateOne {
-	if v != nil {
-		_u.SetPaymentAppExternalID(*v)
-	}
-	return _u
-}
-
-// ClearPaymentAppExternalID clears the value of the "payment_app_external_id" field.
-func (_u *BillingInvoiceUpdateOne) ClearPaymentAppExternalID() *BillingInvoiceUpdateOne {
-	_u.mutation.ClearPaymentAppExternalID()
-	return _u
-}
-
-// SetTaxAppExternalID sets the "tax_app_external_id" field.
-func (_u *BillingInvoiceUpdateOne) SetTaxAppExternalID(v string) *BillingInvoiceUpdateOne {
-	_u.mutation.SetTaxAppExternalID(v)
-	return _u
-}
-
-// SetNillableTaxAppExternalID sets the "tax_app_external_id" field if the given value is not nil.
-func (_u *BillingInvoiceUpdateOne) SetNillableTaxAppExternalID(v *string) *BillingInvoiceUpdateOne {
-	if v != nil {
-		_u.SetTaxAppExternalID(*v)
-	}
-	return _u
-}
-
-// ClearTaxAppExternalID clears the value of the "tax_app_external_id" field.
-func (_u *BillingInvoiceUpdateOne) ClearTaxAppExternalID() *BillingInvoiceUpdateOne {
-	_u.mutation.ClearTaxAppExternalID()
 	return _u
 }
 
@@ -2870,6 +2870,24 @@ func (_u *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *BillingI
 	if value, ok := _u.mutation.Total(); ok {
 		_spec.SetField(billinginvoice.FieldTotal, field.TypeOther, value)
 	}
+	if value, ok := _u.mutation.InvoicingAppExternalID(); ok {
+		_spec.SetField(billinginvoice.FieldInvoicingAppExternalID, field.TypeString, value)
+	}
+	if _u.mutation.InvoicingAppExternalIDCleared() {
+		_spec.ClearField(billinginvoice.FieldInvoicingAppExternalID, field.TypeString)
+	}
+	if value, ok := _u.mutation.PaymentAppExternalID(); ok {
+		_spec.SetField(billinginvoice.FieldPaymentAppExternalID, field.TypeString, value)
+	}
+	if _u.mutation.PaymentAppExternalIDCleared() {
+		_spec.ClearField(billinginvoice.FieldPaymentAppExternalID, field.TypeString)
+	}
+	if value, ok := _u.mutation.TaxAppExternalID(); ok {
+		_spec.SetField(billinginvoice.FieldTaxAppExternalID, field.TypeString, value)
+	}
+	if _u.mutation.TaxAppExternalIDCleared() {
+		_spec.ClearField(billinginvoice.FieldTaxAppExternalID, field.TypeString)
+	}
 	if value, ok := _u.mutation.SupplierName(); ok {
 		_spec.SetField(billinginvoice.FieldSupplierName, field.TypeString, value)
 	}
@@ -2950,24 +2968,6 @@ func (_u *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *BillingI
 	}
 	if _u.mutation.StatusDetailsCacheCleared() {
 		_spec.ClearField(billinginvoice.FieldStatusDetailsCache, field.TypeJSON)
-	}
-	if value, ok := _u.mutation.InvoicingAppExternalID(); ok {
-		_spec.SetField(billinginvoice.FieldInvoicingAppExternalID, field.TypeString, value)
-	}
-	if _u.mutation.InvoicingAppExternalIDCleared() {
-		_spec.ClearField(billinginvoice.FieldInvoicingAppExternalID, field.TypeString)
-	}
-	if value, ok := _u.mutation.PaymentAppExternalID(); ok {
-		_spec.SetField(billinginvoice.FieldPaymentAppExternalID, field.TypeString, value)
-	}
-	if _u.mutation.PaymentAppExternalIDCleared() {
-		_spec.ClearField(billinginvoice.FieldPaymentAppExternalID, field.TypeString)
-	}
-	if value, ok := _u.mutation.TaxAppExternalID(); ok {
-		_spec.SetField(billinginvoice.FieldTaxAppExternalID, field.TypeString, value)
-	}
-	if _u.mutation.TaxAppExternalIDCleared() {
-		_spec.ClearField(billinginvoice.FieldTaxAppExternalID, field.TypeString)
 	}
 	if value, ok := _u.mutation.PeriodStart(); ok {
 		_spec.SetField(billinginvoice.FieldPeriodStart, field.TypeTime, value)

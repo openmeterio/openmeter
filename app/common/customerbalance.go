@@ -20,7 +20,7 @@ func NewCustomerBalanceService(
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
 	billingRegistry BillingRegistry,
-) (customerbalance.FacadeService, error) {
+) (customerbalance.Service, error) {
 	if !creditsConfig.Enabled {
 		return customerbalance.NewNoopService(), nil
 	}
@@ -34,6 +34,6 @@ func NewCustomerBalanceService(
 	})
 }
 
-func NewCustomerBalanceFacade(service customerbalance.FacadeService) (*customerbalance.Facade, error) {
+func NewCustomerBalanceFacade(service customerbalance.Service) (*customerbalance.Facade, error) {
 	return customerbalance.NewFacade(service)
 }

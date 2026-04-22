@@ -68,6 +68,10 @@ interface EventsEndpoints extends Events.EventsOperations {}
 @tag(Shared.MetersTag)
 interface MetersEndpoints extends Meters.MetersOperations {}
 
+@route("/openmeter/meters/{meterId}/query")
+@tag(Shared.MetersTag)
+interface MetersQueryEndpoints extends Meters.MetersQueryOperations {}
+
 @route("/openmeter/customers")
 @tag(Shared.CustomersTag)
 interface CustomersEndpoints extends Customers.CustomersOperations {}

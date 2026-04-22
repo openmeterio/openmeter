@@ -87,10 +87,6 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 
 			balances := make([]api.CreditBalance, 0, len(balancesByCurrency))
 			for _, item := range balancesByCurrency {
-				if len(request.Currencies.Codes) == 0 && item.Balance.Settled().IsZero() && item.Balance.Pending().IsZero() {
-					continue
-				}
-
 				balances = append(balances, toAPICreditBalance(item.Currency, item.Balance))
 			}
 

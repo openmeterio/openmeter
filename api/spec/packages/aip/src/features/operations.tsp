@@ -13,6 +13,19 @@ using TypeSpec.OpenAPI;
 
 namespace Features;
 
+/**
+ * Filter options for listing features.
+ */
+@friendlyName("ListFeatureParamsFilter")
+model ListFeaturesParamsFilter {
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  meter_id?: Common.ULIDFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  key?: Common.StringFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  name?: Common.StringFieldFilter;
+}
+
 interface FeatureOperations {
   /**
    *  List all features.
@@ -25,6 +38,28 @@ interface FeatureOperations {
   @extension(Shared.InternalExtension, true)
   list(
     ...Common.PagePaginationQuery,
+
+    /**
+     * Sort features returned in the response.
+     * Supported sort attributes are:
+     * - `key`
+     * - `name`
+     * - `created_at` (default)
+     * - `updated_at`
+     *
+     * The `asc` suffix is optional as the default sort order is ascending.
+     * The `desc` suffix is used to specify a descending order.
+     */
+    @query(#{ name: "sort" })
+    sort?: Common.SortQuery,
+
+    /**
+     * Filter features returned in the response.
+     *
+     * To filter features by meter_id add the following query param: filter[meter_id][oeq]=<id>
+     */
+    @query(#{ style: "deepObject", explode: true })
+    filter?: ListFeaturesParamsFilter,
   ): Shared.PagePaginatedResponse<Feature> | Common.ErrorResponses;
 
   /**

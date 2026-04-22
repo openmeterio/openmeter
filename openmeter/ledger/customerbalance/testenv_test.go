@@ -21,12 +21,13 @@ import (
 	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
 	chargemeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
-	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
+	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -55,7 +56,7 @@ const (
 type testEnv struct {
 	*ledgertestutils.IntegrationEnv
 
-	Service           *Service
+	Service           *service
 	flatFeeService    flatfee.Service
 	usageBasedService usagebased.Service
 	featureMeters     feature.FeatureMeters
@@ -68,7 +69,6 @@ func newTestEnv(t *testing.T) *testEnv {
 	base := ledgertestutils.NewIntegrationEnv(t, "ledger-balance")
 	logger := slog.New(slog.DiscardHandler)
 	streaming := streamingtestutils.NewMockStreamingConnector(t)
-	handlers := chargestestutils.NewMockHandlers()
 
 	billingService := mockCustomerOverrideService{
 		customer: customer.Customer{
@@ -160,6 +160,14 @@ func newTestEnv(t *testing.T) *testEnv {
 	})
 	require.NoError(t, err)
 
+	collectorService := ledgercollector.NewService(ledgercollector.Config{
+		Ledger: base.Deps.HistoricalLedger,
+		Dependencies: transactions.ResolverDependencies{
+			AccountService:    base.Deps.ResolversService,
+			SubAccountService: base.Deps.AccountService,
+		},
+	})
+
 	usageAdapter, err := usagebasedadapter.New(usagebasedadapter.Config{
 		Client:      base.DB,
 		Logger:      logger,
@@ -175,17 +183,32 @@ func newTestEnv(t *testing.T) *testEnv {
 	require.NoError(t, err)
 
 	flatFeeService, err := flatfeeservice.New(flatfeeservice.Config{
-		Adapter:     flatFeeAdapter,
-		Handler:     handlers.FlatFee,
-		Lineage:     lineageService,
-		MetaAdapter: metaAdapter,
-		Locker:      locker,
+		Adapter: flatFeeAdapter,
+		Handler: ledgerchargeadapter.NewFlatFeeHandler(
+			base.Deps.HistoricalLedger,
+			transactions.ResolverDependencies{
+				AccountService:    base.Deps.ResolversService,
+				SubAccountService: base.Deps.AccountService,
+			},
+			collectorService,
+		),
+		Lineage:       lineageService,
+		MetaAdapter:   metaAdapter,
+		Locker:        locker,
+		RatingService: billingratingservice.New(),
 	})
 	require.NoError(t, err)
 
 	usageService, err := usagebasedservice.New(usagebasedservice.Config{
-		Adapter:                 usageAdapter,
-		Handler:                 handlers.UsageBased,
+		Adapter: usageAdapter,
+		Handler: ledgerchargeadapter.NewUsageBasedHandler(
+			base.Deps.HistoricalLedger,
+			transactions.ResolverDependencies{
+				AccountService:    base.Deps.ResolversService,
+				SubAccountService: base.Deps.AccountService,
+			},
+			collectorService,
+		),
 		Lineage:                 lineageService,
 		Locker:                  locker,
 		MetaAdapter:             metaAdapter,
@@ -224,8 +247,6 @@ func newTestEnv(t *testing.T) *testEnv {
 		streaming:         streaming,
 	}
 
-	env.createCustomer(t)
-
 	return env
 }
 
@@ -238,6 +259,13 @@ func (e *testEnv) sp() timeutil.ClosedPeriod {
 		From: clock.Now().Add(-time.Hour),
 		To:   clock.Now().Add(time.Hour),
 	}
+}
+
+func (e *testEnv) passTimeAfterServicePeriod(t *testing.T, servicePeriod timeutil.ClosedPeriod) {
+	t.Helper()
+
+	clock.SetTime(servicePeriod.To.Add(time.Second))
+	t.Cleanup(clock.ResetTime)
 }
 
 // simply currency based backing (balance doesn't care about most dimensions)
@@ -259,6 +287,40 @@ func (e *testEnv) bookFBOBalanceInCurrency(t *testing.T, amount alpacadecimal.De
 			Namespace:  e.Namespace,
 		},
 		transactions.IssueCustomerReceivableTemplate{
+			At:       e.Now(),
+			Amount:   amount,
+			Currency: currency,
+		},
+	)
+	require.NoError(t, err)
+
+	_, err = e.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(e.Namespace, nil, inputs...))
+	require.NoError(t, err)
+}
+
+func (e *testEnv) fundOpenReceivable(t *testing.T, amount alpacadecimal.Decimal) {
+	e.fundOpenReceivableInCurrency(t, amount, e.Currency)
+}
+
+func (e *testEnv) fundOpenReceivableInCurrency(t *testing.T, amount alpacadecimal.Decimal, currency currencyx.Code) {
+	t.Helper()
+
+	inputs, err := transactions.ResolveTransactions(
+		t.Context(),
+		transactions.ResolverDependencies{
+			AccountService:    e.Deps.ResolversService,
+			SubAccountService: e.Deps.AccountService,
+		},
+		transactions.ResolutionScope{
+			CustomerID: e.CustomerID,
+			Namespace:  e.Namespace,
+		},
+		transactions.FundCustomerReceivableTemplate{
+			At:       e.Now(),
+			Amount:   amount,
+			Currency: currency,
+		},
+		transactions.SettleCustomerReceivablePaymentTemplate{
 			At:       e.Now(),
 			Amount:   amount,
 			Currency: currency,
@@ -340,6 +402,25 @@ func (e *testEnv) createFlatFeeChargeInCurrency(t *testing.T, amount alpacadecim
 func (e *testEnv) advanceFlatFeeCharge(t *testing.T, charge flatfee.Charge) flatfee.Charge {
 	t.Helper()
 
+	chargeCustomerID := customer.CustomerID{
+		Namespace: charge.Namespace,
+		ID:        charge.Intent.CustomerID,
+	}
+	require.Equal(t, e.CustomerID, chargeCustomerID, "charge scope differs from test env scope")
+
+	_, err := e.Deps.ResolversService.GetCustomerAccounts(t.Context(), chargeCustomerID)
+	require.NoError(t, err, "customer accounts should exist for charge scope before advance")
+
+	latestCharges, err := e.flatFeeService.GetByIDs(t.Context(), flatfee.GetByIDsInput{
+		Namespace: charge.Namespace,
+		IDs:       []string{charge.ID},
+		Expands:   chargemeta.Expands{chargemeta.ExpandRealizations},
+	})
+	require.NoError(t, err)
+	require.Len(t, latestCharges, 1)
+	require.Equal(t, e.CustomerID.ID, latestCharges[0].Intent.CustomerID, "persisted charge customer differs from test env customer")
+	require.Equal(t, e.Namespace, latestCharges[0].Namespace, "persisted charge namespace differs from test env namespace")
+
 	advancedCharge, err := e.flatFeeService.AdvanceCharge(t.Context(), flatfee.AdvanceChargeInput{
 		ChargeID: charge.GetChargeID(),
 	})
@@ -347,17 +428,6 @@ func (e *testEnv) advanceFlatFeeCharge(t *testing.T, charge flatfee.Charge) flat
 	require.NotNil(t, advancedCharge)
 
 	return *advancedCharge
-}
-
-func (e *testEnv) createCustomer(t *testing.T) {
-	t.Helper()
-
-	_, err := e.DB.Customer.Create().
-		SetNamespace(e.Namespace).
-		SetID(e.CustomerID.ID).
-		SetName("Test Customer").
-		Save(t.Context())
-	require.NoError(t, err)
 }
 
 type chargeStore struct {

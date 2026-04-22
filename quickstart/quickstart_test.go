@@ -93,7 +93,7 @@ func queryMeterV3(t require.TestingT, address string, meterID string, body apiv3
 	req, err := http.NewRequestWithContext(
 		context.Background(),
 		http.MethodPost,
-		address+"/openmeter/meters/"+meterID,
+		address+"/openmeter/meters/"+meterID+"/query",
 		bytes.NewReader(payload),
 	)
 	require.NoError(t, err)

@@ -109,8 +109,15 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 		return CreateRatedRunResult{}, err
 	}
 
-	ratingResult, err := s.rater.GetRatingForUsage(ctx, usagebasedrating.GetRatingForUsageInput{
+	chargeWithDetailedLines, err := s.ensureDetailedLinesLoadedForRating(ctx, in.Charge)
+	if err != nil {
+		return CreateRatedRunResult{}, err
+	}
+	in.Charge = chargeWithDetailedLines
+
+	ratingResult, err := s.rater.GetDetailedLinesForUsage(ctx, usagebasedrating.GetDetailedLinesForUsageInput{
 		Charge:         in.Charge,
+		PriorRuns:      in.Charge.Realizations,
 		Customer:       in.CustomerOverride,
 		FeatureMeter:   in.FeatureMeter,
 		StoredAtOffset: in.AsOf,
@@ -146,6 +153,12 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 		return CreateRatedRunResult{}, err
 	}
 
+	currentRunDetailedLines, err := s.PersistRunDetailedLines(ctx, updatedCharge, currentRun, ratingResult)
+	if err != nil {
+		return CreateRatedRunResult{}, err
+	}
+	currentRun.DetailedLines = mo.Some(currentRunDetailedLines)
+
 	if in.CreditAllocation != CreditAllocationNone {
 		allocationResult, err := s.allocate(ctx, allocateCreditRealizationsInput{
 			Charge:             updatedCharge,
@@ -178,6 +191,10 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 		if err := updatedCharge.Realizations.SetRealizationRun(currentRun); err != nil {
 			return CreateRatedRunResult{}, fmt.Errorf("update realization run: %w", err)
 		}
+	}
+
+	if err := updatedCharge.Realizations.SetRealizationRun(currentRun); err != nil {
+		return CreateRatedRunResult{}, fmt.Errorf("update realization run detailed lines: %w", err)
 	}
 
 	return CreateRatedRunResult{

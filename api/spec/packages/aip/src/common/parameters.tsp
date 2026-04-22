@@ -137,6 +137,41 @@ model StringFieldFilterExact {
 }
 
 /**
+ * Filters on the given ULID field value by either exact or fuzzy match.
+ * All properties are optional; provide exactly one to specify the comparison.
+ */
+@friendlyName("ULIDFieldFilter")
+@extension("x-go-type", "filters.FilterULID")
+@extension(
+  "x-go-type-import",
+  #{ path: "github.com/openmeterio/openmeter/api/v3/filters" }
+)
+union ULIDFieldFilter {
+  string: Shared.ULID,
+  object: {
+    /** Value strictly equals the given ULID value. */
+    eq?: Shared.ULID,
+
+    /** Value does not equal the given ULID value. */
+    neq?: Shared.ULID,
+
+    /** Value contains the given string value (fuzzy match). */
+    contains?: string,
+
+    /** Returns entities that fuzzy-match any of the comma-delimited strings in the filter string. */
+    @encode(ArrayEncoding.commaDelimited)
+    ocontains?: string[],
+
+    /** Returns entities that exact match any of the comma-delimited ULIDs in the filter string. */
+    @encode(ArrayEncoding.commaDelimited)
+    oeq?: Shared.ULID[],
+
+    /** When true, the field must be present (non-null); when false, the field must be absent (null). */
+    exists?: boolean,
+  },
+}
+
+/**
  * Filters on the given datetime (RFC-3339) field value.
  * All properties are optional; provide exactly one to specify the comparison.
  */

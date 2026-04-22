@@ -50,15 +50,45 @@ generate-all: update-openapi generate-javascript-sdk ## Execute all code generat
 	go generate ./...
 
 .PHONY: migrate-check
-migrate-check: ## Validate migrations
+migrate-check: migrate-check-schema migrate-check-diff migrate-check-lint migrate-check-validate ## Validate migrations
+
+.PHONY: migrate-check-schema
+migrate-check-schema: ## Ensure ent schema is in sync with generated code
 	$(call print-target)
-	dagger call migrate check
+	go generate -x ./openmeter/ent/...
+	@if ! git diff --quiet -- openmeter/ent || [ -n "$$(git ls-files --others --exclude-standard -- openmeter/ent)" ]; then \
+		git --no-pager diff -- openmeter/ent; \
+		git ls-files --others --exclude-standard -- openmeter/ent; \
+		echo "!!! schema is not in sync with generated code — run 'go generate ./openmeter/ent/...' and commit the changes !!!"; \
+		exit 1; \
+	fi
+
+.PHONY: migrate-check-diff
+migrate-check-diff: ## Ensure migrations are in sync with schema (runs atlas migrate diff against a clean target)
+	$(call print-target)
+	atlas migrate --env local diff migrate-check >/dev/null
+	@if ! git diff --quiet -- tools/migrate/migrations || [ -n "$$(git ls-files --others --exclude-standard -- tools/migrate/migrations)" ]; then \
+		git --no-pager diff -- tools/migrate/migrations; \
+		git ls-files --others --exclude-standard -- tools/migrate/migrations; \
+		echo "!!! migrations are not in sync with schema — run 'atlas migrate --env local diff <name>' and commit the generated files !!!"; \
+		exit 1; \
+	fi
+
+.PHONY: migrate-check-lint
+migrate-check-lint: ## Lint the last 10 migrations
+	$(call print-target)
+	atlas migrate --env local lint --latest 10
+
+.PHONY: migrate-check-validate
+migrate-check-validate: ## Validate migration checksums
+	$(call print-target)
+	atlas migrate --env local validate
 
 .PHONY: generate-sqlc-testdata
 generate-sqlc-testdata: ## Generate SQLC testdata for a specific version (make generate-sqlc-testdata VERSION=20240826120919)
 	$(call print-target)
 	@if [ -z "$(VERSION)" ]; then echo "Usage: make generate-sqlc-testdata VERSION=<migration_version>"; exit 1; fi
-	dagger call migrate generate-sqlc-testdata --version=$(VERSION) export --path=tools/migrate/testdata/sqlcgen/$(VERSION)
+	VERSION=$(VERSION) ./tools/migrate/generate-sqlc-testdata.sh
 
 .PHONY: generate
 generate: patch-oapi-templates ## Generate code
@@ -76,6 +106,30 @@ build-dir:
 
 .PHONY: build
 build: build-server build-sink-worker build-benthos-collector build-balance-worker build-billing-worker build-notification-service build-jobs ## Build all binaries
+
+# Cross-compile the benthos-collector binary for release archives.
+# Usage: make build-benthos-collector-release GOOS=linux GOARCH=amd64 VERSION=v1.2.3
+#   Produces build/release/benthos-collector_<GOOS>_<GOARCH>/benthos (+ README.md, LICENSE)
+.PHONY: build-benthos-collector-release
+build-benthos-collector-release: ## Cross-compile benthos-collector for release (set GOOS/GOARCH/VERSION)
+	$(call print-target)
+	@if [ -z "$(GOOS)" ] || [ -z "$(GOARCH)" ]; then echo "ERROR: GOOS and GOARCH are required"; exit 1; fi
+	@version="$${VERSION:-unknown}" && \
+		outdir="build/release/benthos-collector_$(GOOS)_$(GOARCH)" && \
+		rm -rf "$$outdir" && mkdir -p "$$outdir" && \
+		CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) \
+			go build -trimpath \
+			-ldflags "-s -w -X main.version=$${version}" \
+			-o "$$outdir/benthos" ./cmd/benthos-collector && \
+		cp README.md LICENSE "$$outdir/"
+
+# Produces build/release/benthos-collector_<GOOS>_<GOARCH>.tar.gz from the directory above.
+.PHONY: archive-benthos-collector-release
+archive-benthos-collector-release: ## Archive the cross-compiled benthos-collector (set GOOS/GOARCH)
+	$(call print-target)
+	@if [ -z "$(GOOS)" ] || [ -z "$(GOARCH)" ]; then echo "ERROR: GOOS and GOARCH are required"; exit 1; fi
+	@name="benthos-collector_$(GOOS)_$(GOARCH)" && \
+		tar -C build/release -czf "build/release/$${name}.tar.gz" "$$name"
 
 .PHONY: build-server
 build-server: | build-dir ## Build server binary
@@ -200,6 +254,24 @@ lint-helm: ## Lint Helm charts
 	$(call print-target)
 	helm lint deploy/charts/openmeter
 	helm lint deploy/charts/benthos-collector
+
+# Package a helm chart for release.
+# Usage: make package-helm-chart CHART=openmeter VERSION=v1.2.3
+#   Produces build/helm/<CHART>-<version-without-v>.tgz
+.PHONY: package-helm-chart
+package-helm-chart: ## Package a helm chart for release (set CHART and VERSION)
+	$(call print-target)
+	@if [ -z "$(CHART)" ] || [ -z "$(VERSION)" ]; then echo "ERROR: CHART and VERSION are required"; exit 1; fi
+	@chart_dir="deploy/charts/$(CHART)" && \
+		version_no_v="$(VERSION:v%=%)" && \
+		mkdir -p build/helm && \
+		helm-docs --log-level info -s file -c "$$chart_dir" \
+			-t "deploy/charts/template.md" -t "$$chart_dir/README.tmpl.md" && \
+		helm dependency update "$$chart_dir" && \
+		helm package "$$chart_dir" \
+			--version "$$version_no_v" \
+			--app-version "$(VERSION)" \
+			--destination build/helm
 
 .PHONY: lint-go
 lint-go: ## Lint Go code

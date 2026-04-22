@@ -99,21 +99,22 @@ func CSVResponseEncoder[Response CSVResponse](_ context.Context, w http.Response
 
 // CSVResponseEncoder encodes a response as CSV.
 func csvResponseEncoder[Response CSVResponse](w http.ResponseWriter, statusCode int, response Response) error {
-	w.Header().Set("Content-Type", "text/csv")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", response.FileName()))
-	w.WriteHeader(statusCode)
-
-	// Write response
-	writer := csv.NewWriter(w)
-	err := writer.WriteAll(response.Records())
-	if err != nil {
+	buf := &bytes.Buffer{}
+	writer := csv.NewWriter(buf)
+	if err := writer.WriteAll(response.Records()); err != nil {
 		return fmt.Errorf("writing record to csv: %w", err)
 	}
-
 	if err := writer.Error(); err != nil {
 		return fmt.Errorf("writing csv: %w", err)
 	}
 
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", response.FileName()))
+	w.WriteHeader(statusCode)
+
+	if _, err := w.Write(buf.Bytes()); err != nil {
+		return err
+	}
 	return nil
 }
 

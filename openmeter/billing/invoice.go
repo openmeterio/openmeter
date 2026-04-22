@@ -87,18 +87,6 @@ var InvoiceExpandAll = InvoiceExpands{
 	InvoiceExpandLines,
 }
 
-type InvoiceExternalIDs struct {
-	Invoicing string `json:"invoicing,omitempty"`
-	Payment   string `json:"payment,omitempty"`
-}
-
-func (i *InvoiceExternalIDs) GetInvoicingOrEmpty() string {
-	if i == nil {
-		return ""
-	}
-	return i.Invoicing
-}
-
 type Invoice struct {
 	t                InvoiceType
 	standardInvoice  *StandardInvoice

@@ -45,11 +45,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecreditallocations"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeinvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargessearchv1"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
@@ -184,10 +186,12 @@ func checkColumn(t, c string) error {
 			chargecreditpurchaseinvoicedpayment.Table:              chargecreditpurchaseinvoicedpayment.ValidColumn,
 			chargeflatfee.Table:                                    chargeflatfee.ValidColumn,
 			chargeflatfeecreditallocations.Table:                   chargeflatfeecreditallocations.ValidColumn,
+			chargeflatfeedetailedline.Table:                        chargeflatfeedetailedline.ValidColumn,
 			chargeflatfeeinvoicedusage.Table:                       chargeflatfeeinvoicedusage.ValidColumn,
 			chargeflatfeepayment.Table:                             chargeflatfeepayment.ValidColumn,
 			chargeusagebased.Table:                                 chargeusagebased.ValidColumn,
 			chargeusagebasedruncreditallocations.Table:             chargeusagebasedruncreditallocations.ValidColumn,
+			chargeusagebasedrundetailedline.Table:                  chargeusagebasedrundetailedline.ValidColumn,
 			chargeusagebasedruninvoicedusage.Table:                 chargeusagebasedruninvoicedusage.ValidColumn,
 			chargeusagebasedrunpayment.Table:                       chargeusagebasedrunpayment.ValidColumn,
 			chargeusagebasedruns.Table:                             chargeusagebasedruns.ValidColumn,

@@ -38,7 +38,7 @@ func (i snapshotQuantityInput) Validate() error {
 	return nil
 }
 
-func (s *Service) snapshotQuantity(ctx context.Context, in snapshotQuantityInput) (alpacadecimal.Decimal, error) {
+func (s *service) snapshotQuantity(ctx context.Context, in snapshotQuantityInput) (alpacadecimal.Decimal, error) {
 	if err := in.Validate(); err != nil {
 		return alpacadecimal.Zero, billing.ValidationError{
 			Err: err,

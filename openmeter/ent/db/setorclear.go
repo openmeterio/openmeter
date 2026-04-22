@@ -7,6 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -829,6 +830,48 @@ func (u *BillingInvoiceUpdateOne) SetOrClearCustomerAddressPhoneNumber(value *st
 	return u.SetCustomerAddressPhoneNumber(*value)
 }
 
+func (u *BillingInvoiceUpdate) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
+}
+
+func (u *BillingInvoiceUpdate) SetOrClearPaymentAppExternalID(value *string) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearPaymentAppExternalID()
+	}
+	return u.SetPaymentAppExternalID(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearPaymentAppExternalID(value *string) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearPaymentAppExternalID()
+	}
+	return u.SetPaymentAppExternalID(*value)
+}
+
+func (u *BillingInvoiceUpdate) SetOrClearTaxAppExternalID(value *string) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearTaxAppExternalID()
+	}
+	return u.SetTaxAppExternalID(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearTaxAppExternalID(value *string) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearTaxAppExternalID()
+	}
+	return u.SetTaxAppExternalID(*value)
+}
+
 func (u *BillingInvoiceUpdate) SetOrClearSupplierTaxCode(value *string) *BillingInvoiceUpdate {
 	if value == nil {
 		return u.ClearSupplierTaxCode()
@@ -981,48 +1024,6 @@ func (u *BillingInvoiceUpdateOne) SetOrClearStatusDetailsCache(value *billing.St
 		return u.ClearStatusDetailsCache()
 	}
 	return u.SetStatusDetailsCache(*value)
-}
-
-func (u *BillingInvoiceUpdate) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceUpdate {
-	if value == nil {
-		return u.ClearInvoicingAppExternalID()
-	}
-	return u.SetInvoicingAppExternalID(*value)
-}
-
-func (u *BillingInvoiceUpdateOne) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceUpdateOne {
-	if value == nil {
-		return u.ClearInvoicingAppExternalID()
-	}
-	return u.SetInvoicingAppExternalID(*value)
-}
-
-func (u *BillingInvoiceUpdate) SetOrClearPaymentAppExternalID(value *string) *BillingInvoiceUpdate {
-	if value == nil {
-		return u.ClearPaymentAppExternalID()
-	}
-	return u.SetPaymentAppExternalID(*value)
-}
-
-func (u *BillingInvoiceUpdateOne) SetOrClearPaymentAppExternalID(value *string) *BillingInvoiceUpdateOne {
-	if value == nil {
-		return u.ClearPaymentAppExternalID()
-	}
-	return u.SetPaymentAppExternalID(*value)
-}
-
-func (u *BillingInvoiceUpdate) SetOrClearTaxAppExternalID(value *string) *BillingInvoiceUpdate {
-	if value == nil {
-		return u.ClearTaxAppExternalID()
-	}
-	return u.SetTaxAppExternalID(*value)
-}
-
-func (u *BillingInvoiceUpdateOne) SetOrClearTaxAppExternalID(value *string) *BillingInvoiceUpdateOne {
-	if value == nil {
-		return u.ClearTaxAppExternalID()
-	}
-	return u.SetTaxAppExternalID(*value)
 }
 
 func (u *BillingInvoiceUpdate) SetOrClearPeriodStart(value *time.Time) *BillingInvoiceUpdate {
@@ -1193,6 +1194,20 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearTaxBehavior(value *productcatalo
 	return u.SetTaxBehavior(*value)
 }
 
+func (u *BillingInvoiceLineUpdate) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
+}
+
+func (u *BillingInvoiceLineUpdateOne) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
+}
+
 func (u *BillingInvoiceLineUpdate) SetOrClearParentLineID(value *string) *BillingInvoiceLineUpdate {
 	if value == nil {
 		return u.ClearParentLineID()
@@ -1233,20 +1248,6 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearRatecardDiscounts(value **billin
 		return u.ClearRatecardDiscounts()
 	}
 	return u.SetRatecardDiscounts(*value)
-}
-
-func (u *BillingInvoiceLineUpdate) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceLineUpdate {
-	if value == nil {
-		return u.ClearInvoicingAppExternalID()
-	}
-	return u.SetInvoicingAppExternalID(*value)
-}
-
-func (u *BillingInvoiceLineUpdateOne) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceLineUpdateOne {
-	if value == nil {
-		return u.ClearInvoicingAppExternalID()
-	}
-	return u.SetInvoicingAppExternalID(*value)
 }
 
 func (u *BillingInvoiceLineUpdate) SetOrClearChildUniqueReferenceID(value *string) *BillingInvoiceLineUpdate {
@@ -1375,14 +1376,14 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearLineIds(value *string) *BillingI
 	return u.SetLineIds(*value)
 }
 
-func (u *BillingInvoiceLineUpdate) SetOrClearCreditsApplied(value **billing.CreditsApplied) *BillingInvoiceLineUpdate {
+func (u *BillingInvoiceLineUpdate) SetOrClearCreditsApplied(value **creditsapplied.CreditsApplied) *BillingInvoiceLineUpdate {
 	if value == nil {
 		return u.ClearCreditsApplied()
 	}
 	return u.SetCreditsApplied(*value)
 }
 
-func (u *BillingInvoiceLineUpdateOne) SetOrClearCreditsApplied(value **billing.CreditsApplied) *BillingInvoiceLineUpdateOne {
+func (u *BillingInvoiceLineUpdateOne) SetOrClearCreditsApplied(value **creditsapplied.CreditsApplied) *BillingInvoiceLineUpdateOne {
 	if value == nil {
 		return u.ClearCreditsApplied()
 	}
@@ -1401,6 +1402,20 @@ func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearDeletedAt(value *time.Ti
 		return u.ClearDeletedAt()
 	}
 	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingInvoiceLineDiscountUpdate) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceLineDiscountUpdate {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
+}
+
+func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceLineDiscountUpdateOne {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
 }
 
 func (u *BillingInvoiceLineDiscountUpdate) SetOrClearChildUniqueReferenceID(value *string) *BillingInvoiceLineDiscountUpdate {
@@ -1429,20 +1444,6 @@ func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearDescription(value *strin
 		return u.ClearDescription()
 	}
 	return u.SetDescription(*value)
-}
-
-func (u *BillingInvoiceLineDiscountUpdate) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceLineDiscountUpdate {
-	if value == nil {
-		return u.ClearInvoicingAppExternalID()
-	}
-	return u.SetInvoicingAppExternalID(*value)
-}
-
-func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceLineDiscountUpdateOne {
-	if value == nil {
-		return u.ClearInvoicingAppExternalID()
-	}
-	return u.SetInvoicingAppExternalID(*value)
 }
 
 func (u *BillingInvoiceLineDiscountUpdate) SetOrClearRoundingAmount(value *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
@@ -1529,6 +1530,20 @@ func (u *BillingInvoiceLineUsageDiscountUpdateOne) SetOrClearDeletedAt(value *ti
 	return u.SetDeletedAt(*value)
 }
 
+func (u *BillingInvoiceLineUsageDiscountUpdate) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceLineUsageDiscountUpdate {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
+}
+
+func (u *BillingInvoiceLineUsageDiscountUpdateOne) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceLineUsageDiscountUpdateOne {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
+}
+
 func (u *BillingInvoiceLineUsageDiscountUpdate) SetOrClearChildUniqueReferenceID(value *string) *BillingInvoiceLineUsageDiscountUpdate {
 	if value == nil {
 		return u.ClearChildUniqueReferenceID()
@@ -1555,20 +1570,6 @@ func (u *BillingInvoiceLineUsageDiscountUpdateOne) SetOrClearDescription(value *
 		return u.ClearDescription()
 	}
 	return u.SetDescription(*value)
-}
-
-func (u *BillingInvoiceLineUsageDiscountUpdate) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceLineUsageDiscountUpdate {
-	if value == nil {
-		return u.ClearInvoicingAppExternalID()
-	}
-	return u.SetInvoicingAppExternalID(*value)
-}
-
-func (u *BillingInvoiceLineUsageDiscountUpdateOne) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceLineUsageDiscountUpdateOne {
-	if value == nil {
-		return u.ClearInvoicingAppExternalID()
-	}
-	return u.SetInvoicingAppExternalID(*value)
 }
 
 func (u *BillingInvoiceLineUsageDiscountUpdate) SetOrClearPreLinePeriodQuantity(value *alpacadecimal.Decimal) *BillingInvoiceLineUsageDiscountUpdate {
@@ -1977,62 +1978,6 @@ func (u *BillingProfileUpdateOne) SetOrClearSupplierTaxCode(value *string) *Bill
 	return u.SetSupplierTaxCode(*value)
 }
 
-func (u *BillingStandardInvoiceDetailedLineUpdate) SetOrClearAnnotations(value *models.Annotations) *BillingStandardInvoiceDetailedLineUpdate {
-	if value == nil {
-		return u.ClearAnnotations()
-	}
-	return u.SetAnnotations(*value)
-}
-
-func (u *BillingStandardInvoiceDetailedLineUpdateOne) SetOrClearAnnotations(value *models.Annotations) *BillingStandardInvoiceDetailedLineUpdateOne {
-	if value == nil {
-		return u.ClearAnnotations()
-	}
-	return u.SetAnnotations(*value)
-}
-
-func (u *BillingStandardInvoiceDetailedLineUpdate) SetOrClearMetadata(value *map[string]string) *BillingStandardInvoiceDetailedLineUpdate {
-	if value == nil {
-		return u.ClearMetadata()
-	}
-	return u.SetMetadata(*value)
-}
-
-func (u *BillingStandardInvoiceDetailedLineUpdateOne) SetOrClearMetadata(value *map[string]string) *BillingStandardInvoiceDetailedLineUpdateOne {
-	if value == nil {
-		return u.ClearMetadata()
-	}
-	return u.SetMetadata(*value)
-}
-
-func (u *BillingStandardInvoiceDetailedLineUpdate) SetOrClearDeletedAt(value *time.Time) *BillingStandardInvoiceDetailedLineUpdate {
-	if value == nil {
-		return u.ClearDeletedAt()
-	}
-	return u.SetDeletedAt(*value)
-}
-
-func (u *BillingStandardInvoiceDetailedLineUpdateOne) SetOrClearDeletedAt(value *time.Time) *BillingStandardInvoiceDetailedLineUpdateOne {
-	if value == nil {
-		return u.ClearDeletedAt()
-	}
-	return u.SetDeletedAt(*value)
-}
-
-func (u *BillingStandardInvoiceDetailedLineUpdate) SetOrClearDescription(value *string) *BillingStandardInvoiceDetailedLineUpdate {
-	if value == nil {
-		return u.ClearDescription()
-	}
-	return u.SetDescription(*value)
-}
-
-func (u *BillingStandardInvoiceDetailedLineUpdateOne) SetOrClearDescription(value *string) *BillingStandardInvoiceDetailedLineUpdateOne {
-	if value == nil {
-		return u.ClearDescription()
-	}
-	return u.SetDescription(*value)
-}
-
 func (u *BillingStandardInvoiceDetailedLineUpdate) SetOrClearTaxConfig(value *productcatalog.TaxConfig) *BillingStandardInvoiceDetailedLineUpdate {
 	if value == nil {
 		return u.ClearTaxConfig()
@@ -2089,20 +2034,6 @@ func (u *BillingStandardInvoiceDetailedLineUpdateOne) SetOrClearInvoicingAppExte
 	return u.SetInvoicingAppExternalID(*value)
 }
 
-func (u *BillingStandardInvoiceDetailedLineUpdate) SetOrClearChildUniqueReferenceID(value *string) *BillingStandardInvoiceDetailedLineUpdate {
-	if value == nil {
-		return u.ClearChildUniqueReferenceID()
-	}
-	return u.SetChildUniqueReferenceID(*value)
-}
-
-func (u *BillingStandardInvoiceDetailedLineUpdateOne) SetOrClearChildUniqueReferenceID(value *string) *BillingStandardInvoiceDetailedLineUpdateOne {
-	if value == nil {
-		return u.ClearChildUniqueReferenceID()
-	}
-	return u.SetChildUniqueReferenceID(*value)
-}
-
 func (u *BillingStandardInvoiceDetailedLineUpdate) SetOrClearIndex(value *int) *BillingStandardInvoiceDetailedLineUpdate {
 	if value == nil {
 		return u.ClearIndex()
@@ -2117,18 +2048,74 @@ func (u *BillingStandardInvoiceDetailedLineUpdateOne) SetOrClearIndex(value *int
 	return u.SetIndex(*value)
 }
 
-func (u *BillingStandardInvoiceDetailedLineUpdate) SetOrClearCreditsApplied(value **billing.CreditsApplied) *BillingStandardInvoiceDetailedLineUpdate {
+func (u *BillingStandardInvoiceDetailedLineUpdate) SetOrClearCreditsApplied(value **creditsapplied.CreditsApplied) *BillingStandardInvoiceDetailedLineUpdate {
 	if value == nil {
 		return u.ClearCreditsApplied()
 	}
 	return u.SetCreditsApplied(*value)
 }
 
-func (u *BillingStandardInvoiceDetailedLineUpdateOne) SetOrClearCreditsApplied(value **billing.CreditsApplied) *BillingStandardInvoiceDetailedLineUpdateOne {
+func (u *BillingStandardInvoiceDetailedLineUpdateOne) SetOrClearCreditsApplied(value **creditsapplied.CreditsApplied) *BillingStandardInvoiceDetailedLineUpdateOne {
 	if value == nil {
 		return u.ClearCreditsApplied()
 	}
 	return u.SetCreditsApplied(*value)
+}
+
+func (u *BillingStandardInvoiceDetailedLineUpdate) SetOrClearAnnotations(value *models.Annotations) *BillingStandardInvoiceDetailedLineUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *BillingStandardInvoiceDetailedLineUpdateOne) SetOrClearAnnotations(value *models.Annotations) *BillingStandardInvoiceDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *BillingStandardInvoiceDetailedLineUpdate) SetOrClearMetadata(value *map[string]string) *BillingStandardInvoiceDetailedLineUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *BillingStandardInvoiceDetailedLineUpdateOne) SetOrClearMetadata(value *map[string]string) *BillingStandardInvoiceDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *BillingStandardInvoiceDetailedLineUpdate) SetOrClearDeletedAt(value *time.Time) *BillingStandardInvoiceDetailedLineUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingStandardInvoiceDetailedLineUpdateOne) SetOrClearDeletedAt(value *time.Time) *BillingStandardInvoiceDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingStandardInvoiceDetailedLineUpdate) SetOrClearDescription(value *string) *BillingStandardInvoiceDetailedLineUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *BillingStandardInvoiceDetailedLineUpdateOne) SetOrClearDescription(value *string) *BillingStandardInvoiceDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
 }
 
 func (u *BillingStandardInvoiceDetailedLineAmountDiscountUpdate) SetOrClearDeletedAt(value *time.Time) *BillingStandardInvoiceDetailedLineAmountDiscountUpdate {
@@ -2143,6 +2130,20 @@ func (u *BillingStandardInvoiceDetailedLineAmountDiscountUpdateOne) SetOrClearDe
 		return u.ClearDeletedAt()
 	}
 	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingStandardInvoiceDetailedLineAmountDiscountUpdate) SetOrClearInvoicingAppExternalID(value *string) *BillingStandardInvoiceDetailedLineAmountDiscountUpdate {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
+}
+
+func (u *BillingStandardInvoiceDetailedLineAmountDiscountUpdateOne) SetOrClearInvoicingAppExternalID(value *string) *BillingStandardInvoiceDetailedLineAmountDiscountUpdateOne {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
 }
 
 func (u *BillingStandardInvoiceDetailedLineAmountDiscountUpdate) SetOrClearChildUniqueReferenceID(value *string) *BillingStandardInvoiceDetailedLineAmountDiscountUpdate {
@@ -2171,20 +2172,6 @@ func (u *BillingStandardInvoiceDetailedLineAmountDiscountUpdateOne) SetOrClearDe
 		return u.ClearDescription()
 	}
 	return u.SetDescription(*value)
-}
-
-func (u *BillingStandardInvoiceDetailedLineAmountDiscountUpdate) SetOrClearInvoicingAppExternalID(value *string) *BillingStandardInvoiceDetailedLineAmountDiscountUpdate {
-	if value == nil {
-		return u.ClearInvoicingAppExternalID()
-	}
-	return u.SetInvoicingAppExternalID(*value)
-}
-
-func (u *BillingStandardInvoiceDetailedLineAmountDiscountUpdateOne) SetOrClearInvoicingAppExternalID(value *string) *BillingStandardInvoiceDetailedLineAmountDiscountUpdateOne {
-	if value == nil {
-		return u.ClearInvoicingAppExternalID()
-	}
-	return u.SetInvoicingAppExternalID(*value)
 }
 
 func (u *BillingStandardInvoiceDetailedLineAmountDiscountUpdate) SetOrClearRoundingAmount(value *alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineAmountDiscountUpdate {
@@ -2719,6 +2706,146 @@ func (u *ChargeFlatFeeCreditAllocationsUpdateOne) SetOrClearAnnotations(value *m
 	return u.SetAnnotations(*value)
 }
 
+func (u *ChargeFlatFeeDetailedLineUpdate) SetOrClearTaxConfig(value *productcatalog.TaxConfig) *ChargeFlatFeeDetailedLineUpdate {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
+func (u *ChargeFlatFeeDetailedLineUpdateOne) SetOrClearTaxConfig(value *productcatalog.TaxConfig) *ChargeFlatFeeDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
+func (u *ChargeFlatFeeDetailedLineUpdate) SetOrClearTaxCodeID(value *string) *ChargeFlatFeeDetailedLineUpdate {
+	if value == nil {
+		return u.ClearTaxCodeID()
+	}
+	return u.SetTaxCodeID(*value)
+}
+
+func (u *ChargeFlatFeeDetailedLineUpdateOne) SetOrClearTaxCodeID(value *string) *ChargeFlatFeeDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearTaxCodeID()
+	}
+	return u.SetTaxCodeID(*value)
+}
+
+func (u *ChargeFlatFeeDetailedLineUpdate) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *ChargeFlatFeeDetailedLineUpdate {
+	if value == nil {
+		return u.ClearTaxBehavior()
+	}
+	return u.SetTaxBehavior(*value)
+}
+
+func (u *ChargeFlatFeeDetailedLineUpdateOne) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *ChargeFlatFeeDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearTaxBehavior()
+	}
+	return u.SetTaxBehavior(*value)
+}
+
+func (u *ChargeFlatFeeDetailedLineUpdate) SetOrClearInvoicingAppExternalID(value *string) *ChargeFlatFeeDetailedLineUpdate {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
+}
+
+func (u *ChargeFlatFeeDetailedLineUpdateOne) SetOrClearInvoicingAppExternalID(value *string) *ChargeFlatFeeDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
+}
+
+func (u *ChargeFlatFeeDetailedLineUpdate) SetOrClearIndex(value *int) *ChargeFlatFeeDetailedLineUpdate {
+	if value == nil {
+		return u.ClearIndex()
+	}
+	return u.SetIndex(*value)
+}
+
+func (u *ChargeFlatFeeDetailedLineUpdateOne) SetOrClearIndex(value *int) *ChargeFlatFeeDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearIndex()
+	}
+	return u.SetIndex(*value)
+}
+
+func (u *ChargeFlatFeeDetailedLineUpdate) SetOrClearCreditsApplied(value **creditsapplied.CreditsApplied) *ChargeFlatFeeDetailedLineUpdate {
+	if value == nil {
+		return u.ClearCreditsApplied()
+	}
+	return u.SetCreditsApplied(*value)
+}
+
+func (u *ChargeFlatFeeDetailedLineUpdateOne) SetOrClearCreditsApplied(value **creditsapplied.CreditsApplied) *ChargeFlatFeeDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearCreditsApplied()
+	}
+	return u.SetCreditsApplied(*value)
+}
+
+func (u *ChargeFlatFeeDetailedLineUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeFlatFeeDetailedLineUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeFlatFeeDetailedLineUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeFlatFeeDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeFlatFeeDetailedLineUpdate) SetOrClearMetadata(value *map[string]string) *ChargeFlatFeeDetailedLineUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *ChargeFlatFeeDetailedLineUpdateOne) SetOrClearMetadata(value *map[string]string) *ChargeFlatFeeDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *ChargeFlatFeeDetailedLineUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeDetailedLineUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeFlatFeeDetailedLineUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeFlatFeeDetailedLineUpdate) SetOrClearDescription(value *string) *ChargeFlatFeeDetailedLineUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *ChargeFlatFeeDetailedLineUpdateOne) SetOrClearDescription(value *string) *ChargeFlatFeeDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
 func (u *ChargeFlatFeeInvoicedUsageUpdate) SetOrClearLineID(value *string) *ChargeFlatFeeInvoicedUsageUpdate {
 	if value == nil {
 		return u.ClearLineID()
@@ -3011,6 +3138,146 @@ func (u *ChargeUsageBasedRunCreditAllocationsUpdateOne) SetOrClearAnnotations(va
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearTaxConfig(value *productcatalog.TaxConfig) *ChargeUsageBasedRunDetailedLineUpdate {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearTaxConfig(value *productcatalog.TaxConfig) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearTaxCodeID(value *string) *ChargeUsageBasedRunDetailedLineUpdate {
+	if value == nil {
+		return u.ClearTaxCodeID()
+	}
+	return u.SetTaxCodeID(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearTaxCodeID(value *string) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearTaxCodeID()
+	}
+	return u.SetTaxCodeID(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *ChargeUsageBasedRunDetailedLineUpdate {
+	if value == nil {
+		return u.ClearTaxBehavior()
+	}
+	return u.SetTaxBehavior(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearTaxBehavior()
+	}
+	return u.SetTaxBehavior(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearInvoicingAppExternalID(value *string) *ChargeUsageBasedRunDetailedLineUpdate {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearInvoicingAppExternalID(value *string) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearIndex(value *int) *ChargeUsageBasedRunDetailedLineUpdate {
+	if value == nil {
+		return u.ClearIndex()
+	}
+	return u.SetIndex(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearIndex(value *int) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearIndex()
+	}
+	return u.SetIndex(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearCreditsApplied(value **creditsapplied.CreditsApplied) *ChargeUsageBasedRunDetailedLineUpdate {
+	if value == nil {
+		return u.ClearCreditsApplied()
+	}
+	return u.SetCreditsApplied(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearCreditsApplied(value **creditsapplied.CreditsApplied) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearCreditsApplied()
+	}
+	return u.SetCreditsApplied(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeUsageBasedRunDetailedLineUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearMetadata(value *map[string]string) *ChargeUsageBasedRunDetailedLineUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearMetadata(value *map[string]string) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedRunDetailedLineUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearDescription(value *string) *ChargeUsageBasedRunDetailedLineUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearDescription(value *string) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
 }
 
 func (u *ChargeUsageBasedRunInvoicedUsageUpdate) SetOrClearLineID(value *string) *ChargeUsageBasedRunInvoicedUsageUpdate {

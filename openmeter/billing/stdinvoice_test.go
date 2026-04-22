@@ -7,6 +7,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -26,20 +27,24 @@ func TestSortLines(t *testing.T) {
 			DetailedLines: DetailedLines{
 				{
 					DetailedLineBase: DetailedLineBase{
-						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-							Name:        "child-2",
-							Description: lo.ToPtr("index=1.1"),
-						}),
-						Index: lo.ToPtr(1),
+						Base: stddetailedline.Base{
+							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+								Name:        "child-2",
+								Description: lo.ToPtr("index=1.1"),
+							}),
+							Index: lo.ToPtr(1),
+						},
 					},
 				},
 				{
 					DetailedLineBase: DetailedLineBase{
-						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-							Name:        "child-1",
-							Description: lo.ToPtr("index=1.0"),
-						}),
-						Index: lo.ToPtr(0),
+						Base: stddetailedline.Base{
+							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+								Name:        "child-1",
+								Description: lo.ToPtr("index=1.0"),
+							}),
+							Index: lo.ToPtr(0),
+						},
 					},
 				},
 			},

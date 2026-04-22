@@ -30,7 +30,7 @@ func (c *adapter) ListMeters(_ context.Context, params meter.ListMetersParams) (
 			continue
 		}
 
-		if params.SlugFilter != nil && !slices.Contains(*params.SlugFilter, meter.Key) {
+		if params.Key != nil && params.Key.In != nil && !slices.Contains(*params.Key.In, meter.Key) {
 			continue
 		}
 

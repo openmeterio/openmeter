@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/samber/lo"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
@@ -53,6 +55,31 @@ func MapChargeFlatFeeFromDB(entity *entdb.ChargeFlatFee, expands meta.Expands) (
 	}
 
 	return charge, nil
+}
+
+func mapDetailedLineFromDB(dbLine *entdb.ChargeFlatFeeDetailedLine) (flatfee.DetailedLine, error) {
+	line := stddetailedline.FromDB(
+		dbLine,
+		stddetailedline.BackfillTaxConfig(
+			lo.EmptyableToPtr(dbLine.TaxConfig),
+			dbLine.TaxBehavior,
+			taxCodeIDFromEnt(dbLine.Edges.TaxCode),
+		),
+	)
+
+	return line, line.Validate()
+}
+
+func taxCodeIDFromEnt(resolvedTaxCode *entdb.TaxCode) *string {
+	if resolvedTaxCode == nil {
+		return nil
+	}
+
+	return lo.ToPtr(resolvedTaxCode.ID)
+}
+
+func sortDetailedLines(lines flatfee.DetailedLines) {
+	slices.SortStableFunc(lines, stddetailedline.Compare[flatfee.DetailedLine])
 }
 
 func MapChargeBaseFromDB(entity *entdb.ChargeFlatFee) flatfee.ChargeBase {

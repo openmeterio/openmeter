@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/huandu/go-sqlbuilder"
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
@@ -2432,6 +2433,143 @@ func TestFilterTime_IsEmpty(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := tt.filter.IsEmpty()
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestFilterULID_Validate(t *testing.T) {
+	tests := []struct {
+		name   string
+		filter filter.FilterULID
+		valid  bool
+	}{
+		{
+			name: "valid_single",
+			filter: filter.FilterULID{
+				FilterString: filter.FilterString{
+					Eq: lo.ToPtr(ulid.Make().String()),
+				},
+			},
+			valid: true,
+		},
+		{
+			name: "valid_multiple",
+			filter: filter.FilterULID{
+				FilterString: filter.FilterString{
+					In: lo.ToPtr([]string{ulid.Make().String(), ulid.Make().String(), ulid.Make().String()}),
+				},
+			},
+			valid: true,
+		},
+		{
+			name: "valid_and",
+			filter: filter.FilterULID{
+				And: lo.ToPtr([]filter.FilterULID{
+					{
+						FilterString: filter.FilterString{
+							Eq: lo.ToPtr(ulid.Make().String()),
+						},
+					},
+					{
+						FilterString: filter.FilterString{
+							Ne: lo.ToPtr(ulid.Make().String()),
+						},
+					},
+				}),
+			},
+			valid: true,
+		},
+		{
+			name: "valid_or",
+			filter: filter.FilterULID{
+				Or: lo.ToPtr([]filter.FilterULID{
+					{
+						FilterString: filter.FilterString{
+							Eq: lo.ToPtr(ulid.Make().String()),
+						},
+					},
+					{
+						FilterString: filter.FilterString{
+							Ne: lo.ToPtr(ulid.Make().String()),
+						},
+					},
+				}),
+			},
+			valid: true,
+		},
+		{
+			name: "invalid_single",
+			filter: filter.FilterULID{
+				FilterString: filter.FilterString{
+					Ne: lo.ToPtr("test"),
+				},
+			},
+			valid: false,
+		},
+		{
+			name: "invalid_multiple",
+			filter: filter.FilterULID{
+				FilterString: filter.FilterString{
+					Nin: lo.ToPtr([]string{"test", "test2", "test3"}),
+				},
+			},
+			valid: false,
+		},
+		{
+			name: "invalid_multiple_partial",
+			filter: filter.FilterULID{
+				FilterString: filter.FilterString{
+					In: lo.ToPtr([]string{ulid.Make().String(), "test", ulid.Make().String()}),
+				},
+			},
+			valid: false,
+		},
+		{
+			name: "invalid_and",
+			filter: filter.FilterULID{
+				And: lo.ToPtr([]filter.FilterULID{
+					{
+						FilterString: filter.FilterString{
+							Eq: lo.ToPtr(ulid.Make().String()),
+						},
+					},
+					{
+						FilterString: filter.FilterString{
+							Ne: lo.ToPtr("test"),
+						},
+					},
+				}),
+			},
+			valid: false,
+		},
+		{
+			name: "invalid_or",
+			filter: filter.FilterULID{
+				Or: lo.ToPtr([]filter.FilterULID{
+					{
+						FilterString: filter.FilterString{
+							Eq: lo.ToPtr(ulid.Make().String()),
+						},
+					},
+					{
+						FilterString: filter.FilterString{
+							Ne: lo.ToPtr("test"),
+						},
+					},
+				}),
+			},
+			valid: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.filter.Validate()
+			if tt.valid {
+				assert.NoError(t, got)
+			} else {
+				assert.ErrorIs(t, got, filter.ErrFilterFormatMismatch)
+			}
 		})
 	}
 }

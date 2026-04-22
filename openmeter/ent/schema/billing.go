@@ -11,6 +11,8 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -310,6 +312,7 @@ func (BillingInvoiceLine) Mixin() []ent.Mixin {
 		InvoiceLineBaseMixin{},
 		TaxMixin{},
 		totals.Mixin{},
+		externalid.LineMixin{},
 	}
 }
 
@@ -358,12 +361,6 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}).
-			Optional().
-			Nillable(),
-
-		// ID of the line in the external invoicing app
-		// For example, Stripe invoice line item ID
-		field.String("invoicing_app_external_id").
 			Optional().
 			Nillable(),
 
@@ -525,8 +522,8 @@ func (BillingInvoiceFlatFeeLineConfig) Fields() []ent.Field {
 				dialect.Postgres: "numeric",
 			}),
 		field.Enum("category").
-			GoType(billing.FlatFeeCategory("")).
-			Default(string(billing.FlatFeeCategoryRegular)),
+			GoType(stddetailedline.Category("")).
+			Default(string(stddetailedline.CategoryRegular)),
 		field.Enum("payment_term").
 			GoType(productcatalog.PaymentTermType("")).
 			Default(string(productcatalog.InAdvancePaymentTerm)),
@@ -588,7 +585,7 @@ type BillingInvoiceLineDiscountBase struct {
 }
 
 func (BillingInvoiceLineDiscountBase) Fields() []ent.Field {
-	return []ent.Field{
+	return append(externalid.LineMixin{}.Fields(), []ent.Field{
 		field.String("line_id").
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
@@ -604,13 +601,7 @@ func (BillingInvoiceLineDiscountBase) Fields() []ent.Field {
 
 		field.Enum("reason").
 			GoType(billing.DiscountReasonType("")),
-
-		// ID of the line discount in the external invoicing app
-		// For example, Stripe invoice line item ID
-		field.String("invoicing_app_external_id").
-			Optional().
-			Nillable(),
-	}
+	}...)
 }
 
 type BillingInvoiceSplitLineGroup struct {
@@ -876,19 +867,12 @@ type BillingStandardInvoiceDetailedLine struct {
 
 func (BillingStandardInvoiceDetailedLine) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.AnnotationsMixin{},
-		entutils.ResourceMixin{},
-		InvoiceLineBaseMixin{},
-		TaxMixin{},
-		totals.Mixin{},
+		stddetailedline.Mixin{},
 	}
 }
 
 func (BillingStandardInvoiceDetailedLine) Fields() []ent.Field {
 	return []ent.Field{
-		field.Time("service_period_start"),
-		field.Time("service_period_end"),
-
 		field.String("invoice_id").
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
@@ -898,50 +882,6 @@ func (BillingStandardInvoiceDetailedLine) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
 			}),
-
-		// Quantity is optional as for usage-based billing we can only persist this value,
-		// when the invoice is issued
-		field.Other("quantity", alpacadecimal.Decimal{}).
-			SchemaType(map[string]string{
-				dialect.Postgres: "numeric",
-			}),
-
-		// ID of the line in the external invoicing app
-		// For example, Stripe invoice line item ID
-		field.String("invoicing_app_external_id").
-			Optional().
-			Nillable(),
-
-		// child_unique_reference_id is uniqe per parent line, can be used for upserting
-		// and identifying lines created for the same reason (e.g. tiered price tier)
-		// between different invoices.
-		field.String("child_unique_reference_id").
-			Optional().
-			Nillable(),
-
-		field.Other("per_unit_amount", alpacadecimal.Decimal{}).
-			SchemaType(map[string]string{
-				dialect.Postgres: "numeric",
-			}),
-		field.Enum("category").
-			GoType(billing.FlatFeeCategory("")).
-			Default(string(billing.FlatFeeCategoryRegular)),
-		field.Enum("payment_term").
-			GoType(productcatalog.PaymentTermType("")).
-			Default(string(productcatalog.InAdvancePaymentTerm)),
-
-		field.Int("index").
-			Optional().
-			Nillable(),
-
-		field.String("credits_applied").
-			GoType(&billing.CreditsApplied{}).
-			ValueScanner(BillingCreditsAppliedValueScanner).
-			SchemaType(map[string]string{
-				dialect.Postgres: "jsonb",
-			}).
-			Optional().
-			Nillable(),
 	}
 }
 
@@ -951,7 +891,7 @@ func (BillingStandardInvoiceDetailedLine) Indexes() []ent.Index {
 		index.Fields("namespace", "parent_line_id"),
 		index.Fields("namespace", "parent_line_id", "child_unique_reference_id").
 			Annotations(
-				entsql.IndexWhere("child_unique_reference_id IS NOT NULL AND deleted_at IS NULL"),
+				entsql.IndexWhere("deleted_at IS NULL"),
 			).
 			StorageKey("billingstdinvdetailedline_ns_parent_child_id").
 			Unique(),
@@ -1059,6 +999,7 @@ func (BillingInvoice) Mixin() []ent.Mixin {
 			FieldPrefix: "customer",
 		},
 		totals.Mixin{},
+		externalid.InvoiceMixin{},
 	}
 }
 
@@ -1165,24 +1106,6 @@ func (BillingInvoice) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
 			}),
-
-		// ID of the line in the external invoicing app
-		// For example, Stripe invoice ID
-		field.String("invoicing_app_external_id").
-			Optional().
-			Nillable(),
-
-		// ID of the payment in the external invoicing app
-		// For example, Stripe payment intent ID
-		field.String("payment_app_external_id").
-			Optional().
-			Nillable(),
-
-		// ID of the tax in the external invoicing app
-		// For example, Stripe tax calculation ID
-		field.String("tax_app_external_id").
-			Optional().
-			Nillable(),
 
 		// These fields are optional as they are calculated from the invoice lines, which might not
 		// be present on an invoice.

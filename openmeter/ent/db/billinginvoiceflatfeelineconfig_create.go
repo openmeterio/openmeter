@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
@@ -38,13 +38,13 @@ func (_c *BillingInvoiceFlatFeeLineConfigCreate) SetPerUnitAmount(v alpacadecima
 }
 
 // SetCategory sets the "category" field.
-func (_c *BillingInvoiceFlatFeeLineConfigCreate) SetCategory(v billing.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigCreate {
+func (_c *BillingInvoiceFlatFeeLineConfigCreate) SetCategory(v stddetailedline.Category) *BillingInvoiceFlatFeeLineConfigCreate {
 	_c.mutation.SetCategory(v)
 	return _c
 }
 
 // SetNillableCategory sets the "category" field if the given value is not nil.
-func (_c *BillingInvoiceFlatFeeLineConfigCreate) SetNillableCategory(v *billing.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigCreate {
+func (_c *BillingInvoiceFlatFeeLineConfigCreate) SetNillableCategory(v *stddetailedline.Category) *BillingInvoiceFlatFeeLineConfigCreate {
 	if v != nil {
 		_c.SetCategory(*v)
 	}
@@ -292,7 +292,7 @@ func (u *BillingInvoiceFlatFeeLineConfigUpsert) UpdatePerUnitAmount() *BillingIn
 }
 
 // SetCategory sets the "category" field.
-func (u *BillingInvoiceFlatFeeLineConfigUpsert) SetCategory(v billing.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigUpsert {
+func (u *BillingInvoiceFlatFeeLineConfigUpsert) SetCategory(v stddetailedline.Category) *BillingInvoiceFlatFeeLineConfigUpsert {
 	u.Set(billinginvoiceflatfeelineconfig.FieldCategory, v)
 	return u
 }
@@ -405,7 +405,7 @@ func (u *BillingInvoiceFlatFeeLineConfigUpsertOne) UpdatePerUnitAmount() *Billin
 }
 
 // SetCategory sets the "category" field.
-func (u *BillingInvoiceFlatFeeLineConfigUpsertOne) SetCategory(v billing.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigUpsertOne {
+func (u *BillingInvoiceFlatFeeLineConfigUpsertOne) SetCategory(v stddetailedline.Category) *BillingInvoiceFlatFeeLineConfigUpsertOne {
 	return u.Update(func(s *BillingInvoiceFlatFeeLineConfigUpsert) {
 		s.SetCategory(v)
 	})
@@ -693,7 +693,7 @@ func (u *BillingInvoiceFlatFeeLineConfigUpsertBulk) UpdatePerUnitAmount() *Billi
 }
 
 // SetCategory sets the "category" field.
-func (u *BillingInvoiceFlatFeeLineConfigUpsertBulk) SetCategory(v billing.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigUpsertBulk {
+func (u *BillingInvoiceFlatFeeLineConfigUpsertBulk) SetCategory(v stddetailedline.Category) *BillingInvoiceFlatFeeLineConfigUpsertBulk {
 	return u.Update(func(s *BillingInvoiceFlatFeeLineConfigUpsert) {
 		s.SetCategory(v)
 	})

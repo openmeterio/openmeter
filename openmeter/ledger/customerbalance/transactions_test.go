@@ -79,7 +79,7 @@ func TestApplyChargeMetadataToCreditTransactions(t *testing.T) {
 
 	description := "Welcome credits"
 
-	service := Service{
+	service := service{
 		ChargesService: staticChargeService{
 			chargesByID: map[string]charges.Charge{
 				chargeID: charges.NewCharge(creditpurchase.Charge{

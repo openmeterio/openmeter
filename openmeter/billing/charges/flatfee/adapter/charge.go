@@ -195,6 +195,12 @@ func (a *adapter) GetByIDs(ctx context.Context, input flatfee.GetByIDsInput) ([]
 			return nil, err
 		}
 
+		if input.Expands.Has(meta.ExpandDetailedLines) {
+			return slicesx.MapWithErr(out, func(charge flatfee.Charge) (flatfee.Charge, error) {
+				return tx.FetchDetailedLines(ctx, charge)
+			})
+		}
+
 		return out, nil
 	})
 }
@@ -225,6 +231,10 @@ func (a *adapter) GetByID(ctx context.Context, input flatfee.GetByIDInput) (flat
 		charge, err := MapChargeFlatFeeFromDB(entity, input.Expands)
 		if err != nil {
 			return flatfee.Charge{}, err
+		}
+
+		if input.Expands.Has(meta.ExpandDetailedLines) {
+			return tx.FetchDetailedLines(ctx, charge)
 		}
 
 		return charge, nil

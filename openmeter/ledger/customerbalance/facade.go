@@ -76,17 +76,11 @@ type BalanceByCurrency struct {
 	Balance  ledger.Balance
 }
 
-type FacadeService interface {
-	GetBalance(ctx context.Context, customerID customer.CustomerID, filters ledger.RouteFilter, after *ledger.TransactionCursor) (ledger.Balance, error)
-	ListCreditTransactions(ctx context.Context, input ListCreditTransactionsInput) (ListCreditTransactionsResult, error)
-	getFBOCurrencies(ctx context.Context, customerID customer.CustomerID) ([]currencyx.Code, error)
-}
-
 type Facade struct {
-	service FacadeService
+	service Service
 }
 
-func NewFacade(service FacadeService) (*Facade, error) {
+func NewFacade(service Service) (*Facade, error) {
 	if service == nil {
 		return nil, errors.New("service is required")
 	}
@@ -117,7 +111,7 @@ func (f *Facade) GetBalances(ctx context.Context, input GetBalancesInput) ([]Bal
 	} else {
 		var err error
 
-		codes, err = f.service.getFBOCurrencies(ctx, input.CustomerID)
+		codes, err = f.service.GetFBOCurrencies(ctx, input.CustomerID)
 		if err != nil {
 			return nil, fmt.Errorf("get FBO currencies: %w", err)
 		}
@@ -125,7 +119,7 @@ func (f *Facade) GetBalances(ctx context.Context, input GetBalancesInput) ([]Bal
 
 	balances := make([]BalanceByCurrency, 0, len(codes))
 	for _, code := range codes {
-		balance, err := f.service.GetBalance(ctx, input.CustomerID, routeFilter(code), nil)
+		balance, err := f.service.GetBalance(ctx, input.CustomerID, code, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -148,7 +142,7 @@ func (f *Facade) GetBalance(ctx context.Context, input GetBalanceInput) (alpacad
 		return alpacadecimal.Zero, err
 	}
 
-	balance, err := f.service.GetBalance(ctx, input.CustomerID, routeFilter(input.Currency), input.After)
+	balance, err := f.service.GetBalance(ctx, input.CustomerID, input.Currency, input.After)
 	if err != nil {
 		return alpacadecimal.Zero, err
 	}
@@ -166,12 +160,6 @@ func (f *Facade) ListCreditTransactions(ctx context.Context, input ListCreditTra
 	}
 
 	return f.service.ListCreditTransactions(ctx, input)
-}
-
-func routeFilter(currency currencyx.Code) ledger.RouteFilter {
-	return ledger.RouteFilter{
-		Currency: currency,
-	}
 }
 
 func dedupeCurrencies(codes []currencyx.Code) []currencyx.Code {

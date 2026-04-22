@@ -1178,6 +1178,33 @@ paths:
       description: List all features.
       parameters:
         - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort features returned in the response.
+            Supported sort attributes are:
+            - `key`
+            - `name`
+            - `created_at` (default)
+            - `updated_at`
+
+            The `asc` suffix is optional as the default sort order is ascending.
+            The `desc` suffix is used to specify a descending order.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter features returned in the response.
+
+            To filter features by meter_id add the following query param: filter[meter_id][oeq]=<id>
+          schema:
+            $ref: '#/components/schemas/ListFeatureParamsFilter'
+          style: deepObject
       responses:
         '200':
           description: Page paginated response.
@@ -1561,6 +1588,16 @@ paths:
       description: List meters.
       parameters:
         - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter meters returned in the response.
+
+            To filter meters by key add the following query param: filter[key]=my-meter-key
+          schema:
+            $ref: '#/components/schemas/ListMetersParamsFilter'
+          style: deepObject
       responses:
         '200':
           description: Page paginated response.
@@ -1663,16 +1700,29 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - Meters
+  /openmeter/meters/{meterId}/query:
     post:
       operationId: query-meter
-      summary: Query meter
-      description: Query a meter for usage.
       parameters:
         - name: meterId
           in: path
           required: true
           schema:
             $ref: '#/components/schemas/ULID'
+      description: |-
+        Query a meter for usage.
+
+        Set `Accept: application/json` (the default) to get a structured JSON response.
+        Set `Accept: text/csv` to download the same data as a CSV file suitable for
+        spreadsheets. The CSV columns, in order, are:
+
+        `from, to, [subject,] [customer_id, customer_key, customer_name,] <dimensions...>, value`
+
+        The `subject` column is emitted only when `subject` is in the query's
+        `group_by_dimensions`.
+        The three `customer_*` columns are emitted together only when `customer_id`
+        is in the query's `group_by_dimensions`.
+      summary: Query meter
       responses:
         '200':
           description: The request has succeeded.
@@ -1680,6 +1730,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MeterQueryResult'
+            text/csv:
+              schema:
+                type: string
+              examples:
+                Grouped by customer and dimensions:
+                  summary: Grouped by customer and dimensions
+                  value: |-
+                    from,to,customer_id,customer_key,customer_name,model,type,value
+                    2023-01-01T00:00:00Z,2023-01-01T00:01:00Z,01G65Z755AFWAKHE12NY0CQ9FH,acme-inc,Acme Inc.,gpt-4-turbo,input,12
+                    2023-01-01T00:01:00Z,2023-01-01T00:02:00Z,01G65Z755AFWAKHE12NY0CQ9FH,acme-inc,Acme Inc.,gpt-4-turbo,input,20
+                    2023-01-01T00:02:00Z,2023-01-01T00:03:00Z,01G65Z755B3YZ1KRA9W8V7PS2D,globex,Globex Corp,gpt-4-turbo,output,4
+                No group-by dimensions:
+                  summary: No group-by dimensions
+                  value: |-
+                    from,to,value
+                    2023-01-01T00:00:00Z,2023-01-01T00:01:00Z,12
+                    2023-01-01T00:01:00Z,2023-01-01T00:02:00Z,20
+                    2023-01-01T00:02:00Z,2023-01-01T00:03:00Z,4
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1688,6 +1756,9 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+      x-internal: true
+      x-unstable: true
+      x-private: true
       tags:
         - Meters
       requestBody:
@@ -1696,9 +1767,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MeterQueryRequest'
-      x-internal: true
-      x-unstable: true
-      x-private: true
   /openmeter/plans:
     get:
       operationId: list-plans
@@ -7352,6 +7420,16 @@ components:
             - $ref: '#/components/schemas/StringFieldFilter'
           description: Filter customers by primary email.
       description: Filter options for listing customers.
+    ListFeatureParamsFilter:
+      type: object
+      properties:
+        meter_id:
+          $ref: '#/components/schemas/ULIDFieldFilter'
+        key:
+          $ref: '#/components/schemas/StringFieldFilter'
+        name:
+          $ref: '#/components/schemas/StringFieldFilter'
+      description: Filter options for listing features.
     ListLLMCostPricesParamsFilter:
       type: object
       properties:
@@ -7376,6 +7454,18 @@ components:
             - $ref: '#/components/schemas/StringFieldFilter'
           description: Filter by source. e.g. ?filter[source][eq]=system
       description: Filter options for listing LLM cost prices.
+    ListMetersParamsFilter:
+      type: object
+      properties:
+        key:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilter'
+          description: Filter meters by key.
+        name:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilter'
+          description: Filter meters by name.
+      description: Filter options for listing meters.
     Meter:
       type: object
       required:
@@ -8107,6 +8197,43 @@ components:
       description: ULID (Universally Unique Lexicographically Sortable Identifier).
       title: ULID
       example: 01G65Z755AFWAKHE12NY0CQ9FH
+    ULIDFieldFilter:
+      anyOf:
+        - $ref: '#/components/schemas/ULID'
+        - type: object
+          properties:
+            eq:
+              allOf:
+                - $ref: '#/components/schemas/ULID'
+              description: Value strictly equals the given ULID value.
+            neq:
+              allOf:
+                - $ref: '#/components/schemas/ULID'
+              description: Value does not equal the given ULID value.
+            contains:
+              type: string
+              description: Value contains the given string value (fuzzy match).
+            ocontains:
+              type: string
+              items:
+                type: string
+              format: ArrayEncoding.commaDelimited
+              description: Returns entities that fuzzy-match any of the comma-delimited strings in the filter string.
+            oeq:
+              type: string
+              items:
+                $ref: '#/components/schemas/ULID'
+              format: ArrayEncoding.commaDelimited
+              description: Returns entities that exact match any of the comma-delimited ULIDs in the filter string.
+            exists:
+              type: boolean
+              description: When true, the field must be present (non-null); when false, the field must be absent (null).
+      description: |-
+        Filters on the given ULID field value by either exact or fuzzy match.
+        All properties are optional; provide exactly one to specify the comparison.
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/api/v3/filters
+      x-go-type: filters.FilterULID
     UpdateCreditGrantExternalSettlementRequest:
       type: object
       required:

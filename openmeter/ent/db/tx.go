@@ -78,6 +78,8 @@ type Tx struct {
 	ChargeFlatFee *ChargeFlatFeeClient
 	// ChargeFlatFeeCreditAllocations is the client for interacting with the ChargeFlatFeeCreditAllocations builders.
 	ChargeFlatFeeCreditAllocations *ChargeFlatFeeCreditAllocationsClient
+	// ChargeFlatFeeDetailedLine is the client for interacting with the ChargeFlatFeeDetailedLine builders.
+	ChargeFlatFeeDetailedLine *ChargeFlatFeeDetailedLineClient
 	// ChargeFlatFeeInvoicedUsage is the client for interacting with the ChargeFlatFeeInvoicedUsage builders.
 	ChargeFlatFeeInvoicedUsage *ChargeFlatFeeInvoicedUsageClient
 	// ChargeFlatFeePayment is the client for interacting with the ChargeFlatFeePayment builders.
@@ -86,6 +88,8 @@ type Tx struct {
 	ChargeUsageBased *ChargeUsageBasedClient
 	// ChargeUsageBasedRunCreditAllocations is the client for interacting with the ChargeUsageBasedRunCreditAllocations builders.
 	ChargeUsageBasedRunCreditAllocations *ChargeUsageBasedRunCreditAllocationsClient
+	// ChargeUsageBasedRunDetailedLine is the client for interacting with the ChargeUsageBasedRunDetailedLine builders.
+	ChargeUsageBasedRunDetailedLine *ChargeUsageBasedRunDetailedLineClient
 	// ChargeUsageBasedRunInvoicedUsage is the client for interacting with the ChargeUsageBasedRunInvoicedUsage builders.
 	ChargeUsageBasedRunInvoicedUsage *ChargeUsageBasedRunInvoicedUsageClient
 	// ChargeUsageBasedRunPayment is the client for interacting with the ChargeUsageBasedRunPayment builders.
@@ -327,10 +331,12 @@ func (tx *Tx) init() {
 	tx.ChargeCreditPurchaseInvoicedPayment = NewChargeCreditPurchaseInvoicedPaymentClient(tx.config)
 	tx.ChargeFlatFee = NewChargeFlatFeeClient(tx.config)
 	tx.ChargeFlatFeeCreditAllocations = NewChargeFlatFeeCreditAllocationsClient(tx.config)
+	tx.ChargeFlatFeeDetailedLine = NewChargeFlatFeeDetailedLineClient(tx.config)
 	tx.ChargeFlatFeeInvoicedUsage = NewChargeFlatFeeInvoicedUsageClient(tx.config)
 	tx.ChargeFlatFeePayment = NewChargeFlatFeePaymentClient(tx.config)
 	tx.ChargeUsageBased = NewChargeUsageBasedClient(tx.config)
 	tx.ChargeUsageBasedRunCreditAllocations = NewChargeUsageBasedRunCreditAllocationsClient(tx.config)
+	tx.ChargeUsageBasedRunDetailedLine = NewChargeUsageBasedRunDetailedLineClient(tx.config)
 	tx.ChargeUsageBasedRunInvoicedUsage = NewChargeUsageBasedRunInvoicedUsageClient(tx.config)
 	tx.ChargeUsageBasedRunPayment = NewChargeUsageBasedRunPaymentClient(tx.config)
 	tx.ChargeUsageBasedRuns = NewChargeUsageBasedRunsClient(tx.config)

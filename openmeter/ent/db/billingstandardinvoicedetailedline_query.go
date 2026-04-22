@@ -409,12 +409,12 @@ func (_q *BillingStandardInvoiceDetailedLineQuery) WithAmountDiscounts(opts ...f
 // Example:
 //
 //	var v []struct {
-//		Annotations models.Annotations `json:"annotations,omitempty"`
+//		Currency currencyx.Code `json:"currency,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.BillingStandardInvoiceDetailedLine.Query().
-//		GroupBy(billingstandardinvoicedetailedline.FieldAnnotations).
+//		GroupBy(billingstandardinvoicedetailedline.FieldCurrency).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
 func (_q *BillingStandardInvoiceDetailedLineQuery) GroupBy(field string, fields ...string) *BillingStandardInvoiceDetailedLineGroupBy {
@@ -432,11 +432,11 @@ func (_q *BillingStandardInvoiceDetailedLineQuery) GroupBy(field string, fields 
 // Example:
 //
 //	var v []struct {
-//		Annotations models.Annotations `json:"annotations,omitempty"`
+//		Currency currencyx.Code `json:"currency,omitempty"`
 //	}
 //
 //	client.BillingStandardInvoiceDetailedLine.Query().
-//		Select(billingstandardinvoicedetailedline.FieldAnnotations).
+//		Select(billingstandardinvoicedetailedline.FieldCurrency).
 //		Scan(ctx, &v)
 func (_q *BillingStandardInvoiceDetailedLineQuery) Select(fields ...string) *BillingStandardInvoiceDetailedLineSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)

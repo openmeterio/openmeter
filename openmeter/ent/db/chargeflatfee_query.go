@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecreditallocations"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeinvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
@@ -34,6 +35,7 @@ type ChargeFlatFeeQuery struct {
 	inters                []Interceptor
 	predicates            []predicate.ChargeFlatFee
 	withCreditAllocations *ChargeFlatFeeCreditAllocationsQuery
+	withDetailedLines     *ChargeFlatFeeDetailedLineQuery
 	withInvoicedUsage     *ChargeFlatFeeInvoicedUsageQuery
 	withPayment           *ChargeFlatFeePaymentQuery
 	withCharge            *ChargeQuery
@@ -94,6 +96,28 @@ func (_q *ChargeFlatFeeQuery) QueryCreditAllocations() *ChargeFlatFeeCreditAlloc
 			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, selector),
 			sqlgraph.To(chargeflatfeecreditallocations.Table, chargeflatfeecreditallocations.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, chargeflatfee.CreditAllocationsTable, chargeflatfee.CreditAllocationsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryDetailedLines chains the current query on the "detailed_lines" edge.
+func (_q *ChargeFlatFeeQuery) QueryDetailedLines() *ChargeFlatFeeDetailedLineQuery {
+	query := (&ChargeFlatFeeDetailedLineClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, selector),
+			sqlgraph.To(chargeflatfeedetailedline.Table, chargeflatfeedetailedline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, chargeflatfee.DetailedLinesTable, chargeflatfee.DetailedLinesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -470,6 +494,7 @@ func (_q *ChargeFlatFeeQuery) Clone() *ChargeFlatFeeQuery {
 		inters:                append([]Interceptor{}, _q.inters...),
 		predicates:            append([]predicate.ChargeFlatFee{}, _q.predicates...),
 		withCreditAllocations: _q.withCreditAllocations.Clone(),
+		withDetailedLines:     _q.withDetailedLines.Clone(),
 		withInvoicedUsage:     _q.withInvoicedUsage.Clone(),
 		withPayment:           _q.withPayment.Clone(),
 		withCharge:            _q.withCharge.Clone(),
@@ -492,6 +517,17 @@ func (_q *ChargeFlatFeeQuery) WithCreditAllocations(opts ...func(*ChargeFlatFeeC
 		opt(query)
 	}
 	_q.withCreditAllocations = query
+	return _q
+}
+
+// WithDetailedLines tells the query-builder to eager-load the nodes that are connected to
+// the "detailed_lines" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeFlatFeeQuery) WithDetailedLines(opts ...func(*ChargeFlatFeeDetailedLineQuery)) *ChargeFlatFeeQuery {
+	query := (&ChargeFlatFeeDetailedLineClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withDetailedLines = query
 	return _q
 }
 
@@ -661,8 +697,9 @@ func (_q *ChargeFlatFeeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 	var (
 		nodes       = []*ChargeFlatFee{}
 		_spec       = _q.querySpec()
-		loadedTypes = [9]bool{
+		loadedTypes = [10]bool{
 			_q.withCreditAllocations != nil,
+			_q.withDetailedLines != nil,
 			_q.withInvoicedUsage != nil,
 			_q.withPayment != nil,
 			_q.withCharge != nil,
@@ -699,6 +736,15 @@ func (_q *ChargeFlatFeeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 			func(n *ChargeFlatFee) { n.Edges.CreditAllocations = []*ChargeFlatFeeCreditAllocations{} },
 			func(n *ChargeFlatFee, e *ChargeFlatFeeCreditAllocations) {
 				n.Edges.CreditAllocations = append(n.Edges.CreditAllocations, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withDetailedLines; query != nil {
+		if err := _q.loadDetailedLines(ctx, query, nodes,
+			func(n *ChargeFlatFee) { n.Edges.DetailedLines = []*ChargeFlatFeeDetailedLine{} },
+			func(n *ChargeFlatFee, e *ChargeFlatFeeDetailedLine) {
+				n.Edges.DetailedLines = append(n.Edges.DetailedLines, e)
 			}); err != nil {
 			return nil, err
 		}
@@ -769,6 +815,36 @@ func (_q *ChargeFlatFeeQuery) loadCreditAllocations(ctx context.Context, query *
 	}
 	query.Where(predicate.ChargeFlatFeeCreditAllocations(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(chargeflatfee.CreditAllocationsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.ChargeID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "charge_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *ChargeFlatFeeQuery) loadDetailedLines(ctx context.Context, query *ChargeFlatFeeDetailedLineQuery, nodes []*ChargeFlatFee, init func(*ChargeFlatFee), assign func(*ChargeFlatFee, *ChargeFlatFeeDetailedLine)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*ChargeFlatFee)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargeflatfeedetailedline.FieldChargeID)
+	}
+	query.Where(predicate.ChargeFlatFeeDetailedLine(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(chargeflatfee.DetailedLinesColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

@@ -16,14 +16,14 @@ import (
 // statuses to enter, or whether invoice lifecycle events should advance a charge.
 type Service struct {
 	adapter usagebased.Adapter
-	rater   *usagebasedrating.Service
+	rater   usagebasedrating.Service
 	handler usagebased.Handler
 	lineage lineage.Service
 }
 
 type Config struct {
 	Adapter usagebased.Adapter
-	Rater   *usagebasedrating.Service
+	Rater   usagebasedrating.Service
 	Handler usagebased.Handler
 	Lineage lineage.Service
 }

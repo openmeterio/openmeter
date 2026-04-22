@@ -8,9 +8,6 @@ on:
 permissions:
   contents: read
 
-env:
-  DAGGER_VERSION: 0.20.0
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ !contains(github.ref, 'refs/heads/main') && !contains(github.ref, 'refs/tags/') }}
@@ -99,6 +96,18 @@ jobs:
 
       - name: Validate Nix flake
         run: nix flake check --impure
+
+      - name: Validate Node version file
+        run: |
+          FILE_NODE_VERSION="$(tr -d '\r\n' < .nvmrc)"
+          NIX_NODE_VERSION="$(nix develop --impure .#ci -c node -v)"
+
+          if [ "$NIX_NODE_VERSION" != "$FILE_NODE_VERSION" ]; then
+            echo ".nvmrc is out of sync with the Nix CI shell"
+            echo "nix develop --impure .#ci -c node -v => $NIX_NODE_VERSION"
+            echo ".nvmrc => $FILE_NODE_VERSION"
+            exit 1
+          fi
 
       - name: Build components
         run: |
@@ -190,40 +199,21 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Nix
-        uses: nixbuild/nix-quick-install-action@2c9db80fb984ceb1bcaa77cdda3fdf8cfba92035 # v34
+      - name: Set up pnpm
+        uses: pnpm/action-setup@903f9c1a6ebcba6cf41d87230be49611ac97822e # v6
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-          nix_conf: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            keep-env-derivations = true
-            keep-outputs = true
+          package_json_file: api/client/javascript/package.json
 
-      - name: Restore Nix store
-        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+      - name: Set up Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
-          restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-main-
-            ${{ runner.os }}-openmeter-nix-build-
-
-      - name: Restore go.mod cache if exists
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: .devenv/state/go
-          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
-          # Prefer to restore the branch cache over the main cache
-          restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
-            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
-            ${{ runner.os }}-openmeter-go-modules-main
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: api/client/javascript/pnpm-lock.yaml
 
       - name: Ensure code generators are run
         run: |
-          nix develop --impure .#ci -c make generate-javascript-sdk
+          make generate-javascript-sdk
 
           # does not detect new files
           if [ -n "$(git diff --exit-code)" ]; then
@@ -388,36 +378,44 @@ jobs:
     environment: dev
 
     steps:
-      # Required as a workaround for Dagger to properly detect Git metadata
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0 # Needed to compare against base branch
           persist-credentials: false
 
-      - name: Run pipeline
-        uses: dagger/dagger-for-github@27b130bf0f79a7f6fbbbe0fbca6760dc9bb40a77 # v8.4.1
+      - name: Set up Nix
+        uses: nixbuild/nix-quick-install-action@2c9db80fb984ceb1bcaa77cdda3fdf8cfba92035 # v34
         with:
-          verb: call
-          args: migrate check
-          cloud-token: ${{ secrets.DAGGER_CLOUD_NO_CACHE_TOKEN }}
-          version: ${{ env.DAGGER_VERSION }}
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          nix_conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            keep-env-derivations = true
+            keep-outputs = true
 
-      - name: Export Dagger Engine logs
-        id: export-dagger-engine-logs
-        run: docker logs $(docker container list --all --filter 'name=^dagger-engine-*' --format '{{.Names}}') > engine.stdout.log 2> engine.stderr.log
-        if: always()
-        continue-on-error: true
-
-      - name: Upload Dagger Engine logs as artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: always() && steps.export-dagger-engine-logs.outcome == 'success'
+      - name: Restore Nix store
+        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          name: "[${{ github.job }}] Dagger Engine logs"
-          path: |
-            engine.stdout.log
-            engine.stderr.log
-          retention-days: 14
+          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          restore-prefixes-first-match: |
+            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
+            ${{ runner.os }}-openmeter-nix-build-main-
+            ${{ runner.os }}-openmeter-nix-build-
+
+      - name: Restore go.mod cache if exists
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        with:
+          path: .devenv/state/go
+          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-main
+
+      - name: Run migration checks
+        run: nix develop --impure .#ci -c make migrate-check
 
   lint:
     name: Lint
@@ -494,7 +492,16 @@ jobs:
         env:
           GOLANGCI_LINT_CACHE: ${{ github.workspace }}/.devenv/golangci-lint-cache
         run: |
-          nix develop --impure .#ci -c make lint-go
+          # On Depot runners, golangci-lint still uses Go/system temp space for
+          # transient analysis artifacts. Keep those temp files on the workspace
+          # disk so lint does not spill into /run and fail with ENOSPC.
+          mkdir -p \
+            "$GITHUB_WORKSPACE/.tmp/go-work" \
+            "$GITHUB_WORKSPACE/.tmp/system"
+          env \
+            GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
+            TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
+            nix develop --impure .#ci -c make lint-go
 
       - name: Run linters - api spec
         run: |
@@ -508,9 +515,10 @@ jobs:
         run: |
           nix develop --impure .#ci -c make lint-helm
 
-  artifacts:
+  trusted-artifacts:
     name: Artifacts
     uses: ./.github/workflows/artifacts.yaml
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     with:
       publish: ${{ github.event_name == 'push' }}
     permissions:
@@ -518,6 +526,23 @@ jobs:
       packages: write
       id-token: write
       security-events: write
+
+  untrusted-artifacts:
+    name: Untrusted Artifacts
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+    uses: ./.github/workflows/untrusted-artifacts.yaml
+    permissions:
+      contents: read
+
+  artifacts-pass:
+    name: Artifacts
+    needs:
+      - trusted-artifacts
+      - untrusted-artifacts
+    if: ${{ always() }}
+    uses: ./.github/workflows/workflow-result.yaml
+    with:
+      result: ${{ contains(needs.*.result, 'failure') && 'fail' || 'pass' }}
 
   dependency-review:
     name: Dependency review
@@ -554,7 +579,9 @@ jobs:
     name: Quickstart
     runs-on: depot-ubuntu-latest-8
     needs:
-      - artifacts
+      - trusted-artifacts
+      - untrusted-artifacts
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(needs.*.result, 'success') }}
 
     steps:
       - name: Checkout repository
@@ -563,8 +590,9 @@ jobs:
           persist-credentials: false
 
       - name: Create override files for quickstart
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         env:
-          DEPOT_IMAGE_URL: ${{ needs.artifacts.outputs.container-image-url-depot }}
+          DEPOT_IMAGE_URL: ${{ needs.trusted-artifacts.outputs.container-image-url-depot }}
         run: |
           cat > quickstart/docker-compose.override.yaml <<EOF
           services:
@@ -591,7 +619,36 @@ jobs:
           docker ps -a
           docker network ls
           echo "### DEBUG"
-
+      - name: Build as part of quickstart
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+        run: |
+          cat > quickstart/docker-compose.override.yaml <<EOF
+          services:
+            openmeter:
+              image: openmeter-quickstart-openmeter:ci
+              pull_policy: build
+              build: ..
+            sink-worker:
+              image: openmeter-quickstart-sink-worker:ci
+              pull_policy: build
+              build: ..
+            balance-worker:
+              image: openmeter-quickstart-balance-worker:ci
+              pull_policy: build
+              build: ..
+            notification-service:
+              image: openmeter-quickstart-notification-service:ci
+              pull_policy: build
+              build: ..
+            billing-worker:
+              image: openmeter-quickstart-billing-worker:ci
+              pull_policy: build
+              build: ..
+            openmeter-jobs:
+              image: openmeter-quickstart-openmeter-jobs:ci
+              pull_policy: build
+              build: ..
+          EOF
       - name: Launch Docker Compose
         run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml up -d
         working-directory: quickstart
@@ -652,7 +709,9 @@ jobs:
     runs-on: depot-ubuntu-latest-8
     # Note: This check is running against the image that is going to be pushed.
     needs:
-      - artifacts
+      - trusted-artifacts
+      - untrusted-artifacts
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(needs.*.result, 'success') }}
 
     steps:
       - name: Checkout repository
@@ -662,7 +721,8 @@ jobs:
 
       - name: Create override files for e2e
         env:
-          DEPOT_IMAGE_URL: ${{ needs.artifacts.outputs.container-image-url-depot }}
+          DEPOT_IMAGE_URL: ${{ needs.trusted-artifacts.outputs.container-image-url-depot }}
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
           cat > e2e/docker-compose.override.yaml <<EOF
           services:
@@ -681,6 +741,18 @@ jobs:
           docker ps -a
           docker network ls
           echo "### DEBUG"
+      - name: Build as part of e2e
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+        run: |
+          cat > e2e/docker-compose.override.yaml <<EOF
+          services:
+            openmeter:
+              build: ..
+            sink-worker:
+              build: ..
+          EOF
+
+          cat e2e/docker-compose.override.yaml
 
       - name: Launch Docker Compose infra
         run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml up -d

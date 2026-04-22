@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/portal"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -108,8 +109,8 @@ func (h *handler) CreateToken() CreateTokenHandler {
 			// If allowed meter slugs are provided, validate them.
 			if request.AllowedMeterSlugs != nil {
 				meterList, err := h.meterService.ListMeters(ctx, meter.ListMetersParams{
-					Namespace:  request.Namespace,
-					SlugFilter: request.AllowedMeterSlugs,
+					Namespace: request.Namespace,
+					Key:       &filter.FilterString{In: request.AllowedMeterSlugs},
 				})
 				if err != nil {
 					return nil, fmt.Errorf("failed to list meters by slug: %w", err)

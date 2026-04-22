@@ -4,15 +4,15 @@ OpenMeter is a usage metering and billing platform for AI and DevTool companies,
 
 ## Quick Reference
 
-Use the `Makefile` for all common tasks. Dagger and justfile exist but are seldom used.
+Use the `Makefile` for all common tasks. A `justfile` also exists but is seldom used.
 OpenMeter is a metering and billing platform with usage based pricing and access control.
 
 ## Tips for working with the codebase
 
 If during your work anything confuses you or something isn't trivial for you, please augment AGENTS.md with your findings so next time it will be easier for you. AGENTS.md files are for you to edit and update as you go so you can interact with the codebase the most effectively.
 
-Development commands are run via `Makefile`, it contains all commonly used commands during development. `Dagger` and `justfile` are also present but seldom used. Use the Makefile commands for common tasks like running tests, generating code, linting, etc.
-The Dagger Go builder image is pinned in `.dagger/versions_pinned.go` via `goBuildVersion`; update that constant when the repo-wide Go version is bumped so Dagger checks stay aligned with `go.mod` and Dockerfiles.
+Development commands are run via `Makefile`, it contains all commonly used commands during development. A `justfile` is also present but seldom used. Use the Makefile commands for common tasks like running tests, generating code, linting, etc.
+The committed `.nvmrc` is the GitHub Actions source of truth for Node-based jobs on GitHub-hosted runners. Keep it aligned with the Nix `.#ci` shell's `node -v`; `flake.nix` refreshes it in `enterShell`, and CI validates the file against the Nix shell before running builds.
 
 ## AGENTS.md maintenance
 
@@ -178,6 +178,7 @@ All builds use `GO_BUILD_FLAGS=-tags=dynamic`.
 - Load the repository environment with `direnv`, or run commands with `direnv exec . <command>`, so project-specific environment variables and tool configuration are applied consistently
 - Key settings: `postgres.url`, `postgres.autoMigrate`, `billing`, `notification`, meter definitions
 - `credits.enabled` needs explicit guarding at multiple layers: ledger-backed customer credit handlers in `api/v3/server`, customer ledger hooks, and namespace/default-account provisioning are wired separately and must each stay disabled when credits are off.
+- When `credits.enabled` is `false`, `app/common` wires ledger account services/resolvers to noop implementations. Any ledger account backfill that must write real `ledger_accounts` / `ledger_customer_accounts` rows needs to construct concrete ledger account + resolver adapters directly instead of relying on the default DI outputs.
 - Make targets for running services will warn if `config.yaml` is outdated vs `config.example.yaml`
 
 ## Coding Conventions

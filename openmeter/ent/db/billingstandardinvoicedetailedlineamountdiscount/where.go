@@ -87,6 +87,11 @@ func DeletedAt(v time.Time) predicate.BillingStandardInvoiceDetailedLineAmountDi
 	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldEQ(FieldDeletedAt, v))
 }
 
+// InvoicingAppExternalID applies equality check predicate on the "invoicing_app_external_id" field. It's identical to InvoicingAppExternalIDEQ.
+func InvoicingAppExternalID(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
+	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldEQ(FieldInvoicingAppExternalID, v))
+}
+
 // LineID applies equality check predicate on the "line_id" field. It's identical to LineIDEQ.
 func LineID(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
 	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldEQ(FieldLineID, v))
@@ -100,11 +105,6 @@ func ChildUniqueReferenceID(v string) predicate.BillingStandardInvoiceDetailedLi
 // Description applies equality check predicate on the "description" field. It's identical to DescriptionEQ.
 func Description(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
 	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldEQ(FieldDescription, v))
-}
-
-// InvoicingAppExternalID applies equality check predicate on the "invoicing_app_external_id" field. It's identical to InvoicingAppExternalIDEQ.
-func InvoicingAppExternalID(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
-	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldEQ(FieldInvoicingAppExternalID, v))
 }
 
 // Amount applies equality check predicate on the "amount" field. It's identical to AmountEQ.
@@ -310,6 +310,81 @@ func DeletedAtIsNil() predicate.BillingStandardInvoiceDetailedLineAmountDiscount
 // DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
 func DeletedAtNotNil() predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
 	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldNotNull(FieldDeletedAt))
+}
+
+// InvoicingAppExternalIDEQ applies the EQ predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDEQ(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
+	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldEQ(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDNEQ applies the NEQ predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDNEQ(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
+	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldNEQ(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDIn applies the In predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDIn(vs ...string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
+	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldIn(FieldInvoicingAppExternalID, vs...))
+}
+
+// InvoicingAppExternalIDNotIn applies the NotIn predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDNotIn(vs ...string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
+	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldNotIn(FieldInvoicingAppExternalID, vs...))
+}
+
+// InvoicingAppExternalIDGT applies the GT predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDGT(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
+	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldGT(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDGTE applies the GTE predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDGTE(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
+	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldGTE(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDLT applies the LT predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDLT(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
+	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldLT(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDLTE applies the LTE predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDLTE(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
+	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldLTE(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDContains applies the Contains predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDContains(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
+	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldContains(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDHasPrefix applies the HasPrefix predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDHasPrefix(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
+	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldHasPrefix(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDHasSuffix applies the HasSuffix predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDHasSuffix(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
+	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldHasSuffix(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDIsNil applies the IsNil predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDIsNil() predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
+	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldIsNull(FieldInvoicingAppExternalID))
+}
+
+// InvoicingAppExternalIDNotNil applies the NotNil predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDNotNil() predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
+	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldNotNull(FieldInvoicingAppExternalID))
+}
+
+// InvoicingAppExternalIDEqualFold applies the EqualFold predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDEqualFold(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
+	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldEqualFold(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDContainsFold applies the ContainsFold predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDContainsFold(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
+	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldContainsFold(FieldInvoicingAppExternalID, v))
 }
 
 // LineIDEQ applies the EQ predicate on the "line_id" field.
@@ -555,81 +630,6 @@ func ReasonNotIn(vs ...billing.DiscountReasonType) predicate.BillingStandardInvo
 		v[i] = vs[i]
 	}
 	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldNotIn(FieldReason, v...))
-}
-
-// InvoicingAppExternalIDEQ applies the EQ predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDEQ(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
-	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldEQ(FieldInvoicingAppExternalID, v))
-}
-
-// InvoicingAppExternalIDNEQ applies the NEQ predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDNEQ(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
-	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldNEQ(FieldInvoicingAppExternalID, v))
-}
-
-// InvoicingAppExternalIDIn applies the In predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDIn(vs ...string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
-	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldIn(FieldInvoicingAppExternalID, vs...))
-}
-
-// InvoicingAppExternalIDNotIn applies the NotIn predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDNotIn(vs ...string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
-	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldNotIn(FieldInvoicingAppExternalID, vs...))
-}
-
-// InvoicingAppExternalIDGT applies the GT predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDGT(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
-	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldGT(FieldInvoicingAppExternalID, v))
-}
-
-// InvoicingAppExternalIDGTE applies the GTE predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDGTE(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
-	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldGTE(FieldInvoicingAppExternalID, v))
-}
-
-// InvoicingAppExternalIDLT applies the LT predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDLT(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
-	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldLT(FieldInvoicingAppExternalID, v))
-}
-
-// InvoicingAppExternalIDLTE applies the LTE predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDLTE(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
-	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldLTE(FieldInvoicingAppExternalID, v))
-}
-
-// InvoicingAppExternalIDContains applies the Contains predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDContains(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
-	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldContains(FieldInvoicingAppExternalID, v))
-}
-
-// InvoicingAppExternalIDHasPrefix applies the HasPrefix predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDHasPrefix(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
-	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldHasPrefix(FieldInvoicingAppExternalID, v))
-}
-
-// InvoicingAppExternalIDHasSuffix applies the HasSuffix predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDHasSuffix(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
-	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldHasSuffix(FieldInvoicingAppExternalID, v))
-}
-
-// InvoicingAppExternalIDIsNil applies the IsNil predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDIsNil() predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
-	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldIsNull(FieldInvoicingAppExternalID))
-}
-
-// InvoicingAppExternalIDNotNil applies the NotNil predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDNotNil() predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
-	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldNotNull(FieldInvoicingAppExternalID))
-}
-
-// InvoicingAppExternalIDEqualFold applies the EqualFold predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDEqualFold(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
-	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldEqualFold(FieldInvoicingAppExternalID, v))
-}
-
-// InvoicingAppExternalIDContainsFold applies the ContainsFold predicate on the "invoicing_app_external_id" field.
-func InvoicingAppExternalIDContainsFold(v string) predicate.BillingStandardInvoiceDetailedLineAmountDiscount {
-	return predicate.BillingStandardInvoiceDetailedLineAmountDiscount(sql.FieldContainsFold(FieldInvoicingAppExternalID, v))
 }
 
 // AmountEQ applies the EQ predicate on the "amount" field.

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -61,8 +62,16 @@ func NewIntegrationEnv(t *testing.T, namespacePrefix string) *IntegrationEnv {
 
 	customerID := customer.CustomerID{
 		Namespace: namespace,
-		ID:        "customer-1",
+		ID:        ulid.Make().String(),
 	}
+
+	_, err = db.Customer.Create().
+		SetNamespace(namespace).
+		SetID(customerID.ID).
+		SetName("Test Customer").
+		Save(t.Context())
+	require.NoError(t, err)
+
 	customerAccounts, err := deps.ResolversService.CreateCustomerAccounts(t.Context(), customerID)
 	require.NoError(t, err)
 

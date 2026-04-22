@@ -176,6 +176,10 @@ func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context
 		return fmt.Errorf("no realization run in progress [charge_id=%s]", s.Charge.ID)
 	}
 
+	if err := s.ensureDetailedLinesLoadedForRating(ctx); err != nil {
+		return err
+	}
+
 	currentRun, err := s.Charge.Realizations.GetByID(*s.Charge.State.CurrentRealizationRunID)
 	if err != nil {
 		return fmt.Errorf("get current realization run: %w", err)
@@ -183,8 +187,9 @@ func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context
 
 	storedAtOffset := meta.NormalizeTimestamp(currentRun.CollectionEnd)
 
-	ratingResult, err := s.Rater.GetRatingForUsage(ctx, usagebasedrating.GetRatingForUsageInput{
+	ratingResult, err := s.Rater.GetDetailedLinesForUsage(ctx, usagebasedrating.GetDetailedLinesForUsageInput{
 		Charge:         s.Charge,
+		PriorRuns:      s.Charge.Realizations.Without(currentRun.ID),
 		Customer:       s.CustomerOverride,
 		FeatureMeter:   s.FeatureMeter,
 		StoredAtOffset: storedAtOffset,
@@ -210,6 +215,12 @@ func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context
 	currentRun.CreditsAllocated = append(currentRun.CreditsAllocated, reconcileResult.Realizations...)
 	currentTotals.CreditsTotal = s.CurrencyCalculator.RoundToPrecision(currentRun.CreditsAllocated.Sum())
 	currentTotals.Total = s.CurrencyCalculator.RoundToPrecision(currentTotals.Total.Sub(currentTotals.CreditsTotal))
+
+	runDetailedLines, err := s.Runs.PersistRunDetailedLines(ctx, s.Charge, currentRun, ratingResult)
+	if err != nil {
+		return err
+	}
+	currentRun.DetailedLines = mo.Some(runDetailedLines)
 
 	currentRunBase, err := s.Adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
 		ID:         currentRun.ID,
