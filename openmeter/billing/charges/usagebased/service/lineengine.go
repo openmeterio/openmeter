@@ -410,7 +410,6 @@ func (e *LineEngine) newStateMachineForStandardLine(ctx context.Context, stdLine
 
 	return stateMachine, nil
 }
-
 func isUsageBasedSplitPeriodEmpty(line billing.GatheringLine) (bool, error) {
 	price := line.GetPrice()
 	if price == nil {
