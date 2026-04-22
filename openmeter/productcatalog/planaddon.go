@@ -20,7 +20,8 @@ type PlanAddonConfig struct {
 	// FromPlanPhase
 	FromPlanPhase string `json:"fromPlanPhase"`
 
-	// MaxQuantity
+	// MaxQuantity caps how many units a customer may assign for multiple-instance addons.
+	// nil means unlimited; a positive integer enforces a hard cap; zero or negative is invalid.
 	MaxQuantity *int `json:"maxQuantity"`
 }
 

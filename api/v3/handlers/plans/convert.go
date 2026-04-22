@@ -407,11 +407,6 @@ func FromAPICreatePlanRequest(ns string, body api.CreatePlanRequest) (plan.Creat
 		},
 	}
 
-	// Currency is deliberately not validated here — the service layer's
-	// PlanMeta.Validate() produces a structured ValidationIssue
-	// (ErrCurrencyInvalid, critical severity + 400 HTTP attribute) so an
-	// unknown currency surfaces as 400 with extensions.validationErrors[].code
-	// instead of a generic 500 from a handler-level fmt.Errorf.
 	req.Currency = currency.Code(body.Currency)
 
 	billingCadence, err := datetime.ISODurationString(body.BillingCadence).Parse()

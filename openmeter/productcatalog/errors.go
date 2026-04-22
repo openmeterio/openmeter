@@ -28,7 +28,7 @@ const ErrCodePlanAddonMaxQuantityMustBeSet models.ErrorCode = "plan_addon_max_qu
 
 var ErrPlanAddonMaxQuantityMustBeSet = models.NewValidationIssue(
 	ErrCodePlanAddonMaxQuantityMustBeSet,
-	"maximum quantity must be set to positive number for add-on with multiple instance type",
+	"maximum quantity, when set, must be a positive integer for add-ons with multiple instance type",
 	models.WithFieldString("maxQuantity"),
 	models.WithWarningSeverity(),
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
