@@ -7424,17 +7424,11 @@ components:
       type: object
       properties:
         meter_id:
-          allOf:
-            - $ref: '#/components/schemas/ULIDFieldFilter'
-          description: Filter features by meter ID.
+          $ref: '#/components/schemas/ULIDFieldFilter'
         key:
-          allOf:
-            - $ref: '#/components/schemas/StringFieldFilter'
-          description: Filter features by key.
+          $ref: '#/components/schemas/StringFieldFilter'
         name:
-          allOf:
-            - $ref: '#/components/schemas/StringFieldFilter'
-          description: Filter features by name.
+          $ref: '#/components/schemas/StringFieldFilter'
       description: Filter options for listing features.
     ListLLMCostPricesParamsFilter:
       type: object

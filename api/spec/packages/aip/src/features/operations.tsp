@@ -18,19 +18,11 @@ namespace Features;
  */
 @friendlyName("ListFeatureParamsFilter")
 model ListFeaturesParamsFilter {
-  /**
-   * Filter features by meter ID.
-   */
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
   meter_id?: Common.ULIDFieldFilter;
-
-  /**
-   * Filter features by key.
-   */
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
   key?: Common.StringFieldFilter;
-
-  /**
-   * Filter features by name.
-   */
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
   name?: Common.StringFieldFilter;
 }
 
