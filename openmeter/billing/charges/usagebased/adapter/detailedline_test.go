@@ -1,7 +1,6 @@
 package adapter
 
 import (
-	"context"
 	"log/slog"
 	"testing"
 	"time"
