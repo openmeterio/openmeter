@@ -365,6 +365,10 @@ func parseFilterDateTime(qs url.Values, field string) (FilterDateTime, error) {
 	var f FilterDateTime
 
 	err := forEachFieldParam(qs, field, func(p parsedFilterParam) error {
+		if p.bare {
+			return fmt.Errorf("filter[%s]: empty datetime value", field)
+		}
+
 		switch p.op {
 		case OpEq:
 			return parseTime(field, p, &f.Eq)

@@ -625,13 +625,23 @@ func TestParse_FilterNumericInvalidPerOp(t *testing.T) {
 }
 
 func TestParse_EmptyTypedValueRejected(t *testing.T) {
-	// Numeric bare filters carry no meaningful "exists" semantics and should be
-	// rejected instead of being treated as unfiltered input.
+	// filter[count]= and filter[created_at]= carry no meaningful "exists"
+	// semantics for typed fields — they are almost always a broken client
+	// template. The parser must reject them with a 400-appropriate error
+	// instead of silently producing an unfiltered query.
 	t.Run("numeric bare empty rejected", func(t *testing.T) {
 		var f testFilter
 		err := Parse(url.Values{"filter[count]": {""}}, &f)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "filter[count]")
+		assert.Contains(t, err.Error(), "empty")
+	})
+
+	t.Run("datetime bare empty rejected", func(t *testing.T) {
+		var f testFilter
+		err := Parse(url.Values{"filter[created_at]": {""}}, &f)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "filter[created_at]")
 		assert.Contains(t, err.Error(), "empty")
 	})
 }
