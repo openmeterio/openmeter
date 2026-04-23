@@ -650,6 +650,7 @@ func (s *InvoicingTestSuite) TestListGatheringInvoices_CollectionAtFilterExclude
 		Namespace: namespace,
 		CustomerMutate: customer.CustomerMutate{
 			Name:         "Test Customer",
+			Key:          lo.ToPtr("test-customer-key"),
 			PrimaryEmail: lo.ToPtr("test@test.com"),
 			Currency:     lo.ToPtr(currencyx.Code(currency.USD)),
 		},
