@@ -24,3 +24,12 @@ var ErrCreditAllocationsDoNotMatchTotal = models.NewValidationIssue(
 	models.WithCriticalSeverity(),
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
+
+const ErrCodeActiveRealizationRunAlreadyExists models.ErrorCode = "active_realization_run_already_exists"
+
+var ErrActiveRealizationRunAlreadyExists = models.NewValidationIssue(
+	ErrCodeActiveRealizationRunAlreadyExists,
+	"an active realization run already exists for this charge, please finalize any draft invoices for the customer first",
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)

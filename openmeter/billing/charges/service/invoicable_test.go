@@ -1191,7 +1191,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		}, invoice.Totals)
 
 		usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActiveFinalRealizationCompleted, usageBasedCharge.Status)
+		s.Equal(usagebased.StatusActiveFinalRealizationProcessing, usageBasedCharge.Status)
 		s.NotNil(usageBasedCharge.State.CurrentRealizationRunID)
 		s.Len(usageBasedCharge.Realizations, 1)
 
@@ -1236,7 +1236,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		s.Equal(1, invoiceUsageAccruedCallback.nrInvocations)
 
 		usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActivePaymentPending, usageBasedCharge.Status)
+		s.Equal(usagebased.StatusActiveAwaitingPaymentSettlement, usageBasedCharge.Status)
 		s.Nil(usageBasedCharge.State.CurrentRealizationRunID)
 		s.Nil(usageBasedCharge.State.AdvanceAfter)
 		s.Len(usageBasedCharge.Realizations, 1)
@@ -1258,7 +1258,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		s.Equal(invoiceUsageAccruedCallback.id, finalRun.InvoiceUsage.LedgerTransaction.TransactionGroupID)
 	})
 
-	s.Run("#7 payment authorization moves charge to active authorized", func() {
+	s.Run("#7 payment authorization keeps charge awaiting settlement", func() {
 		defer s.UsageBasedTestHandler.Reset()
 
 		authorizedCallback := newCountedLedgerTransactionCallback[usagebased.OnPaymentAuthorizedInput]()
@@ -1279,7 +1279,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		s.Equal(1, authorizedCallback.nrInvocations)
 
 		usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActiveAuthorized, usageBasedCharge.Status)
+		s.Equal(usagebased.StatusActiveAwaitingPaymentSettlement, usageBasedCharge.Status)
 		s.Len(usageBasedCharge.Realizations, 1)
 
 		finalRun := usageBasedCharge.Realizations[0]
@@ -1465,7 +1465,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceFullyCredite
 		}, invoice.Totals)
 
 		usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActiveFinalRealizationCompleted, usageBasedCharge.Status)
+		s.Equal(usagebased.StatusActiveFinalRealizationProcessing, usageBasedCharge.Status)
 		s.NotNil(usageBasedCharge.State.CurrentRealizationRunID)
 		s.Len(usageBasedCharge.Realizations, 1)
 
@@ -1491,7 +1491,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceFullyCredite
 		s.Equal(0, invoiceUsageAccruedCallback.nrInvocations)
 
 		usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActivePaymentPending, usageBasedCharge.Status)
+		s.Equal(usagebased.StatusActiveAwaitingPaymentSettlement, usageBasedCharge.Status)
 		s.Nil(usageBasedCharge.State.CurrentRealizationRunID)
 		s.Nil(usageBasedCharge.State.AdvanceAfter)
 		s.Len(usageBasedCharge.Realizations, 1)
