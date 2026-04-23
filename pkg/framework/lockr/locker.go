@@ -73,7 +73,7 @@ func (l *Locker) lock(ctx context.Context, client *db.Tx, key Key) error {
 	}()
 
 	if err != nil {
-		return l.checkForTimeout(err)
+		return checkForTimeout(err)
 	}
 
 	// Consume the result set
@@ -82,7 +82,7 @@ func (l *Locker) lock(ctx context.Context, client *db.Tx, key Key) error {
 	}
 
 	if err := rows.Err(); err != nil {
-		return l.checkForTimeout(err)
+		return checkForTimeout(err)
 	}
 
 	return nil
@@ -90,7 +90,7 @@ func (l *Locker) lock(ctx context.Context, client *db.Tx, key Key) error {
 
 // Note: it would be great to use in-process timeouts with context.WithTimeout
 // Unfortunately, due to this https://github.com/jackc/pgx/issues/2100#issuecomment-2395092552 (context cancellation resulting in query cancellation resulting in errored tx states) we rely on the pg timeout which leaves the connection intact
-func (l *Locker) checkForTimeout(err error) error {
+func checkForTimeout(err error) error {
 	if strings.Contains(err.Error(), pgLockTimeoutErrCode) {
 		return ErrLockTimeout
 	}
