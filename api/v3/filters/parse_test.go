@@ -223,13 +223,6 @@ func TestParse_FilterNumeric(t *testing.T) {
 }
 
 func TestParse_FilterDateTime(t *testing.T) {
-	t.Run("bare key implies exists", func(t *testing.T) {
-		var f testFilter
-		require.NoError(t, Parse(url.Values{"filter[created_at]": {""}}, &f))
-		require.NotNil(t, f.CreatedAt)
-		assert.Equal(t, lo.ToPtr(true), f.CreatedAt.Exists)
-	})
-
 	t.Run("eq", func(t *testing.T) {
 		var f testFilter
 		require.NoError(t, Parse(url.Values{"filter[created_at][eq]": {"2024-01-02T03:04:05Z"}}, &f))

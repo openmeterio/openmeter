@@ -193,7 +193,6 @@ func init() {
 	}
 	ConvertTime = func(source api.FilterTime) filter.FilterTime {
 		var filterFilterTime filter.FilterTime
-		filterFilterTime.Exists = source.Exists
 		filterFilterTime.Gt = source.Gt
 		filterFilterTime.Gte = source.Gte
 		filterFilterTime.Lt = source.Lt

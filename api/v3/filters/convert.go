@@ -231,9 +231,6 @@ func FromAPIFilterDateTime(f *FilterDateTime) (*filter.FilterTime, error) {
 	if f.Eq != nil {
 		parts = append(parts, filter.FilterTime{Eq: f.Eq})
 	}
-	if f.Exists != nil {
-		parts = append(parts, filter.FilterTime{Exists: f.Exists})
-	}
 	if f.Gt != nil {
 		parts = append(parts, filter.FilterTime{Gt: f.Gt})
 	}

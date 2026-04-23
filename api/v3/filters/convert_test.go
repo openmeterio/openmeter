@@ -324,13 +324,6 @@ func TestConvertFilterNumeric(t *testing.T) {
 }
 
 func TestConvertFilterDateTime(t *testing.T) {
-	t.Run("exists maps to filter.FilterTime Exists", func(t *testing.T) {
-		out, err := FromAPIFilterDateTime(&FilterDateTime{Exists: lo.ToPtr(true)})
-		require.NoError(t, err)
-		require.NotNil(t, out)
-		assert.Equal(t, lo.ToPtr(true), out.Exists)
-	})
-
 	t.Run("eq maps to filter.FilterTime Eq", func(t *testing.T) {
 		ts := time.Date(2024, 6, 15, 12, 0, 0, 0, time.UTC)
 		out, err := FromAPIFilterDateTime(&FilterDateTime{Eq: &ts})

@@ -37,9 +37,6 @@ type FilterDateTime struct {
 	// Eq requires the field to match the provided value exactly.
 	Eq *time.Time `json:"eq,omitempty"`
 
-	// Exists is set only by the bare-key form `filter[field]`.
-	Exists *bool `json:"$exists,omitempty"`
-
 	// Gt requires the field to be greater than the provided value.
 	Gt *time.Time `json:"gt,omitempty"`
 
