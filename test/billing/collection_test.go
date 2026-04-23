@@ -509,7 +509,7 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_StandardInvoiceUsesLateEvent
 
 		s.Equal(billing.AlignmentKindAnchored, inv.Workflow.Config.Collection.Alignment)
 		s.NotNil(inv.Workflow.Config.Collection.AnchoredAlignmentDetail)
-		s.Equal("P1M", inv.Workflow.Config.Collection.AnchoredAlignmentDetail.Interval.String())
+		s.Equal("P1D", inv.Workflow.Config.Collection.AnchoredAlignmentDetail.Interval.String())
 	})
 }
 
