@@ -50,6 +50,12 @@ func SafeToUTC(t *time.Time) *time.Time {
 	})
 }
 
+// EmptyableTimeToUTC converts a possibly-zero time value into a UTC-normalized pointer.
+// Zero values return nil so legacy value-backed optional timestamps can be mapped as absent.
+func EmptyableTimeToUTC(t time.Time) *time.Time {
+	return SafeToUTC(lo.EmptyableToPtr(t))
+}
+
 // Header represents generic primitives with a header like map, slice, array...
 type Header[E any] interface {
 	map[string]E | []E

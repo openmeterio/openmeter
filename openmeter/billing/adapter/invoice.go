@@ -694,7 +694,7 @@ func (a *adapter) mapStandardInvoiceBaseFromDB(invoice *db.BillingInvoice) billi
 		UpdatedAt: invoice.UpdatedAt.In(time.UTC),
 		DeletedAt: convert.TimePtrIn(invoice.DeletedAt, time.UTC),
 
-		CollectionAt:               normalizeOptionalTime(invoice.CollectionAt),
+		CollectionAt:               convert.EmptyableTimeToUTC(invoice.CollectionAt),
 		PaymentProcessingEnteredAt: convert.TimePtrIn(invoice.PaymentProcessingEnteredAt, time.UTC),
 
 		ExternalIDs: externalid.MapInvoiceExternalIDFromDB(invoice),
