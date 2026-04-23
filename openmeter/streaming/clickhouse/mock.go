@@ -85,6 +85,11 @@ type MockRows struct {
 	mock.Mock
 }
 
+func (m *MockRows) HasData() bool {
+	args := m.Called()
+	return args.Bool(0)
+}
+
 func (m *MockRows) Next() bool {
 	args := m.Called()
 	return args.Bool(0)
