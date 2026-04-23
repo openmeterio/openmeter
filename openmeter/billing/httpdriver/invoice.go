@@ -577,6 +577,13 @@ func (h *handler) MapInvoiceToAPI(ctx context.Context, invoice billing.Invoice) 
 func MapStandardInvoiceToAPI(invoice billing.StandardInvoice) (api.Invoice, error) {
 	var apps *api.BillingProfileAppsOrReference
 	var err error
+	collectionAt := invoice.CollectionAt
+
+	// Preserve the historic API shape for standard invoices by emulating collectionAt when the
+	// domain model intentionally leaves it nil (for example, flat-fee-only invoices).
+	if collectionAt == nil {
+		collectionAt = lo.ToPtr(invoice.CreatedAt)
+	}
 
 	// Sort the lines to make the response more consistent (internally we don't care about the order)
 	invoice.SortLines()
@@ -602,7 +609,7 @@ func MapStandardInvoiceToAPI(invoice billing.StandardInvoice) (api.Invoice, erro
 		IssuedAt:             invoice.IssuedAt,
 		VoidedAt:             invoice.VoidedAt,
 		DueAt:                invoice.DueAt,
-		CollectionAt:         invoice.CollectionAt,
+		CollectionAt:         collectionAt,
 		DraftUntil:           invoice.DraftUntil,
 		SentToCustomerAt:     invoice.SentToCustomerAt,
 		QuantitySnapshotedAt: invoice.QuantitySnapshotedAt,
