@@ -21,7 +21,85 @@ model IngestEventsResponse {
   @statusCode _: 202;
 }
 
+/**
+ * Filter options for listing ingested events.
+ */
+@friendlyName("ListEventsParamsFilter")
+model ListEventsParamsFilter {
+  /**
+   * Filter events by ID.
+   */
+  id?: Common.StringFieldFilter;
+
+  /**
+   * Filter events by source.
+   */
+  source?: Common.StringFieldFilter;
+
+  /**
+   * Filter events by subject.
+   */
+  subject?: Common.StringFieldFilter;
+
+  /**
+   * Filter events by type.
+   */
+  type?: Common.StringFieldFilter;
+
+  /**
+   * Filter events by the associated customer ID.
+   */
+  customer_id?: Common.ULIDFieldFilter;
+
+  /**
+   * Filter events by event time.
+   */
+  time?: Common.DateTimeFieldFilter;
+
+  /**
+   * Filter events by the time the event was ingested.
+   */
+  ingested_at?: Common.DateTimeFieldFilter;
+
+  /**
+   * Filter events by the time the event was stored.
+   */
+  stored_at?: Common.DateTimeFieldFilter;
+}
+
 interface EventsOperations {
+  /**
+   * List ingested events.
+   */
+  @get
+  @operationId("list-metering-events")
+  @summary("List metering events")
+  list(
+    ...Common.CursorPaginationQuery,
+
+    /**
+     * Filter events returned in the response.
+     *
+     * To filter events by subject add the following query param: filter[subject][eq]=customer-1
+     */
+    @query(#{ style: "deepObject", explode: true })
+    filter?: ListEventsParamsFilter,
+
+    /**
+     * Sort events returned in the response.
+     * Supported sort attributes are:
+     * - `time` (default)
+     * - `ingested_at`
+     * - `stored_at`
+     *
+     * When omitted, events are sorted by `time desc` (most recent first).
+     * When a sort field is provided without a suffix, it sorts descending.
+     * Append the `asc` suffix to sort ascending, or the `desc` suffix to sort descending.
+     */
+    @query
+    sort?: Common.SortQuery,
+  ): Shared.CursorPaginatedResponse<IngestedEvent> | Common.ErrorResponses;
+
   /**
    * Ingests an event or batch of events following the CloudEvents specification.
    */

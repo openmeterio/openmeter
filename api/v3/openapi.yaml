@@ -1085,7 +1085,7 @@ paths:
           required: true
           schema:
             $ref: '#/components/schemas/ULID'
-        - $ref: '#/components/parameters/CursorPageQuery'
+        - $ref: '#/components/parameters/CursorPaginationQuery'
         - name: filter
           in: query
           required: false
@@ -1138,6 +1138,54 @@ paths:
       tags:
         - OpenMeter Entitlements
   /openmeter/events:
+    get:
+      operationId: list-metering-events
+      summary: List metering events
+      description: List ingested events.
+      parameters:
+        - $ref: '#/components/parameters/CursorPaginationQuery'
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter events returned in the response.
+
+            To filter events by subject add the following query param: filter[subject][eq]=customer-1
+          schema:
+            $ref: '#/components/schemas/ListEventsParamsFilter'
+          style: deepObject
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort events returned in the response.
+            Supported sort attributes are:
+            - `time` (default)
+            - `ingested_at`
+            - `stored_at`
+
+            When omitted, events are sorted by `time desc` (most recent first).
+            When a sort field is provided without a suffix, it sorts descending.
+            Append the `asc` suffix to sort ascending, or the `desc` suffix to sort descending.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+      responses:
+        '200':
+          description: Cursor paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestedEventPaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - Metering Events
     post:
       operationId: ingest-metering-events
       description: Ingests an event or batch of events following the CloudEvents specification.
@@ -2646,6 +2694,24 @@ paths:
       x-private: true
 components:
   parameters:
+    CursorPaginationQuery:
+      name: page
+      in: query
+      required: false
+      description: Determines which page of the collection to retrieve.
+      schema:
+        type: object
+        properties:
+          size:
+            type: integer
+            description: The number of items to include per page.
+          after:
+            type: string
+            description: Request the next page of data, starting with the item after this parameter.
+          before:
+            type: string
+            description: Request the previous page of data, starting with the item before this parameter.
+      style: deepObject
     PagePaginationQuery:
       name: page
       in: query
@@ -2656,16 +2722,11 @@ components:
         properties:
           size:
             type: integer
+            description: The number of items to include per page.
           number:
             type: integer
+            description: The page number.
       style: deepObject
-    CursorPageQuery:
-      name: page
-      description: Determines which page of the collection to retrieve.
-      required: false
-      in: query
-      schema:
-        $ref: '#/components/schemas/CursorPageParameters'
   schemas:
     Addon:
       type: object
@@ -7019,12 +7080,51 @@ components:
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
       description: Page paginated response.
+    CustomerReference:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          $ref: '#/components/schemas/ULID'
+      description: Customer reference.
     DateTime:
       type: string
       format: date-time
       description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
       title: RFC3339 Date-Time
       example: '2023-01-01T01:01:01.001Z'
+    DateTimeFieldFilter:
+      anyOf:
+        - type: string
+        - type: object
+          properties:
+            eq:
+              allOf:
+                - $ref: '#/components/schemas/DateTime'
+              description: Value strictly equals given RFC-3339 formatted timestamp in UTC.
+            lt:
+              allOf:
+                - $ref: '#/components/schemas/DateTime'
+              description: Value is less than the given RFC-3339 formatted timestamp in UTC.
+            lte:
+              allOf:
+                - $ref: '#/components/schemas/DateTime'
+              description: Value is less than or equal to the given RFC-3339 formatted timestamp in UTC.
+            gt:
+              allOf:
+                - $ref: '#/components/schemas/DateTime'
+              description: Value is greater than the given RFC-3339 formatted timestamp in UTC.
+            gte:
+              allOf:
+                - $ref: '#/components/schemas/DateTime'
+              description: Value is greater than or equal to the given RFC-3339 formatted timestamp in UTC.
+      description: |-
+        Filters on the given datetime (RFC-3339) field value.
+        All properties are optional; provide exactly one to specify the comparison.
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/api/v3/filters
+      x-go-type: filters.FilterDateTime
     ExternalResourceKey:
       type: string
       minLength: 1
@@ -7210,6 +7310,19 @@ components:
       title: ISO 8601 Duration
       example: P1Y
       format: ISO8601
+    IngestedEventPaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/MeteringIngestedEvent'
+        meta:
+          $ref: '#/components/schemas/CursorMeta'
+      description: Cursor paginated response.
     LLMCostModel:
       type: object
       required:
@@ -7457,6 +7570,42 @@ components:
             - $ref: '#/components/schemas/StringFieldFilter'
           description: Filter customers by primary email.
       description: Filter options for listing customers.
+    ListEventsParamsFilter:
+      type: object
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilter'
+          description: Filter events by ID.
+        source:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilter'
+          description: Filter events by source.
+        subject:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilter'
+          description: Filter events by subject.
+        type:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilter'
+          description: Filter events by type.
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: Filter events by the associated customer ID.
+        time:
+          allOf:
+            - $ref: '#/components/schemas/DateTimeFieldFilter'
+          description: Filter events by event time.
+        ingested_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTimeFieldFilter'
+          description: Filter events by the time the event was ingested.
+        stored_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTimeFieldFilter'
+          description: Filter events by the time the event was stored.
+      description: Filter options for listing ingested events.
     ListFeatureParamsFilter:
       type: object
       properties:
@@ -7834,6 +7983,43 @@ components:
           tokens: 100
           model: gpt-4o
           type: input
+    MeteringIngestedEvent:
+      type: object
+      required:
+        - event
+        - ingested_at
+        - stored_at
+      properties:
+        event:
+          allOf:
+            - $ref: '#/components/schemas/MeteringEvent'
+          description: The original event ingested.
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/CustomerReference'
+          description: The customer if the event is associated with a customer.
+        ingested_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The date and time the event was ingested and its processing started.
+        stored_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The date and time the event was stored in the database.
+      description: An ingested metering event with ingestion metadata.
+      title: Ingested Event
+      example:
+        event:
+          id: 5c10fade-1c9e-4d6c-8275-c52c36731d3c
+          source: service-name
+          specversion: '1.0'
+          type: prompt
+          subject: customer_key
+          time: '2023-01-01T01:01:01.001Z'
+        customer:
+          id: 01G65Z755AFWAKHE12NY0CQ9FH
+        ingested_at: '2023-01-01T01:01:01.001Z'
+        stored_at: '2023-01-01T01:01:02.001Z'
     Numeric:
       type: string
       pattern: ^\-?[0-9]+(\.[0-9]+)?$
@@ -8952,21 +9138,43 @@ components:
         The `desc` suffix is used to specify a descending order.
         Multiple sort attributes may be provided via a comma separated list.
         JSONPath notation may be used to specify a sub-attribute (eg: 'foo.bar desc').
-    CursorPageParameters:
+    CursorMetaPage:
       type: object
+      required:
+        - size
+        - next
+        - previous
       properties:
+        first:
+          description: URI to the first page
+          type: string
+          format: path
+        last:
+          description: URI to the last page
+          type: string
+          format: path
+        next:
+          description: URI to the next page
+          type: string
+          format: path
+          nullable: true
+        previous:
+          description: URI to the previous page
+          type: string
+          format: path
+          nullable: true
         size:
-          type: integer
-          description: The number of items included per page.
+          description: Requested page size
+          type: number
           example: 10
-        after:
-          type: string
-          description: Cursor param specifying the page (i.e. the next page) of data returned.
-          example: ewogICJpZCI6ICJoZWxsbyB3b3JsZCIKfQ
-        before:
-          type: string
-          description: Cursor param specifying the page (i.e. the previous page) of data returned.
-          example: ewogICJpZCI6ICJoZWxsbyB3b3JsZCIKfQ
+    CursorMeta:
+      type: object
+      description: Pagination metadata.
+      required:
+        - page
+      properties:
+        page:
+          $ref: '#/components/schemas/CursorMetaPage'
     ConflictError:
       allOf:
         - $ref: '#/components/schemas/BaseError'

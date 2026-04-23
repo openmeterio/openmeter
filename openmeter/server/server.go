@@ -121,6 +121,7 @@ func NewServer(config *Config) (*Server, error) {
 		CurrencyService:         config.RouterConfig.CurrencyService,
 		EntitlementService:      config.RouterConfig.EntitlementConnector,
 		IngestService:           config.RouterConfig.IngestService,
+		MeterEventService:       config.RouterConfig.MeterEventService,
 		LLMCostService:          config.RouterConfig.LLMCostService,
 		MeterService:            config.RouterConfig.MeterManageService,
 		StreamingConnector:      config.RouterConfig.StreamingConnector,
