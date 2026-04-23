@@ -19,7 +19,7 @@ require (
 	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/brunoga/deep v1.3.1
 	github.com/cloudevents/sdk-go/v2 v2.16.2
-	github.com/confluentinc/confluent-kafka-go/v2 v2.14.0
+	github.com/confluentinc/confluent-kafka-go/v2 v2.14.1
 	github.com/forscht/namegen v1.0.1
 	github.com/getkin/kin-openapi v0.135.0
 	github.com/go-chi/chi/v5 v5.2.5
