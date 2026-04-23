@@ -189,7 +189,7 @@ interface CustomerCreditTransactionOperations {
      */
     @query(#{ style: "deepObject", explode: true })
     filter?: ListCreditTransactionsParamsFilter,
-  ): CreditTransactionPaginatedResponse | Common.NotFound | Common.ErrorResponses;
+  ): Shared.CursorPaginatedResponse<CreditTransaction> | Common.NotFound | Common.ErrorResponses;
 }
 
 interface CustomerCreditAdjustmentsOperations {
