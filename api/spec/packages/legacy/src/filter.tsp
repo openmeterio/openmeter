@@ -284,6 +284,12 @@ model FilterTime {
   $lte?: utcDateTime | null;
 
   /**
+   * The field must exist.
+   */
+  @extension("x-omitempty", true)
+  $exists?: boolean | null;
+
+  /**
    * Provide a list of filters to be combined with a logical AND.
    */
   // Not supported for nullable types

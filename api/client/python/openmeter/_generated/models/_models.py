@@ -6906,6 +6906,8 @@ class FilterTime(_Model):
     :vartype lt: ~datetime.datetime
     :ivar lte: The field must be less than or equal to the provided value.
     :vartype lte: ~datetime.datetime
+    :ivar exists: The field must exist.
+    :vartype exists: bool
     :ivar and_property: Provide a list of filters to be combined with a logical AND.
     :vartype and_property: list[~openmeter._generated.models.FilterTime]
     :ivar or_property: Provide a list of filters to be combined with a logical OR.
@@ -6928,6 +6930,8 @@ class FilterTime(_Model):
         name="$lte", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
     )
     """The field must be less than or equal to the provided value."""
+    exists: Optional[bool] = rest_field(name="$exists", visibility=["read", "create", "update", "delete", "query"])
+    """The field must exist."""
     and_property: Optional[list["_models.FilterTime"]] = rest_field(
         name="$and", visibility=["read", "create", "update", "delete", "query"]
     )
@@ -6945,6 +6949,7 @@ class FilterTime(_Model):
         gte: Optional[datetime.datetime] = None,
         lt: Optional[datetime.datetime] = None,
         lte: Optional[datetime.datetime] = None,
+        exists: Optional[bool] = None,
         and_property: Optional[list["_models.FilterTime"]] = None,
         or_property: Optional[list["_models.FilterTime"]] = None,
     ) -> None: ...
