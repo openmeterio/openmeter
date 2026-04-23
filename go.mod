@@ -87,9 +87,9 @@ require (
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b
 	google.golang.org/grpc v1.80.0
 	google.golang.org/protobuf v1.36.11
-	k8s.io/api v0.35.3
+	k8s.io/api v0.35.4
 	k8s.io/apimachinery v0.35.4
-	k8s.io/client-go v0.35.3
+	k8s.io/client-go v0.35.4
 	sigs.k8s.io/controller-runtime v0.23.3
 )
 
