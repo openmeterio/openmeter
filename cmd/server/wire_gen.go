@@ -659,7 +659,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	eventHandler, err := common.NewNotificationEventHandler(notificationConfiguration, logger, tracer, notificationRepository, webhookHandler)
+	eventHandler, err := common.NewNotificationEventHandler(notificationConfiguration, logger, tracer, notificationRepository, webhookHandler, driver)
 	if err != nil {
 		cleanup8()
 		cleanup7()

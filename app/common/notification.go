@@ -18,6 +18,8 @@ import (
 	webhooknoop "github.com/openmeterio/openmeter/openmeter/notification/webhook/noop"
 	webhooksvix "github.com/openmeterio/openmeter/openmeter/notification/webhook/svix"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
+	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 )
 
 var Notification = wire.NewSet(
@@ -56,7 +58,16 @@ func NewNotificationEventHandler(
 	tracer trace.Tracer,
 	adapter notification.Repository,
 	webhook notificationwebhook.Handler,
+	driver *pgdriver.Driver,
 ) (notification.EventHandler, error) {
+	sessionLockr, err := lockr.NewSessionLockr(lockr.SessionLockerConfig{
+		Logger:         logger,
+		PostgresDriver: driver,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize session lockr: %w", err)
+	}
+
 	eventHandler, err := eventhandler.New(eventhandler.Config{
 		Repository:        adapter,
 		Webhook:           webhook,
@@ -66,6 +77,7 @@ func NewNotificationEventHandler(
 		SendingTimeout:    config.SendingTimeout,
 		PendingTimeout:    config.PendingTimeout,
 		ReconcilerWorkers: config.ReconcilerWorkers,
+		Lockr:             sessionLockr,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize notification event handler: %w", err)
