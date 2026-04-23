@@ -33,6 +33,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -636,6 +637,65 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		s.NoError(err)
 		s.Nil(gatheringInvoice.DeletedAt)
 	})
+}
+
+func (s *InvoicingTestSuite) TestListGatheringInvoices_CollectionAtFilterExcludesNilCollectionAt() {
+	namespace := s.GetUniqueNamespace("ns-gathering-collection-at-nil-failsafe")
+	ctx := s.T().Context()
+
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+
+	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: namespace,
+		CustomerMutate: customer.CustomerMutate{
+			Name:         "Test Customer",
+			Key:          lo.ToPtr("test-customer-key"),
+			PrimaryEmail: lo.ToPtr("test@test.com"),
+			Currency:     lo.ToPtr(currencyx.Code(currency.USD)),
+		},
+	})
+	require.NoError(s.T(), err)
+
+	now := time.Now().UTC().Truncate(time.Second)
+	res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: customerEntity.GetID(),
+		Currency: currencyx.Code(currency.USD),
+		Lines: []billing.GatheringLine{
+			billing.NewFlatFeeGatheringLine(
+				billing.NewFlatFeeLineInput{
+					Namespace:     namespace,
+					Period:        timeutil.ClosedPeriod{From: now, To: now.Add(24 * time.Hour)},
+					InvoiceAt:     now.Add(24 * time.Hour),
+					ManagedBy:     billing.ManuallyManagedLine,
+					Name:          "Test item - USD",
+					PerUnitAmount: alpacadecimal.NewFromFloat(100),
+				},
+			),
+		},
+	})
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), res)
+	require.NotNil(s.T(), res.Invoice.NextCollectionAt)
+
+	gatheringInvoice, err := s.BillingAdapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+		Invoice: res.Invoice.GetInvoiceID(),
+		Expand:  billing.GatheringInvoiceExpandAll,
+	})
+	require.NoError(s.T(), err)
+
+	gatheringInvoice.NextCollectionAt = nil
+	require.NoError(s.T(), s.BillingAdapter.UpdateGatheringInvoice(ctx, gatheringInvoice))
+
+	invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
+		Namespaces: []string{namespace},
+		Customers:  []string{customerEntity.ID},
+		CollectionAt: filter.FilterTime{
+			Lte: lo.ToPtr(time.Now()),
+		},
+	})
+	require.NoError(s.T(), err)
+	require.Empty(s.T(), invoices.Items)
 }
 
 func (s *InvoicingTestSuite) TestInvoicingFlow() {

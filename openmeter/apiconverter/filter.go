@@ -33,6 +33,7 @@ var (
 	// FilterTime.Eq is new on the internal type; v1 api.FilterTime does not
 	// expose it. Remove this ignore when v1 grows an Eq field.
 	// goverter:ignore Eq
+	// goverter:ignore Exists
 	ConvertTime              func(api.FilterTime) filter.FilterTime
 	ConvertTimePtr           func(*api.FilterTime) *filter.FilterTime
 	ConvertBoolean           func(api.FilterBoolean) filter.FilterBoolean
