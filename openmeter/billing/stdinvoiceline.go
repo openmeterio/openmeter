@@ -151,6 +151,10 @@ func (i StandardLineBase) Clone() StandardLineBase {
 		out.TaxConfig = &tc
 	}
 
+	if i.OverrideCollectionPeriodEnd != nil {
+		out.OverrideCollectionPeriodEnd = lo.ToPtr(*i.OverrideCollectionPeriodEnd)
+	}
+
 	if len(i.CreditsApplied) > 0 {
 		out.CreditsApplied = i.CreditsApplied.Clone()
 	}
