@@ -260,7 +260,7 @@ func parseEventSort(ctx context.Context, sort *api.SortQuery) (streaming.EventSo
 	// descending so `sort=time` behaves the same as omitting the parameter
 	// (most recent first).
 	order := parsed.Order.ToSortxOrder()
-	if len(strings.Fields(string(*sort))) == 1 {
+	if len(strings.Fields(*sort)) == 1 {
 		order = sortx.OrderDesc
 	}
 
