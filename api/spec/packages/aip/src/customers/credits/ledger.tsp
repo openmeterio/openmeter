@@ -18,54 +18,6 @@ enum CreditTransactionType {
   Consumed: "consumed",
 }
 
-/**
- * Cursor pagination metadata for credit transactions.
- *
- * NOTE: We intentionally return opaque cursor tokens (not URI links) in
- * `first`, `last`, `next`, and `previous`. This matches existing OpenMeter
- * cursor implementations and avoids coupling response construction to
- * externally visible URL shape behind proxies/gateways.
- */
-@friendlyName("BillingCreditTransactionCursorMetaPage")
-model CreditTransactionCursorMetaPage {
-  /**
-   * Opaque cursor for loading the next page (older records).
-   */
-  next?: string;
-
-  /**
-   * Opaque cursor for loading the previous page (newer records).
-   */
-  previous?: string;
-
-  /**
-   * Requested page size.
-   */
-  size: integer;
-}
-
-/**
- * Cursor metadata container for credit transactions.
- */
-@friendlyName("BillingCreditTransactionCursorMeta")
-model CreditTransactionCursorMeta {
-  /**
-   * Cursor page metadata.
-   */
-  page: CreditTransactionCursorMetaPage;
-}
-
-/**
- * Cursor paginated response for credit transactions.
- */
-@friendlyName("CreditTransactionPaginatedResponse")
-model CreditTransactionPaginatedResponse {
-  @pageItems
-  data: CreditTransaction[];
-
-  meta: CreditTransactionCursorMeta;
-}
-
 // /**
 //  * The type of actor that caused the credit transaction.
 //  *

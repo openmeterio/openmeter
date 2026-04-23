@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/oapi-codegen/nullable"
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
@@ -108,11 +109,13 @@ func (h *handler) ListCreditTransactions() ListCreditTransactionsHandler {
 			}
 
 			// We intentionally expose opaque cursor tokens instead of URI links.
-			// This aligns with existing OpenMeter cursor endpoints and avoids coupling
-			// pagination metadata to externally visible URL construction.
-			meta := api.BillingCreditTransactionCursorMeta{
-				Page: api.BillingCreditTransactionCursorMetaPage{
-					Size: request.Limit,
+			// This endpoint reuses the shared cursor metadata schema, but still emits
+			// opaque token values rather than fully qualified URLs.
+			meta := api.CursorMeta{
+				Page: api.CursorMetaPage{
+					Next:     nullable.NewNullNullable[string](),
+					Previous: nullable.NewNullNullable[string](),
+					Size:     float32(request.Limit),
 				},
 			}
 
@@ -121,7 +124,7 @@ func (h *handler) ListCreditTransactions() ListCreditTransactionsHandler {
 				if err != nil {
 					return ListCreditTransactionsResponse{}, fmt.Errorf("encode next cursor: %w", err)
 				}
-				meta.Page.Next = &next
+				meta.Page.Next = nullable.NewNullableWithValue(next)
 			}
 
 			if result.PreviousCursor != nil {
@@ -129,7 +132,7 @@ func (h *handler) ListCreditTransactions() ListCreditTransactionsHandler {
 				if err != nil {
 					return ListCreditTransactionsResponse{}, fmt.Errorf("encode previous cursor: %w", err)
 				}
-				meta.Page.Previous = &previous
+				meta.Page.Previous = nullable.NewNullableWithValue(previous)
 			}
 
 			return api.CreditTransactionPaginatedResponse{

@@ -1095,7 +1095,7 @@ paths:
           style: deepObject
       responses:
         '200':
-          description: The request has succeeded.
+          description: Cursor paginated response.
           content:
             application/json:
               schema:
@@ -4218,37 +4218,6 @@ components:
 
         Credit transactions are immutable.
       title: Credit transaction
-    BillingCreditTransactionCursorMeta:
-      type: object
-      required:
-        - page
-      properties:
-        page:
-          allOf:
-            - $ref: '#/components/schemas/BillingCreditTransactionCursorMetaPage'
-          description: Cursor page metadata.
-      description: Cursor metadata container for credit transactions.
-    BillingCreditTransactionCursorMetaPage:
-      type: object
-      required:
-        - size
-      properties:
-        next:
-          type: string
-          description: Opaque cursor for loading the next page (older records).
-        previous:
-          type: string
-          description: Opaque cursor for loading the previous page (newer records).
-        size:
-          type: integer
-          description: Requested page size.
-      description: |-
-        Cursor pagination metadata for credit transactions.
-
-        NOTE: We intentionally return opaque cursor tokens (not URI links) in
-        `first`, `last`, `next`, and `previous`. This matches existing OpenMeter
-        cursor implementations and avoids coupling response construction to
-        externally visible URL shape behind proxies/gateways.
     BillingCreditTransactionType:
       type: string
       enum:
@@ -7032,8 +7001,8 @@ components:
           items:
             $ref: '#/components/schemas/BillingCreditTransaction'
         meta:
-          $ref: '#/components/schemas/BillingCreditTransactionCursorMeta'
-      description: Cursor paginated response for credit transactions.
+          $ref: '#/components/schemas/CursorMeta'
+      description: Cursor paginated response.
     CurrencyAmount:
       type: object
       required:
