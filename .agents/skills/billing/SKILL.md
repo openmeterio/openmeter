@@ -86,7 +86,8 @@ Rules:
 
 - `Period`: when the service was actually rendered (usage window)
 - `InvoiceAt`: when the line should appear on an invoice (may be delayed)
-- `CollectionAt`: when the invoice entered collection (drives due-date calculation)
+- `GatheringInvoice.NextCollectionAt` / DB `collection_at`: when pending lines become eligible for automatic collection into a draft invoice
+- `StandardInvoice.CollectionAt`: the post-creation collection / quantity-snapshot cutoff for metered standard-invoice lines
 
 These are distinct fields and must not be conflated.
 
@@ -243,9 +244,19 @@ The billing line-engine contract lives in `openmeter/billing/lineengine.go`. Bil
 Use those tests as the template for new billing line-engine lifecycle behavior.
 ## Gathering vs Standard Invoices
 
-**Gathering invoice**: one per customer per currency, never advances through states. Collects pending lines (from subscription sync). When lines become due (`CollectionAt <= now`), the `InvoiceCollector` cron calls `InvoicePendingLines` to move them into a new `StandardInvoice`. The gathering invoice is soft-deleted when it has no remaining lines.
+**Gathering invoice**: one per customer per currency, never advances through states. Collects pending lines (from subscription sync). Automatic standard-invoice creation is gated here by the billing profile's `workflow.collection.alignment`: `NextCollectionAt` is the next wake-up time for the collector, and `InvoicePendingLines` honors alignment by default. The gathering invoice is soft-deleted when it has no remaining lines.
 
-**Standard invoice**: goes through the full state machine. Created from gathering lines by `CreateStandardInvoiceFromGatheringLines`.
+**Standard invoice**: goes through the full state machine. Created from gathering lines by `CreateStandardInvoiceFromGatheringLines`. `CollectionAt` on a standard invoice is no longer the primary place where alignment lives; it is the post-creation cutoff used by quantity snapshotting / collection-completed processing for metered lines.
+
+**Alignment placement**:
+- Billing-profile `workflow.collection.alignment` is a pending-line collection policy, so automatic `InvoicePendingLines` paths should honor it before standard-invoice creation.
+- Explicit/manual invoicing paths may bypass alignment intentionally via `WithBypassCollectionAlignment()`.
+- `StandardInvoiceCollectionAt` should not re-implement anchored alignment; it should derive from metered standard lines only.
+
+**Flat-fee standard invoices**:
+- `StandardInvoiceCollectionAt` only considers non-deleted lines where `DependsOnMeteredQuantity() == true`.
+- Flat-fee-only standard invoices therefore have domain `CollectionAt == nil`.
+- The V3 HTTP mapping currently emulates `collectionAt` as `CreatedAt` for standard invoices when the domain field is nil, to preserve the historic API shape. Do not confuse this API compatibility shim with the domain semantics.
 
 **Line splitting (progressive billing)**: when a usage-based line must be billed mid-period, the original line gets `status=split` and two children are created. The parent's `SplitLineGroupID` connects them. `SplitLineHierarchy` carries all siblings for computing `GetPreviouslyBilledAmount()`.
 

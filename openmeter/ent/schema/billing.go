@@ -1116,8 +1116,12 @@ func (BillingInvoice) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
-		// The timestamp set in the collection_at field defines when new draft invoice is need to be created
-		// from line-items available on the gathering invoice.
+		// The timestamp stored in the collection_at field has a dual purpose:
+		// - on gathering invoices, it defines when pending line-items should be collected into a new draft invoice
+		// - on standard invoices, it defines the post-creation collection/snapshot cutoff for metered lines
+		//
+		// The collection_at column is intentionally Optional().Nillable() so NULL can round-trip to a domain
+		// *time.Time nil value after the migration away from non-null/default-backed semantics.
 		field.Time("collection_at").
 			Optional().
 			Nillable(),
