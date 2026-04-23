@@ -323,6 +323,53 @@ func (s service) UpdatePlanAddon(ctx context.Context, params planaddon.UpdatePla
 		}
 
 		//
+		// Validate plan add-on assignment compatibility after applying the patch
+		//
+		// Patch-field merge rules must mirror the adapter in
+		// planaddon/adapter/planaddon.go UpdatePlanAddon:
+		//   - MaxQuantity is always replaced via SetOrClearMaxQuantity, so nil
+		//     clears the column — use params.MaxQuantity as-is.
+		//   - FromPlanPhase is only written when non-nil, so nil means
+		//     "keep existing".
+		//   - Metadata / Annotations are only written when non-nil.
+		//
+
+		fromPlanPhase := planAddon.FromPlanPhase
+		if params.FromPlanPhase != nil {
+			fromPlanPhase = *params.FromPlanPhase
+		}
+
+		metadata := planAddon.Metadata
+		if params.Metadata != nil {
+			metadata = *params.Metadata
+		}
+
+		annotations := planAddon.Annotations
+		if params.Annotations != nil {
+			annotations = *params.Annotations
+		}
+
+		pa := productcatalog.PlanAddon{
+			PlanAddonMeta: productcatalog.PlanAddonMeta{
+				Metadata:    metadata,
+				Annotations: annotations,
+				PlanAddonConfig: productcatalog.PlanAddonConfig{
+					FromPlanPhase: fromPlanPhase,
+					MaxQuantity:   params.MaxQuantity,
+				},
+			},
+			Plan:  planAddon.Plan.AsProductCatalogPlan(),
+			Addon: planAddon.Addon.AsProductCatalogAddon(),
+		}
+
+		if err = pa.Validate(); err != nil {
+			return nil, models.NewGenericValidationError(
+				fmt.Errorf("invalid plan add-on assignment [namespace=%s plan.id=%s addon.id=%s]: %w",
+					params.Namespace, params.PlanID, params.AddonID, err),
+			)
+		}
+
+		//
 		// Update plan add-on assignment
 		//
 

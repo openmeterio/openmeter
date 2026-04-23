@@ -6819,7 +6819,8 @@ components:
           minimum: 1
           description: |-
             The maximum number of times the add-on can be purchased for the plan.
-            Not applicable for single instance add-ons.
+            For single-instance add-ons this field must be omitted.
+            For multi-instance add-ons when omitted, unlimited quantity can be purchased.
           title: Max quantity
       description: PlanAddon create request.
     CreatePlanRequest:
@@ -7896,7 +7897,8 @@ components:
           minimum: 1
           description: |-
             The maximum number of times the add-on can be purchased for the plan.
-            Not applicable for single instance add-ons.
+            For single-instance add-ons this field must be omitted.
+            For multi-instance add-ons when omitted, unlimited quantity can be purchased.
           title: Max quantity
         validation_errors:
           type: array
@@ -8509,7 +8511,8 @@ components:
           minimum: 1
           description: |-
             The maximum number of times the add-on can be purchased for the plan.
-            Not applicable for single instance add-ons.
+            For single-instance add-ons this field must be omitted.
+            For multi-instance add-ons when omitted, unlimited quantity can be purchased.
           title: Max quantity
       description: PlanAddon upsert request.
     UpsertPlanRequest:
