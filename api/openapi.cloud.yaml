@@ -17882,11 +17882,6 @@ components:
           nullable: true
           description: The field must be less than or equal to the provided value.
           x-omitempty: true
-        $exists:
-          type: boolean
-          nullable: true
-          description: The field must exist.
-          x-omitempty: true
         $and:
           type: array
           items:

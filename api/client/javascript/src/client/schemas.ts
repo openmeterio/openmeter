@@ -6396,8 +6396,6 @@ export interface components {
        * @description The field must be less than or equal to the provided value.
        */
       $lte?: Date | null
-      /** @description The field must exist. */
-      $exists?: boolean | null
       /** @description Provide a list of filters to be combined with a logical AND. */
       $and?: components['schemas']['FilterTime'][] | null
       /** @description Provide a list of filters to be combined with a logical OR. */
