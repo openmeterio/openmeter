@@ -46,7 +46,7 @@ import (
 // 5) We publish the invoice created event.
 //
 // 6) We return the created invoices.
-func (s *Service) InvoicePendingLines(ctx context.Context, input billing.InvoicePendingLinesInput) ([]billing.StandardInvoice, error) {
+func (s *Service) InvoicePendingLines(ctx context.Context, input billing.InvoicePendingLinesInput, opts ...billing.InvoicePendingLinesOption) ([]billing.StandardInvoice, error) {
 	if err := input.Validate(); err != nil {
 		return nil, billing.ValidationError{
 			Err: err,
@@ -64,7 +64,9 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 		s,
 		input.Customer,
 		func(ctx context.Context) ([]billing.StandardInvoice, error) {
-			billableLines, err := s.PrepareBillableLines(ctx, input)
+			options := billing.NewInvoicePendingLinesOptions(opts...)
+
+			billableLines, err := s.prepareBillableLines(ctx, input, options)
 			if err != nil {
 				return nil, fmt.Errorf("preparing billable lines: %w", err)
 			}
@@ -93,7 +95,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 		})
 }
 
-func (s *Service) PrepareBillableLines(ctx context.Context, input billing.PrepareBillableLinesInput) (*billing.PrepareBillableLinesResult, error) {
+func (s *Service) prepareBillableLines(ctx context.Context, input billing.PrepareBillableLinesInput, options billing.InvoicePendingLinesOptions) (*billing.PrepareBillableLinesResult, error) {
 	if err := input.Validate(); err != nil {
 		return nil, billing.ValidationError{
 			Err: err,
@@ -124,6 +126,16 @@ func (s *Service) PrepareBillableLines(ctx context.Context, input billing.Prepar
 			}
 
 			asOf := lo.FromPtrOr(input.AsOf, clock.Now())
+
+			progressiveBilling := customerProfile.MergedProfile.WorkflowConfig.Invoicing.ProgressiveBilling
+			if options.PartialInvoiceLinesEnabled != nil {
+				progressiveBilling = *options.PartialInvoiceLinesEnabled
+			}
+
+			asOf, err = resolvePendingLineCollectionCutoff(options, customerProfile.MergedProfile.WorkflowConfig.Collection, asOf)
+			if err != nil {
+				return nil, fmt.Errorf("resolving collection asOf: %w", err)
+			}
 
 			// let's fetch the existing gathering invoices for the customer
 			existingGatheringInvoices, err := s.adapter.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
@@ -172,10 +184,7 @@ func (s *Service) PrepareBillableLines(ctx context.Context, input billing.Prepar
 				GatheringInvoicesByCurrency: invoicesByCurrency,
 				LinesToInclude:              input.IncludePendingLines,
 				AsOf:                        asOf,
-				ProgressiveBilling: lo.FromPtrOr(
-					input.ProgressiveBillingOverride,
-					customerProfile.MergedProfile.WorkflowConfig.Invoicing.ProgressiveBilling,
-				),
+				ProgressiveBilling:          progressiveBilling,
 			})
 			if err != nil {
 				return nil, err
@@ -228,6 +237,47 @@ func (s *Service) PrepareBillableLines(ctx context.Context, input billing.Prepar
 				LinesByCurrency: linesToBeBilledByCurrency,
 			}, nil
 		})
+}
+
+// resolvePendingLineCollectionCutoff returns the effective AsOf cutoff used when selecting
+// gathering lines to invoice.
+//
+// Rules:
+//   - invoicing that bypasses collection alignment keeps the caller-provided cutoff unchanged
+//   - subscription alignment also keeps the cutoff unchanged
+//   - anchored alignment snaps the cutoff back to the latest anchor
+//     at or before the requested cutoff
+func resolvePendingLineCollectionCutoff(options billing.InvoicePendingLinesOptions, collection billing.CollectionConfig, asOf time.Time) (time.Time, error) {
+	if options.BypassCollectionAlignment {
+		return asOf, nil
+	}
+
+	switch collection.Alignment {
+	case billing.AlignmentKindSubscription:
+		return asOf, nil
+	case billing.AlignmentKindAnchored:
+		return latestAnchorAtOrBefore(collection.AnchoredAlignmentDetail, asOf)
+	default:
+		return time.Time{}, fmt.Errorf("unsupported collection alignment: %s", collection.Alignment)
+	}
+}
+
+func latestAnchorAtOrBefore(detail *billing.AnchoredAlignmentDetail, asOf time.Time) (time.Time, error) {
+	if detail == nil {
+		return time.Time{}, errors.New("anchored alignment detail is required")
+	}
+
+	recurrence, err := timeutil.NewRecurrenceFromISODuration(detail.Interval, detail.Anchor)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("creating anchored alignment recurrence: %w", err)
+	}
+
+	at, err := recurrence.PrevBefore(asOf, timeutil.Inclusive)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("resolving anchored alignment recurrence: %w", err)
+	}
+
+	return at, nil
 }
 
 type gatheringLineWithBillablePeriod struct {
@@ -835,7 +885,7 @@ func (s *Service) recalculateStandardInvoice(ctx context.Context, invoice billin
 		return billing.StandardInvoice{}, fmt.Errorf("resolving tax codes: %w", err)
 	}
 
-	if err := s.invoiceCalculator.Calculate(&invoice, invoicecalc.CalculatorDependencies{
+	if err := s.invoiceCalculator.Calculate(&invoice, invoicecalc.StandardInvoiceCalculatorDependencies{
 		FeatureMeters: featureMeters,
 		RatingService: s.ratingService,
 		TaxCodes:      taxCodes,
@@ -905,7 +955,16 @@ func (s *Service) removeLinesFromGatheringInvoice(ctx context.Context, invoice b
 	}
 
 	// Let's update the invoice's state
-	if err := s.invoiceCalculator.CalculateGatheringInvoice(&invoice); err != nil {
+	customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		Customer: invoice.GetCustomerID(),
+	})
+	if err != nil {
+		return fmt.Errorf("fetching customer profile: %w", err)
+	}
+
+	if err := s.invoiceCalculator.CalculateGatheringInvoice(&invoice, invoicecalc.GatheringInvoiceCalculatorDependencies{
+		Collection: customerProfile.MergedProfile.WorkflowConfig.Collection,
+	}); err != nil {
 		return fmt.Errorf("calculating gathering invoice: %w", err)
 	}
 
@@ -914,7 +973,7 @@ func (s *Service) removeLinesFromGatheringInvoice(ctx context.Context, invoice b
 		invoice.DeletedAt = lo.ToPtr(clock.Now())
 	}
 
-	err := s.adapter.UpdateGatheringInvoice(ctx, invoice)
+	err = s.adapter.UpdateGatheringInvoice(ctx, invoice)
 	if err != nil {
 		return fmt.Errorf("updating gathering invoice: %w", err)
 	}

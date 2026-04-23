@@ -10,14 +10,13 @@ import (
 )
 
 type invoiceCalculatorsByType struct {
-	LegacyGatheringInvoice       []Calculation
-	GatheringInvoice             []GatheringCalculation
-	GatheringInvoiceWithLiveData []Calculation
-	Invoice                      []Calculation
+	GatheringInvoice             []GatheringInvoiceCalculation
+	GatheringInvoiceWithLiveData []StandardInvoiceCalculation
+	Invoice                      []StandardInvoiceCalculation
 }
 
 var InvoiceCalculations = invoiceCalculatorsByType{
-	Invoice: []Calculation{
+	Invoice: []StandardInvoiceCalculation{
 		WithNoDependencies(StandardInvoiceCollectionAt),
 		WithNoDependencies(CalculateDraftUntil),
 		WithNoDependencies(CalculateDueAt),
@@ -26,20 +25,15 @@ var InvoiceCalculations = invoiceCalculatorsByType{
 		WithNoDependencies(CalculateStandardInvoiceServicePeriod),
 		SnapshotTaxConfigIntoLines,
 	},
-	LegacyGatheringInvoice: []Calculation{
-		WithNoDependencies(UpsertDiscountCorrelationIDs),
-		WithNoDependencies(LegacyGatheringInvoiceCollectionAt),
-		WithNoDependencies(CalculateStandardInvoiceServicePeriod),
-	},
-	GatheringInvoice: []GatheringCalculation{
-		UpsertGatheringInvoiceDiscountCorrelationIDs,
+	GatheringInvoice: []GatheringInvoiceCalculation{
+		WithNoGatheringDependencies(UpsertGatheringInvoiceDiscountCorrelationIDs),
 		GatheringInvoiceCollectionAt,
-		CalculateGatheringInvoiceServicePeriod,
+		WithNoGatheringDependencies(CalculateGatheringInvoiceServicePeriod),
 	},
 	// Calculations that should be running on a gathering invoice to populate line items
-	GatheringInvoiceWithLiveData: []Calculation{
+	GatheringInvoiceWithLiveData: []StandardInvoiceCalculation{
 		WithNoDependencies(UpsertDiscountCorrelationIDs),
-		WithNoDependencies(LegacyGatheringInvoiceCollectionAt),
+		WithNoDependencies(StandardInvoiceCollectionAt),
 		RecalculateDetailedLinesAndTotals,
 		WithNoDependencies(CalculateStandardInvoiceServicePeriod),
 		SnapshotTaxConfigIntoLines,
@@ -48,15 +42,14 @@ var InvoiceCalculations = invoiceCalculatorsByType{
 }
 
 type (
-	Calculation          func(*billing.StandardInvoice, CalculatorDependencies) error
-	GatheringCalculation func(*billing.GatheringInvoice) error
+	StandardInvoiceCalculation  func(*billing.StandardInvoice, StandardInvoiceCalculatorDependencies) error
+	GatheringInvoiceCalculation func(*billing.GatheringInvoice, GatheringInvoiceCalculatorDependencies) error
 )
 
 type Calculator interface {
-	Calculate(*billing.StandardInvoice, CalculatorDependencies) error
-	CalculateLegacyGatheringInvoice(*billing.StandardInvoice) error
-	CalculateGatheringInvoice(*billing.GatheringInvoice) error
-	CalculateGatheringInvoiceWithLiveData(*billing.StandardInvoice, CalculatorDependencies) error
+	Calculate(*billing.StandardInvoice, StandardInvoiceCalculatorDependencies) error
+	CalculateGatheringInvoice(*billing.GatheringInvoice, GatheringInvoiceCalculatorDependencies) error
+	CalculateGatheringInvoiceWithLiveData(*billing.StandardInvoice, StandardInvoiceCalculatorDependencies) error
 }
 
 // TaxCodes is a pre-resolved map of Stripe tax codes keyed by their Stripe code string.
@@ -76,11 +69,15 @@ func (t TaxCodes) Get(stripeCode string) (*taxcode.TaxCode, bool) {
 	return &tc, true
 }
 
-type CalculatorDependencies struct {
+type StandardInvoiceCalculatorDependencies struct {
 	FeatureMeters feature.FeatureMeters
 	RatingService rating.Service
 	TaxCodes      TaxCodes
 	LineEngines   LineEngineResolver
+}
+
+type GatheringInvoiceCalculatorDependencies struct {
+	Collection billing.CollectionConfig
 }
 
 type LineEngineResolver interface {
@@ -93,11 +90,11 @@ func New() Calculator {
 	return &calculator{}
 }
 
-func (c *calculator) Calculate(invoice *billing.StandardInvoice, deps CalculatorDependencies) error {
+func (c *calculator) Calculate(invoice *billing.StandardInvoice, deps StandardInvoiceCalculatorDependencies) error {
 	return c.applyCalculations(invoice, InvoiceCalculations.Invoice, deps)
 }
 
-func (c *calculator) applyCalculations(invoice *billing.StandardInvoice, calculators []Calculation, deps CalculatorDependencies) error {
+func (c *calculator) applyCalculations(invoice *billing.StandardInvoice, calculators []StandardInvoiceCalculation, deps StandardInvoiceCalculatorDependencies) error {
 	var outErr error
 	for _, calc := range calculators {
 		err := calc(invoice, deps)
@@ -113,15 +110,7 @@ func (c *calculator) applyCalculations(invoice *billing.StandardInvoice, calcula
 		billing.ValidationComponentOpenMeter)
 }
 
-func (c *calculator) CalculateLegacyGatheringInvoice(invoice *billing.StandardInvoice) error {
-	if invoice.Status != billing.StandardInvoiceStatusGathering {
-		return errors.New("invoice is not a gathering invoice")
-	}
-
-	return c.applyCalculations(invoice, InvoiceCalculations.LegacyGatheringInvoice, CalculatorDependencies{})
-}
-
-func (c *calculator) CalculateGatheringInvoiceWithLiveData(invoice *billing.StandardInvoice, deps CalculatorDependencies) error {
+func (c *calculator) CalculateGatheringInvoiceWithLiveData(invoice *billing.StandardInvoice, deps StandardInvoiceCalculatorDependencies) error {
 	if invoice.Status != billing.StandardInvoiceStatusGathering {
 		return errors.New("invoice is not a gathering invoice")
 	}
@@ -129,12 +118,12 @@ func (c *calculator) CalculateGatheringInvoiceWithLiveData(invoice *billing.Stan
 	return c.applyCalculations(invoice, InvoiceCalculations.GatheringInvoiceWithLiveData, deps)
 }
 
-func (c *calculator) CalculateGatheringInvoice(invoice *billing.GatheringInvoice) error {
+func (c *calculator) CalculateGatheringInvoice(invoice *billing.GatheringInvoice, deps GatheringInvoiceCalculatorDependencies) error {
 	var errs []error
 
 	// Note: GatheringInvoice has no ValidationIssues, so we should just return the error as is
 	for _, calc := range InvoiceCalculations.GatheringInvoice {
-		err := calc(invoice)
+		err := calc(invoice, deps)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -143,8 +132,14 @@ func (c *calculator) CalculateGatheringInvoice(invoice *billing.GatheringInvoice
 	return errors.Join(errs...)
 }
 
-func WithNoDependencies(cb func(inv *billing.StandardInvoice) error) Calculation {
-	return func(inv *billing.StandardInvoice, _ CalculatorDependencies) error {
+func WithNoDependencies(cb func(inv *billing.StandardInvoice) error) StandardInvoiceCalculation {
+	return func(inv *billing.StandardInvoice, _ StandardInvoiceCalculatorDependencies) error {
+		return cb(inv)
+	}
+}
+
+func WithNoGatheringDependencies(cb func(inv *billing.GatheringInvoice) error) GatheringInvoiceCalculation {
+	return func(inv *billing.GatheringInvoice, _ GatheringInvoiceCalculatorDependencies) error {
 		return cb(inv)
 	}
 }

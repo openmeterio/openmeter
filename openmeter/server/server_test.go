@@ -1919,12 +1919,8 @@ func (n NoopBillingService) RegisterStandardInvoiceHooks(hooks ...billing.Standa
 }
 
 // GatheringInvoiceService methods
-func (n NoopBillingService) InvoicePendingLines(ctx context.Context, input billing.InvoicePendingLinesInput) ([]billing.StandardInvoice, error) {
+func (n NoopBillingService) InvoicePendingLines(ctx context.Context, input billing.InvoicePendingLinesInput, opts ...billing.InvoicePendingLinesOption) ([]billing.StandardInvoice, error) {
 	return []billing.StandardInvoice{}, nil
-}
-
-func (n NoopBillingService) PrepareBillableLines(ctx context.Context, input billing.PrepareBillableLinesInput) (*billing.PrepareBillableLinesResult, error) {
-	return nil, nil
 }
 
 func (n NoopBillingService) ListGatheringInvoices(ctx context.Context, input billing.ListGatheringInvoicesInput) (pagination.Result[billing.GatheringInvoice], error) {

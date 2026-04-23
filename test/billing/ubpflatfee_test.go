@@ -35,7 +35,7 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	cust := s.CreateTestCustomer(namespace, "test")
-	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithProgressiveBilling())
 
 	// Given we have a customer
 	// When we create a pending fee line using the usage based flat fee line
@@ -91,8 +91,7 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 	// Then the line should not be created
 	s.Run("should not create a progressively billed line", func() {
 		_, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer:                   cust.GetID(),
-			ProgressiveBillingOverride: lo.ToPtr(true),
+			Customer: cust.GetID(),
 		})
 		s.Error(err)
 		s.ErrorIs(err, billing.ErrInvoiceCreateNoLines)

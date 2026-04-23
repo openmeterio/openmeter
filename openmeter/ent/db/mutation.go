@@ -14474,7 +14474,7 @@ func (m *BillingInvoiceMutation) CollectionAt() (r time.Time, exists bool) {
 // OldCollectionAt returns the old "collection_at" field's value of the BillingInvoice entity.
 // If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceMutation) OldCollectionAt(ctx context.Context) (v time.Time, err error) {
+func (m *BillingInvoiceMutation) OldCollectionAt(ctx context.Context) (v *time.Time, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCollectionAt is only allowed on UpdateOne operations")
 	}

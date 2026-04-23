@@ -349,7 +349,7 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 			SetNillableSupplierAddressPhoneNumber(supplier.Address.PhoneNumber).
 			SetSupplierName(supplier.Name).
 			SetNillableSupplierTaxCode(supplier.TaxCode).
-			SetNillableCollectionAt(input.CollectionAt).
+			SetNillableCollectionAt(normalizeOptionalTime(input.CollectionAt)).
 			SetSchemaLevel(currentSchemaLevel)
 
 		createMut = totals.Set(createMut, input.Totals)
@@ -477,7 +477,7 @@ func (a *adapter) UpdateStandardInvoice(ctx context.Context, in billing.UpdateSt
 			SetNumber(in.Number).
 			SetOrClearDescription(in.Description).
 			SetOrClearDueAt(convert.SafeToUTC(in.DueAt)).
-			SetOrClearCollectionAt(convert.SafeToUTC(in.CollectionAt)).
+			SetOrClearCollectionAt(normalizeOptionalTime(in.CollectionAt)).
 			SetOrClearPaymentProcessingEnteredAt(convert.SafeToUTC(in.PaymentProcessingEnteredAt)).
 			SetOrClearDraftUntil(convert.SafeToUTC(in.DraftUntil)).
 			SetOrClearIssuedAt(convert.SafeToUTC(in.IssuedAt)).
@@ -694,13 +694,26 @@ func (a *adapter) mapStandardInvoiceBaseFromDB(invoice *db.BillingInvoice) billi
 		UpdatedAt: invoice.UpdatedAt.In(time.UTC),
 		DeletedAt: convert.TimePtrIn(invoice.DeletedAt, time.UTC),
 
-		CollectionAt:               lo.ToPtr(invoice.CollectionAt.In(time.UTC)),
+		CollectionAt:               normalizeOptionalTime(invoice.CollectionAt),
 		PaymentProcessingEnteredAt: convert.TimePtrIn(invoice.PaymentProcessingEnteredAt, time.UTC),
 
 		ExternalIDs: externalid.MapInvoiceExternalIDFromDB(invoice),
 
 		SchemaLevel: invoice.SchemaLevel,
 	}
+}
+
+func normalizeOptionalTime(t *time.Time) *time.Time {
+	// collection_at was historically stored through a non-nillable Ent field, so older rows
+	// can rehydrate as zero time instead of nil. Normalize that legacy representation here so
+	// nil consistently means "no collection required" in the domain model.
+	if t == nil || t.IsZero() {
+		return nil
+	}
+
+	normalized := t.In(time.UTC)
+
+	return &normalized
 }
 
 func (a *adapter) mapStandardInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoice, expand billing.StandardInvoiceExpands) (billing.StandardInvoice, error) {

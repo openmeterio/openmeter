@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
+	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -65,7 +66,16 @@ func (s *Service) UpdateGatheringInvoice(ctx context.Context, input billing.Upda
 			return fmt.Errorf("normalizing lines: %w", err)
 		}
 
-		if err := s.invoiceCalculator.CalculateGatheringInvoice(&invoice); err != nil {
+		customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+			Customer: invoice.GetCustomerID(),
+		})
+		if err != nil {
+			return fmt.Errorf("fetching profile: %w", err)
+		}
+
+		if err := s.invoiceCalculator.CalculateGatheringInvoice(&invoice, invoicecalc.GatheringInvoiceCalculatorDependencies{
+			Collection: customerProfile.MergedProfile.WorkflowConfig.Collection,
+		}); err != nil {
 			return fmt.Errorf("calculating invoice[%s]: %w", invoice.ID, err)
 		}
 
@@ -78,13 +88,6 @@ func (s *Service) UpdateGatheringInvoice(ctx context.Context, input billing.Upda
 		featureMeters, err := s.resolveFeatureMeters(ctx, invoice.Namespace, invoice.Lines)
 		if err != nil {
 			return fmt.Errorf("resolving feature meters: %w", err)
-		}
-
-		customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
-			Customer: invoice.GetCustomerID(),
-		})
-		if err != nil {
-			return fmt.Errorf("fetching profile: %w", err)
 		}
 
 		// Check if the new lines are still invoicable

@@ -16,7 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func RecalculateDetailedLinesAndTotals(invoice *billing.StandardInvoice, deps CalculatorDependencies) error {
+func RecalculateDetailedLinesAndTotals(invoice *billing.StandardInvoice, deps StandardInvoiceCalculatorDependencies) error {
 	if invoice.Lines.IsAbsent() {
 		return errors.New("cannot recaulculate invoice without expanded lines")
 	}

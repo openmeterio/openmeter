@@ -121,7 +121,10 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 }
 
 type (
-	InvoicePendingLinesActionRequest  = billing.InvoicePendingLinesInput
+	InvoicePendingLinesActionRequest struct {
+		billing.InvoicePendingLinesInput
+		Options []billing.InvoicePendingLinesOption
+	}
 	InvoicePendingLinesActionResponse = []api.Invoice
 	InvoicePendingLinesActionHandler  httptransport.Handler[InvoicePendingLinesActionRequest, InvoicePendingLinesActionResponse]
 )
@@ -145,19 +148,33 @@ func (h *handler) InvoicePendingLinesAction() InvoicePendingLinesActionHandler {
 				pendingLinesFilter = mo.PointerToOption(body.Filters.LineIds)
 			}
 
-			return InvoicePendingLinesActionRequest{
-				Customer: customer.CustomerID{
-					ID:        body.CustomerId,
-					Namespace: ns,
+			req := InvoicePendingLinesActionRequest{
+				InvoicePendingLinesInput: billing.InvoicePendingLinesInput{
+					Customer: customer.CustomerID{
+						ID:        body.CustomerId,
+						Namespace: ns,
+					},
+					IncludePendingLines: pendingLinesFilter,
+					AsOf:                body.AsOf,
 				},
+			}
 
-				IncludePendingLines:        pendingLinesFilter,
-				AsOf:                       body.AsOf,
-				ProgressiveBillingOverride: body.ProgressiveBillingOverride,
-			}, nil
+			opts := make([]billing.InvoicePendingLinesOption, 0, 2)
+			opts = append(opts, billing.WithBypassCollectionAlignment())
+			if body.ProgressiveBillingOverride != nil {
+				if *body.ProgressiveBillingOverride {
+					opts = append(opts, billing.WithPartialInvoiceLinesEnabled())
+				} else {
+					opts = append(opts, billing.WithPartialInvoiceLinesDisabled())
+				}
+			}
+
+			req.Options = opts
+
+			return req, nil
 		},
 		func(ctx context.Context, request InvoicePendingLinesActionRequest) (InvoicePendingLinesActionResponse, error) {
-			invoices, err := h.service.InvoicePendingLines(ctx, request)
+			invoices, err := h.service.InvoicePendingLines(ctx, request.InvoicePendingLinesInput, request.Options...)
 			if err != nil {
 				return nil, err
 			}
@@ -560,6 +577,13 @@ func (h *handler) MapInvoiceToAPI(ctx context.Context, invoice billing.Invoice) 
 func MapStandardInvoiceToAPI(invoice billing.StandardInvoice) (api.Invoice, error) {
 	var apps *api.BillingProfileAppsOrReference
 	var err error
+	collectionAt := invoice.CollectionAt
+
+	// Preserve the historic API shape for standard invoices by emulating collectionAt when the
+	// domain model intentionally leaves it nil (for example, flat-fee-only invoices).
+	if collectionAt == nil {
+		collectionAt = lo.ToPtr(invoice.CreatedAt)
+	}
 
 	// Sort the lines to make the response more consistent (internally we don't care about the order)
 	invoice.SortLines()
@@ -585,7 +609,7 @@ func MapStandardInvoiceToAPI(invoice billing.StandardInvoice) (api.Invoice, erro
 		IssuedAt:             invoice.IssuedAt,
 		VoidedAt:             invoice.VoidedAt,
 		DueAt:                invoice.DueAt,
-		CollectionAt:         invoice.CollectionAt,
+		CollectionAt:         collectionAt,
 		DraftUntil:           invoice.DraftUntil,
 		SentToCustomerAt:     invoice.SentToCustomerAt,
 		QuantitySnapshotedAt: invoice.QuantitySnapshotedAt,

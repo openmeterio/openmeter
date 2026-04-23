@@ -135,13 +135,8 @@ func (a *adapter) UpdateGatheringInvoice(ctx context.Context, in billing.Gatheri
 			SetTaxesTotal(alpacadecimal.Zero).
 			SetTaxesExclusiveTotal(alpacadecimal.Zero).
 			SetTaxesInclusiveTotal(alpacadecimal.Zero).
-			SetTotal(alpacadecimal.Zero)
-
-		if !in.NextCollectionAt.IsZero() {
-			updateQuery = updateQuery.SetCollectionAt(in.NextCollectionAt.In(time.UTC))
-		} else {
-			updateQuery = updateQuery.ClearCollectionAt()
-		}
+			SetTotal(alpacadecimal.Zero).
+			SetOrClearCollectionAt(convert.SafeToUTC(in.NextCollectionAt))
 
 		// Clear period when the invoice is soft-deleted
 		if in.DeletedAt != nil {
@@ -420,7 +415,7 @@ func (a *adapter) mapGatheringInvoiceFromDB(ctx context.Context, invoice *db.Bil
 			CustomerID:       invoice.CustomerID,
 			Currency:         invoice.Currency,
 			ServicePeriod:    period,
-			NextCollectionAt: invoice.CollectionAt.In(time.UTC),
+			NextCollectionAt: convert.TimePtrIn(invoice.CollectionAt, time.UTC),
 			SchemaLevel:      invoice.SchemaLevel,
 		},
 

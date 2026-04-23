@@ -291,7 +291,12 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 			Expands: []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 		}
 
-		s.NoError(invoicecalc.GatheringInvoiceCollectionAt(&expectedInvoice))
+		s.NoError(invoicecalc.GatheringInvoiceCollectionAt(&expectedInvoice, invoicecalc.GatheringInvoiceCalculatorDependencies{
+			Collection: billing.CollectionConfig{
+				Alignment: billing.AlignmentKindSubscription,
+				Interval:  datetime.MustParseDuration(s.T(), "PT1H"),
+			},
+		}))
 
 		ExpectJSONEqual(s.T(),
 			lo.Must(expectedInvoice.WithoutDBState()),
@@ -3678,7 +3683,7 @@ func (s *InvoicingTestSuite) TestProgressiveBillLate() {
 	s.True(line.Period.Equal(timeutil.ClosedPeriod{From: periodStart, To: periodEnd}), "periods should equal")
 }
 
-func (s *InvoicingTestSuite) TestProgressiveBillingOverride() {
+func (s *InvoicingTestSuite) TestPartialInvoiceLinesOptions() {
 	namespace := "ns-progressive-bill-override"
 	ctx := context.Background()
 
@@ -3770,9 +3775,8 @@ func (s *InvoicingTestSuite) TestProgressiveBillingOverride() {
 	clock.SetTime(collecitonDoneAt)
 
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer:                   customer.GetID(),
-		ProgressiveBillingOverride: lo.ToPtr(false),
-	})
+		Customer: customer.GetID(),
+	}, billing.WithPartialInvoiceLinesDisabled())
 	s.NoError(err)
 	s.Len(invoices, 1)
 
@@ -3875,9 +3879,8 @@ func (s *InvoicingTestSuite) TestSortLines() {
 	clock.SetTime(periodEnd)
 
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer:                   customer.GetID(),
-		ProgressiveBillingOverride: lo.ToPtr(false),
-	})
+		Customer: customer.GetID(),
+	}, billing.WithPartialInvoiceLinesDisabled())
 	s.NoError(err)
 	s.Len(invoices, 1)
 
@@ -4010,9 +4013,8 @@ func (s *InvoicingTestSuite) TestGatheringInvoicePeriodPersisting() {
 
 	clock.SetTime(newPeriodEnd)
 	res, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer:                   customer.GetID(),
-		ProgressiveBillingOverride: lo.ToPtr(false),
-	})
+		Customer: customer.GetID(),
+	}, billing.WithPartialInvoiceLinesDisabled())
 	s.NoError(err)
 	s.Len(res, 1)
 
@@ -4076,9 +4078,8 @@ func (s *InvoicingTestSuite) TestCreatePendingInvoiceLinesForDeletedCustomers() 
 
 	// Create the invoice
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer:                   customer.GetID(),
-		ProgressiveBillingOverride: lo.ToPtr(false),
-	})
+		Customer: customer.GetID(),
+	}, billing.WithPartialInvoiceLinesDisabled())
 	s.NoError(err)
 	s.Len(invoices, 1)
 
