@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/samber/lo"
 	"github.com/samber/mo"
@@ -211,12 +212,17 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, _ meta
 }
 
 type invoiceCreatedInput struct {
-	LineID string
+	LineID                      string
+	OverrideCollectionPeriodEnd *time.Time
 }
 
 func (i invoiceCreatedInput) Validate() error {
 	if i.LineID == "" {
 		return fmt.Errorf("line id is required")
+	}
+
+	if i.OverrideCollectionPeriodEnd != nil && i.OverrideCollectionPeriodEnd.IsZero() {
+		return fmt.Errorf("override collection period end must not be zero when set")
 	}
 
 	return nil
@@ -228,9 +234,13 @@ func (s *CreditThenInvoiceStateMachine) startInvoiceCreatedRun(
 	runType usagebased.RealizationRunType,
 ) error {
 	storedAtOffset := meta.NormalizeTimestamp(clock.Now())
-	collectionEnd, err := s.GetCollectionPeriodEnd(ctx)
-	if err != nil {
-		return fmt.Errorf("get collection period end: %w", err)
+	collectionEnd := lo.FromPtr(input.OverrideCollectionPeriodEnd)
+	if collectionEnd.IsZero() {
+		var err error
+		collectionEnd, err = s.GetCollectionPeriodEnd(ctx)
+		if err != nil {
+			return fmt.Errorf("get collection period end: %w", err)
+		}
 	}
 
 	result, err := s.Runs.CreateRatedRun(ctx, usagebasedrun.CreateRatedRunInput{

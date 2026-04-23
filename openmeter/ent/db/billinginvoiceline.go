@@ -90,6 +90,8 @@ type BillingInvoiceLine struct {
 	ParentLineID *string `json:"parent_line_id,omitempty"`
 	// InvoiceAt holds the value of the "invoice_at" field.
 	InvoiceAt time.Time `json:"invoice_at,omitempty"`
+	// OverrideCollectionPeriodEnd holds the value of the "override_collection_period_end" field.
+	OverrideCollectionPeriodEnd *time.Time `json:"override_collection_period_end,omitempty"`
 	// Type holds the value of the "type" field.
 	Type billing.InvoiceLineAdapterType `json:"type,omitempty"`
 	// Status holds the value of the "status" field.
@@ -385,7 +387,7 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 			values[i] = new(alpacadecimal.Decimal)
 		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldTaxCodeID, billinginvoiceline.FieldTaxBehavior, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldManagedBy, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID, billinginvoiceline.FieldSplitLineGroupID, billinginvoiceline.FieldChargeID, billinginvoiceline.FieldEngine, billinginvoiceline.FieldLineIds:
 			values[i] = new(sql.NullString)
-		case billinginvoiceline.FieldCreatedAt, billinginvoiceline.FieldUpdatedAt, billinginvoiceline.FieldDeletedAt, billinginvoiceline.FieldPeriodStart, billinginvoiceline.FieldPeriodEnd, billinginvoiceline.FieldInvoiceAt, billinginvoiceline.FieldSubscriptionBillingPeriodFrom, billinginvoiceline.FieldSubscriptionBillingPeriodTo:
+		case billinginvoiceline.FieldCreatedAt, billinginvoiceline.FieldUpdatedAt, billinginvoiceline.FieldDeletedAt, billinginvoiceline.FieldPeriodStart, billinginvoiceline.FieldPeriodEnd, billinginvoiceline.FieldInvoiceAt, billinginvoiceline.FieldOverrideCollectionPeriodEnd, billinginvoiceline.FieldSubscriptionBillingPeriodFrom, billinginvoiceline.FieldSubscriptionBillingPeriodTo:
 			values[i] = new(sql.NullTime)
 		case billinginvoiceline.FieldRatecardDiscounts:
 			values[i] = billinginvoiceline.ValueScanner.RatecardDiscounts.ScanValue()
@@ -589,6 +591,13 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 				return fmt.Errorf("unexpected type %T for field invoice_at", values[i])
 			} else if value.Valid {
 				_m.InvoiceAt = value.Time
+			}
+		case billinginvoiceline.FieldOverrideCollectionPeriodEnd:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field override_collection_period_end", values[i])
+			} else if value.Valid {
+				_m.OverrideCollectionPeriodEnd = new(time.Time)
+				*_m.OverrideCollectionPeriodEnd = value.Time
 			}
 		case billinginvoiceline.FieldType:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -927,6 +936,11 @@ func (_m *BillingInvoiceLine) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("invoice_at=")
 	builder.WriteString(_m.InvoiceAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	if v := _m.OverrideCollectionPeriodEnd; v != nil {
+		builder.WriteString("override_collection_period_end=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("type=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Type))

@@ -34,8 +34,9 @@ type StandardLineBase struct {
 	Currency  currencyx.Code `json:"currency"`
 
 	// Lifecycle
-	Period    timeutil.ClosedPeriod `json:"period"`
-	InvoiceAt time.Time             `json:"invoiceAt"`
+	Period                      timeutil.ClosedPeriod `json:"period"`
+	InvoiceAt                   time.Time             `json:"invoiceAt"`
+	OverrideCollectionPeriodEnd *time.Time            `json:"overrideCollectionPeriodEnd,omitempty"`
 
 	// Relationships
 	ParentLineID     *string `json:"parentLine,omitempty"`
@@ -78,6 +79,14 @@ func (i StandardLineBase) Validate() error {
 
 	if i.InvoiceAt.IsZero() {
 		errs = append(errs, errors.New("invoice at is required"))
+	}
+
+	if i.OverrideCollectionPeriodEnd != nil && i.OverrideCollectionPeriodEnd.IsZero() {
+		errs = append(errs, errors.New("overrideCollectionPeriodEnd must not be zero when set"))
+	}
+
+	if i.OverrideCollectionPeriodEnd != nil && i.OverrideCollectionPeriodEnd.Before(i.Period.To) {
+		errs = append(errs, errors.New("overrideCollectionPeriodEnd must be after or equal to period end"))
 	}
 
 	if i.Name == "" {
@@ -655,6 +664,9 @@ func (i StandardLine) WithNormalizedValues() (*StandardLine, error) {
 
 	out.Period = out.Period.Truncate(streaming.MinimumWindowSizeDuration)
 	out.InvoiceAt = out.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
+	if out.OverrideCollectionPeriodEnd != nil {
+		out.OverrideCollectionPeriodEnd = lo.ToPtr(out.OverrideCollectionPeriodEnd.Truncate(streaming.MinimumWindowSizeDuration))
+	}
 
 	if err := setDefaultPaymentTermForFlatPrice(out.UsageBased.Price); err != nil {
 		return nil, fmt.Errorf("setting default payment term for flat price: %w", err)

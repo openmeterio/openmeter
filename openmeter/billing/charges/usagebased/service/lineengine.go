@@ -143,6 +143,9 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 		}
 
 		trigger := resolveInvoiceCreatedTrigger(stateMachine.GetCharge(), stdLine.Period)
+		if trigger == meta.TriggerPartialInvoiceCreated {
+			stdLine.OverrideCollectionPeriodEnd = lo.ToPtr(stdLine.Period.To.Add(usagebased.InternalCollectionPeriod))
+		}
 
 		if stateMachine.GetCharge().State.CurrentRealizationRunID != nil {
 			return nil, billing.ValidationError{
@@ -151,7 +154,8 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 		}
 
 		if err := stateMachine.FireAndActivate(ctx, trigger, invoiceCreatedInput{
-			LineID: stdLine.ID,
+			LineID:                      stdLine.ID,
+			OverrideCollectionPeriodEnd: stdLine.OverrideCollectionPeriodEnd,
 		}); err != nil {
 			return nil, fmt.Errorf("triggering %s for charge[%s]: %w", trigger, stateMachine.GetCharge().ID, err)
 		}

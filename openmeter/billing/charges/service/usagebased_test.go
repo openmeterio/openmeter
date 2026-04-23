@@ -184,9 +184,12 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		s.Len(invoices, 1)
 
 		partialInvoice = invoices[0]
-		s.Require().Len(partialInvoice.Lines.OrEmpty(), 1)
+		s.Len(partialInvoice.Lines.OrEmpty(), 1)
 
 		stdLine := partialInvoice.Lines.OrEmpty()[0]
+		expectedPartialCollectionEnd := midPeriodInvoiceAt.Add(usagebased.InternalCollectionPeriod)
+		s.NotNil(stdLine.OverrideCollectionPeriodEnd)
+		s.True(expectedPartialCollectionEnd.Equal(*stdLine.OverrideCollectionPeriodEnd))
 		s.RequireTotals(billingtest.ExpectedTotals{
 			Amount: 12.5,
 			Total:  12.5,
@@ -205,6 +208,9 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		s.Equal(usagebased.RealizationRunTypePartialInvoice, currentRun.Type)
 		s.NotNil(currentRun.LineID)
 		s.Equal(stdLine.ID, *currentRun.LineID)
+		s.True(expectedPartialCollectionEnd.Equal(currentRun.CollectionEnd))
+		s.NotNil(partialInvoice.CollectionAt)
+		s.True(expectedPartialCollectionEnd.Equal(*partialInvoice.CollectionAt))
 
 		partialRunID = currentRun.ID.ID
 

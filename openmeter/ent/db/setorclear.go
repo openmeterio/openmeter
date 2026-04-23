@@ -1222,6 +1222,20 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearParentLineID(value *string) *Bil
 	return u.SetParentLineID(*value)
 }
 
+func (u *BillingInvoiceLineUpdate) SetOrClearOverrideCollectionPeriodEnd(value *time.Time) *BillingInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearOverrideCollectionPeriodEnd()
+	}
+	return u.SetOverrideCollectionPeriodEnd(*value)
+}
+
+func (u *BillingInvoiceLineUpdateOne) SetOrClearOverrideCollectionPeriodEnd(value *time.Time) *BillingInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearOverrideCollectionPeriodEnd()
+	}
+	return u.SetOverrideCollectionPeriodEnd(*value)
+}
+
 func (u *BillingInvoiceLineUpdate) SetOrClearQuantity(value *alpacadecimal.Decimal) *BillingInvoiceLineUpdate {
 	if value == nil {
 		return u.ClearQuantity()

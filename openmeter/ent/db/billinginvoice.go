@@ -137,7 +137,7 @@ type BillingInvoice struct {
 	// PeriodEnd holds the value of the "period_end" field.
 	PeriodEnd *time.Time `json:"period_end,omitempty"`
 	// CollectionAt holds the value of the "collection_at" field.
-	CollectionAt *time.Time `json:"collection_at,omitempty"`
+	CollectionAt time.Time `json:"collection_at,omitempty"`
 	// PaymentProcessingEnteredAt holds the value of the "payment_processing_entered_at" field.
 	PaymentProcessingEnteredAt *time.Time `json:"payment_processing_entered_at,omitempty"`
 	// SchemaLevel holds the value of the "schema_level" field.
@@ -671,8 +671,7 @@ func (_m *BillingInvoice) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field collection_at", values[i])
 			} else if value.Valid {
-				_m.CollectionAt = new(time.Time)
-				*_m.CollectionAt = value.Time
+				_m.CollectionAt = value.Time
 			}
 		case billinginvoice.FieldPaymentProcessingEnteredAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -991,10 +990,8 @@ func (_m *BillingInvoice) String() string {
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
-	if v := _m.CollectionAt; v != nil {
-		builder.WriteString("collection_at=")
-		builder.WriteString(v.Format(time.ANSIC))
-	}
+	builder.WriteString("collection_at=")
+	builder.WriteString(_m.CollectionAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	if v := _m.PaymentProcessingEnteredAt; v != nil {
 		builder.WriteString("payment_processing_entered_at=")
