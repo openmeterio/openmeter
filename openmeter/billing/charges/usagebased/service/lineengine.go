@@ -144,6 +144,7 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 
 		trigger := resolveInvoiceCreatedTrigger(stateMachine.GetCharge(), stdLine.Period)
 		if trigger == meta.TriggerPartialInvoiceCreated {
+			// A past Period.To intentionally means "collect now" so late events can still produce an immediately collectable partial invoice.
 			stdLine.OverrideCollectionPeriodEnd = lo.ToPtr(stdLine.Period.To.Add(usagebased.InternalCollectionPeriod))
 		}
 

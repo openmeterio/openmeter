@@ -81,12 +81,14 @@ func (i StandardLineBase) Validate() error {
 		errs = append(errs, errors.New("invoice at is required"))
 	}
 
-	if i.OverrideCollectionPeriodEnd != nil && i.OverrideCollectionPeriodEnd.IsZero() {
-		errs = append(errs, errors.New("overrideCollectionPeriodEnd must not be zero when set"))
-	}
+	if i.OverrideCollectionPeriodEnd != nil {
+		if i.OverrideCollectionPeriodEnd.IsZero() {
+			errs = append(errs, errors.New("overrideCollectionPeriodEnd must not be zero when set"))
+		}
 
-	if i.OverrideCollectionPeriodEnd != nil && i.OverrideCollectionPeriodEnd.Before(i.Period.To) {
-		errs = append(errs, errors.New("overrideCollectionPeriodEnd must be after or equal to period end"))
+		if !i.Period.To.IsZero() && i.OverrideCollectionPeriodEnd.Before(i.Period.To) {
+			errs = append(errs, errors.New("overrideCollectionPeriodEnd must be after or equal to period end"))
+		}
 	}
 
 	if i.Name == "" {
