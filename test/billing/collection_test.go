@@ -405,7 +405,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 
 func (s *CollectionTestSuite) TestAnchoredAlignment_StandardInvoiceUsesLateEventWindow() {
 	namespace := "ns-anchored-standard-invoice-late-event-window"
-	ctx := context.Background()
+	ctx := s.T().Context()
 	defer clock.ResetTime()
 
 	now := lo.Must(time.Parse(time.RFC3339, "2025-06-15T12:00:00Z"))
@@ -515,7 +515,7 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_StandardInvoiceUsesLateEvent
 
 func (s *CollectionTestSuite) TestAnchoredAlignment_AutomaticCollectionWaitsForAnchor() {
 	namespace := "ns-anchored-automatic-collection"
-	ctx := context.Background()
+	ctx := s.T().Context()
 	defer clock.ResetTime()
 
 	now := lo.Must(time.Parse(time.RFC3339, "2025-06-15T12:00:00Z"))
@@ -572,7 +572,7 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_AutomaticCollectionWaitsForA
 
 func (s *CollectionTestSuite) TestAnchoredAlignment_StandardInvoiceWaitsForLateEventWindowEvenPastAnchor() {
 	namespace := "ns-anchored-standard-invoice-waits-for-late-event-window"
-	ctx := context.Background()
+	ctx := s.T().Context()
 	defer clock.ResetTime()
 
 	initialTime := lo.Must(time.Parse(time.RFC3339, "2025-06-15T00:00:00Z"))

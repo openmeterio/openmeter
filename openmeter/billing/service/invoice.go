@@ -939,17 +939,15 @@ func (s *Service) RecalculateGatheringInvoices(ctx context.Context, input billin
 			return fmt.Errorf("listing gathering invoices: %w", err)
 		}
 
+		customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+			Customer: input,
+		})
+		if err != nil {
+			return fmt.Errorf("fetching customer profile: %w", err)
+		}
+
 		for _, invoice := range gatheringInvoices.Items {
-			var err error
-
-			customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
-				Customer: invoice.GetCustomerID(),
-			})
-			if err != nil {
-				return fmt.Errorf("fetching customer profile: %w", err)
-			}
-
-			if err = s.invoiceCalculator.CalculateGatheringInvoice(&invoice, invoicecalc.GatheringInvoiceCalculatorDependencies{
+			if err := s.invoiceCalculator.CalculateGatheringInvoice(&invoice, invoicecalc.GatheringInvoiceCalculatorDependencies{
 				Collection: customerProfile.MergedProfile.WorkflowConfig.Collection,
 			}); err != nil {
 				return fmt.Errorf("calculating gathering invoice: %w", err)
@@ -957,8 +955,7 @@ func (s *Service) RecalculateGatheringInvoices(ctx context.Context, input billin
 
 			invoiceID := invoice.ID
 
-			err = s.adapter.UpdateGatheringInvoice(ctx, invoice)
-			if err != nil {
+			if err := s.adapter.UpdateGatheringInvoice(ctx, invoice); err != nil {
 				return fmt.Errorf("updating gathering invoice[%s]: %w", invoiceID, err)
 			}
 
