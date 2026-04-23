@@ -15,12 +15,21 @@ model CursorPaginationQuery {
   /**
    * Determines which page of the collection to retrieve.
    */
-  #suppress "@openmeter/api-spec-aip/casing" "common model"
-  @query
-  @useRef("../../../../common/definitions/metadatas.yaml#/components/parameters/CursorPageQuery")
+  @query(#{ explode: true, style: "deepObject" })
   page?: {
+    /**
+     * The number of items to include per page.
+     */
     size?: integer;
+
+    /**
+     * Request the next page of data, starting with the item after this parameter.
+     */
     after?: string;
+
+    /**
+     * Request the previous page of data, starting with the item before this parameter.
+     */
     before?: string;
   };
 }
@@ -35,7 +44,14 @@ model PagePaginationQuery {
    */
   @query(#{ explode: true, style: "deepObject" })
   page?: {
+    /**
+     * The number of items to include per page.
+     */
     size?: integer;
+
+    /**
+     * The page number.
+     */
     number?: integer;
   };
 }
@@ -86,66 +102,6 @@ model CursorMeta {
    * Page metadata.
    */
   page: CursorMetaPage;
-}
-
-/**
- * Page before.
- */
-@friendlyName("PageBefore")
-model PageBefore {
-  /**
-   * Request the next page of data, starting with the item before this parameter.
-   */
-  #suppress "@openmeter/api-spec-aip/casing" "common model"
-  @query
-  @example("ewogICJpZCI6ICJoZWxsbyB3b3JsZCIKfQ")
-  @useRef("../../../../common/definitions/metadatas.yaml#/components/parameters/PageBefore")
-  `page[before]`?: string;
-}
-
-/**
- * Page after.
- */
-@friendlyName("PageAfter")
-model PageAfter {
-  /**
-   * Request the next page of data, starting with the item after this parameter.
-   */
-  #suppress "@openmeter/api-spec-aip/casing" "common model"
-  @query
-  @example("ewogICJpZCI6ICJoZWxsbyB3b3JsZCIKfQ")
-  @useRef("../../../../common/definitions/metadatas.yaml#/components/parameters/PageAfter")
-  `page[after]`?: string;
-}
-
-/**
- * Page size.
- */
-@friendlyName("PageSize")
-model PageSize {
-  /**
-   * The maximum number of items to include per page. The last page of a collection may include fewer items.
-   */
-  #suppress "@openmeter/api-spec-aip/casing" "common model"
-  @query
-  @example(10)
-  @useRef("../../../../common/definitions/metadatas.yaml#/components/parameters/PageSize")
-  `page[size]`?: integer;
-}
-
-/**
- * Page number.
- */
-@friendlyName("PageNumber")
-model PageNumber {
-  /**
-   * Determines which page of the entities to retrieve.
-   */
-  #suppress "@openmeter/api-spec-aip/casing" "common model"
-  @query
-  @example(1)
-  @useRef("../../../../common/definitions/metadatas.yaml#/components/parameters/PageNumber")
-  `page[number]`?: integer;
 }
 
 /**

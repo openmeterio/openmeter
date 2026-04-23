@@ -58,6 +58,10 @@ func NewCursorPaginationResponse[T pagination.Item](items []T, pageSize int) Cur
 		lastItem := items[len(items)-1]
 		result.Meta.Page.First = lo.ToPtr(firstItem.Cursor().Encode())
 		result.Meta.Page.Last = lo.ToPtr(lastItem.Cursor().Encode())
+		// Forward pagination only while a full page was returned.
+		if len(items) == pageSize {
+			result.Meta.Page.Next = nullable.NewNullableWithValue(lastItem.Cursor().Encode())
+		}
 	}
 
 	return result
