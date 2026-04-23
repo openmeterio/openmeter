@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -223,10 +224,7 @@ func (a *adapter) ListGatheringInvoices(ctx context.Context, input billing.ListG
 			query = a.expandGatheringInvoiceLines(query, input.Expand)
 		}
 
-		if input.CollectionAtLTE != nil {
-			query = query.Where(billinginvoice.CollectionAtLTE(*input.CollectionAtLTE))
-		}
-
+		query = filter.ApplyToQuery(query, &input.CollectionAt, billinginvoice.FieldCollectionAt)
 		if len(input.IDs) > 0 {
 			query = query.Where(billinginvoice.IDIn(input.IDs...))
 		}

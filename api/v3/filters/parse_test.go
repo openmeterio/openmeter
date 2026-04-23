@@ -223,6 +223,13 @@ func TestParse_FilterNumeric(t *testing.T) {
 }
 
 func TestParse_FilterDateTime(t *testing.T) {
+	t.Run("bare key implies exists", func(t *testing.T) {
+		var f testFilter
+		require.NoError(t, Parse(url.Values{"filter[created_at]": {""}}, &f))
+		require.NotNil(t, f.CreatedAt)
+		assert.Equal(t, lo.ToPtr(true), f.CreatedAt.Exists)
+	})
+
 	t.Run("eq", func(t *testing.T) {
 		var f testFilter
 		require.NoError(t, Parse(url.Values{"filter[created_at][eq]": {"2024-01-02T03:04:05Z"}}, &f))
@@ -625,23 +632,13 @@ func TestParse_FilterNumericInvalidPerOp(t *testing.T) {
 }
 
 func TestParse_EmptyTypedValueRejected(t *testing.T) {
-	// filter[count]= and filter[created_at]= carry no meaningful "exists"
-	// semantics for typed fields — they are almost always a broken client
-	// template. The parser must reject them with a 400-appropriate error
-	// instead of silently producing an unfiltered query.
+	// Numeric bare filters carry no meaningful "exists" semantics and should be
+	// rejected instead of being treated as unfiltered input.
 	t.Run("numeric bare empty rejected", func(t *testing.T) {
 		var f testFilter
 		err := Parse(url.Values{"filter[count]": {""}}, &f)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "filter[count]")
-		assert.Contains(t, err.Error(), "empty")
-	})
-
-	t.Run("datetime bare empty rejected", func(t *testing.T) {
-		var f testFilter
-		err := Parse(url.Values{"filter[created_at]": {""}}, &f)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "filter[created_at]")
 		assert.Contains(t, err.Error(), "empty")
 	})
 }

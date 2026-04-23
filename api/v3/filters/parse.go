@@ -206,6 +206,7 @@ func parseFilterString(qs url.Values, field string) (FilterString, error) {
 
 	err := forEachFieldParam(qs, field, func(p parsedFilterParam) error {
 		if p.bare {
+			// Bare filter[field] means an existence check.
 			f.Exists = lo.ToPtr(true)
 			return nil
 		}
@@ -366,7 +367,8 @@ func parseFilterDateTime(qs url.Values, field string) (FilterDateTime, error) {
 
 	err := forEachFieldParam(qs, field, func(p parsedFilterParam) error {
 		if p.bare {
-			return fmt.Errorf("filter[%s]: empty datetime value", field)
+			f.Exists = lo.ToPtr(true)
+			return nil
 		}
 
 		switch p.op {

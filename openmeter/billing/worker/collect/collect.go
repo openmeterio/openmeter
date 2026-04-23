@@ -13,6 +13,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/pkg/filter"
 )
 
 type InvoiceCollector struct {
@@ -45,14 +46,31 @@ func (a *InvoiceCollector) ListCollectableInvoices(ctx context.Context, params L
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
 
-	resp, err := a.gatheringInvoices.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-		Namespaces:      params.Namespaces,
-		IDs:             params.InvoiceIDs,
-		Customers:       params.Customers,
-		CollectionAtLTE: lo.ToPtr(params.CollectionAt),
-	})
+	input := billing.ListGatheringInvoicesInput{
+		Namespaces: params.Namespaces,
+		Customers:  params.Customers,
+		CollectionAt: filter.FilterTime{
+			Or: &[]filter.FilterTime{
+				{Lte: lo.ToPtr(params.CollectionAt)},
+				{Exists: lo.ToPtr(false)},
+			},
+		},
+	}
+	if len(params.InvoiceIDs) > 0 {
+		input.IDs = params.InvoiceIDs
+	}
+
+	resp, err := a.gatheringInvoices.ListGatheringInvoices(ctx, input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list collectable invoices: %w", err)
+	}
+
+	nilCollectionAtInvoiceIDs := lo.FilterMap(resp.Items, func(invoice billing.GatheringInvoice, _ int) (string, bool) {
+		return invoice.ID, invoice.NextCollectionAt == nil
+	})
+
+	if len(nilCollectionAtInvoiceIDs) > 0 {
+		a.logger.WarnContext(ctx, "gathering invoices have nil next collection at; this may indicate legacy or inconsistent state", "invoice_ids", nilCollectionAtInvoiceIDs)
 	}
 
 	return resp.Items, nil

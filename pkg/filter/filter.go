@@ -498,13 +498,14 @@ func (f FilterFloat) Select(field string) func(*sql.Selector) {
 
 // FilterTime is a filter for a time field.
 type FilterTime struct {
-	Eq  *time.Time    `json:"$eq,omitempty"`
-	Gt  *time.Time    `json:"$gt,omitempty"`
-	Gte *time.Time    `json:"$gte,omitempty"`
-	Lt  *time.Time    `json:"$lt,omitempty"`
-	Lte *time.Time    `json:"$lte,omitempty"`
-	And *[]FilterTime `json:"$and,omitempty"`
-	Or  *[]FilterTime `json:"$or,omitempty"`
+	Eq     *time.Time    `json:"$eq,omitempty"`
+	Exists *bool         `json:"$exists,omitempty"`
+	Gt     *time.Time    `json:"$gt,omitempty"`
+	Gte    *time.Time    `json:"$gte,omitempty"`
+	Lt     *time.Time    `json:"$lt,omitempty"`
+	Lte    *time.Time    `json:"$lte,omitempty"`
+	And    *[]FilterTime `json:"$and,omitempty"`
+	Or     *[]FilterTime `json:"$or,omitempty"`
 }
 
 // Validate validates the filter.
@@ -555,6 +556,11 @@ func (f FilterTime) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) s
 	switch {
 	case f.Eq != nil:
 		return q.EQ(field, *f.Eq)
+	case f.Exists != nil:
+		if *f.Exists {
+			return q.IsNotNull(field)
+		}
+		return q.IsNull(field)
 	case f.Gt != nil:
 		return q.GT(field, *f.Gt)
 	case f.Gte != nil:
@@ -585,6 +591,11 @@ func (f FilterTime) Select(field string) func(*sql.Selector) {
 	switch {
 	case f.Eq != nil:
 		return sql.FieldEQ(field, *f.Eq)
+	case f.Exists != nil:
+		if *f.Exists {
+			return sql.FieldNotNull(field)
+		}
+		return sql.FieldIsNull(field)
 	case f.Gt != nil:
 		return sql.FieldGT(field, *f.Gt)
 	case f.Gte != nil:
@@ -619,6 +630,11 @@ func (f FilterTimeUnix) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilde
 	switch {
 	case f.Eq != nil:
 		return q.EQ(field, f.Eq.Unix())
+	case f.Exists != nil:
+		if *f.Exists {
+			return q.IsNotNull(field)
+		}
+		return q.IsNull(field)
 	case f.Gt != nil:
 		return q.GT(field, f.Gt.Unix())
 	case f.Gte != nil:
@@ -649,6 +665,11 @@ func (f FilterTimeUnix) Select(field string) func(*sql.Selector) {
 	switch {
 	case f.Eq != nil:
 		return sql.FieldEQ(field, f.Eq.Unix())
+	case f.Exists != nil:
+		if *f.Exists {
+			return sql.FieldNotNull(field)
+		}
+		return sql.FieldIsNull(field)
 	case f.Gt != nil:
 		return sql.FieldGT(field, f.Gt.Unix())
 	case f.Gte != nil:
