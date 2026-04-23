@@ -4,8 +4,9 @@ import (
 	"context"
 	stdsql "database/sql"
 	"fmt"
+	"slices"
 
-	entsql "entgo.io/ent/dialect/sql"
+	sql "entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqljson"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -22,8 +23,6 @@ import (
 	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
-	pagepagination "github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -257,10 +256,15 @@ func (r *repo) SumEntries(ctx context.Context, query ledger.Query) (alpacadecima
 	return total, nil
 }
 
-func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactionsInput) (pagination.Result[*ledgerhistorical.Transaction], error) {
+func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactionsInput) (ledger.ListTransactionsResult, error) {
+	entryPredicates := listTransactionsEntryPredicates(input.AccountIDs, input.Currency)
+
 	query := r.db.LedgerTransaction.Query().
 		Where(ledgertransactiondb.Namespace(input.Namespace)).
 		WithEntries(func(q *db.LedgerEntryQuery) {
+			if len(entryPredicates) > 0 {
+				q.Where(entryPredicates...)
+			}
 			q.Order(
 				ledgerentrydb.ByCreatedAt(),
 				ledgerentrydb.ByID(),
@@ -286,74 +290,6 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 		)
 	}
 
-	// Filter by annotation key-value matches.
-	for key, value := range input.AnnotationFilters {
-		query = query.Where(func(s *entsql.Selector) {
-			s.Where(sqljson.ValueEQ(ledgertransactiondb.FieldAnnotations, value, sqljson.Path(key)))
-		})
-	}
-
-	if input.Limit > 0 {
-		query = query.Limit(input.Limit)
-	}
-
-	paged, err := query.Cursor(ctx, input.Cursor)
-	if err != nil {
-		return pagination.Result[*ledgerhistorical.Transaction]{}, fmt.Errorf("failed to list transactions: %w", err)
-	}
-	if len(paged.Items) == 0 {
-		return pagination.Result[*ledgerhistorical.Transaction]{
-			Items: []*ledgerhistorical.Transaction{},
-		}, nil
-	}
-
-	items, err := slicesx.MapWithErr(paged.Items, func(tx *db.LedgerTransaction) (*ledgerhistorical.Transaction, error) {
-		return hydrateHistoricalTransaction(tx)
-	})
-	if err != nil {
-		return pagination.Result[*ledgerhistorical.Transaction]{}, fmt.Errorf("failed to hydrate listed transactions: %w", err)
-	}
-
-	return pagination.Result[*ledgerhistorical.Transaction]{
-		Items:      items,
-		NextCursor: paged.NextCursor,
-	}, nil
-}
-
-func (r *repo) ListTransactionsByPage(ctx context.Context, input ledger.ListTransactionsByPageInput) (pagepagination.Result[*ledgerhistorical.Transaction], error) {
-	entryPredicates := listTransactionsEntryPredicates(input)
-
-	query := r.db.LedgerTransaction.Query().
-		Where(ledgertransactiondb.Namespace(input.Namespace)).
-		WithEntries(func(q *db.LedgerEntryQuery) {
-			if len(entryPredicates) > 0 {
-				q.Where(entryPredicates...)
-			}
-			q.Order(
-				ledgerentrydb.ByCreatedAt(),
-				ledgerentrydb.ByID(),
-			)
-			q.WithSubAccount(func(sq *db.LedgerSubAccountQuery) {
-				sq.WithAccount()
-				sq.WithRoute()
-			})
-		}).
-		Order(
-			ledgertransactiondb.ByBookedAt(entsql.OrderDesc()),
-			ledgertransactiondb.ByCreatedAt(entsql.OrderDesc()),
-			ledgertransactiondb.ByID(entsql.OrderDesc()),
-		)
-
-	if len(input.AccountIDs) > 0 {
-		query = query.Where(
-			ledgertransactiondb.HasEntriesWith(
-				ledgerentrydb.HasSubAccountWith(
-					ledgersubaccountdb.AccountIDIn(input.AccountIDs...),
-				),
-			),
-		)
-	}
-
 	if input.Currency != nil {
 		query = query.Where(
 			ledgertransactiondb.HasEntriesWith(
@@ -366,8 +302,9 @@ func (r *repo) ListTransactionsByPage(ctx context.Context, input ledger.ListTran
 		)
 	}
 
+	// Filter by annotation key-value matches.
 	for key, value := range input.AnnotationFilters {
-		query = query.Where(func(s *entsql.Selector) {
+		query = query.Where(func(s *sql.Selector) {
 			s.Where(sqljson.ValueEQ(ledgertransactiondb.FieldAnnotations, value, sqljson.Path(key)))
 		})
 	}
@@ -375,44 +312,78 @@ func (r *repo) ListTransactionsByPage(ctx context.Context, input ledger.ListTran
 	if input.CreditMovement != ledger.ListTransactionsCreditMovementUnspecified {
 		pred, err := ledgerTransactionCreditMovementPredicate(input.AccountIDs, input.Currency, input.CreditMovement)
 		if err != nil {
-			return pagepagination.Result[*ledgerhistorical.Transaction]{}, err
+			return ledger.ListTransactionsResult{}, err
 		}
 		if pred != nil {
 			query = query.Where(pred)
 		}
 	}
 
-	paged, err := query.Paginate(ctx, input.Page)
-	if err != nil {
-		return pagepagination.Result[*ledgerhistorical.Transaction]{}, fmt.Errorf("list transactions by page: %w", err)
+	if input.Cursor != nil {
+		query = query.Where(ledgerTransactionAfterCursorPredicate(*input.Cursor))
 	}
 
-	items, err := slicesx.MapWithErr(paged.Items, func(tx *db.LedgerTransaction) (*ledgerhistorical.Transaction, error) {
+	if input.Before != nil {
+		query = query.Where(ledgerTransactionBeforeCursorPredicate(*input.Before))
+	}
+
+	query = query.Order(listTransactionsOrdering(input.Before != nil)...)
+
+	query = query.Limit(input.Limit + 1)
+
+	dbItems, err := query.All(ctx)
+	if err != nil {
+		return ledger.ListTransactionsResult{}, fmt.Errorf("failed to list transactions: %w", err)
+	}
+	if len(dbItems) == 0 {
+		return ledger.ListTransactionsResult{
+			Items: []ledger.Transaction{},
+		}, nil
+	}
+
+	hasMore := len(dbItems) > input.Limit
+	if hasMore {
+		dbItems = dbItems[:input.Limit]
+	}
+
+	items, err := slicesx.MapWithErr(dbItems, func(tx *db.LedgerTransaction) (*ledgerhistorical.Transaction, error) {
 		return hydrateHistoricalTransaction(tx)
 	})
 	if err != nil {
-		return pagepagination.Result[*ledgerhistorical.Transaction]{}, fmt.Errorf("hydrate listed transactions: %w", err)
+		return ledger.ListTransactionsResult{}, fmt.Errorf("failed to hydrate listed transactions: %w", err)
 	}
 
-	return pagepagination.Result[*ledgerhistorical.Transaction]{
-		Page:       paged.Page,
-		TotalCount: paged.TotalCount,
-		Items:      items,
+	if input.Before != nil {
+		slices.Reverse(items)
+	}
+
+	var nextCursor *ledger.TransactionCursor
+	if hasMore && len(items) > 0 {
+		nextItem := items[len(items)-1]
+		cursor := nextItem.Cursor()
+		nextCursor = &cursor
+	}
+
+	return ledger.ListTransactionsResult{
+		Items: lo.Map(items, func(item *ledgerhistorical.Transaction, _ int) ledger.Transaction {
+			return item
+		}),
+		NextCursor: nextCursor,
 	}, nil
 }
 
-func listTransactionsEntryPredicates(input ledger.ListTransactionsByPageInput) []predicate.LedgerEntry {
+func listTransactionsEntryPredicates(accountIDs []string, currency *currencyx.Code) []predicate.LedgerEntry {
 	entryPredicates := make([]predicate.LedgerEntry, 0, 2)
 	subAccountPredicates := make([]predicate.LedgerSubAccount, 0, 2)
 
-	if len(input.AccountIDs) > 0 {
-		subAccountPredicates = append(subAccountPredicates, ledgersubaccountdb.AccountIDIn(input.AccountIDs...))
+	if len(accountIDs) > 0 {
+		subAccountPredicates = append(subAccountPredicates, ledgersubaccountdb.AccountIDIn(accountIDs...))
 	}
 
-	if input.Currency != nil {
+	if currency != nil {
 		subAccountPredicates = append(subAccountPredicates,
 			ledgersubaccountdb.HasRouteWith(
-				ledgersubaccountroutedb.Currency(string(*input.Currency)),
+				ledgersubaccountroutedb.Currency(string(*currency)),
 			),
 		)
 	}
@@ -422,6 +393,55 @@ func listTransactionsEntryPredicates(input ledger.ListTransactionsByPageInput) [
 	}
 
 	return entryPredicates
+}
+
+func ledgerTransactionAfterCursorPredicate(cursor ledger.TransactionCursor) predicate.LedgerTransaction {
+	return func(s *sql.Selector) {
+		s.Where(sql.Or(
+			sql.LT(s.C(ledgertransactiondb.FieldBookedAt), cursor.BookedAt),
+			sql.And(
+				sql.EQ(s.C(ledgertransactiondb.FieldBookedAt), cursor.BookedAt),
+				sql.Or(
+					sql.LT(s.C(ledgertransactiondb.FieldCreatedAt), cursor.CreatedAt),
+					sql.And(
+						sql.EQ(s.C(ledgertransactiondb.FieldCreatedAt), cursor.CreatedAt),
+						sql.LT(s.C(ledgertransactiondb.FieldID), cursor.ID.ID),
+					),
+				),
+			),
+		))
+	}
+}
+
+func ledgerTransactionBeforeCursorPredicate(cursor ledger.TransactionCursor) predicate.LedgerTransaction {
+	return func(s *sql.Selector) {
+		s.Where(sql.Or(
+			sql.GT(s.C(ledgertransactiondb.FieldBookedAt), cursor.BookedAt),
+			sql.And(
+				sql.EQ(s.C(ledgertransactiondb.FieldBookedAt), cursor.BookedAt),
+				sql.Or(
+					sql.GT(s.C(ledgertransactiondb.FieldCreatedAt), cursor.CreatedAt),
+					sql.And(
+						sql.EQ(s.C(ledgertransactiondb.FieldCreatedAt), cursor.CreatedAt),
+						sql.GT(s.C(ledgertransactiondb.FieldID), cursor.ID.ID),
+					),
+				),
+			),
+		))
+	}
+}
+
+func listTransactionsOrdering(before bool) []ledgertransactiondb.OrderOption {
+	order := sql.OrderDesc()
+	if before {
+		order = sql.OrderAsc()
+	}
+
+	return []ledgertransactiondb.OrderOption{
+		ledgertransactiondb.ByBookedAt(order),
+		ledgertransactiondb.ByCreatedAt(order),
+		ledgertransactiondb.ByID(order),
+	}
 }
 
 func ledgerTransactionCreditMovementPredicate(

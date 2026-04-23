@@ -23,6 +23,7 @@ type CreditPurchaseService interface {
 
 	GetByIDs(ctx context.Context, input GetByIDsInput) ([]Charge, error)
 	List(ctx context.Context, input ListChargesInput) (pagination.Result[Charge], error)
+	ListFundedCreditActivities(ctx context.Context, input ListFundedCreditActivitiesInput) (ListFundedCreditActivitiesResult, error)
 }
 
 type ChargeWithGatheringLine struct {

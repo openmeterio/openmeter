@@ -1076,8 +1076,8 @@ paths:
       description: |-
         List credit transactions for a customer.
 
-        Returns an immutable, chronological record of all credit movements:
-        grants funded, credits consumed, expirations, voids, and adjustments.
+        Returns an immutable, chronological record of credit movements:
+        funded credits and consumed credits.
         Transactions are returned in reverse chronological order by default.
       parameters:
         - name: customerId
@@ -1085,7 +1085,7 @@ paths:
           required: true
           schema:
             $ref: '#/components/schemas/ULID'
-        - $ref: '#/components/parameters/PagePaginationQuery'
+        - $ref: '#/components/parameters/CursorPageQuery'
         - name: filter
           in: query
           required: false
@@ -1095,11 +1095,11 @@ paths:
           style: deepObject
       responses:
         '200':
-          description: Page paginated response.
+          description: The request has succeeded.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreditTransactionPagePaginatedResponse'
+                $ref: '#/components/schemas/CreditTransactionPaginatedResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -2659,6 +2659,13 @@ components:
           number:
             type: integer
       style: deepObject
+    CursorPageQuery:
+      name: page
+      description: Determines which page of the collection to retrieve.
+      required: false
+      in: query
+      schema:
+        $ref: '#/components/schemas/CursorPageParameters'
   schemas:
     Addon:
       type: object
@@ -4150,18 +4157,47 @@ components:
 
         Credit transactions are immutable.
       title: Credit transaction
+    BillingCreditTransactionCursorMeta:
+      type: object
+      required:
+        - page
+      properties:
+        page:
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditTransactionCursorMetaPage'
+          description: Cursor page metadata.
+      description: Cursor metadata container for credit transactions.
+    BillingCreditTransactionCursorMetaPage:
+      type: object
+      required:
+        - size
+      properties:
+        next:
+          type: string
+          description: Opaque cursor for loading the next page (older records).
+        previous:
+          type: string
+          description: Opaque cursor for loading the previous page (newer records).
+        size:
+          type: integer
+          description: Requested page size.
+      description: |-
+        Cursor pagination metadata for credit transactions.
+
+        NOTE: We intentionally return opaque cursor tokens (not URI links) in
+        `first`, `last`, `next`, and `previous`. This matches existing OpenMeter
+        cursor implementations and avoids coupling response construction to
+        externally visible URL shape behind proxies/gateways.
     BillingCreditTransactionType:
       type: string
       enum:
         - funded
         - consumed
-        - adjusted
       description: |-
         The type of the credit transaction.
 
         - `funded`: Credit granted and available for consumption.
-        - `consumed`: Credit consumed.
-        - `adjusted`: Manual or system adjustment.
+        - `consumed`: Credit consumed by usage or fees.
     BillingCurrency:
       type: object
       oneOf:
@@ -6923,7 +6959,7 @@ components:
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
       description: Page paginated response.
-    CreditTransactionPagePaginatedResponse:
+    CreditTransactionPaginatedResponse:
       type: object
       required:
         - data
@@ -6934,8 +6970,8 @@ components:
           items:
             $ref: '#/components/schemas/BillingCreditTransaction'
         meta:
-          $ref: '#/components/schemas/PaginatedMeta'
-      description: Page paginated response.
+          $ref: '#/components/schemas/BillingCreditTransactionCursorMeta'
+      description: Cursor paginated response for credit transactions.
     CurrencyAmount:
       type: object
       required:
@@ -8913,6 +8949,21 @@ components:
         The `desc` suffix is used to specify a descending order.
         Multiple sort attributes may be provided via a comma separated list.
         JSONPath notation may be used to specify a sub-attribute (eg: 'foo.bar desc').
+    CursorPageParameters:
+      type: object
+      properties:
+        size:
+          type: integer
+          description: The number of items included per page.
+          example: 10
+        after:
+          type: string
+          description: Cursor param specifying the page (i.e. the next page) of data returned.
+          example: ewogICJpZCI6ICJoZWxsbyB3b3JsZCIKfQ
+        before:
+          type: string
+          description: Cursor param specifying the page (i.e. the previous page) of data returned.
+          example: ewogICJpZCI6ICJoZWxsbyB3b3JsZCIKfQ
     ConflictError:
       allOf:
         - $ref: '#/components/schemas/BaseError'

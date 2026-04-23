@@ -9,6 +9,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -34,6 +35,10 @@ type chargesService interface {
 	ListCharges(ctx context.Context, input charges.ListChargesInput) (pagination.Result[charges.Charge], error)
 }
 
+type creditPurchaseActivityService interface {
+	ListFundedCreditActivities(ctx context.Context, input creditpurchase.ListFundedCreditActivitiesInput) (creditpurchase.ListFundedCreditActivitiesResult, error)
+}
+
 type subAccountLister interface {
 	ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubAccountsInput) ([]*ledgeraccount.SubAccount, error)
 }
@@ -55,6 +60,7 @@ type service struct {
 	AccountResolver   ledger.AccountResolver
 	SubAccountService subAccountLister
 	ChargesService    chargesService
+	CreditPurchaseSvc creditPurchaseActivityService
 	UsageBasedService usageBasedTotalsService
 	Ledger            ledger.Ledger
 
@@ -67,6 +73,7 @@ type Config struct {
 	AccountResolver   ledger.AccountResolver
 	SubAccountService subAccountLister
 	ChargesService    chargesService
+	CreditPurchaseSvc creditPurchaseActivityService
 	UsageBasedService usageBasedTotalsService
 	Ledger            ledger.Ledger
 }
@@ -84,6 +91,10 @@ func (c Config) Validate() error {
 
 	if c.ChargesService == nil {
 		errs = append(errs, errors.New("charges service is required"))
+	}
+
+	if c.CreditPurchaseSvc == nil {
+		errs = append(errs, errors.New("credit purchase service is required"))
 	}
 
 	if c.UsageBasedService == nil {
@@ -106,6 +117,7 @@ func New(config Config) (*service, error) {
 		AccountResolver:   config.AccountResolver,
 		SubAccountService: config.SubAccountService,
 		ChargesService:    config.ChargesService,
+		CreditPurchaseSvc: config.CreditPurchaseSvc,
 		UsageBasedService: config.UsageBasedService,
 		Ledger:            config.Ledger,
 		balanceCalculator: chargePendingBalanceCalculator{},

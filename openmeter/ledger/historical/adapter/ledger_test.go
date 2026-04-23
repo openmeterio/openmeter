@@ -22,7 +22,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
-	pagepagination "github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	"github.com/openmeterio/openmeter/tools/migrate"
 )
@@ -201,17 +200,17 @@ func TestRepo_ListTransactions_PaginatesAndFilters(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, page1.Items, 1)
 	require.NotNil(t, page1.NextCursor)
-	require.Equal(t, tx1.ID(), page1.Items[0].ID())
+	require.Equal(t, tx2.ID(), page1.Items[0].ID())
 	require.Len(t, page1.Items[0].Entries(), 2)
 
 	page2, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
 		Namespace: namespace,
 		Limit:     1,
-		Cursor:    page1.NextCursor,
+		Cursor:    lo.ToPtr(page1.Items[len(page1.Items)-1].Cursor()),
 	})
 	require.NoError(t, err)
 	require.Len(t, page2.Items, 1)
-	require.Equal(t, tx2.ID(), page2.Items[0].ID())
+	require.Equal(t, tx1.ID(), page2.Items[0].ID())
 	require.Len(t, page2.Items[0].Entries(), 2)
 
 	tx2ID := tx2.ID()
@@ -225,7 +224,151 @@ func TestRepo_ListTransactions_PaginatesAndFilters(t *testing.T) {
 	require.Equal(t, tx2.ID(), filtered.Items[0].ID())
 }
 
-func TestRepo_ListTransactionsByPage_FiltersCreditMovementByScopedFBOEntry(t *testing.T) {
+func TestRepo_ListTransactions_PaginatesWithBefore(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+	env.DBSchemaMigrate(t)
+
+	ctx := t.Context()
+	namespace := testNamespace()
+	subAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
+	subAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("EUR")})
+
+	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+
+	var txs []*ledgerhistorical.Transaction
+	for i := 0; i < 4; i++ {
+		txInput := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
+			{
+				Address:     testAddress(t, subAccountA),
+				AmountValue: alpacadecimal.NewFromInt(int64(-10 * (i + 1))),
+			},
+			{
+				Address:     testAddress(t, subAccountB),
+				AmountValue: alpacadecimal.NewFromInt(int64(10 * (i + 1))),
+			},
+		})
+		tx, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInput)
+		require.NoError(t, err)
+		txs = append(txs, tx)
+
+		time.Sleep(2 * time.Millisecond)
+	}
+
+	page1, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
+		Namespace: namespace,
+		Limit:     2,
+	})
+	require.NoError(t, err)
+	require.Len(t, page1.Items, 2)
+	require.NotNil(t, page1.NextCursor)
+	require.Equal(t, txs[3].ID(), page1.Items[0].ID())
+	require.Equal(t, txs[2].ID(), page1.Items[1].ID())
+
+	page2, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
+		Namespace: namespace,
+		Limit:     2,
+		Cursor:    page1.NextCursor,
+	})
+	require.NoError(t, err)
+	require.Len(t, page2.Items, 2)
+	require.Equal(t, txs[1].ID(), page2.Items[0].ID())
+	require.Equal(t, txs[0].ID(), page2.Items[1].ID())
+
+	pageBack, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
+		Namespace: namespace,
+		Limit:     2,
+		Before:    lo.ToPtr(page2.Items[0].Cursor()),
+	})
+	require.NoError(t, err)
+	require.Len(t, pageBack.Items, 2)
+	require.Equal(t, txs[3].ID(), pageBack.Items[0].ID())
+	require.Equal(t, txs[2].ID(), pageBack.Items[1].ID())
+}
+
+func TestRepo_ListTransactions_BeforeNextCursorResumesWithoutOverlap(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+	env.DBSchemaMigrate(t)
+
+	ctx := t.Context()
+	namespace := testNamespace()
+	subAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
+	subAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("EUR")})
+
+	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+
+	var txs []*ledgerhistorical.Transaction
+	for i := 0; i < 5; i++ {
+		txInput := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
+			{
+				Address:     testAddress(t, subAccountA),
+				AmountValue: alpacadecimal.NewFromInt(int64(-10 * (i + 1))),
+			},
+			{
+				Address:     testAddress(t, subAccountB),
+				AmountValue: alpacadecimal.NewFromInt(int64(10 * (i + 1))),
+			},
+		})
+		tx, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInput)
+		require.NoError(t, err)
+		txs = append(txs, tx)
+
+		time.Sleep(2 * time.Millisecond)
+	}
+
+	page1, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
+		Namespace: namespace,
+		Limit:     2,
+	})
+	require.NoError(t, err)
+	require.Len(t, page1.Items, 2)
+
+	page2, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
+		Namespace: namespace,
+		Limit:     2,
+		Cursor:    page1.NextCursor,
+	})
+	require.NoError(t, err)
+	require.Len(t, page2.Items, 2)
+	require.Equal(t, txs[2].ID(), page2.Items[0].ID())
+	require.Equal(t, txs[1].ID(), page2.Items[1].ID())
+
+	pageBack, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
+		Namespace: namespace,
+		Limit:     2,
+		Before:    lo.ToPtr(page2.Items[1].Cursor()),
+	})
+	require.NoError(t, err)
+	require.Len(t, pageBack.Items, 2)
+	require.NotNil(t, pageBack.NextCursor)
+	require.Equal(t, txs[3].ID(), pageBack.Items[0].ID())
+	require.Equal(t, txs[2].ID(), pageBack.Items[1].ID())
+
+	// Next cursor from a before-page must point to the last returned item so resuming
+	// with forward pagination does not re-include the page tail.
+	pageForward, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
+		Namespace: namespace,
+		Limit:     2,
+		Cursor:    pageBack.NextCursor,
+	})
+	require.NoError(t, err)
+	require.Len(t, pageForward.Items, 2)
+	require.Equal(t, txs[1].ID(), pageForward.Items[0].ID())
+	require.Equal(t, txs[0].ID(), pageForward.Items[1].ID())
+}
+
+func TestRepo_ListTransactions_FiltersCreditMovementByScopedFBOEntry(t *testing.T) {
 	env := NewTestEnv(t)
 	t.Cleanup(func() {
 		env.Close(t)
@@ -255,14 +398,13 @@ func TestRepo_ListTransactionsByPage_FiltersCreditMovementByScopedFBOEntry(t *te
 	tx, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInput)
 	require.NoError(t, err)
 
-	page := pagepagination.NewPage(1, 20)
 	usd := currencyx.Code("USD")
 	eur := currencyx.Code("EUR")
 	accountIDs := []string{usdSubAccount.AccountID, eurSubAccount.AccountID}
 
-	usdConsumed, err := env.repo.ListTransactionsByPage(ctx, ledger.ListTransactionsByPageInput{
-		Page:           page,
+	usdConsumed, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
 		Namespace:      namespace,
+		Limit:          20,
 		AccountIDs:     accountIDs,
 		Currency:       &usd,
 		CreditMovement: ledger.ListTransactionsCreditMovementNegative,
@@ -273,9 +415,9 @@ func TestRepo_ListTransactionsByPage_FiltersCreditMovementByScopedFBOEntry(t *te
 	require.Len(t, usdConsumed.Items[0].Entries(), 1)
 	require.Equal(t, currencyx.Code("USD"), usdConsumed.Items[0].Entries()[0].PostingAddress().Route().Route().Currency)
 
-	usdFunded, err := env.repo.ListTransactionsByPage(ctx, ledger.ListTransactionsByPageInput{
-		Page:           page,
+	usdFunded, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
 		Namespace:      namespace,
+		Limit:          20,
 		AccountIDs:     accountIDs,
 		Currency:       &usd,
 		CreditMovement: ledger.ListTransactionsCreditMovementPositive,
@@ -283,9 +425,9 @@ func TestRepo_ListTransactionsByPage_FiltersCreditMovementByScopedFBOEntry(t *te
 	require.NoError(t, err)
 	require.Len(t, usdFunded.Items, 0)
 
-	eurFunded, err := env.repo.ListTransactionsByPage(ctx, ledger.ListTransactionsByPageInput{
-		Page:           page,
+	eurFunded, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
 		Namespace:      namespace,
+		Limit:          20,
 		AccountIDs:     accountIDs,
 		Currency:       &eur,
 		CreditMovement: ledger.ListTransactionsCreditMovementPositive,
@@ -296,9 +438,9 @@ func TestRepo_ListTransactionsByPage_FiltersCreditMovementByScopedFBOEntry(t *te
 	require.Len(t, eurFunded.Items[0].Entries(), 1)
 	require.Equal(t, currencyx.Code("EUR"), eurFunded.Items[0].Entries()[0].PostingAddress().Route().Route().Currency)
 
-	eurConsumed, err := env.repo.ListTransactionsByPage(ctx, ledger.ListTransactionsByPageInput{
-		Page:           page,
+	eurConsumed, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
 		Namespace:      namespace,
+		Limit:          20,
 		AccountIDs:     accountIDs,
 		Currency:       &eur,
 		CreditMovement: ledger.ListTransactionsCreditMovementNegative,
@@ -307,7 +449,7 @@ func TestRepo_ListTransactionsByPage_FiltersCreditMovementByScopedFBOEntry(t *te
 	require.Len(t, eurConsumed.Items, 0)
 }
 
-func TestRepo_ListTransactionsByPage_PaginatesAndFiltersByAccountAndAnnotation(t *testing.T) {
+func TestRepo_ListTransactions_PaginatesAndFiltersByAccountAndAnnotation(t *testing.T) {
 	env := NewTestEnv(t)
 	t.Cleanup(func() {
 		env.Close(t)
@@ -399,31 +541,87 @@ func TestRepo_ListTransactionsByPage_PaginatesAndFiltersByAccountAndAnnotation(t
 	})
 	require.NoError(t, err)
 
-	page1, err := env.repo.ListTransactionsByPage(ctx, ledger.ListTransactionsByPageInput{
-		Page:       pagepagination.NewPage(1, 1),
+	page1, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
 		Namespace:  namespace,
+		Limit:      1,
 		AccountIDs: []string{usdSubAccountA.AccountID},
 		AnnotationFilters: map[string]string{
 			"kind": "keep",
 		},
 	})
 	require.NoError(t, err)
-	require.Equal(t, 2, page1.TotalCount)
 	require.Len(t, page1.Items, 1)
 	require.Equal(t, txNew.ID(), page1.Items[0].ID())
+	require.NotNil(t, page1.NextCursor)
 
-	page2, err := env.repo.ListTransactionsByPage(ctx, ledger.ListTransactionsByPageInput{
-		Page:       pagepagination.NewPage(2, 1),
+	page2, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
 		Namespace:  namespace,
+		Cursor:     lo.ToPtr(page1.Items[len(page1.Items)-1].Cursor()),
+		Limit:      1,
 		AccountIDs: []string{usdSubAccountA.AccountID},
 		AnnotationFilters: map[string]string{
 			"kind": "keep",
 		},
 	})
 	require.NoError(t, err)
-	require.Equal(t, 2, page2.TotalCount)
 	require.Len(t, page2.Items, 1)
 	require.Equal(t, txOld.ID(), page2.Items[0].ID())
+	require.Nil(t, page2.NextCursor)
+}
+
+func TestRepo_ListTransactions_FiltersHydratedEntriesByScope(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+	env.DBSchemaMigrate(t)
+
+	ctx := t.Context()
+	namespace := testNamespace()
+	usdSubAccount := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
+	eurSubAccount := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("EUR")})
+
+	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+
+	tx, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
+		{
+			Address:     testAddress(t, usdSubAccount),
+			AmountValue: alpacadecimal.NewFromInt(-10),
+		},
+		{
+			Address:     testAddress(t, eurSubAccount),
+			AmountValue: alpacadecimal.NewFromInt(10),
+		},
+	}))
+	require.NoError(t, err)
+
+	// Account scope should filter hydrated entries as well (not only transactions).
+	accountScoped, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
+		Namespace:  namespace,
+		Limit:      10,
+		AccountIDs: []string{usdSubAccount.AccountID},
+	})
+	require.NoError(t, err)
+	require.Len(t, accountScoped.Items, 1)
+	require.Equal(t, tx.ID(), accountScoped.Items[0].ID())
+	require.Len(t, accountScoped.Items[0].Entries(), 1)
+	require.Equal(t, usdSubAccount.ID, accountScoped.Items[0].Entries()[0].PostingAddress().SubAccountID())
+
+	// Currency scope should also filter hydrated entries.
+	eur := currencyx.Code("EUR")
+	currencyScoped, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
+		Namespace: namespace,
+		Limit:     10,
+		Currency:  &eur,
+	})
+	require.NoError(t, err)
+	require.Len(t, currencyScoped.Items, 1)
+	require.Equal(t, tx.ID(), currencyScoped.Items[0].ID())
+	require.Len(t, currencyScoped.Items[0].Entries(), 1)
+	require.Equal(t, currencyx.Code("EUR"), currencyScoped.Items[0].Entries()[0].PostingAddress().Route().Route().Currency)
 }
 
 func TestRepo_SumEntries_Filters(t *testing.T) {

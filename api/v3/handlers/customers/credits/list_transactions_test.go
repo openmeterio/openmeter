@@ -14,13 +14,13 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func TestFromAPIBillingCreditTransactionType_Adjusted(t *testing.T) {
-	filter := api.BillingCreditTransactionTypeAdjusted
+func TestFromAPIBillingCreditTransactionType_Funded(t *testing.T) {
+	filter := api.BillingCreditTransactionTypeFunded
 
 	txType := fromAPIBillingCreditTransactionType(&filter)
 
 	require.NotNil(t, txType)
-	require.Equal(t, customerbalance.CreditTransactionTypeAdjusted, *txType)
+	require.Equal(t, customerbalance.CreditTransactionTypeFunded, *txType)
 }
 
 func TestToAPIBillingCreditTransaction(t *testing.T) {
@@ -59,4 +59,34 @@ func TestToAPIBillingCreditTransaction(t *testing.T) {
 	require.Equal(t, description, *tx.Description)
 	require.NotNil(t, tx.Labels)
 	require.Equal(t, "charge-1", (*tx.Labels)["charge_id"])
+}
+
+func TestCreditTransactionCursorConversion(t *testing.T) {
+	bookedAt := time.Date(2026, 4, 10, 10, 0, 0, 0, time.UTC)
+	createdAt := bookedAt.Add(-time.Second)
+	namespace := "ns"
+
+	ledgerCursor := ledger.TransactionCursor{
+		BookedAt:  bookedAt,
+		CreatedAt: createdAt,
+		ID: models.NamespacedID{
+			Namespace: namespace,
+			ID:        "01J7JABCDXYZ1234567890ABCD",
+		},
+	}
+
+	encoded, err := encodeBillingCreditTransactionCursor(ledgerCursor)
+	require.NoError(t, err)
+
+	decoded, err := decodeBillingCreditTransactionCursor(encoded, namespace)
+	require.NoError(t, err)
+	require.Equal(t, bookedAt, decoded.BookedAt)
+	require.Equal(t, createdAt, decoded.CreatedAt)
+	require.Equal(t, namespace, decoded.ID.Namespace)
+	require.Equal(t, ledgerCursor.ID.ID, decoded.ID.ID)
+}
+
+func TestCreditTransactionCursorConversion_InvalidCursor(t *testing.T) {
+	_, err := decodeBillingCreditTransactionCursor("not-base64", "ns")
+	require.Error(t, err)
 }

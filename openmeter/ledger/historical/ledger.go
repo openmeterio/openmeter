@@ -4,15 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
-	pagepagination "github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
 // Ledger represents a historical ledger for settled balances.
@@ -40,40 +36,19 @@ func NewLedger(repo Repo, accountService account.Service, locker *lockr.Locker, 
 
 var _ ledger.Ledger = (*Ledger)(nil)
 
-func (l *Ledger) ListTransactions(ctx context.Context, params ledger.ListTransactionsInput) (pagination.Result[ledger.Transaction], error) {
+func (l *Ledger) ListTransactions(ctx context.Context, params ledger.ListTransactionsInput) (ledger.ListTransactionsResult, error) {
 	if err := params.Validate(); err != nil {
-		return pagination.Result[ledger.Transaction]{}, fmt.Errorf("failed to validate list transactions input: %w", err)
+		return ledger.ListTransactionsResult{}, fmt.Errorf("failed to validate list transactions input: %w", err)
 	}
 
 	res, err := l.repo.ListTransactions(ctx, params)
 	if err != nil {
-		return pagination.Result[ledger.Transaction]{}, fmt.Errorf("failed to list transactions: %w", err)
+		return ledger.ListTransactionsResult{}, fmt.Errorf("failed to list transactions: %w", err)
 	}
 
-	return pagination.Result[ledger.Transaction]{
-		Items: lo.Map(res.Items, func(item *Transaction, _ int) ledger.Transaction {
-			return item
-		}),
+	return ledger.ListTransactionsResult{
+		Items:      res.Items,
 		NextCursor: res.NextCursor,
-	}, nil
-}
-
-func (l *Ledger) ListTransactionsByPage(ctx context.Context, params ledger.ListTransactionsByPageInput) (pagepagination.Result[ledger.Transaction], error) {
-	if err := params.Validate(); err != nil {
-		return pagepagination.Result[ledger.Transaction]{}, fmt.Errorf("failed to validate list transactions by page input: %w", err)
-	}
-
-	res, err := l.repo.ListTransactionsByPage(ctx, params)
-	if err != nil {
-		return pagepagination.Result[ledger.Transaction]{}, fmt.Errorf("list transactions by page: %w", err)
-	}
-
-	return pagepagination.Result[ledger.Transaction]{
-		Page:       res.Page,
-		TotalCount: res.TotalCount,
-		Items: lo.Map(res.Items, func(item *Transaction, _ int) ledger.Transaction {
-			return item
-		}),
 	}, nil
 }
 

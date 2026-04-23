@@ -1,7 +1,10 @@
 package customerscredits
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -248,6 +251,54 @@ func fromAPIBillingCreditGrantStatus(status api.BillingCreditGrantStatus) (meta.
 	}
 }
 
+type billingCreditTransactionCursorPayload struct {
+	BookedAt  time.Time `json:"booked_at"`
+	CreatedAt time.Time `json:"created_at"`
+	ID        string    `json:"id"`
+}
+
+func encodeBillingCreditTransactionCursor(cursor ledger.TransactionCursor) (string, error) {
+	payload := billingCreditTransactionCursorPayload{
+		BookedAt:  cursor.BookedAt,
+		CreatedAt: cursor.CreatedAt,
+		ID:        cursor.ID.ID,
+	}
+
+	raw, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("encode cursor payload: %w", err)
+	}
+
+	return base64.StdEncoding.EncodeToString(raw), nil
+}
+
+func decodeBillingCreditTransactionCursor(cursor string, namespace string) (*ledger.TransactionCursor, error) {
+	raw, err := base64.StdEncoding.DecodeString(cursor)
+	if err != nil {
+		return nil, fmt.Errorf("decode cursor: %w", err)
+	}
+
+	var payload billingCreditTransactionCursorPayload
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return nil, fmt.Errorf("decode cursor payload: %w", err)
+	}
+
+	ledgerCursor := ledger.TransactionCursor{
+		BookedAt:  payload.BookedAt,
+		CreatedAt: payload.CreatedAt,
+		ID: models.NamespacedID{
+			Namespace: namespace,
+			ID:        payload.ID,
+		},
+	}
+
+	if err := ledgerCursor.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid cursor value: %w", err)
+	}
+
+	return &ledgerCursor, nil
+}
+
 func fromAPICreateCreditGrantRequest(ns string, customerID api.ULID, body api.CreateCreditGrantRequest) (creditgrant.CreateInput, error) {
 	amount, err := alpacadecimal.NewFromString(body.Amount)
 	if err != nil {
@@ -353,8 +404,6 @@ func fromAPIBillingCreditTransactionType(filter *api.BillingCreditTransactionTyp
 		txType = customerbalance.CreditTransactionTypeFunded
 	case api.BillingCreditTransactionTypeConsumed:
 		txType = customerbalance.CreditTransactionTypeConsumed
-	case api.BillingCreditTransactionTypeAdjusted:
-		txType = customerbalance.CreditTransactionTypeAdjusted
 	default:
 		return nil
 	}
@@ -404,10 +453,8 @@ func toAPIBillingCreditTransactionType(txType customerbalance.CreditTransactionT
 	switch txType {
 	case customerbalance.CreditTransactionTypeFunded:
 		return api.BillingCreditTransactionTypeFunded
-	case customerbalance.CreditTransactionTypeConsumed:
-		return api.BillingCreditTransactionTypeConsumed
 	default:
-		return api.BillingCreditTransactionTypeAdjusted
+		return api.BillingCreditTransactionTypeConsumed
 	}
 }
 
