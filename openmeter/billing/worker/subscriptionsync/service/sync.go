@@ -31,10 +31,13 @@ func (s *Service) invoicePendingLines(ctx context.Context, customer customer.Cus
 	))
 
 	return span.Wrap(func(ctx context.Context) error {
-		_, err := s.billingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer:                   customer,
-			ProgressiveBillingOverride: lo.ToPtr(false),
-		})
+		_, err := s.billingService.InvoicePendingLines(
+			ctx,
+			billing.InvoicePendingLinesInput{
+				Customer: customer,
+			},
+			billing.WithPartialInvoiceLinesDisabled(),
+		)
 		if err != nil {
 			if errors.Is(err, billing.ErrInvoiceCreateNoLines) {
 				return nil

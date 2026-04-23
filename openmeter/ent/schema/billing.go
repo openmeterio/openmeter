@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -1118,10 +1117,10 @@ func (BillingInvoice) Fields() []ent.Field {
 			Nillable(),
 
 		// The timestamp set in the collection_at field defines when new draft invoice is need to be created
-		// from line-items available on the gathering invoice. It is defaulted to time.Now() on creation.
+		// from line-items available on the gathering invoice.
 		field.Time("collection_at").
 			Optional().
-			Default(clock.Now),
+			Nillable(),
 
 		// This is the timestamp the invoice first entered the Payment Processing State (InvoiceStatusPaymentProcessingPending).
 		// This is relevant as we later use this to determine stale-ness and guard against fraud.

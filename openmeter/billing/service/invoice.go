@@ -250,7 +250,7 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 		return nil, fmt.Errorf("resolving tax codes: %w", err)
 	}
 
-	if err := s.invoiceCalculator.CalculateGatheringInvoiceWithLiveData(out, invoicecalc.CalculatorDependencies{
+	if err := s.invoiceCalculator.CalculateGatheringInvoiceWithLiveData(out, invoicecalc.StandardInvoiceCalculatorDependencies{
 		FeatureMeters: featureMeters,
 		RatingService: s.ratingService,
 		TaxCodes:      taxCodes,
@@ -863,7 +863,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 	}
 
 	// Let's simulate a recalculation of the invoice
-	if err := s.invoiceCalculator.Calculate(&invoice, invoicecalc.CalculatorDependencies{
+	if err := s.invoiceCalculator.Calculate(&invoice, invoicecalc.StandardInvoiceCalculatorDependencies{
 		FeatureMeters: featureMeters,
 		RatingService: s.ratingService,
 		TaxCodes:      taxCodes,
@@ -942,7 +942,16 @@ func (s *Service) RecalculateGatheringInvoices(ctx context.Context, input billin
 		for _, invoice := range gatheringInvoices.Items {
 			var err error
 
-			if err = s.invoiceCalculator.CalculateGatheringInvoice(&invoice); err != nil {
+			customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+				Customer: invoice.GetCustomerID(),
+			})
+			if err != nil {
+				return fmt.Errorf("fetching customer profile: %w", err)
+			}
+
+			if err = s.invoiceCalculator.CalculateGatheringInvoice(&invoice, invoicecalc.GatheringInvoiceCalculatorDependencies{
+				Collection: customerProfile.MergedProfile.WorkflowConfig.Collection,
+			}); err != nil {
 				return fmt.Errorf("calculating gathering invoice: %w", err)
 			}
 

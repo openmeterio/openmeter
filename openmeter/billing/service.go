@@ -72,7 +72,7 @@ type SplitLineGroupService interface {
 }
 
 type InvoiceService interface {
-	InvoicePendingLines(ctx context.Context, input InvoicePendingLinesInput) ([]StandardInvoice, error)
+	InvoicePendingLines(ctx context.Context, input InvoicePendingLinesInput, opts ...InvoicePendingLinesOption) ([]StandardInvoice, error)
 
 	ListInvoices(ctx context.Context, input ListInvoicesInput) (ListInvoicesResponse, error)
 	// GetInvoiceById returns the invoice by its ID using the Invoice union type.
@@ -118,9 +118,6 @@ type StandardInvoiceService interface {
 type GatheringInvoiceService interface {
 	// CreatePendingInvoiceLines creates pending invoice lines for a customer, if the lines are zero valued, the response is nil
 	CreatePendingInvoiceLines(ctx context.Context, input CreatePendingInvoiceLinesInput) (*CreatePendingInvoiceLinesResult, error)
-
-	// PrepareBillableLines prepares the billable lines for a customer, if the lines are zero valued, the response is nil
-	PrepareBillableLines(ctx context.Context, input PrepareBillableLinesInput) (*PrepareBillableLinesResult, error)
 
 	ListGatheringInvoices(ctx context.Context, input ListGatheringInvoicesInput) (pagination.Result[GatheringInvoice], error)
 	GetGatheringInvoiceById(ctx context.Context, input GetGatheringInvoiceByIdInput) (GatheringInvoice, error)

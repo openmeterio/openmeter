@@ -43,7 +43,7 @@ func MapGatheringInvoiceToAPI(invoice billing.GatheringInvoice, customer *custom
 		CreatedAt:    invoice.CreatedAt,
 		UpdatedAt:    invoice.UpdatedAt,
 		DeletedAt:    invoice.DeletedAt,
-		CollectionAt: lo.ToPtr(invoice.NextCollectionAt),
+		CollectionAt: invoice.NextCollectionAt,
 		Period:       mapServicePeriodToAPI(invoice.ServicePeriod),
 
 		Currency: string(invoice.Currency),

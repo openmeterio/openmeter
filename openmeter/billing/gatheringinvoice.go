@@ -32,7 +32,7 @@ type GatheringInvoiceBase struct {
 	Currency      currencyx.Code        `json:"currency"`
 	ServicePeriod timeutil.ClosedPeriod `json:"servicePeriod"`
 
-	NextCollectionAt time.Time `json:"nextCollectionAt"`
+	NextCollectionAt *time.Time `json:"nextCollectionAt,omitempty"`
 
 	SchemaLevel int `json:"schemaLevel"`
 }
@@ -262,6 +262,12 @@ func (l *GatheringInvoiceLines) Sort() {
 
 func (l GatheringInvoiceLines) NonDeletedLineCount() int {
 	return lo.CountBy(l.OrEmpty(), func(l GatheringLine) bool {
+		return l.DeletedAt == nil
+	})
+}
+
+func (l GatheringInvoiceLines) NonDeletedLines() GatheringLines {
+	return lo.Filter(l.OrEmpty(), func(l GatheringLine, _ int) bool {
 		return l.DeletedAt == nil
 	})
 }

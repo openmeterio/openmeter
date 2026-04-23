@@ -55,7 +55,7 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 	tests := []struct {
 		name      string
 		invoice   billing.StandardInvoice
-		deps      CalculatorDependencies
+		deps      StandardInvoiceCalculatorDependencies
 		wantTC    *productcatalog.TaxConfig
 		wantNoErr bool
 	}{
@@ -68,7 +68,7 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 					Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
 				}),
 			),
-			deps:      CalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
+			deps:      StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
 			wantTC:    &productcatalog.TaxConfig{Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"}},
 			wantNoErr: true,
 		},
@@ -81,7 +81,7 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 					Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
 				}),
 			),
-			deps: CalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
+			deps: StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
 			wantTC: &productcatalog.TaxConfig{
 				Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
 				TaxCodeID: lo.ToPtr("tc-1"),
@@ -99,7 +99,7 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 					TaxCodeID: lo.ToPtr("already-set"),
 				}),
 			),
-			deps: CalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
+			deps: StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
 			wantTC: &productcatalog.TaxConfig{
 				Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
 				TaxCodeID: lo.ToPtr("already-set"),
@@ -116,7 +116,7 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 					Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
 				}),
 			),
-			deps: CalculatorDependencies{TaxCodes: TaxCodes{}},
+			deps: StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{}},
 			wantTC: &productcatalog.TaxConfig{
 				Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
 			},
@@ -132,7 +132,7 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 				},
 				newLine(nil),
 			),
-			deps: CalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
+			deps: StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
 			wantTC: &productcatalog.TaxConfig{
 				Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 				Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
@@ -152,7 +152,7 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 					Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_20000000"},
 				}),
 			),
-			deps: CalculatorDependencies{TaxCodes: TaxCodes{
+			deps: StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{
 				"txcd_10000000": tc1,
 				"txcd_20000000": tc2,
 			}},
@@ -172,7 +172,7 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 					Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 				}),
 			),
-			deps: CalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
+			deps: StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
 			wantTC: &productcatalog.TaxConfig{
 				Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 			},
@@ -185,7 +185,7 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 				nil,
 				newLine(nil),
 			),
-			deps:      CalculatorDependencies{},
+			deps:      StandardInvoiceCalculatorDependencies{},
 			wantTC:    nil,
 			wantNoErr: true,
 		},

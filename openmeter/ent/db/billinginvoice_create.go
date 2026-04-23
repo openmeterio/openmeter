@@ -806,10 +806,6 @@ func (_c *BillingInvoiceCreate) defaults() {
 		v := billinginvoice.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := _c.mutation.CollectionAt(); !ok {
-		v := billinginvoice.DefaultCollectionAt()
-		_c.mutation.SetCollectionAt(v)
-	}
 	if _, ok := _c.mutation.SchemaLevel(); !ok {
 		v := billinginvoice.DefaultSchemaLevel
 		_c.mutation.SetSchemaLevel(v)
@@ -1201,7 +1197,7 @@ func (_c *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.CreateS
 	}
 	if value, ok := _c.mutation.CollectionAt(); ok {
 		_spec.SetField(billinginvoice.FieldCollectionAt, field.TypeTime, value)
-		_node.CollectionAt = value
+		_node.CollectionAt = &value
 	}
 	if value, ok := _c.mutation.PaymentProcessingEnteredAt(); ok {
 		_spec.SetField(billinginvoice.FieldPaymentProcessingEnteredAt, field.TypeTime, value)

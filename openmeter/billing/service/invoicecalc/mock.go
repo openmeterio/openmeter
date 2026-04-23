@@ -19,9 +19,6 @@ type mockCalculator struct {
 	calculateResult       mo.Option[error]
 	calculateResultCalled bool
 
-	calculateLegacyGatheringInvoiceResult       mo.Option[error]
-	calculateLegacyGatheringInvoiceResultCalled bool
-
 	calculateGatheringInvoiceWithLiveDataResult       mo.Option[error]
 	calculateGatheringInvoiceWithLiveDataResultCalled bool
 
@@ -29,7 +26,7 @@ type mockCalculator struct {
 	calculateGatheringInvoiceResultCalled bool
 }
 
-func (m *mockCalculator) Calculate(i *billing.StandardInvoice, deps CalculatorDependencies) error {
+func (m *mockCalculator) Calculate(i *billing.StandardInvoice, deps StandardInvoiceCalculatorDependencies) error {
 	m.calculateResultCalled = true
 
 	res := m.calculateResult.MustGet()
@@ -44,22 +41,7 @@ func (m *mockCalculator) Calculate(i *billing.StandardInvoice, deps CalculatorDe
 		billing.ValidationComponentOpenMeter)
 }
 
-func (m *mockCalculator) CalculateLegacyGatheringInvoice(i *billing.StandardInvoice) error {
-	m.calculateLegacyGatheringInvoiceResultCalled = true
-
-	res := m.calculateLegacyGatheringInvoiceResult.MustGet()
-
-	// This simulates the same behavior as the calculate method for the original
-	// implementation. This way the mock can be used to inject calculation errors
-	// as if they were coming from a calculate callback.
-	return i.MergeValidationIssues(
-		billing.ValidationWithComponent(
-			billing.ValidationComponentOpenMeter,
-			res),
-		billing.ValidationComponentOpenMeter)
-}
-
-func (m *mockCalculator) CalculateGatheringInvoiceWithLiveData(i *billing.StandardInvoice, deps CalculatorDependencies) error {
+func (m *mockCalculator) CalculateGatheringInvoiceWithLiveData(i *billing.StandardInvoice, deps StandardInvoiceCalculatorDependencies) error {
 	m.calculateGatheringInvoiceWithLiveDataResultCalled = true
 
 	res := m.calculateGatheringInvoiceWithLiveDataResult.MustGet()
@@ -74,7 +56,7 @@ func (m *mockCalculator) CalculateGatheringInvoiceWithLiveData(i *billing.Standa
 		billing.ValidationComponentOpenMeter)
 }
 
-func (m *mockCalculator) CalculateGatheringInvoice(i *billing.GatheringInvoice) error {
+func (m *mockCalculator) CalculateGatheringInvoice(i *billing.GatheringInvoice, _ GatheringInvoiceCalculatorDependencies) error {
 	m.calculateGatheringInvoiceResultCalled = true
 
 	res := m.calculateGatheringInvoiceResult.MustGet()
@@ -84,10 +66,6 @@ func (m *mockCalculator) CalculateGatheringInvoice(i *billing.GatheringInvoice) 
 
 func (m *mockCalculator) OnCalculate(err error) {
 	m.calculateResult = mo.Some(err)
-}
-
-func (m *mockCalculator) OnCalculateLegacyGatheringInvoice(err error) {
-	m.calculateLegacyGatheringInvoiceResult = mo.Some(err)
 }
 
 func (m *mockCalculator) OnCalculateGatheringInvoiceWithLiveData(err error) {
@@ -103,10 +81,6 @@ func (m *mockCalculator) AssertExpectations(t *testing.T) {
 
 	if m.calculateResult.IsPresent() && !m.calculateResultCalled {
 		t.Errorf("expected Calculate to be called")
-	}
-
-	if m.calculateLegacyGatheringInvoiceResult.IsPresent() && !m.calculateLegacyGatheringInvoiceResultCalled {
-		t.Errorf("expected CalculateLegacyGatheringInvoice to be called")
 	}
 
 	if m.calculateGatheringInvoiceResult.IsPresent() && !m.calculateGatheringInvoiceResultCalled {
@@ -126,9 +100,6 @@ func (m *mockCalculator) Reset(t *testing.T) {
 	m.calculateResult = mo.None[error]()
 	m.calculateResultCalled = false
 
-	m.calculateLegacyGatheringInvoiceResult = mo.None[error]()
-	m.calculateLegacyGatheringInvoiceResultCalled = false
-
 	m.calculateGatheringInvoiceResult = mo.None[error]()
 	m.calculateGatheringInvoiceResultCalled = false
 
@@ -142,7 +113,7 @@ func NewMockableCalculator(_ *testing.T, upstream Calculator) *MockableInvoiceCa
 	}
 }
 
-func (m *MockableInvoiceCalculator) Calculate(i *billing.StandardInvoice, deps CalculatorDependencies) error {
+func (m *MockableInvoiceCalculator) Calculate(i *billing.StandardInvoice, deps StandardInvoiceCalculatorDependencies) error {
 	outErr := m.upstream.Calculate(i, deps)
 
 	if m.mock != nil {
@@ -155,11 +126,11 @@ func (m *MockableInvoiceCalculator) Calculate(i *billing.StandardInvoice, deps C
 	return outErr
 }
 
-func (m *MockableInvoiceCalculator) CalculateLegacyGatheringInvoice(i *billing.StandardInvoice) error {
-	outErr := m.upstream.CalculateLegacyGatheringInvoice(i)
+func (m *MockableInvoiceCalculator) CalculateGatheringInvoice(i *billing.GatheringInvoice, deps GatheringInvoiceCalculatorDependencies) error {
+	outErr := m.upstream.CalculateGatheringInvoice(i, deps)
 
 	if m.mock != nil {
-		err := m.mock.CalculateLegacyGatheringInvoice(i)
+		err := m.mock.CalculateGatheringInvoice(i, deps)
 		if err != nil {
 			outErr = errors.Join(outErr, err)
 		}
@@ -168,20 +139,7 @@ func (m *MockableInvoiceCalculator) CalculateLegacyGatheringInvoice(i *billing.S
 	return outErr
 }
 
-func (m *MockableInvoiceCalculator) CalculateGatheringInvoice(i *billing.GatheringInvoice) error {
-	outErr := m.upstream.CalculateGatheringInvoice(i)
-
-	if m.mock != nil {
-		err := m.mock.CalculateGatheringInvoice(i)
-		if err != nil {
-			outErr = errors.Join(outErr, err)
-		}
-	}
-
-	return outErr
-}
-
-func (m *MockableInvoiceCalculator) CalculateGatheringInvoiceWithLiveData(i *billing.StandardInvoice, deps CalculatorDependencies) error {
+func (m *MockableInvoiceCalculator) CalculateGatheringInvoiceWithLiveData(i *billing.StandardInvoice, deps StandardInvoiceCalculatorDependencies) error {
 	outErr := m.upstream.CalculateGatheringInvoiceWithLiveData(i, deps)
 
 	if m.mock != nil {

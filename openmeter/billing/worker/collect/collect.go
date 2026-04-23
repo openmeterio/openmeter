@@ -84,11 +84,14 @@ func (a *InvoiceCollector) CollectCustomerInvoice(ctx context.Context, params Co
 
 	a.logger.DebugContext(ctx, "collecting customer invoices", "customer", params.CustomerID)
 
-	invoices, err := a.billingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: params.CustomerID,
+	invoices, err := a.billingService.InvoicePendingLines(
+		ctx,
+		billing.InvoicePendingLinesInput{
+			Customer: params.CustomerID,
+		},
 		// We want to make sure that system collection does not use progressive billing.
-		ProgressiveBillingOverride: lo.ToPtr(false),
-	})
+		billing.WithPartialInvoiceLinesDisabled(),
+	)
 	if err != nil {
 		if errors.Is(err, billing.ErrNamespaceLocked) {
 			a.logger.WarnContext(ctx, "namespace is locked, skipping collection", "customer", params.CustomerID)
