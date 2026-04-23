@@ -521,10 +521,6 @@ func init() {
 	billinginvoiceDescCurrency := billinginvoiceFields[15].Descriptor()
 	// billinginvoice.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	billinginvoice.CurrencyValidator = billinginvoiceDescCurrency.Validators[0].(func(string) error)
-	// billinginvoiceDescCollectionAt is the schema descriptor for collection_at field.
-	billinginvoiceDescCollectionAt := billinginvoiceFields[25].Descriptor()
-	// billinginvoice.DefaultCollectionAt holds the default value on creation for the collection_at field.
-	billinginvoice.DefaultCollectionAt = billinginvoiceDescCollectionAt.Default.(func() time.Time)
 	// billinginvoiceDescSchemaLevel is the schema descriptor for schema_level field.
 	billinginvoiceDescSchemaLevel := billinginvoiceFields[27].Descriptor()
 	// billinginvoice.DefaultSchemaLevel holds the default value on creation for the schema_level field.

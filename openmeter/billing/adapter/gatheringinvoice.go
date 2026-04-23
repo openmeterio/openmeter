@@ -415,7 +415,7 @@ func (a *adapter) mapGatheringInvoiceFromDB(ctx context.Context, invoice *db.Bil
 			CustomerID:       invoice.CustomerID,
 			Currency:         invoice.Currency,
 			ServicePeriod:    period,
-			NextCollectionAt: convert.EmptyableTimeToUTC(invoice.CollectionAt),
+			NextCollectionAt: convert.TimePtrIn(invoice.CollectionAt, time.UTC),
 			SchemaLevel:      invoice.SchemaLevel,
 		},
 

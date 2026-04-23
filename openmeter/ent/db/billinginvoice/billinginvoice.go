@@ -313,8 +313,6 @@ var (
 	SourceBillingProfileIDValidator func(string) error
 	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	CurrencyValidator func(string) error
-	// DefaultCollectionAt holds the default value on creation for the "collection_at" field.
-	DefaultCollectionAt func() time.Time
 	// DefaultSchemaLevel holds the default value on creation for the "schema_level" field.
 	DefaultSchemaLevel int
 	// DefaultID holds the default value on creation for the "id" field.
