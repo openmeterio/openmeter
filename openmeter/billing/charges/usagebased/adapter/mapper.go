@@ -79,9 +79,9 @@ func MapRealizationRunsFromDB(entity *entdb.ChargeUsageBased) (usagebased.Realiz
 		runs = nil
 	}
 
-	// Let's keep the runs sorted by AsOf
+	// Let's keep the runs sorted by period end.
 	slices.SortStableFunc(runs, func(a, b usagebased.RealizationRun) int {
-		return cmp.Compare(a.AsOf.UnixNano(), b.AsOf.UnixNano())
+		return cmp.Compare(a.ServicePeriodTo.UnixNano(), b.ServicePeriodTo.UnixNano())
 	})
 
 	return runs, nil
@@ -95,13 +95,13 @@ func MapRealizationRunBaseFromDB(dbRun *entdb.ChargeUsageBasedRuns) usagebased.R
 		},
 		ManagedModel: entutils.MapTimeMixinFromDB(dbRun),
 
-		FeatureID:     dbRun.FeatureID,
-		LineID:        dbRun.LineID,
-		Type:          dbRun.Type,
-		AsOf:          dbRun.Asof.UTC(),
-		CollectionEnd: dbRun.CollectionEnd,
-		MeterValue:    dbRun.MeterValue,
-		Totals:        totals.FromDB(dbRun),
+		FeatureID:       dbRun.FeatureID,
+		LineID:          dbRun.LineID,
+		Type:            dbRun.Type,
+		StoredAtLT:      dbRun.StoredAtLt.UTC(),
+		ServicePeriodTo: dbRun.ServicePeriodTo.UTC(),
+		MeteredQuantity: dbRun.MeteredQuantity,
+		Totals:          totals.FromDB(dbRun),
 	}
 }
 

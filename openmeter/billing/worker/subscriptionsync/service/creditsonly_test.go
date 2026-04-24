@@ -957,7 +957,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedMidPe
 		s.Len(afterShrinkCharge.Realizations, 1)
 
 		finalRun := afterShrinkCharge.Realizations[0]
-		s.Equal(float64(8), finalRun.MeterValue.InexactFloat64())
+		s.Equal(float64(8), finalRun.MeteredQuantity.InexactFloat64())
 		s.Equal(float64(0), finalRun.Totals.Total.InexactFloat64())
 		s.Equal(float64(8), finalRun.Totals.CreditsTotal.InexactFloat64())
 		s.Len(finalRun.CreditsAllocated, 1)

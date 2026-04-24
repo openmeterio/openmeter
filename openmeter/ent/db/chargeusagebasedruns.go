@@ -54,14 +54,14 @@ type ChargeUsageBasedRuns struct {
 	FeatureID string `json:"feature_id,omitempty"`
 	// Type holds the value of the "type" field.
 	Type usagebased.RealizationRunType `json:"type,omitempty"`
-	// Asof holds the value of the "asof" field.
-	Asof time.Time `json:"asof,omitempty"`
-	// CollectionEnd holds the value of the "collection_end" field.
-	CollectionEnd time.Time `json:"collection_end,omitempty"`
+	// StoredAtLt holds the value of the "stored_at_lt" field.
+	StoredAtLt time.Time `json:"stored_at_lt,omitempty"`
+	// ServicePeriodTo holds the value of the "service_period_to" field.
+	ServicePeriodTo time.Time `json:"service_period_to,omitempty"`
 	// LineID holds the value of the "line_id" field.
 	LineID *string `json:"line_id,omitempty"`
-	// MeterValue holds the value of the "meter_value" field.
-	MeterValue alpacadecimal.Decimal `json:"meter_value,omitempty"`
+	// MeteredQuantity holds the value of the "metered_quantity" field.
+	MeteredQuantity alpacadecimal.Decimal `json:"metered_quantity,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChargeUsageBasedRunsQuery when eager-loading is set.
 	Edges        ChargeUsageBasedRunsEdges `json:"edges"`
@@ -167,11 +167,11 @@ func (*ChargeUsageBasedRuns) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case chargeusagebasedruns.FieldAmount, chargeusagebasedruns.FieldTaxesTotal, chargeusagebasedruns.FieldTaxesInclusiveTotal, chargeusagebasedruns.FieldTaxesExclusiveTotal, chargeusagebasedruns.FieldChargesTotal, chargeusagebasedruns.FieldDiscountsTotal, chargeusagebasedruns.FieldCreditsTotal, chargeusagebasedruns.FieldTotal, chargeusagebasedruns.FieldMeterValue:
+		case chargeusagebasedruns.FieldAmount, chargeusagebasedruns.FieldTaxesTotal, chargeusagebasedruns.FieldTaxesInclusiveTotal, chargeusagebasedruns.FieldTaxesExclusiveTotal, chargeusagebasedruns.FieldChargesTotal, chargeusagebasedruns.FieldDiscountsTotal, chargeusagebasedruns.FieldCreditsTotal, chargeusagebasedruns.FieldTotal, chargeusagebasedruns.FieldMeteredQuantity:
 			values[i] = new(alpacadecimal.Decimal)
 		case chargeusagebasedruns.FieldID, chargeusagebasedruns.FieldNamespace, chargeusagebasedruns.FieldChargeID, chargeusagebasedruns.FieldFeatureID, chargeusagebasedruns.FieldType, chargeusagebasedruns.FieldLineID:
 			values[i] = new(sql.NullString)
-		case chargeusagebasedruns.FieldCreatedAt, chargeusagebasedruns.FieldUpdatedAt, chargeusagebasedruns.FieldDeletedAt, chargeusagebasedruns.FieldAsof, chargeusagebasedruns.FieldCollectionEnd:
+		case chargeusagebasedruns.FieldCreatedAt, chargeusagebasedruns.FieldUpdatedAt, chargeusagebasedruns.FieldDeletedAt, chargeusagebasedruns.FieldStoredAtLt, chargeusagebasedruns.FieldServicePeriodTo:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -285,17 +285,17 @@ func (_m *ChargeUsageBasedRuns) assignValues(columns []string, values []any) err
 			} else if value.Valid {
 				_m.Type = usagebased.RealizationRunType(value.String)
 			}
-		case chargeusagebasedruns.FieldAsof:
+		case chargeusagebasedruns.FieldStoredAtLt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field asof", values[i])
+				return fmt.Errorf("unexpected type %T for field stored_at_lt", values[i])
 			} else if value.Valid {
-				_m.Asof = value.Time
+				_m.StoredAtLt = value.Time
 			}
-		case chargeusagebasedruns.FieldCollectionEnd:
+		case chargeusagebasedruns.FieldServicePeriodTo:
 			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field collection_end", values[i])
+				return fmt.Errorf("unexpected type %T for field service_period_to", values[i])
 			} else if value.Valid {
-				_m.CollectionEnd = value.Time
+				_m.ServicePeriodTo = value.Time
 			}
 		case chargeusagebasedruns.FieldLineID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -304,11 +304,11 @@ func (_m *ChargeUsageBasedRuns) assignValues(columns []string, values []any) err
 				_m.LineID = new(string)
 				*_m.LineID = value.String
 			}
-		case chargeusagebasedruns.FieldMeterValue:
+		case chargeusagebasedruns.FieldMeteredQuantity:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
-				return fmt.Errorf("unexpected type %T for field meter_value", values[i])
+				return fmt.Errorf("unexpected type %T for field metered_quantity", values[i])
 			} else if value != nil {
-				_m.MeterValue = *value
+				_m.MeteredQuantity = *value
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -428,19 +428,19 @@ func (_m *ChargeUsageBasedRuns) String() string {
 	builder.WriteString("type=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Type))
 	builder.WriteString(", ")
-	builder.WriteString("asof=")
-	builder.WriteString(_m.Asof.Format(time.ANSIC))
+	builder.WriteString("stored_at_lt=")
+	builder.WriteString(_m.StoredAtLt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	builder.WriteString("collection_end=")
-	builder.WriteString(_m.CollectionEnd.Format(time.ANSIC))
+	builder.WriteString("service_period_to=")
+	builder.WriteString(_m.ServicePeriodTo.Format(time.ANSIC))
 	builder.WriteString(", ")
 	if v := _m.LineID; v != nil {
 		builder.WriteString("line_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	builder.WriteString("meter_value=")
-	builder.WriteString(fmt.Sprintf("%v", _m.MeterValue))
+	builder.WriteString("metered_quantity=")
+	builder.WriteString(fmt.Sprintf("%v", _m.MeteredQuantity))
 	builder.WriteByte(')')
 	return builder.String()
 }

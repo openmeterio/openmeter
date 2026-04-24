@@ -126,11 +126,11 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 
 	charge := createdCharges[0]
 	runBase, err := s.adapter.CreateRealizationRun(ctx, charge.GetChargeID(), usagebased.CreateRealizationRunInput{
-		FeatureID:     "feature-1",
-		Type:          usagebased.RealizationRunTypeFinalRealization,
-		AsOf:          servicePeriod.To,
-		CollectionEnd: servicePeriod.To,
-		MeterValue:    alpacadecimal.NewFromInt(10),
+		FeatureID:       "feature-1",
+		Type:            usagebased.RealizationRunTypeFinalRealization,
+		StoredAtLT:      servicePeriod.To,
+		ServicePeriodTo: servicePeriod.To,
+		MeteredQuantity: alpacadecimal.NewFromInt(10),
 		Totals: totals.Totals{
 			Amount:       alpacadecimal.NewFromInt(1),
 			ChargesTotal: alpacadecimal.NewFromInt(1),

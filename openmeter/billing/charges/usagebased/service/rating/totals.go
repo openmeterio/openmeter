@@ -12,10 +12,10 @@ import (
 )
 
 type GetTotalsForUsageInput struct {
-	Charge         usagebased.Charge
-	Customer       billing.CustomerOverrideWithDetails
-	FeatureMeter   feature.FeatureMeter
-	StoredAtOffset time.Time
+	Charge       usagebased.Charge
+	Customer     billing.CustomerOverrideWithDetails
+	FeatureMeter feature.FeatureMeter
+	StoredAtLT   time.Time
 }
 
 func (i GetTotalsForUsageInput) Validate() error {
@@ -31,8 +31,8 @@ func (i GetTotalsForUsageInput) Validate() error {
 		return fmt.Errorf("feature meter is required")
 	}
 
-	if i.StoredAtOffset.IsZero() {
-		return fmt.Errorf("stored at offset is required")
+	if i.StoredAtLT.IsZero() {
+		return fmt.Errorf("stored at lt is required")
 	}
 
 	return nil
@@ -46,10 +46,10 @@ func (s *service) GetTotalsForUsage(ctx context.Context, in GetTotalsForUsageInp
 	}
 
 	snapshotQuantity, err := s.snapshotQuantity(ctx, snapshotQuantityInput{
-		Customer:       in.Customer.Customer,
-		FeatureMeter:   in.FeatureMeter,
-		ServicePeriod:  in.Charge.Intent.ServicePeriod,
-		StoredAtOffset: in.StoredAtOffset,
+		Customer:      in.Customer.Customer,
+		FeatureMeter:  in.FeatureMeter,
+		ServicePeriod: in.Charge.Intent.ServicePeriod,
+		StoredAtLT:    in.StoredAtLT,
 	})
 	if err != nil {
 		return totals.Totals{}, fmt.Errorf("get snapshot quantity: %w", err)

@@ -220,7 +220,7 @@ func (s *ChargeFeatureIDTestSuite) TestUsageBasedActivationRecalculatesFeatureID
 	s.Equal(featureV2.ID, finalCharge.State.FeatureID)
 	s.Len(finalCharge.Realizations, 1)
 	s.Equal(featureV2.ID, finalCharge.Realizations[0].FeatureID)
-	s.True(alpacadecimal.NewFromInt(7).Equal(finalCharge.Realizations[0].MeterValue))
+	s.True(alpacadecimal.NewFromInt(7).Equal(finalCharge.Realizations[0].MeteredQuantity))
 }
 
 func (s *ChargeFeatureIDTestSuite) installMeters(ctx context.Context, meters ...meter.Meter) {

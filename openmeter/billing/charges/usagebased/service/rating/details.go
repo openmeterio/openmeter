@@ -14,11 +14,12 @@ import (
 )
 
 type GetDetailedLinesForUsageInput struct {
-	Charge         usagebased.Charge
-	PriorRuns      usagebased.RealizationRuns
-	Customer       billing.CustomerOverrideWithDetails
-	FeatureMeter   feature.FeatureMeter
-	StoredAtOffset time.Time
+	Charge          usagebased.Charge
+	PriorRuns       usagebased.RealizationRuns
+	Customer        billing.CustomerOverrideWithDetails
+	FeatureMeter    feature.FeatureMeter
+	ServicePeriodTo time.Time
+	StoredAtLT      time.Time
 	// IgnoreMinimumCommitment suppresses minimum commitment while still applying the rest of the billing mutators.
 	IgnoreMinimumCommitment bool
 }
@@ -36,8 +37,21 @@ func (i GetDetailedLinesForUsageInput) Validate() error {
 		return fmt.Errorf("feature meter is required")
 	}
 
-	if i.StoredAtOffset.IsZero() {
-		return fmt.Errorf("stored at offset is required")
+	if i.ServicePeriodTo.IsZero() {
+		return fmt.Errorf("service period to is required")
+	}
+
+	period := i.Charge.Intent.ServicePeriod
+	if !i.ServicePeriodTo.After(period.From) {
+		return fmt.Errorf("service period to must be after charge service period from")
+	}
+
+	if i.ServicePeriodTo.After(period.To) {
+		return fmt.Errorf("service period to must not be after charge service period to")
+	}
+
+	if i.StoredAtLT.IsZero() {
+		return fmt.Errorf("stored at lt is required")
 	}
 
 	if err := i.PriorRuns.Validate(); err != nil {
@@ -65,11 +79,14 @@ func (s *service) GetDetailedLinesForUsage(ctx context.Context, in GetDetailedLi
 		return GetRatingForUsageResult{}, err
 	}
 
+	servicePeriod := in.Charge.Intent.ServicePeriod
+	servicePeriod.To = in.ServicePeriodTo
+
 	snapshotQuantity, err := s.snapshotQuantity(ctx, snapshotQuantityInput{
-		Customer:       in.Customer.Customer,
-		FeatureMeter:   in.FeatureMeter,
-		ServicePeriod:  in.Charge.Intent.ServicePeriod,
-		StoredAtOffset: in.StoredAtOffset,
+		Customer:      in.Customer.Customer,
+		FeatureMeter:  in.FeatureMeter,
+		ServicePeriod: servicePeriod,
+		StoredAtLT:    in.StoredAtLT,
 	})
 	if err != nil {
 		return GetRatingForUsageResult{}, fmt.Errorf("get snapshot quantity: %w", err)
@@ -80,8 +97,11 @@ func (s *service) GetDetailedLinesForUsage(ctx context.Context, in GetDetailedLi
 		opts = append(opts, billingrating.WithMinimumCommitmentIgnored())
 	}
 
+	intent := in.Charge.Intent
+	intent.ServicePeriod = servicePeriod
+
 	ratingResult, err := s.ratingService.GenerateDetailedLines(usagebased.RateableIntent{
-		Intent:     in.Charge.Intent,
+		Intent:     intent,
 		MeterValue: snapshotQuantity,
 	}, opts...)
 	if err != nil {
@@ -90,7 +110,7 @@ func (s *service) GetDetailedLinesForUsage(ctx context.Context, in GetDetailedLi
 
 	ratingResult.DetailedLines = withServicePeriodInDetailedLineChildUniqueReferenceIDs(
 		ratingResult.DetailedLines,
-		in.Charge.Intent.ServicePeriod,
+		servicePeriod,
 	)
 
 	return GetRatingForUsageResult{

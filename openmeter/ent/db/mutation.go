@@ -61212,9 +61212,9 @@ type ChargeUsageBasedRunsMutation struct {
 	credits_total               *alpacadecimal.Decimal
 	total                       *alpacadecimal.Decimal
 	_type                       *usagebased.RealizationRunType
-	asof                        *time.Time
-	collection_end              *time.Time
-	meter_value                 *alpacadecimal.Decimal
+	stored_at_lt                *time.Time
+	service_period_to           *time.Time
+	metered_quantity            *alpacadecimal.Decimal
 	clearedFields               map[string]struct{}
 	usage_based                 *string
 	clearedusage_based          bool
@@ -61894,76 +61894,76 @@ func (m *ChargeUsageBasedRunsMutation) ResetType() {
 	m._type = nil
 }
 
-// SetAsof sets the "asof" field.
-func (m *ChargeUsageBasedRunsMutation) SetAsof(t time.Time) {
-	m.asof = &t
+// SetStoredAtLt sets the "stored_at_lt" field.
+func (m *ChargeUsageBasedRunsMutation) SetStoredAtLt(t time.Time) {
+	m.stored_at_lt = &t
 }
 
-// Asof returns the value of the "asof" field in the mutation.
-func (m *ChargeUsageBasedRunsMutation) Asof() (r time.Time, exists bool) {
-	v := m.asof
+// StoredAtLt returns the value of the "stored_at_lt" field in the mutation.
+func (m *ChargeUsageBasedRunsMutation) StoredAtLt() (r time.Time, exists bool) {
+	v := m.stored_at_lt
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldAsof returns the old "asof" field's value of the ChargeUsageBasedRuns entity.
+// OldStoredAtLt returns the old "stored_at_lt" field's value of the ChargeUsageBasedRuns entity.
 // If the ChargeUsageBasedRuns object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedRunsMutation) OldAsof(ctx context.Context) (v time.Time, err error) {
+func (m *ChargeUsageBasedRunsMutation) OldStoredAtLt(ctx context.Context) (v time.Time, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldAsof is only allowed on UpdateOne operations")
+		return v, errors.New("OldStoredAtLt is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldAsof requires an ID field in the mutation")
+		return v, errors.New("OldStoredAtLt requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldAsof: %w", err)
+		return v, fmt.Errorf("querying old value for OldStoredAtLt: %w", err)
 	}
-	return oldValue.Asof, nil
+	return oldValue.StoredAtLt, nil
 }
 
-// ResetAsof resets all changes to the "asof" field.
-func (m *ChargeUsageBasedRunsMutation) ResetAsof() {
-	m.asof = nil
+// ResetStoredAtLt resets all changes to the "stored_at_lt" field.
+func (m *ChargeUsageBasedRunsMutation) ResetStoredAtLt() {
+	m.stored_at_lt = nil
 }
 
-// SetCollectionEnd sets the "collection_end" field.
-func (m *ChargeUsageBasedRunsMutation) SetCollectionEnd(t time.Time) {
-	m.collection_end = &t
+// SetServicePeriodTo sets the "service_period_to" field.
+func (m *ChargeUsageBasedRunsMutation) SetServicePeriodTo(t time.Time) {
+	m.service_period_to = &t
 }
 
-// CollectionEnd returns the value of the "collection_end" field in the mutation.
-func (m *ChargeUsageBasedRunsMutation) CollectionEnd() (r time.Time, exists bool) {
-	v := m.collection_end
+// ServicePeriodTo returns the value of the "service_period_to" field in the mutation.
+func (m *ChargeUsageBasedRunsMutation) ServicePeriodTo() (r time.Time, exists bool) {
+	v := m.service_period_to
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldCollectionEnd returns the old "collection_end" field's value of the ChargeUsageBasedRuns entity.
+// OldServicePeriodTo returns the old "service_period_to" field's value of the ChargeUsageBasedRuns entity.
 // If the ChargeUsageBasedRuns object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedRunsMutation) OldCollectionEnd(ctx context.Context) (v time.Time, err error) {
+func (m *ChargeUsageBasedRunsMutation) OldServicePeriodTo(ctx context.Context) (v time.Time, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCollectionEnd is only allowed on UpdateOne operations")
+		return v, errors.New("OldServicePeriodTo is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCollectionEnd requires an ID field in the mutation")
+		return v, errors.New("OldServicePeriodTo requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCollectionEnd: %w", err)
+		return v, fmt.Errorf("querying old value for OldServicePeriodTo: %w", err)
 	}
-	return oldValue.CollectionEnd, nil
+	return oldValue.ServicePeriodTo, nil
 }
 
-// ResetCollectionEnd resets all changes to the "collection_end" field.
-func (m *ChargeUsageBasedRunsMutation) ResetCollectionEnd() {
-	m.collection_end = nil
+// ResetServicePeriodTo resets all changes to the "service_period_to" field.
+func (m *ChargeUsageBasedRunsMutation) ResetServicePeriodTo() {
+	m.service_period_to = nil
 }
 
 // SetLineID sets the "line_id" field.
@@ -62015,40 +62015,40 @@ func (m *ChargeUsageBasedRunsMutation) ResetLineID() {
 	delete(m.clearedFields, chargeusagebasedruns.FieldLineID)
 }
 
-// SetMeterValue sets the "meter_value" field.
-func (m *ChargeUsageBasedRunsMutation) SetMeterValue(a alpacadecimal.Decimal) {
-	m.meter_value = &a
+// SetMeteredQuantity sets the "metered_quantity" field.
+func (m *ChargeUsageBasedRunsMutation) SetMeteredQuantity(a alpacadecimal.Decimal) {
+	m.metered_quantity = &a
 }
 
-// MeterValue returns the value of the "meter_value" field in the mutation.
-func (m *ChargeUsageBasedRunsMutation) MeterValue() (r alpacadecimal.Decimal, exists bool) {
-	v := m.meter_value
+// MeteredQuantity returns the value of the "metered_quantity" field in the mutation.
+func (m *ChargeUsageBasedRunsMutation) MeteredQuantity() (r alpacadecimal.Decimal, exists bool) {
+	v := m.metered_quantity
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldMeterValue returns the old "meter_value" field's value of the ChargeUsageBasedRuns entity.
+// OldMeteredQuantity returns the old "metered_quantity" field's value of the ChargeUsageBasedRuns entity.
 // If the ChargeUsageBasedRuns object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedRunsMutation) OldMeterValue(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+func (m *ChargeUsageBasedRunsMutation) OldMeteredQuantity(ctx context.Context) (v alpacadecimal.Decimal, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldMeterValue is only allowed on UpdateOne operations")
+		return v, errors.New("OldMeteredQuantity is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldMeterValue requires an ID field in the mutation")
+		return v, errors.New("OldMeteredQuantity requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldMeterValue: %w", err)
+		return v, fmt.Errorf("querying old value for OldMeteredQuantity: %w", err)
 	}
-	return oldValue.MeterValue, nil
+	return oldValue.MeteredQuantity, nil
 }
 
-// ResetMeterValue resets all changes to the "meter_value" field.
-func (m *ChargeUsageBasedRunsMutation) ResetMeterValue() {
-	m.meter_value = nil
+// ResetMeteredQuantity resets all changes to the "metered_quantity" field.
+func (m *ChargeUsageBasedRunsMutation) ResetMeteredQuantity() {
+	m.metered_quantity = nil
 }
 
 // SetUsageBasedID sets the "usage_based" edge to the ChargeUsageBased entity by id.
@@ -62424,17 +62424,17 @@ func (m *ChargeUsageBasedRunsMutation) Fields() []string {
 	if m._type != nil {
 		fields = append(fields, chargeusagebasedruns.FieldType)
 	}
-	if m.asof != nil {
-		fields = append(fields, chargeusagebasedruns.FieldAsof)
+	if m.stored_at_lt != nil {
+		fields = append(fields, chargeusagebasedruns.FieldStoredAtLt)
 	}
-	if m.collection_end != nil {
-		fields = append(fields, chargeusagebasedruns.FieldCollectionEnd)
+	if m.service_period_to != nil {
+		fields = append(fields, chargeusagebasedruns.FieldServicePeriodTo)
 	}
 	if m.billing_invoice_line != nil {
 		fields = append(fields, chargeusagebasedruns.FieldLineID)
 	}
-	if m.meter_value != nil {
-		fields = append(fields, chargeusagebasedruns.FieldMeterValue)
+	if m.metered_quantity != nil {
+		fields = append(fields, chargeusagebasedruns.FieldMeteredQuantity)
 	}
 	return fields
 }
@@ -62474,14 +62474,14 @@ func (m *ChargeUsageBasedRunsMutation) Field(name string) (ent.Value, bool) {
 		return m.FeatureID()
 	case chargeusagebasedruns.FieldType:
 		return m.GetType()
-	case chargeusagebasedruns.FieldAsof:
-		return m.Asof()
-	case chargeusagebasedruns.FieldCollectionEnd:
-		return m.CollectionEnd()
+	case chargeusagebasedruns.FieldStoredAtLt:
+		return m.StoredAtLt()
+	case chargeusagebasedruns.FieldServicePeriodTo:
+		return m.ServicePeriodTo()
 	case chargeusagebasedruns.FieldLineID:
 		return m.LineID()
-	case chargeusagebasedruns.FieldMeterValue:
-		return m.MeterValue()
+	case chargeusagebasedruns.FieldMeteredQuantity:
+		return m.MeteredQuantity()
 	}
 	return nil, false
 }
@@ -62521,14 +62521,14 @@ func (m *ChargeUsageBasedRunsMutation) OldField(ctx context.Context, name string
 		return m.OldFeatureID(ctx)
 	case chargeusagebasedruns.FieldType:
 		return m.OldType(ctx)
-	case chargeusagebasedruns.FieldAsof:
-		return m.OldAsof(ctx)
-	case chargeusagebasedruns.FieldCollectionEnd:
-		return m.OldCollectionEnd(ctx)
+	case chargeusagebasedruns.FieldStoredAtLt:
+		return m.OldStoredAtLt(ctx)
+	case chargeusagebasedruns.FieldServicePeriodTo:
+		return m.OldServicePeriodTo(ctx)
 	case chargeusagebasedruns.FieldLineID:
 		return m.OldLineID(ctx)
-	case chargeusagebasedruns.FieldMeterValue:
-		return m.OldMeterValue(ctx)
+	case chargeusagebasedruns.FieldMeteredQuantity:
+		return m.OldMeteredQuantity(ctx)
 	}
 	return nil, fmt.Errorf("unknown ChargeUsageBasedRuns field %s", name)
 }
@@ -62643,19 +62643,19 @@ func (m *ChargeUsageBasedRunsMutation) SetField(name string, value ent.Value) er
 		}
 		m.SetType(v)
 		return nil
-	case chargeusagebasedruns.FieldAsof:
+	case chargeusagebasedruns.FieldStoredAtLt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetAsof(v)
+		m.SetStoredAtLt(v)
 		return nil
-	case chargeusagebasedruns.FieldCollectionEnd:
+	case chargeusagebasedruns.FieldServicePeriodTo:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetCollectionEnd(v)
+		m.SetServicePeriodTo(v)
 		return nil
 	case chargeusagebasedruns.FieldLineID:
 		v, ok := value.(string)
@@ -62664,12 +62664,12 @@ func (m *ChargeUsageBasedRunsMutation) SetField(name string, value ent.Value) er
 		}
 		m.SetLineID(v)
 		return nil
-	case chargeusagebasedruns.FieldMeterValue:
+	case chargeusagebasedruns.FieldMeteredQuantity:
 		v, ok := value.(alpacadecimal.Decimal)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetMeterValue(v)
+		m.SetMeteredQuantity(v)
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeUsageBasedRuns field %s", name)
@@ -62780,17 +62780,17 @@ func (m *ChargeUsageBasedRunsMutation) ResetField(name string) error {
 	case chargeusagebasedruns.FieldType:
 		m.ResetType()
 		return nil
-	case chargeusagebasedruns.FieldAsof:
-		m.ResetAsof()
+	case chargeusagebasedruns.FieldStoredAtLt:
+		m.ResetStoredAtLt()
 		return nil
-	case chargeusagebasedruns.FieldCollectionEnd:
-		m.ResetCollectionEnd()
+	case chargeusagebasedruns.FieldServicePeriodTo:
+		m.ResetServicePeriodTo()
 		return nil
 	case chargeusagebasedruns.FieldLineID:
 		m.ResetLineID()
 		return nil
-	case chargeusagebasedruns.FieldMeterValue:
-		m.ResetMeterValue()
+	case chargeusagebasedruns.FieldMeteredQuantity:
+		m.ResetMeteredQuantity()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeUsageBasedRuns field %s", name)

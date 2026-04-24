@@ -179,7 +179,8 @@ func newGetDetailedLinesForUsageFixture(t *testing.T, result billingrating.Gener
 					ValueProperty: lo.ToPtr("value"),
 				},
 			},
-			StoredAtOffset: time.Date(2025, 2, 2, 0, 0, 0, 0, time.UTC),
+			ServicePeriodTo: servicePeriod.To,
+			StoredAtLT:      time.Date(2025, 2, 2, 0, 0, 0, 0, time.UTC),
 		},
 		rater: ratingService,
 	}

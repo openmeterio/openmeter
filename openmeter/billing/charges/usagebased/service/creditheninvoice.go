@@ -14,7 +14,6 @@ import (
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
 	usagebasedrun "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/statelessx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -212,8 +211,8 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, _ meta
 }
 
 type invoiceCreatedInput struct {
-	LineID                      string
-	OverrideCollectionPeriodEnd *time.Time
+	LineID          string
+	ServicePeriodTo time.Time
 }
 
 func (i invoiceCreatedInput) Validate() error {
@@ -221,8 +220,8 @@ func (i invoiceCreatedInput) Validate() error {
 		return fmt.Errorf("line id is required")
 	}
 
-	if i.OverrideCollectionPeriodEnd != nil && i.OverrideCollectionPeriodEnd.IsZero() {
-		return fmt.Errorf("override collection period end must not be zero when set")
+	if i.ServicePeriodTo.IsZero() {
+		return fmt.Errorf("service period to is required")
 	}
 
 	return nil
@@ -237,14 +236,15 @@ func (s *CreditThenInvoiceStateMachine) startInvoiceCreatedRun(
 		return fmt.Errorf("validate invoice created input: %w", err)
 	}
 
-	storedAtOffset := meta.NormalizeTimestamp(clock.Now())
-	collectionEnd := lo.FromPtr(input.OverrideCollectionPeriodEnd)
-	if collectionEnd.IsZero() {
+	storedAtLT := meta.NormalizeTimestamp(input.ServicePeriodTo)
+	servicePeriodTo := storedAtLT
+	if runType == usagebased.RealizationRunTypeFinalRealization {
 		var err error
-		collectionEnd, err = s.GetCollectionPeriodEnd(ctx)
+		storedAtLT, err = s.getFinalRunStoredAtLT()
 		if err != nil {
-			return fmt.Errorf("get collection period end: %w", err)
+			return fmt.Errorf("get stored at lt: %w", err)
 		}
+		servicePeriodTo = meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.To)
 	}
 
 	result, err := s.Runs.CreateRatedRun(ctx, usagebasedrun.CreateRatedRunInput{
@@ -252,8 +252,8 @@ func (s *CreditThenInvoiceStateMachine) startInvoiceCreatedRun(
 		CustomerOverride:        s.CustomerOverride,
 		FeatureMeter:            s.FeatureMeter,
 		Type:                    runType,
-		AsOf:                    storedAtOffset,
-		CollectionEnd:           collectionEnd,
+		StoredAtLT:              storedAtLT,
+		ServicePeriodTo:         servicePeriodTo,
 		LineID:                  lo.ToPtr(input.LineID),
 		IgnoreMinimumCommitment: ignoreMinimumCommitmentForRunType(runType),
 		CreditAllocation:        usagebasedrun.CreditAllocationAvailable,
@@ -307,14 +307,15 @@ func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context
 		return fmt.Errorf("get current realization run: %w", err)
 	}
 
-	storedAtOffset := meta.NormalizeTimestamp(currentRun.CollectionEnd)
+	storedAtLT := meta.NormalizeTimestamp(currentRun.StoredAtLT)
 
 	ratingResult, err := s.Rater.GetDetailedLinesForUsage(ctx, usagebasedrating.GetDetailedLinesForUsageInput{
 		Charge:                  s.Charge,
 		PriorRuns:               s.Charge.Realizations.Without(currentRun.ID),
 		Customer:                s.CustomerOverride,
 		FeatureMeter:            s.FeatureMeter,
-		StoredAtOffset:          storedAtOffset,
+		ServicePeriodTo:         currentRun.ServicePeriodTo,
+		StoredAtLT:              storedAtLT,
 		IgnoreMinimumCommitment: ignoreMinimumCommitmentForRunType(currentRun.Type),
 	})
 	if err != nil {
@@ -326,7 +327,7 @@ func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context
 	reconcileResult, err := s.Runs.ReconcileCredits(ctx, usagebasedrun.ReconcileCreditRealizationsInput{
 		Charge:             s.Charge,
 		Run:                currentRun,
-		AllocateAt:         storedAtOffset,
+		AllocateAt:         storedAtLT,
 		TargetAmount:       currentTotals.Total,
 		CurrencyCalculator: s.CurrencyCalculator,
 		ExactAllocation:    false,
@@ -346,10 +347,10 @@ func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context
 	currentRun.DetailedLines = mo.Some(runDetailedLines)
 
 	currentRunBase, err := s.Adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
-		ID:         currentRun.ID,
-		AsOf:       mo.Some(storedAtOffset),
-		MeterValue: mo.Some(ratingResult.Quantity),
-		Totals:     mo.Some(currentTotals),
+		ID:              currentRun.ID,
+		StoredAtLT:      mo.Some(storedAtLT),
+		MeteredQuantity: mo.Some(ratingResult.Quantity),
+		Totals:          mo.Some(currentTotals),
 	})
 	if err != nil {
 		return fmt.Errorf("update realization run: %w", err)

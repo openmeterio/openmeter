@@ -147,33 +147,33 @@ func (s *stateMachine) AdvanceAfterServicePeriodFrom(ctx context.Context) error 
 }
 
 func (s *stateMachine) AdvanceAfterCollectionPeriodEnd(ctx context.Context) error {
-	collectionPeriodEnd, err := s.getCurrentRunCollectionEnd()
+	snapshotAfter, err := s.getCurrentRunSnapshotAfter()
 	if err != nil {
 		return err
 	}
 
-	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(collectionPeriodEnd.Add(usagebased.InternalCollectionPeriod)))
+	s.Charge.State.AdvanceAfter = lo.ToPtr(snapshotAfter)
 
 	return nil
 }
 
 func (s *stateMachine) IsAfterCollectionPeriod(ctx context.Context, _ ...any) bool {
-	collectionPeriodEnd, err := s.getCurrentRunCollectionEnd()
+	snapshotAfter, err := s.getCurrentRunSnapshotAfter()
 	if err != nil {
-		s.Logger.ErrorContext(ctx, "failed to get collection period end", "error", err, "customerID", s.Charge.Intent.CustomerID)
+		s.Logger.ErrorContext(ctx, "failed to get snapshot after", "error", err, "customerID", s.Charge.Intent.CustomerID)
 		return false
 	}
 
-	return !clock.Now().Before(collectionPeriodEnd.Add(usagebased.InternalCollectionPeriod))
+	return !clock.Now().Before(snapshotAfter)
 }
 
-func (s *stateMachine) GetCollectionPeriodEnd(_ context.Context) (time.Time, error) {
+func (s *stateMachine) getFinalRunStoredAtLT() (time.Time, error) {
 	collectionPeriod := s.CustomerOverride.MergedProfile.WorkflowConfig.Collection.Interval
-	collectionPeriodEnd, _ := collectionPeriod.AddTo(s.Charge.Intent.ServicePeriod.To)
-	return meta.NormalizeTimestamp(collectionPeriodEnd), nil
+	storedAtLT, _ := collectionPeriod.AddTo(s.Charge.Intent.ServicePeriod.To)
+	return meta.NormalizeTimestamp(storedAtLT), nil
 }
 
-func (s *stateMachine) getCurrentRunCollectionEnd() (time.Time, error) {
+func (s *stateMachine) getCurrentRunSnapshotAfter() (time.Time, error) {
 	if s.Charge.State.CurrentRealizationRunID == nil {
 		return time.Time{}, fmt.Errorf("no realization run in progress [charge_id=%s]", s.Charge.ID)
 	}
@@ -183,7 +183,7 @@ func (s *stateMachine) getCurrentRunCollectionEnd() (time.Time, error) {
 		return time.Time{}, fmt.Errorf("get current realization run: %w", err)
 	}
 
-	return meta.NormalizeTimestamp(currentRun.CollectionEnd), nil
+	return meta.NormalizeTimestamp(currentRun.StoredAtLT.Add(usagebased.InternalCollectionPeriod)), nil
 }
 
 func (s *stateMachine) ensureDetailedLinesLoadedForRating(ctx context.Context) error {
