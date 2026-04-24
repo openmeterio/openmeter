@@ -466,7 +466,6 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 	finalAdvanceAt := datetime.MustParseTimeInLocation(s.T(), "2026-02-03T00:01:00Z", time.UTC).AsTime()
 	// These are explicit cutoff timestamps rather than computed values so the test asserts the
 	// one-minute internal collection period boundary directly.
-	firstStoredAtLT := datetime.MustParseTimeInLocation(s.T(), "2026-02-01T11:59:00Z", time.UTC).AsTime()
 	finalStoredAtLT := datetime.MustParseTimeInLocation(s.T(), "2026-02-03T00:00:00Z", time.UTC).AsTime()
 	expectedCollectionEnd := datetime.MustParseTimeInLocation(s.T(), "2026-02-03T00:00:00Z", time.UTC).AsTime()
 
@@ -611,15 +610,15 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 			meterSlug,
 			3,
 			datetime.MustParseTimeInLocation(s.T(), "2026-01-15T02:00:00Z", time.UTC).AsTime(),
-			streamingtestutils.WithStoredAt(datetime.MustParseTimeInLocation(s.T(), "2026-02-01T12:00:00Z", time.UTC).AsTime()),
+			streamingtestutils.WithStoredAt(finalStoredAtLT),
 		)
 
 		// When advancing the usage-based charge.
 		advancedCharge := s.mustAdvanceSingleUsageBasedCharge(ctx, cust.GetID())
 		usageBasedFromDB := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
 
-		// Then a new run is added, only the first two events are considered, totals are persisted,
-		// stored_at uses current time minus the internal collection period, and the start callback receives $3.
+		// Then a new run is added, only events before the exclusive stored_at cutoff are considered,
+		// totals are persisted, and the start callback receives $3.
 		s.Require().NotNil(advancedCharge)
 		s.Equal(usageBasedFromDB.Status, advancedCharge.Status)
 		s.Equal(usagebased.StatusActiveFinalRealizationWaitingForCollection, usageBasedFromDB.Status)
@@ -630,7 +629,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 
 		currentRun, err := usageBasedFromDB.Realizations.GetByID(*usageBasedFromDB.State.CurrentRealizationRunID)
 		s.NoError(err)
-		s.True(firstStoredAtLT.Equal(currentRun.StoredAtLT))
+		s.True(finalStoredAtLT.Equal(currentRun.StoredAtLT))
 		s.NotNil(currentRun.StoredAtLT)
 		s.True(expectedCollectionEnd.Equal(currentRun.StoredAtLT.UTC()))
 		s.Equal(float64(3), currentRun.MeteredQuantity.InexactFloat64())
@@ -644,7 +643,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 		s.Len(startedCallbacks, 1)
 		s.Equal(float64(3), startedCallbacks[0].Input.AmountToAllocate.InexactFloat64())
 		s.Equal(usagebased.RealizationRunTypeFinalRealization, startedCallbacks[0].Input.Run.Type)
-		s.True(firstStoredAtLT.Equal(startedCallbacks[0].Input.AllocateAt))
+		s.True(finalStoredAtLT.Equal(startedCallbacks[0].Input.AllocateAt))
 	})
 
 	s.Run("#3.2 second realization advance is noop", func() {
@@ -715,8 +714,8 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 		advancedCharge := s.mustAdvanceSingleUsageBasedCharge(ctx, cust.GetID())
 		usageBasedFromDB := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
 
-		// Then the previously late $3 event and the new $5 event are both included,
-		// the finalization callback receives incremental $8, totals are updated to $11,
+		// Then the new $5 event is included,
+		// the finalization callback receives incremental $5, totals are updated to $8,
 		// and the charge becomes final.
 		s.Require().NotNil(advancedCharge)
 		s.Equal(usageBasedFromDB.Status, advancedCharge.Status)
@@ -729,17 +728,17 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 		s.True(finalStoredAtLT.Equal(finalRun.StoredAtLT))
 		s.NotNil(finalRun.StoredAtLT)
 		s.True(expectedCollectionEnd.Equal(finalRun.StoredAtLT.UTC()))
-		s.Equal(float64(11), finalRun.MeteredQuantity.InexactFloat64())
+		s.Equal(float64(8), finalRun.MeteredQuantity.InexactFloat64())
 		s.RequireTotals(billingtest.ExpectedTotals{
-			Amount:       11,
-			CreditsTotal: 11,
+			Amount:       8,
+			CreditsTotal: 8,
 		}, finalRun.Totals)
 		s.Len(finalRun.CreditsAllocated, 2)
 		s.Equal(float64(3), finalRun.CreditsAllocated[0].Amount.InexactFloat64())
-		s.Equal(float64(8), finalRun.CreditsAllocated[1].Amount.InexactFloat64())
+		s.Equal(float64(5), finalRun.CreditsAllocated[1].Amount.InexactFloat64())
 
 		s.Len(finalizedCallbacks, 1)
-		s.Equal(float64(8), finalizedCallbacks[0].Input.AmountToAllocate.InexactFloat64())
+		s.Equal(float64(5), finalizedCallbacks[0].Input.AmountToAllocate.InexactFloat64())
 		s.Equal(usagebased.RealizationRunTypeFinalRealization, finalizedCallbacks[0].Input.Run.Type)
 		s.True(finalStoredAtLT.Equal(finalizedCallbacks[0].Input.AllocateAt))
 	})
@@ -781,7 +780,6 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 	}
 	firstCollectionAdvanceAt := datetime.MustParseTimeInLocation(s.T(), "2026-02-01T12:00:00Z", time.UTC).AsTime()
 	finalAdvanceAt := datetime.MustParseTimeInLocation(s.T(), "2026-02-03T00:01:00Z", time.UTC).AsTime()
-	firstStoredAtLT := datetime.MustParseTimeInLocation(s.T(), "2026-02-01T11:59:00Z", time.UTC).AsTime()
 	finalStoredAtLT := datetime.MustParseTimeInLocation(s.T(), "2026-02-03T00:00:00Z", time.UTC).AsTime()
 	expectedCollectionEnd := datetime.MustParseTimeInLocation(s.T(), "2026-02-03T00:00:00Z", time.UTC).AsTime()
 
@@ -871,7 +869,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 			s.Equal(usageBasedChargeID.ID, input.Charge.ID)
 			s.Equal(productcatalog.CreditOnlySettlementMode, input.Charge.Intent.SettlementMode)
 			s.Equal(usagebased.RealizationRunTypeFinalRealization, input.Run.Type)
-			s.True(firstStoredAtLT.Equal(input.AllocateAt))
+			s.True(finalStoredAtLT.Equal(input.AllocateAt))
 			s.Equal(float64(20), input.AmountToAllocate.InexactFloat64())
 			s.Equal(float64(10), input.Run.MeteredQuantity.InexactFloat64())
 			s.RequireTotals(billingtest.ExpectedTotals{
@@ -910,7 +908,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 
 		currentRun, err := usageBasedFromDB.Realizations.GetByID(*usageBasedFromDB.State.CurrentRealizationRunID)
 		s.NoError(err)
-		s.True(firstStoredAtLT.Equal(currentRun.StoredAtLT))
+		s.True(finalStoredAtLT.Equal(currentRun.StoredAtLT))
 		s.True(expectedCollectionEnd.Equal(currentRun.StoredAtLT.UTC()))
 		s.Equal(float64(10), currentRun.MeteredQuantity.InexactFloat64())
 		s.RequireTotals(billingtest.ExpectedTotals{
@@ -1198,7 +1196,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		currentRun, err := usageBasedCharge.GetCurrentRealizationRun()
 		s.NoError(err)
 		s.Equal(float64(125), currentRun.MeteredQuantity.InexactFloat64())
-		s.True(currentRun.StoredAtLT.Equal(invoice.DefaultCollectionAtForStandardInvoice()))
+		s.True(currentRun.StoredAtLT.Add(usagebased.InternalCollectionPeriod).Equal(invoice.DefaultCollectionAtForStandardInvoice()))
 		s.NotNil(currentRun.LineID)
 		s.Equal(stdLineID.ID, *currentRun.LineID)
 		s.Len(currentRun.CreditsAllocated, 2)
@@ -1472,7 +1470,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceFullyCredite
 		currentRun, err := usageBasedCharge.GetCurrentRealizationRun()
 		s.NoError(err)
 		s.Equal(float64(100), currentRun.MeteredQuantity.InexactFloat64())
-		s.True(currentRun.StoredAtLT.Equal(invoice.DefaultCollectionAtForStandardInvoice()))
+		s.True(currentRun.StoredAtLT.Add(usagebased.InternalCollectionPeriod).Equal(invoice.DefaultCollectionAtForStandardInvoice()))
 		s.NotNil(currentRun.LineID)
 		s.Equal(stdLineID.ID, *currentRun.LineID)
 		s.Len(currentRun.CreditsAllocated, 1)

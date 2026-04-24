@@ -180,7 +180,7 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 		allocationResult, err := s.allocate(ctx, allocateCreditRealizationsInput{
 			Charge:             updatedCharge,
 			Run:                currentRun,
-			AllocateAt:         in.ServicePeriodTo,
+			AllocateAt:         in.StoredAtLT,
 			AmountToAllocate:   runTotals.Total,
 			CurrencyCalculator: in.CurrencyCalculator,
 			Exact:              in.CreditAllocation == CreditAllocationExact,
