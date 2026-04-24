@@ -15,6 +15,21 @@ using TypeSpec.OpenAPI;
 
 namespace ProductCatalog;
 
+/**
+ * Filter options for listing plans.
+ */
+@friendlyName("ListPlansParamsFilter")
+model ListPlansParamsFilter {
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  key?: Common.StringFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  name?: Common.StringFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  status?: Common.StringFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  currency?: Common.StringFieldFilter;
+}
+
 interface PlanOperations {
   /**
    * List all plans.
@@ -27,6 +42,23 @@ interface PlanOperations {
   @extension(Shared.InternalExtension, true)
   listPlans(
     ...Common.PagePaginationQuery,
+
+    /**
+     * Sort plans returned in the response.
+     * Supported sort attributes are:
+     * - `key`
+     * - `version`
+     * - `created_at` (default)
+     * - `updated_at`
+     */
+    @query(#{ name: "sort" })
+    sort?: Common.SortQuery,
+
+    /**
+     * Filter plans returned in the response.
+     */
+    @query(#{ style: "deepObject", explode: true })
+    filter?: ListPlansParamsFilter,
   ): Shared.PagePaginatedResponse<Plan> | Common.ErrorResponses;
 
   /**

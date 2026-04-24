@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -54,6 +55,10 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 		}
 
 		query = query.Where(plandb.Or(orFilters...))
+
+		query = filter.ApplyToQuery(query, params.Key, plandb.FieldKey)
+		query = filter.ApplyToQuery(query, params.Name, plandb.FieldName)
+		query = filter.ApplyToQuery(query, params.Currency, plandb.FieldCurrency)
 
 		if !params.IncludeDeleted {
 			query = query.Where(plandb.DeletedAtIsNil())
