@@ -46,6 +46,7 @@ interface PlanOperations {
     /**
      * Sort plans returned in the response.
      * Supported sort attributes are:
+     * - `id`
      * - `key`
      * - `version`
      * - `created_at` (default)
