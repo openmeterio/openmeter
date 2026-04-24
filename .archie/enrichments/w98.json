@@ -1,0 +1,220 @@
+{
+  "openmeter/llmcost/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing llmcost.Adapter: persists global prices (namespace IS NULL) and per-namespace manual overrides (source='manual') in the llmcostprice table, with soft-delete semantics throughout.",
+    "patterns": [
+      {
+        "name": "TransactingRepo wrapping",
+        "description": "Every mutating method body is wrapped with entutils.TransactingRepo or entutils.TransactingRepoWithNoValue so the adapter rebinds to any ctx-bound transaction. Methods that are intentionally read-only (ResolvePrice) skip wrapping but must be documented.",
+        "example": "entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (T, error) { ... })"
+      },
+      {
+        "name": "Soft-delete via DeletedAt",
+        "description": "All queries filter with pricedb.DeletedAtIsNil(). Deletions set DeletedAt via SetDeletedAt(clock.Now()), never hard-delete rows.",
+        "example": "a.db.LLMCostPrice.UpdateOneID(id).SetDeletedAt(clock.Now()).Exec(ctx)"
+      },
+      {
+        "name": "Config struct with Validate()",
+        "description": "Constructor accepts a Config struct; Config implements models.Validator. New() calls config.Validate() and returns an error before constructing the adapter.",
+        "example": "var _ models.Validator = (*Config)(nil); func New(config Config) (llmcost.Adapter, error) { if err := config.Validate(); err != nil { return nil, err } }"
+      },
+      {
+        "name": "Namespace discrimination",
+        "description": "Global prices use NamespaceIsNil(). Overrides use NamespaceEQ(namespace). Never mix: ListPrices adds NamespaceIsNil(), ListOverrides adds NamespaceEQ+SourceEQ('manual').",
+        "example": "query.Where(pricedb.NamespaceIsNil()) // global; query.Where(pricedb.NamespaceEQ(ns)) // override"
+      },
+      {
+        "name": "decimalOrZero for optional pricing fields",
+        "description": "Optional decimal fields (CacheReadPerToken, CacheWritePerToken, ReasoningPerToken) use decimalOrZero(*Decimal) when persisting so nil pointers become zero, avoiding NULL in non-nullable columns.",
+        "example": "SetCacheReadPerToken(decimalOrZero(input.Pricing.CacheReadPerToken))"
+      },
+      {
+        "name": "ResolvePrice uses ORDER BY namespace DESC to prefer overrides",
+        "description": "ResolvePrice fetches both global and namespace rows in one query and orders by namespace DESC so namespace-set rows sort before NULL, returning the override without a second query.",
+        "example": "pricedb.ByNamespace(sql.OrderDesc()), pricedb.ByEffectiveFrom(sql.OrderDesc())"
+      },
+      {
+        "name": "UpsertGlobalPrice in-place update",
+        "description": "UpsertGlobalPrice does a query-first: if an existing open-ended global row exists it updates in place; otherwise it inserts. It does not soft-delete-then-insert for globals.",
+        "example": "existing, err := a.db.LLMCostPrice.Query().Where(...EffectiveToIsNil()).First(ctx); if existing != nil { UpdateOneID(existing.ID)... } else { Create()... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Constructor, Config validation, Tx/WithTx/Self transaction plumbing for TransactingRepo",
+        "watch_for": "WithTx must use entdb.NewTxClientFromRawConfig and return a new *adapter backed by txClient.Client() \u2014 do not reuse the original db field"
+      },
+      {
+        "file": "mapping.go",
+        "role": "Maps *db.LLMCostPrice entity to llmcost.Price domain type; converts zero alpacadecimal to nil pointer for optional fields",
+        "watch_for": "Optional pricing fields (CacheRead, CacheWrite, Reasoning) use IsZero() guard before setting pointer \u2014 a zero value means the field was not provided, not that it is explicitly zero"
+      },
+      {
+        "file": "price.go",
+        "role": "All llmcost.Adapter method implementations against Ent; contains ListPrices, GetPrice, ResolvePrice, CreateOverride, DeleteOverride, ListOverrides, UpsertGlobalPrice",
+        "watch_for": "ListOverrides hardcodes SourceEQ('manual') \u2014 do not add a user-supplied source filter on top or the WHERE clauses contradict; DeleteOverride checks source='manual' before allowing deletion (global prices cannot be deleted this way)"
+      }
+    ],
+    "anti_patterns": [
+      "Hard-deleting rows \u2014 all deletions must go through SetDeletedAt(clock.Now())",
+      "Calling a.db directly inside helpers without TransactingRepo wrapping \u2014 falls off the ctx transaction",
+      "Mixing namespace IS NULL and namespace IS NOT NULL in a single ListPrices query path",
+      "Adding a source filter to ListOverrides (already constrained to source='manual')",
+      "Editing openmeter/ent/db/ directly \u2014 regenerate via make generate after schema changes"
+    ],
+    "decisions": [
+      {
+        "decision": "Soft-delete for all price records",
+        "rationale": "Price history is needed for billing audits; hard deletes would destroy the audit trail for past invoice line resolutions"
+      },
+      {
+        "decision": "ResolvePrice skips TransactingRepo and reads directly",
+        "rationale": "It is intentionally read-only with no side-effects; the ORDER BY namespace DESC trick makes it a single-query hot path used in request path billing"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new write method that must honor the ctx transaction",
+        "code": "func (a *adapter) ArchivePrice(ctx context.Context, id string) error {\n\treturn entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, a *adapter) error {\n\t\treturn a.db.LLMCostPrice.UpdateOneID(id).\n\t\t\tSetDeletedAt(clock.Now()).\n\t\t\tExec(ctx)\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/llmcost/service": {
+    "purpose": "Business-logic layer implementing llmcost.Service: delegates persistence to llmcost.Adapter and adds namespace-override overlay logic for ListPrices and GetPrice without exposing it to callers.",
+    "patterns": [
+      {
+        "name": "transaction.Run wrapping",
+        "description": "All methods that call the adapter wrap the body in transaction.Run or transaction.RunWithNoValue, providing consistent transaction boundaries at the service layer even though adapters also call TransactingRepo.",
+        "example": "return transaction.Run(ctx, s.adapter, func(ctx context.Context) (T, error) { return s.adapter.SomeMethod(ctx, ...) })"
+      },
+      {
+        "name": "Namespace override overlay in ListPrices",
+        "description": "ListPrices fetches global prices, then batch-fetches overrides for the namespace and replaces matching entries in-memory using a provider+modelID map. Skipped entirely when namespace is empty or the source filter excludes manual prices.",
+        "example": "overrideMap[overrideKey{string(o.Provider), o.ModelID}] = o; result.Items[i] = o"
+      },
+      {
+        "name": "sourceFilterExcludesManual guard",
+        "description": "Before applying the overlay, sourceFilterExcludesManual(*filter.FilterString) checks Eq != 'manual' or Ne == 'manual'. If true the overlay is skipped to avoid returning manual items the caller filtered out.",
+        "example": "if sourceFilterExcludesManual(input.Source) { return result, nil }"
+      },
+      {
+        "name": "In-package unit tests with mock adapter",
+        "description": "Tests live in service_test.go (same package). They implement a mockAdapter satisfying llmcost.Adapter and a noopDriver for transaction.Driver. No real DB required.",
+        "example": "type mockAdapter struct { prices []llmcost.Price; overrides []llmcost.Price }; svc := New(adapter, slog.Default())"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Concrete service implementation; contains overlay logic for ListPrices, GetPrice namespace promotion, and thin delegations for CreateOverride/DeleteOverride/ListOverrides/ResolvePrice",
+        "watch_for": "GetPrice only promotes to override when price.Namespace == nil (global) AND input.Namespace != '' \u2014 check both conditions before calling ResolvePrice again; returning the wrong price silently breaks billing"
+      },
+      {
+        "file": "service_test.go",
+        "role": "Comprehensive table-driven tests for overlay logic and sourceFilterExcludesManual",
+        "watch_for": "Tests use context.Background() because there is no testing.T available in helper functions \u2014 new tests should use t.Context() per project convention"
+      }
+    ],
+    "anti_patterns": [
+      "Calling adapter methods directly without transaction.Run wrapping \u2014 service layer must own the transaction boundary",
+      "Adding DB queries inside the overlay loop \u2014 batch-fetch overrides once before iterating",
+      "Assuming source filter is a simple string \u2014 use sourceFilterExcludesManual helper, not inline string comparison"
+    ],
+    "decisions": [
+      {
+        "decision": "Overlay applied at service layer, not adapter layer",
+        "rationale": "The adapter exposes raw DB semantics; the service owns the rule 'namespace overrides take precedence', keeping adapter methods composable and testable independently"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new service method that delegates to adapter with a transaction",
+        "code": "func (s *service) BulkDelete(ctx context.Context, ids []string) error {\n\treturn transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {\n\t\tfor _, id := range ids {\n\t\t\tif err := s.adapter.DeleteOverride(ctx, llmcost.DeleteOverrideInput{ID: id}); err != nil {\n\t\t\t\treturn err\n\t\t\t}\n\t\t}\n\t\treturn nil\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/llmcost/sync": {
+    "purpose": "External price synchronization pipeline: fetches raw prices from external sources (models.dev), normalizes provider/model IDs, deduplicates within-source collisions from normalization, and reconciles multi-source agreement into global llmcostprice rows via llmcost.Adapter.UpsertGlobalPrice.",
+    "patterns": [
+      {
+        "name": "Fetcher interface per source",
+        "description": "Each external source implements the Fetcher interface (Source() PriceSource, Fetch(ctx) ([]SourcePrice, error)). New sources add a new file (fetcher_<source>.go) and register in DefaultFetchers.",
+        "example": "type modelsDevFetcher struct { client *http.Client }; func (f *modelsDevFetcher) Source() llmcost.PriceSource { return \"models_dev\" }"
+      },
+      {
+        "name": "Four-phase SyncJob.Run pipeline",
+        "description": "Run executes: (1) fetch+normalize, (2) deduplicateSourcePrices, (3) optional filter, (4) Reconcile. Each phase is independent and logged. Fetcher errors are non-fatal \u2014 the job continues with remaining sources.",
+        "example": "allPrices = deduplicateSourcePrices(allPrices); if j.filter != nil { ... }; return j.reconciler.Reconcile(ctx, allPrices)"
+      },
+      {
+        "name": "Deduplication before reconciliation",
+        "description": "deduplicateSourcePrices removes within-source (source, provider, modelID) collisions that arise after normalization (e.g., azure_ai and azure both normalize to azure). Without this step, provider normalization creates false multi-source agreement in the reconciler.",
+        "example": "key := sourceModelKey{Source: p.Source, Provider: string(p.Provider), ModelID: p.ModelID}; seen[key] = idx"
+      },
+      {
+        "name": "Reconciler requires minAgreement sources within priceTolerance",
+        "description": "Reconciler.Reconcile groups prices by (provider, modelID). A global price is only upserted if at least minAgreement sources agree within priceTolerance (default 2 sources, 1% tolerance). Agreeing prices are averaged.",
+        "example": "NewReconciler(repo, logger, DefaultMinSourceAgreement, DefaultPriceTolerance)"
+      },
+      {
+        "name": "Per-million token conversion in fetchers",
+        "description": "External APIs (models.dev) provide prices per million tokens. Fetchers divide by 1,000,000 using alpacadecimal before returning SourcePrice so all downstream code works in per-token units.",
+        "example": "InputPerToken: alpacadecimal.NewFromFloat(*model.Cost.Input).Div(perMillion)"
+      },
+      {
+        "name": "minAgreement capped at fetcher count",
+        "description": "NewSyncJob caps minAgreement at len(fetchers) so a single-source deployment still works without manual config override.",
+        "example": "if numFetchers := len(fetchers); numFetchers > 0 && minAgreement > numFetchers { minAgreement = numFetchers }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "sync.go",
+        "role": "SyncJob orchestrator: holds fetchers, normalizer, reconciler, optional filter. Run() is the only public entry point.",
+        "watch_for": "deduplicateSourcePrices must run AFTER normalization and BEFORE filter+reconcile \u2014 the order is load-bearing"
+      },
+      {
+        "file": "fetcher_modelsdev.go",
+        "role": "HTTP fetcher for models.dev/api.json; strips provider prefix from model IDs and names, converts per-million to per-token",
+        "watch_for": "Provider IDs are lowercased but not aliased here \u2014 aliasing (azure_ai\u2192azure) happens in normalizer. The fetcher strips 'provider/model' ID prefix but keeps the raw provider key as-is for the normalizer to canonicalize."
+      },
+      {
+        "file": "reconciler.go",
+        "role": "Groups SourcePrice by (provider, modelID), runs findAgreement pairwise comparison, averages agreeing prices, calls repo.UpsertGlobalPrice",
+        "watch_for": "findAgreement is O(n\u00b2) in number of sources per model \u2014 acceptable for current source count (<10) but not for large fan-out. averagePrices uses prices[0] as metadata base; model name comes from the first agreeing source."
+      },
+      {
+        "file": "normalizer.go",
+        "role": "Wraps llmcost.NormalizeModelID \u2014 lowercases, trims whitespace, strips date version suffixes, and aliases provider names (gemini\u2192google, mistralai\u2192mistral, etc.)",
+        "watch_for": "Normalization is applied in SyncJob.Run AFTER fetching but BEFORE deduplication. Do not call Normalize inside fetchers."
+      },
+      {
+        "file": "fetcher.go",
+        "role": "Fetcher interface definition only",
+        "watch_for": "Source() must return a stable PriceSource constant \u2014 it is used as the key in SourcePricesMap stored in the DB"
+      }
+    ],
+    "anti_patterns": [
+      "Adding normalization logic inside fetchers \u2014 normalization belongs in the normalizer so all fetchers are handled uniformly",
+      "Calling reconciler.Reconcile before deduplicateSourcePrices \u2014 allows false multi-source agreement from provider aliasing",
+      "Making fetcher errors fatal \u2014 a single down source should not abort the sync for all models",
+      "Storing per-million prices in SourcePrice \u2014 always convert to per-token before returning from Fetch()"
+    ],
+    "decisions": [
+      {
+        "decision": "Separate Fetcher, Normalizer, Reconciler into distinct types",
+        "rationale": "Allows testing each phase independently with mocks; new sources only require a new Fetcher implementation without touching reconciliation logic"
+      },
+      {
+        "decision": "Multi-source agreement threshold before writing global prices",
+        "rationale": "A single external source could be wrong or stale; requiring agreement from multiple sources prevents billing using bad data from a single upstream outage or API change"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new price source (e.g., litellm)",
+        "code": "// fetcher_litellm.go\npackage sync\n\nimport (\n\t\"context\"\n\t\"net/http\"\n\t\"github.com/openmeterio/openmeter/openmeter/llmcost\"\n)\n\ntype litellmFetcher struct{ client *http.Client }\n\nfunc NewLiteLLMFetcher(client *http.Client) Fetcher {\n\treturn &litellmFetcher{client: client}\n}\n\nfunc (f *litellmFetcher) Source() llmcost.PriceSource { return \"litellm\" }\n\nfunc (f *litellmFetcher) Fetch(ctx context.Context) ([]llmcost.SourcePrice, error) {\n\t// fetch + convert per-million to per-token\n\treturn prices, nil\n}\n\n// Then register in DefaultFetchers:\n// return []Fetcher{NewModelsDevFetcher(client), NewLiteLLMFetcher(client)}"
+      }
+    ]
+  }
+}

@@ -1,0 +1,230 @@
+{
+  "pkg/defaultx": {
+    "purpose": "Tiny generic utility package providing nil-safe pointer dereferencing and zero-value fallback helpers. Used across domain packages to reduce nil guard boilerplate when handling optional/pointer fields.",
+    "patterns": [
+      {
+        "name": "WithDefault for pointer optionals",
+        "description": "Use WithDefault[T](ptr, fallback) whenever a *T field may be nil and a non-pointer fallback value is needed. Never dereference pointers without this guard.",
+        "example": "timeout := defaultx.WithDefault(cfg.Timeout, 30*time.Second)"
+      },
+      {
+        "name": "IfZero for zero-value replacement",
+        "description": "Use IfZero[T](val, fallback) for comparable types where the zero value signals 'unset'. Do not use for pointer types \u2014 use WithDefault instead.",
+        "example": "name := defaultx.IfZero(input.Name, \"default\")"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "default.go",
+        "role": "Defines both exported functions; entire package API lives here.",
+        "watch_for": "IfZero uses comparable constraint \u2014 cannot be used with slices, maps, or non-comparable structs."
+      }
+    ],
+    "anti_patterns": [
+      "Adding non-default-related utilities here \u2014 this package must stay focused on nil/zero fallbacks.",
+      "Using IfZero with pointer types (zero value of a pointer is nil, use WithDefault instead)."
+    ],
+    "decisions": [
+      {
+        "decision": "Separate WithDefault (pointer) and IfZero (zero-value comparable) into two functions.",
+        "rationale": "Pointer nil-check and zero-value check are distinct semantics; conflating them into one function would require type assertions or reflection."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/entitydiff": {
+    "purpose": "Generic diffing library for entity collections that need create/update/delete reconciliation between expected state and persisted DB state. Used by billing subscription sync to reconcile invoice lines and subscription phases against their DB representations.",
+    "patterns": [
+      {
+        "name": "Entity interface constraint",
+        "description": "All diffable types must implement Entity (GetID() string, IsDeleted() bool). ID-less items (GetID()==\"\") that are not deleted are always treated as creates.",
+        "example": "type InvoiceLine struct{...}\nfunc (l InvoiceLine) GetID() string { return l.ID }\nfunc (l InvoiceLine) IsDeleted() bool { return l.DeletedAt != nil }"
+      },
+      {
+        "name": "DiffByIDEqualer for leaf entities",
+        "description": "Use DiffByIDEqualer when the entity has no child entities and implements equal.Equaler[T]. It skips updates where PersistedState.Equal(ExpectedState) is true.",
+        "example": "diff := entitydiff.DiffByIDEqualer(expectedLines, dbLines)"
+      },
+      {
+        "name": "DiffByID with callbacks for parent entities",
+        "description": "Use DiffByID with HandleCreate/HandleUpdate/HandleDelete callbacks when the entity has child entities that require their own nested diffing inside the update handler.",
+        "example": "entitydiff.DiffByID(entitydiff.DiffByIDInput[Phase]{DBState: db, ExpectedState: exp, HandleUpdate: func(u DiffUpdate[Phase]) error { return diffChildren(u) }})"
+      },
+      {
+        "name": "NestedEntity wrapper for parent context propagation",
+        "description": "Wrap child entities in NestedEntity[T, P] or EqualerNestedEntity[T, P] when the diff handler needs access to the parent entity alongside the child during create/update/delete.",
+        "example": "wrapped := entitydiff.NewEqualersWithParent(phase.Lines, phase)"
+      },
+      {
+        "name": "Diff.Append and Union for combining diffs",
+        "description": "Use Diff.Append or Union[T] to merge diffs from multiple sub-trees before applying; never apply partial diffs and then compute a second diff on already-mutated state.",
+        "example": "combined := entitydiff.Union(diff1, diff2, diff3)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "diff.go",
+        "role": "Core diff logic: diffByID (internal), DiffByID (callback-based), DiffByIDEqualer (equality-based), Diff[T] struct with NeedsUpdate/NeedsCreate/NeedsDelete/Append/IsEmpty/Union.",
+        "watch_for": "diffByID treats items missing from expectedState as deletes \u2014 pass the full expected slice, not a filtered subset, or items will be spuriously deleted."
+      },
+      {
+        "file": "parent.go",
+        "role": "NestedEntity and EqualerNestedEntity wrappers for carrying parent context into diff callbacks; NewEqualersWithParent helper.",
+        "watch_for": "EqualerNestedEntity.Equal delegates only to Entity.Equal \u2014 parent fields are NOT compared for equality, only used for context in callbacks."
+      }
+    ],
+    "anti_patterns": [
+      "Implementing Entity.GetID() to return a non-stable ID (e.g. index-based) \u2014 IDs must be stable DB identifiers or empty string for new items.",
+      "Using DiffByID for leaf entities without children \u2014 use DiffByIDEqualer to skip no-op updates.",
+      "Mutating DB state inside a diff callback and then running another diff on the same collection \u2014 diffs are computed once against the original DB snapshot.",
+      "Passing a filtered expectedState slice to diffByID \u2014 items absent from expectedState are unconditionally deleted."
+    ],
+    "decisions": [
+      {
+        "decision": "Split diffByID (returns UpdateCandidates) from DiffByIDEqualer (filters candidates via Equal) into two separate code paths.",
+        "rationale": "Entities with children cannot use equality comparison because child state is not embedded; callers with children need all update candidates to recurse into child diffs."
+      },
+      {
+        "decision": "IsDeleted() on the expected state drives deletion, not absence from the expected list alone.",
+        "rationale": "Subscription sync needs to represent soft-delete intent explicitly (e.g. managedBy change co-located with deleted_at) so the deleted expected state carries the full target row to persist before deleting."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Diff invoice lines (leaf entities with equality) and apply changes",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/entitydiff\"\n\ndiff := entitydiff.DiffByIDEqualer(expectedLines, dbLines)\nfor _, c := range diff.Create { _ = adapter.CreateLine(ctx, c) }\nfor _, u := range diff.Update { _ = adapter.UpdateLine(ctx, u.ExpectedState) }\nfor _, d := range diff.Delete { _ = adapter.DeleteLine(ctx, d) }"
+      }
+    ]
+  },
+  "pkg/equal": {
+    "purpose": "Minimal interface and helpers for structural equality comparison between domain types. Exists as a separate package to break circular dependencies when entitydiff and models both need the Equaler contract.",
+    "patterns": [
+      {
+        "name": "Equaler[T] interface",
+        "description": "Implement Equal(other T) bool on value types that participate in entitydiff reconciliation or need pointer-safe equality. Do not implement on types that already embed a generated Equal from goderive.",
+        "example": "func (l InvoiceLine) Equal(other InvoiceLine) bool { return l.ID == other.ID && l.Amount.Equal(other.Amount) }"
+      },
+      {
+        "name": "PtrEqual for nullable Equaler fields",
+        "description": "Use PtrEqual[T] when comparing two *T fields where both nil means equal. Avoids manual nil guard at call sites.",
+        "example": "equal.PtrEqual(a.TaxCode, b.TaxCode)"
+      },
+      {
+        "name": "HasherPtrEqual for hash-comparable types",
+        "description": "Use HasherPtrEqual[T] for types that implement hasher.Hasher instead of Equaler to compare by hash digest rather than field-by-field.",
+        "example": "equal.HasherPtrEqual(a.Metadata, b.Metadata)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "equal.go",
+        "role": "Defines Equaler[T] interface and PtrEqual/HasherPtrEqual helpers. Entire package API.",
+        "watch_for": "HasherPtrEqual requires the type to implement pkg/hasher.Hasher \u2014 adding a new type here requires that dependency, not just equal.Equaler."
+      }
+    ],
+    "anti_patterns": [
+      "Duplicating the Equaler interface in another package instead of importing pkg/equal \u2014 this breaks the entitydiff type constraint.",
+      "Implementing Equal with reflect.DeepEqual \u2014 breaks with pointer fields and is not safe for billing amount types."
+    ],
+    "decisions": [
+      {
+        "decision": "Equaler[T] lives in pkg/equal rather than pkg/models to avoid import cycles between entitydiff and models.",
+        "rationale": "entitydiff imports equal; models imports entitydiff in some domains; a single shared equal package cuts the cycle."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/errorsx": {
+    "purpose": "Error utility package providing prefix propagation through joined error trees, a warn-severity error wrapper, and the Handler/SlogHandler/NopHandler trio that implement httptransport.ErrorHandler for consistent error logging across HTTP transports.",
+    "patterns": [
+      {
+        "name": "WithPrefix for structured error wrapping",
+        "description": "Use WithPrefix(err, prefix) instead of fmt.Errorf(\"%s: %w\") when the error may be a joined error \u2014 it recursively prefixes each leaf error rather than wrapping the join.",
+        "example": "return errorsx.WithPrefix(err, \"reconcile subscription\")"
+      },
+      {
+        "name": "NewWarnError for non-fatal errors",
+        "description": "Wrap errors that should log as warnings (not errors) with NewWarnError before returning. SlogHandler detects *warnError and downgrades the log level.",
+        "example": "return errorsx.NewWarnError(fmt.Errorf(\"skipping stale event: %w\", err))"
+      },
+      {
+        "name": "SlogHandler as default HTTP error handler",
+        "description": "Inject SlogHandler (not NopHandler) into httptransport.Handler via WithErrorHandler \u2014 it maps context.Canceled to Warn and *warnError to Warn automatically.",
+        "example": "httptransport.NewHandler(op, dec, enc, httptransport.WithErrorHandler(errorsx.NewSlogHandler(logger)))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "errorsx.go",
+        "role": "WithPrefix recursive join-aware prefixer; warnError type and NewWarnError constructor.",
+        "watch_for": "WithPrefix only recurses one level via the Unwrap() []error interface check \u2014 errors wrapped with fmt.Errorf(\"%w\", joinedErr) lose the recursive prefix on the inner errors."
+      },
+      {
+        "file": "handler.go",
+        "role": "Handler interface (mirrors httptransport.ErrorHandler), SlogHandler, NopHandler. Used by HTTP transport layer.",
+        "watch_for": "SlogHandler.Handle and HandleContext differ only in context-aware vs non-context logging \u2014 always prefer HandleContext when a ctx is available."
+      }
+    ],
+    "anti_patterns": [
+      "Using fmt.Errorf(\"%s: %w\", prefix, joinedErr) instead of WithPrefix \u2014 loses per-leaf prefix propagation in joined errors.",
+      "Returning *warnError directly \u2014 always use NewWarnError which handles nil safely.",
+      "Using NopHandler in production HTTP handlers \u2014 silently swallows all transport errors."
+    ],
+    "decisions": [
+      {
+        "decision": "WithPrefix recurses through Unwrap() []error (joined errors) but stops at single-Unwrap wrappers.",
+        "rationale": "Only top-level joins should be expanded; wrapping a join with fmt.Errorf is an intentional barrier that should not be silently penetrated."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/expand": {
+    "purpose": "Generic type-safe expand/field-selection mechanism for API responses. Callers declare an Expandable[T] enum type; Expand[T] is a validated slice of those values with Has/With/Without/SetOrUnsetIf helpers used in service input types to control which nested relations are fetched.",
+    "patterns": [
+      {
+        "name": "Expandable enum type",
+        "description": "Define a string-based enum type implementing Expandable[T] with a Values() []T method listing all valid expand keys. Use this as the type parameter for Expand[T] in service input structs.",
+        "example": "type InvoiceExpand string\nfunc (InvoiceExpand) Values() []InvoiceExpand { return []InvoiceExpand{InvoiceExpandLines, InvoiceExpandPayments} }\nconst InvoiceExpandLines InvoiceExpand = \"lines\""
+      },
+      {
+        "name": "Expand.Validate() in input validation",
+        "description": "Call input.Expand.Validate() in service input Validate() methods to reject unknown expand values before passing them to the adapter.",
+        "example": "if err := input.Expand.Validate(); err != nil { return nil, models.NewGenericValidationError(err) }"
+      },
+      {
+        "name": "Expand.Has() in adapter queries",
+        "description": "Use expand.Has(SomeExpandValue) inside adapter query builders to conditionally eager-load relations via Ent's .WithX() methods.",
+        "example": "q := client.Invoice.Query(); if params.Expand.Has(InvoiceExpandLines) { q = q.WithLines() }"
+      },
+      {
+        "name": "SetOrUnsetIf for conditional expand assembly",
+        "description": "Use SetOrUnsetIf(condition, value) to build expand slices from boolean feature flags without manual append/filter logic.",
+        "example": "expand = expand.SetOrUnsetIf(cfg.LoadPayments, InvoiceExpandPayments)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "expand.go",
+        "role": "Full Expandable interface, Expand[T] type, and all methods. Entire package API.",
+        "watch_for": "Expandable requires comparable \u2014 string-based enums satisfy this; int-based enums do too, but struct-based expand keys would not compile."
+      }
+    ],
+    "anti_patterns": [
+      "Passing raw string slices for expand fields instead of typed Expand[T] \u2014 loses compile-time safety and Validate().",
+      "Skipping Expand.Validate() in service input validation \u2014 allows unknown expand values to silently no-op in adapter queries.",
+      "Implementing Values() to return an empty slice \u2014 Validate() will reject all expand values including valid ones."
+    ],
+    "decisions": [
+      {
+        "decision": "Expand is a separate generic package rather than inlined per-domain.",
+        "rationale": "Multiple domains (billing, subscription, customer) need the same validated expand-slice semantics; a shared package avoids duplicating the Has/With/Without logic."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Define and use a typed expand for invoice queries",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/expand\"\n\ntype InvoiceExpand string\nconst InvoiceExpandLines InvoiceExpand = \"lines\"\nfunc (InvoiceExpand) Values() []InvoiceExpand { return []InvoiceExpand{InvoiceExpandLines} }\n\ntype ListInvoicesInput struct {\n    Namespace string\n    Expand    expand.Expand[InvoiceExpand]\n}\n\n// In adapter:\nq := client.Invoice.Query()\nif input.Expand.Has(InvoiceExpandLines) {\n    q = q.WithLines()\n}"
+      }
+    ]
+  }
+}

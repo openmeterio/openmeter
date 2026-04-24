@@ -1,0 +1,102 @@
+{
+  "api/client/javascript/patches": {
+    "purpose": "Holds a single unified patch file applied to the upstream openapi-typescript npm package before code generation runs. Its sole job is to carry local bug fixes and feature backports that are not yet in the upstream release so the JS SDK generates correct TypeScript output.",
+    "patterns": [
+      {
+        "name": "Single consolidated diff file",
+        "description": "All upstream fixes live in exactly one file (openapi-typescript.patch) applied as a whole. Never split into multiple patch files per fix.",
+        "example": "openapi-typescript.patch \u2014 one unified diff touching bin/cli.js, dist/index.d.{c,m,}ts, dist/transform/schema-object.{c,}js"
+      },
+      {
+        "name": "Patch targets compiled dist/ artifacts",
+        "description": "The patch modifies the pre-built dist/ files of openapi-typescript (both .cjs and .mjs variants) alongside the .d.ts type declarations, not the TypeSpec or TypeScript source files.",
+        "example": "dist/index.d.cts, dist/index.d.mts, dist/index.d.ts all receive the same additionalProperties type addition"
+      },
+      {
+        "name": "Boolean flag list kept in sync across patch",
+        "description": "The extracted BOOLEAN_FLAGS array in bin/cli.js must contain every flag that was in the original boolean: [] list. Adding a new flag means updating BOOLEAN_FLAGS in the patch.",
+        "example": "BOOLEAN_FLAGS = ['additionalProperties', 'alphabetize', ... 'rootTypesNoSchemaPrefix']"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "openapi-typescript.patch",
+        "role": "Unified diff applied to the installed openapi-typescript package. Controls how openapi-typescript generates TypeScript from the OpenAPI YAML. Fixes: BOOLEAN_FLAGS extraction, additionalProperties schema type, enum + additionalProperties interaction, generateSchema config spreading.",
+        "watch_for": "Regenerate and re-validate the patch whenever openapi-typescript is upgraded \u2014 the base commit hash in the diff header will no longer match and the patch will fail to apply."
+      }
+    ],
+    "anti_patterns": [
+      "Creating separate patch files for each fix \u2014 the tooling expects a single patch",
+      "Patching TypeSpec source files or the generated openapi.yaml instead of the openapi-typescript dist",
+      "Editing dist/ files directly in the repo without encoding the change as a patch",
+      "Forgetting to update the patch after upgrading openapi-typescript (stale base hash causes apply failure)"
+    ],
+    "decisions": [
+      {
+        "decision": "Patch dist/ rather than waiting for upstream releases",
+        "rationale": "The JS SDK generation pipeline needs upstream fixes (e.g. additionalProperties schema type, BOOLEAN_FLAGS refactor) that are not yet in the published npm package; patching the installed artifact unblocks generation without forking the whole package."
+      }
+    ],
+    "code_examples": []
+  },
+  "api/client/javascript/scripts": {
+    "purpose": "Two post-generation Node.js scripts that clean up or transform the generated JS SDK output after orval and openapi-typescript run. They are invoked as part of the 'make gen-api' pipeline, not imported by application code.",
+    "patterns": [
+      {
+        "name": "Scripts read from and write back to generated src/ files",
+        "description": "Each script opens an already-generated file under src/, transforms it in memory, and writes it back. They must be idempotent \u2014 running them twice produces the same output.",
+        "example": "add-as-const.ts: readFileSync('../src/zod/index.ts') \u2192 regex replace \u2192 writeFileSync back to same path"
+      },
+      {
+        "name": "generate.ts uses openapiTS transform hook for type overrides",
+        "description": "Custom type mappings (date-time \u2192 Date, Event string fields \u2192 optional string) are applied via the transform(schemaObject, metadata) callback passed to openapiTS, not as post-hoc regex replacements.",
+        "example": "if (schemaObject.format === 'date-time') { return allowString ? tsUnion([DATE, STRING]) : DATE }"
+      },
+      {
+        "name": "Schema source is api/openapi.cloud.yaml (relative URL)",
+        "description": "generate.ts resolves the schema path as new URL('../../../openapi.cloud.yaml', import.meta.url), so the scripts must be run from their location inside scripts/. Changing the output path (./src/client/schemas.ts) requires updating the hardcoded writeFileSync target.",
+        "example": "const schema = new URL('../../../openapi.cloud.yaml', import.meta.url)"
+      },
+      {
+        "name": "add-as-const.ts is a temporary workaround for an orval upstream bug",
+        "description": "The script exists solely to append 'as const' to exported object-literal defaults in zod/index.ts until orval#3244 is fixed. Remove the script and its invocation once the upstream fix lands.",
+        "example": "src.replace(/(^export const \\w+Default =\\s*\\{[^{}]*\\})/gm, '$1 as const')"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "generate.ts",
+        "role": "Generates src/client/schemas.ts from api/openapi.cloud.yaml using openapi-typescript with custom transform hooks. Primary entry point for TypeScript type generation.",
+        "watch_for": "The Event schema transform (schemaObject.example check against a hardcoded list) will silently miss new Event fields \u2014 update the example exclusion list when the Event schema changes."
+      },
+      {
+        "file": "add-as-const.ts",
+        "role": "Post-processes src/zod/index.ts to add 'as const' to object-literal defaults. Temporary fix for orval issue #3244.",
+        "watch_for": "The regex only matches single-level object literals (no nested braces). Complex defaults will not be fixed. Remove once orval releases the upstream fix."
+      }
+    ],
+    "anti_patterns": [
+      "Importing these scripts from application SDK code \u2014 they are build-time tools only",
+      "Using regex transforms in generate.ts instead of the openapiTS transform hook for type changes",
+      "Hardcoding new type overrides in add-as-const.ts instead of the transform hook in generate.ts",
+      "Running generate.ts from a directory other than scripts/ \u2014 the relative URL resolution for openapi.cloud.yaml will break",
+      "Removing the 'as const' fix without first verifying orval upstream issue #3244 is resolved"
+    ],
+    "decisions": [
+      {
+        "decision": "Type overrides (date-time \u2192 Date) are applied via openapiTS transform hook, not post-hoc regex",
+        "rationale": "The transform hook has typed access to schemaObject and metadata (including parameter location), enabling context-aware overrides like allowing string|Date in query parameters while enforcing Date elsewhere."
+      },
+      {
+        "decision": "add-as-const.ts exists as a temporary script rather than a permanent transformation",
+        "rationale": "The orval bug (missing 'as const' on object-literal defaults) is tracked upstream; keeping the fix as a clearly-labelled throwaway script with an issue reference minimises tech debt and signals when it can be deleted."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new date-time field that must also accept string in query params",
+        "code": "// In generate.ts transform callback \u2014 already handled generically:\nif (schemaObject.format === 'date-time') {\n  const allowString =\n    (metadata.schema && 'in' in metadata.schema && metadata.schema.in === 'query') ||\n    metadata.path?.includes('/parameters/query')\n  return allowString\n    ? factory.createUnionTypeNode([DATE, NULL, STRING]) // or [DATE, STRING] if non-nullable\n    : DATE\n}"
+      }
+    ]
+  }
+}

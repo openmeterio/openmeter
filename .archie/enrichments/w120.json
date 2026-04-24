@@ -1,0 +1,207 @@
+{
+  "openmeter/subject/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing subject.Adapter \u2014 all CRUD and list operations for subjects, with transaction-aware execution via entutils.TransactingRepo. This is the sole persistence layer for the subject domain; correctness depends on every method honoring the ctx-carried transaction.",
+    "patterns": [
+      {
+        "name": "TransactingRepo wrapping",
+        "description": "Every public method wraps its Ent queries inside entutils.TransactingRepo (returning value) or entutils.TransactingRepoWithNoValue (no return value) so the ctx-bound Ent transaction is honored. Never call tx.db.* directly outside this wrapper.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (subject.Subject, error) { ... tx.db.Subject.Query()... })"
+      },
+      {
+        "name": "TxUser interface satisfaction",
+        "description": "adapter implements entutils.TxUser[*adapter] by providing Tx, WithTx, and Self methods. adapter.go is the sole file defining these; subject.go adds no tx infrastructure.",
+        "example": "var _ entutils.TxUser[*adapter] = (*adapter)(nil)"
+      },
+      {
+        "name": "Soft-delete via DeletedAt",
+        "description": "Subjects are soft-deleted: Delete sets DeletedAt=now. All query methods filter with subjectdb.Or(subjectdb.DeletedAtIsNil(), subjectdb.DeletedAtGTE(now)) to exclude expired deletes; GetById does NOT apply this filter.",
+        "example": "subjectdb.Or(subjectdb.DeletedAtIsNil(), subjectdb.DeletedAtGTE(now))"
+      },
+      {
+        "name": "Error type mapping",
+        "description": "Ent db.IsNotFound \u2192 models.NewGenericNotFoundError; db.IsConstraintError \u2192 models.NewGenericConflictError; validation failures \u2192 models.NewGenericValidationError. Never return raw Ent errors to callers.",
+        "example": "if db.IsNotFound(err) { return subject.Subject{}, models.NewGenericNotFoundError(...) }"
+      },
+      {
+        "name": "Input validation before DB access",
+        "description": "Every write method calls input.Validate() (or key/id.Validate()) and wraps the error in models.NewGenericValidationError before entering the TransactingRepo closure.",
+        "example": "if err := input.Validate(); err != nil { return subject.Subject{}, fmt.Errorf(\"invalid input: %w\", models.NewGenericValidationError(err)) }"
+      },
+      {
+        "name": "OptionalNullable patch pattern",
+        "description": "Update uses subject.OptionalNullable[T]{IsSet, Value} to distinguish JSON field absent vs. null. When IsSet=true and Value=nil, call ClearField(); when IsSet=true and Value!=nil, call SetField(*Value); skip field entirely if IsSet=false.",
+        "example": "if input.DisplayName.IsSet { if input.DisplayName.Value != nil { query.SetDisplayName(*input.DisplayName.Value) } else { query.ClearDisplayName() } }"
+      },
+      {
+        "name": "mapEntity as the only domain mapper",
+        "description": "All Ent *db.Subject \u2192 subject.Subject conversions go through the package-private mapEntity function. Nil metadata is normalised to an empty map inside mapEntity; do not add mapping logic elsewhere.",
+        "example": "return pagination.MapResult(result, mapEntity), nil"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Defines the adapter struct, New constructor, and the three TxUser methods (Tx, WithTx, Self). All tx infrastructure lives here.",
+        "watch_for": "Do not add Ent query code here; keep it in subject.go. Do not skip the nil-db guard in New."
+      },
+      {
+        "file": "subject.go",
+        "role": "Implements all subject.Adapter methods: Create, Update, GetByKey, GetById, GetByIdOrKey, List, Delete, and the mapEntity helper.",
+        "watch_for": "Update calls GetById at the end to return the refreshed entity \u2014 do not return the stale pre-update row. Delete is idempotent: it returns nil if already deleted."
+      }
+    ],
+    "anti_patterns": [
+      "Calling tx.db.* directly outside a TransactingRepo/TransactingRepoWithNoValue closure",
+      "Returning raw Ent errors instead of mapping to models.Generic*Error types",
+      "Adding domain/business logic (hooks, event publishing) inside adapter methods",
+      "Querying without the soft-delete filter (DeletedAtIsNil / DeletedAtGTE) in list/get-by-key operations",
+      "Editing openmeter/ent/db/ generated files instead of the schema"
+    ],
+    "decisions": [
+      {
+        "decision": "OptionalNullable[T] instead of pointer-pointer for nullable patch fields",
+        "rationale": "Ent cannot distinguish between a JSON field being absent vs. explicitly null from a *T alone; IsSet flag makes the distinction explicit without needing a second parse of the raw body at the adapter layer."
+      },
+      {
+        "decision": "Soft-delete (SetDeletedAt) rather than hard-delete",
+        "rationale": "Subjects are referenced by usage events in ClickHouse; hard-deleting would break historical query attribution. Soft-delete preserves the row while making the subject invisible to active queries."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new write method to the subject adapter",
+        "code": "import (\n\t\"context\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/ent/db\"\n\tsubjectdb \"github.com/openmeterio/openmeter/openmeter/ent/db/subject\"\n\t\"github.com/openmeterio/openmeter/openmeter/subject\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nfunc (a *adapter) Deactivate(ctx context.Context, id models.NamespacedID) (subject.Subject, error) {\n\tif err := id.Validate(); err != nil {\n\t\treturn subject.Subject{}, fmt.Errorf(\"invalid id: %w\", models.NewGenericValidationError(err))\n\t}\n\treturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (subject.Subject, error) {\n\t\t_, err := tx.db.Subject.Update().\n\t\t\tWhere(subjectdb.Namespace(id.Namespace), subjectdb.ID(id.ID)).\n\t\t\tSetSomeField(false).\n\t\t\tSave(ctx)\n\t\tif err != nil {\n\t\t\tif db.IsNotFound(err) {\n\t\t\t\treturn subject.Subject{}, models.NewGenericNotFoundError(fmt.Errorf(\"subject not found: %s\", id.ID))\n\t\t\t}\n\t\t\treturn subject.Subject{}, fmt.Errorf(\"failed to deactivate subject: %w\", err)\n\t\t}\n\t\treturn tx.GetById(ctx, id)\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/subject/httphandler": {
+    "purpose": "HTTP handler layer for the subject domain (v1 API), translating Chi HTTP requests into subject.Service calls and encoding domain types to api.Subject responses. Package name is httpdriver despite the directory name being httphandler.",
+    "patterns": [
+      {
+        "name": "httptransport.NewHandler / NewHandlerWithArgs",
+        "description": "Every endpoint is a separate method returning a typed handler (e.g. GetSubjectHandler). Use httptransport.NewHandler for path-param-free endpoints and NewHandlerWithArgs when a path param (e.g. subjectIdOrKey string) is needed. Never implement http.Handler directly.",
+        "example": "func (h *handler) GetSubject() GetSubjectHandler { return httptransport.NewHandlerWithArgs(decoder, operation, encoder, opts...) }"
+      },
+      {
+        "name": "Handler interface with per-operation return types",
+        "description": "Handler interface declares one method per endpoint returning a typed handler alias (e.g. GetSubjectHandler = httptransport.HandlerWithArgs[...]). SubjectHandler sub-interface groups all subject endpoints; Handler embeds it. Compile-time check: var _ Handler = (*handler)(nil).",
+        "example": "type GetSubjectHandler httptransport.HandlerWithArgs[GetSubjectRequest, GetSubjectResponse, GetSubjectParams]"
+      },
+      {
+        "name": "Namespace resolution via namespaceDecoder",
+        "description": "All handlers call h.resolveNamespace(ctx) as the first step. On failure it returns an HTTP 500 internal error. Never hardcode or skip namespace resolution.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return GetSubjectRequest{}, err }"
+      },
+      {
+        "name": "Request/Response type aliases per handler",
+        "description": "Each endpoint defines its own *Request struct plus type aliases for *Params (path param type), *Response (api type), and *Handler. Group them in a type() block immediately above the method.",
+        "example": "type (\\n\\tGetSubjectParams   = string\\n\\tGetSubjectResponse = api.Subject\\n\\tGetSubjectHandler  httptransport.HandlerWithArgs[GetSubjectRequest, GetSubjectResponse, GetSubjectParams]\\n)"
+      },
+      {
+        "name": "httptransport.AppendOptions with WithOperationName",
+        "description": "Every handler passes httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"camelCaseName\")) as options. This enables OTel span naming and middleware chaining.",
+        "example": "httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"getSubject\"))..."
+      },
+      {
+        "name": "Domain-to-API mapping in mapping.go",
+        "description": "All subject.Subject \u2192 api.Subject conversions go through FromSubject in mapping.go. Do not inline field mappings inside operation closures.",
+        "example": "return FromSubject(sub), nil"
+      },
+      {
+        "name": "Double-body-read for optional nullable fields in upsert",
+        "description": "UpsertSubject reads the body twice: once into []api.SubjectUpsert and once into []map[string]interface{} to detect which fields were present (undefined vs. null). This pattern is required when oapi-codegen cannot distinguish absent from null.",
+        "example": "bodyBytes, _ := io.ReadAll(r.Body); r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes)); json.Unmarshal(bodyBytes, &rawPayloads)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Defines Handler interface, handler struct with all dependencies (namespaceDecoder, subjectService, entitlementConnector, logger, options), New constructor, and resolveNamespace helper.",
+        "watch_for": "New dependencies must be added to both the handler struct and the New constructor signature. entitlementConnector is injected but used only in delete flows \u2014 check before removing."
+      },
+      {
+        "file": "subject.go",
+        "role": "All four endpoint implementations: GetSubject, ListSubjects, UpsertSubject, DeleteSubject. Upsert logic (create-or-update) lives here.",
+        "watch_for": "Upsert does N+1 individual Create/Update calls inside a loop \u2014 not batched at DB level. The entitlementConnector field in handler is declared but not visibly used in this file; verify before any refactor."
+      },
+      {
+        "file": "mapping.go",
+        "role": "Single FromSubject function mapping domain type to API type. Keep all field mapping logic here.",
+        "watch_for": "Metadata is always copied into a new map to avoid sharing a reference with the domain model."
+      }
+    ],
+    "anti_patterns": [
+      "Implementing http.Handler directly instead of using httptransport.NewHandler/NewHandlerWithArgs",
+      "Calling subject.Service methods outside the operation closure (second argument to NewHandler)",
+      "Inlining domain-to-API field mapping instead of using FromSubject in mapping.go",
+      "Skipping httptransport.WithOperationName \u2014 breaks OTel tracing and middleware",
+      "Adding business logic (create-or-update decisions) outside the operation closure"
+    ],
+    "decisions": [
+      {
+        "decision": "Package named httpdriver (not httphandler) despite directory name httphandler",
+        "rationale": "Follows the openmeter convention where HTTP handler packages are named httpdriver; the directory name is a legacy inconsistency."
+      },
+      {
+        "decision": "entitlementConnector injected into handler",
+        "rationale": "DeleteSubject may need to validate or clean up entitlements before removing a subject; injecting it at construction avoids circular imports and keeps the handler self-contained."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new endpoint (e.g. BulkDeleteSubjects) following the existing pattern",
+        "code": "// In subject.go\ntype (\n\tBulkDeleteSubjectsResponse = interface{}\n\tBulkDeleteSubjectsHandler  httptransport.Handler[BulkDeleteSubjectsRequest, BulkDeleteSubjectsResponse]\n)\n\ntype BulkDeleteSubjectsRequest struct {\n\tnamespace string\n\tids       []string\n}\n\nfunc (h *handler) BulkDeleteSubjects() BulkDeleteSubjectsHandler {\n\treturn httptransport.NewHandler(\n\t\tfunc(ctx context.Context, r *http.Request) (BulkDeleteSubjectsRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil {\n\t\t\t\treturn BulkDeleteSubjectsRequest{}, err\n\t\t\t}\n\t\t\tvar body struct{ IDs []string }\n\t\t\tif err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {\n\t\t\t\treturn BulkDeleteSubjectsRequest{}, err\n\t\t\t}\n\t\t\treturn BulkDeleteSubjectsRequest{namespace: ns, ids: body.IDs}, nil\n\t\t},\n\t\tfunc(ctx context.Context, req BulkDeleteSubjectsRequest) (BulkDeleteSubjectsResponse, error) {\n\t\t\tfor _, id := range req.ids {\n\t\t\t\tif err := h.subjectService.Delete(ctx, models.NamespacedID{Namespace: req.namespace, ID: id}); err != nil {\n\t\t\t\t\treturn nil, fmt.Errorf(\"failed to delete subject %s: %w\", id, err)\n\t\t\t\t}\n\t\t\t}\n\t\t\treturn nil, nil\n\t\t},\n\t\tcommonhttp.EmptyResponseEncoder[BulkDeleteSubjectsResponse](http.StatusNoContent),\n\t\thttptransport.AppendOptions(h.options, httptransport.WithOperationName(\"bulkDeleteSubjects\"))...,\n\t)\n}"
+      }
+    ]
+  },
+  "openmeter/subject/testutils": {
+    "purpose": "Test environment factory for the subject domain \u2014 wires subject, customer, entitlement, and feature services directly from package constructors (no app/common) so test suites have a fully functional dependency graph without import cycles.",
+    "patterns": [
+      {
+        "name": "NewTestEnv constructs the full dependency graph from package constructors",
+        "description": "Each service is built by calling its own adapter/service constructor (e.g. subjectadapter.New, subjectservice.New) rather than importing app/common. This prevents test-only import cycles.",
+        "example": "subjectAdapter, _ := subjectadapter.New(client); subjectService, _ := subjectservice.New(subjectAdapter)"
+      },
+      {
+        "name": "eventbus.NewMock as the event publisher",
+        "description": "Tests use eventbus.NewMock(t) instead of a real Kafka publisher. All services that accept a Publisher receive this mock.",
+        "example": "publisher := eventbus.NewMock(t)"
+      },
+      {
+        "name": "testutils.InitPostgresDB for real DB access",
+        "description": "Tests spin up a real Postgres instance via openmeter/testutils.InitPostgresDB(t). Call e.DBSchemaMigrate(t) before the first DB operation in each test.",
+        "example": "db := testutils.InitPostgresDB(t); client := db.EntDriver.Client()"
+      },
+      {
+        "name": "sync.Once in Close to prevent double-close panics",
+        "description": "TestEnv.Close wraps driver cleanup in sync.Once; always call t.Cleanup(func() { env.Close(t) }) in tests.",
+        "example": "e.close.Do(func() { e.db.EntDriver.Close(); e.db.PGDriver.Close() })"
+      },
+      {
+        "name": "NewTestULID / NewTestNamespace for unique identifiers",
+        "description": "Generate collision-free namespace and ID strings using NewTestULID(t). NewTestNamespace is an alias.",
+        "example": "ns := testutils.NewTestNamespace(t)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "env.go",
+        "role": "Defines TestEnv struct and NewTestEnv factory. Exports SubjectService, CustomerService, EntitlementAdapter, FeatureService, Client for direct test use.",
+        "watch_for": "meteradapter.New(nil) creates a mock meter adapter with no backing store \u2014 do not use for tests that need real meter queries. DBSchemaMigrate must be called before any DB writes."
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common inside testutils \u2014 creates circular imports and couples tests to binary wiring",
+      "Using context.Background() instead of t.Context() in test helper functions",
+      "Skipping env.Close(t) \u2014 leaves DB connections open across test runs",
+      "Sharing a single TestEnv across parallel tests without isolation \u2014 each test should call NewTestEnv"
+    ],
+    "decisions": [
+      {
+        "decision": "Wire all dependencies from package constructors rather than app/common DI",
+        "rationale": "Keeps testutils independent of the application wiring layer; unrelated changes to app/common cannot break domain tests and import cycles are impossible."
+      }
+    ],
+    "code_examples": []
+  }
+}

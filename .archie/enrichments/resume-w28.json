@@ -1,0 +1,111 @@
+{
+  "openmeter/billing/worker/subscriptionsync/service/reconciler": {
+    "purpose": "Computes and applies a diff plan (Plan/Apply two-phase protocol) between desired subscription target state and persisted billing artifacts (invoice lines, split-line hierarchies, charges). Routes each diff operation to the correct PatchCollection backend based on settlement mode and price type.",
+    "patterns": [
+      {
+        "name": "Plan/Apply two-phase protocol",
+        "description": "Plan() builds a pure in-memory Plan{InvoicePatches, ChargePatches} without touching the DB; Apply() executes it. DryRun skips execution and only logs. Always separate planning from execution.",
+        "example": "plan, err := s.Plan(ctx, PlanInput{...}); if err != nil { return err }; return s.Apply(ctx, ApplyInput{Plan: plan, ...})"
+      },
+      {
+        "name": "PatchCollectionRouter dispatches by persisted item type and settlement mode",
+        "description": "GetCollectionFor(existing) routes by persistedstate.ItemType; ResolveDefaultCollection(target) routes new items by settlement mode + price type. Never assign a patch to a collection manually.",
+        "example": "collection, err := patchCollections.GetCollectionFor(existingLine); s.diffItem(&target, existing, collection)"
+      },
+      {
+        "name": "diffItem drives all five patch operations",
+        "description": "diffItem(target, existing, collection) emits exactly one of: AddCreate, AddDelete, AddProrate (flat-fee period+amount change), AddShrink, or AddExtend. Charge-backed collections return unsupportedOperationError for AddProrate.",
+        "example": "case targetPeriod.To.Before(existingPeriod.To): return patches.AddShrink(...)\ncase targetPeriod.To.After(existingPeriod.To): return patches.AddExtend(...)"
+      },
+      {
+        "name": "Semantic prorate gate applies only to invoice-backed flat-fee lines",
+        "description": "semanticProrateDecision() returns ShouldProrate=true only for ItemTypeInvoiceLine with flat-fee price and a period or amount change. Charge-backed collections skip this gate entirely via GetLineEngineType().IsCharge() check.",
+        "example": "if patches.GetLineEngineType() == billing.LineEngineTypeInvoice { decision, _ := semanticProrateDecision(...); if decision.ShouldProrate { return patches.AddProrate(...) } }"
+      },
+      {
+        "name": "filterInScopeLines removes non-billable targets before diff",
+        "description": "Non-billable targets are silently excluded before planning so they reconcile to delete/no-op for any existing artifacts. Charge-backed targets pass if IsBillable(); invoice-backed also require GetExpectedLine() != nil.",
+        "example": "inScopeLines, err := filterInScopeLines(input.Target.Items, patchCollections)"
+      },
+      {
+        "name": "chargePatchCollection embeds base, concrete types embed chargePatchCollection",
+        "description": "flatFeeChargeCollection and usageBasedChargeCollection both embed chargePatchCollection via struct embedding. AddCreate is the only method overridden; all other PatchCollection methods are satisfied by the embedded base.",
+        "example": "type flatFeeChargeCollection struct { chargePatchCollection }\nfunc (c *flatFeeChargeCollection) AddCreate(target targetstate.StateItem) error { ... }"
+      },
+      {
+        "name": "Config.Validate() before construction",
+        "description": "Config structs expose a Validate() method checked in New(). ChargesService is required only when EnableCreditThenInvoice is true. Do not skip validation in tests.",
+        "example": "func New(config Config) (*Service, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "reconciler.go",
+        "role": "Entry point: Service struct, Plan() diff loop, Apply() execution, diffItem() operation selector, filterInScopeLines() pre-filter",
+        "watch_for": "Plan() sets creditsEnabled based on chargesService != nil \u2014 do not pass a non-nil chargesService unless credits are truly enabled in config"
+      },
+      {
+        "file": "patch.go",
+        "role": "PatchCollection interfaces and patchCollectionRouter; routes items to the right collection by type and settlement mode",
+        "watch_for": "ResolveDefaultCollection falls back to lineCollection when credits disabled or CreditThenInvoice disabled \u2014 new settlement modes must be added here"
+      },
+      {
+        "file": "patchcharge.go",
+        "role": "chargePatchCollection base: holds charges.ApplyPatchesInput, implements AddDelete/AddShrink/AddExtend via chargesmeta patches, AddProrate returns error",
+        "watch_for": "addPatch() panics on duplicate chargeID in PatchesByChargeID map \u2014 one patch per charge per reconciliation cycle"
+      },
+      {
+        "file": "patchchargeflatfee.go",
+        "role": "flatFeeChargeCollection.AddCreate builds chargesflatfee.Intent from target; wires ProRating, PercentageDiscounts, PaymentTerm",
+        "watch_for": "AmountBeforeProration must use flatPrice.Amount (before any proration), not a post-proration value"
+      },
+      {
+        "file": "patchchargeusagebased.go",
+        "role": "usageBasedChargeCollection.AddCreate builds chargesusagebased.Intent; passes full Price and Discounts from rate card meta",
+        "watch_for": "Price is dereferenced with *price \u2014 nil price is guarded but still panics if guard is removed"
+      },
+      {
+        "file": "patchinvoiceline.go",
+        "role": "lineInvoicePatchCollection: AddCreate/Delete/Shrink/Extend/Prorate for flat invoice lines; uses getPatchesForUpdateUsageBasedLine for period changes",
+        "watch_for": "AddProrate only applies to flat-fee lines \u2014 enforced by invoiceupdater.IsFlatFee check; returns error for usage-based"
+      },
+      {
+        "file": "patchinvoicelinehierarchy.go",
+        "role": "lineHierarchyPatchCollection: handles SplitLineHierarchy artifacts; AddCreate and AddProrate are unsupported (return error)",
+        "watch_for": "AddDelete walks all child lines \u2014 if any child has AnnotationSubscriptionSyncIgnore the entire hierarchy is skipped"
+      },
+      {
+        "file": "prorate.go",
+        "role": "semanticProrateDecision: compares existing flat-fee amount to expected; returns ShouldProrate and both amounts for AddProrate",
+        "watch_for": "Flat fee prorate is only valid for ItemTypeInvoiceLine \u2014 ItemTypeInvoiceSplitLineGroup returns an error"
+      }
+    ],
+    "anti_patterns": [
+      "Calling billing.Adapter or charges.Adapter methods directly from reconciler code \u2014 always go through billing.Service (via invoiceupdater.Updater) and charges.Service",
+      "Adding a new settlement mode without updating patchCollectionRouterConfig.ResolveDefaultCollection routing logic in patch.go",
+      "Implementing AddProrate for charge collections \u2014 charge-backed reconciliation handles amount changes implicitly via shrink/extend; explicit prorate is invoice-only",
+      "Skipping filterInScopeLines before Plan() diff \u2014 non-billable targets must be excluded before the diff loop or phantom creates are emitted",
+      "Using context.Background() instead of propagating the ctx parameter through all billing.Service and charges.Service calls in Apply()"
+    ],
+    "decisions": [
+      {
+        "decision": "Plan/Apply two-phase split with a pure in-memory Plan struct",
+        "rationale": "Enables dry-run logging, testable diff output independent of DB side-effects, and retry of Apply without re-running the potentially expensive Plan computation"
+      },
+      {
+        "decision": "patchCollectionRouter selects backend at planning time based on settlement mode and price type",
+        "rationale": "Allows graceful migration of existing invoice-line artifacts to charge-backed provisioning: existing items are routed by their persisted ItemType, new items use ResolveDefaultCollection, so mixed states coexist during rollout"
+      },
+      {
+        "decision": "Prorate is a distinct PatchOperation only for invoice-backed flat-fee lines",
+        "rationale": "Invoice lines require atomic period+amount updates to avoid billing discrepancies; usage-based lines only need period updates (amount is derived from usage); charge backends recompute amounts from period changes internally so prorate is unsupported there"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new patch collection for a hypothetical new charge type",
+        "code": "// 1. Add ItemType constant in persistedstate package\n// 2. Add LineEngineType constant in billing package\n// 3. Create new collection embedding chargePatchCollection:\ntype newChargeCollection struct { chargePatchCollection }\nfunc newNewChargeCollection(cap int) *newChargeCollection {\n\treturn &newChargeCollection{chargePatchCollection: newChargePatchCollection(billing.LineEngineTypeNewCharge, persistedstate.ItemTypeNewCharge, cap)}\n}\nfunc (c *newChargeCollection) AddCreate(target targetstate.StateItem) error { ... }\n\n// 4. Add field to patchCollectionRouter, construct in newPatchCollectionRouter\n// 5. Wire in GetCollectionFor switch and ResolveDefaultCollection switch\n// 6. Include in CollectChargePatches via charges.ConcatenateApplyPatchesInputs"
+      }
+    ]
+  }
+}

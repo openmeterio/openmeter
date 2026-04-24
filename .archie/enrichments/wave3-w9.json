@@ -1,0 +1,25 @@
+{
+  "pkg/framework/transport": {
+    "purpose": "Organisational folder owning the HTTP transport layer for all domain httpdriver packages. Its sole child (httptransport) provides the single generic Handler[Request,Response] pipeline that every v1 and v3 endpoint in the monorepo is built on \u2014 nothing else lives here.",
+    "patterns": [
+      {
+        "name": "Child-delegated architecture",
+        "description": "All source code lives in pkg/framework/transport/httptransport; this folder is a namespace wrapper only. New transport sub-packages (e.g. grpctransport) would sit here as siblings.",
+        "example": "pkg/framework/transport/httptransport/handler.go \u2014 the only current child"
+      }
+    ],
+    "key_file_guides": [],
+    "anti_patterns": [
+      "Placing source files directly in pkg/framework/transport/ \u2014 all code belongs in named sub-packages",
+      "Adding a second child package that duplicates the decode/operate/encode pipeline instead of reusing httptransport.Handler",
+      "Importing pkg/framework/transport directly (no Go files here); always import the sub-package"
+    ],
+    "decisions": [
+      {
+        "decision": "Single child package rather than a flat file set",
+        "rationale": "Keeps the transport abstraction extensible (future grpc/websocket siblings) while letting all current consumers import a stable sub-package path (httptransport) without churn."
+      }
+    ],
+    "code_examples": []
+  }
+}

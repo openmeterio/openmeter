@@ -1,0 +1,189 @@
+{
+  "openmeter/productcatalog/subscription/http": {
+    "purpose": "HTTP driver for subscription lifecycle endpoints (create, get, list, edit, cancel, continue, restore, change, migrate, delete). Adapts plan-aware subscription operations to the v1 API using httptransport.HandlerWithArgs, delegating to PlanSubscriptionService, SubscriptionWorkflowService, and SubscriptionService.",
+    "patterns": [
+      {
+        "name": "HandlerWithArgs for path-param endpoints",
+        "description": "Each operation returning a typed handler alias: type Foo[Handler|Params|Request|Response] = ... then method on *handler returns httptransport.NewHandlerWithArgs(decoder, operation, encoder, options...)",
+        "example": "type CancelSubscriptionHandler = httptransport.HandlerWithArgs[CancelSubscriptionRequest, CancelSubscriptionResponse, CancelSubscriptionParams]"
+      },
+      {
+        "name": "Namespace always resolved from context",
+        "description": "Every decoder calls h.resolveNamespace(ctx) first; failure returns a 500 internal server error via commonhttp.NewHTTPError",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return ..., err }"
+      },
+      {
+        "name": "Custom-plan discriminator sniff",
+        "description": "Because oapi-codegen union helpers succeed even on wrong type, create/change decoders marshal+unmarshal body to test for presence of customPlan field before calling AsCustom*/AsPlan* helpers",
+        "example": "type testForCustomPlan struct { CustomPlan any `json:\"customPlan\"` }; json.Unmarshal(bodyBytes, &t); if t.CustomPlan != nil { body.AsCustomSubscriptionCreate() }"
+      },
+      {
+        "name": "Credits guard in decoder",
+        "description": "If !h.Credits.Enabled && req.SettlementMode == productcatalog.CreditOnlySettlementMode return models.NewGenericValidationError; guard lives in the request decoder, not the operation func",
+        "example": "if !h.Credits.Enabled && req.SettlementMode == productcatalog.CreditOnlySettlementMode { return ..., models.NewGenericValidationError(...) }"
+      },
+      {
+        "name": "Domain-specific errorEncoder",
+        "description": "errors.go registers a single errorEncoder() used by every handler; maps subscription.PatchConflictError, PatchForbiddenError, PatchValidationError, entitlement.NotFoundError, feature.FeatureNotFoundError, pagination.InvalidError to HTTP status codes",
+        "example": "httptransport.WithErrorEncoder(errorEncoder())"
+      },
+      {
+        "name": "Mapping layer in mapping.go",
+        "description": "All domain-to-API conversions live in mapping.go: MapSubscriptionToAPI, MapSubscriptionViewToAPI, MapSubscriptionPhaseToAPI, MapSubscriptionItemToAPI, MapAPITimingToTiming, MapAPISubscriptionEditOperationToPatch, CustomPlanToCreatePlanRequest",
+        "example": "return MapSubscriptionToAPI(sub), nil"
+      },
+      {
+        "name": "HandlerConfig struct injection",
+        "description": "Handler interface is implemented by *handler which embeds HandlerConfig containing all service dependencies; constructed via NewHandler(config, options...)",
+        "example": "type HandlerConfig struct { SubscriptionWorkflowService subscriptionworkflow.Service; SubscriptionService subscription.Service; ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Defines Handler interface listing all operations, HandlerConfig with all dependencies, and NewHandler constructor",
+        "watch_for": "Adding an operation: add the method signature to Handler interface and HandlerConfig must include all services the method needs"
+      },
+      {
+        "file": "mapping.go",
+        "role": "All bidirectional conversions between domain types and api.* types; imports productcataloghttp, plandriver, entitlementdriver for sub-type mapping",
+        "watch_for": "MapSubscriptionPhaseToAPI applies phase-relative item selection logic (current=active item, future=first, past=last); changing this affects what items appear in the API response"
+      },
+      {
+        "file": "errors.go",
+        "role": "Centralized error-to-HTTP-status mapping; must be updated whenever a new domain error type is introduced that needs non-500 status",
+        "watch_for": "ValidationIssues with httpStatusCodeErrorAttribute are handled first via commonhttp.HandleIssueIfHTTPStatusKnown; add new error types via commonhttp.HandleErrorIfTypeMatches"
+      },
+      {
+        "file": "create.go",
+        "role": "CreateSubscription handler; resolves customer by ID or key (getCustomer helper), builds PlanInput, calls PlanSubscriptionService.Create",
+        "watch_for": "getCustomer returns GenericPreConditionFailedError (412) if customer is deleted; must propagate before calling service"
+      },
+      {
+        "file": "change.go",
+        "role": "ChangeSubscription handler; same custom-plan discriminator sniff as create.go; delegates to PlanSubscriptionService.Change",
+        "watch_for": "timing is mandatory in change body; credits guard applies to custom plan path only"
+      }
+    ],
+    "anti_patterns": [
+      "Calling SubscriptionService directly for operations that have a workflow (create, change, edit, restore, migrate) \u2014 always route through PlanSubscriptionService or SubscriptionWorkflowService",
+      "Adding business logic to the operation func (second lambda); keep all validation/transformation in the decoder (first lambda)",
+      "Using type-assert AS helpers (body.AsCustom*) without the discriminator sniff \u2014 they succeed on wrong type and silently produce zero values",
+      "Registering a new handler variant without adding it to the Handler interface in handler.go",
+      "Returning a non-domain error type that is not covered by errorEncoder \u2014 it will silently become a 500"
+    ],
+    "decisions": [
+      {
+        "decision": "Custom-plan discriminator sniff via marshal+unmarshal instead of generated As* helpers",
+        "rationale": "TypeSpec-generated union helpers succeed if the JSON is structurally serializable even when fields belong to the other union member; field presence check is the only reliable discriminator"
+      },
+      {
+        "decision": "Credits.Enabled guard placed in the HTTP decoder, not in the service layer",
+        "rationale": "The HTTP driver owns the OpenMeter deployment configuration; the domain service is deployment-agnostic, so the feature flag belongs at the boundary"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new subscription action endpoint",
+        "code": "// In handler.go add to Handler interface:\nPauseSubscription() PauseSubscriptionHandler\n\n// New file pause.go:\ntype (\n    PauseSubscriptionRequest  = struct{ ID models.NamespacedID }\n    PauseSubscriptionResponse = api.Subscription\n    PauseSubscriptionParams   = struct{ ID string }\n    PauseSubscriptionHandler  = httptransport.HandlerWithArgs[PauseSubscriptionRequest, PauseSubscriptionResponse, PauseSubscriptionParams]\n)\n\nfunc (h *handler) PauseSubscription() PauseSubscriptionHandler {\n    return httptransport.NewHandlerWithArgs(\n        func(ctx context.Context, r *http.Request, params PauseSubscriptionParams) (PauseSubscriptionRequest, error) {\n            ns, err := h.resolveNamespace(ctx)\n            if err != nil { return PauseSubscriptionRequest{}, err }\n            return PauseSubscriptionRequest{ID: models.NamespacedID{Namespace: ns, ID: params.ID}}, nil\n        },\n        func(ctx context.Context, req PauseSubscriptionRequest) (PauseSubscriptionResponse, error) {\n            sub, err := h.SubscriptionService.Pause(ctx, req.ID)\n            if err != nil { return PauseSubscriptionResponse{}, err }\n            return MapSubscriptionToAPI(sub), nil\n        },\n        commonhttp.JSONResponseEncoderWithStatus[PauseSubscriptionResponse](http.StatusOK),\n        httptransport.AppendOptions(h.Options,\n            httptransport.WithOperationName(\"pauseSubscription\"),\n            httptransport.WithErrorEncoder(errorEncoder()))...,\n    )\n}"
+      }
+    ]
+  },
+  "openmeter/productcatalog/subscription/service": {
+    "purpose": "Concrete implementation of plansubscription.PlanSubscriptionService; orchestrates plan resolution (by ref or inline input), status validation, zeroPhasesBeforeStartingPhase, and delegates to subscriptionworkflow.Service for create/change/migrate lifecycle operations.",
+    "patterns": [
+      {
+        "name": "PlanInput dual-path: ref vs inline",
+        "description": "Every method that accepts a PlanInput checks AsInput() vs AsRef(); ref path calls getPlanByVersion then validates PlanStatusActive; inline path calls PlanFromPlanInput (which uses a key/version cheat for validation)",
+        "example": "if request.PlanInput.AsInput() != nil { p, err := PlanFromPlanInput(*request.PlanInput.AsInput()) } else if request.PlanInput.AsRef() != nil { p, err := s.getPlanByVersion(...) }"
+      },
+      {
+        "name": "Plan status validation before change",
+        "description": "Before calling WorkflowService, verify p.StatusAt(clock.Now()) == productcatalog.PlanStatusActive; Migrate additionally allows Archived; return models.NewGenericValidationError if not satisfied",
+        "example": "if pStatus != productcatalog.PlanStatusActive { return def, models.NewGenericValidationError(fmt.Errorf(\"plan %s@%d is not active\", ...)) }"
+      },
+      {
+        "name": "zeroPhasesBeforeStartingPhase mutates plan phases in place",
+        "description": "When StartingPhase is set, phases before the named phase get Duration set to time.Duration(0) ISODuration rather than being removed; phases after are unchanged",
+        "example": "if request.StartingPhase != nil { if err := s.zeroPhasesBeforeStartingPhase(p, *request.StartingPhase); err != nil { return def, err } }"
+      },
+      {
+        "name": "Delegation to WorkflowService for actual persistence",
+        "description": "service.go delegates all subscription writes to subscriptionworkflow.Service.CreateFromPlan / ChangeToPlan; the plan subscription service only resolves and validates the plan",
+        "example": "curr, new, err := s.WorkflowService.ChangeToPlan(ctx, request.ID, request.WorkflowInput, plan)"
+      },
+      {
+        "name": "Migrate timing auto-selection",
+        "description": "When request.Timing is nil, Migrate tries TimingImmediate first; if ValidateForAction returns an error it falls back to TimingNextBillingCycle",
+        "example": "timing = subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)}; if err := timing.ValidateForAction(subscription.SubscriptionActionCancel, &currView); err != nil { timing = subscription.Timing{...NextBillingCycle} }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Config struct and service constructor; zeroPhasesBeforeStartingPhase helper; New() returns plansubscription.PlanSubscriptionService",
+        "watch_for": "Config embeds WorkflowService and SubscriptionService as separate fields; do not collapse them \u2014 they serve different roles"
+      },
+      {
+        "file": "plan.go",
+        "role": "getPlanByVersion (wraps plan.Service.GetPlan, maps IsNotFound to subscription.NewPlanNotFoundError); PlanFromPlanInput (inline plan validation cheat); PlanFromPlan (wraps plan.Plan as plansubscription.Plan with Ref)",
+        "watch_for": "PlanFromPlanInput temporarily sets Key='cheat' and Version=1 for validation to pass, then unsets them \u2014 downstream code must not rely on those values"
+      },
+      {
+        "file": "create.go",
+        "role": "Implements Create: resolves plan, validates status, optionally zeroes pre-starting phases, calls WorkflowService.CreateFromPlan",
+        "watch_for": "Returns sub.Subscription from the view, not the full view \u2014 callers needing the view must call GetView separately"
+      },
+      {
+        "file": "migrate.go",
+        "role": "Implements Migrate: enforces version > current, validates plan is active or archived, auto-selects timing when nil, calls ChangeToPlan",
+        "watch_for": "Migrate allows archived plans (unlike Change which requires active); version equality check is strict greater-than"
+      }
+    ],
+    "anti_patterns": [
+      "Adding persistence calls directly in this service \u2014 all DB writes go through WorkflowService or SubscriptionService",
+      "Removing the validation cheat in PlanFromPlanInput without providing an alternative validation path for inline plans that have no key/version yet",
+      "Calling plan.Service.GetPlan directly from a method instead of going through getPlanByVersion \u2014 the helper normalises NotFound to subscription.NewPlanNotFoundError",
+      "Setting StartingPhase without calling zeroPhasesBeforeStartingPhase \u2014 phases will not be collapsed correctly"
+    ],
+    "decisions": [
+      {
+        "decision": "Plan resolution and validation separated from WorkflowService",
+        "rationale": "WorkflowService operates on the generic subscription.Plan interface and is unaware of the catalog; PlanSubscriptionService bridges catalog concepts (key/version, status) to that interface"
+      },
+      {
+        "decision": "zeroPhasesBeforeStartingPhase sets Duration=0 rather than deleting phases",
+        "rationale": "Deleting phases would change array indices and break keyed lookups; zero-duration phases are effectively skipped without restructuring the phase list"
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/productcatalog/subscription/testutils": {
+    "purpose": "Test-only adapter wrapping plan.Service into the PlanSubscriptionAdapter interface used by service_test files; provides GetVersion and FromInput helpers so tests can resolve plans without importing app/common wiring.",
+    "patterns": [
+      {
+        "name": "PlanSubscriptionAdapter interface for test isolation",
+        "description": "Defines a minimal PlanSubscriptionAdapter interface (GetVersion, FromInput) implemented by adapter struct; tests use NewPlanSubscriptionAdapter(config) to get a usable instance without wiring the full service graph",
+        "example": "var _ PlanSubscriptionAdapter = &adapter{}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Sole file; PlanSubscriptionAdapter interface, adapter struct, NewPlanSubscriptionAdapter constructor, GetVersion (delegates to plan.Service.GetPlan with NotFound mapping), FromInput (delegates to service.PlanFromPlanInput)",
+        "watch_for": "GetVersion checks DeletedAt before returning \u2014 do not remove that guard or tests will silently allow deleted plans"
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common or any Wire provider from this package \u2014 it must stay independent to avoid import cycles in tests",
+      "Adding test helpers that reach into the DB directly instead of going through plan.Service"
+    ],
+    "decisions": [
+      {
+        "decision": "PlanSubscriptionAdapter lives in testutils rather than inlining in each test",
+        "rationale": "Multiple service_test files need the same plan-resolution logic; the adapter DRYs that up without leaking to production code"
+      }
+    ],
+    "code_examples": []
+  }
+}

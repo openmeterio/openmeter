@@ -1,0 +1,196 @@
+{
+  "openmeter/progressmanager/adapter": {
+    "purpose": "Redis-backed implementation of progressmanager.Adapter that stores/retrieves progress data as JSON with TTL expiration. Also provides a noop implementation (adapterNoop) and a testify-based mock (MockProgressManager) in the same package.",
+    "patterns": [
+      {
+        "name": "Config struct with Validate() before construction",
+        "description": "All required fields (Redis client, Logger, Expiration > 0) are validated in Config.Validate() before the adapter is constructed. New() returns (Adapter, error) and calls Validate() first.",
+        "example": "func New(config Config) (progressmanager.Adapter, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+      },
+      {
+        "name": "Interface compliance assertion",
+        "description": "Both adapter structs assert interface compliance at compile time via blank identifier assignment.",
+        "example": "var _ progressmanager.Adapter = (*adapter)(nil)\nvar _ progressmanager.Adapter = (*adapterNoop)(nil)"
+      },
+      {
+        "name": "Namespaced Redis key format",
+        "description": "Keys follow the format '<keyPrefix>:progress:<namespace>:<id>' (or 'progress:<namespace>:<id>' when keyPrefix is empty). Never store progress without namespace isolation.",
+        "example": "fmt.Sprintf(\"%s:%s:%s:%s\", a.keyPrefix, staticKeyPrefix, id.Namespace, id.ID)"
+      },
+      {
+        "name": "redis.Nil sentinel mapped to GenericNotFoundError",
+        "description": "When redis.Get returns redis.Nil, return models.NewGenericNotFoundError(...) \u2014 not a raw error \u2014 so the HTTP layer maps it to 404.",
+        "example": "if cmd.Err() == redis.Nil { return nil, models.NewGenericNotFoundError(...) }"
+      },
+      {
+        "name": "Input validation before Redis ops",
+        "description": "Both GetProgress and UpsertProgress call input.Validate() and wrap the error before touching Redis.",
+        "example": "if err := input.Validate(); err != nil { return nil, fmt.Errorf(\"validate get progress input: %w\", err) }"
+      },
+      {
+        "name": "Noop UpsertProgress silently succeeds",
+        "description": "adapterNoop.UpsertProgress returns nil (no-op), but adapterNoop.GetProgress returns GenericNotFoundError. This asymmetry is intentional \u2014 writes are discarded, reads report not-found.",
+        "example": "func (a *adapterNoop) UpsertProgress(...) error { return nil }"
+      },
+      {
+        "name": "Mock implements Service not Adapter",
+        "description": "MockProgressManager implements progressmanager.Service (not Adapter), covering the full service surface including DeleteProgressByRuntimeID.",
+        "example": "var _ progressmanager.Service = &MockProgressManager{}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Defines Config struct, New() constructor, adapter struct, and adapterNoop stub. Entry point for wiring.",
+        "watch_for": "Config.Validate() must reject nil Redis client and zero Expiration \u2014 never relax these guards."
+      },
+      {
+        "file": "progress.go",
+        "role": "Implements GetProgress and UpsertProgress on the real adapter using Redis GET/SET with JSON marshaling.",
+        "watch_for": "getKey() is the sole key-format authority; if key format changes, all existing Redis data becomes unreachable."
+      },
+      {
+        "file": "noop.go",
+        "role": "No-op implementation for disabled progress tracking; GetProgress always returns not-found, UpsertProgress is silent.",
+        "watch_for": "Do not make noop methods return non-nil errors for UpsertProgress \u2014 callers treat the noop as safe to ignore."
+      },
+      {
+        "file": "mock.go",
+        "role": "Testify mock for progressmanager.Service used in unit tests.",
+        "watch_for": "Mock implements Service, not Adapter \u2014 keep in sync if Service interface gains new methods."
+      }
+    ],
+    "anti_patterns": [
+      "Storing progress keys without namespace prefix \u2014 breaks multi-tenant isolation",
+      "Returning raw redis errors instead of models.GenericNotFoundError for redis.Nil \u2014 breaks HTTP 404 mapping",
+      "Calling redis operations without first calling input.Validate() \u2014 bypasses invariant checks",
+      "Editing the key format in getKey() without a migration plan \u2014 orphans all existing in-flight progress records",
+      "Making adapterNoop.UpsertProgress return an error \u2014 callers rely on noop writes being safe no-ops"
+    ],
+    "decisions": [
+      {
+        "decision": "Redis (not PostgreSQL/Ent) as the backing store",
+        "rationale": "Progress data is transient and TTL-bound; Redis SET with expiration avoids schema migrations and naturally garbage-collects stale progress without a cleanup job."
+      },
+      {
+        "decision": "Noop adapter co-located with the real adapter in the same package",
+        "rationale": "Keeps the disabled-feature code path trivially discoverable without a separate package; follows the broader project pattern of noop implementations per optional feature."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Wire the Redis adapter in app/common",
+        "code": "import (\n    \"github.com/openmeterio/openmeter/openmeter/progressmanager/adapter\"\n)\n\nfunc ProvideProgressAdapter(redis *redis.Client, logger *slog.Logger) (progressmanager.Adapter, error) {\n    return adapter.New(adapter.Config{\n        Expiration: 24 * time.Hour,\n        Redis:      redis,\n        Logger:     logger,\n        KeyPrefix:  \"om\",\n    })\n}"
+      }
+    ]
+  },
+  "openmeter/progressmanager/entity": {
+    "purpose": "Defines all value types and input structs for the progressmanager domain: ProgressID, Progress, GetProgressInput, and UpsertProgressInput. Every type implements Validate() with errors.Join for multi-error aggregation.",
+    "patterns": [
+      {
+        "name": "Validate() on every domain type using errors.Join",
+        "description": "Each struct has a Validate() method that collects all validation failures into a []error slice and returns errors.Join(...). Never return on first error.",
+        "example": "var errs []error\nif a.ID == \"\" { errs = append(errs, errors.New(\"id is required\")) }\nreturn errors.Join(errs...)"
+      },
+      {
+        "name": "Delegate validation to embedded types",
+        "description": "Composite types call Validate() on embedded structs first, wrapping with fmt.Errorf for context. ProgressID validates NamespacedModel; GetProgressInput delegates to ProgressID.",
+        "example": "if err := a.ProgressID.Validate(); err != nil { errs = append(errs, fmt.Errorf(\"progress id: %w\", err)) }"
+      },
+      {
+        "name": "Invariant enforcement in Progress.Validate()",
+        "description": "Progress enforces business invariants: Success+Failed <= Total, and non-zero counts require non-zero Total.",
+        "example": "if a.Success+a.Failed > a.Total { errs = append(errs, errors.New(\"success and failed must be less than or equal to total\")) }"
+      },
+      {
+        "name": "Input types embed domain types directly",
+        "description": "GetProgressInput embeds ProgressID; UpsertProgressInput embeds Progress. Input types are thin validation wrappers, not separate structs.",
+        "example": "type GetProgressInput struct { ProgressID }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "progressmanager.go",
+        "role": "Single file for all entity types: ProgressID, Progress, GetProgressInput, UpsertProgressInput. Source of truth for domain invariants.",
+        "watch_for": "Adding new fields to Progress requires updating Validate() to enforce any new invariants; JSON tags must match the API schema."
+      }
+    ],
+    "anti_patterns": [
+      "Returning on first validation error instead of collecting all errors with errors.Join",
+      "Adding persistence or Redis logic to entity types \u2014 this package is pure domain types only",
+      "Omitting UpdatedAt zero-check in Progress.Validate() \u2014 callers rely on this guard before persisting"
+    ],
+    "decisions": [
+      {
+        "decision": "Entity types in a separate sub-package (entity/) rather than the root progressmanager package",
+        "rationale": "Avoids import cycles: adapter and httpdriver both need the entity types but neither should import the other; a shared entity sub-package breaks the cycle."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/progressmanager/httpdriver": {
+    "purpose": "HTTP handler layer for the progressmanager domain, implementing a single GetProgress endpoint. Follows the httptransport.Handler[Req, Resp] pattern with namespace resolution from context.",
+    "patterns": [
+      {
+        "name": "Handler interface composes sub-interfaces",
+        "description": "The top-level Handler interface embeds ProgressHandler (which exposes GetProgress()). New types of endpoints add a new sub-interface and embed it in Handler.",
+        "example": "type Handler interface { ProgressHandler }\ntype ProgressHandler interface { GetProgress() GetProgressHandler }"
+      },
+      {
+        "name": "Compile-time interface assertion on handler struct",
+        "description": "var _ Handler = (*handler)(nil) ensures the concrete struct satisfies the Handler interface at compile time.",
+        "example": "var _ Handler = (*handler)(nil)"
+      },
+      {
+        "name": "Namespace resolved via namespacedriver.NamespaceDecoder",
+        "description": "All handlers call h.resolveNamespace(ctx) which reads the namespace from the request context via NamespaceDecoder. Returns HTTP 500 if namespace is missing.",
+        "example": "ns, ok := h.namespaceDecoder.GetNamespace(ctx)\nif !ok { return \"\", commonhttp.NewHTTPError(http.StatusInternalServerError, ...) }"
+      },
+      {
+        "name": "httptransport.NewHandlerWithArgs for path-parameter endpoints",
+        "description": "Endpoints with URL path arguments use httptransport.NewHandlerWithArgs[Req, Resp, Arg]. The first func decodes (ctx, *http.Request, arg) -> (Req, error); the second is the operation.",
+        "example": "return httptransport.NewHandlerWithArgs(\n    func(ctx context.Context, r *http.Request, progressID string) (GetProgressRequest, error) { ... },\n    func(ctx context.Context, request GetProgressRequest) (GetProgressResponse, error) { ... },\n    commonhttp.JSONResponseEncoderWithStatus[GetProgressResponse](http.StatusOK),\n    ...options,\n)"
+      },
+      {
+        "name": "Response type aliased from api package",
+        "description": "GetProgressResponse is aliased to api.Progress (the generated OpenAPI type), not a local struct. Conversion from domain type is done via a local progressToAPI() helper.",
+        "example": "type GetProgressResponse = api.Progress\nfunc progressToAPI(p entity.Progress) api.Progress { ... }"
+      },
+      {
+        "name": "HandlerOption propagation with httptransport.AppendOptions",
+        "description": "Handler-level options (e.g., error encoders) are propagated to each endpoint via httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"...\")).",
+        "example": "httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"getProgress\"))..."
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Defines the Handler/ProgressHandler interfaces, the handler struct, New() constructor, and resolveNamespace helper.",
+        "watch_for": "resolveNamespace returns HTTP 500 (not 401/403) when namespace is missing \u2014 this is intentional for self-hosted deployments using StaticNamespaceDecoder."
+      },
+      {
+        "file": "progress.go",
+        "role": "Implements GetProgress endpoint: decoding, operation (calls service.GetProgress), and response encoding. Contains the progressToAPI() conversion helper.",
+        "watch_for": "nil progress after a successful service call is treated as an internal error (not not-found) \u2014 the guard prevents silent data loss."
+      }
+    ],
+    "anti_patterns": [
+      "Calling the domain service directly from the decoder function \u2014 decode must only extract request fields, the operation func calls the service",
+      "Returning domain entity types directly as HTTP responses \u2014 always convert via a local toAPI() helper using the generated api package types",
+      "Hardcoding the namespace string instead of using h.resolveNamespace(ctx)",
+      "Adding business logic to progressToAPI() \u2014 it must be a pure field mapping with no validation or computation"
+    ],
+    "decisions": [
+      {
+        "decision": "GetProgressResponse aliased to api.Progress rather than a new struct",
+        "rationale": "The generated api.Progress is the contract-stable API type; aliasing avoids a redundant intermediate struct and ensures the HTTP response always matches the OpenAPI spec."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Register the handler in the v1 router",
+        "code": "import (\n    \"github.com/openmeterio/openmeter/openmeter/progressmanager/httpdriver\"\n)\n\nhandler := httpdriver.New(namespaceDecoder, progressSvc, options...)\nrouter.Get(\"/api/v1/progress/{progressID}\", handler.GetProgress().ServeHTTP)"
+      }
+    ]
+  }
+}

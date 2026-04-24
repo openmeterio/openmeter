@@ -1,0 +1,92 @@
+{
+  "api/v3/handlers/plans/planaddons": {
+    "purpose": "HTTP handler package for the plan-addons sub-resource of the v3 Plans API. Implements CRUD operations (list, get, create, update, delete) by bridging generated api/v3 request/response types to the planaddon.Service domain interface via the httptransport.HandlerWithArgs pattern.",
+    "patterns": [
+      {
+        "name": "HandlerWithArgs for path-param endpoints",
+        "description": "Every operation uses httptransport.NewHandlerWithArgs[Request, Response, Params] \u2014 never the bare httptransport.NewHandler \u2014 because all endpoints carry at least one path parameter (planID and/or planAddonID).",
+        "example": "type CreatePlanAddonHandler httptransport.HandlerWithArgs[CreatePlanAddonRequest, CreatePlanAddonResponse, CreatePlanAddonParams]"
+      },
+      {
+        "name": "Type-alias triplets per operation",
+        "description": "Each operation file defines exactly three type aliases (Request, Response, Params) and one Handler type alias before the factory method. Request types alias domain input structs directly (e.g. planaddon.CreatePlanAddonInput).",
+        "example": "type (\\n\\tCreatePlanAddonRequest  = planaddon.CreatePlanAddonInput\\n\\tCreatePlanAddonResponse = api.PlanAddon\\n\\tCreatePlanAddonParams   = string\\n\\tCreatePlanAddonHandler  httptransport.HandlerWithArgs[...]\\n)"
+      },
+      {
+        "name": "Namespace always resolved in decoder",
+        "description": "Every decoder closure calls h.resolveNamespace(ctx) as its first domain step and returns early on error. The namespace is always set on the NamespacedModel embedded in the domain input.",
+        "example": "ns, err := h.resolveNamespace(ctx)\\nif err != nil { return CreatePlanAddonRequest{}, err }"
+      },
+      {
+        "name": "apierrors.GenericErrorEncoder on every handler",
+        "description": "All options blocks pass httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()) \u2014 never a custom encoder \u2014 so domain errors map uniformly to RFC 7807 responses.",
+        "example": "httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"create-plan-addon\"), httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()))..."
+      },
+      {
+        "name": "ToAPIPlanAddon for domain-to-API conversion",
+        "description": "All operations that return a single entity call ToAPIPlanAddon(*domainResult) from convert.go. Validation issues are surfaced via ToAPIProductCatalogValidationErrors \u2014 never inlined.",
+        "example": "return ToAPIPlanAddon(*a)"
+      },
+      {
+        "name": "labels.ToMetadata / labels.FromMetadata for label round-tripping",
+        "description": "Labels on create/update are converted with labels.ToMetadata(body.Labels) in the decoder; the reverse labels.FromMetadata(a.Metadata) is called in ToAPIPlanAddon in convert.go.",
+        "example": "meta, err := labels.ToMetadata(body.Labels)\\nif err != nil { return CreatePlanAddonRequest{}, err }"
+      },
+      {
+        "name": "Pagination via pagination.NewPage with defaults",
+        "description": "List operations construct the page with pagination.NewPage(number, size) defaulting to page 1 / size 20, then call page.Validate() and return apierrors.NewBadRequestError on failure.",
+        "example": "page := pagination.NewPage(1, 20)\\nif params.Params.Page != nil { page = pagination.NewPage(lo.FromPtrOr(..., 1), lo.FromPtrOr(..., 20)) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Defines the Handler interface (all five operation methods) and the private handler struct with resolveNamespace, plan.Service, planaddon.Service, and shared httptransport options. New operations must be declared on the Handler interface here.",
+        "watch_for": "handler holds both plan.Service and planaddon.Service \u2014 plan.Service appears unused in the current operation files (only addonService is called); don't remove it without checking the v3 server mount."
+      },
+      {
+        "file": "convert.go",
+        "role": "Single translation layer from planaddon.PlanAddon to api.PlanAddon. Also owns ToAPIProductCatalogValidationErrors for models.ValidationIssues.",
+        "watch_for": "ValidationErrors are retrieved via a.AsProductCatalogPlanAddon().ValidationErrors() \u2014 if that method changes signature, convert.go breaks silently because the error return is discarded."
+      },
+      {
+        "file": "lists.go",
+        "role": "Handles ListPlanAddons including pagination parameter parsing and response wrapping with response.NewPagePaginationResponse.",
+        "watch_for": "PlanIDs filter is populated with []string{params.PlanID} \u2014 it is always scoped to a single plan; do not widen to multi-plan queries without changing the Params struct."
+      },
+      {
+        "file": "create.go",
+        "role": "Parses api.CreatePlanAddonRequest body, resolves namespace and labels, calls addonService.CreatePlanAddon, returns 201.",
+        "watch_for": "Nil-pointer guard on create/update response (if a == nil) \u2014 this should not happen in normal flow but is kept as a safety net."
+      },
+      {
+        "file": "update.go",
+        "role": "Parses api.UpsertPlanAddonRequest body; only sets req.Metadata when body.Labels is non-nil to preserve existing metadata on partial updates.",
+        "watch_for": "FromPlanPhase is always set as a pointer (&body.FromPlanPhase), making it always present even if the client sends an empty string \u2014 intentional upsert semantics."
+      }
+    ],
+    "anti_patterns": [
+      "Calling domain service methods directly from the response encoder closure \u2014 all service calls must happen in the operation (second) closure.",
+      "Using httptransport.NewHandler instead of NewHandlerWithArgs when the endpoint has path parameters.",
+      "Introducing context.Background() anywhere in decoder or operation closures \u2014 always propagate the ctx argument.",
+      "Adding business logic (validation, enrichment) outside the decoder and operation closures \u2014 do not add logic in the handler struct methods themselves.",
+      "Skipping apierrors.GenericErrorEncoder in the options block \u2014 omitting it prevents domain errors from mapping to correct HTTP status codes."
+    ],
+    "decisions": [
+      {
+        "decision": "planaddon.Service is injected separately from plan.Service",
+        "rationale": "Plan addon operations are owned by the planaddon sub-domain; plan.Service is present for potential plan-level reads but addon mutations go through their own service to keep domain boundaries clean."
+      },
+      {
+        "decision": "Request types alias domain input structs directly rather than defining new HTTP-layer structs",
+        "rationale": "Reduces the translation surface; the decoder closure maps HTTP fields onto the domain struct directly, so any domain input change is immediately visible as a compile error in the decoder."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new operation (e.g. ClonePlanAddon) following the established pattern",
+        "code": "// clone.go\npackage planaddons\n\nimport (\n\t\"context\"\n\t\"net/http\"\n\n\tapi \"github.com/openmeterio/openmeter/api/v3\"\n\t\"github.com/openmeterio/openmeter/api/v3/apierrors\"\n\t\"github.com/openmeterio/openmeter/api/v3/request\"\n\t\"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/commonhttp\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\ntype (\n\tClonePlanAddonRequest  = planaddon.ClonePlanAddonInput\n\tClonePlanAddonResponse = api.PlanAddon\n\tClonePlanAddonParams   struct {\n\t\tPlanID      string\n\t\tPlanAddonID string\n\t}\n\tClonePlanAddonHandler httptransport.HandlerWithArgs[ClonePlanAddonRequest, ClonePlanAddonResponse, ClonePlanAddonParams]\n)\n\nfunc (h *handler) ClonePlanAddon() ClonePlanAddonHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, params ClonePlanAddonParams) (ClonePlanAddonRequest, error) {\n\t\t\tbody := api.ClonePlanAddonRequest{}\n\t\t\tif err := request.ParseBody(r, &body); err != nil {\n\t\t\t\treturn ClonePlanAddonRequest{}, err\n\t\t\t}\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil {\n\t\t\t\treturn ClonePlanAddonRequest{}, err\n\t\t\t}\n\t\t\treturn ClonePlanAddonRequest{\n\t\t\t\tNamespacedModel: models.NamespacedModel{Namespace: ns},\n\t\t\t\tID:     params.PlanAddonID,\n\t\t\t\tPlanID: params.PlanID,\n\t\t\t}, nil\n\t\t},\n\t\tfunc(ctx context.Context, req ClonePlanAddonRequest) (ClonePlanAddonResponse, error) {\n\t\t\ta, err := h.addonService.ClonePlanAddon(ctx, req)\n\t\t\tif err != nil {\n\t\t\t\treturn ClonePlanAddonResponse{}, err\n\t\t\t}\n\t\t\treturn ToAPIPlanAddon(*a)\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[ClonePlanAddonResponse](http.StatusCreated),\n\t\thttptransport.AppendOptions(\n\t\t\th.options,\n\t\t\thttptransport.WithOperationName(\"clone-plan-addon\"),\n\t\t\thttptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),\n\t\t)...,\n\t)\n}"
+      }
+    ]
+  }
+}

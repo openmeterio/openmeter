@@ -1,0 +1,238 @@
+{
+  "openmeter/productcatalog/addon/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing addon.Repository: CRUD + list for add-ons and their rate cards. All operations wrap adapter methods with entutils.TransactingRepo so the ctx-bound transaction is always honored.",
+    "patterns": [
+      {
+        "name": "TransactingRepo wrapping",
+        "description": "Every exported adapter method wraps its body in entutils.TransactingRepo[T, *adapter](ctx, a, fn) to rebind to any caller-supplied Ent transaction carried in ctx.",
+        "example": "return entutils.TransactingRepo[*addon.Addon, *adapter](ctx, a, fn)"
+      },
+      {
+        "name": "Tx / WithTx / Self trio",
+        "description": "adapter implements transaction.Driver via Tx() (HijackTx), WithTx() (returns new *adapter bound to txClient), and Self() \u2014 required by entutils.TransactingRepo.",
+        "example": "func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txClient.Client(), ...} }"
+      },
+      {
+        "name": "Config + Validate constructor",
+        "description": "New(Config) validates all required fields (Client, Logger) before constructing. Config implements models.Validator.",
+        "example": "var _ models.Validator = (*Config)(nil)"
+      },
+      {
+        "name": "Eager loading via WithRatecards",
+        "description": "All queries that return an Addon call query.WithRatecards(AddonEagerLoadRateCardsFn) so rate cards are always populated; PlanAddons are loaded only when Expand.PlanAddons is true.",
+        "example": "query = query.WithRatecards(AddonEagerLoadRateCardsFn)"
+      },
+      {
+        "name": "mapping.go: FromAddonRow converts Ent row to domain type",
+        "description": "All type conversions live in mapping.go (FromAddonRow, FromAddonRateCardRow, FromPlanAddonRow, asAddonRateCardRow). Do not embed conversion logic inside CRUD methods.",
+        "example": "add, err := FromAddonRow(*addonRow)"
+      },
+      {
+        "name": "Soft delete via DeletedAt",
+        "description": "DeleteAddon sets DeletedAt to time.Now().UTC() via UpdateOneID; ListAddons excludes deleted rows with addondb.DeletedAtIsNil() unless IncludeDeleted is set.",
+        "example": "err = a.db.Addon.UpdateOneID(add.ID).SetDeletedAt(deletedAt).Exec(ctx)"
+      },
+      {
+        "name": "Status filtering via time predicates",
+        "description": "AddonStatus is derived from EffectiveFrom/EffectiveTo columns at query time: active = EffectiveFrom<=now AND (EffectiveTo>=now OR nil), draft = both nil, archived = EffectiveTo<now.",
+        "example": "predicates = append(predicates, addondb.And(addondb.EffectiveFromLTE(now), addondb.Or(addondb.EffectiveToGTE(now), addondb.EffectiveToIsNil())))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Config struct, New constructor, adapter struct, Tx/WithTx/Self transaction plumbing.",
+        "watch_for": "Never remove Tx/WithTx/Self \u2014 they are required by entutils.TransactingRepo. Always validate Config before constructing."
+      },
+      {
+        "file": "addon.go",
+        "role": "All CRUD + list methods for add-ons and their rate cards. Contains rateCardBulkCreate helper and addonEagerLoadActivePlans closure.",
+        "watch_for": "Every method must wrap its fn body with TransactingRepo. UpdateAddon replaces all rate cards by delete+bulk-create; partial updates on individual cards are not supported."
+      },
+      {
+        "file": "mapping.go",
+        "role": "Bidirectional mapping between Ent rows and domain types: FromAddonRow, FromAddonRateCardRow, FromPlanAddonRow, asAddonRateCardRow, plus helpers that reuse plan/phase/ratecard converters from the plan adapter.",
+        "watch_for": "TaxConfig.BackfillTaxConfig must be called after mapping TaxCode edge to ensure legacy field compatibility. BillingCadence uses ISOString parse/stringify, never raw string."
+      },
+      {
+        "file": "adapter_test.go",
+        "role": "Integration tests against a real Postgres DB using pctestutils.NewTestEnv. Tests cover create/get/list/update/delete and status-filter logic.",
+        "watch_for": "Tests use context.WithCancel \u2014 prefer t.Context() for new tests. TestEnv is closed in t.Cleanup."
+      }
+    ],
+    "anti_patterns": [
+      "Accepting *entdb.Client directly in helper functions without wrapping the body with entutils.TransactingRepo \u2014 this bypasses the ctx-bound transaction.",
+      "Embedding type-conversion logic inside CRUD methods instead of mapping.go.",
+      "Querying add-ons without WithRatecards eager load \u2014 callers expect rate cards always populated.",
+      "Hard-deleting rows instead of setting DeletedAt for soft delete.",
+      "Building raw SQL predicates for status filtering instead of using the established EffectiveFrom/EffectiveTo Ent predicates."
+    ],
+    "decisions": [
+      {
+        "decision": "TransactingRepo wraps every adapter method rather than passing *entdb.Tx explicitly.",
+        "rationale": "Ent transactions are carried implicitly in ctx; explicit tx parameters leak plumbing to every call site and make helpers harder to compose."
+      },
+      {
+        "decision": "Rate card updates replace all existing cards (delete + bulk-create) rather than diffing.",
+        "rationale": "Simplifies consistency guarantees \u2014 no partial state can exist after an update, and ordering/key uniqueness is enforced atomically."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new adapter method for an addon sub-resource",
+        "code": "func (a *adapter) GetAddonFoo(ctx context.Context, params addon.GetFooInput) (*addon.Foo, error) {\n\tfn := func(ctx context.Context, a *adapter) (*addon.Foo, error) {\n\t\tif err := params.Validate(); err != nil {\n\t\t\treturn nil, fmt.Errorf(\"invalid params: %w\", err)\n\t\t}\n\t\trow, err := a.db.AddonFoo.Query().Where(...).WithRatecards(AddonEagerLoadRateCardsFn).First(ctx)\n\t\tif err != nil {\n\t\t\tif entdb.IsNotFound(err) { return nil, addon.NewNotFoundError(...) }\n\t\t\treturn nil, fmt.Errorf(\"failed to get foo: %w\", err)\n\t\t}\n\t\treturn FromAddonFooRow(*row)\n\t}\n\treturn entutils.TransactingRepo[*addon.Foo, *adapter](ctx, a, fn)\n}"
+      }
+    ]
+  },
+  "openmeter/productcatalog/addon/httpdriver": {
+    "purpose": "HTTP handler layer for the addon domain, adapting addon.Service to HTTP request/response using the generic httptransport.Handler pattern. Exposes a Handler interface consumed by the v1 Chi router.",
+    "patterns": [
+      {
+        "name": "httptransport.NewHandler / NewHandlerWithArgs",
+        "description": "Each operation returns a typed handler constructed with httptransport.NewHandler (no path params) or NewHandlerWithArgs (with path params). Three closures: decoder, operation, encoder.",
+        "example": "return httptransport.NewHandlerWithArgs(decoderFn, operationFn, commonhttp.JSONResponseEncoderWithStatus[Resp](http.StatusOK), opts...)"
+      },
+      {
+        "name": "Request/Response type aliases",
+        "description": "Each handler declares type aliases for Request, Response, and Handler at the top of the function block, mapping to domain input/output types and api.* generated types.",
+        "example": "type (\\n\\tListAddonsRequest  = addon.ListAddonsInput\\n\\tListAddonsResponse = api.AddonPaginatedResponse\\n\\tListAddonsHandler  httptransport.HandlerWithArgs[ListAddonsRequest, ListAddonsResponse, ListAddonsParams]\\n)"
+      },
+      {
+        "name": "Namespace resolved from context",
+        "description": "Every decoder calls h.resolveNamespace(ctx) via namespacedriver.NamespaceDecoder.GetNamespace; failure returns 500 internal server error.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return ..., err }"
+      },
+      {
+        "name": "ValidationErrorEncoder per resource kind",
+        "description": "Every handler appends httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon)) so domain validation errors map to correct HTTP status codes.",
+        "example": "httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon))"
+      },
+      {
+        "name": "Mapping in mapping.go only",
+        "description": "All api<->domain conversions (FromAddon, AsCreateAddonRequest, AsUpdateAddonRequest) live in mapping.go. Handler closures call these helpers, never inline-convert.",
+        "example": "return FromAddon(*a)"
+      },
+      {
+        "name": "Handler interface composed from sub-interfaces",
+        "description": "Handler interface in driver.go embeds AddonHandler which lists all operation handler methods. Compile-time assertion var _ Handler = (*handler)(nil) ensures implementation.",
+        "example": "var _ Handler = (*handler)(nil)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "driver.go",
+        "role": "Handler + AddonHandler interface definition, handler struct, New constructor, resolveNamespace helper.",
+        "watch_for": "New operations must be added to both the AddonHandler interface and the handler struct. resolveNamespace must not be bypassed."
+      },
+      {
+        "file": "addon.go",
+        "role": "One function per HTTP operation (ListAddons, CreateAddon, UpdateAddon, DeleteAddon, GetAddon, PublishAddon, ArchiveAddon), each returning its typed handler.",
+        "watch_for": "IgnoreNonCriticalIssues=true is set on create/update requests \u2014 preserve this for non-breaking validation. Delete returns http.StatusNoContent with EmptyResponseEncoder."
+      },
+      {
+        "file": "mapping.go",
+        "role": "api<->domain type conversion: FromAddon (domain->api), AsCreateAddonRequest / AsUpdateAddonRequest (api->domain). Currency validation happens here.",
+        "watch_for": "Currency.Validate() must be called after assignment. RateCards mapped via productcatalog/http package helpers (http.AsRateCards, http.FromRateCard)."
+      }
+    ],
+    "anti_patterns": [
+      "Calling domain services directly in decoder functions \u2014 decoders must only parse/validate HTTP input and return a domain input type.",
+      "Inline type conversion in handler closures instead of using mapping.go helpers.",
+      "Omitting WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(...)) \u2014 validation errors will not map to 400.",
+      "Adding new handler methods to handler struct without adding them to the Handler/AddonHandler interface.",
+      "Using context.Background() inside handler closures instead of the ctx passed to the operation closure."
+    ],
+    "decisions": [
+      {
+        "decision": "Handler methods return typed handler values rather than implementing http.Handler directly.",
+        "rationale": "The httptransport.Handler[Req,Resp] pattern separates decoding, operation, and encoding, making each independently testable and composable with middleware via Chain."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new addon sub-resource HTTP operation",
+        "code": "type (\\n\\tCloneAddonRequest  = addon.CloneAddonInput\\n\\tCloneAddonResponse = api.Addon\\n\\tCloneAddonHandler  httptransport.HandlerWithArgs[CloneAddonRequest, CloneAddonResponse, string]\\n)\\n\\nfunc (h *handler) CloneAddon() CloneAddonHandler {\\n\\treturn httptransport.NewHandlerWithArgs(\\n\\t\\tfunc(ctx context.Context, r *http.Request, addonID string) (CloneAddonRequest, error) {\\n\\t\\t\\tns, err := h.resolveNamespace(ctx)\\n\\t\\t\\tif err != nil { return CloneAddonRequest{}, err }\\n\\t\\t\\treturn CloneAddonRequest{NamespacedID: models.NamespacedID{Namespace: ns, ID: addonID}}, nil\\n\\t\\t},\\n\\t\\tfunc(ctx context.Context, request CloneAddonRequest) (CloneAddonResponse, error) {\\n\\t\\t\\ta, err := h.service.CloneAddon(ctx, request)\\n\\t\\t\\tif err != nil { return CloneAddonResponse{}, err }\\n\\t\\t\\treturn FromAddon(*a)\\n\\t\\t},\\n\\t\\tcommonhttp.JSONResponseEncoderWithStatus[CloneAddonResponse](http.StatusOK),\\n\\t\\thttptransport.AppendOptions(h.options,\\n\\t\\t\\thttptransport.WithOperationName(\"cloneAddon\"),\\n\\t\\t\\thttptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon)),\\n\\t\\t)...,\\n\\t)\\n}"
+      }
+    ]
+  },
+  "openmeter/productcatalog/addon/service": {
+    "purpose": "Business logic layer implementing addon.Service: versioned add-on lifecycle (create/update/delete/publish/archive), feature and tax code resolution for rate cards, and event publishing via Watermill.",
+    "patterns": [
+      {
+        "name": "transaction.Run wrapping for mutating operations",
+        "description": "Create, Delete, Publish, Archive, and UpdateAddon (when rate cards change) wrap their fn in transaction.Run(ctx, s.adapter, fn) to ensure atomicity across adapter calls + event publish.",
+        "example": "return transaction.Run(ctx, s.adapter, fn)"
+      },
+      {
+        "name": "resolveFeatures before persisting rate cards",
+        "description": "CreateAddon and UpdateAddon call s.resolveFeatures(ctx, ns, &params.RateCards) to bi-directionally populate missing FeatureKey/FeatureID from the feature connector before saving.",
+        "example": "if err = s.resolveFeatures(ctx, params.Namespace, &params.RateCards); err != nil { ... }"
+      },
+      {
+        "name": "resolveTaxCodes before persisting rate cards",
+        "description": "After resolveFeatures, s.resolveTaxCodes populates TaxConfig.TaxCodeID by calling taxCode.GetOrCreateByAppMapping for each rate card with a Stripe code.",
+        "example": "if err = s.resolveTaxCodes(ctx, params.Namespace, &params.RateCards); err != nil { ... }"
+      },
+      {
+        "name": "addonVersions collection for version management",
+        "description": "getAddonVersions fetches all versions (including deleted) and returns addonVersions slice. HasDraft() guards against multiple concurrent draft versions. Latest() drives auto-increment of params.Version.",
+        "example": "params.Version = lo.FromPtr(versions.Latest()).Version + 1"
+      },
+      {
+        "name": "Event publishing after every mutation",
+        "description": "Every mutating operation publishes a typed domain event (NewAddonCreateEvent, NewAddonDeleteEvent, etc.) via s.publisher.Publish(ctx, event) inside the transaction fn.",
+        "example": "event := addon.NewAddonCreateEvent(ctx, aa); if err = s.publisher.Publish(ctx, event); err != nil { ... }"
+      },
+      {
+        "name": "Config struct with validation in New constructor",
+        "description": "service.New(Config) validates all required dependencies (Adapter, Feature, TaxCode, Logger, Publisher) before constructing the service. Returns addon.Service interface.",
+        "example": "var _ addon.Service = (*service)(nil)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Config struct, New constructor, service struct definition. All dependencies injected at construction time.",
+        "watch_for": "All five dependencies are required \u2014 never make them optional without explicit noop fallbacks."
+      },
+      {
+        "file": "addon.go",
+        "role": "All addon.Service method implementations. Contains resolveFeatures, resolveTaxCodes, addonVersions helper type, and getAddonVersions.",
+        "watch_for": "resolveFeatures converts GenericNotFoundError to GenericValidationError (feature not found = invalid input). Only draft add-ons can be updated; active/archived add-ons reject changes via ValidateAddonWithStatus."
+      },
+      {
+        "file": "service_test.go",
+        "role": "Integration tests for full add-on lifecycle: create\u2192publish\u2192v2 create\u2192publish\u2192archive. Uses pctestutils.NewTestEnv.",
+        "watch_for": "Tests verify single-draft enforcement (HasDraft), version auto-increment, and status transition correctness."
+      },
+      {
+        "file": "taxcode_test.go",
+        "role": "Dedicated tests for tax code dual-write (TaxConfig.TaxCodeID population) covering create/update/remove scenarios.",
+        "watch_for": "assertAddonRCDBCols directly queries the DB to verify dedicated tax_code_id and tax_behavior columns \u2014 use this pattern to verify low-level persistence in future tax-related changes."
+      }
+    ],
+    "anti_patterns": [
+      "Calling s.adapter methods directly without transaction.Run for operations that combine multiple writes or event publishing.",
+      "Skipping resolveFeatures/resolveTaxCodes when accepting rate cards from callers \u2014 FeatureKey/FeatureID and TaxCodeID must be resolved before persisting.",
+      "Allowing multiple non-deleted draft versions for the same key \u2014 HasDraft() guard must be checked before creating.",
+      "Publishing domain events outside the transaction fn \u2014 event publish failure should roll back the DB write.",
+      "Using context.Background() instead of the passed ctx in service methods."
+    ],
+    "decisions": [
+      {
+        "decision": "Version auto-increment is computed from existing versions rather than relying on a DB sequence.",
+        "rationale": "Enables multi-version branching (draft on top of active) with explicit version semantics visible in the domain model, and avoids coupling version numbering to DB identity."
+      },
+      {
+        "decision": "Tax code resolution (GetOrCreateByAppMapping) is performed at the service layer, not the adapter layer.",
+        "rationale": "Tax code entity creation is a side effect that requires cross-domain coordination (taxcode.Service); the adapter layer must stay focused on Ent persistence of what it receives."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new addon mutating operation following the established pattern",
+        "code": "func (s service) CloneAddon(ctx context.Context, params addon.CloneAddonInput) (*addon.Addon, error) {\n\tfn := func(ctx context.Context) (*addon.Addon, error) {\n\t\tif err := params.Validate(); err != nil {\n\t\t\treturn nil, fmt.Errorf(\"invalid clone add-on params: %w\", err)\n\t\t}\n\t\tsrc, err := s.adapter.GetAddon(ctx, addon.GetAddonInput{NamespacedID: params.NamespacedID})\n\t\tif err != nil { return nil, err }\n\t\t// ... build CreateAddonInput from src ...\n\t\tcloned, err := s.adapter.CreateAddon(ctx, createInput)\n\t\tif err != nil { return nil, err }\n\t\tevent := addon.NewAddonCreateEvent(ctx, cloned)\n\t\tif err = s.publisher.Publish(ctx, event); err != nil { return nil, err }\n\t\treturn cloned, nil\n\t}\n\treturn transaction.Run(ctx, s.adapter, fn)\n}"
+      }
+    ]
+  }
+}

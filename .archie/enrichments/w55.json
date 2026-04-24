@@ -1,0 +1,201 @@
+{
+  "openmeter/billing/charges/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing charges.Adapter and charges.ChargesSearchAdapter. Provides all DB access for the charges domain \u2014 search queries, customer advancement candidates \u2014 with strict transaction rebinding via entutils.TransactingRepo on every method.",
+    "patterns": [
+      {
+        "name": "TransactingRepo on every method",
+        "description": "Every exported adapter method body must be wrapped in entutils.TransactingRepo(ctx, a, func(ctx, tx *adapter) ...) so the method rebinds to the ctx-carried transaction instead of the raw client.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (T, error) { return tx.db.Entity.Query()... })"
+      },
+      {
+        "name": "Tx / WithTx / Self transaction lifecycle",
+        "description": "adapter implements transaction.TxCreator via Tx() (HijackTx + NewTxDriver), WithTx() (NewTxClientFromRawConfig), and Self() \u2014 this triad is required for entutils.TransactingRepo to work correctly.",
+        "example": "func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txDb := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txDb.Client(), logger: a.logger} }"
+      },
+      {
+        "name": "Config.Validate() before construction",
+        "description": "New(Config) calls config.Validate() and returns an error if Client or Logger is nil before constructing the adapter struct.",
+        "example": "func New(config Config) (charges.Adapter, error) { if err := config.Validate(); err != nil { return nil, err }; return &adapter{db: config.Client, logger: config.Logger}, nil }"
+      },
+      {
+        "name": "Interface compliance assertion",
+        "description": "Every interface the adapter implements has a compile-time assertion: var _ charges.ChargesSearchAdapter = (*adapter)(nil).",
+        "example": "var _ charges.Adapter = (*adapter)(nil)\nvar _ charges.ChargesSearchAdapter = (*adapter)(nil)"
+      },
+      {
+        "name": "Manual pagination for GroupBy queries",
+        "description": "Ent's Paginate() does not work with GroupBy; ListCustomersToAdvance applies Go-side slice pagination after fetching all grouped results with Scan().",
+        "example": "err := query.GroupBy(fields...).Scan(ctx, &results); ... pageResults := results[start:end]"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Defines Config, New constructor, and the adapter struct with Tx/WithTx/Self for transaction lifecycle. All query files in this package share this adapter struct.",
+        "watch_for": "Never pass a.db directly to a helper \u2014 always go through a tx *adapter inside TransactingRepo so the Ent client is bound to the current transaction."
+      },
+      {
+        "file": "search.go",
+        "role": "Implements GetByIDs, ListCharges, and ListCustomersToAdvance using ChargesSearchV1 Ent view. Shows namespace-filter pattern and the GroupBy+manual-pagination workaround.",
+        "watch_for": "ChargesSearchV1 is a read-only Ent view \u2014 never attempt writes through it. GroupBy results cannot use query.Paginate(); slice manually."
+      },
+      {
+        "file": "search_test.go",
+        "role": "Integration tests for the adapter that run against a real Postgres instance using testutils.InitPostgresDB and migrate.Up(). SetupSuite wires a real DB; each test uses isolated namespaces.",
+        "watch_for": "Tests use context.Background() directly (no testing.T available at DB level) \u2014 for new tests prefer t.Context() where t is available."
+      }
+    ],
+    "anti_patterns": [
+      "Adding a method that reads or writes via a.db without wrapping in entutils.TransactingRepo \u2014 breaks ctx-carried transaction isolation",
+      "Writing to ChargesSearchV1 \u2014 it is a read-only view backed by the underlying charge tables",
+      "Using query.Paginate() after GroupBy \u2014 Ent does not support this; paginate manually in Go",
+      "Constructing the adapter without calling config.Validate() \u2014 nil client causes a panic at query time",
+      "Adding business logic to adapter methods \u2014 adapters must be pure data-access; orchestration belongs in charges/service"
+    ],
+    "decisions": [
+      {
+        "decision": "entutils.TransactingRepo wraps every method body rather than wrapping at the service call site",
+        "rationale": "Charge advancement mixes reads and writes across multiple adapter calls in a single transaction; each helper must independently rebind to the ctx-carried tx to avoid partial writes."
+      },
+      {
+        "decision": "Manual Go-side pagination for ListCustomersToAdvance instead of Ent Paginate",
+        "rationale": "Ent's generated Paginate() is incompatible with GROUP BY queries; the total count is computed from the full scan and sliced in Go."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new query method that must respect transactions",
+        "code": "func (a *adapter) GetActiveByCustomer(ctx context.Context, input charges.GetActiveInput) ([]charges.ChargeSearchItem, error) {\n\treturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]charges.ChargeSearchItem, error) {\n\t\trows, err := tx.db.ChargesSearchV1.Query().\n\t\t\tWhere(dbchargessearchv1.Namespace(input.Namespace)).\n\t\t\tWhere(dbchargessearchv1.CustomerID(input.CustomerID)).\n\t\t\tWhere(dbchargessearchv1.DeletedAtIsNil()).\n\t\t\tAll(ctx)\n\t\tif err != nil {\n\t\t\treturn nil, err\n\t\t}\n\t\treturn lo.Map(rows, func(r *db.ChargesSearchV1, _ int) charges.ChargeSearchItem {\n\t\t\treturn mapChargeSearchToChargeWithType(r)\n\t\t}), nil\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/billing/charges/service": {
+    "purpose": "Orchestration layer for the charges domain: implements charges.Service by routing to sub-services (flatfee, usagebased, creditpurchase). Owns the Create/AdvanceCharges/ApplyPatches lifecycle, auto-advancement of credit-only charges, and gathering-line creation for invoiceable charges.",
+    "patterns": [
+      {
+        "name": "transaction.Run wraps all multi-write operations",
+        "description": "Create, AdvanceCharges, and HandleCreditPurchaseExternalPaymentStateTransition all wrap their DB-touching body in transaction.Run(ctx, s.adapter, func(ctx) ...) to ensure atomicity.",
+        "example": "return transaction.Run(ctx, s.adapter, func(ctx context.Context) (charges.Charges, error) { ... })"
+      },
+      {
+        "name": "Delegate per-type work to sub-services",
+        "description": "service.Create calls s.flatFeeService.Create, s.usageBasedService.Create, and s.creditPurchaseService.Create separately in a single transaction; results are mapped back to original intent indexes via charges.WithIndex[T].",
+        "example": "flatFees, err := s.flatFeeService.Create(ctx, flatfee.CreateInput{...})\nusageBasedCharges, err := s.usageBasedService.Create(ctx, usagebased.CreateInput{...})"
+      },
+      {
+        "name": "Auto-advance credit-only charges post-create",
+        "description": "After the create transaction commits, autoAdvanceCreatedCharges identifies customers with newly created credit-only charges and calls AdvanceCharges in a separate transaction so creation state is persisted even if advancement fails.",
+        "example": "return s.autoAdvanceCreatedCharges(ctx, result.charges)"
+      },
+      {
+        "name": "invokeInvoiceNowOnCreate for bypassed collection alignment",
+        "description": "Credit purchases that bypass collection alignment call s.billingService.InvoicePendingLines with billing.WithBypassCollectionAlignment() after the main TX to trigger immediate invoicing.",
+        "example": "s.billingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{..., IncludePendingLines: mo.Some(lines), AsOf: lo.ToPtr(clock.Now())}, billing.WithBypassCollectionAlignment())"
+      },
+      {
+        "name": "validateNamespaceLockdown before every write operation",
+        "description": "Create and AdvanceCharges both call s.validateNamespaceLockdown(namespace) before any DB work; this is mandatory for all state-changing service methods.",
+        "example": "if err := s.validateNamespaceLockdown(input.Namespace); err != nil { return nil, err }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Defines the service struct, Config, New constructor, and dependency validation. Config holds all sub-service and adapter dependencies injected at construction.",
+        "watch_for": "All dependencies (FlatFeeService, UsageBasedService, CreditPurchaseService, BillingService, FeatureService, MetaAdapter, Adapter) must be non-nil \u2014 Config.Validate() enforces this."
+      },
+      {
+        "file": "create.go",
+        "role": "Implements charges.Service.Create \u2014 fans out to sub-services, collects gathering lines for billing, and post-commit triggers auto-advance and optional invoice-now.",
+        "watch_for": "The two-phase design (TX for creation + separate TX for auto-advance) is intentional; do not merge them into one transaction or crash-recovery will lose the created state."
+      },
+      {
+        "file": "advance.go",
+        "role": "Implements charges.Service.AdvanceCharges \u2014 wraps in transaction.Run, lists non-final charges, dispatches to flatFeeService.AdvanceCharge or usageBasedService.AdvanceCharge by type.",
+        "watch_for": "Only CreditOnlySettlementMode flat fees are advanced here; non-credit-only flat fees are skipped intentionally."
+      },
+      {
+        "file": "creditpurchase.go",
+        "role": "Implements HandleCreditPurchaseExternalPaymentStateTransition \u2014 type-asserts the charge to creditpurchase.Charge and dispatches to HandleExternalPaymentAuthorized or HandleExternalPaymentSettled.",
+        "watch_for": "Must run inside transaction.Run so the state-machine transition and DB write are atomic."
+      },
+      {
+        "file": "base_test.go",
+        "role": "Shared BaseSuite that wires the full charges stack (all sub-adapters, sub-services, line engines) atop billingtest.BaseSuite. All service tests embed this.",
+        "watch_for": "Line engines must be registered on s.BillingService before tests run \u2014 omitting RegisterLineEngine causes silent no-ops during invoice processing."
+      },
+      {
+        "file": "helpers.go",
+        "role": "Contains chargesByType classifier and other shared helpers used across create.go, advance.go, and patch.go.",
+        "watch_for": "chargesByType panics on unknown charge types \u2014 new charge types must be added here."
+      }
+    ],
+    "anti_patterns": [
+      "Calling sub-service Create/Advance methods outside a transaction.Run \u2014 breaks atomicity across charge types",
+      "Merging the create transaction and the auto-advance transaction \u2014 creation state would be lost if advancement panics mid-flight",
+      "Adding billing-logic (e.g., gathering-line creation) directly to adapter methods \u2014 all orchestration belongs in service",
+      "Calling s.billingService methods without a prior validateNamespaceLockdown \u2014 bypasses namespace-level write protection",
+      "Skipping RegisterLineEngine for a new charge type's engine \u2014 the billing service will silently produce no-op lines"
+    ],
+    "decisions": [
+      {
+        "decision": "Two separate transactions for Create: one for creation, one for auto-advance",
+        "rationale": "The balance-worker can retry advancement independently; losing the creation write due to an advance panic would be unrecoverable. Separation makes both steps individually durable."
+      },
+      {
+        "decision": "Service delegates per-type work to flatfee/usagebased/creditpurchase sub-services rather than handling inline",
+        "rationale": "Each charge type has distinct state machines, realization logic, and handler callbacks; a single service method would become unmanageable. Delegation keeps each type's logic cohesive."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Implementing a new top-level charges.Service method that spans multiple charge types",
+        "code": "func (s *service) NewOperation(ctx context.Context, input charges.NewOperationInput) (charges.Charges, error) {\n\tif err := input.Validate(); err != nil {\n\t\treturn nil, err\n\t}\n\tif err := s.validateNamespaceLockdown(input.Namespace); err != nil {\n\t\treturn nil, err\n\t}\n\treturn transaction.Run(ctx, s.adapter, func(ctx context.Context) (charges.Charges, error) {\n\t\tinScopeCharges, err := s.ListCharges(ctx, charges.ListChargesInput{\n\t\t\tNamespace:   input.Namespace,\n\t\t\tCustomerIDs: []string{input.CustomerID},\n\t\t})\n\t\tif err != nil {\n\t\t\treturn nil, fmt.Errorf(\"list charges: %w\", err)\n\t\t}\n\t\t// fan out to sub-services by type...\n\t\treturn result, nil\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/billing/charges/testutils": {
+    "purpose": "Shared test infrastructure for the charges domain: provides MockHandlers (no-op implementations of flatfee.Handler, creditpurchase.Handler, usagebased.Handler) and a NewServices factory that wires the full charges stack from raw dependencies for use in integration tests.",
+    "patterns": [
+      {
+        "name": "MockHandlers as zero-side-effect handler impls",
+        "description": "mockFlatFeeHandler, mockCreditPurchaseHandler, and mockUsageBasedHandler implement all handler interface methods; ledger callbacks return a fresh ulid-based ledgertransaction.GroupReference so tests can verify IDs without a real ledger.",
+        "example": "handlers := testutils.NewMockHandlers()\nflatFeeService, _ := flatfeeservice.New(flatfeeservice.Config{Handler: handlers.FlatFee, ...})"
+      },
+      {
+        "name": "NewServices wires the full charges stack",
+        "description": "NewServices(t, Config) constructs meta adapter, locker, lineage adapter/service, each charge-type adapter/service, line engines, and the top-level charges.Service in one call \u2014 mirrors production wiring in app/common without importing it.",
+        "example": "svcs, err := testutils.NewServices(t, testutils.Config{\n\tClient:              dbClient,\n\tBillingService:      billingSvc,\n\tFeatureService:      featureSvc,\n\tStreamingConnector:  mockConnector,\n\tFlatFeeHandler:      handlers.FlatFee,\n\tCreditPurchaseHandler: handlers.CreditPurchase,\n\tUsageBasedHandler:   handlers.UsageBased,\n})"
+      },
+      {
+        "name": "Config.Validate() guards all required dependencies",
+        "description": "Config.Validate() returns joined errors for any nil required field (Client, BillingService, FeatureService, StreamingConnector, and all three handlers); callers must handle the error before using Services.",
+        "example": "if err := config.Validate(); err != nil { return nil, err }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handlers.go",
+        "role": "Mock implementations of flatfee.Handler, creditpurchase.Handler, usagebased.Handler. Each callback returns a deterministic ledgertransaction.GroupReference via newMockLedgerTransactionGroupReference().",
+        "watch_for": "When a new handler method is added to any Handler interface, a corresponding no-op must be added here or the mock will stop compiling."
+      },
+      {
+        "file": "service.go",
+        "role": "Config struct, Validate(), Services struct, and NewServices factory function that builds the full charges sub-service tree for tests.",
+        "watch_for": "NewServices registers flat-fee and usage-based line engines on BillingService via RegisterLineEngine \u2014 if BillingService does not support RegisterLineEngine, construction will fail."
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common from testutils \u2014 creates import cycles; build all dependencies from package constructors directly",
+      "Adding stateful side effects to mock handlers without a Reset() method \u2014 test pollution across suite test cases",
+      "Using NewServices in production wiring (app/common) \u2014 this factory is test-only and uses mock handlers"
+    ],
+    "decisions": [
+      {
+        "decision": "MockHandlers returns a new ulid on every ledger callback instead of a fixed constant",
+        "rationale": "Tests that verify ledger transaction group IDs need unique, distinguishable IDs per callback invocation; a fixed constant would make it impossible to differentiate which callback ran."
+      }
+    ],
+    "code_examples": []
+  }
+}

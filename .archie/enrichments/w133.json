@@ -1,0 +1,216 @@
+{
+  "pkg/ffx": {
+    "purpose": "Provides a minimal feature flag service with three implementations (static, context-based, test hybrid). The primary constraint is that all feature-flag reads go through the Service interface so callers are decoupled from the backing store.",
+    "patterns": [
+      {
+        "name": "Service interface for all reads",
+        "description": "All consumers call Service.IsFeatureEnabled(ctx, Feature) \u2014 never inspect AccessConfig directly outside this package.",
+        "example": "svc := ffx.NewStaticService(ffx.AccessConfig{MyFeature: true})\nenabled, err := svc.IsFeatureEnabled(ctx, MyFeature)"
+      },
+      {
+        "name": "Context-carried access config",
+        "description": "At request time, SetAccessOnContext injects an AccessConfig into ctx; NewContextService reads it back via GetAccessFromContext. Missing key returns ErrContextMissing, not false.",
+        "example": "ctx = ffx.SetAccessOnContext(ctx, ffx.AccessConfig{ffx.Feature(\"beta\"): true})"
+      },
+      {
+        "name": "Test hybrid service falls back to static",
+        "description": "NewTestContextService tries ctx first, then falls back to the provided static defaults \u2014 lets tests override individual flags without rebuilding context per case.",
+        "example": "svc := ffx.NewTestContextService(ffx.AccessConfig{ffx.Feature(\"x\"): false})"
+      },
+      {
+        "name": "Feature typed as string alias",
+        "description": "Feature is type Feature string \u2014 always declare named Feature constants, never pass raw strings to IsFeatureEnabled.",
+        "example": "const MyFeature ffx.Feature = \"my-feature\""
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "featureflag.go",
+        "role": "Declares Feature, AccessConfig, and the Service interface. Single source of truth for the package contract.",
+        "watch_for": "AccessConfig.Merge mutates the receiver \u2014 always pass a fresh copy if merging should not modify the original."
+      },
+      {
+        "file": "context.go",
+        "role": "SetAccessOnContext/GetAccessFromContext + contextService + testContextService. ErrContextMissing is the sentinel for missing ctx key.",
+        "watch_for": "contextService returns an error if the feature key is absent from the config; callers must handle that error, not just check the bool."
+      },
+      {
+        "file": "static.go",
+        "role": "staticService backed by an in-process AccessConfig map. Used for server startup wiring and test defaults.",
+        "watch_for": "Returns error (not false) for unknown features \u2014 do not assume unknown == disabled."
+      }
+    ],
+    "anti_patterns": [
+      "Bypassing Service by reading AccessConfig maps directly outside this package",
+      "Using raw string literals instead of typed Feature constants",
+      "Ignoring the error return from IsFeatureEnabled (unknown feature != false)",
+      "Storing AccessConfig in a global variable instead of in context or Wire-injected service"
+    ],
+    "decisions": [
+      {
+        "decision": "Three separate service implementations (static, context, test hybrid) rather than a single configurable one.",
+        "rationale": "Static is safe for server startup; context-based serves per-request tenant flags; the test hybrid lets unit tests override without rebuilding context, all without introducing nil checks or type switches in callers."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Wire a static service at startup and use it in a handler",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/ffx\"\n\nconst FeatureBetaBilling ffx.Feature = \"beta-billing\"\n\n// At wiring time:\nsvc := ffx.NewStaticService(ffx.AccessConfig{FeatureBetaBilling: cfg.BillingEnabled})\n\n// In handler:\nenabled, err := svc.IsFeatureEnabled(ctx, FeatureBetaBilling)\nif err != nil {\n    return fmt.Errorf(\"feature flag: %w\", err)\n}\nif enabled {\n    // use new billing path\n}"
+      }
+    ]
+  },
+  "pkg/filter": {
+    "purpose": "Provides typed, composable query filters (string, integer, float, time, boolean, ULID) that compile to both Ent selector predicates and go-sqlbuilder WHERE expressions. The primary constraint is that every filter type implements the Filter interface and enforces single-operator-per-node validation.",
+    "patterns": [
+      {
+        "name": "Filter interface dual output",
+        "description": "Every filter type implements both Select(field string) func(*sql.Selector) for Ent queries and SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) string for ClickHouse/raw SQL. New filter types must implement both.",
+        "example": "predicate := myFilter.Select(\"name\")  // -> func(*sql.Selector)\nexpr := myFilter.SelectWhereExpr(\"name\", q)  // -> string"
+      },
+      {
+        "name": "Single-operator validation",
+        "description": "validateSingleOperator(f) uses reflection to count non-nil fields; Validate() wraps the result in models.NewNillableGenericValidationError. Public Validate/ValidateWithComplexity always wrap exactly once.",
+        "example": "if err := f.Validate(); err != nil { /* err is models.GenericValidationError */ }"
+      },
+      {
+        "name": "Recursive And/Or with depth limit",
+        "description": "Each filter type carries *[]FilterT And and *[]FilterT Or fields. validateWithComplexity(maxDepth) recurses and returns ErrFilterComplexityExceeded when maxDepth <= 0.",
+        "example": "if err := f.ValidateWithComplexity(3); errors.Is(err, filter.ErrFilterComplexityExceeded) { ... }"
+      },
+      {
+        "name": "IsEmpty guards nil return from Select",
+        "description": "Select returns nil for empty filters. Callers and implementations must check IsEmpty or nil before applying the predicate to an Ent selector.",
+        "example": "if p := f.Select(\"field\"); p != nil { query.Where(p) }"
+      },
+      {
+        "name": "Contains uses ILIKE with escaped LIKE metacharacters",
+        "description": "$contains and $ncontains wrap the value with EscapeLikePattern + ContainsPattern before passing to ILIKE/NOT ILIKE. Raw $like/$ilike operators pass values unescaped.",
+        "example": "// Contains auto-escapes: filter.FilterString{Contains: lo.ToPtr(\"50%\")} -> ILIKE '%50\\%%'"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "filter.go",
+        "role": "All filter struct types plus the Filter interface. EscapeLikePattern, ContainsPattern, and ReverseContainsPattern are the LIKE-safety helpers.",
+        "watch_for": "FilterString has both $like (caller-controlled pattern) and $contains (auto-escaped plain substring). Do not double-escape by passing an already-percent-wrapped value to $contains."
+      },
+      {
+        "file": "filter_test.go",
+        "role": "Dual-path tests: SelectWhereExpr (go-sqlbuilder) and Select (Ent) branches are validated side by side for every operator variant.",
+        "watch_for": "Test SQL strings differ between backends (? vs $1 placeholders, quoted identifiers). Use newSelectBuilder() for Ent assertions."
+      }
+    ],
+    "anti_patterns": [
+      "Setting multiple operator fields on the same filter node (Validate returns ErrFilterMultipleOperators)",
+      "Applying Select() predicate without nil check \u2014 empty filter returns nil and will panic on the selector",
+      "Passing pre-escaped LIKE patterns to $contains/$ncontains \u2014 they will be double-escaped",
+      "Adding a new filter type without implementing both Select and SelectWhereExpr",
+      "Wrapping Validate() result in a second models.GenericValidationError \u2014 validateWithComplexity returns raw sentinels intentionally"
+    ],
+    "decisions": [
+      {
+        "decision": "Dual output (Ent selector + go-sqlbuilder expression) on a single Filter type.",
+        "rationale": "Domain adapters use Ent for Postgres and go-sqlbuilder for ClickHouse; one filter struct drives both backends without separate translation layers."
+      },
+      {
+        "decision": "Validation wraps errors in models.GenericValidationError exactly once at the public boundary.",
+        "rationale": "Domain services call Validate() and forward the result directly to HTTP encoders that map GenericValidationError to 400; double-wrapping would break errors.Is checks."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Apply a validated FilterString to an Ent query and a ClickHouse sqlbuilder query",
+        "code": "import (\n    \"github.com/openmeterio/openmeter/pkg/filter\"\n    \"github.com/samber/lo\"\n)\n\nf := filter.FilterString{Contains: lo.ToPtr(\"acme\")}\nif err := f.Validate(); err != nil {\n    return nil, err\n}\n\n// Ent path:\nif pred := f.Select(\"display_name\"); pred != nil {\n    query = query.Where(pred)\n}\n\n// ClickHouse / go-sqlbuilder path:\nq := sqlbuilder.Select(\"*\").From(\"events\")\nif expr := f.SelectWhereExpr(\"display_name\", q); expr != \"\" {\n    q.Where(expr)\n}"
+      }
+    ]
+  },
+  "pkg/gosundheit": {
+    "purpose": "Thin adapter that bridges the go-sundheit health check library to OpenMeter's structured slog logger. It implements health.CheckListener so health check lifecycle events (register, start, complete) emit structured log lines at appropriate levels.",
+    "patterns": [
+      {
+        "name": "Implement health.CheckListener via unexported struct",
+        "description": "checkListener is unexported; consumers receive a health.CheckListener interface from NewLogger. Do not expose the concrete type.",
+        "example": "listener := gosundheit.NewLogger(logger)\nhealthSvc.WithCheckListener(listener)"
+      },
+      {
+        "name": "Warn on error, Debug on success",
+        "description": "OnCheckRegistered and OnCheckCompleted log at slog.Warn when result.Error != nil and at slog.Debug otherwise. Maintain this severity split for any new listener methods.",
+        "example": "// Error path -> logger.Warn(\"health check failed\", slog.String(\"check\", name), slog.Any(\"error\", result.Error))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "logger.go",
+        "role": "Sole file; declares checkListener and NewLogger. Only health.CheckListener interface is implemented.",
+        "watch_for": "go-sundheit's CheckListener interface may add methods in future versions \u2014 breaking the compile if not updated here."
+      }
+    ],
+    "anti_patterns": [
+      "Logging at Error level for health check failures \u2014 the library handles alerting; Warn is intentional to avoid log-level escalation",
+      "Storing state in checkListener \u2014 it is a pure pass-through to the logger"
+    ],
+    "decisions": [],
+    "code_examples": []
+  },
+  "pkg/hasher": {
+    "purpose": "Minimal hashing utility package: defines a Hash type alias (uint64), a Hasher interface, and a single xxhash-backed implementation. Used wherever a fast, non-cryptographic content hash is needed (e.g. lock key derivation in pkg/framework/lockr).",
+    "patterns": [
+      {
+        "name": "Hash = uint64 type alias",
+        "description": "Hash is a type alias, not a named type \u2014 it is interchangeable with uint64 at the call site. Consumers that need nominal typing should define their own wrapper.",
+        "example": "var h hasher.Hash = hasher.NewHash([]byte(\"key\"))"
+      },
+      {
+        "name": "Hasher interface for injectable hashing",
+        "description": "Structs that need to hash themselves implement Hasher by returning a Hash from Hash(). Inject via the interface, not via direct xxhash calls.",
+        "example": "type myKey struct{ ... }\nfunc (k myKey) Hash() hasher.Hash { return hasher.NewHash([]byte(k.id)) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "hasher.go",
+        "role": "Defines Hash type and Hasher interface. Source of truth for the contract.",
+        "watch_for": "Hash is a type alias \u2014 changing it to a named type would be a breaking change for all callers assigning uint64 literals."
+      },
+      {
+        "file": "xxhash.go",
+        "role": "NewHash([]byte) is the only concrete hash function. Uses cespare/xxhash v2.",
+        "watch_for": "xxhash is non-cryptographic \u2014 never use for security-sensitive hashing."
+      }
+    ],
+    "anti_patterns": [
+      "Using hasher.NewHash for cryptographic purposes (passwords, signatures) \u2014 use crypto/sha256 or similar instead",
+      "Importing xxhash directly in domain packages instead of going through hasher.NewHash"
+    ],
+    "decisions": [],
+    "code_examples": []
+  },
+  "pkg/idempotency": {
+    "purpose": "Single-purpose package that generates UUIDv7 idempotency keys for external API calls (e.g., Stripe). UUIDv7 provides monotonic, time-ordered keys that are safe to use as idempotency tokens without a shared counter.",
+    "patterns": [
+      {
+        "name": "Use Key() in production, MustKey() in tests/init",
+        "description": "Key() returns (string, error) and should be used in application code paths. MustKey() panics on failure and is only appropriate in test setup or package-level init.",
+        "example": "key, err := idempotency.Key()\nif err != nil {\n    return fmt.Errorf(\"idempotency key: %w\", err)\n}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "key.go",
+        "role": "Exports Key() and MustKey(). The entire package is this one file.",
+        "watch_for": "uuid.NewV7() can fail in environments with broken entropy sources \u2014 always handle the error in production paths."
+      }
+    ],
+    "anti_patterns": [
+      "Using MustKey() in request-handling code paths \u2014 prefer Key() and propagate errors",
+      "Reusing the same key across multiple requests \u2014 each call to Key() must produce a fresh key"
+    ],
+    "decisions": [
+      {
+        "decision": "UUIDv7 instead of UUIDv4 for idempotency keys.",
+        "rationale": "UUIDv7 is time-ordered, making keys sortable and slightly more cache-friendly in database indexes while still being globally unique."
+      }
+    ],
+    "code_examples": []
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "openmeter/billing/charges/flatfee/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing the flatfee.Adapter interface for flat-fee charge persistence. All reads and writes go through this package; it is the only place that touches the ChargeFlatFee, ChargeFlatFeeCreditAllocations, ChargeFlatFeeDetailedLine, ChargeFlatFeePayment, and ChargeFlatFeeInvoicedUsage Ent entities.",
+    "patterns": [
+      {
+        "name": "TransactingRepo wrapping on every write method",
+        "description": "Every mutating method (CreateCharges, UpdateCharge, DeleteCharge, UpsertDetailedLines, CreateCreditAllocations, CreatePayment, UpdatePayment, CreateInvoicedUsage) wraps its body with entutils.TransactingRepo or entutils.TransactingRepoWithNoValue so the method rebinds to the ctx-carried transaction. Using tx.db (not a.db) inside the closure is mandatory.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (flatfee.Charge, error) { ... tx.db.ChargeFlatFee... })"
+      },
+      {
+        "name": "Config struct + Validate() + New() constructor",
+        "description": "Construction follows the pattern: define a Config struct, implement Config.Validate() returning an error for each missing field, then New(Config) returns the interface and error. The var _ flatfee.Adapter = (*adapter)(nil) compile-time check must be present.",
+        "example": "func New(config Config) (flatfee.Adapter, error) { if err := config.Validate(); err != nil { return nil, err }; return &adapter{...}, nil }"
+      },
+      {
+        "name": "Tx / WithTx / Self triad for transaction propagation",
+        "description": "adapter must implement Tx(ctx) to hijack a new transaction, WithTx(ctx, *TxDriver) to re-create itself with a tx-bound *entdb.Client, and Self() returning itself. These three methods are the contract required by entutils.TransactingRepo.",
+        "example": "func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txDb := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txDb.Client(), ...} }"
+      },
+      {
+        "name": "Input Validate() before any DB access",
+        "description": "Every exported adapter method calls input.Validate() (or charge.Validate()) as the first statement and returns its error immediately, before opening a transaction.",
+        "example": "func (a *adapter) CreateCharges(ctx context.Context, in flatfee.CreateChargesInput) ([]flatfee.Charge, error) { if err := in.Validate(); err != nil { return nil, err }; ... }"
+      },
+      {
+        "name": "Mapper functions isolated in mapper.go",
+        "description": "All DB-to-domain and domain-to-DB conversions live in mapper.go (MapChargeFlatFeeFromDB, MapChargeBaseFromDB, mapDetailedLineFromDB, proRatingConfigFromDB, proRatingConfigToDB). No conversion logic inside charge.go / credits.go / payment.go / usage.go.",
+        "example": "return MapChargeFlatFeeFromDB(entity, input.Expands)"
+      },
+      {
+        "name": "Soft-delete via DeletedAt field, not hard DELETE",
+        "description": "Records are never hard-deleted. DeleteCharge sets clock.Now() on DeletedAt and updates Status. UpsertDetailedLines marks superseded rows deleted via a bulk Update().SetDeletedAt(now) before re-inserting replacements.",
+        "example": "charge.DeletedAt = lo.ToPtr(clock.Now()); charge.Status = flatfee.StatusDeleted; update.SetStatusDetailed(charge.Status)"
+      },
+      {
+        "name": "Expand flags gate edge loading",
+        "description": "Edges (CreditAllocations, Payment, InvoicedUsage, DetailedLines) are loaded only when the corresponding meta.Expands flag is present. expandRealizations() helper adds WithCreditAllocations/WithInvoicedUsage/WithPayment to the query.",
+        "example": "if input.Expands.Has(meta.ExpandRealizations) { query = expandRealizations(query) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Declares Config, New constructor, and the Tx/WithTx/Self transaction triad. The only file that touches entdb.Client directly for transaction setup.",
+        "watch_for": "Never store *entdb.Tx here; always reconstruct via entdb.NewTxClientFromRawConfig so the client is tx-scoped."
+      },
+      {
+        "file": "charge.go",
+        "role": "CRUD for ChargeFlatFee rows. CreateCharges also calls metaAdapter.RegisterCharges to register IDs in the meta registry within the same transaction.",
+        "watch_for": "metaAdapter.RegisterCharges must be called inside the TransactingRepo closure so a failure rolls back both the charge rows and the meta registration."
+      },
+      {
+        "file": "detailedline.go",
+        "role": "Upsert (soft-delete old + bulk insert new) for ChargeFlatFeeDetailedLine using ON CONFLICT on (namespace, charge_id, child_unique_reference_id) where deleted_at IS NULL.",
+        "watch_for": "The conflict resolution explicitly ignores created_at and id fields; omitting SetIgnore for these would overwrite immutable fields on upsert."
+      },
+      {
+        "file": "mapper.go",
+        "role": "All DB\u2194domain type conversions. MapChargeFlatFeeFromDB gates edge mapping behind expands flags; accessing an unloaded edge returns NotLoadedError which is treated as a programming error.",
+        "watch_for": "When adding a new Ent edge, add a corresponding expand flag and gate mapping behind it \u2014 returning empty data silently is worse than a clear error."
+      },
+      {
+        "file": "credits.go",
+        "role": "Creates ChargeFlatFeeCreditAllocations rows in bulk via creditrealization.Create helper.",
+        "watch_for": "chargeID is passed separately from creditAllocation inputs; the DB entity only stores chargeID.ID (not the namespace separately) \u2014 namespace enforcement is on the parent charge row."
+      },
+      {
+        "file": "payment.go",
+        "role": "Creates and updates ChargeFlatFeePayment (one payment row per charge). Uses payment.CreateInvoiced and payment.UpdateInvoiced helpers from the models/payment sub-package.",
+        "watch_for": "UpdatePayment filters by namespace via chargeflatfeepayment.Namespace predicate \u2014 omitting this allows cross-namespace updates."
+      },
+      {
+        "file": "usage.go",
+        "role": "Creates a single ChargeFlatFeeInvoicedUsage row per charge via invoicedusage.Create helper.",
+        "watch_for": "No update path \u2014 invoiced usage is append-only; adding an Update method here would break charge finality invariants."
+      },
+      {
+        "file": "detailedline_test.go",
+        "role": "Integration test using testutils.InitPostgresDB + real migrations. Tests UpsertDetailedLines upsert/soft-delete semantics end-to-end.",
+        "watch_for": "Uses t.Context() (not context.Background()) throughout. Tests verify the DB row directly after the upsert to confirm soft-delete rather than trusting the return value alone."
+      }
+    ],
+    "anti_patterns": [
+      "Using a.db directly inside a method body instead of tx.db inside a TransactingRepo closure \u2014 breaks transaction propagation from ctx.",
+      "Hard-deleting rows with Ent .Delete() / .DeleteOne() \u2014 all deletes must set DeletedAt.",
+      "Accessing Ent edge fields (e.g. entity.Edges.Payment) without loading them via WithPayment() \u2014 causes a panic or NotLoadedError.",
+      "Adding conversion logic (DB\u2194domain mapping) inside charge.go / credits.go / payment.go / usage.go instead of mapper.go.",
+      "Calling metaAdapter methods outside the TransactingRepo closure \u2014 the meta registration would not roll back with the charge row on failure."
+    ],
+    "decisions": [
+      {
+        "decision": "All write helpers wrap with entutils.TransactingRepo even when the caller already holds a transaction.",
+        "rationale": "Ent transactions propagate via ctx; TransactingRepo rebinds to the existing tx if present, so nesting is safe and each helper is independently callable without leaking tx concerns to callers."
+      },
+      {
+        "decision": "Upsert of DetailedLines uses soft-delete + ON CONFLICT bulk insert rather than diff-and-patch.",
+        "rationale": "The caller provides a full replacement set keyed by ChildUniqueReferenceID; a full-replace upsert is simpler and idempotent \u2014 re-running the same input produces the same DB state."
+      },
+      {
+        "decision": "Edge loading (realizations, detailed lines) is gated behind explicit meta.Expands flags rather than always eager-loading.",
+        "rationale": "Many call sites (e.g. state machine transitions) only need ChargeBase fields; eager-loading all edges would issue unnecessary JOINs on every read."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new write method to the adapter (e.g. patch a charge field)",
+        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee\"\n\tdbchargeflatfee \"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n)\n\nfunc (a *adapter) PatchChargeFoo(ctx context.Context, id flatfee.ChargeID, value string) error {\n\tif err := id.Validate(); err != nil {\n\t\treturn err\n\t}\n\treturn entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {\n\t\t_, err := tx.db.ChargeFlatFee.UpdateOneID(id.ID).\n\t\t\tWhere(dbchargeflatfee.NamespaceEQ(id.Namespace)).\n\t\t\tSetFoo(value).\n\t\t\tSave(ctx)\n\t\treturn err\n\t})\n}"
+      }
+    ]
+  }
+}

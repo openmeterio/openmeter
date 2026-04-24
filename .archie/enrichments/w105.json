@@ -1,0 +1,84 @@
+{
+  "openmeter/notification/webhook/noop": {
+    "purpose": "No-op implementation of webhook.Handler used when Svix is unconfigured. Every method logs the attempted call and returns webhook.ErrNotImplemented, ensuring callers get a defined error rather than a nil panic.",
+    "patterns": [
+      {
+        "name": "Interface compliance assertion",
+        "description": "File opens with `var _ webhook.Handler = (*Handler)(nil)` to enforce compile-time interface compliance.",
+        "example": "var _ webhook.Handler = (*Handler)(nil)"
+      },
+      {
+        "name": "Log-then-return-ErrNotImplemented",
+        "description": "Every method calls h.logger.InfoContext with the operation name and params, then returns webhook.ErrNotImplemented (or nil, ErrNotImplemented for pointer returns).",
+        "example": "h.logger.InfoContext(ctx, \"sending message\", \"params\", params)\nreturn nil, webhook.ErrNotImplemented"
+      },
+      {
+        "name": "Structured logger injection",
+        "description": "Constructor New(logger *slog.Logger) tags the logger with slog.String(\"webhook_handler\", \"noop\") so all log lines are attributable.",
+        "example": "logger.With(slog.String(\"webhook_handler\", \"noop\"))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "noop.go",
+        "role": "Complete no-op implementation of webhook.Handler; single file, no other files in this package.",
+        "watch_for": "If webhook.Handler gains a new method, this file must add the method or it will fail the compile-time assertion at the top."
+      }
+    ],
+    "anti_patterns": [
+      "Returning nil error from any method \u2014 callers must know the noop is not functional, so always return webhook.ErrNotImplemented",
+      "Omitting the compile-time interface assertion var _ webhook.Handler = (*Handler)(nil)",
+      "Adding real business logic or state \u2014 this is intentionally a stub"
+    ],
+    "decisions": [
+      {
+        "decision": "Return webhook.ErrNotImplemented instead of nil",
+        "rationale": "Callers (notification.Service) distinguish noop from real failures; a nil error would silently swallow operations when Svix is not configured."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/notification/webhook/secret": {
+    "purpose": "Utility package for generating and validating Svix-compatible HMAC signing secrets with the 'whsec_' prefix. No state, no interfaces \u2014 pure functions used when creating notification webhook channels.",
+    "patterns": [
+      {
+        "name": "whsec_ prefix convention",
+        "description": "Generated secrets are always prefixed with SigningSecretPrefix ('whsec_') followed by base64-encoded random bytes. Validation strips the prefix before checking length and base64 validity.",
+        "example": "return \"whsec_\" + base64.StdEncoding.EncodeToString(b), nil"
+      },
+      {
+        "name": "Validation via models.NewNillableGenericValidationError",
+        "description": "ValidateSigningSecret collects errors with errors.Join and wraps the result in models.NewNillableGenericValidationError so callers get a nil error (valid) or a typed GenericValidationError (invalid) that maps to HTTP 400.",
+        "example": "return models.NewNillableGenericValidationError(errors.Join(errs...))"
+      },
+      {
+        "name": "Exported size constant for testability",
+        "description": "DefaultSigningSecretSize = 32 is exported so tests and callers can reference the canonical size without magic numbers.",
+        "example": "const DefaultSigningSecretSize = 32"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "secret.go",
+        "role": "All secret generation and validation logic; no other files in this package.",
+        "watch_for": "Length bounds in ValidateSigningSecret (32\u2013100 chars after stripping prefix) are Svix API constraints \u2014 changing them without checking Svix docs will break webhook channel creation."
+      }
+    ],
+    "anti_patterns": [
+      "Returning a raw error instead of models.NewNillableGenericValidationError \u2014 breaks the HTTP 400 mapping chain",
+      "Using encoding/hex or non-standard base64 variants \u2014 Svix expects standard base64",
+      "Storing secrets in plain text; this package only generates/validates \u2014 persistence is the caller's responsibility"
+    ],
+    "decisions": [
+      {
+        "decision": "Use crypto/rand for secret generation",
+        "rationale": "Signing secrets are cryptographic material; math/rand would produce predictable values exploitable for HMAC forgery."
+      },
+      {
+        "decision": "Wrap validation errors with models.NewNillableGenericValidationError",
+        "rationale": "Keeps error typing consistent with the rest of the domain so commonhttp.GenericErrorEncoder maps it to HTTP 400 without special-casing this package."
+      }
+    ],
+    "code_examples": []
+  }
+}

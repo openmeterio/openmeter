@@ -1,0 +1,72 @@
+{
+  "api/client/python/openmeter/_generated/aio/operations": {
+    "purpose": "Async (asyncio) mirror of the sync operations layer \u2014 each class wraps a resource group (AppsOperations, CustomersOperations, InvoicesOperations, etc.) and exposes `async def` methods that execute HTTP requests via AsyncPipelineClient. All request-building logic is delegated to the sync `operations/_operations.py` build_* functions; only the execution and response-handling is async here.",
+    "patterns": [
+      {
+        "name": "Reuse sync request builders",
+        "description": "Every method imports and calls the corresponding `build_<resource>_<action>_request` from `...operations._operations` \u2014 never duplicates URL/param construction.",
+        "example": "_request = build_apps_list_request(page=page, page_size=page_size, headers=_headers, params=_params)"
+      },
+      {
+        "name": "Positional constructor injection",
+        "description": "Each Operations class __init__ pops (client, config, serializer, deserializer) from positional args first, kwargs second \u2014 never accept them as named-only parameters.",
+        "example": "self._client: AsyncPipelineClient = input_args.pop(0) if input_args else kwargs.pop('client')"
+      },
+      {
+        "name": "Per-method error_map with status-specific model deserialization",
+        "description": "Every method builds a MutableMapping error_map seeded with 404/409/304 defaults, then manually deserializes typed Problem models for 400/401/403/500/503/412 before raising HttpResponseError.",
+        "example": "error = _failsafe_deserialize(_models.BadRequestProblemResponse, response); raise HttpResponseError(response=response, model=error)"
+      },
+      {
+        "name": "Stream-safe response body cleanup",
+        "description": "On non-2xx responses with stream=True, call `await response.read()` inside a try/except for StreamConsumedError and StreamClosedError before calling map_error.",
+        "example": "if _stream: try: await response.read() except (StreamConsumedError, StreamClosedError): pass"
+      },
+      {
+        "name": "_patch.py customization hook",
+        "description": "`_patch.py` is the only sanctioned place to add customizations; `__init__.py` imports `from ._patch import *` and calls `_patch_sdk()` at module load. Keep `_patch.py` minimal \u2014 it is the escape hatch, not the norm.",
+        "example": "from ._patch import __all__ as _patch_all; _patch_sdk()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "_operations.py",
+        "role": "Contains every async Operations class and their async methods. This file is generated \u2014 do not edit directly; changes belong in _patch.py or upstream generators.",
+        "watch_for": "DO NOT instantiate Operations classes directly; they are accessed through OpenMeterClient attributes. Adding new methods here without a corresponding sync build_* function in the parent operations package will break the reuse pattern."
+      },
+      {
+        "file": "__init__.py",
+        "role": "Re-exports all Operations classes and applies _patch.py overrides. Mirrors the sync operations __init__.py exactly.",
+        "watch_for": "Any new Operations class added to _operations.py must be added to both __all__ and the import list here, and in the sync __init__.py."
+      },
+      {
+        "file": "_patch.py",
+        "role": "Empty stub for SDK customizations; imported and executed by __init__.py via patch_sdk().",
+        "watch_for": "Never add business logic here. This file is preserved across regenerations as the intentional customization seam."
+      }
+    ],
+    "anti_patterns": [
+      "Duplicating URL/query-param construction inside async methods instead of calling the shared sync build_* functions",
+      "Instantiating Operations classes directly rather than accessing them via OpenMeterClient attributes",
+      "Adding error handling or deserialization logic outside the per-method error_map block",
+      "Editing _operations.py as if it were hand-written code \u2014 it is generated and will be overwritten",
+      "Raising exceptions before calling `await response.read()` on a streaming error response (leaks the socket)"
+    ],
+    "decisions": [
+      {
+        "decision": "Async operations delegate all request construction to sync build_* functions in the parent package",
+        "rationale": "Avoids duplicating URL and parameter logic across sync/async variants; a single change to the request builder propagates to both."
+      },
+      {
+        "decision": "Per-method typed error deserialization instead of a shared error handler",
+        "rationale": "Different endpoints return different Problem subtypes; inline deserialization keeps error context close to the operation contract without a shared dispatcher that must know all error shapes."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new async operation method following the existing pattern",
+        "code": "from ...operations._operations import build_my_resource_list_request\nfrom ..._utils.model_base import _deserialize, _failsafe_deserialize\nfrom ... import models as _models\n\nasync def list(self, *, page: Optional[int] = None, **kwargs: Any) -> _models.MyResourcePaginatedResponse:\n    error_map: MutableMapping = {404: ResourceNotFoundError, 409: ResourceExistsError, 304: ResourceNotModifiedError}\n    error_map.update(kwargs.pop('error_map', {}) or {})\n    _headers = kwargs.pop('headers', {}) or {}\n    _params = kwargs.pop('params', {}) or {}\n    cls: ClsType[_models.MyResourcePaginatedResponse] = kwargs.pop('cls', None)\n    _request = build_my_resource_list_request(page=page, headers=_headers, params=_params)\n    path_format_arguments = {'endpoint': self._serialize.url('self._config.endpoint', self._config.endpoint, 'str', skip_quote=True)}\n    _request.url = self._client.format_url(_request.url, **path_format_arguments)\n    _decompress = kwargs.pop('decompress', True)\n    _stream = kwargs.pop('stream', False)\n    pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)\n    response = pipeline_response.http_response\n    if response.status_code not in [200]:\n        if _stream:\n            try:\n                await response.read()\n            except (StreamConsumedError, StreamClosedError):\n                pass\n        map_error(status_code=response.status_code, response=response, error_map=error_map)\n        error = _failsafe_deserialize(_models.UnexpectedProblemResponse, response)\n        raise HttpResponseError(response=response, model=error)\n    deserialized = _deserialize(_models.MyResourcePaginatedResponse, response.json())\n    if cls:\n        return cls(pipeline_response, deserialized, {})\n    return deserialized"
+      }
+    ]
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "openmeter/billing/validators": {
+    "purpose": "Organisational package grouping cross-domain billing guard validators. Its two children register pre/post-mutation hooks into customer.Service and subscription.Service respectively, enforcing billing pre-conditions without introducing circular imports between the billing, customer, and subscription packages.",
+    "patterns": [
+      {
+        "name": "Registration at wiring time, not compile time",
+        "description": "Each validator is constructed in app/common and registered via customerService.RegisterRequestValidator() or subscriptionService.RegisterHook(). Neither child imports the other domain's package at the call site \u2014 the coupling is in the DI layer only.",
+        "example": "app/common wires NewValidator(...) then calls customerService.RegisterRequestValidator(v) or subscriptionService.RegisterHook(v)"
+      },
+      {
+        "name": "Embed noop base structs",
+        "description": "Validators embed customer.NoopRequestValidator or subscription.NoOpSubscriptionCommandHook so they only override the specific lifecycle methods they need. Unused hook methods are left as noops.",
+        "example": "type Validator struct { customer.NoopRequestValidator; ... } or type Validator struct { subscription.NoOpSubscriptionCommandHook; ... }"
+      },
+      {
+        "name": "Compile-time interface assertion",
+        "description": "customer/customer.go uses `var _ customer.RequestValidator = (*Validator)(nil)` to assert the interface at compile time. Add this to every new validator.",
+        "example": "var _ customer.RequestValidator = (*Validator)(nil)"
+      },
+      {
+        "name": "Nil-guard constructors returning error",
+        "description": "Both NewValidator functions check each injected service for nil and return an error. This catches misconfigured wiring at startup.",
+        "example": "if billingService == nil { return nil, fmt.Errorf(\"billing service is required\") }"
+      },
+      {
+        "name": "models.NewGenericConflictError for billing setup failures",
+        "description": "subscription/validator.go wraps validation errors in models.NewGenericConflictError so the HTTP layer renders a 409. Use this \u2014 not a plain error \u2014 for billing pre-condition failures.",
+        "example": "return models.NewGenericConflictError(fmt.Errorf(\"invalid billing setup: %w\", err))"
+      },
+      {
+        "name": "Sync-before-validate in customer deletion",
+        "description": "customer/customer.go calls syncService.SynchronizeSubscription before listing invoices so pending subscription charges are reflected in the invoice state before the gate check runs.",
+        "example": "v.syncService.SynchronizeSubscription(ctx, view, time.Now()) // must precede ListInvoices"
+      },
+      {
+        "name": "errors.Join for multi-entity validation errors",
+        "description": "customer/customer.go collects per-invoice errors into a slice and returns errors.Join(errs...) so the caller sees all blocking invoices at once, not just the first.",
+        "example": "errs = append(errs, fmt.Errorf(\"invoice %s is not in final state...\", id)); return errors.Join(errs...)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "openmeter/billing/validators/customer/customer.go",
+        "role": "Implements customer.RequestValidator. ValidateDeleteCustomer syncs pending subscriptions then blocks deletion when non-final standard invoices or active gathering invoices exist.",
+        "watch_for": "Skipping the SynchronizeSubscription call before ListInvoices will cause false-negative gate checks; the subscriptionService field is intentionally nullable (no nil guard) \u2014 do not add nil guard without checking app/common wiring."
+      },
+      {
+        "file": "openmeter/billing/validators/subscription/validator.go",
+        "role": "Implements subscription.SubscriptionCommandHook via AfterCreate/AfterUpdate. Validates that the customer's installed billing app supports tax calculation, invoicing, and payment collection before a subscription with priced ratecards becomes active.",
+        "watch_for": "hasBillableItems short-circuits validation for free subscriptions \u2014 ensure this exit is still correct for any new ratecard types; capability slice is hardcoded to three app.CapabilityType values, not sourced from the app."
+      }
+    ],
+    "anti_patterns": [
+      "Adding ValidateCreateCustomer or ValidateUpdateCustomer in the customer validator without a billing-domain reason \u2014 general lifecycle belongs in the customer package.",
+      "Calling billing.Adapter or Ent directly from either validator \u2014 all reads must go through billing.Service.",
+      "Returning a plain error instead of models.NewGenericConflictError for billing setup failures in the subscription validator \u2014 the HTTP layer maps GenericConflictError to 409.",
+      "Adding app-type-specific branching (e.g., 'if Stripe do X') in the subscription validator \u2014 capability validation is intentionally app-agnostic.",
+      "Using context.Background() instead of propagating the incoming ctx parameter."
+    ],
+    "decisions": [
+      {
+        "decision": "Validators live under billing/validators/ rather than inside customer/ or subscription/",
+        "rationale": "Billing has dependency edges to both customer and subscription; placing validators here avoids import cycles by keeping the billing-domain logic in billing's own package tree."
+      },
+      {
+        "decision": "Subscription sync is driven inside the customer deletion validator rather than as a pre-hook in the subscription service",
+        "rationale": "The sync ensures invoice state is up-to-date at the moment of deletion validation. Doing it inside the billing validator keeps the customer package free of billing concerns."
+      },
+      {
+        "decision": "Post-create/post-update (AfterCreate/AfterUpdate) hooks for subscription validation rather than pre-create",
+        "rationale": "Billing setup validation checks state that only exists after the subscription is persisted (e.g. customer override profile, app assignment); a pre-create check would race against incomplete state."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new billing validator for a domain entity (pattern: embed noop, nil-guard constructor, compile-time assertion, wrap errors in GenericConflictError)",
+        "code": "package myentity\n\nimport (\n\t\"context\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/billing\"\n\t\"github.com/openmeterio/openmeter/openmeter/myentity\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nvar _ myentity.RequestValidator = (*Validator)(nil)\n\ntype Validator struct {\n\tmyentity.NoopRequestValidator\n\tbillingService billing.Service\n}\n\nfunc NewValidator(billingService billing.Service) (*Validator, error) {\n\tif billingService == nil {\n\t\treturn nil, fmt.Errorf(\"billing service is required\")\n\t}\n\treturn &Validator{billingService: billingService}, nil\n}\n\nfunc (v *Validator) ValidateDeleteMyEntity(ctx context.Context, input myentity.DeleteInput) error {\n\t// check billing pre-conditions via v.billingService (never direct adapter)\n\t_, err := v.billingService.GetSomething(ctx, billing.GetSomethingInput{Namespace: input.Namespace})\n\tif err != nil {\n\t\treturn models.NewGenericConflictError(fmt.Errorf(\"billing pre-condition failed: %w\", err))\n\t}\n\treturn nil\n}"
+      }
+    ]
+  }
+}

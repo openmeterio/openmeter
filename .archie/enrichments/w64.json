@@ -1,0 +1,111 @@
+{
+  "openmeter/billing/charges/worker/advance": {
+    "purpose": "Batch auto-advance worker that iterates all customers with eligible charges and calls charges.Service.AdvanceCharges for each; errors are collected and joined rather than short-circuiting, so one failing customer does not block others.",
+    "patterns": [
+      {
+        "name": "Fan-out with error accumulation",
+        "description": "Loop over all customers, accumulate errors via `errs = append(errs, ...)`, return `errors.Join(errs...)` so all failures are reported and processing continues.",
+        "example": "for _, cust := range customers { if err := a.AdvanceCharges(ctx, cust); err != nil { errs = append(errs, err) } }; return errors.Join(errs...)"
+      },
+      {
+        "name": "Pagination via CollectAll",
+        "description": "Use `pagination.CollectAll` with a `pagination.NewPaginator` closure to fetch all pages of customers without manual page-loop code.",
+        "example": "pagination.CollectAll(ctx, pagination.NewPaginator(func(ctx context.Context, page pagination.Page) (pagination.Result[customer.CustomerID], error) { return a.chargesService.ListCustomersToAdvance(ctx, ...) }), defaultPageSize)"
+      },
+      {
+        "name": "Config struct + constructor validation",
+        "description": "All dependencies passed via a `Config` struct; `NewAdvancer` validates non-nil fields before constructing the struct.",
+        "example": "func NewAdvancer(config Config) (*AutoAdvancer, error) { if config.ChargesService == nil { return nil, fmt.Errorf(...) } ... }"
+      },
+      {
+        "name": "Advance via service interface only",
+        "description": "All charge advancement is driven through `charges.ChargeService.AdvanceCharges` \u2014 never call adapters or Ent directly from this layer.",
+        "example": "a.chargesService.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: customerID})"
+      },
+      {
+        "name": "Structured logging with slog",
+        "description": "Use `slog.InfoContext`/`DebugContext`/`ErrorContext`/`WarnContext` with named key-value pairs (`slog.String`) for all log statements.",
+        "example": "a.logger.ErrorContext(ctx, \"failed to auto-advance charges\", slog.String(\"namespace\", ...), slog.String(\"customer_id\", ...))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "advance.go",
+        "role": "Sole file; defines AutoAdvancer struct, All/ListCustomersToAdvance/AdvanceCharges methods, Config struct, and NewAdvancer constructor.",
+        "watch_for": "defaultPageSize=10_000 caps single-page fetches; `now` is captured once at the start of ListCustomersToAdvance to give a stable cutoff for the entire batch run."
+      }
+    ],
+    "anti_patterns": [
+      "Returning on first customer error \u2014 must accumulate and join errors",
+      "Calling Ent/adapter code directly instead of going through charges.ChargeService",
+      "Introducing context.Background() \u2014 always propagate the caller's ctx",
+      "Hard-coding namespaces instead of accepting them as a parameter"
+    ],
+    "decisions": [
+      {
+        "decision": "Error accumulation instead of early return",
+        "rationale": "A single customer failure should not prevent advancing charges for all other customers in the batch."
+      },
+      {
+        "decision": "Time captured once per All() call",
+        "rationale": "Using a single `now` for the entire batch ensures consistent cutoff semantics; per-customer clock calls could admit races where newly eligible charges slip into or out of the window mid-run."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Full batch advance entry point",
+        "code": "func (a *AutoAdvancer) All(ctx context.Context, namespaces []string) error {\n\tcustomers, err := a.ListCustomersToAdvance(ctx, namespaces)\n\tif err != nil {\n\t\treturn fmt.Errorf(\"failed to list customers to advance charges: %w\", err)\n\t}\n\tvar errs []error\n\tfor _, cust := range customers {\n\t\tif err := a.AdvanceCharges(ctx, cust); err != nil {\n\t\t\terrs = append(errs, fmt.Errorf(\"[namespace=%s customer=%s]: %w\", cust.Namespace, cust.ID, err))\n\t\t}\n\t}\n\treturn errors.Join(errs...)\n}"
+      }
+    ]
+  },
+  "openmeter/billing/charges/worker/asyncadvance": {
+    "purpose": "Event-driven (async) handler that advances charges for a single customer in response to a `charges.AdvanceChargesEvent`; intended to be wired as a Watermill/event-bus message handler.",
+    "patterns": [
+      {
+        "name": "Config.Validate() before construction",
+        "description": "Config struct carries a `Validate() error` method that checks all required fields; `New` calls it before constructing the Handler.",
+        "example": "func New(c Config) (*Handler, error) { if err := c.Validate(); err != nil { return nil, err } ... }"
+      },
+      {
+        "name": "Single-responsibility Handle method",
+        "description": "Handler exposes exactly one `Handle(ctx, *AdvanceChargesEvent) error` method; no batch logic, no pagination \u2014 those live in the advance package.",
+        "example": "func (h *Handler) Handle(ctx context.Context, event *charges.AdvanceChargesEvent) error { _, err := h.chargesService.AdvanceCharges(ctx, ...) }"
+      },
+      {
+        "name": "CustomerID constructed from event fields",
+        "description": "Build `customer.CustomerID{Namespace: event.Namespace, ID: event.CustomerID}` inline \u2014 no helper, no global state.",
+        "example": "charges.AdvanceChargesInput{Customer: customer.CustomerID{Namespace: event.Namespace, ID: event.CustomerID}}"
+      },
+      {
+        "name": "Warn-then-return on service error",
+        "description": "Log a WarnContext entry with namespace/customer_id/error keys before returning the error so the upstream router can decide on retry.",
+        "example": "h.logger.WarnContext(ctx, \"failed to advance charges\", slog.String(\"namespace\", ...), slog.String(\"error\", err.Error())); return err"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "asyncadvance.go",
+        "role": "Sole file; defines Handler, Config (with Validate), New constructor, and Handle method.",
+        "watch_for": "Handler does not discard errors \u2014 it returns them so the message bus can apply retry/dead-letter logic. Never swallow the error here."
+      }
+    ],
+    "anti_patterns": [
+      "Adding batch/pagination logic here \u2014 that belongs in the advance package",
+      "Calling Ent or adapter code directly instead of charges.ChargeService",
+      "Returning nil on service error to suppress retries",
+      "Introducing context.Background() instead of propagating the event's ctx"
+    ],
+    "decisions": [
+      {
+        "decision": "Separate package from synchronous advance",
+        "rationale": "Async (event-driven, single-customer) and sync (batch, all-customers) advancement have different error-handling and retry contracts; keeping them in separate packages avoids conflating them."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Handle a single AdvanceChargesEvent",
+        "code": "import (\n\t\"context\"\n\t\"log/slog\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/billing/charges\"\n\t\"github.com/openmeterio/openmeter/openmeter/customer\"\n)\n\nfunc (h *Handler) Handle(ctx context.Context, event *charges.AdvanceChargesEvent) error {\n\t_, err := h.chargesService.AdvanceCharges(ctx, charges.AdvanceChargesInput{\n\t\tCustomer: customer.CustomerID{\n\t\t\tNamespace: event.Namespace,\n\t\t\tID:        event.CustomerID,\n\t\t},\n\t})\n\tif err != nil {\n\t\th.logger.WarnContext(ctx, \"failed to advance charges\",\n\t\t\tslog.String(\"namespace\", event.Namespace),\n\t\t\tslog.String(\"customer_id\", event.CustomerID),\n\t\t\tslog.String(\"error\", err.Error()),\n\t\t)\n\t\treturn err\n\t}\n\treturn nil\n}"
+      }
+    ]
+  }
+}

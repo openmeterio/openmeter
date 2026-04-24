@@ -1,0 +1,191 @@
+{
+  "openmeter/app/custominvoicing": {
+    "purpose": "Webhook-driven invoicing app that lets external systems receive invoice payloads and async-confirm sync completion. Implements billing.InvoicingApp and billing.InvoicingAppAsyncSyncer; advance gates (CanDraftSyncAdvance, CanIssuingSyncAdvance) block state-machine progression until the external system stamps metadata on the invoice.",
+    "patterns": [
+      {
+        "name": "Composite Service interface",
+        "description": "Service = CustomerDataService + FactoryService + SyncService. New capability areas add a sub-interface and embed it \u2014 never add methods directly to Service.",
+        "example": "type Service interface { CustomerDataService; FactoryService; SyncService }"
+      },
+      {
+        "name": "Advance-gate via metadata keys",
+        "description": "CanDraftSyncAdvance / CanIssuingSyncAdvance return (true, nil) when MetadataKeyDraftSyncedAt / MetadataKeyFinalizedAt are present in invoice.Metadata, or when the hook is disabled. New sync hooks must follow this exact pattern.",
+        "example": "if _, ok := invoice.Metadata[MetadataKeyDraftSyncedAt]; ok { return true, nil }"
+      },
+      {
+        "name": "Config.Validate() on every input struct",
+        "description": "All input types in sync.go, customerdata.go, factory.go implement Validate() returning models.NewNillableGenericValidationError(errors.Join(errs...)). Service methods call input.Validate() as the first statement.",
+        "example": "func (i SyncDraftInvoiceInput) Validate() error { return models.NewNillableGenericValidationError(errors.Join(errs...)) }"
+      },
+      {
+        "name": "Factory self-registers with app marketplace",
+        "description": "NewFactory calls config.AppService.RegisterMarketplaceListing with MarketplaceListing+Factory; omitting this makes the app type invisible.",
+        "example": "err := config.AppService.RegisterMarketplaceListing(app.RegistryItem{Listing: MarketplaceListing, Factory: fact})"
+      },
+      {
+        "name": "App delegates to Service, never to Adapter directly",
+        "description": "App methods (GetCustomerData, UpsertCustomerData, DeleteCustomerData, UpdateAppConfig) call a.customInvoicingService.* \u2014 the App struct never imports or calls the adapter package.",
+        "example": "func (a App) GetCustomerData(ctx context.Context, input app.GetAppInstanceCustomerDataInput) (app.CustomerData, error) { return a.customInvoicingService.GetCustomerData(...) }"
+      },
+      {
+        "name": "Compile-time interface assertions at package level",
+        "description": "var _ customerapp.App = (*App)(nil); var _ billing.InvoicingApp = (*App)(nil); var _ billing.InvoicingAppAsyncSyncer = (*App)(nil) \u2014 one assertion per satisfied interface in app.go.",
+        "example": "var _ billing.InvoicingApp = (*App)(nil)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "app.go",
+        "role": "Defines App struct, Meta (AppBase + Configuration), compile-time assertions, and all InvoicingApp + InvoicingAppAsyncSyncer methods. UpsertStandardInvoice is a no-op; FinalizeStandardInvoice generates a non-draft invoice number only after CanIssuingSyncAdvance passes.",
+        "watch_for": "FinalizeStandardInvoice calls billingService.GenerateInvoiceSequenceNumber only when CanIssuingSyncAdvance returns true AND the number still has a draft prefix \u2014 both guards must stay."
+      },
+      {
+        "file": "service.go",
+        "role": "Declares Service interface composed of three sub-interfaces. Source of truth for what business operations the package exposes.",
+        "watch_for": "Do not add methods directly here \u2014 embed a new sub-interface instead."
+      },
+      {
+        "file": "sync.go",
+        "role": "Input types for SyncService methods: SyncDraftInvoiceInput, SyncIssuingInvoiceInput, HandlePaymentTriggerInput. All validate billing.InvoiceID and required pointer fields.",
+        "watch_for": "UpsertInvoiceResults and FinalizeInvoiceResult are pointers and required \u2014 validate they are non-nil."
+      },
+      {
+        "file": "factory.go",
+        "role": "Factory struct + NewFactory (registers marketplace listing), InstallApp, UninstallApp, NewApp (fetches configuration from service). MarketplaceListing var defines capabilities.",
+        "watch_for": "NewFactory must call RegisterMarketplaceListing or the app type is invisible to the marketplace. InstallApp must call NewApp after CreateApp to return a fully wired App."
+      },
+      {
+        "file": "customerdata.go",
+        "role": "CustomerData type (implements app.CustomerData), per-field input types with Validate(). App receiver methods bridge app.CustomerData interface to appcustominvoicing.Service.",
+        "watch_for": "CustomerData.Validate() is a no-op today; never add billing.Service calls here \u2014 customer data operations must stay service-only."
+      }
+    ],
+    "anti_patterns": [
+      "Calling billing.Service directly from App methods in customerdata.go \u2014 customer data operations must stay adapter-only via Service.",
+      "Returning an error for NotFound from GetAppConfiguration \u2014 adapter returns zero-value Configuration; callers expect that.",
+      "Skipping input.Validate() at the start of any SyncService method.",
+      "Adding new sync hook logic without a corresponding CanXxxAdvance metadata-key gate and Configuration bool.",
+      "Embedding app.InvoicingApp methods that are no-ops (ValidateStandardInvoice, UpsertStandardInvoice, DeleteStandardInvoice) with real side-effects \u2014 they must remain no-ops."
+    ],
+    "decisions": [
+      {
+        "decision": "InvoicingApp methods are mostly no-ops; meaningful logic flows through SyncService HTTP endpoints.",
+        "rationale": "External systems drive invoice lifecycle via webhook callbacks to the httpdriver endpoints, not via the state machine hooks. Only FinalizeStandardInvoice generates the non-draft invoice number as a final step."
+      },
+      {
+        "decision": "Advance gates (CanDraftSyncAdvance, CanIssuingSyncAdvance) check invoice metadata rather than a DB flag.",
+        "rationale": "Metadata is already on the in-memory invoice passed to FinalizeStandardInvoice, avoiding an extra DB round-trip and keeping the gate logic stateless."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Implement a new sync hook: block issuing advance until external system stamps metadata",
+        "code": "// In app.go \u2014 add a new metadata key constant and gate method:\nconst MetadataKeyIssuingSyncedAt = \"openmeter.io/custominvoicing/issuing-synced-at\"\n\nfunc (a App) CanIssuingSyncAdvance(invoice billing.StandardInvoice) (bool, error) {\n    if !a.Configuration.EnableIssuingSyncHook {\n        return true, nil\n    }\n    if invoice.Metadata == nil {\n        return false, nil\n    }\n    if _, ok := invoice.Metadata[MetadataKeyIssuingSyncedAt]; ok {\n        return true, nil\n    }\n    return false, nil\n}"
+      }
+    ]
+  },
+  "openmeter/app/stripe": {
+    "purpose": "Stripe billing app implementing billing.InvoicingApp (upsert/finalize/delete invoices in Stripe), customer payment data management, OAuth2 install, webhook ingestion, and checkout/portal sessions. Organized as: package-level types + App methods (appinvoice.go, appcustomer.go, clientapp.go) backed by appstripe.Service (sub-package service/) with persistence via appstripe.Adapter (sub-package adapter/) and Stripe API via appstripe client (sub-package client/).",
+    "patterns": [
+      {
+        "name": "Four-file App method split",
+        "description": "App methods are split by concern into appinvoice.go (InvoicingApp), appcustomer.go (customerapp.App + CustomerData), clientapp.go (getStripeClient helper), config.go (UpdateAppConfig). New App methods go in the matching file.",
+        "example": "var _ billing.InvoicingApp = (*App)(nil) // in appinvoice.go"
+      },
+      {
+        "name": "getStripeClient encapsulates secret retrieval",
+        "description": "All App methods needing a Stripe API client call a.getStripeClient(ctx, operationName, logKV...) which fetches AppData + secret + builds StripeAppClient. Never fetch the API key secret inline.",
+        "example": "_, stripeClient, err := a.getStripeClient(ctx, \"createInvoice\", \"invoice_id\", invoice.ID)"
+      },
+      {
+        "name": "UpsertStandardInvoice branches on ExternalIDs.Invoicing",
+        "description": "If invoice.ExternalIDs.Invoicing is empty \u2192 createInvoice; otherwise \u2192 updateInvoice. The result always sets ExternalID + InvoiceNumber from Stripe's response.",
+        "example": "if invoice.ExternalIDs.Invoicing == \"\" { return a.createInvoice(ctx, invoice) }\nreturn a.updateInvoice(ctx, invoice)"
+      },
+      {
+        "name": "StripeCalculator for all currency arithmetic",
+        "description": "Every amount sent to Stripe goes through NewStripeCalculator(invoice.Currency).RoundToAmount(). Never pass raw float64 or alpacadecimal directly to Stripe params.",
+        "example": "calculator, err := NewStripeCalculator(invoice.Currency)\namount := calculator.RoundToAmount(line.Amount)"
+      },
+      {
+        "name": "Compile-time interface assertions per file",
+        "description": "Each file that implements an interface declares var _ <Interface> = (*App)(nil) at the top. Add a new assertion whenever App gains a new interface.",
+        "example": "var _ billing.InvoicingApp = (*App)(nil)\nvar _ customerapp.App = (*App)(nil)"
+      },
+      {
+        "name": "Input.Validate() namespace cross-check",
+        "description": "Input types that carry both AppID and CustomerID always validate AppID.Namespace == CustomerID.Namespace. Add the same check to any new input type combining two namespaced IDs.",
+        "example": "if i.AppID.Namespace != i.CustomerID.Namespace { return errors.New(\"app and customer must be in the same namespace\") }"
+      },
+      {
+        "name": "HandleInvoiceStateTransition idempotency guards",
+        "description": "Service.HandleInvoiceStateTransition checks TargetStatuses (already-in-target = skip) and IgnoreInvoiceInStatus (out-of-order = skip). New Stripe webhook handlers must supply both.",
+        "example": "HandleInvoiceStateTransitionInput{TargetStatuses: []billing.StandardInvoiceStatus{...}, IgnoreInvoiceInStatus: [...]}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "appinvoice.go",
+        "role": "Full InvoicingApp implementation: ValidateStandardInvoice (calls ValidateCustomerByID), UpsertStandardInvoice (create/update branch), FinalizeStandardInvoice (finalize + set invoice number + PaymentIntent), DeleteStandardInvoice, createInvoice, updateInvoice helpers.",
+        "watch_for": "updateInvoice builds stripeLinesToRemove map from existing Stripe line items and reconciles add/update/remove \u2014 any new line attribute must update both the add and update paths."
+      },
+      {
+        "file": "appcustomer.go",
+        "role": "ValidateCustomer / ValidateCustomerByID (checks Stripe customer existence, payment method, tax status per capability), GetCustomerData, UpsertCustomerData, DeleteCustomerData.",
+        "watch_for": "ValidateCustomerByID switches on CollectionMethod (ChargeAutomatically requires default payment method + billing address; SendInvoice requires email). New collection methods need a new case."
+      },
+      {
+        "file": "calculator.go",
+        "role": "StripeCalculator wraps currencyx.Calculator to convert alpacadecimal amounts to Stripe integer subunits (RoundToAmount) and format display strings (FormatAmount, FormatQuantity).",
+        "watch_for": "RoundToAmount multiplies by 10^subunits and truncates to int64 \u2014 only use for amounts going to Stripe, not for intermediate billing calculations."
+      },
+      {
+        "file": "types.go",
+        "role": "All input/output structs with Validate() methods: CreateAppStripeInput, CustomerData, AppData, HandleInvoiceStateTransitionInput, CreateCheckoutSessionInput, etc. Also defines APIKeySecretKey / WebhookSecretKey constants.",
+        "watch_for": "CreateCheckoutSessionInput has mutually exclusive fields (CreateCustomerInput vs CustomerID) validated inline \u2014 new options must add similar mutual-exclusion checks."
+      },
+      {
+        "file": "service.go",
+        "role": "Service interface composed of AppFactoryService, StripeAppService, CustomerService, BillingService sub-interfaces.",
+        "watch_for": "New Stripe-specific operations go in the matching sub-interface \u2014 never add methods directly to Service."
+      },
+      {
+        "file": "marketplace.go",
+        "role": "StripeMarketplaceListing var and the three capability vars (StripeCollectPaymentCapability, StripeCalculateTaxCapability, StripeInvoiceCustomerCapability).",
+        "watch_for": "Capability keys are stored in DB; renaming them is a breaking migration."
+      },
+      {
+        "file": "event.go",
+        "role": "AppCheckoutSessionEvent implements watermill marshaler.Event (EventName, EventMetadata). EventName uses versioned metadata.EventType.",
+        "watch_for": "New domain events must follow the same EventName() / EventMetadata() pattern and must be versioned (v1, v2, ...)."
+      }
+    ],
+    "anti_patterns": [
+      "Calling stripe API methods without routing errors through the client's providerError() \u2014 misses 401 app-status update and domain error mapping.",
+      "Creating Stripe objects without injecting StripeMetadataNamespace / StripeMetadataAppID in Metadata \u2014 breaks reconciliation.",
+      "Using raw float64 or alpacadecimal for Stripe amounts instead of StripeCalculator.RoundToAmount.",
+      "Adding HandleInvoiceStateTransition webhook handlers without TargetStatuses and IgnoreInvoiceInStatus guards \u2014 causes duplicate state transitions.",
+      "Implementing new App business logic in the adapter sub-package \u2014 adapter is pure persistence; all orchestration belongs in service/."
+    ],
+    "decisions": [
+      {
+        "decision": "Two separate Stripe client interfaces (StripeClient for pre-install OAuth/webhook setup vs StripeAppClient for post-install operations).",
+        "rationale": "Pre-install calls only need OAuth scopes; post-install calls need API key + app context. Splitting prevents accidentally using an unauthenticated client for billing operations."
+      },
+      {
+        "decision": "Service self-registers into the app marketplace in New() (service/factory.go) rather than at wire time.",
+        "rationale": "Keeps the registration co-located with the factory construction; Wire only needs to call New() and does not need to know about the marketplace registry interface."
+      },
+      {
+        "decision": "Stripe is the source of truth for invoice numbers \u2014 FinalizeStandardInvoice reads stripeInvoice.Number and stores it via result.SetInvoiceNumber.",
+        "rationale": "Stripe's invoice numbering is deterministic and customer-facing; generating our own number separately would cause reconciliation mismatch."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new Stripe webhook handler that transitions an invoice to a new status with idempotency guards",
+        "code": "// In service/webhook.go \u2014 new handler method on Service:\nfunc (s *service) HandleInvoiceVoidedEvent(ctx context.Context, input HandleInvoiceStateTransitionInput) error {\n    return s.HandleInvoiceStateTransition(ctx, HandleInvoiceStateTransitionInput{\n        AppID:   input.AppID,\n        Invoice: input.Invoice,\n        Trigger: billing.TriggerVoid,\n        TargetStatuses: []billing.StandardInvoiceStatus{\n            billing.StandardInvoiceStatusVoided,\n        },\n        IgnoreInvoiceInStatus: []billing.StandardInvoiceStatusMatcher{\n            billing.StandardInvoiceStatusVoided,\n            billing.StandardInvoiceStatusDeleted,\n        },\n    })\n}"
+      }
+    ]
+  }
+}

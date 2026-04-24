@@ -1,0 +1,72 @@
+{
+  "etc/seed/streams": {
+    "purpose": "Benthos/Redpanda Connect pipeline configs for seeding demo CloudEvents into OpenMeter's ingest API. Each YAML file is a self-contained stream definition that generates synthetic events at a configurable interval and POSTs them as CloudEvents JSON to /api/v1/events.",
+    "patterns": [
+      {
+        "name": "CloudEvents 1.0 envelope",
+        "description": "Every generated event must include id (uuid_v4()), specversion (\"1.0\"), type, source, subject, and time at the root level. Domain-specific fields go inside data: {}.",
+        "example": "root = {\"id\": uuid_v4(), \"specversion\": \"1.0\", \"type\": $event_type, \"source\": $source, \"subject\": $subject, \"time\": $time, \"data\": {...}}"
+      },
+      {
+        "name": "Environment-variable parameterisation with defaults",
+        "description": "All tuneable values use ${ENV_VAR:default} syntax \u2014 never hardcode intervals, counts, URLs, or tokens. Standard vars: SEEDER_INTERVAL (default 100ms), SEEDER_SUBJECT_COUNT (default 1000), OPENMETER_BASE_URL, OPENMETER_TOKEN.",
+        "example": "interval: \"${SEEDER_INTERVAL:100ms}\""
+      },
+      {
+        "name": "Subject pool via modulo randomisation",
+        "description": "Subjects are selected by random_int(seed: timestamp_unix_nano()) % $subject_count, formatted as \"demo-subject-%d\". This produces a bounded, repeatable subject space driven by SEEDER_SUBJECT_COUNT.",
+        "example": "let subject = \"demo-subject-%d\".format(random_int(seed: timestamp_unix_nano()) % $subject_count)"
+      },
+      {
+        "name": "Dual-output switch: HTTP primary + optional stdout log",
+        "description": "Output is always a switch with two cases: (1) unconditional http_client POST to /api/v1/events with Content-Type: application/cloudevents+json and Bearer auth, continue: true; (2) conditional stdout when SEEDER_LOG=true.",
+        "example": "output:\n  switch:\n    cases:\n      - check: \"\"\n        continue: true\n        output:\n          http_client: ...\n      - check: '\"${SEEDER_LOG:false}\" == \"true\"'\n        output:\n          stdout: ..."
+      },
+      {
+        "name": "Infinite generation with count: 0",
+        "description": "All streams use count: 0 (run forever) under input.generate. Do not set a finite count for seed streams.",
+        "example": "input:\n  generate:\n    count: 0"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "api-requests.yaml",
+        "role": "Generates HTTP-request events (type: \"request\") with method and path data fields. Demonstrates the minimal CloudEvents + data structure.",
+        "watch_for": "data fields are method and path \u2014 meter definitions that consume this stream must match those exact field names."
+      },
+      {
+        "file": "prompt-tokens.yaml",
+        "role": "Generates LLM token events (type: \"prompt\") with tokens, model, and type (input/output) data fields. Models list must stay aligned with llmcost price definitions.",
+        "watch_for": "Model strings here are compared against llmcost price records; mismatches silently produce unresolved costs."
+      },
+      {
+        "file": "workload-runtime.yaml",
+        "role": "Generates compute-workload events (type: \"workload\") with duration_seconds, region, zone, and instance_type data fields.",
+        "watch_for": "zone is constructed as region+suffix (e.g. \"us-east-1a\"), not an independent random pick \u2014 meter group-by on zone implicitly includes region."
+      }
+    ],
+    "anti_patterns": [
+      "Hardcoding OPENMETER_TOKEN or OPENMETER_BASE_URL \u2014 always use ${VAR:default}",
+      "Adding a non-CloudEvents-1.0 envelope (missing specversion, id, or time at root)",
+      "Setting count > 0 \u2014 seed streams must run indefinitely",
+      "Putting dimensional attributes outside the data: {} block (they belong in data, not at CloudEvent root)",
+      "Using a fixed random seed instead of timestamp_unix_nano() \u2014 produces non-random sequences"
+    ],
+    "decisions": [
+      {
+        "decision": "All three files share identical input.generate + output.switch structure with only the mapping body varying.",
+        "rationale": "Uniformity lets the seed.yaml orchestrator run them identically; operators only need to learn one config shape."
+      },
+      {
+        "decision": "Subject space is bounded by SEEDER_SUBJECT_COUNT rather than fully random UUIDs.",
+        "rationale": "Bounded subjects produce realistic per-subject meter aggregations in ClickHouse and allow demo dashboards to show meaningful per-customer breakdowns."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new seed stream for storage events",
+        "code": "input:\n  generate:\n    count: 0\n    interval: \"${SEEDER_INTERVAL:100ms}\"\n    mapping: |\n      let subject_count = ${SEEDER_SUBJECT_COUNT:1000}\n      let event_type = \"storage\"\n      let source = \"demo-org-seeder\"\n      let subject = \"demo-subject-%d\".format(random_int(seed: timestamp_unix_nano()) % $subject_count)\n      let time = now()\n      let bytes = random_int(seed: timestamp_unix_nano(), min: 1024, max: 1048576)\n      root = {\n        \"id\": uuid_v4(),\n        \"specversion\": \"1.0\",\n        \"type\": $event_type,\n        \"source\": $source,\n        \"subject\": $subject,\n        \"time\": $time,\n        \"data\": {\"bytes\": $bytes}\n      }\noutput:\n  switch:\n    cases:\n      - check: \"\"\n        continue: true\n        output:\n          http_client:\n            url: ${OPENMETER_BASE_URL:http://127.0.0.1:8888}/api/v1/events\n            verb: POST\n            headers:\n              Content-Type: application/cloudevents+json\n              Authorization: \"Bearer ${OPENMETER_TOKEN:}\"\n            max_in_flight: 256\n      - check: '\"${SEEDER_LOG:false}\" == \"true\"'\n        output:\n          stdout:\n            codec: lines"
+      }
+    ]
+  }
+}

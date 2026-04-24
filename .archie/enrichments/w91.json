@@ -1,0 +1,126 @@
+{
+  "openmeter/ingest/kafkaingest/serializer": {
+    "purpose": "Defines the Serializer interface and its JSON implementation for converting CloudEvents into Kafka key/value byte pairs. The key encodes a dedupe.Item (namespace+source+id) to enable downstream deduplication; the value encodes a flat CloudEventsKafkaPayload struct with unix-timestamp time.",
+    "patterns": [
+      {
+        "name": "Serializer interface contract",
+        "description": "Every serializer must implement SerializeKey(topic, namespace, event), SerializeValue(topic, event), GetFormat(), GetKeySchemaId(), GetValueSchemaId(). Schema IDs return -1 for JSON (no schema registry).",
+        "example": "var _ Serializer = JSONSerializer{}"
+      },
+      {
+        "name": "Key encodes dedupe.Item",
+        "description": "SerializeKey must produce []byte(dedupeItem.Key()) where dedupeItem = dedupe.Item{Namespace, ID, Source}. The sink worker relies on this exact key format for Redis deduplication.",
+        "example": "dedupeItem := dedupe.Item{Namespace: namespace, ID: ev.ID(), Source: ev.Source()}; return []byte(dedupeItem.Key()), nil"
+      },
+      {
+        "name": "CloudEventsKafkaPayload wire format",
+        "description": "Value serialization must go through toCloudEventsKafkaPayload \u2192 json.Marshal producing {id, type, source, subject, time (unix int64), data (JSON string)}. Time precision is intentionally truncated to seconds; timezone is lost.",
+        "example": "payload.Time = ev.Time().Unix()"
+      },
+      {
+        "name": "Optional data field handling",
+        "description": "When ev.Data() is empty, Data field is left as empty string. When present, data is parsed via ev.DataAs(&data) then re-marshaled to JSON string. A parse failure returns an error \u2014 never silently drops data.",
+        "example": "if len(ev.Data()) > 0 { ev.DataAs(&data); json.Marshal(data) }"
+      },
+      {
+        "name": "Compile-time interface assertion",
+        "description": "Use var _ Serializer = (*ConcreteType)(nil) to assert implementation at compile time.",
+        "example": "var _ Serializer = JSONSerializer{}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "serializer.go",
+        "role": "Defines the Serializer interface, CloudEventsKafkaPayload wire struct, toCloudEventsKafkaPayload (event\u2192payload), FromKafkaPayloadToCloudEvents (payload\u2192event), and ValidateKafkaPayloadToCloudEvent. These are shared by both producer (serializer) and consumer (sink) paths.",
+        "watch_for": "FromKafkaPayloadToCloudEvents is consumed by the sink worker \u2014 changing field names or unix-timestamp semantics here breaks deserialization on the other side."
+      },
+      {
+        "file": "json.go",
+        "role": "Concrete JSONSerializer implementation. No schema registry, GetKeySchemaId/GetValueSchemaId return -1.",
+        "watch_for": "Key format must match dedupe.Item.Key() output exactly \u2014 the sink worker's Redis deduplication depends on it."
+      },
+      {
+        "file": "serializer_test.go",
+        "role": "Table-driven tests for round-trip fidelity (toCloudEventsKafkaPayload, FromKafkaPayloadToCloudEvents) and key format assertion.",
+        "watch_for": "TestSerializeKey asserts key = 'namespace-source-id'; any dedupe.Item.Key() format change must be reflected here."
+      }
+    ],
+    "anti_patterns": [
+      "Adding schema-registry-aware serializers without implementing the full Serializer interface (GetKeySchemaId/GetValueSchemaId must return real schema IDs)",
+      "Storing timezone-aware time in CloudEventsKafkaPayload.Time \u2014 field is unix int64, timezone is intentionally dropped",
+      "Embedding namespace in the value payload \u2014 namespace belongs only in the key via dedupe.Item",
+      "Silently dropping data parse errors in toCloudEventsKafkaPayload \u2014 always return the error",
+      "Bypassing toCloudEventsKafkaPayload in SerializeValue \u2014 the sink worker's FromKafkaPayloadToCloudEvents expects exactly this struct"
+    ],
+    "decisions": [
+      {
+        "decision": "Key is derived from dedupe.Item (namespace+source+id) rather than event ID alone",
+        "rationale": "Guarantees global uniqueness across namespaces for Redis-backed deduplication in the sink worker"
+      },
+      {
+        "decision": "Data is stored as a JSON string inside CloudEventsKafkaPayload rather than raw bytes",
+        "rationale": "CloudEvents data is JSON-only in this system; string encoding avoids base64 overhead and keeps the payload human-readable in Kafka"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Implementing a new Serializer (e.g. Avro) following the existing pattern",
+        "code": "package serializer\n\nimport (\n\t\"github.com/cloudevents/sdk-go/v2/event\"\n\t\"github.com/openmeterio/openmeter/openmeter/dedupe\"\n)\n\nvar _ Serializer = AvroSerializer{}\n\ntype AvroSerializer struct{}\n\nfunc (s AvroSerializer) SerializeKey(topic string, namespace string, ev event.Event) ([]byte, error) {\n\titem := dedupe.Item{Namespace: namespace, ID: ev.ID(), Source: ev.Source()}\n\treturn []byte(item.Key()), nil\n}\n\nfunc (s AvroSerializer) SerializeValue(topic string, ev event.Event) ([]byte, error) {\n\t// encode via Avro schema\n\treturn nil, nil\n}\n\nfunc (s AvroSerializer) GetFormat() string   { return \"AVRO\" }\nfunc (s AvroSerializer) GetKeySchemaId() int  { return 42 }\nfunc (s AvroSerializer) GetValueSchemaId() int { return 43 }"
+      }
+    ]
+  },
+  "openmeter/ingest/kafkaingest/topicresolver": {
+    "purpose": "Provides the Resolver interface and its single implementation NamespacedTopicResolver, which maps a namespace string to a Kafka topic name using a printf-style template (e.g. 'om_%s_events'). Used by the Kafka ingest collector to determine the target topic per ingest call.",
+    "patterns": [
+      {
+        "name": "Resolver interface",
+        "description": "All topic resolution must go through the Resolver interface: Resolve(ctx context.Context, namespace string) (string, error). Callers must never hard-code topic names.",
+        "example": "type Resolver interface { Resolve(ctx context.Context, namespace string) (string, error) }"
+      },
+      {
+        "name": "Template-based namespace-to-topic mapping",
+        "description": "NamespacedTopicResolver uses fmt.Sprintf(template, namespace). Template must contain exactly one %s placeholder. Constructor validates non-empty template.",
+        "example": "NewNamespacedTopicResolver(\"om_%s_events\")"
+      },
+      {
+        "name": "Compile-time interface assertion",
+        "description": "var _ Resolver = (*NamespacedTopicResolver)(nil) ensures the concrete type satisfies the interface at compile time.",
+        "example": "var _ Resolver = (*NamespacedTopicResolver)(nil)"
+      },
+      {
+        "name": "Context threading",
+        "description": "Resolve accepts context.Context even though NamespacedTopicResolver ignores it. New implementations (e.g. DB-backed resolvers) may use it for cancellation \u2014 always pass the caller's ctx.",
+        "example": "func (r NamespacedTopicResolver) Resolve(_ context.Context, namespace string) (string, error)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "resolver.go",
+        "role": "Defines only the Resolver interface. New resolver implementations belong in separate files in this package.",
+        "watch_for": "Do not add business logic to resolver.go \u2014 keep it as a pure interface definition."
+      },
+      {
+        "file": "namespacedtopic.go",
+        "role": "Single-template resolver; constructor rejects empty templates. The only current Resolver implementation.",
+        "watch_for": "Template must have exactly one %s; passing a template with zero or two %s arguments causes a runtime fmt.Sprintf format error \u2014 constructor does not validate placeholder count."
+      }
+    ],
+    "anti_patterns": [
+      "Hard-coding topic names in the collector instead of using Resolver.Resolve",
+      "Passing a template string with zero or multiple %s placeholders to NewNamespacedTopicResolver (constructor only validates non-empty, not placeholder count)",
+      "Implementing Resolver without accepting context.Context \u2014 the interface requires it for future async/DB-backed implementations",
+      "Calling Resolve with context.Background() in application code \u2014 always propagate the caller's context"
+    ],
+    "decisions": [
+      {
+        "decision": "Topic name is derived from a template rather than stored in config as a static string",
+        "rationale": "Enables per-namespace Kafka topic isolation (multi-tenant ingest) without requiring config changes per new namespace"
+      },
+      {
+        "decision": "Resolver is an interface, not a function type",
+        "rationale": "Allows future implementations (e.g. DB-backed dynamic routing) to be swapped in via DI without changing the collector"
+      }
+    ],
+    "code_examples": []
+  }
+}

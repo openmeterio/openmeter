@@ -1,0 +1,111 @@
+{
+  "openmeter/billing/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing billing.Adapter \u2014 the single persistence boundary for all billing domain entities (profiles, customer overrides, invoices, invoice lines, split line groups, sequences, locks, schema migration). Every method wraps Ent queries inside entutils.TransactingRepo so operations compose correctly with caller-supplied transactions carried in ctx.",
+    "patterns": [
+      {
+        "name": "TransactingRepo on every mutating method",
+        "description": "All adapter methods that write or need read-consistency must be wrapped with entutils.TransactingRepo (returns value) or entutils.TransactingRepoWithNoValue. The pattern rebinds a.db to the ctx-carried transaction via WithTx, so callers can compose multiple adapter calls inside one transaction without partial writes.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billing.CustomerOverride, error) { ... tx.db.BillingCustomerOverride.Create()... })"
+      },
+      {
+        "name": "Interface compliance assertions at file top",
+        "description": "Every file that implements an adapter sub-interface must declare a compile-time assertion: var _ billing.XxxAdapter = (*adapter)(nil). This catches missing methods immediately rather than at call sites.",
+        "example": "var _ billing.GatheringInvoiceAdapter = (*adapter)(nil)"
+      },
+      {
+        "name": "workflowConfigWithTaxCode eager-load option",
+        "description": "All queries that return a billing profile or workflow config must pass WithWorkflowConfig(workflowConfigWithTaxCode) so that the TaxCode edge is populated and BackfillTaxConfig works correctly on the read path. Omitting it silently produces nil TaxCode in mapped domain objects.",
+        "example": "tx.db.BillingProfile.Query().Where(...).WithWorkflowConfig(workflowConfigWithTaxCode).First(ctx)"
+      },
+      {
+        "name": "Manually attach edges after Save",
+        "description": "Ent's Save() never populates edges on the returned node. After creating or updating a WorkflowConfig or BillingProfile that has a TaxCodeID, manually fetch and assign the edge (e.g. saved.Edges.TaxCode = tc) before returning, or downstream mappers panic on nil pointer dereferences.",
+        "example": "if saved.TaxCodeID != nil { tc, _ := a.db.TaxCode.Get(ctx, *saved.TaxCodeID); saved.Edges.TaxCode = tc }"
+      },
+      {
+        "name": "entitydiff-based upsert for line hierarchies",
+        "description": "Invoice lines and their children (detailed lines, discounts) are updated via a two-pass diff: diffInvoiceLines / diffGatheringInvoiceLines computes Create/Update/Delete sets from DBState vs expected state, then upsertWithOptions executes bulk CREATE ON CONFLICT operations. Never do item-by-item inserts/updates for line hierarchies \u2014 use the diff pipeline.",
+        "example": "lineDiffs, _ := diffInvoiceLines(input.Lines); tx.upsertFeeLineConfig(ctx, lineDiffs.DetailedLine)"
+      },
+      {
+        "name": "DBState snapshot on read",
+        "description": "After mapping a line from DB (mapStandardInvoiceLinesFromDB, mapGatheringInvoiceLineFromDB), call line.SaveDBSnapshot() to record the persisted state. The diff engine uses line.DBState to detect changes; omitting the snapshot causes every field to look changed on the next write.",
+        "example": "if err := line.SaveDBSnapshot(); err != nil { return nil, fmt.Errorf(\"saving DB snapshot [id=%s]: %w\", line.GetID(), err) }"
+      },
+      {
+        "name": "Soft-delete pattern with DeletedAt",
+        "description": "Billing entities use soft-delete (SetDeletedAt(clock.Now())) not hard DELETE. Queries must add Where(billinginvoice.DeletedAtIsNil()) unless explicitly fetching deleted records via IncludeDeleted. Sequences and lock rows are never soft-deleted.",
+        "example": "tx.db.BillingInvoice.Update().Where(billinginvoice.ID(id)).SetDeletedAt(clock.Now()).Save(ctx)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Defines Config, the adapter struct (db *entdb.Client, logger), constructor New, and the Tx/WithTx/Self trio required by entutils.TransactingRepo. All other files add methods to this struct.",
+        "watch_for": "Tx() uses HijackTx \u2014 do not replace with db.BeginTx as it breaks the transaction driver contract."
+      },
+      {
+        "file": "stdinvoicelines.go",
+        "role": "Implements billing.InvoiceLineAdapter.UpsertInvoiceLines \u2014 the most complex write path. Multi-table upsert across BillingInvoiceLine, BillingInvoiceFlatFeeLineConfig, BillingInvoiceUsageBasedLineConfig, discounts, and the schema-level-2 detailed line tables.",
+        "watch_for": "SchemaLevel gates which detail-line table is written (schema 1 uses FlatFeeLine table; schema 2 uses BillingStandardInvoiceDetailedLine). Mixing them corrupts the read path."
+      },
+      {
+        "file": "stdinvoicelinediff.go",
+        "role": "Pure diffing logic (no DB access) for invoice line hierarchies. Produces invoiceLineDiff with separate entitydiff.Diff sets for lines, usage discounts, detailed lines, and detailed line discounts.",
+        "watch_for": "Line equality checks call StandardLineBase.Equal and UsageBased.Equal \u2014 if you add new fields to those structs you must update the Equal methods or diffs will be missed."
+      },
+      {
+        "file": "gatheringlines.go",
+        "role": "CRUD and diff/upsert for gathering invoice lines (usage-based only, stored in BillingInvoiceLine + BillingInvoiceUsageBasedLineConfig). Also implements expandSplitLineHierarchy for progressive billing.",
+        "watch_for": "Hard-delete (not soft-delete) is used for gathering lines via HardDeleteGatheringInvoiceLines \u2014 must also delete the associated BillingInvoiceUsageBasedLineConfig rows atomically."
+      },
+      {
+        "file": "profile.go",
+        "role": "Profile and WorkflowConfig CRUD. createWorkflowConfig and updateWorkflowConfig both manually fetch the TaxCode edge after Save since Ent never populates edges on mutation results.",
+        "watch_for": "workflowConfigWithTaxCode closure must be used on every BillingProfile query that will be mapped \u2014 silently omitting it produces nil TaxCode in BackfillTaxConfig."
+      },
+      {
+        "file": "schemamigration.go",
+        "role": "On-demand per-customer invoice schema migration triggered inside LockCustomerForUpdate. Calls a raw SQL stored-procedure (om_func_migrate_customer_invoices_to_schema_level_2) for schema level 1\u21922.",
+        "watch_for": "Migration runs inside the advisory lock transaction \u2014 never call migrateCustomerInvoices outside a LockCustomerForUpdate context."
+      },
+      {
+        "file": "seq.go",
+        "role": "Sequence number allocation using FOR UPDATE pessimistic locking on BillingSequenceNumbers. Uses upsert-then-reselect to handle the first-use race condition.",
+        "watch_for": "NextSequenceNumber must always run inside a transaction (uses ForUpdate). Calling it outside a transaction will succeed but without lock safety."
+      },
+      {
+        "file": "stdinvoicelinemapper.go",
+        "role": "Pure DB\u2192domain mapping for standard invoice lines (no writes). backfillTaxConfigReferences handles the legacy stripe-code/TaxCodeID precedence logic.",
+        "watch_for": "mapStandardInvoiceDetailedLineFromDB is schema-level-1 path; mapStandardInvoiceDetailedLineV2FromDB is schema-level-2 path. The caller in mapStandardInvoiceLinesFromDB selects the correct path via schemaLevelByInvoiceID."
+      }
+    ],
+    "anti_patterns": [
+      "Using a.db directly inside a helper function that could be called from within a transaction \u2014 always call entutils.TransactingRepo to rebind to the ctx-carried transaction.",
+      "Querying BillingProfile or BillingWorkflowConfig without WithWorkflowConfig(workflowConfigWithTaxCode) \u2014 omitting the eager load produces silent nil in BackfillTaxConfig.",
+      "Calling Save() on a WorkflowConfig or BillingProfile and returning the result without manually attaching the TaxCode edge \u2014 downstream mappers dereference the nil edge.",
+      "Bypassing the entitydiff pipeline to write invoice lines one-by-one \u2014 the diff pipeline tracks AffectedLineIDs and handles UpdatedAt propagation; direct writes miss these.",
+      "Calling migrateCustomerInvoices outside of a LockCustomerForUpdate context \u2014 the schema migration must run under the advisory lock to be safe against concurrent invoice creation."
+    ],
+    "decisions": [
+      {
+        "decision": "entutils.TransactingRepo is called at the outermost adapter method boundary, not once at the service layer.",
+        "rationale": "Adapter methods compose with each other (e.g., GetCustomerOverride called inside UpdateCustomerOverride) and the TransactingRepo pattern safely nests by reusing the tx already in ctx. This keeps the service layer free of transaction management."
+      },
+      {
+        "decision": "Invoice lines use an entity-diff + bulk-upsert pipeline rather than load-compare-update.",
+        "rationale": "Invoice line sets can be large; generating a diff first then executing bulk CREATE ON CONFLICT operations minimises round trips and correctly propagates UpdatedAt only to actually changed lines/discounts."
+      },
+      {
+        "decision": "Schema migration is lazy (triggered inside LockCustomerForUpdate) rather than a global offline migration job.",
+        "rationale": "Migrating all invoices at once would require a long-running exclusive lock. Per-customer lazy migration under the billing advisory lock amortises the cost without blocking unrelated customers."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Implementing a new adapter method that reads and writes inside a transaction",
+        "code": "func (a *adapter) CreateFoo(ctx context.Context, input billing.CreateFooInput) (*billing.Foo, error) {\n    if err := input.Validate(); err != nil {\n        return nil, billing.ValidationError{Err: err}\n    }\n    return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billing.Foo, error) {\n        row, err := tx.db.BillingFoo.Create().\n            SetNamespace(input.Namespace).\n            SetName(input.Name).\n            Save(ctx)\n        if err != nil {\n            return nil, err\n        }\n        return mapFooFromDB(row), nil\n    })\n}"
+      }
+    ]
+  }
+}

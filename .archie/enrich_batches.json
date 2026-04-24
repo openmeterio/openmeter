@@ -1,0 +1,3567 @@
+{
+  "version": 2,
+  "folders": {
+    "api": {
+      "children": [
+        "api/client",
+        "api/spec",
+        "api/types",
+        "api/v3"
+      ],
+      "depth": 1,
+      "size_chars": 31249
+    },
+    "api/client/go": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 13766
+    },
+    "api/client/javascript": {
+      "children": [
+        "api/client/javascript/patches",
+        "api/client/javascript/scripts",
+        "api/client/javascript/src"
+      ],
+      "depth": 3,
+      "size_chars": 38332
+    },
+    "api/client/javascript/patches": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 15000
+    },
+    "api/client/javascript/scripts": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 2271
+    },
+    "api/client/javascript/src/client": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 123815
+    },
+    "api/client/javascript/src/portal": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 2854
+    },
+    "api/client/javascript/src/react": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 736
+    },
+    "api/client/javascript/src/zod": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 15000
+    },
+    "api/client/node": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 85
+    },
+    "api/client/python": {
+      "children": [
+        "api/client/python/examples",
+        "api/client/python/openmeter",
+        "api/client/python/scripts"
+      ],
+      "depth": 3,
+      "size_chars": 16723
+    },
+    "api/client/python/examples": {
+      "children": [
+        "api/client/python/examples/async",
+        "api/client/python/examples/sync"
+      ],
+      "depth": 4,
+      "size_chars": 939
+    },
+    "api/client/python/examples/async": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 12730
+    },
+    "api/client/python/examples/sync": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 11541
+    },
+    "api/client/python/openmeter": {
+      "children": [
+        "api/client/python/openmeter/_generated",
+        "api/client/python/openmeter/aio",
+        "api/client/python/openmeter/models",
+        "api/client/python/openmeter/operations"
+      ],
+      "depth": 4,
+      "size_chars": 6012
+    },
+    "api/client/python/openmeter/_generated": {
+      "children": [
+        "api/client/python/openmeter/_generated/_utils",
+        "api/client/python/openmeter/_generated/aio",
+        "api/client/python/openmeter/_generated/models",
+        "api/client/python/openmeter/_generated/operations"
+      ],
+      "depth": 5,
+      "size_chars": 16104
+    },
+    "api/client/python/openmeter/_generated/_utils": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 30000
+    },
+    "api/client/python/openmeter/_generated/aio": {
+      "children": [
+        "api/client/python/openmeter/_generated/aio/operations"
+      ],
+      "depth": 6,
+      "size_chars": 16293
+    },
+    "api/client/python/openmeter/_generated/aio/operations": {
+      "children": [],
+      "depth": 7,
+      "size_chars": 19427
+    },
+    "api/client/python/openmeter/_generated/models": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 45516
+    },
+    "api/client/python/openmeter/_generated/operations": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 19427
+    },
+    "api/client/python/openmeter/aio": {
+      "children": [
+        "api/client/python/openmeter/aio/operations"
+      ],
+      "depth": 5,
+      "size_chars": 1486
+    },
+    "api/client/python/openmeter/aio/operations": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 892
+    },
+    "api/client/python/openmeter/models": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 879
+    },
+    "api/client/python/openmeter/operations": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 858
+    },
+    "api/client/python/scripts": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 1699
+    },
+    "api/client/web": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 84
+    },
+    "api/spec": {
+      "children": [
+        "api/spec/packages",
+        "api/spec/patches"
+      ],
+      "depth": 2,
+      "size_chars": 20474
+    },
+    "api/spec/packages/aip": {
+      "children": [
+        "api/spec/packages/aip/common",
+        "api/spec/packages/aip/lib",
+        "api/spec/packages/aip/scripts",
+        "api/spec/packages/aip/src"
+      ],
+      "depth": 4,
+      "size_chars": 1673
+    },
+    "api/spec/packages/aip/common/definitions": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 40481
+    },
+    "api/spec/packages/aip/lib": {
+      "children": [
+        "api/spec/packages/aip/lib/rules"
+      ],
+      "depth": 5,
+      "size_chars": 964
+    },
+    "api/spec/packages/aip/lib/rules": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 13895
+    },
+    "api/spec/packages/aip/scripts": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 3140
+    },
+    "api/spec/packages/aip/src": {
+      "children": [
+        "api/spec/packages/aip/src/apps",
+        "api/spec/packages/aip/src/billing",
+        "api/spec/packages/aip/src/common",
+        "api/spec/packages/aip/src/currencies",
+        "api/spec/packages/aip/src/customers",
+        "api/spec/packages/aip/src/entitlements",
+        "api/spec/packages/aip/src/events",
+        "api/spec/packages/aip/src/features",
+        "api/spec/packages/aip/src/invoices",
+        "api/spec/packages/aip/src/llmcost",
+        "api/spec/packages/aip/src/meters",
+        "api/spec/packages/aip/src/productcatalog",
+        "api/spec/packages/aip/src/shared",
+        "api/spec/packages/aip/src/subscriptions",
+        "api/spec/packages/aip/src/tax"
+      ],
+      "depth": 5,
+      "size_chars": 13080
+    },
+    "api/spec/packages/aip/src/apps": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 22643
+    },
+    "api/spec/packages/aip/src/billing": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 14982
+    },
+    "api/spec/packages/aip/src/common": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 12931
+    },
+    "api/spec/packages/aip/src/currencies": {
+      "children": [
+        "api/spec/packages/aip/src/currencies/cost-bases"
+      ],
+      "depth": 6,
+      "size_chars": 4729
+    },
+    "api/spec/packages/aip/src/currencies/cost-bases": {
+      "children": [],
+      "depth": 7,
+      "size_chars": 2822
+    },
+    "api/spec/packages/aip/src/customers": {
+      "children": [
+        "api/spec/packages/aip/src/customers/charges",
+        "api/spec/packages/aip/src/customers/credits"
+      ],
+      "depth": 6,
+      "size_chars": 10704
+    },
+    "api/spec/packages/aip/src/customers/charges": {
+      "children": [],
+      "depth": 7,
+      "size_chars": 8383
+    },
+    "api/spec/packages/aip/src/customers/credits": {
+      "children": [],
+      "depth": 7,
+      "size_chars": 19779
+    },
+    "api/spec/packages/aip/src/entitlements": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 2386
+    },
+    "api/spec/packages/aip/src/events": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 6812
+    },
+    "api/spec/packages/aip/src/features": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 11463
+    },
+    "api/spec/packages/aip/src/invoices": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 3039
+    },
+    "api/spec/packages/aip/src/llmcost": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 7544
+    },
+    "api/spec/packages/aip/src/meters": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 10862
+    },
+    "api/spec/packages/aip/src/productcatalog": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 32566
+    },
+    "api/spec/packages/aip/src/shared": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 20301
+    },
+    "api/spec/packages/aip/src/subscriptions": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 9079
+    },
+    "api/spec/packages/aip/src/tax": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 2941
+    },
+    "api/spec/packages/legacy": {
+      "children": [
+        "api/spec/packages/legacy/lib",
+        "api/spec/packages/legacy/src"
+      ],
+      "depth": 4,
+      "size_chars": 5238
+    },
+    "api/spec/packages/legacy/lib": {
+      "children": [
+        "api/spec/packages/legacy/lib/rules"
+      ],
+      "depth": 5,
+      "size_chars": 658
+    },
+    "api/spec/packages/legacy/lib/rules": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 8115
+    },
+    "api/spec/packages/legacy/src": {
+      "children": [
+        "api/spec/packages/legacy/src/app",
+        "api/spec/packages/legacy/src/billing",
+        "api/spec/packages/legacy/src/cloud",
+        "api/spec/packages/legacy/src/customer",
+        "api/spec/packages/legacy/src/entitlements",
+        "api/spec/packages/legacy/src/info",
+        "api/spec/packages/legacy/src/notification",
+        "api/spec/packages/legacy/src/productcatalog"
+      ],
+      "depth": 5,
+      "size_chars": 63432
+    },
+    "api/spec/packages/legacy/src/app": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 37700
+    },
+    "api/spec/packages/legacy/src/billing": {
+      "children": [
+        "api/spec/packages/legacy/src/billing/invoices"
+      ],
+      "depth": 6,
+      "size_chars": 37706
+    },
+    "api/spec/packages/legacy/src/billing/invoices": {
+      "children": [],
+      "depth": 7,
+      "size_chars": 30286
+    },
+    "api/spec/packages/legacy/src/cloud": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 11295
+    },
+    "api/spec/packages/legacy/src/customer": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 12553
+    },
+    "api/spec/packages/legacy/src/entitlements": {
+      "children": [
+        "api/spec/packages/legacy/src/entitlements/v2"
+      ],
+      "depth": 6,
+      "size_chars": 36432
+    },
+    "api/spec/packages/legacy/src/entitlements/v2": {
+      "children": [],
+      "depth": 7,
+      "size_chars": 21730
+    },
+    "api/spec/packages/legacy/src/info": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 1745
+    },
+    "api/spec/packages/legacy/src/notification": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 32717
+    },
+    "api/spec/packages/legacy/src/productcatalog": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 69638
+    },
+    "api/spec/patches": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 75000
+    },
+    "api/types": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 267
+    },
+    "api/v3": {
+      "children": [
+        "api/v3/apierrors",
+        "api/v3/filters",
+        "api/v3/handlers",
+        "api/v3/labels",
+        "api/v3/oasmiddleware",
+        "api/v3/render",
+        "api/v3/request",
+        "api/v3/response",
+        "api/v3/server",
+        "api/v3/templates"
+      ],
+      "depth": 2,
+      "size_chars": 15750
+    },
+    "api/v3/apierrors": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 22898
+    },
+    "api/v3/filters": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 54519
+    },
+    "api/v3/handlers/addons": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 28721
+    },
+    "api/v3/handlers/apps": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 10836
+    },
+    "api/v3/handlers/billingprofiles": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 25479
+    },
+    "api/v3/handlers/currencies": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 11796
+    },
+    "api/v3/handlers/customers": {
+      "children": [
+        "api/v3/handlers/customers/billing",
+        "api/v3/handlers/customers/charges",
+        "api/v3/handlers/customers/credits",
+        "api/v3/handlers/customers/entitlementaccess"
+      ],
+      "depth": 4,
+      "size_chars": 16075
+    },
+    "api/v3/handlers/customers/billing": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 30726
+    },
+    "api/v3/handlers/customers/charges": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 21760
+    },
+    "api/v3/handlers/customers/credits": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 41779
+    },
+    "api/v3/handlers/customers/entitlementaccess": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 5775
+    },
+    "api/v3/handlers/events": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 19133
+    },
+    "api/v3/handlers/featurecost": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 6097
+    },
+    "api/v3/handlers/features": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 40556
+    },
+    "api/v3/handlers/llmcost": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 20125
+    },
+    "api/v3/handlers/meters": {
+      "children": [
+        "api/v3/handlers/meters/query"
+      ],
+      "depth": 4,
+      "size_chars": 25437
+    },
+    "api/v3/handlers/meters/query": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 23105
+    },
+    "api/v3/handlers/plans": {
+      "children": [
+        "api/v3/handlers/plans/planaddons"
+      ],
+      "depth": 4,
+      "size_chars": 43666
+    },
+    "api/v3/handlers/plans/planaddons": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 12988
+    },
+    "api/v3/handlers/subscriptions": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 24539
+    },
+    "api/v3/handlers/taxcodes": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 13904
+    },
+    "api/v3/labels": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 13817
+    },
+    "api/v3/oasmiddleware": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 14841
+    },
+    "api/v3/render": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 1565
+    },
+    "api/v3/request": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 7317
+    },
+    "api/v3/response": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 2376
+    },
+    "api/v3/server": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 30000
+    },
+    "api/v3/templates": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 1021
+    },
+    "app/common": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 128737
+    },
+    "app/config": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 92494
+    },
+    "cmd/balance-worker": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 3669
+    },
+    "cmd/benthos-collector": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 1009
+    },
+    "cmd/billing-worker": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 4390
+    },
+    "cmd/jobs": {
+      "children": [
+        "cmd/jobs/billing",
+        "cmd/jobs/entitlement",
+        "cmd/jobs/internal",
+        "cmd/jobs/ledger",
+        "cmd/jobs/llmcost",
+        "cmd/jobs/migrate",
+        "cmd/jobs/quickstart"
+      ],
+      "depth": 2,
+      "size_chars": 2530
+    },
+    "cmd/jobs/billing": {
+      "children": [
+        "cmd/jobs/billing/advance",
+        "cmd/jobs/billing/advancecharges",
+        "cmd/jobs/billing/collect",
+        "cmd/jobs/billing/subscriptionsync"
+      ],
+      "depth": 3,
+      "size_chars": 542
+    },
+    "cmd/jobs/billing/advance": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 2201
+    },
+    "cmd/jobs/billing/advancecharges": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 2191
+    },
+    "cmd/jobs/billing/collect": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 2766
+    },
+    "cmd/jobs/billing/subscriptionsync": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 2526
+    },
+    "cmd/jobs/entitlement": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 1354
+    },
+    "cmd/jobs/internal": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 6060
+    },
+    "cmd/jobs/ledger": {
+      "children": [
+        "cmd/jobs/ledger/backfillaccounts",
+        "cmd/jobs/ledger/service"
+      ],
+      "depth": 3,
+      "size_chars": 254
+    },
+    "cmd/jobs/ledger/backfillaccounts": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 4399
+    },
+    "cmd/jobs/ledger/service": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 18507
+    },
+    "cmd/jobs/llmcost": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 494
+    },
+    "cmd/jobs/migrate": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 1089
+    },
+    "cmd/jobs/quickstart": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 2980
+    },
+    "cmd/notification-service": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 6418
+    },
+    "cmd/server": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 17432
+    },
+    "cmd/sink-worker": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 5754
+    },
+    "collector": {
+      "children": [
+        "collector/benthos",
+        "collector/quickstart"
+      ],
+      "depth": 1,
+      "size_chars": 4775
+    },
+    "collector/benthos/bloblang": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 1039
+    },
+    "collector/benthos/input": {
+      "children": [
+        "collector/benthos/input/runai"
+      ],
+      "depth": 3,
+      "size_chars": 43159
+    },
+    "collector/benthos/input/runai": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 23707
+    },
+    "collector/benthos/internal": {
+      "children": [
+        "collector/benthos/internal/logging",
+        "collector/benthos/internal/message",
+        "collector/benthos/internal/shutdown"
+      ],
+      "depth": 3,
+      "size_chars": 1056
+    },
+    "collector/benthos/internal/logging": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 1421
+    },
+    "collector/benthos/internal/message": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 3824
+    },
+    "collector/benthos/internal/shutdown": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 4844
+    },
+    "collector/benthos/presets/http-server": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 3372
+    },
+    "collector/benthos/presets/kubernetes-pod-exec-time": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 3621
+    },
+    "collector/benthos/services/leaderelection": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 8181
+    },
+    "collector/quickstart": {
+      "children": [
+        "collector/quickstart/collector",
+        "collector/quickstart/seeder"
+      ],
+      "depth": 2,
+      "size_chars": 1501
+    },
+    "collector/quickstart/collector": {
+      "children": [
+        "collector/quickstart/collector/resources",
+        "collector/quickstart/collector/streams"
+      ],
+      "depth": 3,
+      "size_chars": 266
+    },
+    "collector/quickstart/collector/resources": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 75
+    },
+    "collector/quickstart/collector/streams": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 2612
+    },
+    "collector/quickstart/seeder": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 2064
+    },
+    "deploy": {
+      "children": [
+        "deploy/charts"
+      ],
+      "depth": 1,
+      "size_chars": 1138
+    },
+    "deploy/charts": {
+      "children": [
+        "deploy/charts/benthos-collector",
+        "deploy/charts/openmeter"
+      ],
+      "depth": 2,
+      "size_chars": 1990
+    },
+    "deploy/charts/benthos-collector": {
+      "children": [
+        "deploy/charts/benthos-collector/templates"
+      ],
+      "depth": 3,
+      "size_chars": 14390
+    },
+    "deploy/charts/benthos-collector/templates": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 13345
+    },
+    "deploy/charts/openmeter": {
+      "children": [
+        "deploy/charts/openmeter/templates"
+      ],
+      "depth": 3,
+      "size_chars": 26007
+    },
+    "deploy/charts/openmeter/templates": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 41683
+    },
+    "docs": {
+      "children": [
+        "docs/decisions",
+        "docs/migration-guides"
+      ],
+      "depth": 1,
+      "size_chars": 11435
+    },
+    "docs/decisions": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 8380
+    },
+    "docs/migration-guides": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 12031
+    },
+    "e2e": {
+      "children": [],
+      "depth": 1,
+      "size_chars": 143045
+    },
+    "etc/seed": {
+      "children": [
+        "etc/seed/streams"
+      ],
+      "depth": 2,
+      "size_chars": 2171
+    },
+    "etc/seed/streams": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 4895
+    },
+    "etc/wiretap": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 150
+    },
+    "openmeter/apiconverter": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 2608
+    },
+    "openmeter/app": {
+      "children": [
+        "openmeter/app/adapter",
+        "openmeter/app/custominvoicing",
+        "openmeter/app/httpdriver",
+        "openmeter/app/sandbox",
+        "openmeter/app/service",
+        "openmeter/app/stripe"
+      ],
+      "depth": 2,
+      "size_chars": 31819
+    },
+    "openmeter/app/adapter": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 19044
+    },
+    "openmeter/app/custominvoicing": {
+      "children": [
+        "openmeter/app/custominvoicing/adapter",
+        "openmeter/app/custominvoicing/httpdriver",
+        "openmeter/app/custominvoicing/service"
+      ],
+      "depth": 3,
+      "size_chars": 14048
+    },
+    "openmeter/app/custominvoicing/adapter": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 6549
+    },
+    "openmeter/app/custominvoicing/httpdriver": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 10915
+    },
+    "openmeter/app/custominvoicing/service": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 8101
+    },
+    "openmeter/app/httpdriver": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 41176
+    },
+    "openmeter/app/sandbox": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 17789
+    },
+    "openmeter/app/service": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 7323
+    },
+    "openmeter/app/stripe": {
+      "children": [
+        "openmeter/app/stripe/adapter",
+        "openmeter/app/stripe/client",
+        "openmeter/app/stripe/httpdriver",
+        "openmeter/app/stripe/service"
+      ],
+      "depth": 3,
+      "size_chars": 53983
+    },
+    "openmeter/app/stripe/adapter": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 27806
+    },
+    "openmeter/app/stripe/client": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 50233
+    },
+    "openmeter/app/stripe/httpdriver": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 36321
+    },
+    "openmeter/app/stripe/service": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 22431
+    },
+    "openmeter/billing": {
+      "children": [
+        "openmeter/billing/adapter",
+        "openmeter/billing/charges",
+        "openmeter/billing/creditgrant",
+        "openmeter/billing/httpdriver",
+        "openmeter/billing/lineengine",
+        "openmeter/billing/models",
+        "openmeter/billing/rating",
+        "openmeter/billing/service",
+        "openmeter/billing/validators",
+        "openmeter/billing/worker"
+      ],
+      "depth": 2,
+      "size_chars": 210057
+    },
+    "openmeter/billing/adapter": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 152440
+    },
+    "openmeter/billing/charges": {
+      "children": [
+        "openmeter/billing/charges/adapter",
+        "openmeter/billing/charges/creditpurchase",
+        "openmeter/billing/charges/flatfee",
+        "openmeter/billing/charges/lineage",
+        "openmeter/billing/charges/meta",
+        "openmeter/billing/charges/models",
+        "openmeter/billing/charges/service",
+        "openmeter/billing/charges/statemachine",
+        "openmeter/billing/charges/testutils",
+        "openmeter/billing/charges/usagebased",
+        "openmeter/billing/charges/worker"
+      ],
+      "depth": 3,
+      "size_chars": 23561
+    },
+    "openmeter/billing/charges/adapter": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 16884
+    },
+    "openmeter/billing/charges/creditpurchase": {
+      "children": [
+        "openmeter/billing/charges/creditpurchase/adapter",
+        "openmeter/billing/charges/creditpurchase/lineengine",
+        "openmeter/billing/charges/creditpurchase/service"
+      ],
+      "depth": 4,
+      "size_chars": 27172
+    },
+    "openmeter/billing/charges/creditpurchase/adapter": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 30519
+    },
+    "openmeter/billing/charges/creditpurchase/lineengine": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 3741
+    },
+    "openmeter/billing/charges/creditpurchase/service": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 18872
+    },
+    "openmeter/billing/charges/flatfee": {
+      "children": [
+        "openmeter/billing/charges/flatfee/adapter",
+        "openmeter/billing/charges/flatfee/service"
+      ],
+      "depth": 4,
+      "size_chars": 27346
+    },
+    "openmeter/billing/charges/flatfee/adapter": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 31393
+    },
+    "openmeter/billing/charges/flatfee/service": {
+      "children": [
+        "openmeter/billing/charges/flatfee/service/realizations"
+      ],
+      "depth": 5,
+      "size_chars": 29801
+    },
+    "openmeter/billing/charges/flatfee/service/realizations": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 6767
+    },
+    "openmeter/billing/charges/lineage": {
+      "children": [
+        "openmeter/billing/charges/lineage/adapter",
+        "openmeter/billing/charges/lineage/service"
+      ],
+      "depth": 4,
+      "size_chars": 7112
+    },
+    "openmeter/billing/charges/lineage/adapter": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 9945
+    },
+    "openmeter/billing/charges/lineage/service": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 7041
+    },
+    "openmeter/billing/charges/meta": {
+      "children": [
+        "openmeter/billing/charges/meta/adapter"
+      ],
+      "depth": 4,
+      "size_chars": 21112
+    },
+    "openmeter/billing/charges/meta/adapter": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 3383
+    },
+    "openmeter/billing/charges/models/chargemeta": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 9161
+    },
+    "openmeter/billing/charges/models/creditrealization": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 41979
+    },
+    "openmeter/billing/charges/models/invoicedusage": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 5165
+    },
+    "openmeter/billing/charges/models/ledgertransaction": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 1432
+    },
+    "openmeter/billing/charges/models/payment": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 14007
+    },
+    "openmeter/billing/charges/service": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 152688
+    },
+    "openmeter/billing/charges/statemachine": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 15439
+    },
+    "openmeter/billing/charges/testutils": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 13384
+    },
+    "openmeter/billing/charges/usagebased": {
+      "children": [
+        "openmeter/billing/charges/usagebased/adapter",
+        "openmeter/billing/charges/usagebased/service"
+      ],
+      "depth": 4,
+      "size_chars": 34314
+    },
+    "openmeter/billing/charges/usagebased/adapter": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 36161
+    },
+    "openmeter/billing/charges/usagebased/service": {
+      "children": [
+        "openmeter/billing/charges/usagebased/service/rating",
+        "openmeter/billing/charges/usagebased/service/run"
+      ],
+      "depth": 5,
+      "size_chars": 71345
+    },
+    "openmeter/billing/charges/usagebased/service/rating": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 16641
+    },
+    "openmeter/billing/charges/usagebased/service/run": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 41412
+    },
+    "openmeter/billing/charges/worker/advance": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 2852
+    },
+    "openmeter/billing/charges/worker/asyncadvance": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 1285
+    },
+    "openmeter/billing/creditgrant": {
+      "children": [
+        "openmeter/billing/creditgrant/service"
+      ],
+      "depth": 3,
+      "size_chars": 6139
+    },
+    "openmeter/billing/creditgrant/service": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 8462
+    },
+    "openmeter/billing/httpdriver": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 78282
+    },
+    "openmeter/billing/lineengine": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 10745
+    },
+    "openmeter/billing/models/creditsapplied": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 1389
+    },
+    "openmeter/billing/models/externalid": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 3264
+    },
+    "openmeter/billing/models/stddetailedline": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 11589
+    },
+    "openmeter/billing/models/totals": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 8206
+    },
+    "openmeter/billing/rating": {
+      "children": [
+        "openmeter/billing/rating/service"
+      ],
+      "depth": 3,
+      "size_chars": 14984
+    },
+    "openmeter/billing/rating/service": {
+      "children": [
+        "openmeter/billing/rating/service/mutator",
+        "openmeter/billing/rating/service/rate",
+        "openmeter/billing/rating/service/testutil"
+      ],
+      "depth": 4,
+      "size_chars": 11288
+    },
+    "openmeter/billing/rating/service/mutator": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 25188
+    },
+    "openmeter/billing/rating/service/rate": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 91601
+    },
+    "openmeter/billing/rating/service/testutil": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 4290
+    },
+    "openmeter/billing/service": {
+      "children": [
+        "openmeter/billing/service/invoicecalc"
+      ],
+      "depth": 3,
+      "size_chars": 126084
+    },
+    "openmeter/billing/service/invoicecalc": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 44165
+    },
+    "openmeter/billing/validators/customer": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 2791
+    },
+    "openmeter/billing/validators/subscription": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 2848
+    },
+    "openmeter/billing/worker": {
+      "children": [
+        "openmeter/billing/worker/advance",
+        "openmeter/billing/worker/asyncadvance",
+        "openmeter/billing/worker/collect",
+        "openmeter/billing/worker/subscriptionsync"
+      ],
+      "depth": 3,
+      "size_chars": 6926
+    },
+    "openmeter/billing/worker/advance": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 5815
+    },
+    "openmeter/billing/worker/asyncadvance": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 1272
+    },
+    "openmeter/billing/worker/collect": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 6399
+    },
+    "openmeter/billing/worker/subscriptionsync": {
+      "children": [
+        "openmeter/billing/worker/subscriptionsync/adapter",
+        "openmeter/billing/worker/subscriptionsync/reconciler",
+        "openmeter/billing/worker/subscriptionsync/service"
+      ],
+      "depth": 4,
+      "size_chars": 2578
+    },
+    "openmeter/billing/worker/subscriptionsync/adapter": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 4487
+    },
+    "openmeter/billing/worker/subscriptionsync/reconciler": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 6380
+    },
+    "openmeter/billing/worker/subscriptionsync/service": {
+      "children": [
+        "openmeter/billing/worker/subscriptionsync/service/persistedstate",
+        "openmeter/billing/worker/subscriptionsync/service/reconciler",
+        "openmeter/billing/worker/subscriptionsync/service/targetstate"
+      ],
+      "depth": 5,
+      "size_chars": 75964
+    },
+    "openmeter/billing/worker/subscriptionsync/service/persistedstate": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 22690
+    },
+    "openmeter/billing/worker/subscriptionsync/service/reconciler": {
+      "children": [
+        "openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
+      ],
+      "depth": 6,
+      "size_chars": 51449
+    },
+    "openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater": {
+      "children": [],
+      "depth": 7,
+      "size_chars": 22583
+    },
+    "openmeter/billing/worker/subscriptionsync/service/targetstate": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 44204
+    },
+    "openmeter/cost": {
+      "children": [
+        "openmeter/cost/adapter",
+        "openmeter/cost/service"
+      ],
+      "depth": 2,
+      "size_chars": 1889
+    },
+    "openmeter/cost/adapter": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 34548
+    },
+    "openmeter/cost/service": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 760
+    },
+    "openmeter/credit": {
+      "children": [
+        "openmeter/credit/adapter",
+        "openmeter/credit/balance",
+        "openmeter/credit/driver",
+        "openmeter/credit/engine",
+        "openmeter/credit/grant",
+        "openmeter/credit/hook"
+      ],
+      "depth": 2,
+      "size_chars": 34032
+    },
+    "openmeter/credit/adapter": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 13242
+    },
+    "openmeter/credit/balance": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 17341
+    },
+    "openmeter/credit/driver": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 11215
+    },
+    "openmeter/credit/engine": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 64829
+    },
+    "openmeter/credit/grant": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 24238
+    },
+    "openmeter/credit/hook": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 970
+    },
+    "openmeter/currencies": {
+      "children": [
+        "openmeter/currencies/adapter",
+        "openmeter/currencies/service"
+      ],
+      "depth": 2,
+      "size_chars": 4796
+    },
+    "openmeter/currencies/adapter": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 6405
+    },
+    "openmeter/currencies/service": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 4616
+    },
+    "openmeter/customer": {
+      "children": [
+        "openmeter/customer/adapter",
+        "openmeter/customer/app",
+        "openmeter/customer/httpdriver",
+        "openmeter/customer/service",
+        "openmeter/customer/testutils"
+      ],
+      "depth": 2,
+      "size_chars": 24538
+    },
+    "openmeter/customer/adapter": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 19724
+    },
+    "openmeter/customer/app": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 786
+    },
+    "openmeter/customer/httpdriver": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 24176
+    },
+    "openmeter/customer/service": {
+      "children": [
+        "openmeter/customer/service/hooks"
+      ],
+      "depth": 3,
+      "size_chars": 19055
+    },
+    "openmeter/customer/service/hooks": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 29102
+    },
+    "openmeter/customer/testutils": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 3710
+    },
+    "openmeter/debug": {
+      "children": [
+        "openmeter/debug/httpdriver"
+      ],
+      "depth": 2,
+      "size_chars": 2246
+    },
+    "openmeter/debug/httpdriver": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 2606
+    },
+    "openmeter/dedupe": {
+      "children": [
+        "openmeter/dedupe/memorydedupe",
+        "openmeter/dedupe/redisdedupe"
+      ],
+      "depth": 2,
+      "size_chars": 1127
+    },
+    "openmeter/dedupe/memorydedupe": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 3185
+    },
+    "openmeter/dedupe/redisdedupe": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 6757
+    },
+    "openmeter/ent": {
+      "children": [
+        "openmeter/ent/schema",
+        "openmeter/ent/tx"
+      ],
+      "depth": 2,
+      "size_chars": 1246
+    },
+    "openmeter/ent/schema": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 120071
+    },
+    "openmeter/ent/tx": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 741
+    },
+    "openmeter/entitlement": {
+      "children": [
+        "openmeter/entitlement/adapter",
+        "openmeter/entitlement/balanceworker",
+        "openmeter/entitlement/boolean",
+        "openmeter/entitlement/driver",
+        "openmeter/entitlement/hooks",
+        "openmeter/entitlement/metered",
+        "openmeter/entitlement/service",
+        "openmeter/entitlement/snapshot",
+        "openmeter/entitlement/validators"
+      ],
+      "depth": 2,
+      "size_chars": 63326
+    },
+    "openmeter/entitlement/adapter": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 32984
+    },
+    "openmeter/entitlement/balanceworker": {
+      "children": [
+        "openmeter/entitlement/balanceworker/events",
+        "openmeter/entitlement/balanceworker/filters"
+      ],
+      "depth": 3,
+      "size_chars": 52032
+    },
+    "openmeter/entitlement/balanceworker/events": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 3053
+    },
+    "openmeter/entitlement/balanceworker/filters": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 7766
+    },
+    "openmeter/entitlement/boolean": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 2949
+    },
+    "openmeter/entitlement/driver": {
+      "children": [
+        "openmeter/entitlement/driver/v2"
+      ],
+      "depth": 3,
+      "size_chars": 45648
+    },
+    "openmeter/entitlement/driver/v2": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 53948
+    },
+    "openmeter/entitlement/hooks/subscription": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 1621
+    },
+    "openmeter/entitlement/metered": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 118476
+    },
+    "openmeter/entitlement/service": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 57621
+    },
+    "openmeter/entitlement/snapshot": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 5920
+    },
+    "openmeter/entitlement/validators/customer": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 1511
+    },
+    "openmeter/event/metadata": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 2328
+    },
+    "openmeter/event/models": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 469
+    },
+    "openmeter/info/httpdriver": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 1751
+    },
+    "openmeter/ingest": {
+      "children": [
+        "openmeter/ingest/httpdriver",
+        "openmeter/ingest/ingestadapter",
+        "openmeter/ingest/kafkaingest"
+      ],
+      "depth": 2,
+      "size_chars": 6076
+    },
+    "openmeter/ingest/httpdriver": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 8757
+    },
+    "openmeter/ingest/ingestadapter": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 2294
+    },
+    "openmeter/ingest/kafkaingest": {
+      "children": [
+        "openmeter/ingest/kafkaingest/serializer",
+        "openmeter/ingest/kafkaingest/topicresolver"
+      ],
+      "depth": 3,
+      "size_chars": 8882
+    },
+    "openmeter/ingest/kafkaingest/serializer": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 8524
+    },
+    "openmeter/ingest/kafkaingest/topicresolver": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 890
+    },
+    "openmeter/ledger": {
+      "children": [
+        "openmeter/ledger/account",
+        "openmeter/ledger/chargeadapter",
+        "openmeter/ledger/collector",
+        "openmeter/ledger/customerbalance",
+        "openmeter/ledger/historical",
+        "openmeter/ledger/noop",
+        "openmeter/ledger/resolvers",
+        "openmeter/ledger/routingrules",
+        "openmeter/ledger/testutils",
+        "openmeter/ledger/transactions"
+      ],
+      "depth": 2,
+      "size_chars": 47967
+    },
+    "openmeter/ledger/account": {
+      "children": [
+        "openmeter/ledger/account/adapter",
+        "openmeter/ledger/account/service"
+      ],
+      "depth": 3,
+      "size_chars": 16491
+    },
+    "openmeter/ledger/account/adapter": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 23033
+    },
+    "openmeter/ledger/account/service": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 4360
+    },
+    "openmeter/ledger/chargeadapter": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 79405
+    },
+    "openmeter/ledger/collector": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 23305
+    },
+    "openmeter/ledger/customerbalance": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 69912
+    },
+    "openmeter/ledger/historical": {
+      "children": [
+        "openmeter/ledger/historical/adapter"
+      ],
+      "depth": 3,
+      "size_chars": 12598
+    },
+    "openmeter/ledger/historical/adapter": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 36393
+    },
+    "openmeter/ledger/noop": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 9109
+    },
+    "openmeter/ledger/resolvers": {
+      "children": [
+        "openmeter/ledger/resolvers/adapter"
+      ],
+      "depth": 3,
+      "size_chars": 19581
+    },
+    "openmeter/ledger/resolvers/adapter": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 3178
+    },
+    "openmeter/ledger/routingrules": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 26682
+    },
+    "openmeter/ledger/testutils": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 8001
+    },
+    "openmeter/ledger/transactions": {
+      "children": [
+        "openmeter/ledger/transactions/testutils"
+      ],
+      "depth": 3,
+      "size_chars": 73274
+    },
+    "openmeter/ledger/transactions/testutils": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 1932
+    },
+    "openmeter/llmcost": {
+      "children": [
+        "openmeter/llmcost/adapter",
+        "openmeter/llmcost/service",
+        "openmeter/llmcost/sync"
+      ],
+      "depth": 2,
+      "size_chars": 30886
+    },
+    "openmeter/llmcost/adapter": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 14220
+    },
+    "openmeter/llmcost/service": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 12586
+    },
+    "openmeter/llmcost/sync": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 50014
+    },
+    "openmeter/meter": {
+      "children": [
+        "openmeter/meter/adapter",
+        "openmeter/meter/httphandler",
+        "openmeter/meter/mockadapter",
+        "openmeter/meter/service"
+      ],
+      "depth": 2,
+      "size_chars": 43170
+    },
+    "openmeter/meter/adapter": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 15516
+    },
+    "openmeter/meter/httphandler": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 37148
+    },
+    "openmeter/meter/mockadapter": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 9083
+    },
+    "openmeter/meter/service": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 7733
+    },
+    "openmeter/meterevent": {
+      "children": [
+        "openmeter/meterevent/adapter",
+        "openmeter/meterevent/httphandler"
+      ],
+      "depth": 2,
+      "size_chars": 9802
+    },
+    "openmeter/meterevent/adapter": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 10672
+    },
+    "openmeter/meterevent/httphandler": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 7660
+    },
+    "openmeter/meterexport": {
+      "children": [
+        "openmeter/meterexport/service"
+      ],
+      "depth": 2,
+      "size_chars": 9305
+    },
+    "openmeter/meterexport/service": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 26916
+    },
+    "openmeter/namespace": {
+      "children": [
+        "openmeter/namespace/namespacedriver"
+      ],
+      "depth": 2,
+      "size_chars": 6118
+    },
+    "openmeter/namespace/namespacedriver": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 332
+    },
+    "openmeter/notification": {
+      "children": [
+        "openmeter/notification/adapter",
+        "openmeter/notification/consumer",
+        "openmeter/notification/eventhandler",
+        "openmeter/notification/httpdriver",
+        "openmeter/notification/internal",
+        "openmeter/notification/service",
+        "openmeter/notification/webhook"
+      ],
+      "depth": 2,
+      "size_chars": 48287
+    },
+    "openmeter/notification/adapter": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 34510
+    },
+    "openmeter/notification/consumer": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 42361
+    },
+    "openmeter/notification/eventhandler": {
+      "children": [
+        "openmeter/notification/eventhandler/noop"
+      ],
+      "depth": 3,
+      "size_chars": 25263
+    },
+    "openmeter/notification/eventhandler/noop": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 484
+    },
+    "openmeter/notification/httpdriver": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 45368
+    },
+    "openmeter/notification/internal": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 7672
+    },
+    "openmeter/notification/service": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 23773
+    },
+    "openmeter/notification/webhook": {
+      "children": [
+        "openmeter/notification/webhook/noop",
+        "openmeter/notification/webhook/secret",
+        "openmeter/notification/webhook/svix"
+      ],
+      "depth": 3,
+      "size_chars": 12375
+    },
+    "openmeter/notification/webhook/noop": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 2645
+    },
+    "openmeter/notification/webhook/secret": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 996
+    },
+    "openmeter/notification/webhook/svix": {
+      "children": [
+        "openmeter/notification/webhook/svix/internal"
+      ],
+      "depth": 4,
+      "size_chars": 33832
+    },
+    "openmeter/notification/webhook/svix/internal": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 2485
+    },
+    "openmeter/portal": {
+      "children": [
+        "openmeter/portal/adapter",
+        "openmeter/portal/authenticator",
+        "openmeter/portal/httphandler"
+      ],
+      "depth": 2,
+      "size_chars": 3560
+    },
+    "openmeter/portal/adapter": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 5052
+    },
+    "openmeter/portal/authenticator": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 5221
+    },
+    "openmeter/portal/httphandler": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 8037
+    },
+    "openmeter/productcatalog": {
+      "children": [
+        "openmeter/productcatalog/adapter",
+        "openmeter/productcatalog/addon",
+        "openmeter/productcatalog/driver",
+        "openmeter/productcatalog/feature",
+        "openmeter/productcatalog/http",
+        "openmeter/productcatalog/plan",
+        "openmeter/productcatalog/planaddon",
+        "openmeter/productcatalog/subscription",
+        "openmeter/productcatalog/testutils"
+      ],
+      "depth": 2,
+      "size_chars": 172527
+    },
+    "openmeter/productcatalog/adapter": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 29930
+    },
+    "openmeter/productcatalog/addon": {
+      "children": [
+        "openmeter/productcatalog/addon/adapter",
+        "openmeter/productcatalog/addon/httpdriver",
+        "openmeter/productcatalog/addon/service"
+      ],
+      "depth": 3,
+      "size_chars": 42884
+    },
+    "openmeter/productcatalog/addon/adapter": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 39232
+    },
+    "openmeter/productcatalog/addon/httpdriver": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 17514
+    },
+    "openmeter/productcatalog/addon/service": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 46336
+    },
+    "openmeter/productcatalog/driver": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 17847
+    },
+    "openmeter/productcatalog/feature": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 39987
+    },
+    "openmeter/productcatalog/http": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 16371
+    },
+    "openmeter/productcatalog/plan": {
+      "children": [
+        "openmeter/productcatalog/plan/adapter",
+        "openmeter/productcatalog/plan/httpdriver",
+        "openmeter/productcatalog/plan/service"
+      ],
+      "depth": 3,
+      "size_chars": 61201
+    },
+    "openmeter/productcatalog/plan/adapter": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 46006
+    },
+    "openmeter/productcatalog/plan/httpdriver": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 22186
+    },
+    "openmeter/productcatalog/plan/service": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 46329
+    },
+    "openmeter/productcatalog/planaddon": {
+      "children": [
+        "openmeter/productcatalog/planaddon/adapter",
+        "openmeter/productcatalog/planaddon/httpdriver",
+        "openmeter/productcatalog/planaddon/service"
+      ],
+      "depth": 3,
+      "size_chars": 17546
+    },
+    "openmeter/productcatalog/planaddon/adapter": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 31074
+    },
+    "openmeter/productcatalog/planaddon/httpdriver": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 13908
+    },
+    "openmeter/productcatalog/planaddon/service": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 29043
+    },
+    "openmeter/productcatalog/subscription": {
+      "children": [
+        "openmeter/productcatalog/subscription/http",
+        "openmeter/productcatalog/subscription/service",
+        "openmeter/productcatalog/subscription/testutils"
+      ],
+      "depth": 3,
+      "size_chars": 4664
+    },
+    "openmeter/productcatalog/subscription/http": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 50013
+    },
+    "openmeter/productcatalog/subscription/service": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 41598
+    },
+    "openmeter/productcatalog/subscription/testutils": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 2437
+    },
+    "openmeter/productcatalog/testutils": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 11133
+    },
+    "openmeter/progressmanager": {
+      "children": [
+        "openmeter/progressmanager/adapter",
+        "openmeter/progressmanager/entity",
+        "openmeter/progressmanager/httpdriver"
+      ],
+      "depth": 2,
+      "size_chars": 760
+    },
+    "openmeter/progressmanager/adapter": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 5334
+    },
+    "openmeter/progressmanager/entity": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 2162
+    },
+    "openmeter/progressmanager/httpdriver": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 3182
+    },
+    "openmeter/registry": {
+      "children": [
+        "openmeter/registry/builder"
+      ],
+      "depth": 2,
+      "size_chars": 762
+    },
+    "openmeter/registry/builder": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 5619
+    },
+    "openmeter/secret": {
+      "children": [
+        "openmeter/secret/adapter",
+        "openmeter/secret/entity",
+        "openmeter/secret/service"
+      ],
+      "depth": 2,
+      "size_chars": 1192
+    },
+    "openmeter/secret/adapter": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 1850
+    },
+    "openmeter/secret/entity": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 3308
+    },
+    "openmeter/secret/service": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 2108
+    },
+    "openmeter/server": {
+      "children": [
+        "openmeter/server/router"
+      ],
+      "depth": 2,
+      "size_chars": 29687
+    },
+    "openmeter/server/router": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 66157
+    },
+    "openmeter/session": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 2177
+    },
+    "openmeter/sink": {
+      "children": [
+        "openmeter/sink/flushhandler",
+        "openmeter/sink/models"
+      ],
+      "depth": 2,
+      "size_chars": 24872
+    },
+    "openmeter/sink/flushhandler": {
+      "children": [
+        "openmeter/sink/flushhandler/ingestnotification"
+      ],
+      "depth": 3,
+      "size_chars": 9462
+    },
+    "openmeter/sink/flushhandler/ingestnotification": {
+      "children": [
+        "openmeter/sink/flushhandler/ingestnotification/events"
+      ],
+      "depth": 4,
+      "size_chars": 4545
+    },
+    "openmeter/sink/flushhandler/ingestnotification/events": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 1954
+    },
+    "openmeter/sink/models": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 1030
+    },
+    "openmeter/streaming": {
+      "children": [
+        "openmeter/streaming/clickhouse",
+        "openmeter/streaming/retry",
+        "openmeter/streaming/testutils"
+      ],
+      "depth": 2,
+      "size_chars": 25920
+    },
+    "openmeter/streaming/clickhouse": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 110259
+    },
+    "openmeter/streaming/retry": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 11914
+    },
+    "openmeter/streaming/testutils": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 23734
+    },
+    "openmeter/subject": {
+      "children": [
+        "openmeter/subject/adapter",
+        "openmeter/subject/httphandler",
+        "openmeter/subject/service",
+        "openmeter/subject/testutils"
+      ],
+      "depth": 2,
+      "size_chars": 4626
+    },
+    "openmeter/subject/adapter": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 10694
+    },
+    "openmeter/subject/httphandler": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 11930
+    },
+    "openmeter/subject/service": {
+      "children": [
+        "openmeter/subject/service/hooks"
+      ],
+      "depth": 3,
+      "size_chars": 13513
+    },
+    "openmeter/subject/service/hooks": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 17141
+    },
+    "openmeter/subject/testutils": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 4604
+    },
+    "openmeter/subscription": {
+      "children": [
+        "openmeter/subscription/addon",
+        "openmeter/subscription/entitlement",
+        "openmeter/subscription/hooks",
+        "openmeter/subscription/patch",
+        "openmeter/subscription/repo",
+        "openmeter/subscription/service",
+        "openmeter/subscription/testutils",
+        "openmeter/subscription/validators",
+        "openmeter/subscription/workflow"
+      ],
+      "depth": 2,
+      "size_chars": 146379
+    },
+    "openmeter/subscription/addon": {
+      "children": [
+        "openmeter/subscription/addon/diff",
+        "openmeter/subscription/addon/http",
+        "openmeter/subscription/addon/repo",
+        "openmeter/subscription/addon/service"
+      ],
+      "depth": 3,
+      "size_chars": 45939
+    },
+    "openmeter/subscription/addon/diff": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 49315
+    },
+    "openmeter/subscription/addon/http": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 15889
+    },
+    "openmeter/subscription/addon/repo": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 11844
+    },
+    "openmeter/subscription/addon/service": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 42230
+    },
+    "openmeter/subscription/entitlement": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 5065
+    },
+    "openmeter/subscription/hooks/annotations": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 6686
+    },
+    "openmeter/subscription/patch": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 57397
+    },
+    "openmeter/subscription/repo": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 27626
+    },
+    "openmeter/subscription/service": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 67927
+    },
+    "openmeter/subscription/testutils": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 63239
+    },
+    "openmeter/subscription/validators/customer": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 3643
+    },
+    "openmeter/subscription/validators/subscription": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 8794
+    },
+    "openmeter/subscription/workflow": {
+      "children": [
+        "openmeter/subscription/workflow/service"
+      ],
+      "depth": 3,
+      "size_chars": 3391
+    },
+    "openmeter/subscription/workflow/service": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 52853
+    },
+    "openmeter/taxcode": {
+      "children": [
+        "openmeter/taxcode/adapter",
+        "openmeter/taxcode/service",
+        "openmeter/taxcode/testutils"
+      ],
+      "depth": 2,
+      "size_chars": 11557
+    },
+    "openmeter/taxcode/adapter": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 8511
+    },
+    "openmeter/taxcode/service": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 8905
+    },
+    "openmeter/taxcode/testutils": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 1774
+    },
+    "openmeter/testutils": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 6136
+    },
+    "openmeter/watermill/driver/kafka": {
+      "children": [
+        "openmeter/watermill/driver/kafka/metrics"
+      ],
+      "depth": 4,
+      "size_chars": 10147
+    },
+    "openmeter/watermill/driver/kafka/metrics": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 6382
+    },
+    "openmeter/watermill/driver/noop": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 338
+    },
+    "openmeter/watermill/eventbus": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 4537
+    },
+    "openmeter/watermill/grouphandler": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 3954
+    },
+    "openmeter/watermill/marshaler": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 5436
+    },
+    "openmeter/watermill/nopublisher": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 615
+    },
+    "openmeter/watermill/router": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 19369
+    },
+    "pkg/clock": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 1254
+    },
+    "pkg/contextx": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 1416
+    },
+    "pkg/convert": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 1894
+    },
+    "pkg/currencyx": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 2403
+    },
+    "pkg/datetime": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 45101
+    },
+    "pkg/defaultx": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 222
+    },
+    "pkg/entitydiff": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 7383
+    },
+    "pkg/equal": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 642
+    },
+    "pkg/errorsx": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 3893
+    },
+    "pkg/expand": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 1164
+    },
+    "pkg/ffx": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 2339
+    },
+    "pkg/filter": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 30000
+    },
+    "pkg/framework": {
+      "children": [
+        "pkg/framework/clickhouseotel",
+        "pkg/framework/commonhttp",
+        "pkg/framework/entutils",
+        "pkg/framework/lockr",
+        "pkg/framework/operation",
+        "pkg/framework/pgdriver",
+        "pkg/framework/tracex",
+        "pkg/framework/transaction",
+        "pkg/framework/transport"
+      ],
+      "depth": 2,
+      "size_chars": 2254
+    },
+    "pkg/framework/clickhouseotel": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 8697
+    },
+    "pkg/framework/commonhttp": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 14695
+    },
+    "pkg/framework/entutils": {
+      "children": [
+        "pkg/framework/entutils/entcursor",
+        "pkg/framework/entutils/entdriver",
+        "pkg/framework/entutils/entexpose",
+        "pkg/framework/entutils/entmixinaccessor",
+        "pkg/framework/entutils/entpaginate",
+        "pkg/framework/entutils/entsetorclear",
+        "pkg/framework/entutils/testutils"
+      ],
+      "depth": 3,
+      "size_chars": 39245
+    },
+    "pkg/framework/entutils/entcursor": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 5445
+    },
+    "pkg/framework/entutils/entdriver": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 1356
+    },
+    "pkg/framework/entutils/entexpose": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 3620
+    },
+    "pkg/framework/entutils/entmixinaccessor": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 1340
+    },
+    "pkg/framework/entutils/entpaginate": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 6378
+    },
+    "pkg/framework/entutils/entsetorclear": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 1541
+    },
+    "pkg/framework/entutils/testutils/ent1": {
+      "children": [
+        "pkg/framework/entutils/testutils/ent1/schema"
+      ],
+      "depth": 5,
+      "size_chars": 855
+    },
+    "pkg/framework/entutils/testutils/ent1/schema": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 537
+    },
+    "pkg/framework/entutils/testutils/ent2": {
+      "children": [
+        "pkg/framework/entutils/testutils/ent2/schema"
+      ],
+      "depth": 5,
+      "size_chars": 679
+    },
+    "pkg/framework/entutils/testutils/ent2/schema": {
+      "children": [],
+      "depth": 6,
+      "size_chars": 537
+    },
+    "pkg/framework/lockr": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 29749
+    },
+    "pkg/framework/operation": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 4513
+    },
+    "pkg/framework/pgdriver": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 2587
+    },
+    "pkg/framework/tracex": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 1845
+    },
+    "pkg/framework/transaction": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 3457
+    },
+    "pkg/framework/transport/httptransport": {
+      "children": [
+        "pkg/framework/transport/httptransport/encoder"
+      ],
+      "depth": 4,
+      "size_chars": 8007
+    },
+    "pkg/framework/transport/httptransport/encoder": {
+      "children": [],
+      "depth": 5,
+      "size_chars": 562
+    },
+    "pkg/gosundheit": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 960
+    },
+    "pkg/hasher": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 192
+    },
+    "pkg/idempotency": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 462
+    },
+    "pkg/kafka": {
+      "children": [
+        "pkg/kafka/metrics"
+      ],
+      "depth": 2,
+      "size_chars": 41762
+    },
+    "pkg/kafka/metrics": {
+      "children": [
+        "pkg/kafka/metrics/internal",
+        "pkg/kafka/metrics/stats"
+      ],
+      "depth": 3,
+      "size_chars": 10741
+    },
+    "pkg/kafka/metrics/internal": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 43701
+    },
+    "pkg/kafka/metrics/stats": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 20690
+    },
+    "pkg/log": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 2811
+    },
+    "pkg/lrux": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 4423
+    },
+    "pkg/models": {
+      "children": [
+        "pkg/models/http"
+      ],
+      "depth": 2,
+      "size_chars": 87234
+    },
+    "pkg/models/http": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 799
+    },
+    "pkg/otelx": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 676
+    },
+    "pkg/pagination": {
+      "children": [
+        "pkg/pagination/v2"
+      ],
+      "depth": 2,
+      "size_chars": 7554
+    },
+    "pkg/pagination/v2": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 16392
+    },
+    "pkg/pgxpoolobserver": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 6014
+    },
+    "pkg/redis": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 4147
+    },
+    "pkg/ref": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 617
+    },
+    "pkg/server": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 3664
+    },
+    "pkg/set": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 3875
+    },
+    "pkg/slicesx": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 6642
+    },
+    "pkg/sortx": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 388
+    },
+    "pkg/statelessx": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 1333
+    },
+    "pkg/strcase": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 2567
+    },
+    "pkg/timeutil": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 65033
+    },
+    "pkg/treex": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 18682
+    },
+    "quickstart": {
+      "children": [],
+      "depth": 1,
+      "size_chars": 17718
+    },
+    "test/app": {
+      "children": [
+        "test/app/custominvoicing",
+        "test/app/stripe"
+      ],
+      "depth": 2,
+      "size_chars": 12012
+    },
+    "test/app/custominvoicing": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 15062
+    },
+    "test/app/stripe": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 50314
+    },
+    "test/billing": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 194280
+    },
+    "test/credits": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 44864
+    },
+    "test/customer": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 46606
+    },
+    "test/entitlement/regression": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 24106
+    },
+    "test/notification": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 71575
+    },
+    "test/subscription": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 42742
+    },
+    "tools": {
+      "children": [
+        "tools/migrate"
+      ],
+      "depth": 1,
+      "size_chars": 1937
+    },
+    "tools/migrate": {
+      "children": [
+        "tools/migrate/cmd",
+        "tools/migrate/viewgen"
+      ],
+      "depth": 2,
+      "size_chars": 63751
+    },
+    "tools/migrate/cmd/viewgen": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 522
+    },
+    "tools/migrate/viewgen": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 2659
+    },
+    "tools/migrate/cmd": {
+      "children": [
+        "tools/migrate/cmd/viewgen"
+      ],
+      "depth": 3,
+      "size_chars": 0,
+      "structural": true
+    },
+    "test": {
+      "children": [
+        "test/app",
+        "test/billing",
+        "test/credits",
+        "test/customer",
+        "test/entitlement",
+        "test/notification",
+        "test/subscription"
+      ],
+      "depth": 1,
+      "size_chars": 0,
+      "structural": true
+    },
+    "test/entitlement": {
+      "children": [
+        "test/entitlement/regression"
+      ],
+      "depth": 2,
+      "size_chars": 0,
+      "structural": true
+    },
+    "pkg": {
+      "children": [
+        "pkg/clock",
+        "pkg/contextx",
+        "pkg/convert",
+        "pkg/currencyx",
+        "pkg/datetime",
+        "pkg/defaultx",
+        "pkg/entitydiff",
+        "pkg/equal",
+        "pkg/errorsx",
+        "pkg/expand",
+        "pkg/ffx",
+        "pkg/filter",
+        "pkg/framework",
+        "pkg/gosundheit",
+        "pkg/hasher",
+        "pkg/idempotency",
+        "pkg/kafka",
+        "pkg/log",
+        "pkg/lrux",
+        "pkg/models",
+        "pkg/otelx",
+        "pkg/pagination",
+        "pkg/pgxpoolobserver",
+        "pkg/redis",
+        "pkg/ref",
+        "pkg/server",
+        "pkg/set",
+        "pkg/slicesx",
+        "pkg/sortx",
+        "pkg/statelessx",
+        "pkg/strcase",
+        "pkg/timeutil",
+        "pkg/treex"
+      ],
+      "depth": 1,
+      "size_chars": 0,
+      "structural": true
+    },
+    "pkg/framework/transport": {
+      "children": [
+        "pkg/framework/transport/httptransport"
+      ],
+      "depth": 3,
+      "size_chars": 0,
+      "structural": true
+    },
+    "pkg/framework/entutils/testutils": {
+      "children": [
+        "pkg/framework/entutils/testutils/ent1",
+        "pkg/framework/entutils/testutils/ent2"
+      ],
+      "depth": 4,
+      "size_chars": 0,
+      "structural": true
+    },
+    "openmeter/watermill": {
+      "children": [
+        "openmeter/watermill/driver",
+        "openmeter/watermill/eventbus",
+        "openmeter/watermill/grouphandler",
+        "openmeter/watermill/marshaler",
+        "openmeter/watermill/nopublisher",
+        "openmeter/watermill/router"
+      ],
+      "depth": 2,
+      "size_chars": 0,
+      "structural": true
+    },
+    "openmeter": {
+      "children": [
+        "openmeter/apiconverter",
+        "openmeter/app",
+        "openmeter/billing",
+        "openmeter/cost",
+        "openmeter/credit",
+        "openmeter/currencies",
+        "openmeter/customer",
+        "openmeter/debug",
+        "openmeter/dedupe",
+        "openmeter/ent",
+        "openmeter/entitlement",
+        "openmeter/event",
+        "openmeter/info",
+        "openmeter/ingest",
+        "openmeter/ledger",
+        "openmeter/llmcost",
+        "openmeter/meter",
+        "openmeter/meterevent",
+        "openmeter/meterexport",
+        "openmeter/namespace",
+        "openmeter/notification",
+        "openmeter/portal",
+        "openmeter/productcatalog",
+        "openmeter/progressmanager",
+        "openmeter/registry",
+        "openmeter/secret",
+        "openmeter/server",
+        "openmeter/session",
+        "openmeter/sink",
+        "openmeter/streaming",
+        "openmeter/subject",
+        "openmeter/subscription",
+        "openmeter/taxcode",
+        "openmeter/testutils",
+        "openmeter/watermill"
+      ],
+      "depth": 1,
+      "size_chars": 0,
+      "structural": true
+    },
+    "openmeter/watermill/driver": {
+      "children": [
+        "openmeter/watermill/driver/kafka",
+        "openmeter/watermill/driver/noop"
+      ],
+      "depth": 3,
+      "size_chars": 0,
+      "structural": true
+    },
+    "openmeter/subscription/validators": {
+      "children": [
+        "openmeter/subscription/validators/customer",
+        "openmeter/subscription/validators/subscription"
+      ],
+      "depth": 3,
+      "size_chars": 0,
+      "structural": true
+    },
+    "openmeter/subscription/hooks": {
+      "children": [
+        "openmeter/subscription/hooks/annotations"
+      ],
+      "depth": 3,
+      "size_chars": 0,
+      "structural": true
+    },
+    "openmeter/info": {
+      "children": [
+        "openmeter/info/httpdriver"
+      ],
+      "depth": 2,
+      "size_chars": 0,
+      "structural": true
+    },
+    "openmeter/event": {
+      "children": [
+        "openmeter/event/metadata",
+        "openmeter/event/models"
+      ],
+      "depth": 2,
+      "size_chars": 0,
+      "structural": true
+    },
+    "openmeter/entitlement/validators": {
+      "children": [
+        "openmeter/entitlement/validators/customer"
+      ],
+      "depth": 3,
+      "size_chars": 0,
+      "structural": true
+    },
+    "openmeter/entitlement/hooks": {
+      "children": [
+        "openmeter/entitlement/hooks/subscription"
+      ],
+      "depth": 3,
+      "size_chars": 0,
+      "structural": true
+    },
+    "openmeter/billing/validators": {
+      "children": [
+        "openmeter/billing/validators/customer",
+        "openmeter/billing/validators/subscription"
+      ],
+      "depth": 3,
+      "size_chars": 0,
+      "structural": true
+    },
+    "openmeter/billing/models": {
+      "children": [
+        "openmeter/billing/models/creditsapplied",
+        "openmeter/billing/models/externalid",
+        "openmeter/billing/models/stddetailedline",
+        "openmeter/billing/models/totals"
+      ],
+      "depth": 3,
+      "size_chars": 0,
+      "structural": true
+    },
+    "openmeter/billing/charges/worker": {
+      "children": [
+        "openmeter/billing/charges/worker/advance",
+        "openmeter/billing/charges/worker/asyncadvance"
+      ],
+      "depth": 4,
+      "size_chars": 0,
+      "structural": true
+    },
+    "openmeter/billing/charges/models": {
+      "children": [
+        "openmeter/billing/charges/models/chargemeta",
+        "openmeter/billing/charges/models/creditrealization",
+        "openmeter/billing/charges/models/invoicedusage",
+        "openmeter/billing/charges/models/ledgertransaction",
+        "openmeter/billing/charges/models/payment"
+      ],
+      "depth": 4,
+      "size_chars": 0,
+      "structural": true
+    },
+    "etc": {
+      "children": [
+        "etc/seed",
+        "etc/wiretap"
+      ],
+      "depth": 1,
+      "size_chars": 0,
+      "structural": true
+    },
+    "collector/benthos/services": {
+      "children": [
+        "collector/benthos/services/leaderelection"
+      ],
+      "depth": 3,
+      "size_chars": 0,
+      "structural": true
+    },
+    "collector/benthos": {
+      "children": [
+        "collector/benthos/bloblang",
+        "collector/benthos/input",
+        "collector/benthos/internal",
+        "collector/benthos/presets",
+        "collector/benthos/services"
+      ],
+      "depth": 2,
+      "size_chars": 0,
+      "structural": true
+    },
+    "collector/benthos/presets": {
+      "children": [
+        "collector/benthos/presets/http-server",
+        "collector/benthos/presets/kubernetes-pod-exec-time"
+      ],
+      "depth": 3,
+      "size_chars": 0,
+      "structural": true
+    },
+    "cmd": {
+      "children": [
+        "cmd/balance-worker",
+        "cmd/benthos-collector",
+        "cmd/billing-worker",
+        "cmd/jobs",
+        "cmd/notification-service",
+        "cmd/server",
+        "cmd/sink-worker"
+      ],
+      "depth": 1,
+      "size_chars": 0,
+      "structural": true
+    },
+    "app": {
+      "children": [
+        "app/common",
+        "app/config"
+      ],
+      "depth": 1,
+      "size_chars": 0,
+      "structural": true
+    },
+    "api/v3/handlers": {
+      "children": [
+        "api/v3/handlers/addons",
+        "api/v3/handlers/apps",
+        "api/v3/handlers/billingprofiles",
+        "api/v3/handlers/currencies",
+        "api/v3/handlers/customers",
+        "api/v3/handlers/events",
+        "api/v3/handlers/featurecost",
+        "api/v3/handlers/features",
+        "api/v3/handlers/llmcost",
+        "api/v3/handlers/meters",
+        "api/v3/handlers/plans",
+        "api/v3/handlers/subscriptions",
+        "api/v3/handlers/taxcodes"
+      ],
+      "depth": 3,
+      "size_chars": 0,
+      "structural": true
+    },
+    "api/spec/packages": {
+      "children": [
+        "api/spec/packages/aip",
+        "api/spec/packages/legacy"
+      ],
+      "depth": 3,
+      "size_chars": 0,
+      "structural": true
+    },
+    "api/spec/packages/aip/common": {
+      "children": [
+        "api/spec/packages/aip/common/definitions"
+      ],
+      "depth": 5,
+      "size_chars": 0,
+      "structural": true
+    },
+    "api/client": {
+      "children": [
+        "api/client/go",
+        "api/client/javascript",
+        "api/client/node",
+        "api/client/python",
+        "api/client/web"
+      ],
+      "depth": 2,
+      "size_chars": 0,
+      "structural": true
+    },
+    "api/client/javascript/src": {
+      "children": [
+        "api/client/javascript/src/client",
+        "api/client/javascript/src/portal",
+        "api/client/javascript/src/react",
+        "api/client/javascript/src/zod"
+      ],
+      "depth": 4,
+      "size_chars": 0,
+      "structural": true
+    }
+  },
+  "leaves": [
+    "api/client/go",
+    "api/client/javascript/patches",
+    "api/client/javascript/scripts",
+    "api/client/javascript/src/client",
+    "api/client/javascript/src/portal",
+    "api/client/javascript/src/react",
+    "api/client/javascript/src/zod",
+    "api/client/node",
+    "api/client/python/examples/async",
+    "api/client/python/examples/sync",
+    "api/client/python/openmeter/_generated/_utils",
+    "api/client/python/openmeter/_generated/aio/operations",
+    "api/client/python/openmeter/_generated/models",
+    "api/client/python/openmeter/_generated/operations",
+    "api/client/python/openmeter/aio/operations",
+    "api/client/python/openmeter/models",
+    "api/client/python/openmeter/operations",
+    "api/client/python/scripts",
+    "api/client/web",
+    "api/spec/packages/aip/common/definitions",
+    "api/spec/packages/aip/lib/rules",
+    "api/spec/packages/aip/scripts",
+    "api/spec/packages/aip/src/apps",
+    "api/spec/packages/aip/src/billing",
+    "api/spec/packages/aip/src/common",
+    "api/spec/packages/aip/src/currencies/cost-bases",
+    "api/spec/packages/aip/src/customers/charges",
+    "api/spec/packages/aip/src/customers/credits",
+    "api/spec/packages/aip/src/entitlements",
+    "api/spec/packages/aip/src/events",
+    "api/spec/packages/aip/src/features",
+    "api/spec/packages/aip/src/invoices",
+    "api/spec/packages/aip/src/llmcost",
+    "api/spec/packages/aip/src/meters",
+    "api/spec/packages/aip/src/productcatalog",
+    "api/spec/packages/aip/src/shared",
+    "api/spec/packages/aip/src/subscriptions",
+    "api/spec/packages/aip/src/tax",
+    "api/spec/packages/legacy/lib/rules",
+    "api/spec/packages/legacy/src/app",
+    "api/spec/packages/legacy/src/billing/invoices",
+    "api/spec/packages/legacy/src/cloud",
+    "api/spec/packages/legacy/src/customer",
+    "api/spec/packages/legacy/src/entitlements/v2",
+    "api/spec/packages/legacy/src/info",
+    "api/spec/packages/legacy/src/notification",
+    "api/spec/packages/legacy/src/productcatalog",
+    "api/spec/patches",
+    "api/types",
+    "api/v3/apierrors",
+    "api/v3/filters",
+    "api/v3/handlers/addons",
+    "api/v3/handlers/apps",
+    "api/v3/handlers/billingprofiles",
+    "api/v3/handlers/currencies",
+    "api/v3/handlers/customers/billing",
+    "api/v3/handlers/customers/charges",
+    "api/v3/handlers/customers/credits",
+    "api/v3/handlers/customers/entitlementaccess",
+    "api/v3/handlers/events",
+    "api/v3/handlers/featurecost",
+    "api/v3/handlers/features",
+    "api/v3/handlers/llmcost",
+    "api/v3/handlers/meters/query",
+    "api/v3/handlers/plans/planaddons",
+    "api/v3/handlers/subscriptions",
+    "api/v3/handlers/taxcodes",
+    "api/v3/labels",
+    "api/v3/oasmiddleware",
+    "api/v3/render",
+    "api/v3/request",
+    "api/v3/response",
+    "api/v3/server",
+    "api/v3/templates",
+    "app/common",
+    "app/config",
+    "cmd/balance-worker",
+    "cmd/benthos-collector",
+    "cmd/billing-worker",
+    "cmd/jobs/billing/advance",
+    "cmd/jobs/billing/advancecharges",
+    "cmd/jobs/billing/collect",
+    "cmd/jobs/billing/subscriptionsync",
+    "cmd/jobs/entitlement",
+    "cmd/jobs/internal",
+    "cmd/jobs/ledger/backfillaccounts",
+    "cmd/jobs/ledger/service",
+    "cmd/jobs/llmcost",
+    "cmd/jobs/migrate",
+    "cmd/jobs/quickstart",
+    "cmd/notification-service",
+    "cmd/server",
+    "cmd/sink-worker",
+    "collector/benthos/bloblang",
+    "collector/benthos/input/runai",
+    "collector/benthos/internal/logging",
+    "collector/benthos/internal/message",
+    "collector/benthos/internal/shutdown",
+    "collector/benthos/presets/http-server",
+    "collector/benthos/presets/kubernetes-pod-exec-time",
+    "collector/benthos/services/leaderelection",
+    "collector/quickstart/collector/resources",
+    "collector/quickstart/collector/streams",
+    "collector/quickstart/seeder",
+    "deploy/charts/benthos-collector/templates",
+    "deploy/charts/openmeter/templates",
+    "docs/decisions",
+    "docs/migration-guides",
+    "e2e",
+    "etc/seed/streams",
+    "etc/wiretap",
+    "openmeter/apiconverter",
+    "openmeter/app/adapter",
+    "openmeter/app/custominvoicing/adapter",
+    "openmeter/app/custominvoicing/httpdriver",
+    "openmeter/app/custominvoicing/service",
+    "openmeter/app/httpdriver",
+    "openmeter/app/sandbox",
+    "openmeter/app/service",
+    "openmeter/app/stripe/adapter",
+    "openmeter/app/stripe/client",
+    "openmeter/app/stripe/httpdriver",
+    "openmeter/app/stripe/service",
+    "openmeter/billing/adapter",
+    "openmeter/billing/charges/adapter",
+    "openmeter/billing/charges/creditpurchase/adapter",
+    "openmeter/billing/charges/creditpurchase/lineengine",
+    "openmeter/billing/charges/creditpurchase/service",
+    "openmeter/billing/charges/flatfee/adapter",
+    "openmeter/billing/charges/flatfee/service/realizations",
+    "openmeter/billing/charges/lineage/adapter",
+    "openmeter/billing/charges/lineage/service",
+    "openmeter/billing/charges/meta/adapter",
+    "openmeter/billing/charges/models/chargemeta",
+    "openmeter/billing/charges/models/creditrealization",
+    "openmeter/billing/charges/models/invoicedusage",
+    "openmeter/billing/charges/models/ledgertransaction",
+    "openmeter/billing/charges/models/payment",
+    "openmeter/billing/charges/service",
+    "openmeter/billing/charges/statemachine",
+    "openmeter/billing/charges/testutils",
+    "openmeter/billing/charges/usagebased/adapter",
+    "openmeter/billing/charges/usagebased/service/rating",
+    "openmeter/billing/charges/usagebased/service/run",
+    "openmeter/billing/charges/worker/advance",
+    "openmeter/billing/charges/worker/asyncadvance",
+    "openmeter/billing/creditgrant/service",
+    "openmeter/billing/httpdriver",
+    "openmeter/billing/lineengine",
+    "openmeter/billing/models/creditsapplied",
+    "openmeter/billing/models/externalid",
+    "openmeter/billing/models/stddetailedline",
+    "openmeter/billing/models/totals",
+    "openmeter/billing/rating/service/mutator",
+    "openmeter/billing/rating/service/rate",
+    "openmeter/billing/rating/service/testutil",
+    "openmeter/billing/service/invoicecalc",
+    "openmeter/billing/validators/customer",
+    "openmeter/billing/validators/subscription",
+    "openmeter/billing/worker/advance",
+    "openmeter/billing/worker/asyncadvance",
+    "openmeter/billing/worker/collect",
+    "openmeter/billing/worker/subscriptionsync/adapter",
+    "openmeter/billing/worker/subscriptionsync/reconciler",
+    "openmeter/billing/worker/subscriptionsync/service/persistedstate",
+    "openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater",
+    "openmeter/billing/worker/subscriptionsync/service/targetstate",
+    "openmeter/cost/adapter",
+    "openmeter/cost/service",
+    "openmeter/credit/adapter",
+    "openmeter/credit/balance",
+    "openmeter/credit/driver",
+    "openmeter/credit/engine",
+    "openmeter/credit/grant",
+    "openmeter/credit/hook",
+    "openmeter/currencies/adapter",
+    "openmeter/currencies/service",
+    "openmeter/customer/adapter",
+    "openmeter/customer/app",
+    "openmeter/customer/httpdriver",
+    "openmeter/customer/service/hooks",
+    "openmeter/customer/testutils",
+    "openmeter/debug/httpdriver",
+    "openmeter/dedupe/memorydedupe",
+    "openmeter/dedupe/redisdedupe",
+    "openmeter/ent/schema",
+    "openmeter/ent/tx",
+    "openmeter/entitlement/adapter",
+    "openmeter/entitlement/balanceworker/events",
+    "openmeter/entitlement/balanceworker/filters",
+    "openmeter/entitlement/boolean",
+    "openmeter/entitlement/driver/v2",
+    "openmeter/entitlement/hooks/subscription",
+    "openmeter/entitlement/metered",
+    "openmeter/entitlement/service",
+    "openmeter/entitlement/snapshot",
+    "openmeter/entitlement/validators/customer",
+    "openmeter/event/metadata",
+    "openmeter/event/models",
+    "openmeter/info/httpdriver",
+    "openmeter/ingest/httpdriver",
+    "openmeter/ingest/ingestadapter",
+    "openmeter/ingest/kafkaingest/serializer",
+    "openmeter/ingest/kafkaingest/topicresolver",
+    "openmeter/ledger/account/adapter",
+    "openmeter/ledger/account/service",
+    "openmeter/ledger/chargeadapter",
+    "openmeter/ledger/collector",
+    "openmeter/ledger/customerbalance",
+    "openmeter/ledger/historical/adapter",
+    "openmeter/ledger/noop",
+    "openmeter/ledger/resolvers/adapter",
+    "openmeter/ledger/routingrules",
+    "openmeter/ledger/testutils",
+    "openmeter/ledger/transactions/testutils",
+    "openmeter/llmcost/adapter",
+    "openmeter/llmcost/service",
+    "openmeter/llmcost/sync",
+    "openmeter/meter/adapter",
+    "openmeter/meter/httphandler",
+    "openmeter/meter/mockadapter",
+    "openmeter/meter/service",
+    "openmeter/meterevent/adapter",
+    "openmeter/meterevent/httphandler",
+    "openmeter/meterexport/service",
+    "openmeter/namespace/namespacedriver",
+    "openmeter/notification/adapter",
+    "openmeter/notification/consumer",
+    "openmeter/notification/eventhandler/noop",
+    "openmeter/notification/httpdriver",
+    "openmeter/notification/internal",
+    "openmeter/notification/service",
+    "openmeter/notification/webhook/noop",
+    "openmeter/notification/webhook/secret",
+    "openmeter/notification/webhook/svix/internal",
+    "openmeter/portal/adapter",
+    "openmeter/portal/authenticator",
+    "openmeter/portal/httphandler",
+    "openmeter/productcatalog/adapter",
+    "openmeter/productcatalog/addon/adapter",
+    "openmeter/productcatalog/addon/httpdriver",
+    "openmeter/productcatalog/addon/service",
+    "openmeter/productcatalog/driver",
+    "openmeter/productcatalog/feature",
+    "openmeter/productcatalog/http",
+    "openmeter/productcatalog/plan/adapter",
+    "openmeter/productcatalog/plan/httpdriver",
+    "openmeter/productcatalog/plan/service",
+    "openmeter/productcatalog/planaddon/adapter",
+    "openmeter/productcatalog/planaddon/httpdriver",
+    "openmeter/productcatalog/planaddon/service",
+    "openmeter/productcatalog/subscription/http",
+    "openmeter/productcatalog/subscription/service",
+    "openmeter/productcatalog/subscription/testutils",
+    "openmeter/productcatalog/testutils",
+    "openmeter/progressmanager/adapter",
+    "openmeter/progressmanager/entity",
+    "openmeter/progressmanager/httpdriver",
+    "openmeter/registry/builder",
+    "openmeter/secret/adapter",
+    "openmeter/secret/entity",
+    "openmeter/secret/service",
+    "openmeter/server/router",
+    "openmeter/session",
+    "openmeter/sink/flushhandler/ingestnotification/events",
+    "openmeter/sink/models",
+    "openmeter/streaming/clickhouse",
+    "openmeter/streaming/retry",
+    "openmeter/streaming/testutils",
+    "openmeter/subject/adapter",
+    "openmeter/subject/httphandler",
+    "openmeter/subject/service/hooks",
+    "openmeter/subject/testutils",
+    "openmeter/subscription/addon/diff",
+    "openmeter/subscription/addon/http",
+    "openmeter/subscription/addon/repo",
+    "openmeter/subscription/addon/service",
+    "openmeter/subscription/entitlement",
+    "openmeter/subscription/hooks/annotations",
+    "openmeter/subscription/patch",
+    "openmeter/subscription/repo",
+    "openmeter/subscription/service",
+    "openmeter/subscription/testutils",
+    "openmeter/subscription/validators/customer",
+    "openmeter/subscription/validators/subscription",
+    "openmeter/subscription/workflow/service",
+    "openmeter/taxcode/adapter",
+    "openmeter/taxcode/service",
+    "openmeter/taxcode/testutils",
+    "openmeter/testutils",
+    "openmeter/watermill/driver/kafka/metrics",
+    "openmeter/watermill/driver/noop",
+    "openmeter/watermill/eventbus",
+    "openmeter/watermill/grouphandler",
+    "openmeter/watermill/marshaler",
+    "openmeter/watermill/nopublisher",
+    "openmeter/watermill/router",
+    "pkg/clock",
+    "pkg/contextx",
+    "pkg/convert",
+    "pkg/currencyx",
+    "pkg/datetime",
+    "pkg/defaultx",
+    "pkg/entitydiff",
+    "pkg/equal",
+    "pkg/errorsx",
+    "pkg/expand",
+    "pkg/ffx",
+    "pkg/filter",
+    "pkg/framework/clickhouseotel",
+    "pkg/framework/commonhttp",
+    "pkg/framework/entutils/entcursor",
+    "pkg/framework/entutils/entdriver",
+    "pkg/framework/entutils/entexpose",
+    "pkg/framework/entutils/entmixinaccessor",
+    "pkg/framework/entutils/entpaginate",
+    "pkg/framework/entutils/entsetorclear",
+    "pkg/framework/entutils/testutils/ent1/schema",
+    "pkg/framework/entutils/testutils/ent2/schema",
+    "pkg/framework/lockr",
+    "pkg/framework/operation",
+    "pkg/framework/pgdriver",
+    "pkg/framework/tracex",
+    "pkg/framework/transaction",
+    "pkg/framework/transport/httptransport/encoder",
+    "pkg/gosundheit",
+    "pkg/hasher",
+    "pkg/idempotency",
+    "pkg/kafka/metrics/internal",
+    "pkg/kafka/metrics/stats",
+    "pkg/log",
+    "pkg/lrux",
+    "pkg/models/http",
+    "pkg/otelx",
+    "pkg/pagination/v2",
+    "pkg/pgxpoolobserver",
+    "pkg/redis",
+    "pkg/ref",
+    "pkg/server",
+    "pkg/set",
+    "pkg/slicesx",
+    "pkg/sortx",
+    "pkg/statelessx",
+    "pkg/strcase",
+    "pkg/timeutil",
+    "pkg/treex",
+    "quickstart",
+    "test/app/custominvoicing",
+    "test/app/stripe",
+    "test/billing",
+    "test/credits",
+    "test/customer",
+    "test/entitlement/regression",
+    "test/notification",
+    "test/subscription",
+    "tools/migrate/cmd/viewgen",
+    "tools/migrate/viewgen"
+  ],
+  "roots": [
+    "api",
+    "app",
+    "cmd",
+    "collector",
+    "deploy",
+    "docs",
+    "e2e",
+    "etc",
+    "openmeter",
+    "pkg",
+    "quickstart",
+    "test",
+    "tools"
+  ]
+}

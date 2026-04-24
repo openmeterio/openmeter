@@ -1,0 +1,56 @@
+{
+  "openmeter/ledger/transactions/testutils": {
+    "purpose": "Provides concrete test-only implementations of ledger.EntryInput, ledger.TransactionInput, and ledger.TransactionGroupInput interfaces so tests can construct arbitrary ledger postings without depending on production adapters or the database.",
+    "patterns": [
+      {
+        "name": "Interface compliance assertion at compile time",
+        "description": "Each test struct declares a `var _ <Interface> = (*Struct)(nil)` blank-identifier assertion to guarantee the struct satisfies its interface before the test runs.",
+        "example": "var _ ledger.EntryInput = (*AnyEntryInput)(nil)"
+      },
+      {
+        "name": "Flat value structs with exported fields",
+        "description": "Test input structs store all values as exported fields with a *Value suffix (AmountValue, BookedAtValue, etc.) and expose them through the interface methods \u2014 no constructor functions needed.",
+        "example": "type AnyEntryInput struct { Address ledger.PostingAddress; AmountValue alpacadecimal.Decimal }"
+      },
+      {
+        "name": "lo.Map for slice interface coercion",
+        "description": "Concrete slice fields (e.g. []*AnyEntryInput) are converted to []ledger.EntryInput / []ledger.TransactionInput via samber/lo.Map inside the interface method, keeping field types concrete.",
+        "example": "return lo.Map(a.EntryInputsValues, func(e *AnyEntryInput, _ int) ledger.EntryInput { return e })"
+      },
+      {
+        "name": "AsGroupInput helper for single-transaction groups",
+        "description": "AnyTransactionInput exposes AsGroupInput(namespace, annotations) to wrap itself in an AnyTransactionGroupInput \u2014 allows tests to build a full TransactionGroupInput from a single transaction without boilerplate.",
+        "example": "func (a *AnyTransactionInput) AsGroupInput(ns string, ann models.Annotations) ledger.TransactionGroupInput { ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "anytransaction.go",
+        "role": "Defines AnyEntryInput, AnyTransactionInput, and AnyTransactionGroupInput \u2014 the complete set of test doubles for the ledger transaction posting interfaces.",
+        "watch_for": "All three types must keep satisfying their respective ledger interfaces; any change to ledger.EntryInput, ledger.TransactionInput, or ledger.TransactionGroupInput signatures must be mirrored here."
+      }
+    ],
+    "anti_patterns": [
+      "Do not add production logic or database access here \u2014 this package must remain a pure test helper with no Ent/DB imports.",
+      "Do not skip the `var _ Interface = (*Struct)(nil)` compile-time assertions when adding new test doubles.",
+      "Do not import app/common or any Wire provider sets \u2014 test helpers must stay independent of the DI wiring layer.",
+      "Do not use context.Background() in test helpers; callers should supply t.Context() when a testing.T is available."
+    ],
+    "decisions": [
+      {
+        "decision": "Separate testutils package instead of embedding test doubles in the production package",
+        "rationale": "Keeps openmeter/ledger/transactions free of test-only dependencies and prevents accidental use of test doubles in production code; mirrors the project-wide convention of <domain>/testutils sub-packages."
+      },
+      {
+        "decision": "Exported *Value field naming convention for all stored values",
+        "rationale": "Allows test code to set fields directly without constructor indirection, making test fixtures concise and self-documenting while still satisfying the interface contract through accessor methods."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Build a single-transaction group to post to the ledger in a test",
+        "code": "import (\n    \"time\"\n    \"github.com/alpacahq/alpacadecimal\"\n    \"github.com/openmeterio/openmeter/openmeter/ledger\"\n    tutestutils \"github.com/openmeterio/openmeter/openmeter/ledger/transactions/testutils\"\n    \"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nentry := &tutestutils.AnyEntryInput{\n    Address:     somePostingAddress,\n    AmountValue: alpacadecimal.NewFromInt(100),\n}\ntx := &tutestutils.AnyTransactionInput{\n    BookedAtValue:     time.Now(),\n    EntryInputsValues: []*tutestutils.AnyEntryInput{entry},\n    AnnotationsValue:  models.Annotations{},\n}\ngroup := tx.AsGroupInput(\"default\", models.Annotations{})\n_ = ledgerSvc.PostTransactionGroup(t.Context(), group)"
+      }
+    ]
+  }
+}

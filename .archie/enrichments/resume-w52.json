@@ -1,0 +1,81 @@
+{
+  "pkg/pagination/v2": {
+    "purpose": "Generic cursor-based pagination library for Go. Provides Cursor (time+ID, base64-encoded), Result[T], Paginator[T] interface, and CollectAll helper. All domain list queries that need cursor pagination must use these types rather than offset-based pagination.",
+    "patterns": [
+      {
+        "name": "Item interface for cursor generation",
+        "description": "Any type used with NewResult[T] must implement Item (a single Cursor() method returning a Cursor). NewResult derives the next-page cursor from the last element automatically.",
+        "example": "func (i MyEntity) Cursor() pagination.Cursor { return pagination.NewCursor(i.CreatedAt, i.ID) }"
+      },
+      {
+        "name": "Cursor encoding: base64(RFC3339,ID)",
+        "description": "Cursors are opaque to callers. Internal format is base64-encoded '<RFC3339 UTC>,<ID>'. Use NewCursor/DecodeCursor/Encode \u2014 never construct the string manually. Time is always normalised to UTC.",
+        "example": "c := pagination.NewCursor(t, id); encoded := c.Encode(); decoded, err := pagination.DecodeCursor(encoded)"
+      },
+      {
+        "name": "Paginator[T] via NewPaginator",
+        "description": "Wrap any page-fetch function as a Paginator[T] using NewPaginator. The function receives a *Cursor (nil on first call) and returns Result[T] with Items and NextCursor.",
+        "example": "p := pagination.NewPaginator[MyType](func(ctx context.Context, c *pagination.Cursor) (pagination.Result[MyType], error) { ... })"
+      },
+      {
+        "name": "CollectAll with MAX_SAFE_ITER cap",
+        "description": "CollectAll iterates pages until NextCursor is nil, capped at MAX_SAFE_ITER (10_000) iterations. It returns partial results alongside any mid-iteration error. Never use it for unbounded production loads without awareness of the cap.",
+        "example": "items, err := pagination.CollectAll[MyType](ctx, paginator, nil)"
+      },
+      {
+        "name": "nil NextCursor signals last page",
+        "description": "Result.NextCursor == nil means no further pages. Callers must check this before issuing another page request. NewResult sets NextCursor to nil when items slice is empty.",
+        "example": "if res.NextCursor == nil { break }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "pagination.go",
+        "role": "Defines Item interface and Paginator[T] interface + NewPaginator constructor. The Item interface is the contract any domain type must satisfy to work with NewResult.",
+        "watch_for": "Adding methods to Item breaks all existing implementors; keep it to Cursor() Cursor only."
+      },
+      {
+        "file": "cursor.go",
+        "role": "Cursor value type with base64 encode/decode, MarshalText/UnmarshalText, Validate, and EncodePtr helper. Time is always UTC; SplitN with limit 2 handles IDs containing commas.",
+        "watch_for": "Do not change cursorDelimiter or format \u2014 existing encoded cursors stored by clients will break. SplitN limit=2 intentionally allows commas in IDs."
+      },
+      {
+        "file": "result.go",
+        "role": "Result[T] struct and NewResult[T Item] constructor. NextCursor is derived from the last item's Cursor() method.",
+        "watch_for": "NewResult requires T to implement Item. For results where the caller controls the next cursor manually, build Result[T] directly without NewResult."
+      },
+      {
+        "file": "collect.go",
+        "role": "CollectAll iterates a Paginator until exhausted, returns all items. Hard cap at MAX_SAFE_ITER prevents infinite loops.",
+        "watch_for": "Returns (partialItems, err) on mid-iteration error \u2014 callers must handle both. Silently stops at 10_000 items without error."
+      }
+    ],
+    "anti_patterns": [
+      "Implementing offset-based pagination \u2014 this package is cursor-only; offset logic belongs elsewhere",
+      "Manually constructing the cursor string (e.g. base64-encoding a custom format) instead of using NewCursor/Encode",
+      "Calling NewResult[T] without T implementing Item \u2014 compile error, but watch for wrapper types that forget the interface",
+      "Ignoring the (items, error) dual return from CollectAll \u2014 partial results are intentionally returned alongside errors",
+      "Storing decoded Cursor fields (Time/ID) externally and reconstructing from them \u2014 treat Cursor as opaque; always re-encode via Encode()"
+    ],
+    "decisions": [
+      {
+        "decision": "Cursor encodes both time and ID (composite key)",
+        "rationale": "Time alone is not unique across rows; the ID disambiguates ties, enabling stable keyset pagination even when multiple records share the same timestamp."
+      },
+      {
+        "decision": "MAX_SAFE_ITER cap of 10_000 in CollectAll",
+        "rationale": "Prevents runaway memory usage if a Paginator implementation never returns nil NextCursor. Tests explicitly assert the cap is honoured."
+      },
+      {
+        "decision": "Paginator[T] as an interface wrapping a function via NewPaginator",
+        "rationale": "Allows test paginators to be constructed as closures (NewPaginator(fn)) without implementing a named type, keeping test code concise."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Implement a domain list method that returns paginated results with a next cursor",
+        "code": "import (\n\t\"context\"\n\t pagination \"github.com/openmeterio/openmeter/pkg/pagination/v2\"\n)\n\ntype MyEntity struct {\n\tID        string\n\tCreatedAt time.Time\n}\n\nfunc (e MyEntity) Cursor() pagination.Cursor {\n\treturn pagination.NewCursor(e.CreatedAt, e.ID)\n}\n\nfunc (s *service) List(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[MyEntity], error) {\n\trows, err := s.adapter.QueryPage(ctx, cursor) // query WHERE (created_at, id) > cursor\n\tif err != nil {\n\t\treturn pagination.Result[MyEntity]{}, err\n\t}\n\treturn pagination.NewResult(rows), nil // NextCursor derived from last row\n}"
+      }
+    ]
+  }
+}

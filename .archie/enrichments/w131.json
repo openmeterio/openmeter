@@ -1,0 +1,244 @@
+{
+  "pkg/clock": {
+    "purpose": "Process-global test clock that replaces time.Now() calls with a controllable time source. All production code must call clock.Now() instead of time.Now() so tests can freeze or shift time deterministically.",
+    "patterns": [
+      {
+        "name": "clock.Now() everywhere",
+        "description": "Production code must call clock.Now() not time.Now(). The package uses package-level atomics so no injection is needed.",
+        "example": "import \"github.com/openmeterio/openmeter/pkg/clock\"; t := clock.Now()"
+      },
+      {
+        "name": "FreezeTime/UnFreeze in tests",
+        "description": "Tests freeze the clock with clock.FreezeTime(t) and unfreeze with defer clock.UnFreeze() or defer clock.ResetTime() to restore drift-based mode.",
+        "example": "clock.SetTime(testutils.GetRFC3339Time(t, \"2024-06-30T15:39:00Z\")); defer clock.ResetTime()"
+      },
+      {
+        "name": "Monotonic clock stripped",
+        "description": "clock.Now() always calls .Round(0) to strip the monotonic reading, preventing subtle comparison bugs when storing/comparing times.",
+        "example": "return time.Now().Add(-driftDuration).Round(0)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "clock.go",
+        "role": "Entire package implementation: atomic drift int64 for SetTime, atomic frozen int32 + atomic.Value for FreezeTime.",
+        "watch_for": "SetTime computes drift as time.Since(t).Nanoseconds() \u2014 drift is the offset to subtract from wall time, not the absolute time."
+      }
+    ],
+    "anti_patterns": [
+      "Calling time.Now() directly in production code \u2014 always use clock.Now()",
+      "Forgetting defer clock.ResetTime() or defer clock.UnFreeze() in tests, which leaks frozen state across test cases",
+      "Adding a context parameter or interface indirection \u2014 the global var design is intentional for zero-overhead usage"
+    ],
+    "decisions": [
+      {
+        "decision": "Package-level atomics instead of an injected Clock interface",
+        "rationale": "Zero call-site changes needed across the codebase; atomic ops are lock-free and safe for concurrent test use."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/contextx": {
+    "purpose": "Context-keyed key-value store (via peterbourgon/ctxdata) and a slog.Handler adapter that auto-attaches those stored attributes to every log record emitted within a request context.",
+    "patterns": [
+      {
+        "name": "WithAttr / WithAttrs to annotate context",
+        "description": "Call contextx.WithAttr(ctx, key, value) or contextx.WithAttrs(ctx, map) to attach structured data to the context. A ctxdata bag is lazily created if absent.",
+        "example": "ctx = contextx.WithAttr(ctx, \"customer_id\", customerID)"
+      },
+      {
+        "name": "NewLogHandler wraps existing slog.Handler",
+        "description": "Wrap any slog.Handler with contextx.NewLogHandler to automatically add all context attributes to every log record. Install at logger construction time.",
+        "example": "slog.New(contextx.NewLogHandler(slog.NewJSONHandler(os.Stdout, nil)))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "attr.go",
+        "role": "WithAttr and WithAttrs write to ctxdata; both silently ignore Set errors.",
+        "watch_for": "ctxdata.From returns nil if no bag exists \u2014 always handle the nil case by calling ctxdata.New before Set."
+      },
+      {
+        "file": "log.go",
+        "role": "Handler wraps slog.Handler; Handle reads ctxdata.GetAllMap and appends all entries as slog.Any attributes.",
+        "watch_for": "WithAttrs and WithGroup delegate to the inner handler and re-wrap \u2014 do not forget to preserve the Handler struct."
+      }
+    ],
+    "anti_patterns": [
+      "Using context.WithValue directly for structured log fields instead of contextx.WithAttr",
+      "Installing contextx.NewLogHandler more than once in the handler chain (double-attaches the same attributes)"
+    ],
+    "decisions": [
+      {
+        "decision": "peterbourgon/ctxdata as the context bag instead of custom context keys",
+        "rationale": "Provides a typed map API accessible from any layer without defining package-private key types everywhere."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/convert": {
+    "purpose": "Nil-safe generic pointer and type conversion helpers used throughout the codebase to avoid repetitive nil-guard boilerplate when mapping between domain types and API/Ent types.",
+    "patterns": [
+      {
+        "name": "ToPointer for value-to-pointer",
+        "description": "Use convert.ToPointer[T](value) instead of taking the address of a local variable directly.",
+        "example": "convert.ToPointer(\"some-string\")"
+      },
+      {
+        "name": "MapToPointer / SliceToPointer return nil on empty",
+        "description": "Both functions return nil (not a pointer to empty collection) when the collection is empty. Use when an absent collection must differ from an empty one in JSON serialization.",
+        "example": "convert.MapToPointer(myMap) // returns nil if len==0"
+      },
+      {
+        "name": "SafeDeRef for nil-safe pointer transformation",
+        "description": "SafeDeRef applies a mapping function to a pointer only if non-nil, otherwise returns nil. Replaces repetitive if ptr != nil checks in converters.",
+        "example": "convert.SafeDeRef(req.StartTime, func(t time.Time) *time.Time { return convert.ToPointer(t.UTC()) })"
+      },
+      {
+        "name": "ToStringLike for type-aliased string conversions",
+        "description": "Converts *Source to *Dest where both are ~string types, avoiding unsafe casts.",
+        "example": "convert.ToStringLike[api.CurrencyCode, currencyx.Code](req.Currency)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "ptr.go",
+        "role": "All pointer/type helpers including DerefHeaderPtr for *map and *slice dereferencing.",
+        "watch_for": "lo.EmptyableToPtr is explicitly avoided for maps/slices \u2014 use MapToPointer/SliceToPointer instead."
+      },
+      {
+        "file": "time.go",
+        "role": "TimePtrIn converts *time.Time to a given location, nil-safe.",
+        "watch_for": "Returns a new pointer; does not mutate in place."
+      }
+    ],
+    "anti_patterns": [
+      "Using lo.EmptyableToPtr on maps or slices \u2014 it does not treat empty collections as nil",
+      "Adding domain-specific conversion logic here \u2014 this package is for generic pointer/type mechanics only"
+    ],
+    "decisions": [],
+    "code_examples": []
+  },
+  "pkg/currencyx": {
+    "purpose": "Thin ISO 4217 currency wrapper built on invopop/gobl/currency that adds a Calculator type for currency-precision decimal rounding, used across billing and subscription for monetary arithmetic.",
+    "patterns": [
+      {
+        "name": "Validate before Calculator",
+        "description": "Always call Code.Validate() or obtain a Calculator via Code.Calculator() which validates internally. Never use a Code without validation.",
+        "example": "calc, err := currencyx.Code(\"USD\").Calculator(); if err != nil { return err }"
+      },
+      {
+        "name": "Calculator.RoundToPrecision for monetary amounts",
+        "description": "Round alpacadecimal.Decimal to the correct subunit count for the currency using Calculator.RoundToPrecision. Never hardcode decimal places.",
+        "example": "rounded := calc.RoundToPrecision(amount)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "currency.go",
+        "role": "Code type (type alias of currency.Code), Validate, Calculator constructor, RoundToPrecision, IsRoundedToPrecision.",
+        "watch_for": "RoundToPrecision uses Def.Subunits (not smallest denomination) \u2014 fine for online payments but not for physical cash."
+      }
+    ],
+    "anti_patterns": [
+      "Rounding monetary amounts with a fixed precision constant instead of Calculator.RoundToPrecision",
+      "Using currency.Code (gobl) directly instead of currencyx.Code \u2014 the wrapper adds Validate and Calculator"
+    ],
+    "decisions": [
+      {
+        "decision": "Wraps gobl/currency rather than implementing ISO 4217 from scratch",
+        "rationale": "GOBL is already a transitive dependency for invoicing; reusing its currency definitions avoids a duplicate definition table."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/datetime": {
+    "purpose": "Billing-safe datetime and ISO 8601 duration library. DateTime wraps time.Time with RFC 9557 timezone-annotated formatting/parsing; ISODuration wraps rickb777/period with no-overflow month/year arithmetic and DivisibleBy for subscription cadence validation.",
+    "patterns": [
+      {
+        "name": "Parse for all datetime inputs",
+        "description": "Use datetime.Parse(s) to accept RFC3339, ISO8601, and RFC9557 (timezone-annotated) strings. Never use time.Parse directly for user-supplied timestamps.",
+        "example": "dt, err := datetime.Parse(\"2024-06-30T15:39:00Z\")"
+      },
+      {
+        "name": "ISODurationString.Parse() for duration inputs",
+        "description": "Accept durations as ISODurationString and call .Parse() to obtain ISODuration. Use ParsePtrOrNil for optional fields.",
+        "example": "d, err := datetime.ISODurationString(\"P1M\").Parse()"
+      },
+      {
+        "name": "DateTime.Add(ISODuration) for calendar arithmetic",
+        "description": "Always use DateTime.Add or ISODuration.AddTo for date arithmetic \u2014 these handle month-end clamping (Jan 31 + 1M = Feb 28) and DST. Never use time.Time.Add with fixed durations for calendar periods.",
+        "example": "end := startDT.Add(duration)"
+      },
+      {
+        "name": "ISODuration.DivisibleBy for cadence validation",
+        "description": "Used to validate that a billing period is an integer multiple of a rate card cadence. Tests multiple days-in-month/hours-in-day scenarios for correctness under DST.",
+        "example": "ok, err := billingPeriod.DivisibleBy(ratecardCadence)"
+      },
+      {
+        "name": "Pre-defined DurationXxx vars",
+        "description": "Use the package-level constants (DurationDay, DurationMonth, DurationYear, etc.) instead of constructing ISODuration from scratch for common periods.",
+        "example": "datetime.DurationMonth"
+      },
+      {
+        "name": "DateTime.Format with RFC9557Layout for timezone-preserving output",
+        "description": "Use dt.Format(RFC9557Layout) to produce timezone-annotated output. Falls back to ISO8601Layout when no named timezone is set.",
+        "example": "dt.Format(datetime.RFC9557Layout)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "datetime.go",
+        "role": "DateTime struct, Add/AddYearsNoOverflow/AddMonthsNoOverflow/AddWeeks/AddDays, shiftClockTo for wall-clock\u2013safe arithmetic.",
+        "watch_for": "shiftClockTo computes wallTimeDiff then calls d.Time.Add to avoid re-triggering monotonic clock issues."
+      },
+      {
+        "file": "duration.go",
+        "role": "ISODuration wrapping period.Period, DivisibleBy, Mul, Add, Subtract, AddTo (delegates to DateTime.Add).",
+        "watch_for": "DivisibleBy calls Simplify(true) and tests four daysInMonth \u00d7 three hoursInDays combinations \u2014 a false negative means the divisor is ambiguous under calendar variation."
+      },
+      {
+        "file": "parse.go",
+        "role": "Parse tries multiple layouts; RFC9557 [tz] suffix is stripped and location loaded via time.LoadLocation.",
+        "watch_for": "Relies on strings.LastIndexByte + HasSuffix \u2014 multiple bracket pairs or brackets not at end return an error."
+      },
+      {
+        "file": "format.go",
+        "role": "DateTime.Format replaces layoutTZName placeholder with the actual Location().String().",
+        "watch_for": "If Location is unnamed (empty string), falls back to ISO8601 layout; do not assume RFC9557 output for UTC-offset-only times."
+      },
+      {
+        "file": "durationstring.go",
+        "role": "ISODurationString typed string, Parse() and ParsePtrOrNil().",
+        "watch_for": "Parse wraps period.Parse errors in NewDurationParseError for consistent error messaging."
+      },
+      {
+        "file": "testutils.go",
+        "role": "MustParseDateTime, MustParseDuration, MustLoadLocation, MustParseTimeInLocation \u2014 test helpers only, live in the main package (not testutils sub-package).",
+        "watch_for": "testutils.go is in package datetime not package datetime_test \u2014 accessible from internal tests without import."
+      }
+    ],
+    "anti_patterns": [
+      "Using time.Time.Add(30 * 24 * time.Hour) for 'one month' \u2014 use DateTime.Add(DurationMonth) to handle month-end clamping",
+      "Calling time.Parse directly for user-supplied timestamps \u2014 always go through datetime.Parse for RFC9557 support",
+      "Comparing ISODuration values with == \u2014 use ISODuration.Equal(*ISODuration) which normalises string form",
+      "Constructing period.Period directly instead of ISODuration \u2014 bypasses no-overflow arithmetic in AddTo"
+    ],
+    "decisions": [
+      {
+        "decision": "Custom shiftClockTo for all date arithmetic instead of time.AddDate",
+        "rationale": "time.AddDate can shift the wall clock in ways that break DST transitions; shiftClockTo preserves the monotonic/wall relationship by computing the diff and calling Add."
+      },
+      {
+        "decision": "DivisibleBy tests multiple calendar scenarios rather than exact arithmetic",
+        "rationale": "ISO calendar divisions are ambiguous (1 year \u00f7 hours depends on DST); testing across [28,29,30,31] days/month and [23,24,25] hours/day provides a conservative correct answer."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Parse, advance by ISO duration, format with timezone",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/datetime\"\n\nstart, err := datetime.Parse(\"2025-01-31T00:00:00Z\")\nif err != nil { return err }\nend := start.Add(datetime.DurationMonth) // 2025-02-28T00:00:00Z\nformatted := end.Format(datetime.RFC9557Layout)"
+      }
+    ]
+  }
+}

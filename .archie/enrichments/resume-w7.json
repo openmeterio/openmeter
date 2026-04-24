@@ -1,0 +1,101 @@
+{
+  "api/spec/packages/legacy/lib": {
+    "purpose": "TypeSpec linter entry point for the v1 (legacy) API spec. Assembles all lint rules into a single `$linter` export via `defineLinter`, which the TypeSpec compiler picks up during `make gen-api` to enforce naming, documentation, and structural constraints before OpenAPI is generated.",
+    "patterns": [
+      {
+        "name": "Rule registration via defineLinter",
+        "description": "All rules are collected in the `rules` array inside `index.js` and passed to `defineLinter({ rules })`. A new rule file must export a named const and be imported and added to this array \u2014 otherwise it never runs.",
+        "example": "import { casingRule } from './rules/casing.js'; const rules = [casingRule, ...]; export const $linter = defineLinter({ rules });"
+      },
+      {
+        "name": "createRule factory with paramMessage",
+        "description": "Every rule uses `createRule` from `@typespec/compiler` with a `messages` map of `paramMessage` templates. Plain string messages are not used \u2014 `paramMessage` provides type-safe interpolation and correct editor diagnostics.",
+        "example": "export const casingRule = createRule({ name: 'casing', severity: 'warning', messages: { name: paramMessage`The names of ${'type'} types must use ${'casing'}` }, create: (context) => ({ model: (m) => { ... } }) })"
+      },
+      {
+        "name": "context.reportDiagnostic with AST node as target",
+        "description": "Diagnostics are always reported with `target` set to the offending AST node (model, property, decorator node, etc.) so editor tooling highlights the correct location.",
+        "example": "context.reportDiagnostic({ format: { type: 'Model', casing: 'PascalCase' }, target: model, messageId: 'name' })"
+      },
+      {
+        "name": "Casing helpers centralised in utils.js",
+        "description": "`isPascalCaseNoAcronyms` and `isCamelCaseNoAcronyms` live exclusively in `utils.js` with a hardcoded `pascalCaseExceptions` list (`['OAuth2', 'URL', 'API', 'UI', 'ID']`). Rule files import from utils.js \u2014 never inline their own regex.",
+        "example": "import { isCamelCaseNoAcronyms, isPascalCaseNoAcronyms } from './utils.js'"
+      },
+      {
+        "name": "friendlyName rule is error-severity (blocking)",
+        "description": "`friendlyNameRule` uses `severity: 'error'` which blocks compilation. All other rules use `severity: 'warning'`. Do not change friendlyName to warning \u2014 it is intentionally blocking to enforce SDK-visible names.",
+        "example": "export const friendlyNameRule = createRule({ name: 'friendlyName', severity: 'error', ... })"
+      },
+      {
+        "name": "Model property doc exemptions",
+        "description": "`docDecoratorRule` skips doc checks for `_` and `contentType` properties, and skips all property checks for models whose names end with `Response`. Matching these exemptions prevents false positives when adding new response models.",
+        "example": "if (!['_', 'contentType'].includes(name) && !getDoc(context.program, property)) { ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "index.js",
+        "role": "Linter entry point; exports `$linter` recognized by `@typespec/compiler`. Must include every rule in the `rules` array.",
+        "watch_for": "Forgetting to add a new rule import and array entry here means the rule is silently never applied."
+      },
+      {
+        "file": "rules/utils.js",
+        "role": "Shared casing helpers (`isPascalCaseNoAcronyms`, `isCamelCaseNoAcronyms`, `isSnakeCase`, `isKebabCase`) and the canonical `pascalCaseExceptions` list.",
+        "watch_for": "Adding acronym exceptions anywhere other than the `pascalCaseExceptions` array in this file will cause inconsistent behaviour across rules."
+      },
+      {
+        "file": "rules/friendly-name.js",
+        "role": "Error-severity rule requiring `@friendlyName` on all interfaces, models, enums, and unions. Blocks `make gen-api` on violation.",
+        "watch_for": "Changing severity to `warning` silently removes the block; this is the only error-level rule."
+      },
+      {
+        "file": "rules/casing.js",
+        "role": "Warns when model names are not PascalCase or model properties are not camelCase. Imports casing helpers from utils.js.",
+        "watch_for": "The `_` property name is exempt from camelCase check (see `property.name !== '_'` guard); do not remove this guard."
+      },
+      {
+        "file": "rules/docs.js",
+        "role": "Warns on missing `@doc` decorator for models, enums, unions, and their non-exempt properties. Uses `getDoc` from `@typespec/compiler`.",
+        "watch_for": "Models ending with `Response` skip property-level doc checks \u2014 adding a non-Response suffix to a response model will start triggering warnings on all its properties."
+      },
+      {
+        "file": "rules/composition-over-inheritance.js",
+        "role": "Warns when a model extends a base model without a `@discriminator` decorator, encouraging spread or `model is` composition instead.",
+        "watch_for": "Uses `SyntaxKind` from `@typespec/compiler/ast` (not the main package) \u2014 ensure this sub-path import stays correct after compiler upgrades."
+      },
+      {
+        "file": "rules/operation-summary.js",
+        "role": "Warns when an operation lacks a `@summary` decorator. Checks `node.decorators` for `$summary` (compiler internal name).",
+        "watch_for": "The decorator internal name is `$summary`, not `summary`. Searching for `summary` without the `$` prefix will never match."
+      }
+    ],
+    "anti_patterns": [
+      "Adding a rule file without exporting a named const and adding it to the `rules` array in `index.js` \u2014 the rule will never execute.",
+      "Duplicating casing regex or acronym exceptions inline in a rule file instead of importing from `utils.js` \u2014 the exception list diverges.",
+      "Using a plain string in `messages` instead of `paramMessage` \u2014 loses type-safe interpolation and breaks diagnostic formatting.",
+      "Reporting a diagnostic with `target` set to something other than the offending AST node \u2014 editor highlights the wrong location.",
+      "Changing `friendlyNameRule` severity from `error` to `warning` \u2014 removes the compilation block that enforces SDK-visible names."
+    ],
+    "decisions": [
+      {
+        "decision": "`friendlyNameRule` is the only error-severity rule; all others are warnings.",
+        "rationale": "`@friendlyName` directly affects generated SDK type names across Go, JS, and Python \u2014 a missing decorator causes silent SDK naming drift, which is a hard contract break. Casing and doc issues are fixable post-hoc without breaking SDK consumers."
+      },
+      {
+        "decision": "Casing helpers and the acronym exception list are centralised in `utils.js`.",
+        "rationale": "Multiple rules (casing, future rules) check the same naming conventions. A single source of truth for `pascalCaseExceptions` prevents divergence when a new acronym (e.g. `SSO`) is added."
+      },
+      {
+        "decision": "Rules use the `@typespec/compiler` `createRule` API with `paramMessage`, not raw AST visitors.",
+        "rationale": "The `createRule` factory integrates with the TypeSpec diagnostic system for editor highlighting and CLI output. Raw visitors would bypass formatter and message-ID dispatch."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new warning rule that checks enum member names are UPPER_SNAKE_CASE",
+        "code": "// rules/enum-casing.js\nimport { createRule, paramMessage } from '@typespec/compiler'\nimport { isSnakeCase } from './utils.js'\n\nexport const enumCasingRule = createRule({\n  name: 'enum-casing',\n  severity: 'warning',\n  description: 'Enum members must use UPPER_SNAKE_CASE.',\n  messages: {\n    default: paramMessage`Enum member '${'name'}' must use UPPER_SNAKE_CASE`,\n  },\n  create: (context) => ({\n    enumMember: (member) => {\n      if (!isSnakeCase(member.name.toLowerCase())) {\n        context.reportDiagnostic({\n          format: { name: member.name },\n          target: member,\n          messageId: 'default',\n        })\n      }\n    },\n  }),\n})\n\n// index.js \u2014 add import and register:\nimport { enumCasingRule } from './rules/enum-casing.js'\nconst rules = [...existingRules, enumCasingRule]"
+      }
+    ]
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "openmeter/subscription/workflow/service": {
+    "purpose": "Concrete implementation of subscriptionworkflow.Service \u2014 the high-level orchestration layer that composes the core subscription.Service with addon, customer, locking, and transaction primitives to execute multi-step lifecycle operations (CreateFromPlan, EditRunning, ChangeToPlan, Restore, AddAddon, ChangeAddonQuantity) atomically.",
+    "patterns": [
+      {
+        "name": "Every mutating operation wraps in transaction.Run",
+        "description": "All methods that touch multiple domain objects call transaction.Run(ctx, s.TransactionManager, ...) so failures roll back atomically. Nested operations (e.g. syncWithAddons called from AddAddon) also wrap in their own transaction.Run for savepoint support.",
+        "example": "transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (T, error) { ... })"
+      },
+      {
+        "name": "lockCustomer before any customer-scoped write",
+        "description": "CreateFromPlan calls s.lockCustomer(ctx, inp.CustomerID) inside the transaction before any write to prevent concurrent subscription mutations for the same customer. Uses subscription.GetCustomerLock + lockr.LockForTX (pg_advisory_xact_lock).",
+        "example": "if err := s.lockCustomer(ctx, inp.CustomerID); err != nil { return def, err }"
+      },
+      {
+        "name": "Addon sync via restore+apply diff cycle",
+        "description": "syncWithAddons computes Diffable for before/after addon sets, calls spec.ApplyMany with GetRestores() to strip old addon contributions, then ApplyMany with GetApplies() to apply new ones, then Service.Update. Never directly patches the spec with addon data without restoring first.",
+        "example": "spec.ApplyMany(lo.Map(restores, func(d addondiff.Diffable, _ int) subscription.AppliesToSpec { return d.GetRestores() }), ...)\nspec.ApplyMany(lo.Map(applies, ...), ...)\ns.Service.Update(ctx, view.Subscription.NamespacedID, spec)"
+      },
+      {
+        "name": "Compile-time interface assertion",
+        "description": "var _ subscriptionworkflow.Service = &service{} in service.go enforces that the struct fully implements the interface at compile time.",
+        "example": "var _ subscriptionworkflow.Service = &service{}"
+      },
+      {
+        "name": "Domain errors via models.NewGeneric* constructors",
+        "description": "Validation failures return models.NewGenericValidationError, conflicts return models.NewGenericConflictError, forbidden state transitions return models.NewGenericForbiddenError, pre-condition failures return models.NewGenericPreConditionFailedError. Never return raw errors for these cases.",
+        "example": "return def1, def2, models.NewGenericConflictError(fmt.Errorf(\"subscription already has that addon purchased\"))"
+      },
+      {
+        "name": "subscriptionworkflow.MapSubscriptionErrors for spec errors",
+        "description": "After calling NewSpecFromPlan or spec.ApplyMany, pipe the error through subscriptionworkflow.MapSubscriptionErrors(err) before returning \u2014 it translates domain-specific spec errors into the correct generic error types.",
+        "example": "if err := subscriptionworkflow.MapSubscriptionErrors(err); err != nil { return def, fmt.Errorf(\"failed to create spec from plan: %w\", err) }"
+      },
+      {
+        "name": "Feature flag gate via ffx.Service",
+        "description": "Feature flags (e.g. subscription.MultiSubscriptionEnabledFF) are checked via s.FeatureFlags.IsFeatureEnabled(ctx, ...) and short-circuit the operation with a domain-specific error before entering the transaction.",
+        "example": "multiSubscriptionEnabled, err := s.FeatureFlags.IsFeatureEnabled(ctx, subscription.MultiSubscriptionEnabledFF)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Defines WorkflowServiceConfig (all injected deps) and the service struct. NewWorkflowService is the only constructor \u2014 wire it via app/common. lockCustomer helper is here.",
+        "watch_for": "Adding new dependencies must go into WorkflowServiceConfig; never store state outside that struct."
+      },
+      {
+        "file": "subscription.go",
+        "role": "Implements CreateFromPlan, EditRunning, ChangeToPlan, Restore. All cross-subscription lifecycle ops. ChangeToPlan cancels old sub and creates new one in a single transaction, storing superseding/previous annotation cross-references.",
+        "watch_for": "EditRunning blocks if subscription has active addons (hasAddons check). Restore is gated behind MultiSubscriptionEnabledFF. BillingAnchor normalization and annotation injection (OwnerSubscriptionSubSystem, UniquePatchID) happen here."
+      },
+      {
+        "file": "addon.go",
+        "role": "Implements AddAddon and ChangeAddonQuantity. Both follow the pattern: validate \u2192 transaction \u2192 fetch current state \u2192 mutate addon record \u2192 syncWithAddons \u2192 return updated view. syncWithAddons is the core diff-apply loop.",
+        "watch_for": "Duplicate addon purchase is detected by ID equality check before Create \u2014 guard is inside the transaction. asDiffs filters nil Diffable items; mismatch between len(diffs) and len(addons) is a hard error."
+      },
+      {
+        "file": "addon_test.go",
+        "role": "Integration tests for AddAddon and ChangeAddonQuantity. Uses subscriptiontestutils.SetupDBDeps + NewService for full DB-backed testing with clock.FreezeTime.",
+        "watch_for": "clock.FreezeTime(now.Add(time.Millisecond)) pattern avoids Postgres timestamp truncation boundary issues \u2014 replicate this in new tests."
+      },
+      {
+        "file": "subscription_test.go",
+        "role": "Integration tests for CreateFromPlan, EditRunning, TestEditingCurrentPhase. Also demonstrates manual WorkflowService construction with MockService for unit testing specific delegation behavior.",
+        "watch_for": "MockService injection pattern (workflowservice.NewWorkflowService with custom UpdateFn/GetViewFn) is the correct approach for unit-testing delegation without a DB."
+      }
+    ],
+    "anti_patterns": [
+      "Calling s.Service.Update directly without going through spec restore+apply cycle when addons are present \u2014 always use syncWithAddons for addon-aware updates",
+      "Starting a new outer transaction.Run inside syncWithAddons when it is already called from an outer transaction.Run \u2014 transaction.Run is idempotent via savepoints but callers must not bypass the outer transaction",
+      "Returning raw fmt.Errorf for validation, conflict, or forbidden errors \u2014 always use models.NewGenericValidationError / NewGenericConflictError / NewGenericForbiddenError",
+      "Skipping lockCustomer in new mutating workflow methods that create or modify subscriptions for a customer",
+      "Directly editing the subscription spec without calling spec.ValidateAlignment() after applying patches"
+    ],
+    "decisions": [
+      {
+        "decision": "Workflow service is a separate layer from subscription.Service rather than expanding the core service",
+        "rationale": "Core subscription.Service stays persistence-focused; workflow layer composes it with addon, customer, locking, and feature-flag concerns without polluting the domain interface or creating circular imports."
+      },
+      {
+        "decision": "Addon sync uses a full restore-then-apply diff cycle instead of incremental patching",
+        "rationale": "Ensures idempotency: the spec always reflects exactly the addons currently attached, not accumulated patches. Prevents double-application on retry."
+      },
+      {
+        "decision": "ChangeToPlan cancels the old subscription then creates a new one within a single transaction, storing cross-reference annotations",
+        "rationale": "Preserves a navigable subscription history (previousSubscriptionID / supersedingSubscriptionID annotations) while guaranteeing atomicity \u2014 no window where neither subscription is active."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add an addon to a subscription: validate, lock in transaction, detect duplicate, create addon record, sync spec",
+        "code": "func (s *service) AddAddon(ctx context.Context, subscriptionID models.NamespacedID, addonInp subscriptionworkflow.AddAddonWorkflowInput) (subscription.SubscriptionView, subscriptionaddon.SubscriptionAddon, error) {\n\tif err := addonInp.Validate(); err != nil {\n\t\treturn def1, def2, models.NewGenericValidationError(err)\n\t}\n\tres, err := transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (purchaseRes, error) {\n\t\tsubView, _ := s.Service.GetView(ctx, subscriptionID)\n\t\tsubsAdds, _ := s.AddonService.List(ctx, subscriptionID.Namespace, ...)\n\t\tif lo.SomeBy(subsAdds.Items, func(sa subscriptionaddon.SubscriptionAddon) bool { return sa.Addon.ID == addonInp.AddonID }) {\n\t\t\treturn def, models.NewGenericConflictError(fmt.Errorf(\"subscription already has that addon purchased\"))\n\t\t}\n\t\tsubsAdd, _ := s.AddonService.Create(ctx, subscriptionID.Namespace, ...)\n\t\tsubView, err = s.syncWithAddons(ctx, subView, subsAdds.Items, append(subsAdds.Items, *subsAdd), editTime)\n\t\treturn purchaseRes{sub: subView, subAdd: *subsAdd}, err\n\t})\n\treturn res.sub, res.subAdd, err\n}"
+      }
+    ]
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "collector/quickstart/seeder": {
+    "purpose": "Benthos/Redpanda Connect pipeline config that generates synthetic CloudEvents and POSTs them to the OpenMeter ingest API. Used exclusively for local quickstart demos \u2014 not production code.",
+    "patterns": [
+      {
+        "name": "Environment-variable-driven configuration",
+        "description": "Every runtime-variable value uses Benthos interpolation syntax `${VAR:default}`. Adding new tunables must follow this pattern \u2014 no hardcoded values.",
+        "example": "count: ${SEEDER_COUNT:0}  interval: \"${SEEDER_INTERVAL:50ms}\""
+      },
+      {
+        "name": "CloudEvents 1.0 envelope",
+        "description": "The generate mapping must produce a root object with id, specversion, type, source, subject, time, and data fields to be accepted by the OpenMeter /api/v1/events endpoint.",
+        "example": "root = {\"id\": uuid_v4(), \"specversion\": \"1.0\", \"type\": $event_type, \"source\": $source, \"subject\": $subject, \"time\": $time, \"data\": {...}}"
+      },
+      {
+        "name": "Switch output for optional stdout logging",
+        "description": "The output.switch pattern with a SEEDER_LOG guard is the canonical way to add optional debug output without a second process. Any new output target must be added as an additional case, not a replacement.",
+        "example": "- check: '\"${SEEDER_LOG:false}\" == \"true\"'\n  output:\n    stdout:\n      codec: lines"
+      },
+      {
+        "name": "Bearer token auth on HTTP output",
+        "description": "Authorization header must use Bearer scheme with the OPENMETER_TOKEN env var. Do not embed tokens directly.",
+        "example": "Authorization: \"Bearer ${OPENMETER_TOKEN:}\""
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "config.yaml",
+        "role": "Single Benthos pipeline definition: generate input \u2192 CloudEvent mapping \u2192 HTTP POST output with optional stdout logging.",
+        "watch_for": "SEEDER_COUNT=0 means generate forever; set a non-zero value to cap output. time field is backdated up to 3 days using Bloblang ts_sub_iso8601 to spread events across a window \u2014 changing this affects meter aggregation windows in demos."
+      }
+    ],
+    "anti_patterns": [
+      "Hardcoding OPENMETER_URL or OPENMETER_TOKEN instead of using env-var interpolation",
+      "Removing the specversion or id fields from the generated CloudEvent \u2014 the ingest API will reject the event",
+      "Adding business logic or data transformations beyond synthetic seeding \u2014 this config is demo-only, not a reusable pipeline template",
+      "Setting max_in_flight > 1 on the http_client output without understanding back-pressure implications against a local server"
+    ],
+    "decisions": [
+      {
+        "decision": "Use Benthos generate input with Bloblang mapping rather than a separate Go seed program",
+        "rationale": "Keeps the quickstart self-contained with no extra binary; Benthos is already a project dependency (benthos-collector) so no new toolchain is introduced"
+      },
+      {
+        "decision": "Backdate event time by up to 3 days with random spread",
+        "rationale": "Produces realistic historical usage data in meter aggregation windows immediately on first run, avoiding an empty dashboard on quickstart"
+      }
+    ],
+    "code_examples": []
+  }
+}

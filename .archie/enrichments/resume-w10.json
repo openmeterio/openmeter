@@ -1,0 +1,77 @@
+{
+  "api/v3/handlers/customers/entitlementaccess": {
+    "purpose": "HTTP handler for listing customer entitlement access across all entitlement types (metered, boolean, static). Translates entitlement.EntitlementValue domain types to api.BillingEntitlementAccessResult API types, serving as the v3 API boundary for the entitlement access query.",
+    "patterns": [
+      {
+        "name": "HandlerWithArgs constructor pattern",
+        "description": "Each operation method returns a typed httptransport.HandlerWithArgs[Request, Response, PathArg] alias. The method builds the handler inline via httptransport.NewHandlerWithArgs with three closures: decoder (resolves namespace + path arg \u2192 domain input), operation (calls domain services), and encoder.",
+        "example": "type ListCustomerEntitlementAccessHandler httptransport.HandlerWithArgs[ListCustomerEntitlementAccessRequest, ListCustomerEntitlementAccessResponse, CustomerID]"
+      },
+      {
+        "name": "Namespace resolution via injected resolver",
+        "description": "All decoders call h.resolveNamespace(ctx) as the first step. Never read namespace from path or query params directly.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return ..., err }"
+      },
+      {
+        "name": "apierrors.GenericErrorEncoder in options",
+        "description": "Every httptransport.NewHandlerWithArgs call appends httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()) via httptransport.AppendOptions(h.options, ...) so domain errors map to correct HTTP status codes.",
+        "example": "httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"list-customer-entitlement-access\"), httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()))..."
+      },
+      {
+        "name": "Type-switch mapping in separate mapping.go",
+        "description": "Domain-to-API type translation lives exclusively in mapping.go using a type switch on entitlement.EntitlementValue. Operation closures in list.go call mappers and never do inline conversion.",
+        "example": "switch ent := entitlementValue.(type) { case *meteredentitlement.MeteredEntitlementValue: ... case *booleanentitlement.BooleanEntitlementValue: ... }"
+      },
+      {
+        "name": "Deleted-customer guard before service call",
+        "description": "After fetching the customer, check cus.IsDeleted() and return apierrors.NewPreconditionFailedError before invoking any entitlement service method.",
+        "example": "if cus != nil && cus.IsDeleted() { return ..., apierrors.NewPreconditionFailedError(ctx, fmt.Sprintf(...)) }"
+      },
+      {
+        "name": "Handler interface with one method per operation",
+        "description": "The exported Handler interface declares one method per HTTP operation returning the typed handler alias. The private handler struct implements it. New operations add a method to both the interface and the struct.",
+        "example": "type Handler interface { ListCustomerEntitlementAccess() ListCustomerEntitlementAccessHandler }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Declares Handler interface and handler struct with constructor New(). Holds injected dependencies: resolveNamespace, customerService, entitlementService, and shared options.",
+        "watch_for": "All dependencies injected via constructor; never use package-level vars or init(). Options slice is passed through to each operation."
+      },
+      {
+        "file": "list.go",
+        "role": "Implements ListCustomerEntitlementAccess operation: decoder resolves namespace+customerID, operation fetches customer then calls entitlementService.GetAccess, iterates entitlements calling mapEntitlementValueToAPI, sorts by feature key.",
+        "watch_for": "NoAccessValue entries are silently skipped (found=false); unknown types return an error. Result is sorted deterministically before encoding."
+      },
+      {
+        "file": "mapping.go",
+        "role": "Contains mapEntitlementValueToAPI: pure type-switch function converting domain EntitlementValue subtypes to api.BillingEntitlementAccessResult. Returns (bool found, result, error).",
+        "watch_for": "New entitlement subtypes must be added to the switch; the default case returns an error. NoAccessValue returns (false, zero, nil) \u2014 caller must check the bool."
+      }
+    ],
+    "anti_patterns": [
+      "Inline domain-to-API type conversion inside list.go instead of delegating to mapping.go",
+      "Calling entitlementService.GetAccess without first fetching and checking the customer for deletion",
+      "Omitting apierrors.GenericErrorEncoder from handler options \u2014 domain errors will not map to correct HTTP status codes",
+      "Reading namespace from HTTP request params directly instead of h.resolveNamespace(ctx)",
+      "Handling NoAccessValue as an error instead of returning found=false and skipping the entry"
+    ],
+    "decisions": [
+      {
+        "decision": "bool return from mapEntitlementValueToAPI instead of filtering at the service layer",
+        "rationale": "entitlement.GetAccess can return NoAccessValue entries (inactive entitlements); filtering at the mapping boundary keeps the domain service contract clean and avoids leaking HTTP concerns into the service layer."
+      },
+      {
+        "decision": "Deterministic sort by FeatureKey after collecting results",
+        "rationale": "entitlement.GetAccess returns a map; iteration order is non-deterministic. Client-visible ordering must be stable for reproducible API responses."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new list operation following the existing pattern",
+        "code": "// In handler.go \u2014 add to Handler interface:\nGetCustomerEntitlementFoo() GetCustomerEntitlementFooHandler\n\n// In foo.go:\ntype GetCustomerEntitlementFooHandler httptransport.HandlerWithArgs[GetCustomerEntitlementFooRequest, GetCustomerEntitlementFooResponse, CustomerID]\n\nfunc (h *handler) GetCustomerEntitlementFoo() GetCustomerEntitlementFooHandler {\n    return httptransport.NewHandlerWithArgs(\n        func(ctx context.Context, r *http.Request, customerID CustomerID) (GetCustomerEntitlementFooRequest, error) {\n            ns, err := h.resolveNamespace(ctx)\n            if err != nil {\n                return GetCustomerEntitlementFooRequest{}, err\n            }\n            return GetCustomerEntitlementFooRequest{CustomerID: customer.CustomerID{Namespace: ns, ID: customerID}}, nil\n        },\n        func(ctx context.Context, req GetCustomerEntitlementFooRequest) (GetCustomerEntitlementFooResponse, error) {\n            // ... call domain services\n        },\n        commonhttp.JSONResponseEncoderWithStatus[GetCustomerEntitlementFooResponse](http.StatusOK),\n        httptransport.AppendOptions(\n            h.options,\n            httptransport.WithOperationName(\"get-customer-entitlement-foo\"),\n            httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),\n        )...,\n    )\n}"
+      }
+    ]
+  }
+}

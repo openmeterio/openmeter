@@ -1,0 +1,77 @@
+{
+  "api/client/python/examples": {
+    "purpose": "Runnable Python example scripts (sync and async) that demonstrate openmeter SDK usage patterns against a live endpoint; each script is self-contained and exercises one domain area. Serves as both documentation and a Pyright-checked regression surface for the generated SDK.",
+    "patterns": [
+      {
+        "name": "Environment-variable configuration",
+        "description": "Endpoint and token are always read from OPENMETER_ENDPOINT and OPENMETER_TOKEN env vars with sensible defaults; never hardcoded.",
+        "example": "endpoint = os.environ.get('OPENMETER_ENDPOINT', 'https://openmeter.cloud')"
+      },
+      {
+        "name": "HttpResponseError catch-all",
+        "description": "All SDK calls are wrapped in try/except corehttp.exceptions.HttpResponseError to surface API errors consistently.",
+        "example": "except HttpResponseError as e: print(e)"
+      },
+      {
+        "name": "Dict-access for discriminated-union items",
+        "description": "SDK responses for polymorphic list items (e.g. entitlements) are dicts; use .get() not attribute access.",
+        "example": "item.get('type') == 'metered'"
+      },
+      {
+        "name": "One-file-per-domain organisation",
+        "description": "Each domain (ingest, query, entitlement, subscription) lives in its own file under sync/ or async/; no cross-domain imports between example files.",
+        "example": "sync/ingest.py, async/entitlement.py"
+      },
+      {
+        "name": "Async examples use openmeter.aio.Client exclusively",
+        "description": "Files under async/ import from openmeter.aio and use async with + asyncio.run(); sync/ files import from openmeter and call main() directly.",
+        "example": "from openmeter.aio import Client"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "pyproject.toml",
+        "role": "Poetry project referencing the parent SDK via path dependency (develop=true); pin python ^3.9 to match SDK floor.",
+        "watch_for": "Do not add a version constraint on openmeter here \u2014 the path dependency must track the local checkout."
+      },
+      {
+        "file": "pyrightconfig.json",
+        "role": "Pyright type-checking config covering both async/ and sync/ directories at basic mode.",
+        "watch_for": "Mypy is explicitly not supported due to overloaded constructors; never add mypy config."
+      },
+      {
+        "file": "async/ingest.py",
+        "role": "Reference implementation for async CloudEvents ingest; shows async with client, event construction, and error handling.",
+        "watch_for": "asyncio.run() must wrap the top-level coroutine; calling it inside an already-running loop raises RuntimeError."
+      },
+      {
+        "file": "sync/ingest.py",
+        "role": "Structural mirror of async/ingest.py using blocking Client; module-level client construction followed by direct main() call.",
+        "watch_for": "Must not wrap code in async with or import from openmeter.aio."
+      }
+    ],
+    "anti_patterns": [
+      "Importing from openmeter.aio in sync/ examples or from openmeter (sync) in async/ examples",
+      "Hardcoding endpoint or token instead of reading OPENMETER_ENDPOINT / OPENMETER_TOKEN",
+      "Using attribute access on dict-typed discriminated-union SDK responses instead of .get()",
+      "Adding cross-domain logic or shared helpers across example files \u2014 each must remain self-contained",
+      "Running pyright type checks with mypy \u2014 mypy is incompatible with the generated SDK's overloaded constructors"
+    ],
+    "decisions": [
+      {
+        "decision": "Async and sync examples are structurally identical folders with separate client imports",
+        "rationale": "Keeps both flavours discoverable and ensures every domain is covered in both execution models without a shared abstraction that could obscure the per-client differences."
+      },
+      {
+        "decision": "Pyright only, no mypy",
+        "rationale": "The generated SDK uses overloaded constructors that mypy cannot handle; Pyright is the only supported static type checker."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Async ingest example entry point",
+        "code": "import asyncio, os\nfrom azure.core.exceptions import HttpResponseError\nfrom openmeter.aio import Client\n\nclient = Client(\n    endpoint=os.environ.get('OPENMETER_ENDPOINT', 'https://openmeter.cloud'),\n    credential=os.environ.get('OPENMETER_TOKEN', ''),\n)\n\nasync def main():\n    async with client:\n        try:\n            await client.ingest_events(...)\n        except HttpResponseError as e:\n            print(e)\n\nasyncio.run(main())"
+      }
+    ]
+  }
+}

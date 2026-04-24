@@ -1,0 +1,121 @@
+{
+  "openmeter/entitlement/balanceworker/events": {
+    "purpose": "Defines the Watermill event type for triggering entitlement balance recalculation (RecalculateEvent). Single file: recalculate.go. This is the schema contract between producers (entitlement lifecycle handlers, ingest flush) and the balance worker consumer.",
+    "patterns": [
+      {
+        "name": "Implement marshaler.Event interface",
+        "description": "Every event struct must implement marshaler.Event via EventName() string and EventMetadata() metadata.EventMetadata. Verified by compile-time assertion: `var _ marshaler.Event = RecalculateEvent{}`.",
+        "example": "var _ marshaler.Event = RecalculateEvent{}"
+      },
+      {
+        "name": "Versioned event type via metadata.EventType",
+        "description": "Event type is declared as metadata.EventType{Subsystem, Name, Version} and the string name is derived via metadata.GetEventName(). Version is a 'v2'-style string. Bumping version is the migration path for breaking schema changes.",
+        "example": "recalculateEventType = metadata.EventType{Subsystem: EventSubsystem, Name: RecalculateEventName, Version: \"v2\"}"
+      },
+      {
+        "name": "OperationType enum with Values()+Validate()",
+        "description": "New operation kinds must be added to the OperationType const block AND to the Values() slice so Validate() rejects unknown values via slices.Contains.",
+        "example": "OperationTypeIngest OperationType = \"ingest\""
+      },
+      {
+        "name": "EventMetadata subject uses ComposeResourcePath",
+        "description": "EventMetadata.Subject is always built with metadata.ComposeResourcePath(namespace, entityKind, id) \u2014 never a raw string concatenation.",
+        "example": "Subject: metadata.ComposeResourcePath(e.Entitlement.Namespace, metadata.EntityEntitlement, e.Entitlement.ID)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "recalculate.go",
+        "role": "Single source of truth for the recalculate event schema. Contains event struct, operation type enum, and all marshaler.Event plumbing.",
+        "watch_for": "Adding fields to RecalculateEvent is a wire-format change \u2014 consumers must be updated before or simultaneously. Version string in recalculateEventType must be bumped on breaking changes."
+      }
+    ],
+    "anti_patterns": [
+      "Adding business logic or DB calls into this package \u2014 it is a pure data/schema package",
+      "Bypassing the Validate() method when constructing RecalculateEvent before publishing",
+      "Hard-coding the event name string instead of using recalculateEventName derived from metadata.GetEventName()",
+      "Introducing a new OperationType constant without adding it to Values()"
+    ],
+    "decisions": [
+      {
+        "decision": "Event schema lives in a dedicated sub-package (events/) rather than inline in the worker",
+        "rationale": "Producers outside the worker (e.g., entitlement service hooks, ingest flush handlers) import this package to construct events without depending on the full worker."
+      },
+      {
+        "decision": "Version is encoded in the EventType struct ('v2'), not in the Go type name",
+        "rationale": "Allows multiple consumers running different versions to coexist on the same topic during rolling deploys by filtering on EventVersionSubsystem."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/entitlement/balanceworker/filters": {
+    "purpose": "Pluggable filter chain that gates whether a balance recalculation event should be processed for a given namespace/entitlement. Prevents redundant recalculation via high-watermark caching and skips namespaces with no active notification rules.",
+    "patterns": [
+      {
+        "name": "Filter interface with IsNamespaceInScope + IsEntitlementInScope",
+        "description": "All filter implementations must satisfy filters.Filter (two methods). NamedFilter extends Filter with Name() string. Compile-time assertions enforce this: `var _ NamedFilter = (*HighWatermarkCache)(nil)`.",
+        "example": "var _ NamedFilter = (*HighWatermarkCache)(nil)"
+      },
+      {
+        "name": "Config struct with Validate() before construction",
+        "description": "Each filter with external dependencies takes a typed Config struct implementing models.Validator. NewXxx(cfg) calls cfg.Validate() as first step and returns error if invalid.",
+        "example": "var _ models.Validator = (*NotificationsFilterConfig)(nil)\nfunc NewNotificationsFilter(cfg NotificationsFilterConfig) (NamedFilter, error) { if err := cfg.Validate(); err != nil { return nil, err } ... }"
+      },
+      {
+        "name": "HighWatermark backend abstraction",
+        "description": "HighWatermarkCache delegates storage to a HighWatermarkBackend interface (Get/Record). In-memory LRU is the only current backend. New backends (e.g., Redis) must implement HighWatermarkBackend, not HighWatermarkCache itself.",
+        "example": "type HighWatermarkBackend interface { Get(...) (highWatermarkBackendGetResult, error); Record(...) error }"
+      },
+      {
+        "name": "CalculationTimeRecorder for post-calculation watermark updates",
+        "description": "Filters that track last calculation time implement CalculationTimeRecorder (extends Filter with RecordLastCalculation). The worker must call RecordLastCalculation after each successful recalculation.",
+        "example": "var _ CalculationTimeRecorder = (*HighWatermarkCache)(nil)"
+      },
+      {
+        "name": "LRU+TTL cache for external service lookups",
+        "description": "NotificationsFilter caches notification rules per namespace using lrux.CacheWithItemTTL to avoid per-event rule queries. New filters that call external services must apply the same caching strategy.",
+        "example": "ruleCache, err := lrux.NewCacheWithItemTTL(cfg.CacheSize, filter.fetchRulesForNamespace, lrux.WithTTL(cfg.CacheTTL))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "filter.go",
+        "role": "Defines the Filter, NamedFilter, CalculationTimeRecorder interfaces and EntitlementFilterRequest/RecordLastCalculationRequest input types. All filter implementations start here.",
+        "watch_for": "EntitlementFilterRequest.Validate() must be called inside IsEntitlementInScope implementations \u2014 not doing so allows zero-value EventAt to pass through."
+      },
+      {
+        "file": "highwatermark.go",
+        "role": "In-memory LRU cache preventing recalculation for events older than the last calculation timestamp. Reset operations always pass through (IsEntitlementInScope returns true for snapshot.ValueOperationReset).",
+        "watch_for": "defaultClockDrift (-1ms) is subtracted from watermark in the comparison \u2014 new time comparisons must replicate this offset or risk missing events under clock skew."
+      },
+      {
+        "file": "notifications.go",
+        "role": "Skips recalculation for namespaces/entitlements with no active BalanceThreshold notification rules. Caches rule lookups with TTL.",
+        "watch_for": "An empty Features list in a rule means 'all features are in scope' \u2014 conditional logic must preserve this semantics."
+      }
+    ],
+    "anti_patterns": [
+      "Calling external services (notification, DB) inside IsEntitlementInScope without LRU+TTL caching \u2014 this runs per-event and must be low-latency",
+      "Implementing a new filter without a compile-time interface assertion (var _ NamedFilter = ...)",
+      "Skipping cfg.Validate() in a constructor \u2014 missing required dependencies will panic at runtime rather than fail at startup",
+      "Modifying HighWatermarkCache to bypass the backend interface (breaks testability and future Redis backend)",
+      "Adding mutable state to filter structs without concurrent-access protection \u2014 filters are called from parallel worker goroutines"
+    ],
+    "decisions": [
+      {
+        "decision": "Filters are composed as a chain rather than a single monolithic filter",
+        "rationale": "Each filter has a distinct concern (watermark vs notification rule existence) with different caching strategies. The chain allows the worker to short-circuit on the cheapest filter first."
+      },
+      {
+        "decision": "HighWatermarkCache uses a pluggable backend interface even though only in-memory is implemented",
+        "rationale": "Future Redis-backed persistence would allow high-watermark state to survive worker restarts, preventing post-crash redundant recalculations."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Implement a new named filter that skips entitlements whose feature is archived",
+        "code": "package filters\n\nimport (\n\t\"context\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/entitlement\"\n)\n\nvar _ NamedFilter = (*ArchivedFeatureFilter)(nil)\n\ntype ArchivedFeatureFilter struct {\n\tentSvc entitlement.Service\n}\n\nfunc (f *ArchivedFeatureFilter) Name() string { return \"archived_feature\" }\n\nfunc (f *ArchivedFeatureFilter) IsNamespaceInScope(ctx context.Context, ns string) (bool, error) {\n\treturn true, nil\n}\n\nfunc (f *ArchivedFeatureFilter) IsEntitlementInScope(ctx context.Context, req EntitlementFilterRequest) (bool, error) {\n\tif err := req.Validate(); err != nil {\n\t\treturn false, err\n\t}\n\t// check if feature is active; return false if archived\n\treturn true, nil\n}"
+      }
+    ]
+  }
+}

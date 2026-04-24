@@ -1,0 +1,305 @@
+{
+  "pkg/framework/clickhouseotel": {
+    "purpose": "Provides OTel instrumentation wrappers for ClickHouse connections: a tracing decorator (ClickHouseTracer) that wraps clickhouse.Conn for Query/QueryRow/Exec/AsyncInsert spans, and a ConnPoolMetrics poller that emits connection-pool gauges and ping histograms via OTel metric.Meter.",
+    "patterns": [
+      {
+        "name": "Decorator wraps interface",
+        "description": "ClickHouseTracer embeds clickhouse.Conn and overrides specific methods; compile-time assertion var _ clickhouse.Conn = (*ClickHouseTracer)(nil) enforces the contract.",
+        "example": "var _ clickhouse.Conn = (*ClickHouseTracer)(nil)"
+      },
+      {
+        "name": "Config struct with Validate()",
+        "description": "Both ConnPoolMetricsConfig and ClickHouseTracerConfig carry a Validate() method that returns errors.Join(errs...) before the constructor proceeds.",
+        "example": "func (c ConnPoolMetricsConfig) Validate() error { ... }"
+      },
+      {
+        "name": "Start/Shutdown lifecycle",
+        "description": "ConnPoolMetrics uses atomic.Bool to guard single Start(); Shutdown() signals stopChan and blocks on doneChan. sync.OnceFunc ensures channels close exactly once.",
+        "example": "stopClose := sync.OnceFunc(func() { close(stopChan) })"
+      },
+      {
+        "name": "Span per ClickHouse call",
+        "description": "Every overridden method opens a tracer span, defers span.End(), calls the inner Conn method, and calls span.RecordError + span.SetStatus on failure.",
+        "example": "ctx, span := c.Tracer.Start(ctx, \"clickhouse.Query\", ...); defer span.End()"
+      },
+      {
+        "name": "Ping timeout capped at pollInterval or 5s",
+        "description": "ping() uses context.WithTimeout capped at min(pollInterval, 5s) so ping can never block the full poll cycle.",
+        "example": "if pingTimeout > 5*time.Second { pingTimeout = 5*time.Second }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "otel.go",
+        "role": "ClickHouseTracer decorator; wraps Query, QueryRow, Exec, AsyncInsert with OTel spans.",
+        "watch_for": "Adding new clickhouse.Conn methods requires adding a matching override here; otherwise calls bypass tracing."
+      },
+      {
+        "file": "connpool.go",
+        "role": "Background goroutine polling clickhouse.Conn.Stats() and emitting OTel gauge/histogram metrics.",
+        "watch_for": "Start() must not be called twice (atomic guard); always call Shutdown() to drain doneChan."
+      }
+    ],
+    "anti_patterns": [
+      "Calling Start() more than once \u2014 the atomic guard returns an error but callers may ignore it",
+      "Skipping Validate() before NewConnPoolMetrics/NewClickHouseTracer \u2014 nil Conn/Meter/Tracer will panic at first use",
+      "Using context.Background() inside record()/ping() instead of the ctx passed to Start()"
+    ],
+    "decisions": [
+      {
+        "decision": "Decorator pattern over subclassing",
+        "rationale": "clickhouse.Conn is an interface; embedding it and overriding selected methods adds instrumentation without forking the ClickHouse client."
+      },
+      {
+        "decision": "Poll-based metrics rather than callback hooks",
+        "rationale": "ClickHouse Go client exposes pool stats via Stats() sync call; OTel push model requires explicit Record() calls, so a ticker goroutine is the only option."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Wrap a ClickHouse connection with tracing",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/framework/clickhouseotel\"\n\nconn, err := clickhouseotel.NewClickHouseTracer(clickhouseotel.ClickHouseTracerConfig{\n    Tracer: tracer,\n    Conn:   rawConn,\n})"
+      }
+    ]
+  },
+  "pkg/framework/commonhttp": {
+    "purpose": "Shared HTTP encoding/decoding primitives for all domain httpdriver packages: JSON/CSV/plain-text response encoders, RFC 7807 problem-detail error encoders, ValidationIssue-to-HTTP-status mapping, pagination constants, sort order helpers, and a Union[Primary,Secondary] JSON type.",
+    "patterns": [
+      {
+        "name": "GenericErrorEncoder chain",
+        "description": "GenericErrorEncoder() returns an encoder.ErrorEncoder that calls HandleIssueIfHTTPStatusKnown first, then HandleErrorIfTypeMatches for each models.Generic* error type. First match wins and returns true.",
+        "example": "return HandleIssueIfHTTPStatusKnown(ctx, err, w) || HandleErrorIfTypeMatches[*models.GenericNotFoundError](ctx, http.StatusNotFound, err, w)"
+      },
+      {
+        "name": "WithHTTPStatusCodeAttribute on ValidationIssue",
+        "description": "Domain code attaches an HTTP status to a ValidationIssue via commonhttp.WithHTTPStatusCodeAttribute(code); HandleIssueIfHTTPStatusKnown reads the attribute and renders the correct status. The attribute is stripped from the JSON response.",
+        "example": "models.NewValidationIssue(code, msg, commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest))"
+      },
+      {
+        "name": "ResponseEncoder generics",
+        "description": "All encoder functions are generic over the response type: JSONResponseEncoder[Response], CSVResponseEncoder[Response CSVResponse], EmptyResponseEncoder[Response], etc.",
+        "example": "func JSONResponseEncoderWithStatus[Response any](statusCode int) encoder.ResponseEncoder[Response]"
+      },
+      {
+        "name": "CSVResponse interface",
+        "description": "To use CSVResponseEncoder a type must implement FileName() string and Records() [][]string.",
+        "example": "type CSVResponse interface { FileName() string; Records() [][]string }"
+      },
+      {
+        "name": "ExtendProblemFunc for RFC 7807 extensions",
+        "description": "NewHTTPError accepts variadic ExtendProblemFunc values; each is applied to problem.Extensions map before Respond(w) is called.",
+        "example": "NewHTTPError(code, err, ExtendProblem(\"field\", \"reason\")).EncodeError(ctx, w)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "errors.go",
+        "role": "Core error encoding: ErrorWithHTTPStatusCode, HandleErrorIfTypeMatches[T error], HandleIssueIfHTTPStatusKnown.",
+        "watch_for": "HTTPStatusAttributePriorizationBehaviorSingular is the only supported mode; multiple ValidationIssues with different status codes cause HandleIssueIfHTTPStatusKnown to return false (falls through to next encoder)."
+      },
+      {
+        "file": "encoder.go",
+        "role": "Response encoders (JSON, plain-text, CSV, empty, redirect) and GenericErrorEncoder().",
+        "watch_for": "JSONResponseEncoder always writes 200; use JSONResponseEncoderWithStatus for non-200 success codes."
+      },
+      {
+        "file": "decoder.go",
+        "role": "JSONRequestBodyDecoder wraps render.DecodeJSON and wraps parse errors in NewHTTPError(400,...).",
+        "watch_for": "Returns commonhttp.ErrorWithHTTPStatusCode, not a plain error."
+      },
+      {
+        "file": "union.go",
+        "role": "Union[Primary,Secondary] JSON union type; Option1 takes precedence over Option2 during marshaling.",
+        "watch_for": "Returns empty []byte{} (not 'null') when both options are nil \u2014 callers must handle this."
+      },
+      {
+        "file": "sort.go",
+        "role": "GetSortOrder helper maps an API sort-direction enum to sortx.Order.",
+        "watch_for": "Returns sortx.OrderNone when input pointer is nil; never returns an error."
+      }
+    ],
+    "anti_patterns": [
+      "Returning a plain error instead of NewHTTPError from request decoders \u2014 the error encoder chain won't know the status code",
+      "Adding new domain error types to GenericErrorEncoder without a corresponding models.Generic* sentinel type",
+      "Calling HandleIssueIfHTTPStatusKnown without WithHTTPStatusCodeAttribute on the ValidationIssue \u2014 it will return false and fall through",
+      "Writing status code before headers in custom encoders \u2014 breaks header-only responses"
+    ],
+    "decisions": [
+      {
+        "decision": "Error encoder returns bool (chain pattern)",
+        "rationale": "Multiple encoders can be composed in a chain; each returns true to short-circuit or false to pass to the next, matching the httptransport ErrorEncoder interface."
+      },
+      {
+        "decision": "ValidationIssue carries HTTP status as an attribute rather than a field",
+        "rationale": "ValidationIssue is a domain type that must not import net/http; the attribute key is defined in commonhttp and read only at the HTTP boundary."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Attach HTTP status to a domain ValidationIssue and encode it",
+        "code": "import (\n    \"github.com/openmeterio/openmeter/pkg/framework/commonhttp\"\n    \"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nerr := models.NewValidationIssue(\n    models.ErrorCode(\"invalid_field\"),\n    \"field x is required\",\n    commonhttp.WithHTTPStatusCodeAttribute(http.StatusUnprocessableEntity),\n)\n// In the handler's error encoder chain:\ncommonhttp.HandleIssueIfHTTPStatusKnown(ctx, err, w) // returns true, writes 422"
+      }
+    ]
+  },
+  "pkg/framework/lockr": {
+    "purpose": "Two PostgreSQL advisory-lock implementations for distributed mutual exclusion: Locker (transaction-scoped, pg_advisory_xact_lock, requires active Ent tx in ctx) and SessionLocker (connection-scoped, pg_advisory_lock/unlock, requires a dedicated *sql.Conn). Keys are scoped strings hashed to uint64 via xxhash.",
+    "patterns": [
+      {
+        "name": "LockForTX requires active Ent transaction in ctx",
+        "description": "Locker.LockForTX calls entutils.GetDriverFromContext(ctx); if no tx driver is found it returns an error. Callers must already be inside a transaction.RunWithNoValue or equivalent.",
+        "example": "transaction.RunWithNoValue(ctx, txCreator, func(ctx context.Context) error { return locker.LockForTX(ctx, key) })"
+      },
+      {
+        "name": "SessionLocker needs dedicated Postgres connection",
+        "description": "NewSessionLockr acquires conn via pgdriver.Driver.DB().Conn(ctx) at construction time. The connection must be closed via SessionLocker.Close().",
+        "example": "locker, err := lockr.NewSessionLockr(ctx, SessionLockerConfig{Logger: l, PostgresDriver: pgdrv}); defer locker.Close()"
+      },
+      {
+        "name": "Key construction enforces non-empty, no-colon scopes",
+        "description": "NewKey(scopes...) rejects empty scopes and scopes containing ':' (the join separator). Hash64 uses xxhash for collision-resistance.",
+        "example": "key, err := lockr.NewKey(\"billing\", customerID)"
+      },
+      {
+        "name": "SessionLocker Releaser is idempotent",
+        "description": "releaser.release uses sync.Mutex + done flag so calling the returned Releaser func twice is safe (second call is a no-op).",
+        "example": "rel, _ := locker.Lock(ctx, k); rel(ctx); rel(ctx) // second call is safe"
+      },
+      {
+        "name": "pg lock_timeout via pgdriver.WithLockTimeout",
+        "description": "ErrLockTimeout is returned when PostgreSQL error 55P03 is received; do not use context.WithTimeout for lock acquisition (pgx cancels the connection on context cancel).",
+        "example": "pgdriver.NewPostgresDriver(ctx, url, pgdriver.WithLockTimeout(3*time.Second))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "locker.go",
+        "role": "Transaction-scoped advisory lock via pg_advisory_xact_lock; lock released automatically on tx commit/rollback.",
+        "watch_for": "getTxClient checks that transaction_timestamp() != statement_timestamp() to verify a real tx is open; using autocommit connection will fail."
+      },
+      {
+        "file": "session.go",
+        "role": "Session-scoped advisory lock; Lock blocks, TryLock is non-blocking, returns ErrNoLockAcquired if denied.",
+        "watch_for": "SessionLocker uses a single sql.Conn and a sync.Mutex; concurrent Lock calls on the same SessionLocker instance are serialized (not parallelized)."
+      },
+      {
+        "file": "key.go",
+        "role": "Key construction and xxhash hashing; scopes joined with ':' separator.",
+        "watch_for": "Scopes must not contain ':' \u2014 NewKey returns an error if they do."
+      },
+      {
+        "file": "var.go",
+        "role": "PostgreSQL error code constant 55P03 (lock_timeout).",
+        "watch_for": "checkForTimeout does string-contains match on error message \u2014 may have false positives if error wrapping changes."
+      }
+    ],
+    "anti_patterns": [
+      "Calling Locker.LockForTX outside a Postgres transaction \u2014 returns error immediately",
+      "Using context.WithTimeout for lock acquisition with Locker \u2014 pgx cancels the connection on ctx cancel, leaving tx in error state; use WithLockTimeout on the pgdriver instead",
+      "Sharing a single SessionLocker instance across goroutines with high lock contention \u2014 the internal sync.Mutex serializes all Lock/TryLock calls",
+      "Forgetting to call SessionLocker.Close() \u2014 leaks the dedicated sql.Conn",
+      "Constructing Key scopes that contain ':' \u2014 NewKey returns an error"
+    ],
+    "decisions": [
+      {
+        "decision": "Two lock types for different lifetime requirements",
+        "rationale": "Transaction-scoped locks (Locker) auto-release on commit/rollback \u2014 ideal for billing charge advancement. Session-scoped locks (SessionLocker) persist across transactions \u2014 needed for long-running background jobs."
+      },
+      {
+        "decision": "pg_advisory_xact_lock over application-level mutex",
+        "rationale": "PostgreSQL advisory locks are released atomically with the transaction, preventing stale locks after crashes. In-process mutexes don't survive process restarts or multi-instance deployments."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Acquire a transaction-scoped advisory lock for a customer",
+        "code": "import (\n    \"github.com/openmeterio/openmeter/pkg/framework/lockr\"\n    \"github.com/openmeterio/openmeter/pkg/framework/transaction\"\n)\n\nkey, err := lockr.NewKey(\"billing\", customerID)\nif err != nil { return err }\n\nreturn transaction.RunWithNoValue(ctx, txCreator, func(ctx context.Context) error {\n    if err := locker.LockForTX(ctx, key); err != nil {\n        return err\n    }\n    // safe to mutate customer billing state\n    return doWork(ctx)\n})"
+      }
+    ]
+  },
+  "pkg/framework/operation": {
+    "purpose": "Defines the Operation[Request,Response] function type \u2014 the single callable unit that transport layers (httptransport.Handler) invoke \u2014 plus Middleware[Req,Resp], Chain, Compose, and AsNoResponseOperation helpers for building and composing RPC-style operations.",
+    "patterns": [
+      {
+        "name": "Operation is a plain function type",
+        "description": "type Operation[Request any, Response any] func(ctx context.Context, request Request) (Response, error) \u2014 no interface, no struct. Assign any matching func literal directly.",
+        "example": "var op operation.Operation[MyReq, MyResp] = myServiceMethod"
+      },
+      {
+        "name": "Middleware wraps Operation",
+        "description": "type Middleware[Req,Resp] func(Operation[Req,Resp]) Operation[Req,Resp]. Chain(outer, ...others) composes them outermost-first.",
+        "example": "chain := operation.Chain[Req, Resp](authMW, loggingMW); wrapped := chain(myOp)"
+      },
+      {
+        "name": "AsNoResponseOperation for void-returning handlers",
+        "description": "Wraps func(ctx, Request) error as Operation[Request, any] so Delete-style handlers can use the same middleware chain.",
+        "example": "op := operation.AsNoResponseOperation(func(ctx context.Context, req DeleteReq) error { ... })"
+      },
+      {
+        "name": "Compose pipelines two operations",
+        "description": "Compose(op1, op2) produces Operation[Req,Resp] where op1's response becomes op2's request \u2014 use for get-then-update patterns.",
+        "example": "combined := operation.Compose(getOp, updateOp)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "operation.go",
+        "role": "Core type definitions: Operation, AsNoResponseOperation, Compose.",
+        "watch_for": "No context passed to AsNoResponseOperation's inner func \u2014 the outer ctx flows through naturally."
+      },
+      {
+        "file": "middleware.go",
+        "role": "Middleware and Chain; middlewares execute in declaration order (outermost = first declared).",
+        "watch_for": "Chain reverses the slice internally (for i := len(others)-1; i >= 0; i--) so the first argument to Chain is always the outermost."
+      }
+    ],
+    "anti_patterns": [
+      "Implementing business logic inside a Middleware \u2014 middleware is for cross-cutting concerns (auth, logging, tracing) only",
+      "Returning a non-nil Response on error \u2014 callers may use zero-value Response alongside errors; Compose propagates errors correctly only when Response is zero on error"
+    ],
+    "decisions": [
+      {
+        "decision": "Function type instead of interface",
+        "rationale": "A function type requires no method sets and avoids boilerplate; any matching func can be used directly without wrapping, while still being chainable via Middleware."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/framework/pgdriver": {
+    "purpose": "Constructs the project-wide *sql.DB from a pgxpool.Pool with OTel tracing (XSAM/otelsql), optional metric.Meter pool observation (pgxpoolobserver), and optional lock_timeout runtime parameter for lockr; exposes Driver.DB() for Ent and lockr consumers.",
+    "patterns": [
+      {
+        "name": "Option interface for functional configuration",
+        "description": "All optional settings (TracerProvider, MeterProvider, MetricMeter, SpanOptions, LockTimeout) are passed as Option values; each implements apply(*options).",
+        "example": "pgdriver.NewPostgresDriver(ctx, url, pgdriver.WithLockTimeout(3*time.Second), pgdriver.WithTracerProvider(tp))"
+      },
+      {
+        "name": "Pool-backed sql.DB with MaxIdleConns=0",
+        "description": "otelsql.OpenDB wraps pgxstdlib.GetPoolConnector(pool). db.SetMaxIdleConns(0) is mandatory because pgx manages idle connections in the pool itself.",
+        "example": "db.SetMaxIdleConns(0)"
+      },
+      {
+        "name": "lock_timeout via RuntimeParams",
+        "description": "WithLockTimeout sets lock_timeout in pgxpool ConnConfig.ConnConfig.RuntimeParams as a millisecond string, enabling PostgreSQL-side advisory lock timeouts used by lockr.",
+        "example": "o.connConfig.ConnConfig.RuntimeParams[\"lock_timeout\"] = fmt.Sprintf(\"%d\", timeout.Milliseconds())"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "driver.go",
+        "role": "Single file; NewPostgresDriver, Driver struct, DB() and Close() methods.",
+        "watch_for": "Close() calls pool.Close() but does NOT close db \u2014 callers that hold *sql.DB must not call db.Close() separately."
+      }
+    ],
+    "anti_patterns": [
+      "Setting MaxIdleConns > 0 on the returned *sql.DB \u2014 pgx pool manages idle connections; a non-zero Go idle pool causes duplicate connection management",
+      "Calling Driver.Close() without ensuring all in-flight queries have completed \u2014 pool.Close() is immediate"
+    ],
+    "decisions": [
+      {
+        "decision": "Wrap pgxpool behind database/sql via pgxstdlib",
+        "rationale": "Ent ORM and lockr both require database/sql; pgxpool gives connection-pool control while pgxstdlib bridges the two APIs."
+      }
+    ],
+    "code_examples": []
+  }
+}

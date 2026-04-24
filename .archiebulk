@@ -88,6 +88,15 @@ bun.lockb                   lockfile        bun
 **/mocks/mock_*.go          generated       gomock
 **/wire_gen.go              generated       wire
 **/zz_generated_*.go        generated       kubebuilder
+**/*.gen.go                 generated       go
+# Ent ORM: everything under ent/db/ is schema-driven codegen. Authoritative
+# source is the Ent Schema files in ent/schema/ — those stay visible. Common
+# in API-driven Go services; drops ~100 folders + several MB of noise on
+# real-sized ent projects.
+**/ent/db/**                generated       go-ent
+**/ent[0-9]/db/**           generated       go-ent
+# sqlc output — generated query/models typically live next to a sqlc.yaml
+**/*.sql.go                 generated       sqlc
 **/vendor/**                dependency      go
 go.sum                      lockfile        go
 

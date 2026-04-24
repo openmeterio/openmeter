@@ -1,0 +1,91 @@
+{
+  "pkg/kafka": {
+    "purpose": "Shared low-level Kafka utilities: typed config structs that produce kafka.ConfigMap, a TopicProvisioner with LRU cache, log bridging from librdkafka to slog, and an OTel metrics sub-package. Primary constraint: all code here is infrastructure plumbing \u2014 no domain or business logic.",
+    "patterns": [
+      {
+        "name": "ConfigMapper + ConfigValidator interfaces",
+        "description": "Every config struct (CommonConfigParams, ConsumerConfigParams, ProducerConfigParams) implements both ConfigMapper (AsConfigMap() \u2192 kafka.ConfigMap) and ConfigValidator (Validate() error). Composite configs (ConsumerConfig, ProducerConfig) embed the parts and delegate to mergeConfigsToMap + sequential validators.",
+        "example": "type ConsumerConfig struct { CommonConfigParams; ConsumerConfigParams }; func (c ConsumerConfig) AsConfigMap() (kafka.ConfigMap, error) { return mergeConfigsToMap(c.CommonConfigParams, c.ConsumerConfigParams) }"
+      },
+      {
+        "name": "configValue interface for enum types",
+        "description": "Every string-based enum (BrokerAddressFamily, Partitioner, AutoOffsetReset, TimeDurationMilliSeconds) implements fmt.Stringer + encoding.TextUnmarshaler + json.Unmarshaler. Validation uses a ValidValues[T] slice with AsKeyMap() for O(1) lookup.",
+        "example": "var BrokerAddressFamilyValues = ValidValues[BrokerAddressFamily]{BrokerAddressFamilyAny, BrokerAddressFamilyIPv4, BrokerAddressFamilyIPv6}"
+      },
+      {
+        "name": "TopicProvisioner LRU cache + noop guard",
+        "description": "NewTopicProvisioner returns a TopicProvisionerNoop when no Kafka admin is available. The concrete topicProvisioner skips already-cached topics in Provision and skips protected topics in DeProvision. Always treat ErrTopicAlreadyExists and ErrUnknownTopicOrPart as success, not errors.",
+        "example": "case kafka.ErrNoError, kafka.ErrTopicAlreadyExists: _ = p.cache.Add(result.Topic, struct{}{})"
+      },
+      {
+        "name": "Sequential error returns in constructors",
+        "description": "NewTopicProvisioner validates each required field (AdminClient, Logger, Meter) with explicit nil checks before creating metrics, returning immediately on first failure. OTel metric registration errors are also returned sequentially, not collected.",
+        "example": "if config.AdminClient == nil { return nil, errors.New(\"kafka admin client is required\") }"
+      },
+      {
+        "name": "LogProcessor oklog/run-compatible signature",
+        "description": "LogProcessor returns (execute func() error, interrupt func(error)) \u2014 the oklog/run pair. It starts an internal context for cancellation. ConsumeLogChannel is a simpler goroutine-targeted variant that ranges over the log channel directly.",
+        "example": "func LogProcessor(logEmitter LogEmitter, logger *slog.Logger) (execute func() error, interrupt func(error))"
+      },
+      {
+        "name": "TimeDurationMilliSeconds rendered as millisecond integer string",
+        "description": "TimeDurationMilliSeconds.String() returns the duration in milliseconds as a decimal string (e.g. \"6000\" for 6s). This is the format librdkafka expects for *.ms config keys. Never pass raw time.Duration to kafka.ConfigMap.",
+        "example": "func (d TimeDurationMilliSeconds) String() string { return strconv.FormatInt(int64(d/TimeDurationMilliSeconds(time.Millisecond)), 10) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "config.go",
+        "role": "Defines all Kafka config param structs and their ConfigMapper/ConfigValidator implementations. mergeConfigsToMap merges multiple ConfigMapper outputs into one kafka.ConfigMap.",
+        "watch_for": "metadata.max.age.ms is always set to 3\u00d7 TopicMetadataRefreshInterval \u2014 do not set it independently. localhost/127.0.0.1 brokers auto-force BrokerAddressFamilyIPv4 if BrokerAddressFamily is empty."
+      },
+      {
+        "file": "topicprovisioner.go",
+        "role": "TopicProvisioner interface + LRU-cached implementation + TopicProvisionerNoop. Owns topic creation/deletion against Kafka admin API with metrics.",
+        "watch_for": "ProtectedTopics prevents accidental deletion \u2014 always populate this list with system topics. Cache is expirable LRU; cache eviction fires a metrics counter via evictCallback, which must use a short-lived context, not the caller's ctx."
+      },
+      {
+        "file": "log.go",
+        "role": "Bridges librdkafka syslog-level integers to slog.Level. Requires go.logs.channel.enable=true in kafka.ConfigMap (set automatically by ConsumerConfigParams and ProducerConfigParams).",
+        "watch_for": "go.logs.channel.enable and go.application.rebalance.enable are hardcoded in ConsumerConfigParams.AsConfigMap() \u2014 do not remove them or librdkafka logs will silently drop."
+      },
+      {
+        "file": "kafka.go",
+        "role": "Package doc only \u2014 intentionally empty aside from the package declaration.",
+        "watch_for": "No init() or global state here; keep it that way."
+      },
+      {
+        "file": "metrics/ (child package)",
+        "role": "OTel Int64Gauge metrics translated from librdkafka JSON stats snapshots. Separate sub-package so callers opt in.",
+        "watch_for": "All metrics are gauges (point-in-time snapshots), never counters/histograms. Nil guard required at top of Add because librdkafka may omit stats sections."
+      }
+    ],
+    "anti_patterns": [
+      "Setting kafka.ConfigMap keys directly instead of going through CommonConfigParams.AsConfigMap / mergeConfigsToMap \u2014 bypasses validation and the localhost IPv4 auto-fix.",
+      "Using Int64Counter or Histogram for librdkafka-derived stats \u2014 they are rolling-window snapshots, not cumulative deltas; only Int64Gauge is correct.",
+      "Passing raw time.Duration as a kafka.ConfigMap value for *.ms keys \u2014 must use TimeDurationMilliSeconds which renders as millisecond integer string.",
+      "Accessing stats sections in metrics.Add without a nil guard \u2014 librdkafka JSON can omit broker/topic/consumer-group sections entirely.",
+      "Mixing cooperative and eager PartitionAssignmentStrategy values \u2014 ConsumerConfigParams.Validate() rejects this combination explicitly."
+    ],
+    "decisions": [
+      {
+        "decision": "ConfigMapper + ConfigValidator split into separate interfaces implemented by value receivers",
+        "rationale": "Composite configs (ConsumerConfig, ProducerConfig) embed multiple param structs; mergeConfigsToMap iterates them independently so each part owns its own key namespace and validation without coordinating with others."
+      },
+      {
+        "decision": "TopicProvisioner uses an expirable LRU cache keyed by topic name",
+        "rationale": "Provision is called on every namespace creation; the cache prevents redundant Kafka admin round-trips for topics that already exist, while TTL-based expiry avoids stale cache entries after broker-side topic deletion."
+      },
+      {
+        "decision": "OTel metrics live in a separate metrics/ sub-package behind functional options",
+        "rationale": "Not all consumers of pkg/kafka need stats instrumentation; separating it avoids pulling OTel metric dependencies into the base config package and lets callers opt in per sub-metric category."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Constructing and validating a ConsumerConfig then provisioning topics",
+        "code": "import (\n    \"github.com/openmeterio/openmeter/pkg/kafka\"\n    \"go.opentelemetry.io/otel/metric/noop\"\n    \"time\"\n)\n\ncfg := kafka.ConsumerConfig{\n    CommonConfigParams: kafka.CommonConfigParams{\n        Brokers:       \"broker:9092\",\n        StatsInterval: kafka.TimeDurationMilliSeconds(10 * time.Second),\n    },\n    ConsumerConfigParams: kafka.ConsumerConfigParams{\n        ConsumerGroupID: \"my-group\",\n        AutoOffsetReset: kafka.AutoOffsetResetEarliest,\n    },\n}\nif err := cfg.Validate(); err != nil {\n    return err\n}\ncm, err := cfg.AsConfigMap()\nif err != nil {\n    return err\n}\n// cm is ready to pass to confluent-kafka-go\n\nprovisioner, err := kafka.NewTopicProvisioner(kafka.TopicProvisionerConfig{\n    AdminClient:     adminClient,\n    Logger:          logger,\n    Meter:           noop.NewMeterProvider().Meter(\"test\"),\n    CacheSize:       200,\n    CacheTTL:        5 * time.Minute,\n    ProtectedTopics: []string{\"system-events\"},\n})\nif err != nil {\n    return err\n}\nif err := provisioner.Provision(ctx, kafka.TopicConfig{Name: \"ingest\", Partitions: 4}); err != nil {\n    return err\n}"
+      }
+    ]
+  }
+}

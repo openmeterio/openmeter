@@ -1,0 +1,41 @@
+{
+  "pkg/framework/transport/httptransport/encoder": {
+    "purpose": "Defines the two core function types \u2014 ResponseEncoder and ErrorEncoder \u2014 that form the encode half of the httptransport decode/operation/encode pipeline. Every HTTP handler in the system depends on these signatures for serialising responses and mapping errors to HTTP status codes.",
+    "patterns": [
+      {
+        "name": "ResponseEncoder generic function type",
+        "description": "ResponseEncoder[Response any] is a typed function that receives the strongly-typed response value and writes it to http.ResponseWriter. New response encoders must match this exact signature; they must not hold state or close over mutable shared objects.",
+        "example": "var encode encoder.ResponseEncoder[MyResponse] = func(ctx context.Context, w http.ResponseWriter, r *http.Request, resp MyResponse) error { return json.NewEncoder(w).Encode(resp) }"
+      },
+      {
+        "name": "ErrorEncoder chain convention",
+        "description": "ErrorEncoder returns bool \u2014 true means the error was handled and the chain stops, false passes to the next encoder. Callers (httptransport.Handler) iterate encoders in order; the first true short-circuits. Every ErrorEncoder must write a response before returning true.",
+        "example": "var myErr encoder.ErrorEncoder = func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool { var ve *ValidationError; if errors.As(err, &ve) { http.Error(w, ve.Error(), 400); return true }; return false }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "encoder.go",
+        "role": "Declares ResponseEncoder[Response] and ErrorEncoder \u2014 the only two exported symbols. All httptransport.Handler instances in the codebase accept these types.",
+        "watch_for": "ErrorEncoder returning true without writing a response body leaves the client hanging; ResponseEncoder must set Content-Type before writing or JSON decoders on the client side may break."
+      }
+    ],
+    "anti_patterns": [
+      "Adding stateful fields or methods to this package \u2014 both types are pure function types; keep it that way",
+      "Returning false from an ErrorEncoder after already writing to ResponseWriter \u2014 downstream encoders will attempt a second write, corrupting the response",
+      "Using ResponseEncoder to also handle errors \u2014 keep error path in ErrorEncoder chain so the caller (httptransport.Handler) can control ordering"
+    ],
+    "decisions": [
+      {
+        "decision": "Separate ResponseEncoder and ErrorEncoder into distinct function types rather than a single Encoder interface",
+        "rationale": "Allows httptransport.Handler to apply an ordered ErrorEncoder chain before falling back to a success ResponseEncoder, giving callers fine-grained control over error mapping priority (e.g. ValidationIssue \u2192 400 before generic 500)."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Implementing a JSON ResponseEncoder and a domain-error ErrorEncoder for a new handler",
+        "code": "import (\n\t\"context\"\n\t\"encoding/json\"\n\t\"net/http\"\n\n\t\"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport/encoder\"\n)\n\nvar encodeResponse encoder.ResponseEncoder[MyResponse] = func(\n\tctx context.Context, w http.ResponseWriter, r *http.Request, resp MyResponse,\n) error {\n\tw.Header().Set(\"Content-Type\", \"application/json\")\n\treturn json.NewEncoder(w).Encode(resp)\n}\n\nvar encodeError encoder.ErrorEncoder = func(\n\tctx context.Context, err error, w http.ResponseWriter, r *http.Request,\n) bool {\n\tvar notFound *models.GenericNotFoundError\n\tif errors.As(err, &notFound) {\n\t\tw.WriteHeader(http.StatusNotFound)\n\t\t_ = json.NewEncoder(w).Encode(map[string]string{\"error\": notFound.Error()})\n\t\treturn true\n\t}\n\treturn false\n}"
+      }
+    ]
+  }
+}

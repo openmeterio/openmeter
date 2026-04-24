@@ -1,0 +1,114 @@
+{
+  "openmeter/dedupe/memorydedupe": {
+    "purpose": "In-memory LRU-backed deduplication for CloudEvents, used as the no-dependency fallback when Redis is unavailable. Implements the dedupe.Deduplicator interface using a fixed-size hashicorp/golang-lru cache keyed by dedupe.Item.Key().",
+    "patterns": [
+      {
+        "name": "LRU-cache keyed by dedupe.Item.Key()",
+        "description": "All dedup checks use item.Key() (a composite of Namespace+ID+Source) as the LRU map key with nil values; never store event payloads.",
+        "example": "isContained, _ := d.store.ContainsOrAdd(item.Key(), nil)"
+      },
+      {
+        "name": "Implement all dedupe.Deduplicator methods",
+        "description": "Must implement IsUnique, CheckUnique, Set, Close, and CheckUniqueBatch to satisfy the dedupe.Deduplicator interface.",
+        "example": "func (d *Deduplicator) CheckUniqueBatch(ctx context.Context, items []dedupe.Item) (dedupe.CheckUniqueBatchResult, error)"
+      },
+      {
+        "name": "CheckUniqueBatch returns split result sets",
+        "description": "Always initialise both UniqueItems and AlreadyProcessedItems in CheckUniqueBatchResult with pre-allocated ItemSet maps before ranging over items.",
+        "example": "result := dedupe.CheckUniqueBatchResult{UniqueItems: make(dedupe.ItemSet, len(items)), AlreadyProcessedItems: make(dedupe.ItemSet, len(items))}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "memorydedupe.go",
+        "role": "Single-file implementation of the in-memory Deduplicator; NewDeduplicator(size) is the only constructor.",
+        "watch_for": "defaultSize=1024 is the fallback when size<1; callers must choose a meaningful size to avoid premature eviction causing false-unique results."
+      },
+      {
+        "file": "memorydedupe_test.go",
+        "role": "Validates IsUnique atomically adds to the cache (second call returns false) and that CheckUnique+Set are separate read/write operations.",
+        "watch_for": "Tests use context.Background() \u2014 acceptable in tests but not in production code."
+      }
+    ],
+    "anti_patterns": [
+      "Storing event payload data in the LRU cache (only nil values, keyed by item.Key())",
+      "Skipping Close() implementation \u2014 even if it's a no-op it must exist to satisfy the interface",
+      "Using context.Background() in production implementation code (only in tests)"
+    ],
+    "decisions": [
+      {
+        "decision": "LRU eviction over unbounded growth",
+        "rationale": "Bounded memory footprint for long-running sink workers; evicted entries can cause duplicate events to slip through, which is acceptable for the in-memory fallback."
+      },
+      {
+        "decision": "IsUnique atomically checks-and-sets via ContainsOrAdd",
+        "rationale": "A single LRU call avoids a check-then-set race under concurrent ingest goroutines."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Implement a new Deduplicator backed by a different store",
+        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/openmeter/dedupe\"\n)\n\ntype MyDeduplicator struct{ /* store */ }\n\nfunc (d *MyDeduplicator) IsUnique(ctx context.Context, namespace string, ev event.Event) (bool, error) {\n\titem := dedupe.Item{Namespace: namespace, ID: ev.ID(), Source: ev.Source()}\n\t// check-and-set item.Key()\n}\nfunc (d *MyDeduplicator) CheckUniqueBatch(ctx context.Context, items []dedupe.Item) (dedupe.CheckUniqueBatchResult, error) {\n\tresult := dedupe.CheckUniqueBatchResult{\n\t\tUniqueItems:           make(dedupe.ItemSet, len(items)),\n\t\tAlreadyProcessedItems: make(dedupe.ItemSet, len(items)),\n\t}\n\t// populate result\n\treturn result, nil\n}"
+      }
+    ]
+  },
+  "openmeter/dedupe/redisdedupe": {
+    "purpose": "Redis-backed deduplication for CloudEvents in the sink worker. Supports three key-format modes (rawkey, keyhash, keyhash-migration) and exposes the same dedupe.Deduplicator interface as memorydedupe, but with TTL-based expiry and pipeline batch operations.",
+    "patterns": [
+      {
+        "name": "Mode-switch on every key operation",
+        "description": "Every method (IsUnique, CheckUnique, Set, CheckUniqueBatch) switches on d.Mode to determine the Redis key format; never assume a single format.",
+        "example": "switch d.Mode {\ncase DedupeModeRawKey: keys = append(keys, item.Key())\ncase DedupeModeKeyHash, DedupeModeKeyHashMigration: keys = append(keys, GetKeyHash(item.Key()))\n}"
+      },
+      {
+        "name": "SetArgs with NX + TTL for atomic set-if-not-exists",
+        "description": "Use redis.SetArgs{TTL: d.Expiration, Mode: \"nx\"} for all uniqueness writes; interpret redis.Nil return as duplicate (key already existed).",
+        "example": "status, err := d.Redis.SetArgs(ctx, key, \"\", redis.SetArgs{TTL: d.Expiration, Mode: \"nx\"}).Result()"
+      },
+      {
+        "name": "Pipelined batch writes",
+        "description": "Set() pipelines multiple SetArgs calls; inspect per-command errors (redis.Nil = already existed) to build the returned existingItems slice.",
+        "example": "cmds, err := d.Redis.Pipelined(ctx, func(pipe redis.Pipeliner) error { ... })"
+      },
+      {
+        "name": "xxh3 128-bit hash \u2192 base64url key",
+        "description": "GetKeyHash() uses xxh3.HashString128 + base64.RawURLEncoding to shrink keys by ~57% in Redis memory versus the raw composite key.",
+        "example": "hashBytes := xxh3.HashString128(itemKey).Bytes(); b64 := base64.RawURLEncoding.EncodeToString(hashBytes[:])"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "redisdedupe.go",
+        "role": "Full Redis Deduplicator implementation; DedupeMode type and its three constants are the API extension point for key-format migration.",
+        "watch_for": "keyhash-migration mode checks both old rawkey and new keyhash Redis keys to prevent false-unique events during rolling deploy; do not simplify without coordinating a cutover."
+      },
+      {
+        "file": "keyhash.go",
+        "role": "Standalone hashing helper; must not be changed without re-hashing all existing Redis keys.",
+        "watch_for": "Changing the hash algorithm or encoding invalidates all keys currently in Redis and will cause a flood of duplicate events."
+      }
+    ],
+    "anti_patterns": [
+      "Calling Redis without checking d.Redis != nil (IsUnique already guards this, replicate the guard in new methods)",
+      "Using SET without NX \u2014 allows overwriting existing keys and defeats deduplication",
+      "Adding a new DedupeMode without updating every method's switch statement",
+      "Ignoring redis.Nil in pipeline results \u2014 it signals a pre-existing key, not an error",
+      "Changing GetKeyHash algorithm without a migration mode and Redis key rotation plan"
+    ],
+    "decisions": [
+      {
+        "decision": "Three-mode key format with explicit migration mode",
+        "rationale": "Allows a rolling upgrade from rawkey to keyhash without a big-bang cutover; migration mode checks both formats so no events are incorrectly classified as unique during the transition window."
+      },
+      {
+        "decision": "xxh3-128 + base64url over SHA-224 or raw composite strings",
+        "rationale": "22-char base64url keys use 57% less Redis memory than the ~77-char raw composite key while maintaining collision probability ~1e-30 at 300M events/day."
+      },
+      {
+        "decision": "TTL-based expiry instead of unbounded growth",
+        "rationale": "Ingest events are only deduplicated within a recent window; expired keys free memory automatically without a separate purge job."
+      }
+    ],
+    "code_examples": []
+  }
+}

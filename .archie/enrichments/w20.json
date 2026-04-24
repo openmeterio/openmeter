@@ -1,0 +1,101 @@
+{
+  "api/spec/packages/legacy/lib/rules": {
+    "purpose": "TypeSpec linting rules for the v1 (legacy) API spec, enforcing naming conventions, documentation, and structural constraints on TypeSpec models, properties, enums, unions, interfaces, and operations. These rules run via the TypeSpec compiler lint pipeline and block or warn on spec violations before OpenAPI is generated.",
+    "patterns": [
+      {
+        "name": "createRule factory",
+        "description": "Every rule is exported as a named const created with `createRule({ name, severity, description, messages, create })` from `@typespec/compiler`. The `create` function returns a visitor object keyed by TypeSpec node type (model, modelProperty, enum, union, interface, operation).",
+        "example": "export const myRule = createRule({ name: 'my-rule', severity: 'warning', messages: { default: paramMessage`...` }, create: (context) => ({ model: (node) => { ... } }) })"
+      },
+      {
+        "name": "paramMessage for diagnostic messages",
+        "description": "All diagnostic message templates use `paramMessage` from `@typespec/compiler` with `${'placeholder'}` syntax. Plain strings are not used for messages that reference node names.",
+        "example": "messages: { default: paramMessage`The ${'type'} ${'name'} must have a summary decorator.` }"
+      },
+      {
+        "name": "context.reportDiagnostic for violations",
+        "description": "Rules report violations exclusively via `context.reportDiagnostic({ messageId, format, target })`. The `target` is always the offending AST node or decorator node.",
+        "example": "context.reportDiagnostic({ format: { type: 'Model', casing: 'PascalCase' }, target: model, messageId: 'name' })"
+      },
+      {
+        "name": "PascalCase for models, camelCase for properties",
+        "description": "`casingRule` enforces PascalCase (via `isPascalCaseNoAcronyms`) on model names and camelCase (via `isCamelCaseNoAcronyms`) on model property names. The `_` property name is exempt; property names that are PascalCase also fail.",
+        "example": "if (!isPascalCaseNoAcronyms(model.name)) { context.reportDiagnostic(...) }"
+      },
+      {
+        "name": "@friendlyName required on interfaces, models, enums, unions",
+        "description": "`friendlyNameRule` is severity `error` (not warning) and checks that every named interface, model, enum, and union has a decorator whose `decorator.name === '$friendlyName'`.",
+        "example": "const hasFriendlyName = node.decorators.some((d) => d.decorator.name === '$friendlyName')"
+      },
+      {
+        "name": "Doc decorator required on models and their properties",
+        "description": "`docDecoratorRule` calls `getDoc(context.program, target)` to check presence of `@doc`. Models named with `*Response` suffix are exempt from property-level doc checks. `_` and `contentType` properties are exempt.",
+        "example": "if (target.name && !getDoc(context.program, target)) { context.reportDiagnostic(...) }"
+      },
+      {
+        "name": "Composition over inheritance enforcement",
+        "description": "`compositionOverInheritanceRule` warns when a model extends another model (via `model.node.extends`) without a `@discriminator` on the base. Template-instance inheritance uses the `instance` message ID; plain inheritance uses `default`.",
+        "example": "if (model.baseModel && model.node?.kind === SyntaxKind.ModelStatement && model.node.extends && getDiscriminator(context.program, model.baseModel) === undefined) { ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "utils.js",
+        "role": "Exports `isPascalCaseNoAcronyms`, `isCamelCaseNoAcronyms`, `isSnakeCase`, `isKebabCase`. The Pascal regex has hardcoded exceptions: `['OAuth2', 'URL', 'API', 'UI', 'ID']`.",
+        "watch_for": "Adding new acronym exceptions requires updating `pascalCaseExceptions` in utils.js; the regex is derived from that array at runtime."
+      },
+      {
+        "file": "casing.js",
+        "role": "Enforces PascalCase on model names and camelCase on property names. A property that IS PascalCase also triggers the warning.",
+        "watch_for": "The dual condition `(name !== '_' && !isCamelCase(name)) || isPascalCase(name)` means a property that accidentally becomes PascalCase is caught even if the first check passes."
+      },
+      {
+        "file": "friendly-name.js",
+        "role": "Error-severity rule requiring `@friendlyName` on every named model, enum, union, and interface.",
+        "watch_for": "Severity is `error`, not `warning` \u2014 violations block compilation, not just lint."
+      },
+      {
+        "file": "docs.js",
+        "role": "Checks `@doc` presence on models, enums, unions, and model properties. Skips property checks for `*Response` model names.",
+        "watch_for": "The `contentType` and `_` property exemptions are hardcoded; new structural properties that should be exempt need to be added to the exclusion list."
+      },
+      {
+        "file": "composition-over-inheritance.js",
+        "role": "Detects model inheritance without `@discriminator` on the base; distinguishes template-instance inheritance from plain inheritance for message selection.",
+        "watch_for": "Uses `SyntaxKind.ModelStatement` from `@typespec/compiler/ast` \u2014 import path is `/ast`, not the root."
+      },
+      {
+        "file": "operation-summary.js",
+        "role": "Warns when an operation lacks a `@summary` decorator, checked via `decorator.name === '$summary'`.",
+        "watch_for": "Checks for `$summary` (dollar-prefixed internal decorator name), not the user-facing `@summary` string."
+      }
+    ],
+    "anti_patterns": [
+      "Adding a rule without exporting it as a named const \u2014 the rule registry in the parent linter config imports named exports from this folder.",
+      "Using plain string messages instead of `paramMessage` for diagnostics that reference node names.",
+      "Reporting diagnostics with a `target` that is not the offending AST node \u2014 callers rely on the target for editor highlighting.",
+      "Changing `friendlyNameRule` severity from `error` to `warning` \u2014 it is intentionally blocking.",
+      "Duplicating casing logic inline instead of importing from utils.js \u2014 the Pascal exception list must stay in one place."
+    ],
+    "decisions": [
+      {
+        "decision": "Rules use the `@typespec/compiler` `createRule` API rather than raw AST visitors.",
+        "rationale": "Keeps rules composable with the TypeSpec compiler's diagnostic pipeline, enabling IDE integration and `make lint-api-spec` CI enforcement."
+      },
+      {
+        "decision": "`friendlyNameRule` is error-severity while doc/casing/summary/composition rules are warnings.",
+        "rationale": "Missing `@friendlyName` breaks SDK code generation (generated type names depend on it); missing docs only degrade API quality."
+      },
+      {
+        "decision": "Casing helpers are centralised in utils.js with a hardcoded acronym exception list.",
+        "rationale": "Ensures PascalCase checks for `OAuth2`, `URL`, `API`, `UI`, `ID` are consistent across all rules without per-rule special-casing."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new lint rule that enforces a custom decorator on all enums",
+        "code": "import { createRule, paramMessage } from '@typespec/compiler'\n\nexport const myDecoratorRule = createRule({\n  name: 'my-decorator',\n  severity: 'warning',\n  description: 'Ensure @myDecorator on enums.',\n  messages: {\n    default: paramMessage`Enum '${'name'}' is missing @myDecorator.`,\n  },\n  create: (context) => ({\n    enum: (node) => {\n      if (node.name && !node.decorators.some((d) => d.decorator.name === '$myDecorator')) {\n        context.reportDiagnostic({ format: { name: node.name }, target: node, messageId: 'default' })\n      }\n    },\n  }),\n})"
+      }
+    ]
+  }
+}

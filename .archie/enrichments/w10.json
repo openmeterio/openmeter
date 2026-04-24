@@ -1,0 +1,52 @@
+{
+  "api/client/python/openmeter/aio/operations": {
+    "purpose": "Re-exports async operation classes from the auto-generated Azure SDK layer (_generated/aio/operations) into the public openmeter.aio.operations namespace, applying optional monkey-patch overrides via _patch.py. This is a thin public-API shim \u2014 no business logic lives here.",
+    "patterns": [
+      {
+        "name": "Wildcard re-export from generated layer",
+        "description": "All operations are imported from ..._generated.aio.operations._operations via 'from ... import *'. Never define new operation classes directly in this __init__.py.",
+        "example": "from ..._generated.aio.operations._operations import *  # noqa: F401, F403"
+      },
+      {
+        "name": "Patch overlay applied after base import",
+        "description": "_patch.py overrides are imported after _operations and merged into __all__ so patch symbols take precedence. patch_sdk() must be called at module end to activate runtime patches.",
+        "example": "from ..._generated.aio.operations._patch import *; _patch_sdk()"
+      },
+      {
+        "name": "__all__ extension pattern",
+        "description": "__all__ is set to the generated layer's __all__, then extended with patch symbols not already present. Order matters: generated names first, patch additions appended.",
+        "example": "__all__ = __all__; __all__.extend([p for p in _patch_all if p not in __all__])"
+      },
+      {
+        "name": "TYPE_CHECKING-only patch import guard",
+        "description": "The _patch wildcard import is guarded by TYPE_CHECKING for static analysis only, then repeated unconditionally for runtime. This double-import pattern is intentional Azure SDK convention.",
+        "example": "if TYPE_CHECKING:\n    from ..._generated.aio.operations._patch import *"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "__init__.py",
+        "role": "Sole file in this package; acts as the public re-export shim. Importing from openmeter.aio.operations resolves here.",
+        "watch_for": "Do not add new symbols or logic here; any new async operation must be added in _generated/aio/operations/_operations.py (generated) or _patch.py (override). Changing import order breaks patch precedence."
+      }
+    ],
+    "anti_patterns": [
+      "Defining new operation classes or methods directly in __init__.py \u2014 all operations come from _generated",
+      "Removing the _patch_sdk() call at module end \u2014 runtime patches will silently not apply",
+      "Manually editing _generated/aio/operations/_operations.py \u2014 it is auto-generated and will be overwritten",
+      "Importing specific names instead of wildcard \u2014 breaks compatibility when _generated adds new operations",
+      "Reordering base import and patch import \u2014 patch symbols must override base, so patch import must come last"
+    ],
+    "decisions": [
+      {
+        "decision": "Wildcard re-export shim instead of direct _generated imports",
+        "rationale": "Gives consumers a stable openmeter.aio.operations namespace that survives generator churn; the generated path (_generated) is an internal implementation detail."
+      },
+      {
+        "decision": "Optional _patch.py layer with graceful ImportError handling",
+        "rationale": "Allows SDK customisations (auth, retry, helpers) to be injected without forking the generator; if no patch file exists the SDK still works normally."
+      }
+    ],
+    "code_examples": []
+  }
+}

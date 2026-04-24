@@ -1,0 +1,76 @@
+{
+  "openmeter/ledger/testutils": {
+    "purpose": "Provides reusable test fixtures for ledger integration tests: a Deps builder that wires concrete account/resolver/historical-ledger adapters without importing app/common, and an IntegrationEnv that spins up a real Postgres DB, runs migrations, creates a test customer, and exposes typed sub-account helpers.",
+    "patterns": [
+      {
+        "name": "Build deps from constructors, not Wire",
+        "description": "InitDeps wires accountadapter.NewRepo, accountservice.New, historicaladapter.NewRepo, resolversadapter.NewRepo, and resolvers.NewAccountResolver directly \u2014 never via app/common \u2014 to avoid import cycles.",
+        "example": "repo := accountadapter.NewRepo(db); svc := accountservice.New(repo, ledgeraccount.AccountLiveServices{Locker: locker})"
+      },
+      {
+        "name": "IntegrationEnv as the single test harness entry point",
+        "description": "All ledger integration tests call NewIntegrationEnv(t, prefix) to get a fully provisioned namespace, customer, and account set. Never replicate this setup inline.",
+        "example": "env := testutils.NewIntegrationEnv(t, \"mytest\")"
+      },
+      {
+        "name": "Use t.Context() throughout",
+        "description": "Every method on IntegrationEnv and every Ent call passes t.Context(), not context.Background().",
+        "example": "db.Customer.Create()...Save(t.Context())"
+      },
+      {
+        "name": "Freeze clock in NewIntegrationEnv",
+        "description": "Time is frozen with clock.FreezeTime(now) and unfrozen with t.Cleanup(clock.UnFreeze) so temporal ledger queries are deterministic.",
+        "example": "clock.FreezeTime(now); t.Cleanup(clock.UnFreeze)"
+      },
+      {
+        "name": "Sub-account helpers delegate to routing rules",
+        "description": "FBOSubAccount, ReceivableSubAccount, AccruedSubAccount, WashSubAccount, etc. call GetSubAccountForRoute with typed params (CustomerFBORouteParams, CustomerReceivableRouteParams, BusinessRouteParams) \u2014 never construct SubAccount directly.",
+        "example": "env.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{Currency: e.Currency, CreditPriority: priority})"
+      },
+      {
+        "name": "SumBalance reads settled balance only",
+        "description": "SumBalance calls subAccount.GetBalance(t.Context()) and returns .Settled() \u2014 tests should not inspect pending/unsettled components via this helper.",
+        "example": "sum := env.SumBalance(t, subAccount) // returns alpacadecimal.Decimal of settled balance"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "deps.go",
+        "role": "Wires the three concrete ledger services (AccountService, ResolversService, HistoricalLedger) from raw Ent client + logger. Two accountservice.New calls are intentional: first builds internalAccountService without Querier (needed to construct historicalLedger), second rebuilds with Querier set to historicalLedger.",
+        "watch_for": "The two-phase accountservice.New pattern is load-bearing \u2014 do not collapse into one call or HistoricalLedger will have a nil Querier."
+      },
+      {
+        "file": "integration.go",
+        "role": "Full integration harness: DB provisioning via omtestutils.InitPostgresDB, migrations via migrate.New+Up, customer row insertion via Ent, and customer+business account creation via ResolversService. Exposes per-account-type sub-account helpers.",
+        "watch_for": "Customer row is inserted directly via Ent (not customer.Service) because the test package must stay independent of app/common; do not switch to a higher-level service call that would introduce a cycle."
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common or any Wire provider set \u2014 causes import cycles and couples test helpers to the full DI graph",
+      "Constructing ledger.SubAccount literals directly instead of calling GetSubAccountForRoute",
+      "Using context.Background() instead of t.Context() in test helpers",
+      "Skipping clock.FreezeTime in tests that depend on temporal ledger queries",
+      "Calling migrate.Up more than once per test DB instance (idempotent but wasteful; use the shared env pattern)"
+    ],
+    "decisions": [
+      {
+        "decision": "Two-phase accountservice.New in InitDeps",
+        "rationale": "historical.Ledger requires an internalAccountService without a Querier to avoid a circular dependency; the real AccountService is then built with Querier set to the fully-constructed historicalLedger."
+      },
+      {
+        "decision": "Direct Ent customer row insertion instead of customer.Service",
+        "rationale": "Keeps testutils independent from app/common and customer/service packages, preventing import cycles in test-only code per AGENTS.md guidance."
+      },
+      {
+        "decision": "Typed sub-account helper methods per account type",
+        "rationale": "Wrapping GetSubAccountForRoute in named helpers (FBOSubAccount, ReceivableSubAccount, etc.) makes tests readable and ensures routing-rule params are always correct for each account class."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Set up a full ledger integration test",
+        "code": "import (\n    ledgertestutils \"github.com/openmeterio/openmeter/openmeter/ledger/testutils\"\n)\n\nfunc TestMyLedgerFeature(t *testing.T) {\n    env := ledgertestutils.NewIntegrationEnv(t, \"my-feature\")\n    fbo := env.FBOSubAccount(t, 1)\n    recv := env.ReceivableSubAccount(t)\n    // post transactions via env.Deps.HistoricalLedger, then:\n    bal := env.SumBalance(t, fbo)\n    require.Equal(t, expectedDecimal, bal)\n}"
+      }
+    ]
+  }
+}

@@ -1,0 +1,355 @@
+{
+  "api/spec/packages/aip/src/apps": {
+    "purpose": "TypeSpec definitions for the billing apps subsystem (Stripe, Sandbox, ExternalInvoicing). Defines installed-app models, customer data, checkout sessions, and app operations \u2014 all compiled to api/v3/openapi.yaml and Go server stubs.",
+    "patterns": [
+      {
+        "name": "AppBase generic spread",
+        "description": "Every concrete app model spreads AppBase<AppType.X> instead of duplicating id/type/status/definition fields.",
+        "example": "model AppStripe { ...AppBase<AppType.Stripe>; account_id: string; }"
+      },
+      {
+        "name": "Discriminated union for polymorphic App",
+        "description": "The top-level App union uses @discriminated with envelope:none and discriminatorPropertyName:type; every member must be a model that spreads AppBase so the discriminator field is always present.",
+        "example": "@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }) union App { stripe: AppStripe, sandbox: AppSandbox, external_invoicing: AppExternalInvoicing }"
+      },
+      {
+        "name": "Visibility-gated fields",
+        "description": "Secret/write-only fields (e.g. secret_api_key) carry @visibility(Lifecycle.Create, Lifecycle.Update) only; read-only computed fields carry @visibility(Lifecycle.Read) only.",
+        "example": "@secret secret_api_key?: string; // Create+Update only"
+      },
+      {
+        "name": "operations.tsp imports all HTTP decorators",
+        "description": "Only operations.tsp imports @typespec/http, @typespec/rest, @typespec/openapi3 and declares 'using TypeSpec.Http'. Model files must not import HTTP decorators.",
+        "example": "import \"@typespec/http\"; using TypeSpec.Http; namespace Apps; interface AppsOperations { @get list(...): ... }"
+      },
+      {
+        "name": "index.tsp as barrel re-export",
+        "description": "index.tsp imports all sibling .tsp files and nothing else; it is the entry point consumed by parent packages.",
+        "example": "import \"./app.tsp\"; import \"./catalog.tsp\"; import \"./operations.tsp\";"
+      },
+      {
+        "name": "@friendlyName on every model/enum",
+        "description": "Every exported model and enum carries @friendlyName with a BillingApp* prefix to control the generated SDK type name.",
+        "example": "@friendlyName(\"BillingAppStripe\") model AppStripe { ... }"
+      },
+      {
+        "name": "Shared.Resource spread for domain entities",
+        "description": "Entities with identity (AppBase, not value types) spread Shared.Resource to inherit id, created_at, updated_at.",
+        "example": "model AppBase<T> { ...Shared.Resource; type: T; ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "app.tsp",
+        "role": "Defines AppType enum, AppStatus enum, AppBase generic, App discriminated union, and AppReference. Core types consumed by all other files.",
+        "watch_for": "Adding a new app type here requires: new AppType member, new model that spreads AppBase, new union member in App, and a new file (e.g. newapp.tsp) imported in index.tsp."
+      },
+      {
+        "file": "stripe.tsp",
+        "role": "Full Stripe app model plus all Checkout Session and Customer Portal session types (~250 lines). Only secret fields use @secret.",
+        "watch_for": "@secret must be on create/update-only fields; do not add it to read-only fields. Use @maxLength on free-text fields."
+      },
+      {
+        "file": "external_invoicing.tsp",
+        "role": "ExternalInvoicing app model with enable_draft_sync_hook and enable_issuing_sync_hook boolean flags controlling bi-directional sync pausing.",
+        "watch_for": "Sync hooks are plain booleans, not enums; adding a new hook state would require a discriminated union change."
+      },
+      {
+        "file": "operations.tsp",
+        "role": "Declares AppsOperations interface with list and get operations only. All HTTP decoration lives here.",
+        "watch_for": "Stripe-specific operations (createCheckoutSession, createCustomerPortalSession) are NOT in this file \u2014 they live elsewhere in the aip spec. Do not add customer-scoped ops here."
+      },
+      {
+        "file": "customer.tsp",
+        "role": "AppCustomerData aggregate model grouping per-app customer linkage data (Stripe customer ID, external invoicing labels).",
+        "watch_for": "Adding a new app requires adding an optional field here with matching @visibility(Read, Create, Update)."
+      }
+    ],
+    "anti_patterns": [
+      "Adding HTTP decorators (@get, @post) in model files (app.tsp, stripe.tsp, etc.) \u2014 HTTP decoration belongs only in operations.tsp",
+      "Defining a new app model without spreading AppBase<AppType.X> \u2014 breaks discriminated union typing",
+      "Omitting @friendlyName on a new model \u2014 generates an uncontrolled SDK type name",
+      "Using @visibility(Lifecycle.Read) on secret_api_key-style fields \u2014 secrets must be write-only",
+      "Importing from outside the aip/src tree without using Shared.* or Common.* namespaces"
+    ],
+    "decisions": [
+      {
+        "decision": "AppBase is a generic model rather than an interface",
+        "rationale": "TypeSpec does not have interface inheritance for models; generic spread lets all app types share id/type/status/definition without copy-paste and keeps the discriminated union working."
+      },
+      {
+        "decision": "Stripe checkout/portal session types live in stripe.tsp not operations.tsp",
+        "rationale": "Model definitions are kept separate from operation declarations so model files can be imported by other namespaces without pulling in HTTP routing concerns."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new billing app type (e.g. Adyen)",
+        "code": "// 1. In app.tsp \u2014 add to AppType enum:\n//   Adyen: \"adyen\",\n// 2. Create adyen.tsp:\nimport \"./app.tsp\";\nnamespace Apps;\n@friendlyName(\"BillingAppAdyen\")\nmodel AppAdyen {\n  ...AppBase<AppType.Adyen>;\n  merchant_account: string;\n}\n// 3. In app.tsp \u2014 add to App union:\n//   adyen: AppAdyen,\n// 4. In index.tsp \u2014 add:\n//   import \"./adyen.tsp\";\n// 5. In customer.tsp \u2014 add optional field:\n//   adyen?: AppCustomerDataAdyen;"
+      }
+    ]
+  },
+  "api/spec/packages/aip/src/billing": {
+    "purpose": "TypeSpec definitions for the billing profile subsystem: BillingProfile, BillingWorkflow (collection, invoicing, payment, tax settings), tax config, and totals. Compiled to the BillingProfiles* section of api/v3/openapi.yaml.",
+    "patterns": [
+      {
+        "name": "Workflow settings are nested sub-models",
+        "description": "BillingWorkflow contains optional sub-models (collection, invoicing, payment, tax) rather than flat fields, allowing independent evolution of each settings group.",
+        "example": "model BillingWorkflow { collection?: BillingWorkflowCollectionSettings; invoicing?: BillingWorkflowInvoicingSettings; ... }"
+      },
+      {
+        "name": "Discriminated union for polymorphic settings",
+        "description": "Payment settings and collection alignment use @discriminated(#{envelope:\"none\", discriminatorPropertyName:...}) unions; every member model must declare the discriminator field as a literal type.",
+        "example": "@discriminated(#{ discriminatorPropertyName: \"collection_method\", envelope: \"none\" }) union BillingWorkflowPaymentSettings { charge_automatically: ..., send_invoice: ... }"
+      },
+      {
+        "name": "@encode(DurationKnownEncoding.ISO8601) on duration fields",
+        "description": "All duration/interval fields use @encode(DurationKnownEncoding.ISO8601) and carry an @example with ISO8601 string (e.g. 'P1D', 'PT1H').",
+        "example": "@encode(DurationKnownEncoding.ISO8601) @example(\"P1D\") interval?: string = \"PT1H\";"
+      },
+      {
+        "name": "Shared.Resource spread for profile entities",
+        "description": "BillingProfile spreads Shared.Resource to inherit id/created_at/updated_at. Reference types (BillingProfileReference) contain only the id field.",
+        "example": "model BillingProfile { ...Shared.Resource; supplier: ...; workflow: ...; }"
+      },
+      {
+        "name": "Separate References vs full models for app linkage",
+        "description": "BillingProfileAppReferences (used on create) holds AppReference objects; BillingProfileApps (read-only expansion) holds full App objects. This prevents over-posting.",
+        "example": "model BillingProfileAppReferences { tax: Apps.AppReference; invoicing: Apps.AppReference; payment: Apps.AppReference; }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "profile.tsp",
+        "role": "Core BillingProfile and BillingWorkflow models. Largest file \u2014 defines all workflow sub-settings including alignment union and payment union.",
+        "watch_for": "DefaultBillingWorkflowCollectionAlignment is a const used as a default value; changing alignment types requires updating both the union and the const."
+      },
+      {
+        "file": "tax.tsp",
+        "role": "TaxConfig, TaxBehavior, TaxConfigStripe, TaxConfigExternalInvoicing. Provider-specific tax config is additive \u2014 new providers add an optional field to TaxConfig.",
+        "watch_for": "Stripe tax code must match pattern ^txcd_\\d{8}$; enforce @pattern on new tax code fields."
+      },
+      {
+        "file": "totals.tsp",
+        "role": "BillingTotals read-only model with amount, taxes, charges, discounts, credits, total fields all using Shared.Numeric.",
+        "watch_for": "All fields are @visibility(Lifecycle.Read) \u2014 this is a computed output model, never a create/update input."
+      },
+      {
+        "file": "operations.tsp",
+        "role": "BillingProfilesOperations CRUD interface using Shared.CreateRequest, Shared.UpsertRequest, Shared.CreateResponse, Shared.GetResponse, Shared.DeleteResponse.",
+        "watch_for": "Update uses @put + Shared.UpsertRequest (full replacement), not @patch. Diverging from this breaks SDK generated clients."
+      }
+    ],
+    "anti_patterns": [
+      "Adding flat fields directly to BillingProfile instead of grouping them into a settings sub-model (breaks the workflow settings pattern)",
+      "Using @patch for update operations \u2014 the pattern here is @put with full UpsertRequest",
+      "Adding mutable fields to BillingTotals \u2014 totals are always read-only computed values",
+      "Omitting @encode(DurationKnownEncoding.ISO8601) on ISO 8601 duration string fields",
+      "Hardcoding app references as full App models in create/update bodies \u2014 use AppReference for write paths"
+    ],
+    "decisions": [
+      {
+        "decision": "Payment settings modeled as discriminated union on collection_method",
+        "rationale": "ChargeAutomatically and SendInvoice have disjoint extra fields (due_after only applies to SendInvoice); a union avoids optional fields that are meaningless in the wrong mode."
+      },
+      {
+        "decision": "BillingWorkflowCollectionAlignment defaulted via a const",
+        "rationale": "TypeSpec const (DefaultBillingWorkflowCollectionAlignment) lets the default value be a typed discriminated union member, not a bare string \u2014 keeping type safety on the default."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new workflow settings group (e.g. retry settings)",
+        "code": "// In profile.tsp \u2014 add sub-model:\n@friendlyName(\"BillingWorkflowRetrySettings\")\nmodel BillingWorkflowRetrySettings {\n  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)\n  max_attempts?: integer = 3;\n\n  @encode(DurationKnownEncoding.ISO8601)\n  @example(\"PT5M\")\n  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)\n  initial_delay?: string = \"PT1M\";\n}\n// Then add to BillingWorkflow:\n//   retry?: BillingWorkflowRetrySettings;"
+      }
+    ]
+  },
+  "api/spec/packages/aip/src/common": {
+    "purpose": "Shared TypeSpec primitives for the v3 AIP spec: error response aliases, pagination query models, AIP-style filter types (String/ULID/DateTime/Boolean/Numeric/Labels), sort query, and label property references. All other namespaces import from here.",
+    "patterns": [
+      {
+        "name": "Error responses via @useRef to external YAML",
+        "description": "All error models use @useRef pointing to common/definitions/errors.yaml; never define inline error schemas. The ErrorResponses alias groups the three universal errors (BadRequest, Unauthorized, Forbidden).",
+        "example": "@useRef(\"../../../../common/definitions/errors.yaml#/components/responses/NotFound\") model NotFound { @statusCode _: 404; }"
+      },
+      {
+        "name": "Filter types use @extension x-go-type for Go codegen",
+        "description": "Every filter model/union carries @extension(\"x-go-type\", \"filters.FilterXxx\") and @extension(\"x-go-type-import\", #{path: \"github.com/openmeterio/openmeter/api/v3/filters\"}) so oapi-codegen emits the hand-written Go filter type instead of generating a new struct.",
+        "example": "@extension(\"x-go-type\", \"filters.FilterString\") @extension(\"x-go-type-import\", #{ path: \"github.com/openmeterio/openmeter/api/v3/filters\" }) union StringFieldFilter { ... }"
+      },
+      {
+        "name": "Pagination models split by strategy",
+        "description": "CursorPaginationQuery and PagePaginationQuery are separate models; operations choose exactly one. Never mix cursor and page parameters in the same operation.",
+        "example": "interface EventsOps { @get list(...Common.CursorPaginationQuery, ...): Shared.CursorPaginatedResponse<T> }"
+      },
+      {
+        "name": "Sort via @useRef to aip_filters.yaml",
+        "description": "SortQuery delegates to a YAML $ref \u2014 it is an empty TypeSpec model with @useRef. Do not expand sort logic inline in TypeSpec.",
+        "example": "@useRef(\"../../../../common/definitions/aip_filters.yaml#/components/schemas/SortQuery\") model SortQuery {}"
+      },
+      {
+        "name": "Filter unions support both shorthand and object form",
+        "description": "StringFieldFilter, ULIDFieldFilter, DateTimeFieldFilter, LabelsFieldFilter are unions of (scalar | object-with-operators) so clients can pass filter[x]=value or filter[x][eq]=value.",
+        "example": "union StringFieldFilter { string: string, object: { eq?: string, neq?: string, contains?: string, ... } }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "error.tsp",
+        "role": "Canonical error response models and the ErrorResponses alias. Import Common.ErrorResponses at the end of every operation's return union.",
+        "watch_for": "ErrorResponses only covers 400/401/403. Ops that can 404 must add '| Common.NotFound' explicitly; ops that can 409 must add '| Common.Conflict'."
+      },
+      {
+        "file": "parameters.tsp",
+        "role": "All AIP filter types and SortQuery. New filter types must follow the union-of-(scalar|object) pattern and carry both x-go-type extensions.",
+        "watch_for": "StringFieldFilterExact is a model (not union) because shorthand scalar doesn't make sense for exact-only filters \u2014 don't accidentally make new exact-only types a union."
+      },
+      {
+        "file": "pagination.tsp",
+        "role": "CursorPaginationQuery, PagePaginationQuery, and their associated meta models. CursorMeta and PageMeta delegate to YAML $refs.",
+        "watch_for": "Cursor pagination uses page.after/before; page pagination uses page.number. Using the wrong query model breaks SDK pagination helpers."
+      },
+      {
+        "file": "properties.tsp",
+        "role": "Labels and PublicLabels models delegating to konnect_properties.yaml via @useRef.",
+        "watch_for": "Labels are constrained to 1-63 char keys excluding reserved prefixes \u2014 constraints are in the YAML not in TypeSpec."
+      }
+    ],
+    "anti_patterns": [
+      "Defining inline error response bodies instead of using @useRef to errors.yaml",
+      "Adding a new filter type without both x-go-type and x-go-type-import extensions \u2014 breaks Go codegen",
+      "Using Common.PagePaginationQuery on an operation that returns CursorPaginatedResponse (or vice versa)",
+      "Declaring non-empty bodies on Common error models \u2014 they are stubs that reference YAML",
+      "Mixing sort and filter logic inline in operations.tsp instead of referencing Common.SortQuery and Common.*FieldFilter"
+    ],
+    "decisions": [
+      {
+        "decision": "Filter types carry x-go-type extensions pointing to hand-written Go filter structs",
+        "rationale": "AIP filter semantics (eq/neq/contains/oeq/ocontains/exists) require parsing logic that is hard to generate; keeping the Go implementation in api/v3/filters/ and referencing it from TypeSpec avoids duplicating that logic in generated code."
+      },
+      {
+        "decision": "Error response models delegate to external YAML via @useRef",
+        "rationale": "The YAML definitions are shared with the v1 spec and contain OpenAPI extensions; a TypeSpec-native redefinition would diverge and break shared client error handling."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new filter type for an enum field",
+        "code": "// In parameters.tsp:\n@friendlyName(\"EnumFieldFilter\")\n@extension(\"x-go-type\", \"filters.FilterEnum\")\n@extension(\n  \"x-go-type-import\",\n  #{ path: \"github.com/openmeterio/openmeter/api/v3/filters\" }\n)\nunion EnumFieldFilter {\n  string: string,\n  object: {\n    eq?: string,\n    neq?: string,\n    @encode(ArrayEncoding.commaDelimited)\n    oeq?: string[],\n  },\n}"
+      }
+    ]
+  },
+  "api/spec/packages/aip/src/entitlements": {
+    "purpose": "TypeSpec definitions for the customer entitlement access query API (list feature access per customer). Minimal surface: EntitlementType enum, EntitlementAccessResult model, and a single GET list operation.",
+    "patterns": [
+      {
+        "name": "Response wrapper model for non-paginated arrays",
+        "description": "ListCustomerEntitlementAccessResponse wraps data: EntitlementAccessResult[] in a named model rather than returning a bare array, matching the Shared.PagePaginatedResponse pattern for SDK consistency.",
+        "example": "model ListCustomerEntitlementAccessResponseData { data: EntitlementAccessResult[]; }"
+      },
+      {
+        "name": "Explicit @statusCode on response models",
+        "description": "Response models declare @Http.statusCode _: 200 inline rather than using a generic response wrapper, since this operation has no pagination metadata.",
+        "example": "model ListCustomerEntitlementAccessResponse { @Http.statusCode _: 200; @body body: ListCustomerEntitlementAccessResponseData; }"
+      },
+      {
+        "name": "All result fields are @visibility(Lifecycle.Read)",
+        "description": "EntitlementAccessResult is a pure read model; every field carries @visibility(Lifecycle.Read). No create/update visibility.",
+        "example": "@visibility(Lifecycle.Read) has_access: boolean;"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "entitlements.tsp",
+        "role": "Defines EntitlementType enum (Metered, Static, Boolean). Minimal \u2014 only add here if a new entitlement type is introduced.",
+        "watch_for": "The @friendlyName uses 'BillingEntitlementType' prefix \u2014 keep consistent with the Billing* prefix convention for this spec."
+      },
+      {
+        "file": "operations.tsp",
+        "role": "CustomerEntitlementsOperations interface with a single list operation scoped to a customerId path param.",
+        "watch_for": "This operation is customer-scoped (@path customerId) \u2014 it does NOT use namespace or pagination params. Do not add Common.PagePaginationQuery here."
+      },
+      {
+        "file": "access.tsp",
+        "role": "EntitlementAccessResult model. The config field is optional and only populated for static entitlements.",
+        "watch_for": "has_access is always true for boolean/static types \u2014 ensure any new type documents this invariant in its JSDoc."
+      }
+    ],
+    "anti_patterns": [
+      "Adding write operations (create/update/delete) to this folder \u2014 entitlement management is in the v1 spec, this folder is read-only access query only",
+      "Adding pagination to the list operation \u2014 the response intentionally returns all feature access in one call",
+      "Returning a bare array instead of the wrapper model with a 'data' key"
+    ],
+    "decisions": [
+      {
+        "decision": "Flat response list without pagination",
+        "rationale": "The number of features per customer is bounded and small; pagination overhead would complicate client-side feature-gate checks."
+      }
+    ],
+    "code_examples": []
+  },
+  "api/spec/packages/aip/src/events": {
+    "purpose": "TypeSpec definitions for the metering event ingest and query API: CloudEvents-based MeteringEvent model, IngestedEvent with metadata, filter model, and operations for batch ingest and cursor-paginated listing.",
+    "patterns": [
+      {
+        "name": "@sharedRoute for content-type overloads",
+        "description": "The ingest endpoint has three operation declarations (single CE, batch CE, JSON) all with the same @operationId and @sharedRoute so they compile to one OpenAPI operation with multiple requestBody content types.",
+        "example": "@post @operationId(\"ingest-metering-events\") @sharedRoute ingestEvent(@header contentType: \"application/cloudevents+json\", @body body: MeteringEvent): ..."
+      },
+      {
+        "name": "Cursor pagination for event listing",
+        "description": "Events use ...Common.CursorPaginationQuery (not PagePaginationQuery) and return Shared.CursorPaginatedResponse<IngestedEvent>. Filter and sort params are separate named query params.",
+        "example": "@get list(...Common.CursorPaginationQuery, @query filter?: ListEventsParamsFilter, @query sort?: Common.SortQuery): Shared.CursorPaginatedResponse<IngestedEvent>"
+      },
+      {
+        "name": "Filter model uses Common.*FieldFilter types",
+        "description": "ListEventsParamsFilter fields reference Common.StringFieldFilter, Common.ULIDFieldFilter, Common.DateTimeFieldFilter \u2014 never inline filter logic.",
+        "example": "model ListEventsParamsFilter { id?: Common.StringFieldFilter; customer_id?: Common.ULIDFieldFilter; time?: Common.DateTimeFieldFilter; ... }"
+      },
+      {
+        "name": "Ingest response is 202 Accepted with empty body",
+        "description": "IngestEventsResponse declares @statusCode _: 202 and no @body, reflecting async processing semantics.",
+        "example": "model IngestEventsResponse { @statusCode _: 202; }"
+      },
+      {
+        "name": "CloudEvents field constraints",
+        "description": "MeteringEvent fields follow CloudEvents spec: id/source/type/subject have @minLength(1); specversion has a default of '1.0'; data is Record<unknown>.",
+        "example": "@minLength(1) @format(\"uri-reference\") source: string;"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "event.tsp",
+        "role": "MeteringEvent (CloudEvents schema) and IngestedEvent (with ingested_at, stored_at, validation_errors). Core model file.",
+        "watch_for": "IngestedEventValidationError has code+message+attributes \u2014 new validation error codes in the Go layer must have corresponding documentation here."
+      },
+      {
+        "file": "operations.tsp",
+        "role": "EventsOperations interface with list (cursor-paginated GET) and three @sharedRoute POST overloads for ingest. Filter uses @query(#{style:\"deepObject\", explode:true}).",
+        "watch_for": "All three ingest overloads share the same @operationId. Adding a fourth content-type overload must also use @sharedRoute and the same operationId."
+      }
+    ],
+    "anti_patterns": [
+      "Adding pagination to the ingest endpoint \u2014 ingest is fire-and-forget 202, not paginated",
+      "Using PagePaginationQuery for event listing \u2014 events use cursor pagination (after/before) not page-number pagination",
+      "Defining filter operators inline in operations instead of using Common.*FieldFilter types",
+      "Removing @sharedRoute from any of the ingest overloads \u2014 this collapses three content-type variants to one in the OpenAPI output"
+    ],
+    "decisions": [
+      {
+        "decision": "Three @sharedRoute ingest overloads instead of a single union body",
+        "rationale": "OpenAPI requires distinct requestBody entries per content-type for correct SDK code generation; TypeSpec @sharedRoute is the mechanism to express this without duplicating the operation ID."
+      },
+      {
+        "decision": "Cursor pagination for events",
+        "rationale": "Event streams grow continuously and page-number pagination is unstable on append-only data; cursor-based (after/before) pagination gives stable traversal."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new filter field to event listing",
+        "code": "// In operations.tsp, add to ListEventsParamsFilter:\nmodel ListEventsParamsFilter {\n  // ... existing fields ...\n\n  /**\n   * Filter events by event type.\n   */\n  type?: Common.StringFieldFilter;\n\n  /**\n   * Filter events by validation error code.\n   */\n  validation_error_code?: Common.StringFieldFilterExact;\n}"
+      }
+    ]
+  }
+}

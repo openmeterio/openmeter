@@ -1,0 +1,111 @@
+{
+  "pkg/framework/entutils": {
+    "purpose": "Core Ent ORM infrastructure layer providing transaction management (TransactingRepo/TxDriver), mixin definitions (IDMixin, NamespaceMixin, TimeMixin, etc.), code-generation extensions (cursor, paginate, expose, mixinaccessor, setorclear), and utility types (ULID, JSONB helpers, InIDOrder). All domain adapters depend on this package; it must not import domain packages.",
+    "patterns": [
+      {
+        "name": "TransactingRepo for all adapter DB access",
+        "description": "Every adapter method must call entutils.TransactingRepo(ctx, repo, cb) or TransactingRepoWithNoValue. It reads *TxDriver from ctx via GetDriverFromContext; if found, calls repo.WithTx(ctx, tx); if not, calls repo.Self(). Never use raw *entdb.Client directly.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo AdapterType) (*Domain, error) { ... })"
+      },
+      {
+        "name": "TxUser[T] + TxCreator dual interface on every adapter",
+        "description": "Each adapter must implement both TxCreator (Tx(ctx) returning context+Driver) using db.HijackTx, and TxUser[T] (WithTx returning a new adapter bound to the tx, and Self returning itself). See db1Adapter in transaction_test.go for the canonical pattern.",
+        "example": "func (d *adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) { txCtx, cfg, drv, err := d.db.HijackTx(ctx, &sql.TxOptions{}); return txCtx, entutils.NewTxDriver(drv, cfg), err }"
+      },
+      {
+        "name": "Mixin composition via entutils mixins",
+        "description": "All entity schemas embed standard mixins: IDMixin (ULID char(26)), NamespaceMixin (immutable namespace field + index), TimeMixin (created_at/updated_at/deleted_at), MetadataMixin (jsonb). ResourceMixin composes all four plus name/description. Use RecursiveMixin[T] when a mixin itself has sub-mixins.",
+        "example": "func (MyEntity) Mixin() []ent.Mixin { return []ent.Mixin{entutils.ResourceMixin{}} }"
+      },
+      {
+        "name": "InIDOrder for deterministic multi-entity lookup",
+        "description": "When fetching a batch of entities by IDs and returning them in caller-specified order, use entutils.InIDOrder[T](namespace, targetOrderIDs, results). It validates namespace isolation, detects duplicates, and returns GenericNotFoundError for missing IDs.",
+        "example": "ordered, err := entutils.InIDOrder(namespace, ids, dbRows)"
+      },
+      {
+        "name": "JSONStringValueScanner for custom JSON fields",
+        "description": "Use entutils.JSONStringValueScanner[T]() as the ValueScanner for any Ent field that stores a Go type as JSON string in Postgres. Handles nil/invalid NullString gracefully.",
+        "example": "field.Other(\"my_field\", MyType{}).SchemaType(...).ValueScanner(entutils.JSONStringValueScanner[MyType]())"
+      },
+      {
+        "name": "GetOrdering for sortx.Order to sql.OrderTermOption",
+        "description": "Translate pkg/sortx.Order values to []sql.OrderTermOption using entutils.GetOrdering(order). Never use raw sql.OrderAsc()/OrderDesc() directly with sortx values.",
+        "example": "q.Order(entutils.GetOrdering(params.Order)...)"
+      },
+      {
+        "name": "ULID wrapper for Postgres text storage",
+        "description": "Use entutils.ULID (wraps oklog/ulid.ULID) when storing ULIDs as text in Postgres. Use entutils.Ptr(*ulid.ULID) and entutils.Wrap(ulid.ULID) for nil-safe conversions. Raw ulid.ULID stored as binary would be interpreted as UTF-8.",
+        "example": "entutils.Ptr(someULIDPointer)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "transaction.go",
+        "role": "Defines TxDriver (savepoint-aware transaction wrapper), TransactingRepo/TransactingRepoWithNoValue helpers, TxCreator/TxUser interfaces, and GetDriverFromContext. Central to all adapter DB writes.",
+        "watch_for": "TxDriver.once.Do skips savepoint on first call \u2014 nested transactions use savepoints, outermost uses real commit/rollback. Do not call HijackTx on a client that already has a txDriver (returns error)."
+      },
+      {
+        "file": "mixins.go",
+        "role": "Standard Ent mixin definitions: IDMixin (ULID, char(26)), NamespaceMixin, TimeMixin, MetadataMixin, AnnotationsMixin, KeyMixin, ResourceMixin, UniqueResourceMixin, CadencedMixin, CustomerAddressMixin.",
+        "watch_for": "truncatedNow() truncates to microsecond \u2014 required for CI/macOS test comparisons. UniqueResourceMixin uses partial unique index workaround (namespace, key, deleted_at) \u2014 do not add a simpler (namespace, key) unique index on soft-deletable entities."
+      },
+      {
+        "file": "idorder.go",
+        "role": "InIDOrder[T InIDOrderAccessor] reorders and validates a result slice against a target ID order. Enforces namespace isolation by only matching (namespace, id) pairs.",
+        "watch_for": "Cross-namespace results are tolerated in the input slice but only same-namespace matches are returned \u2014 this is intentional for multi-namespace queries."
+      },
+      {
+        "file": "pgjsonb.go",
+        "role": "JSONBIn (IN filter on jsonb field key) and JSONBKeyExistsInObject (? operator on nested object). PostgreSQL-only; do not use with ClickHouse or non-jsonb columns.",
+        "watch_for": "JSONBIn with empty values generates 'false' predicate, not an empty IN \u2014 correct but surprising in test assertions."
+      },
+      {
+        "file": "pgulid.go",
+        "role": "ULID valuer/scanner for string-format Postgres storage. Ptr() and Wrap() for nil-safe conversion between *ulid.ULID and *entutils.ULID.",
+        "watch_for": "Storing raw ulid.ULID without this wrapper causes binary-vs-text mismatch in Postgres."
+      },
+      {
+        "file": "mapping.go",
+        "role": "MapPaged and MapPagedWithErr \u2014 type-safe transform of pagination.Result[I] to pagination.Result[O] preserving TotalCount and Page.",
+        "watch_for": "MapPagedWithErr stops on first mapper error; partial results are discarded."
+      },
+      {
+        "file": "mixinhelper.go",
+        "role": "RecursiveMixin[T] flattens Fields/Indexes/Edges/Hooks/Interceptors/Annotations from a mixin that itself embeds sub-mixins. Policy() only delegates to the base, not sub-mixins \u2014 known limitation.",
+        "watch_for": "Policy() TODO \u2014 sub-mixin policies are silently ignored."
+      },
+      {
+        "file": "sort.go",
+        "role": "GetOrdering translates pkg/sortx.Order to []sql.OrderTermOption. Fallback on unknown values returns empty slice (no ordering), not an error.",
+        "watch_for": "Unrecognized sortx.Order values silently produce no ordering \u2014 validate Order values before calling."
+      }
+    ],
+    "anti_patterns": [
+      "Calling d.db.QueryContext or raw SQL inside an adapter instead of using TransactingRepo \u2014 bypasses the ctx-bound transaction.",
+      "Implementing WithTx by returning a new adapter with a different *entdb.Client instead of using db.NewTxClientFromRawConfig(ctx, *tx.GetConfig()) \u2014 breaks cross-client transaction sharing.",
+      "Adding ORDER BY on an Ent query before calling .Cursor() \u2014 the entcursor template appends its own (created_at ASC, id ASC) order, producing undefined combined ordering.",
+      "Importing openmeter/* domain packages from entutils \u2014 creates import cycles; entutils must remain a leaf dependency.",
+      "Hand-editing files in testutils/ent1/db/ or testutils/ent2/db/ \u2014 they are generated fixtures; run go generate in testutils/ent1 or testutils/ent2 instead."
+    ],
+    "decisions": [
+      {
+        "decision": "TxDriver uses savepoints for nested transactions rather than no-op inner transactions",
+        "rationale": "Allows inner transaction rollbacks to be partial (roll back to savepoint) without aborting the outer transaction, enabling error recovery patterns in charge advancement and billing workflows."
+      },
+      {
+        "decision": "TransactingRepo reads transaction from ctx rather than accepting *entdb.Tx as a parameter",
+        "rationale": "Keeps adapter method signatures clean and prevents tx plumbing leaking into every call site; the ctx-based approach is idiomatic Ent and consistent with how Go context propagation works."
+      },
+      {
+        "decision": "IDMixin uses ULID stored as char(26) text rather than UUID or integer",
+        "rationale": "ULIDs are sortable by creation time (monotonic), URL-safe, and globally unique without coordination; char(26) avoids binary encoding issues in Postgres compared to raw ulid.ULID bytes."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Implementing a transaction-aware adapter method that respects ctx-propagated transactions",
+        "code": "import (\n    \"context\"\n    \"database/sql\"\n    \"fmt\"\n\n    entdb \"github.com/openmeterio/openmeter/openmeter/ent/db\"\n    \"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n    \"github.com/openmeterio/openmeter/pkg/framework/transaction\"\n)\n\ntype myAdapter struct {\n    db *entdb.Client\n}\n\n// Tx implements TxCreator\nfunc (a *myAdapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {\n    txCtx, rawCfg, drv, err := a.db.HijackTx(ctx, &sql.TxOptions{ReadOnly: false})\n    if err != nil {\n        return nil, nil, fmt.Errorf(\"hijack tx: %w\", err)\n    }\n    return txCtx, entutils.NewTxDriver(drv, rawCfg), nil\n}\n\n// Self implements TxUser\nfunc (a *myAdapter) Self() *myAdapter { return a }\n\n// WithTx implements TxUser\nfunc (a *myAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *myAdapter {\n    txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig())\n    return &myAdapter{db: txClient.Client()}\n}\n\n// Create uses TransactingRepo to honor any ctx-bound transaction\nfunc (a *myAdapter) Create(ctx context.Context, name string) (*entdb.MyEntity, error) {\n    return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *myAdapter) (*entdb.MyEntity, error) {\n        return repo.db.MyEntity.Create().SetName(name).Save(ctx)\n    })\n}"
+      }
+    ]
+  }
+}

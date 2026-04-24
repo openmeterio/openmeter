@@ -1,0 +1,61 @@
+{
+  "pkg/framework/entutils/entsetorclear": {
+    "purpose": "Ent codegen extension that adds a SetOrClear<Field> convenience method to every optional, mutable field on all Ent updater types, covering both the bulk-update and UpdateOne paths. Registered once in the Ent entc.Extension chain; produces code into the generated ent/db layer.",
+    "patterns": [
+      {
+        "name": "entc.Extension implementation",
+        "description": "Extension embeds entc.DefaultExtension and overrides only Templates(). Any new codegen behavior must follow the same Extension interface \u2014 do not add logic to non-Extension types.",
+        "example": "type Extension struct { entc.DefaultExtension }; func (Extension) Templates() []*gen.Template { return []*gen.Template{...} }"
+      },
+      {
+        "name": "Embedded template via go:embed",
+        "description": "The Go template source lives in setorclear.tpl and is embedded at compile time with //go:embed. Template registration uses gen.MustParse(gen.NewTemplate(name).Parse(tmplfile)).",
+        "example": "//go:embed setorclear.tpl\nvar tmplfile string\ngen.MustParse(gen.NewTemplate(\"entsetorclear\").Parse(tmplfile))"
+      },
+      {
+        "name": "Dual updater coverage",
+        "description": "The template iterates both *UpdateName (bulk) and *UpdateOneOne updaters for every optional non-immutable field so both update paths get SetOrClear.",
+        "example": "func (u *EntityUpdate) SetOrClearFoo(value *string) *EntityUpdate\nfunc (u *EntityUpdateOne) SetOrClearFoo(value *string) *EntityUpdateOne"
+      },
+      {
+        "name": "View exclusion guard",
+        "description": "The template skips nodes where $n.IsView is true. Any future template changes must preserve this guard \u2014 Ent views have no updater types.",
+        "example": "{{ if not ($n.IsView) }}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "setorclear.go",
+        "role": "Registers the extension and wires the embedded template into the Ent codegen pipeline via New().",
+        "watch_for": "New() returns *Extension \u2014 callers must pass this pointer to entc.Generate options, not the value type."
+      },
+      {
+        "file": "setorclear.tpl",
+        "role": "Go text/template that emits SetOrClear<Field> methods. Sourced from ent/ent#1119.",
+        "watch_for": "Template uses {{ template \"header\" $ }} which pulls in the ent-standard file header \u2014 removing it breaks the generated file's package declaration."
+      }
+    ],
+    "anti_patterns": [
+      "Editing generated files in openmeter/ent/db/ that contain SetOrClear methods \u2014 they are output from this extension.",
+      "Adding SetOrClear logic directly in domain adapter code instead of relying on this generated method.",
+      "Registering the extension more than once in entc.Generate \u2014 it produces duplicate method declarations.",
+      "Removing the IsView guard \u2014 Ent view nodes have no updater and the template will panic."
+    ],
+    "decisions": [
+      {
+        "decision": "Implement as an entc.Extension with an embedded .tpl file rather than a post-generation script.",
+        "rationale": "Extensions run inside the Ent codegen pipeline and receive the full typed schema graph, enabling per-field/per-node introspection without parsing generated Go source."
+      },
+      {
+        "decision": "Cover both *Update and *UpdateOne in the same template.",
+        "rationale": "Ent exposes two independent update builder paths; omitting one forces callers to branch on nil at every call site."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Register the extension in ent/entc.go so it runs during `make generate`.",
+        "code": "//go:build ignore\n\npackage main\n\nimport (\n\t\"entgo.io/ent/entc\"\n\t\"entgo.io/ent/entc/gen\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils/entsetorclear\"\n)\n\nfunc main() {\n\tentc.Generate(\"./schema\", &gen.Config{},\n\t\tentc.Extensions(entsetorclear.New()),\n\t)\n}"
+      }
+    ]
+  }
+}

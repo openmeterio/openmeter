@@ -1,0 +1,150 @@
+{
+  "api/client/javascript/src/client": {
+    "purpose": "Generated TypeScript SDK client for OpenMeter. Each domain resource (Addons, Apps, Billing, Customers, Events, etc.) is a class that wraps an openapi-fetch Client<paths>, calls the typed OpenAPI routes, and routes all responses through transformResponse. The OpenMeter class in index.ts is the public entrypoint that instantiates all resource classes.",
+    "patterns": [
+      {
+        "name": "Resource class wrapping openapi-fetch",
+        "description": "Each domain class (e.g. Addons, Billing, Customers) takes a Client<paths, ...> in its constructor and exposes async methods. Every method calls this.client.GET/POST/PUT/DELETE/PATCH with typed path literals from schemas.ts, then returns transformResponse(resp).",
+        "example": "constructor(private client: Client<paths, `${string}/${string}`>) {}\npublic async create(addon: AddonCreate, options?: RequestOptions) {\n  const resp = await this.client.POST('/api/v1/addons', { body: addon, ...options })\n  return transformResponse(resp)\n}"
+      },
+      {
+        "name": "Nested sub-resource classes",
+        "description": "Compound domains expose sub-resources as public class fields initialized in the constructor, e.g. Billing.profiles (BillingProfiles), Billing.invoices (BillingInvoices), Apps.marketplace (AppMarketplace), Customers.apps (CustomerApps).",
+        "example": "export class Billing {\n  public profiles: BillingProfiles\n  public invoices: BillingInvoices\n  constructor(private client: Client<paths, ...>) {\n    this.profiles = new BillingProfiles(this.client)\n    this.invoices = new BillingInvoices(this.client)\n  }\n}"
+      },
+      {
+        "name": "Path and query params typed from operations",
+        "description": "Parameter types are taken directly from operations['operationName']['parameters']['path'|'query'] and request bodies from operations['operationName']['requestBody']['content']['application/json']. Never invent param shapes.",
+        "example": "public async get(id: operations['getApp']['parameters']['path']['id'], options?: RequestOptions)"
+      },
+      {
+        "name": "RequestOptions = Pick<RequestInit, 'signal'>",
+        "description": "Every public method accepts an optional options?: RequestOptions as last parameter, which is spread into the fetch call with ...options. RequestOptions is defined in common.ts as Pick<RequestInit, 'signal'>.",
+        "example": "export type RequestOptions = Pick<RequestInit, 'signal'>"
+      },
+      {
+        "name": "All types imported from schemas.ts",
+        "description": "All domain types (AddonCreate, BillingProfileCreate, CustomerCreate, etc.) and the paths/operations types come from './schemas.js'. Never define domain shapes locally \u2014 always import from schemas.",
+        "example": "import type { AddonCreate, operations, paths } from './schemas.js'"
+      },
+      {
+        "name": "transformResponse for all API calls",
+        "description": "Every method ends with return transformResponse(resp). This throws HTTPError for 4xx/5xx responses and decodes ISO date strings into Date objects recursively. Never access resp.data directly.",
+        "example": "return transformResponse(resp)"
+      },
+      {
+        "name": "OpenMeter root class wires all resources",
+        "description": "index.ts creates the openapi-fetch client with date-encoding querySerializer and Bearer auth header, then instantiates every resource class. Adding a new resource requires: (1) new file, (2) import in index.ts, (3) public field + constructor instantiation. Exports all schemas and common via re-export.",
+        "example": "this.client = createClient<paths>({ ...config, querySerializer: (q) => createQuerySerializer({array:{explode:true,style:'form'}, object:{explode:true,style:'deepObject'}})(encodeDates(q)) })"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "index.ts",
+        "role": "Root OpenMeter class and Config type. Single entry point. Creates the openapi-fetch client with query serialization (dates encoded, arrays form-explode, objects deepObject), Bearer token injection, and instantiates all resource classes.",
+        "watch_for": "Adding a resource class without registering it as a public field and calling new in the constructor \u2014 the instance will be unreachable."
+      },
+      {
+        "file": "utils.ts",
+        "role": "transformResponse (throws HTTPError on errors, decodes dates), decodeDates (recursive ISO-to-Date), encodeDates (recursive Date-to-ISO, used in query serializer).",
+        "watch_for": "Never skip transformResponse; direct resp.data access misses date decoding and error handling."
+      },
+      {
+        "file": "common.ts",
+        "role": "Defines RequestOptions (Pick<RequestInit, 'signal'>), HTTPError class with fromResponse factory, and isHTTPError type guard. Errors from application/problem+json use problem.detail as message.",
+        "watch_for": "HTTPError.fromResponse reads Content-Type: application/problem+json to extract structured detail. Callers catching errors should use isHTTPError to distinguish API errors from network failures."
+      },
+      {
+        "file": "schemas.ts",
+        "role": "Generated file exporting paths, operations, and all domain types. DO NOT EDIT \u2014 regenerate via make gen-api.",
+        "watch_for": "Any manual edit will be overwritten. Always import types from here rather than redefining."
+      },
+      {
+        "file": "events.ts",
+        "role": "Special-cases ingest: normalizes single/array input to array, sets defaults (id, source, specversion, time) via setDefaultsForEvent, sends Content-Type: application/cloudevents-batch+json. UUID generation falls back gracefully in non-Node environments.",
+        "watch_for": "Must use Content-Type: application/cloudevents-batch+json for POST /api/v1/events, not application/json."
+      },
+      {
+        "file": "events.spec.ts",
+        "role": "Vitest tests using @fetch-mock/vitest to mock HTTP calls. Shows correct test pattern: fetchMock.mockReset() in beforeEach, route assertions with fetchMock.callHistory.done().",
+        "watch_for": "Date params must be serialized to ISO strings in the mock route query matcher \u2014 the SDK encodes dates before sending."
+      },
+      {
+        "file": "billing.ts",
+        "role": "Most complex resource: three sub-classes (BillingProfiles, BillingInvoices, BillingCustomers). BillingInvoices exposes state-machine actions: advance, approve, retry, void, recalculateTax, snapshotQuantities, simulate, createLineItems, invoicePendingLines.",
+        "watch_for": "Invoice actions use POST with path params only (no body) except void (requires body: VoidInvoiceActionInput) and simulate/createLineItems/invoicePendingLines (require body)."
+      },
+      {
+        "file": "customers.ts",
+        "role": "Customers class with four sub-classes: CustomerApps, CustomerEntitlements (v1, /api/v1), CustomerEntitlementsV2 (/api/v2), CustomerStripe. entitlementsV1 field uses old /api/v1 paths; entitlements field uses /api/v2.",
+        "watch_for": "customers.entitlementsV1 vs customers.entitlements \u2014 they hit different API versions. Don't mix up the two when adding methods."
+      }
+    ],
+    "anti_patterns": [
+      "Defining domain type shapes locally instead of importing from './schemas.js'",
+      "Accessing resp.data directly without calling transformResponse \u2014 loses date decoding and error handling",
+      "Adding a resource class but not registering it as a public field in OpenMeter's constructor in index.ts",
+      "Manually editing schemas.ts \u2014 it is code-generated and will be overwritten by make gen-api",
+      "Omitting the options?: RequestOptions parameter from a public method or not spreading ...options into the fetch call \u2014 prevents abort signal propagation"
+    ],
+    "decisions": [
+      {
+        "decision": "openapi-fetch is used with typed paths/operations from generated schemas.ts",
+        "rationale": "Compile-time type-checking of route paths, path params, query params, and request/response bodies. Any API change caught at TypeScript compile time after regeneration."
+      },
+      {
+        "decision": "Date values are encoded (Date->ISO string) in the query serializer and decoded (ISO string->Date) in transformResponse",
+        "rationale": "OpenAPI dates are strings; SDK callers expect JS Date objects. Centralizing encode/decode in utils.ts ensures consistent behavior across all endpoints."
+      },
+      {
+        "decision": "Each domain has its own file exporting one or more classes; index.ts is the only file that imports them all",
+        "rationale": "Tree-shaking friendly \u2014 consumers who import individual classes only pull in their file. index.ts provides the convenience-bundled OpenMeter class for callers who want the full client."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new resource class for a new domain 'widgets' with list and create methods",
+        "code": "// widgets.ts\nimport type { Client } from 'openapi-fetch'\nimport type { RequestOptions } from './common.js'\nimport type { WidgetCreate, operations, paths } from './schemas.js'\nimport { transformResponse } from './utils.js'\n\nexport class Widgets {\n  constructor(private client: Client<paths, `${string}/${string}`>) {}\n\n  public async create(widget: WidgetCreate, options?: RequestOptions) {\n    const resp = await this.client.POST('/api/v1/widgets', { body: widget, ...options })\n    return transformResponse(resp)\n  }\n\n  public async list(\n    params?: operations['listWidgets']['parameters']['query'],\n    options?: RequestOptions,\n  ) {\n    const resp = await this.client.GET('/api/v1/widgets', { params: { query: params }, ...options })\n    return transformResponse(resp)\n  }\n}\n\n// Then in index.ts:\n// import { Widgets } from './widgets.js'\n// public widgets: Widgets\n// this.widgets = new Widgets(this.client)"
+      }
+    ]
+  },
+  "api/client/javascript/src/portal": {
+    "purpose": "Lightweight portal-scoped client for end-customer access. Exposes a single OpenMeter class that authenticates via portalToken (Bearer) and provides only the portal meter query endpoint \u2014 intentionally restricted surface compared to the full admin client.",
+    "patterns": [
+      {
+        "name": "Portal-only client reuses client utilities from parent",
+        "description": "Imports RequestOptions, operations/paths (schemas), and transformResponse/encodeDates from '../client/*'. All utility logic is shared; this file adds only portal-specific wiring.",
+        "example": "import type { RequestOptions } from '../client/common.js'\nimport type { operations, paths } from '../client/schemas.js'\nimport { encodeDates, transformResponse } from '../client/utils.js'"
+      },
+      {
+        "name": "portalToken replaces apiKey in Config",
+        "description": "Config type requires portalToken: string instead of apiKey. Auth header is always 'Bearer <portalToken>'. No optional key here \u2014 portal access always requires a token.",
+        "example": "export type Config = Pick<ClientOptions, 'baseUrl' | 'headers' | 'fetch' | 'Request' | 'requestInitExt'> & { portalToken: string }"
+      },
+      {
+        "name": "Explicit return type cast for meter query",
+        "description": "The portal query method casts the return value to the exact operations response type to provide proper TypeScript types to callers, since the generic transformResponse return type may be too broad.",
+        "example": "return transformResponse(resp) as operations['queryPortalMeter']['responses']['200']['content']['application/json']"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "index.ts",
+        "role": "Entire portal SDK in one file. Creates openapi-fetch client with same date-encoding querySerializer as main client, wires Bearer portalToken, exposes single query() method for /api/v1/portal/meters/{meterSlug}/query with Accept: application/json header.",
+        "watch_for": "Must pass Accept: application/json explicitly on the meter query \u2014 the endpoint can return CSV otherwise. Same querySerializer shape (form explode, deepObject) as the main client index.ts must be kept in sync."
+      }
+    ],
+    "anti_patterns": [
+      "Adding admin-level endpoints to the portal client \u2014 this client is intentionally restricted to portal-scoped access",
+      "Redefining transformResponse or encodeDates instead of importing from '../client/utils.js'",
+      "Making portalToken optional in Config \u2014 portal requests always require authentication"
+    ],
+    "decisions": [
+      {
+        "decision": "Portal client is a separate minimal class rather than a subset configuration of the main OpenMeter client",
+        "rationale": "Prevents accidentally exposing admin endpoints to end-customer portal tokens and makes the restricted surface explicit at the type level."
+      }
+    ],
+    "code_examples": []
+  }
+}

@@ -1,0 +1,234 @@
+{
+  "api/spec/packages/aip/src/shared": {
+    "purpose": "Shared TypeSpec primitives (scalars, models, generics) reused across all aip/ domain namespaces. Acts as the type system foundation \u2014 every resource, filter, and response envelope for v3 is built from these definitions.",
+    "patterns": [
+      {
+        "name": "Scalar with validation constraints",
+        "description": "New primitive types are TypeSpec scalars (not models) with @pattern, @minLength/@maxLength, @encode, @example, and @friendlyName decorators. See ULID, ResourceKey, CurrencyCode, DateTime.",
+        "example": "@pattern(\"^[A-Z]{3}$\") @friendlyName(\"CurrencyCode\") @minLength(3) @maxLength(3) scalar CurrencyCode extends string;"
+      },
+      {
+        "name": "Visibility lifecycle decorators on all fields",
+        "description": "Every model field uses @visibility(Lifecycle.Create, Lifecycle.Read, Lifecycle.Update) to control which operations expose or accept the field. Read-only fields (id, created_at) carry only Lifecycle.Read.",
+        "example": "@visibility(Lifecycle.Read) id: ULID;"
+      },
+      {
+        "name": "Generic request/response envelopes via templates",
+        "description": "CreateRequest<T>, UpdateRequest<T>, UpsertRequest<T> in request.tsp and GetResponse<T>, CreateResponse<T>, CursorPaginatedResponse<T>, PagePaginatedResponse<T> in responses.tsp are parameterized generics. Domain models spread into these instead of redeclaring HTTP plumbing.",
+        "example": "model SubscriptionCreate { ...Shared.CreateRequest<OmitProperties<Subscription, \"...\">>;  }"
+      },
+      {
+        "name": "Resource base models via spread",
+        "description": "Resource (id, name, description, labels, timestamps), ResourceWithKey (adds key), ResourceImmutable (strips updated_at/deleted_at) are spread into domain models. Never redeclare these fields inline.",
+        "example": "model TaxCode { ...Shared.ResourceWithKey; ... }"
+      },
+      {
+        "name": "Filter models with logical AND/OR self-referential recursion",
+        "description": "QueryFilterString, QueryFilterInteger, QueryFilterFloat, QueryFilterNumeric, QueryFilterDateTime, QueryFilterBoolean all follow the pattern: operator fields + and?/or? arrays of self (up to 10 items). New filter types must follow this shape.",
+        "example": "model QueryFilterString { eq?: string; in?: string[]; and?: QueryFilterString[]; or?: QueryFilterString[]; }"
+      },
+      {
+        "name": "All exports via index.tsp barrel",
+        "description": "index.tsp imports all sibling .tsp files. Consumers import `../shared/index.tsp` \u2014 never individual files. New files added to shared/ must be added to index.tsp.",
+        "example": "import \"./address.tsp\"; import \"./filters.tsp\"; // etc in index.tsp"
+      },
+      {
+        "name": "Tag/description constants in consts.tsp",
+        "description": "API group names and descriptions are declared as `const` in consts.tsp and referenced by domain operations. Add new tag/description pairs here; do not inline strings in operations.",
+        "example": "const BillingTag = \"OpenMeter Billing\"; const BillingDescription = \"...\";"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "properties.tsp",
+        "role": "Declares all shared scalar types (ULID, ResourceKey, DateTime, CurrencyCode, Numeric, ISO8601Duration, etc.) and value-object models (RecurringPeriod, ClosedPeriod, CurrencyAmount).",
+        "watch_for": "Adding a new scalar without @pattern/@example leads to missing OpenAPI validation. Numeric is a string scalar (arbitrary precision) \u2014 do not use float64."
+      },
+      {
+        "file": "resource.tsp",
+        "role": "Resource, ResourceWithKey, ResourceImmutable base models that domain models spread into. ResourceReference<T> for cross-domain references.",
+        "watch_for": "Do not add domain-specific fields here. Spreading Resource into a model brings all lifecycle timestamps automatically."
+      },
+      {
+        "file": "request.tsp",
+        "role": "Generic Create/Update/Upsert request wrappers that apply @withVisibility filtering. CreateRequestNested handles models with nested visibilities.",
+        "watch_for": "Use CreateRequestNested instead of CreateRequest when the model has nested structs with Lifecycle decorators \u2014 plain CreateRequest misses nested visibility filtering."
+      },
+      {
+        "file": "responses.tsp",
+        "role": "HTTP response envelopes with hardcoded status codes (200/201/204). CursorPaginatedResponse and PagePaginatedResponse include @pageItems and meta.",
+        "watch_for": "Status codes are baked in \u2014 do not create ad-hoc response models with @statusCode; use these generics."
+      },
+      {
+        "file": "filters.tsp",
+        "role": "Reusable query filter models for string, integer, float, numeric, boolean, datetime attributes, plus QueryFilterStringMap for map fields.",
+        "watch_for": "All filter models are self-referentially nested for AND/OR. Bounds are @minItems(1) @maxItems(10) for logical operators, @maxItems(100) for in/nin."
+      },
+      {
+        "file": "consts.tsp",
+        "role": "String constants for all API tags, descriptions, and extension keys (UnstableExtension, InternalExtension, PrivateExtension).",
+        "watch_for": "Use Shared.UnstableExtension / InternalExtension / PrivateExtension via @extension() in operations; do not hard-code extension strings."
+      },
+      {
+        "file": "index.tsp",
+        "role": "Barrel import \u2014 the single entry point for all shared types.",
+        "watch_for": "New .tsp files in this folder must be added here or they will be invisible to the rest of the spec."
+      }
+    ],
+    "anti_patterns": [
+      "Redeclaring id/name/created_at/updated_at/deleted_at on a domain model instead of spreading ...Shared.Resource or ...Shared.ResourceWithKey",
+      "Using float64 or integer for monetary/quantity values \u2014 use Shared.Numeric (arbitrary-precision string scalar)",
+      "Creating a filter model that does not include and?/or? self-references when logical composition is needed",
+      "Defining HTTP status codes inline with @statusCode on domain-specific response models instead of using the generic envelopes in responses.tsp",
+      "Adding a new .tsp file to shared/ without importing it in index.tsp"
+    ],
+    "decisions": [
+      {
+        "decision": "Scalars with inline validation constraints over Go-style validation in handlers",
+        "rationale": "TypeSpec scalars emit JSON Schema constraints directly into the OpenAPI spec, so all SDKs and the kin-openapi middleware validate automatically without duplicating rules."
+      },
+      {
+        "decision": "Generic request/response templates instead of per-resource envelope models",
+        "rationale": "Eliminates drift between CRUD operations across 15+ domain namespaces; visibility filtering is applied once in the template and propagates everywhere."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Defining a new domain resource that extends shared base types and uses the CRUD envelope generics",
+        "code": "import \"../shared/index.tsp\";\n\nnamespace MyDomain;\n\n@friendlyName(\"MyResource\")\nmodel MyResource {\n  ...Shared.ResourceWithKey;\n\n  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)\n  @summary(\"Status\")\n  status: MyStatus;\n}\n\ninterface MyResourceOperations {\n  @post\n  @operationId(\"create-my-resource\")\n  create(@body body: Shared.CreateRequest<MyResource>): Shared.CreateResponse<MyResource> | Common.ErrorResponses;\n\n  @get\n  @operationId(\"list-my-resources\")\n  list(...Common.PagePaginationQuery): Shared.PagePaginatedResponse<MyResource> | Common.ErrorResponses;\n}"
+      }
+    ]
+  },
+  "api/spec/packages/aip/src/subscriptions": {
+    "purpose": "TypeSpec definitions for the Subscriptions v3 API domain: subscription lifecycle model, CRUD+action operations (create, list, get, cancel, unschedule-cancelation, change), and cross-domain reference type. All @friendlyName values are prefixed `Billing` to distinguish them in the generated Go/JS types.",
+    "patterns": [
+      {
+        "name": "BillingXxx friendlyName prefix on all models and enums",
+        "description": "Every model, enum, and union in this namespace carries @friendlyName(\"BillingXxx\") \u2014 the generated SDK type names are prefixed Billing to avoid collisions with identically-named types in other namespaces.",
+        "example": "@friendlyName(\"BillingSubscription\") model Subscription { ... }"
+      },
+      {
+        "name": "Action operations use @route suffix + @post, not nested interfaces",
+        "description": "Non-CRUD actions (cancel, unschedule-cancelation, change) are declared as methods on the same interface with an explicit @route(\"/{subscriptionId}/action-name\") decorator rather than nested interface hierarchies.",
+        "example": "@post @route(\"/{subscriptionId}/cancel\") cancel(@path subscriptionId: Shared.ULID, @body body: SubscriptionCancel): ..."
+      },
+      {
+        "name": "OmitProperties<> to derive create/change request shapes from read model",
+        "description": "Request bodies are derived from the read model by omitting server-assigned fields (id, status, billing_anchor) with OmitProperties<>, then adding explicit Create/Update-only fields inline.",
+        "example": "model SubscriptionCreate { ...Shared.CreateRequest<OmitProperties<Subscription, \"customer_id\" | \"plan_id\" | \"billing_anchor\">>; customer: { id?: ULID; key?: ExternalResourceKey; }; }"
+      },
+      {
+        "name": "Union type for timing \u2014 enum or custom DateTime",
+        "description": "SubscriptionEditTiming is declared as a @oneOf union of the enum (immediate/next_billing_cycle) and a raw DateTime to allow both shorthand and explicit scheduling.",
+        "example": "@oneOf union SubscriptionEditTiming { Enum: SubscriptionEditTimingEnum, Custom: Shared.DateTime, }"
+      },
+      {
+        "name": "Dual-response for change operation",
+        "description": "The change operation returns a SubscriptionChangeResponse with both `current` and `next` Subscription fields \u2014 not just the resulting resource.",
+        "example": "model SubscriptionChangeResponse { current: Subscription; next: Subscription; }"
+      },
+      {
+        "name": "Namespace-scoped index.tsp barrel",
+        "description": "index.tsp imports subscription.tsp, then operations.tsp, then reference.tsp in dependency order. operations.tsp must come after subscription.tsp because it references its types.",
+        "example": "import \"./subscription.tsp\"; import \"./operations.tsp\"; import \"./reference.tsp\";"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "subscription.tsp",
+        "role": "Core domain model: Subscription read model, SubscriptionCreate, SubscriptionStatus enum, SubscriptionEditTiming union, SubscriptionEditTimingEnum enum.",
+        "watch_for": "Subscription spreads ...OmitProperties<Shared.Resource, \"name\" | \"description\"> \u2014 name/description are intentionally absent. Do not add them back."
+      },
+      {
+        "file": "operations.tsp",
+        "role": "SubscriptionsOperations interface with all HTTP operations including action routes. Declares SubscriptionCancel and SubscriptionChange request models inline.",
+        "watch_for": "The change operation returns raw SubscriptionChangeResponse (not wrapped in Shared.UpdateResponse) because it has a two-subscription payload \u2014 do not wrap it."
+      },
+      {
+        "file": "reference.tsp",
+        "role": "SubscriptionReference cross-domain reference type for use when other domains (billing lines) need to point to a subscription item.",
+        "watch_for": "Reference type is deeply nested (subscription \u2192 phase \u2192 item) \u2014 all inner structs are anonymous inline models, not named types."
+      }
+    ],
+    "anti_patterns": [
+      "Omitting @friendlyName(\"BillingXxx\") from a new model/enum \u2014 generated SDK types would collide with same-named types in other namespaces",
+      "Wrapping the change operation response in Shared.UpdateResponse<T> \u2014 its two-subscription payload is intentional and incompatible with the single-body envelope",
+      "Adding name or description fields to the Subscription model \u2014 they are explicitly omitted via OmitProperties and not part of this domain resource",
+      "Defining a new action endpoint as a separate interface instead of a @route-decorated method on SubscriptionsOperations"
+    ],
+    "decisions": [
+      {
+        "decision": "Billing-prefixed friendlyName on all types",
+        "rationale": "Multiple aip/ namespaces (subscriptions, billing, plans) expose similarly-named types; the Billing prefix makes generated Go and JS SDK types unambiguous without requiring Go package-qualified names."
+      },
+      {
+        "decision": "Union type for SubscriptionEditTiming instead of separate fields",
+        "rationale": "Allows callers to use the convenient enum values (immediate, next_billing_cycle) or an explicit timestamp without an extra discriminator field or separate endpoint variants."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new action endpoint (e.g. pause) to SubscriptionsOperations following existing patterns",
+        "code": "// In operations.tsp, inside interface SubscriptionsOperations:\n@post\n@operationId(\"pause-subscription\")\n@summary(\"Pause subscription\")\n@route(\"/{subscriptionId}/pause\")\npause(\n  @path subscriptionId: Shared.ULID,\n  @body body: SubscriptionPause,\n):\n  | Shared.UpdateResponse<Subscription>\n  | Common.NotFound\n  | Common.Conflict\n  | Common.ErrorResponses;\n\n// In subscription.tsp:\n@friendlyName(\"BillingSubscriptionPause\")\nmodel SubscriptionPause {\n  timing?: SubscriptionEditTiming = SubscriptionEditTimingEnum.Immediate;\n}"
+      }
+    ]
+  },
+  "api/spec/packages/aip/src/tax": {
+    "purpose": "TypeSpec definitions for the Tax Codes v3 API domain: full CRUD for TaxCode resources that map OpenMeter app types to provider-specific tax codes. All endpoints are marked @extension(Shared.PrivateExtension, true) + UnstableExtension + InternalExtension \u2014 this is an internal/private API surface.",
+    "patterns": [
+      {
+        "name": "Triple private/unstable/internal extension on all operations",
+        "description": "Every operation in TaxCodesOperations carries all three extensions: @extension(Shared.PrivateExtension, true), @extension(Shared.UnstableExtension, true), @extension(Shared.InternalExtension, true). Any new operation added here must carry all three.",
+        "example": "@extension(Shared.PrivateExtension, true) @extension(Shared.UnstableExtension, true) @extension(Shared.InternalExtension, true) @post create(...): ...;"
+      },
+      {
+        "name": "Upsert over Create+Update pattern",
+        "description": "Tax codes use @put upsert (Shared.UpsertRequest<T> body, Shared.UpsertResponse<T> + Common.Gone response) rather than separate create/update endpoints. Use this pattern for resources that need idempotent writes.",
+        "example": "@put @operationId(\"upsert-tax-code\") upsert(@path taxCodeId: Shared.ULID, @body tax_code: Shared.UpsertRequest<TaxCode>): Shared.UpsertResponse<TaxCode> | Common.Gone | Common.NotFound | Common.ErrorResponses;"
+      },
+      {
+        "name": "Cross-namespace import for app type reference",
+        "description": "codes.tsp imports `../apps/app.tsp` and references Apps.AppType directly. When a new model needs to reference another domain's types, import that domain's specific .tsp file (not its index) to minimize transitive dependencies.",
+        "example": "import \"../apps/app.tsp\"; model TaxCodeAppMapping { app_type: Apps.AppType; }"
+      },
+      {
+        "name": "ResourceWithKey base for key-addressable resources",
+        "description": "TaxCode spreads ...Shared.ResourceWithKey (not plain Resource) because tax codes are addressable by human-readable key. Use ResourceWithKey when the resource has a user-controlled lookup key.",
+        "example": "model TaxCode { ...Shared.ResourceWithKey; app_mappings: TaxCodeAppMapping[]; }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "codes.tsp",
+        "role": "TaxCode resource model and TaxCodeAppMapping value-object. TaxCode extends ResourceWithKey; app_mappings is a required array on all lifecycle operations.",
+        "watch_for": "app_mappings carries @visibility(Lifecycle.Read, Lifecycle.Update, Lifecycle.Create) \u2014 it is required on both create and update. Do not make it optional without considering backward compatibility."
+      },
+      {
+        "file": "operations.tsp",
+        "role": "TaxCodesOperations interface: create, get, list (with include_deleted query param), upsert, delete.",
+        "watch_for": "List includes @query include_deleted?: boolean \u2014 a soft-delete pattern. The upsert path can return Common.Gone (410) if the resource was hard-deleted; handle this in the Go handler."
+      },
+      {
+        "file": "index.tsp",
+        "role": "Barrel: imports codes.tsp then operations.tsp.",
+        "watch_for": "codes.tsp must be imported before operations.tsp since operations references TaxCode."
+      }
+    ],
+    "anti_patterns": [
+      "Adding a new endpoint without all three extensions (PrivateExtension, UnstableExtension, InternalExtension) \u2014 this is a private internal API",
+      "Using Shared.Resource instead of Shared.ResourceWithKey \u2014 tax codes are key-addressable",
+      "Splitting upsert into separate create+update endpoints \u2014 the domain uses idempotent @put upsert for this resource"
+    ],
+    "decisions": [
+      {
+        "decision": "Upsert (@put) instead of separate create/update for tax codes",
+        "rationale": "Tax codes are synced from external provider catalogs; idempotent upsert avoids 409 conflicts on repeated sync runs and simplifies the sync job."
+      },
+      {
+        "decision": "All endpoints marked private+unstable+internal",
+        "rationale": "Tax code management is an operator-level function not exposed in the public SDK; the extensions exclude these endpoints from customer-facing SDK generation and documentation."
+      }
+    ],
+    "code_examples": []
+  }
+}

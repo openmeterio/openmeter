@@ -1,0 +1,106 @@
+{
+  "api/spec/packages/legacy/src/billing/invoices": {
+    "purpose": "TypeSpec models for the v1 billing invoice API surface \u2014 defines the invoice entity, line items, discounts, taxes, parties, payment terms, and document references. All files compile into api/openapi.yaml via `make gen-api`; no runtime code lives here.",
+    "patterns": [
+      {
+        "name": "Lifecycle visibility on every field",
+        "description": "Each field must carry @visibility(Lifecycle.Read), @visibility(Lifecycle.Create), and/or @visibility(Lifecycle.Update) to control which operations expose it. Read-only computed fields get only Lifecycle.Read.",
+        "example": "@visibility(Lifecycle.Read, Lifecycle.Create) currency: CurrencyCode;"
+      },
+      {
+        "name": "@friendlyName on every model and union",
+        "description": "All models, enums, and unions declare @friendlyName matching the PascalCase type name so oapi-codegen emits stable Go type names. Missing @friendlyName causes generated type name drift.",
+        "example": "@friendlyName(\"InvoiceLineAmountDiscount\") model InvoiceLineAmountDiscount { ... }"
+      },
+      {
+        "name": "Spread (\u2026) for composition, not inheritance",
+        "description": "TypeSpec spread operator (...) is used to compose shared base models (ResourceTimestamps, InvoiceDiscountBase, BillingParty). Direct extends is reserved for discriminated union variants.",
+        "example": "model InvoiceLineUsageDiscount { ...InvoiceDiscountBase; quantity: Numeric; }"
+      },
+      {
+        "name": "Discriminated unions with envelope:none",
+        "description": "Polymorphic types use @discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }) so the discriminator sits inline without an extra wrapper object.",
+        "example": "@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }) union BillingDiscountReason { maximum_spend: DiscountReasonMaximumSpend, ... }"
+      },
+      {
+        "name": "Namespace OpenMeter on all declarations",
+        "description": "Every .tsp file in this folder is in namespace OpenMeter. Omitting the namespace causes the generated OpenAPI schema to land in the wrong component namespace.",
+        "example": "namespace OpenMeter; model Invoice { ... }"
+      },
+      {
+        "name": "main.tsp as the sole entry point",
+        "description": "main.tsp imports all sibling .tsp files and parent packages. New .tsp files must be added to main.tsp imports or they will not be compiled.",
+        "example": "import \"./discounts.tsp\";"
+      },
+      {
+        "name": "GOBL-derived schema with explicit omission comments",
+        "description": "Models mirror GOBL schema but deliberately omit unsupported fields. Each omission must be documented in a comment block explaining why (e.g. '/* Omitted: multi-currency exchange_rates \u2014 not supported yet */') so reviewers know the gap is intentional.",
+        "example": "/* Omitted fields: ordering, delivery \u2014 physical goods not supported */"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "main.tsp",
+        "role": "Package entry point \u2014 imports all sibling files and parent packages (../../productcatalog). Must be updated whenever a new .tsp file is added.",
+        "watch_for": "Forgetting to import a new .tsp here silently drops all its types from the generated OpenAPI."
+      },
+      {
+        "file": "invoice.tsp",
+        "role": "Core Invoice and InvoiceLine models, enums (InvoiceStatus, InvoiceType, InvoiceLineStatus, InvoiceLineManagedBy), and action/detail models. Most billing API behaviour flows through these types.",
+        "watch_for": "InvoiceExtendedStatus is a scalar (not an enum) with @extension(\"x-inline\", true) \u2014 do not convert to enum until status values are stable."
+      },
+      {
+        "file": "discounts.tsp",
+        "role": "Discount models split into line-level read types (InvoiceLineAmountDiscount, InvoiceLineUsageDiscount) and catalog-level input types (BillingDiscountPercentage, BillingDiscountUsage). BillingDiscountReason is a discriminated union.",
+        "watch_for": "BillingDiscountMetadata.correlationId is required for progressive billing coherence \u2014 do not make it non-optional without updating progressive billing logic."
+      },
+      {
+        "file": "party.tsp",
+        "role": "BillingParty and BillingInvoiceCustomerExtendedDetails models. Imports ../../customer for CustomerUsageAttribution.",
+        "watch_for": "@maxItems(1) on addresses \u2014 only one address per party is supported; do not remove this constraint without a schema migration."
+      },
+      {
+        "file": "pay.tsp",
+        "role": "PaymentTerms union (instant/due_date) and PaymentDueDate model. GenericPaymentTerms is a generic base parameterised by PaymentTermType.",
+        "watch_for": "PaymentTerms is a union, not a model \u2014 adding a new payment term type requires a new union arm and a model extending GenericPaymentTerms."
+      },
+      {
+        "file": "tax.tsp",
+        "role": "InvoiceLineTaxItem and InvoiceLineTaxBehavior \u2014 tax config reference on line items. Minimal subset of GOBL tax model.",
+        "watch_for": "A nil percent in InvoiceLineTaxItem signals tax-exempt status \u2014 this semantic must be preserved in Go adapter mapping."
+      },
+      {
+        "file": "docref.tsp",
+        "role": "InvoiceDocumentRef union for credit note back-references. Currently only creditNoteOriginalInvoice variant exists.",
+        "watch_for": "InvoiceDocumentRef is a union \u2014 new document reference types (proforma, debit note) must add a union arm, not extend InvoiceGenericDocumentRef directly."
+      }
+    ],
+    "anti_patterns": [
+      "Adding runtime or business logic \u2014 this folder is schema-only; all logic belongs in openmeter/billing/",
+      "Editing generated files (api/openapi.yaml, api/api.gen.go) instead of the .tsp source here",
+      "Omitting @friendlyName on new models \u2014 causes unstable generated Go type names",
+      "Adding fields without @visibility decorators \u2014 fields default to all lifecycles which exposes internal state on create/update",
+      "Extending InvoiceGenericDocumentRef with extends instead of adding a union arm to InvoiceDocumentRef"
+    ],
+    "decisions": [
+      {
+        "decision": "GOBL schema as the structural baseline with deliberate omissions",
+        "rationale": "GOBL provides a well-validated international invoicing schema. OpenMeter extends it for draft invoices, tiered line groups, and time-series data while explicitly documenting every omitted GOBL field so gaps are traceable and intentional."
+      },
+      {
+        "decision": "Visibility-controlled fields instead of separate request/response types",
+        "rationale": "Using @visibility(Lifecycle.Read/Create/Update) on a single model reduces duplication and keeps the schema DRY while still producing distinct request and response shapes in the generated OpenAPI via oapi-codegen."
+      },
+      {
+        "decision": "Discriminated unions with envelope:none for polymorphic reason/term types",
+        "rationale": "Avoids extra wrapping objects in the JSON payload; the discriminator sits inline matching how GOBL and most modern REST APIs represent tagged unions."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new invoice line discount type",
+        "code": "// 1. Define the new discount model in discounts.tsp\n@friendlyName(\"InvoiceLineNewDiscount\")\nmodel InvoiceLineNewDiscount {\n  ...InvoiceDiscountBase;\n\n  @visibility(Lifecycle.Read)\n  someNewField: Numeric;\n}\n\n// 2. Add it to InvoiceLineDiscounts\n@friendlyName(\"InvoiceLineDiscounts\")\nmodel InvoiceLineDiscounts {\n  amount?: InvoiceLineAmountDiscount[];\n  usage?: InvoiceLineUsageDiscount[];\n  newType?: InvoiceLineNewDiscount[];  // added arm\n}\n\n// 3. Run: make gen-api && make generate"
+      }
+    ]
+  }
+}

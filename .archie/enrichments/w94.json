@@ -1,0 +1,141 @@
+{
+  "openmeter/ledger/account/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing ledgeraccount.Repo for ledger account and sub-account persistence. All DB operations must be transaction-aware via entutils.TransactingRepo; route creation uses an upsert pattern keyed on canonical routing key.",
+    "patterns": [
+      {
+        "name": "TransactingRepo wrapping",
+        "description": "Every exported method body is wrapped in entutils.TransactingRepo(ctx, r, func(ctx, tx *repo) ...) so the ctx-bound Ent transaction is honored. Never use r.db directly in a public method without this wrapper.",
+        "example": "return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (*ledgeraccount.AccountData, error) { ... r.db.LedgerAccount... })"
+      },
+      {
+        "name": "TxUser implementation on repo",
+        "description": "repo implements entutils.TxUser[*repo] via WithTx and Self, enabling TransactingRepo to rebind to the caller's transaction. Both must be present for any new repo struct.",
+        "example": "func (r *repo) WithTx(ctx context.Context, tx *entutils.TxDriver) *repo { return &repo{db: entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()).Client()} }"
+      },
+      {
+        "name": "Route upsert via canonical routing key",
+        "description": "EnsureSubAccount normalizes the route, builds a deterministic routing key via ledger.BuildRoutingKey(RoutingKeyVersionV1, ...), attempts insert, and on constraint error falls back to query by (namespace, accountID, routingKeyVersion, routingKey). Cost basis is canonicalized before key computation so '0.7' and '0.70' collide correctly.",
+        "example": "normalizedRoute, _ := input.Route.Normalize(); routeKey, _ := ledger.BuildRoutingKey(ledger.RoutingKeyVersionV1, normalizedRoute); create.Save(ctx) \u2192 on IsConstraintError \u2192 query by routingKey"
+      },
+      {
+        "name": "Constraint-error idempotent upsert for sub-accounts",
+        "description": "EnsureSubAccount attempts Create on LedgerSubAccount; on db.IsConstraintError it re-fetches the existing row by (namespace, accountID, routeID) instead of failing. This makes the operation safe to call multiple times.",
+        "example": "if db.IsConstraintError(err) { entity, err = r.db.LedgerSubAccount.Query().Where(...).Only(ctx) }"
+      },
+      {
+        "name": "WithRoute+WithAccount eager loading for subaccount reads",
+        "description": "GetSubAccountByID and ListSubAccounts always call .WithRoute().WithAccount() on the query. MapSubAccountData panics-as-error if either edge is nil, so never query sub-accounts without these eager loads.",
+        "example": "r.db.LedgerSubAccount.Query().Where(...).WithRoute().WithAccount().Only(ctx)"
+      },
+      {
+        "name": "MapAccountData / MapSubAccountData as pure domain converters",
+        "description": "Both are exported functions (not methods) that convert Ent entities to domain types. They must stay pure \u2014 no repo calls inside. MapSubAccountData returns an error if Account or Route edges are nil.",
+        "example": "func MapSubAccountData(entity *db.LedgerSubAccount) (ledgeraccount.SubAccountData, error) { if entity.Edges.Account == nil { return ..., fmt.Errorf(...) } ... }"
+      },
+      {
+        "name": "RouteFilter normalization before predicate building",
+        "description": "ListSubAccounts calls input.Route.Normalize() before constructing Ent predicates so that filter values match the canonicalized DB values (especially cost basis decimal normalization).",
+        "example": "normalizedRoute, err := input.Route.Normalize(); if normalizedRoute.CostBasis.IsPresent() { ... dbledgersubaccountroute.CostBasis(*costBasis) ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "repo.go",
+        "role": "Defines the repo struct, NewRepo constructor, and the Tx/WithTx/Self methods that satisfy entutils.TxUser[*repo] and transaction.TxCreator. This is the DI entry point.",
+        "watch_for": "Both var _ assertions (ledgeraccount.Repo and entutils.TxUser[*repo]) must stay satisfied; dropping either breaks transaction rebinding."
+      },
+      {
+        "file": "account.go",
+        "role": "CRUD for LedgerAccount rows: CreateAccount, GetAccountByID, ListAccounts. Also holds the exported MapAccountData converter.",
+        "watch_for": "All three methods are wrapped in TransactingRepo; ListAccounts filters by AccountTypes when non-empty \u2014 omitting that filter returns unscoped results."
+      },
+      {
+        "file": "subaccount.go",
+        "role": "EnsureSubAccount (idempotent upsert), GetSubAccountByID, ListSubAccounts, and the internal resolveOrCreateRoute (route upsert). Also holds MapSubAccountData.",
+        "watch_for": "resolveOrCreateRoute is not wrapped in TransactingRepo itself \u2014 it is always called from within an outer TransactingRepo in EnsureSubAccount. Adding a public call to it directly would bypass tx rebinding."
+      },
+      {
+        "file": "repo_test.go",
+        "role": "Integration tests using testutils.InitPostgresDB + migrate.Up. TestEnv wires repo directly from adapter.NewRepo without app/common \u2014 follow this for new tests.",
+        "watch_for": "Tests call t.Context() (not context.Background()). DBSchemaMigrate runs the full golang-migrate Up; skip it and FK constraints will fail."
+      }
+    ],
+    "anti_patterns": [
+      "Calling r.db.LedgerAccount/LedgerSubAccount directly in a public method without TransactingRepo \u2014 falls off the caller's transaction",
+      "Querying LedgerSubAccount without .WithRoute().WithAccount() \u2014 MapSubAccountData will error on nil edges",
+      "Manually constructing routingKey strings instead of using ledger.BuildRoutingKey \u2014 breaks canonical uniqueness",
+      "Using context.Background() in tests instead of t.Context()",
+      "Importing app/common in test setup \u2014 causes import cycles; use adapter.NewRepo directly"
+    ],
+    "decisions": [
+      {
+        "decision": "Routes are a separate table (LedgerSubAccountRoute) shared across sub-accounts, not embedded in sub-accounts.",
+        "rationale": "Routes give a meaningful view of which currencies/cost bases are held without requiring a join through the structural sub-account grouping; upsert on routing key makes route reuse automatic."
+      },
+      {
+        "decision": "Cost basis is canonicalized via Route.Normalize() before key computation and DB storage.",
+        "rationale": "Decimal representations like '0.7' and '0.70' must map to the same route row to preserve uniqueness guarantees; normalization happens once in the adapter, never in callers."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new filtered list method on repo (e.g. ListAccountsByType)",
+        "code": "func (r *repo) ListAccountsByType(ctx context.Context, ns string, accType ledger.AccountType) ([]*ledgeraccount.AccountData, error) {\n\treturn entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) ([]*ledgeraccount.AccountData, error) {\n\t\tentities, err := r.db.LedgerAccount.Query().\n\t\t\tWhere(ledgeraccountdb.Namespace(ns), ledgeraccountdb.AccountType(accType)).\n\t\t\tAll(ctx)\n\t\tif err != nil {\n\t\t\treturn nil, fmt.Errorf(\"failed to list accounts by type: %w\", err)\n\t\t}\n\t\tout := make([]*ledgeraccount.AccountData, 0, len(entities))\n\t\tfor _, e := range entities {\n\t\t\tad, err := MapAccountData(e)\n\t\t\tif err != nil {\n\t\t\t\treturn nil, err\n\t\t\t}\n\t\t\tout = append(out, ad)\n\t\t}\n\t\treturn out, nil\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/ledger/account/service": {
+    "purpose": "Business-logic service layer for ledger accounts and sub-accounts, delegating all persistence to account.Repo and enriching raw AccountData/SubAccountData with live runtime dependencies (Locker, Querier) via account.AccountLiveServices.",
+    "patterns": [
+      {
+        "name": "Service wires itself as SubAccountService",
+        "description": "New() injects the constructed service back into live.SubAccountService before storing live, so Account domain objects receive a real SubAccountService reference. Never construct service without this self-wiring step.",
+        "example": "func New(repo account.Repo, live account.AccountLiveServices) account.Service { svc := &service{repo: repo}; live.SubAccountService = svc; svc.live = live; return svc }"
+      },
+      {
+        "name": "Validate input before repo calls",
+        "description": "CreateAccount and EnsureSubAccount call input.Validate() and return immediately on error before touching the repo. All mutating methods must validate first.",
+        "example": "if err := input.Validate(); err != nil { return nil, err }"
+      },
+      {
+        "name": "transaction.Run for multi-step mutations",
+        "description": "EnsureSubAccount wraps the repo call and subsequent GetAccountByID in a single transaction.Run(ctx, s.repo, ...) to ensure both complete atomically.",
+        "example": "return transaction.Run(ctx, s.repo, func(ctx context.Context) (*account.SubAccount, error) { subAccountData, _ := s.repo.EnsureSubAccount(ctx, input); acc, _ := s.GetAccountByID(ctx, ...); return account.NewSubAccountFromData(...) })"
+      },
+      {
+        "name": "Domain object construction via NewAccountFromData / NewSubAccountFromData",
+        "description": "Service never returns raw *AccountData or *SubAccountData \u2014 it always wraps them in account.NewAccountFromData(data, s.live) or account.NewSubAccountFromData(data, acc). This attaches live runtime services to the domain object.",
+        "example": "return account.NewAccountFromData(*accData, s.live)"
+      },
+      {
+        "name": "N+1 mitigation with local accountsByID cache in ListSubAccounts",
+        "description": "ListSubAccounts deduplicates GetAccountByID calls using an in-memory accountsByID map keyed by accountID. New batch-list methods should follow this pattern until the Ent query is fixed.",
+        "example": "accountsByID := make(map[string]*account.Account, len(subAccountDatas)); for _, d := range subAccountDatas { acc, ok := accountsByID[d.AccountID]; if !ok { acc, _ = s.GetAccountByID(...); accountsByID[d.AccountID] = acc } }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Single file containing the entire service implementation. Exposes New() constructor and implements account.Service via compile-time assertion var _ account.Service = (*service)(nil).",
+        "watch_for": "The self-wiring of live.SubAccountService in New() is load-bearing \u2014 if a caller passes a pre-built AccountLiveServices without going through New(), SubAccountService will be nil and Account.SubAccount() calls will panic."
+      }
+    ],
+    "anti_patterns": [
+      "Returning *AccountData or *SubAccountData directly from service methods \u2014 callers expect domain objects with live services attached",
+      "Calling s.repo.EnsureSubAccount outside a transaction.Run when the method also needs to call s.GetAccountByID \u2014 creates a TOCTOU window",
+      "Constructing service and setting live.SubAccountService externally instead of via New() \u2014 SubAccountService self-wiring is intentional",
+      "Introducing context.Background() or context.TODO() \u2014 propagate the caller's ctx throughout"
+    ],
+    "decisions": [
+      {
+        "decision": "AccountLiveServices is injected as a value type and the service self-registers as SubAccountService inside New().",
+        "rationale": "Account domain objects need a SubAccountService reference to load their sub-accounts lazily; circular DI is resolved by having the single service implement both Account and SubAccount operations and wiring itself into the live struct at construction time."
+      },
+      {
+        "decision": "ListSubAccounts uses an in-memory accountsByID cache rather than a joined Ent query.",
+        "rationale": "The FIXME comment notes this is an intentional N+1 deferral \u2014 the cache makes it O(distinct accounts) rather than O(sub-accounts) while the proper Ent join is deferred."
+      }
+    ],
+    "code_examples": []
+  }
+}

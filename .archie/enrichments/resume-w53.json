@@ -1,0 +1,226 @@
+{
+  "test/billing": {
+    "purpose": "Integration test suite for the billing domain \u2014 covers invoice lifecycle, adapter persistence, collection flows, discounts, tax handling, schema migrations, and subscription sync. All tests run against a real PostgreSQL database provisioned via pgtestdb/Atlas migrations.",
+    "patterns": [
+      {
+        "name": "BaseSuite embedding",
+        "description": "Every test suite embeds BaseSuite (defined in suite.go), which boots the full billing stack from raw constructors (no app/common). All service fields (BillingService, BillingAdapter, CustomerService, FeatureService, MeterAdapter, MockStreamingConnector, etc.) are set in BaseSuite.setupSuite.",
+        "example": "type InvoicingTestSuite struct { BaseSuite }"
+      },
+      {
+        "name": "SubscriptionMixin for subscription-dependent tests",
+        "description": "Tests that need subscription, plan, entitlement, or subscription-sync services embed SubscriptionMixin alongside BaseSuite and call SubscriptionMixin.SetupSuite(t, s.GetSubscriptionMixInDependencies()) in their SetupSuite override.",
+        "example": "type SubscriptionTestSuite struct { BaseSuite; SubscriptionMixin; SubscriptionSyncService subscriptionsync.Service }"
+      },
+      {
+        "name": "Unique namespace per test",
+        "description": "Every test method uses a unique namespace string (either a hard-coded constant prefixed with 'ns-' or s.GetUniqueNamespace(prefix)) to prevent cross-test pollution on the shared database.",
+        "example": "namespace := s.GetUniqueNamespace(\"ns-schema-migration\")"
+      },
+      {
+        "name": "clock.SetTime / clock.ResetTime for deterministic time",
+        "description": "Tests that depend on invoice_at / collection_at / period calculations freeze or advance pkg/clock. TearDownTest always calls clock.UnFreeze() and clock.ResetTime() via BaseSuite.TearDownTest.",
+        "example": "clock.SetTime(periodStart); defer clock.ResetTime()"
+      },
+      {
+        "name": "MockStreamingConnector for usage events",
+        "description": "Usage events are injected via s.MockStreamingConnector.AddSimpleEvent(meterSlug, quantity, ts) or SetSimpleEvents. Always call defer s.MockStreamingConnector.Reset() after injecting events to avoid cross-test bleed.",
+        "example": "s.MockStreamingConnector.AddSimpleEvent(meterSlug, 10, periodStart.Add(time.Minute)); defer s.MockStreamingConnector.Reset()"
+      },
+      {
+        "name": "Atlas migrations by default; ent.Schema.Create only when TEST_DISABLE_ATLAS is set",
+        "description": "setupSuite runs full golang-migrate Atlas migrations unless TEST_DISABLE_ATLAS is set. SchemaMigrationTestSuite forces Atlas with SetupSuiteOptions{ForceAtlas: true} to test schema-level migration logic.",
+        "example": "func (s *SchemaMigrationTestSuite) SetupSuite() { s.BaseSuite.setupSuite(SetupSuiteOptions{ForceAtlas: true}) }"
+      },
+      {
+        "name": "t.Context() preferred over context.Background()",
+        "description": "New tests use ctx := s.T().Context() (or ctx := t.Context() in sub-tests) to tie context lifetime to the test harness. Older tests still use context.Background() \u2014 keep consistency within a file.",
+        "example": "ctx := s.T().Context()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "suite.go",
+        "role": "BaseSuite definition: wires billing, customer, feature, meter, app, taxcode, subject, sandbox, and custom-invoicing services from raw constructors without app/common. Also defines test helpers: InstallSandboxApp, CreateTestCustomer, ProvisionBillingProfile, CreateDraftInvoice, DebugDumpInvoice.",
+        "watch_for": "Never import app/common here \u2014 test-only import cycles. Always register hooks (subject/customer cross-hooks, entitlement validator) in this file, not in individual test suites."
+      },
+      {
+        "file": "subscription_suite.go",
+        "role": "SubscriptionMixin: builds the plan/subscription/addon/entitlement/credit dependency graph from raw adapters. Used by SubscriptionTestSuite. Exposes SetupEntitlements for the full credit/entitlement connector stack.",
+        "watch_for": "Requires SubscriptionMixInDependencies.Validate() to pass \u2014 all six fields must be non-nil. Uses eventbus.NewMock(t), not a real Kafka publisher."
+      },
+      {
+        "file": "schemamigration_test.go",
+        "role": "Tests schema-level migration paths (e.g., schema level 1 \u2192 current). Directly manipulates Ent raw DB to simulate legacy rows and then validates that migration reads behave correctly.",
+        "watch_for": "Uses s.BillingAdapter.SetInvoiceDefaultSchemaLevel and raw Ent queries (billinginvoiceline, billingstandardinvoicedetailedline) to force schema state \u2014 do not use BillingService for setup here."
+      },
+      {
+        "file": "collection_test.go",
+        "role": "End-to-end tests for progressive billing collection: collection_at calculation, late-event windows, anchored alignment, flat-fee-only skipping collection.",
+        "watch_for": "Relies heavily on clock.SetTime at specific points and MockStreamingConnector events at specific StoredAt timestamps. Event order and time advancement must match invoice state machine transitions."
+      },
+      {
+        "file": "discount_test.go",
+        "role": "Tests discount correlation ID stability across invoice splits, unit discount progressive billing across multiple invoice periods, and discount quantity accounting.",
+        "watch_for": "Calls s.MeterAdapter.ReplaceMeters and defers cleanup. Meters must be replaced before features are created, and cleaned up in defer to avoid test pollution."
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common in test files \u2014 causes import cycles; construct services from raw adapters as BaseSuite does.",
+      "Using context.Background() when s.T().Context() is available \u2014 breaks test-scoped cancellation.",
+      "Calling s.MockStreamingConnector.AddSimpleEvent without defer Reset() \u2014 events bleed into subsequent subtests.",
+      "Hard-coding the same namespace string across multiple test methods in a file \u2014 leads to FK constraint violations when tests share the database.",
+      "Accessing BillingAdapter directly in tests when BillingService covers the same operation \u2014 bypasses state machine and validation logic."
+    ],
+    "decisions": [
+      {
+        "decision": "Construct all services from raw package constructors, not app/common Wire providers.",
+        "rationale": "Avoids import cycles (app/common depends on openmeter packages; test/ packages are peers). Lets each test suite compose only the services it actually needs."
+      },
+      {
+        "decision": "Run Atlas migrations by default (not ent.Schema.Create) in BaseSuite.",
+        "rationale": "Ensures tests exercise the same migration path as production, catching column/constraint drift that ent.Schema.Create would silently fix."
+      },
+      {
+        "decision": "Use pkg/clock globally for deterministic time in tests.",
+        "rationale": "Invoice lifecycle depends on clock.Now() for collection_at, quantity_snapshoted_at, and invoice_at comparisons. Freezing clock in tests eliminates race conditions in time-sensitive assertions."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Typical suite setup: embed BaseSuite, install sandbox app, provision billing profile, create customer, inject streaming events, advance clock, invoice pending lines.",
+        "code": "// In a test method:\nnamespace := \"ns-my-feature\"\nctx := context.Background()\nsandboxApp := s.InstallSandboxApp(s.T(), namespace)\ns.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithProgressiveBilling())\ncust := s.CreateTestCustomer(namespace, \"test-subject\")\ns.MockStreamingConnector.AddSimpleEvent(meterSlug, 10, periodStart.Add(time.Minute))\ndefer s.MockStreamingConnector.Reset()\nclock.SetTime(periodEnd.Add(time.Hour))\ndefer clock.ResetTime()\ninvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{Customer: cust.GetID()})\ns.NoError(err)"
+      }
+    ]
+  },
+  "test/credits": {
+    "purpose": "Integration tests for the credits/charges domain: credit grant lifecycle (invoice-funded, promotional, external), flat-fee/usage-based/credit-purchase charge advancement against a real ledger stack, and billing/charges rating logic. Extends test/billing.BaseSuite with ledger and charges service wiring.",
+    "patterns": [
+      {
+        "name": "Extend BaseSuite with ledger + charges stack",
+        "description": "CreditsTestSuite embeds billingtest.BaseSuite and adds Charges, Ledger, LedgerAccountService, and LedgerResolver. SetupSuite calls s.BaseSuite.SetupSuite() then initialises the ledger via ledgertestutils.InitDeps and chargestestutils.NewServices.",
+        "example": "type CreditsTestSuite struct { billingtest.BaseSuite; Charges charges.Service; Ledger ledger.Ledger; ... }"
+      },
+      {
+        "name": "createLedgerBackedCustomer for ledger-dependent tests",
+        "description": "Tests that require a customer with ledger accounts (FBO, receivable, etc.) use s.createLedgerBackedCustomer(ns, subjectKey) rather than BaseSuite.CreateTestCustomer \u2014 the helper also registers the account with the resolver.",
+        "example": "cust := s.createLedgerBackedCustomer(ns, \"test-subject\")"
+      },
+      {
+        "name": "chargestestutils.NewServices for charge stack construction",
+        "description": "The charges stack (usagebased, flatfee, creditpurchase handlers wired to ledgerchargeadapter) is always assembled via chargestestutils.NewServices, not ad-hoc. FlatFeeHandler, CreditPurchaseHandler, and UsageBasedHandler are injected from ledgerchargeadapter.",
+        "example": "stack, err := chargestestutils.NewServices(s.T(), chargestestutils.Config{Client: s.DBClient, BillingService: s.BillingService, FlatFeeHandler: ledgerchargeadapter.NewFlatFeeHandler(...)})"
+      },
+      {
+        "name": "Drive charge lifecycle via charges.Service, not adapters",
+        "description": "Tests call s.Charges.Create / AdvanceCharges / ApplyPatches rather than calling lower-level adapter methods directly, mirroring production billing-worker behaviour.",
+        "example": "grant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{...})"
+      },
+      {
+        "name": "Explicit SetupCustomInvoicing for custom-invoicing tests",
+        "description": "Tests that drive the custom-invoicing app call s.SetupCustomInvoicing(ns) to install the app and return a helper, rather than s.InstallSandboxApp. This matches the production custom-invoicing wiring.",
+        "example": "customInvoicing := s.SetupCustomInvoicing(ns)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "sanity_test.go / sanity_lifecycle_test.go",
+        "role": "Core charges lifecycle tests: AdvanceCharges, ApplyPatches, external payment settlement state transitions for flatfee, usagebased, and creditpurchase charge types.",
+        "watch_for": "Relies on clock.SetTime to control advancement windows. Custom-invoicing app used (not sandbox) to verify async sync flows."
+      },
+      {
+        "file": "creditgrant_test.go",
+        "role": "Tests creditgrant.Service.Create for invoice-funded, promotional, and external settlement grants. Validates that invoice-funded grants produce standard invoices, promotional grants are immediately final, and external grants follow authorized\u2192settled transitions.",
+        "watch_for": "Must create a ledger-backed customer (s.createLedgerBackedCustomer) not a plain test customer \u2014 otherwise ledger account resolution fails."
+      },
+      {
+        "file": "rating_test.go",
+        "role": "Unit-level rating tests for the charges billing calculator: verifies period resolution and billing period splitting without DB interaction.",
+        "watch_for": "These tests do not embed BaseSuite; they are pure unit tests using RatingTestSuite which only needs clock and productcatalog types."
+      }
+    ],
+    "anti_patterns": [
+      "Calling lower-level charge adapter methods directly instead of going through charges.Service.",
+      "Using BaseSuite.CreateTestCustomer for tests that require ledger accounts \u2014 use createLedgerBackedCustomer instead.",
+      "Skipping defer clock.ResetTime() or defer s.MockStreamingConnector.Reset() in tests that set time or usage events.",
+      "Instantiating ledger adapters inline in test methods \u2014 always delegate to ledgertestutils.InitDeps.",
+      "Using context.Background() instead of t.Context() / s.T().Context() in new tests."
+    ],
+    "decisions": [
+      {
+        "decision": "Wire ledger and charges stack on top of existing BaseSuite rather than creating a separate test environment.",
+        "rationale": "Reuses the billing, customer, feature, and streaming infrastructure already initialised in BaseSuite, avoiding duplication of the ~150-line setup chain."
+      },
+      {
+        "decision": "Use chargestestutils.NewServices as the canonical charges stack builder in tests.",
+        "rationale": "Mirrors the production wiring in app/common/charges.go, ensuring tests exercise the same handler-to-ledger-adapter wiring that production code uses."
+      }
+    ],
+    "code_examples": []
+  },
+  "test/notification": {
+    "purpose": "Integration tests for the notification domain: channels, rules, events, delivery status, webhook delivery via Svix, and balance-threshold consumer handler. Uses a dedicated TestEnv (testenv.go) that wires the full notification stack including Svix client from environment variables.",
+    "patterns": [
+      {
+        "name": "TestEnv interface for service access",
+        "description": "All test suites receive a TestEnv value and call env.Notification(), env.NotificationRepo(), env.Feature(), env.Meter(), env.NotificationWebhook() instead of accessing service structs directly. TestEnv is created via NewTestEnv(t, ctx, namespace).",
+        "example": "env, err := NewTestEnv(t, ctx, namespace); service := env.Notification()"
+      },
+      {
+        "name": "Sub-suite pattern with Setup(ctx, t) and named test methods",
+        "description": "Test behaviour is split into XxxTestSuite structs (ChannelTestSuite, RuleTestSuite, EventTestSuite, RepositoryTestSuite, WebhookTestSuite) each with a Setup method. The top-level TestNotification function calls each suite's Setup then runs subtests by calling individual TestXxx methods.",
+        "example": "channelSuite := &ChannelTestSuite{Env: env}; channelSuite.Setup(ctx, t); t.Run(\"TestCreate\", func(t *testing.T) { channelSuite.TestCreate(ctx, t) })"
+      },
+      {
+        "name": "Svix requires SVIX_HOST env var; falls back to DefaultSvixHost",
+        "description": "testenv.go reads SVIX_HOST (defaults to localhost) and SVIX_JWT_SECRET to connect to a real Svix instance. Webhook tests that assert delivery (not just API calls) require `docker compose up -d svix` or SVIX_HOST to be set.",
+        "example": "svixHost := defaultx.IfZero(os.Getenv(\"SVIX_HOST\"), DefaultSvixHost)"
+      },
+      {
+        "name": "NewBalanceSnapshotEvent for balance consumer tests",
+        "description": "BalanceNotificaiontHandlerTestSuite uses NewBalanceSnapshotEvent(BalanceSnapshotEventInput{Feature, Value, Namespace}) to construct synthetic snapshot.SnapshotEvent values passed to handler.Handle(ctx, event).",
+        "example": "snapshotEvent := NewBalanceSnapshotEvent(BalanceSnapshotEventInput{Feature: s.feature, Value: snapshot.EntitlementValue{Balance: convert.ToPointer(50.0), ...}, Namespace: s.namespace})"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "testenv.go",
+        "role": "Boots notification adapter (Ent), Svix webhook handler, notification event handler (goroutine), notification service, feature connector, and meter service. Returns closerFunc that shuts down eventHandler and closes DB connections.",
+        "watch_for": "eventHandler.Start() runs in a goroutine \u2014 tests must call env.Close() (which calls eventHandler.Close()) or use defer env.Close(). Svix connectivity is required for webhook delivery tests."
+      },
+      {
+        "file": "consumer_balance.go",
+        "role": "BalanceNotificaiontHandlerTestSuite and BalanceSnapshotEventInput/NewBalanceSnapshotEvent helpers. Tests multi-step threshold crossing and reset deduplication logic of the balance consumer handler.",
+        "watch_for": "TestEntitlementCurrentUsagePeriod is a package-level var computed at init time (time.Now()). Tests that depend on exact period boundaries may be flaky if run near period boundaries."
+      },
+      {
+        "file": "helpers.go",
+        "role": "Stateless helpers: NewSvixAuthToken (generates JWT for Svix API auth) and NewClickhouseClient (for notification tests that need ClickHouse). Not a test file \u2014 no *testing.T parameter.",
+        "watch_for": "NewClickhouseClient is present but notification tests do not currently use ClickHouse directly \u2014 it exists for potential future use."
+      },
+      {
+        "file": "notification_test.go",
+        "role": "Top-level test entrypoint: creates TestEnv, constructs all sub-suite instances, calls Setup on each, and runs subtests. Single TestNotification function gates all sub-suite execution.",
+        "watch_for": "All sub-suites share the same TestEnv and namespace \u2014 sub-test data created in ChannelTestSuite may be visible to RuleTestSuite. Use distinct names/IDs to avoid collisions."
+      }
+    ],
+    "anti_patterns": [
+      "Running webhook delivery assertions without a live Svix instance \u2014 tests will fail if SVIX_HOST is unset and the test makes actual delivery assertions.",
+      "Creating a second TestEnv inside a test method \u2014 each TestEnv starts a goroutine and opens DB connections; always reuse the suite-level env.",
+      "Calling env.Notification() or env.NotificationRepo() before NewTestEnv completes \u2014 testEnv fields are set only after NewTestEnv returns.",
+      "Using package-level time vars (TestEntitlementCurrentUsagePeriod) as exact assertion values in time-sensitive tests.",
+      "Forgetting defer env.Close() \u2014 leaves the eventHandler goroutine and DB connections open."
+    ],
+    "decisions": [
+      {
+        "decision": "Use a TestEnv interface rather than exposing service structs directly to test suites.",
+        "rationale": "Decouples test suites from the concrete wiring in testenv.go, allowing the wiring to change (e.g., swap Svix for a mock) without modifying every test suite."
+      },
+      {
+        "decision": "Wire a real Svix client (not a mock) in testenv.go.",
+        "rationale": "Notification correctness depends on Svix application/endpoint/message creation semantics; a mock would not catch Svix API contract violations. The test is gated by SVIX_HOST availability."
+      }
+    ],
+    "code_examples": []
+  }
+}

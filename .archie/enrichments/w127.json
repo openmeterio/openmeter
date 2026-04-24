@@ -1,0 +1,181 @@
+{
+  "openmeter/taxcode/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing taxcode.Repository. Owns all DB reads and writes for TaxCode entities including a raw JSONB containment query for app-mapping lookups.",
+    "patterns": [
+      {
+        "name": "TransactingRepo on every write",
+        "description": "Every mutating method (Create, Update, Delete) wraps its body in entutils.TransactingRepo or TransactingRepoWithNoValue so the ctx-bound Ent transaction is honored.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (taxcode.TaxCode, error) { ... })"
+      },
+      {
+        "name": "Soft-delete via SetDeletedAt",
+        "description": "DeleteTaxCode sets deleted_at to clock.Now() rather than issuing a hard DELETE; read queries filter with Where(taxcodedb.DeletedAtIsNil()).",
+        "example": "a.db.TaxCode.UpdateOneID(input.ID).SetDeletedAt(clock.Now()).Exec(ctx)"
+      },
+      {
+        "name": "WithTx/Self/Tx triad for transaction rebinding",
+        "description": "adapter implements Tx(ctx), WithTx(ctx, tx *TxDriver) *adapter, and Self() *adapter to satisfy entutils.TransactingRepo's TxCreator contract.",
+        "example": "func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txClient.Client(), logger: a.logger} }"
+      },
+      {
+        "name": "Input.Validate() called before any DB access",
+        "description": "Every exported method calls input.Validate() as its first statement and returns early on error.",
+        "example": "if err := input.Validate(); err != nil { return taxcode.TaxCode{}, err }"
+      },
+      {
+        "name": "JSONB containment query via raw sql.Selector",
+        "description": "GetTaxCodeByAppMapping uses a raw sql.P predicate (app_mappings @> '...') because Ent has no native JSONB containment operator.",
+        "example": "s.Where(sql.P(func(b *sql.Builder) { b.Ident(taxcodedb.FieldAppMappings).WriteString(\" @> \").Arg(string(pattern)) }))"
+      },
+      {
+        "name": "Constraint error mapped to GenericConflictError",
+        "description": "db.IsConstraintError(err) on create maps to models.NewGenericConflictError; db.IsNotFound maps to domain-specific NewTaxCodeNotFoundError.",
+        "example": "if db.IsConstraintError(err) { return taxcode.TaxCode{}, models.NewGenericConflictError(...) }"
+      },
+      {
+        "name": "Config struct with models.Validator compile-time assertion",
+        "description": "Config implements models.Validator via var _ models.Validator = (*Config)(nil); New() calls config.Validate() before constructing the adapter.",
+        "example": "var _ models.Validator = (*Config)(nil)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Adapter constructor, Config validation, Tx/WithTx/Self triad.",
+        "watch_for": "Must implement all three transaction rebinding methods or entutils.TransactingRepo will fail to compile."
+      },
+      {
+        "file": "taxcode.go",
+        "role": "All five CRUD operations plus GetTaxCodeByAppMapping implementing taxcode.Repository.",
+        "watch_for": "GetTaxCodeByAppMapping uses a raw JSONB @> predicate; if the taxcode.TaxCodeAppMapping struct fields change the marshal output must stay compatible with the stored column format."
+      },
+      {
+        "file": "mapping.go",
+        "role": "Single MapTaxCodeFromEntity function translating *db.TaxCode to taxcode.TaxCode domain type.",
+        "watch_for": "lo.FromPtr(entity.AppMappings) silently returns a zero-value slice when the column is NULL \u2014 ensure new nullable fields get the same nil-safe treatment."
+      }
+    ],
+    "anti_patterns": [
+      "Calling a.db.TaxCode.* directly in a helper without wrapping in entutils.TransactingRepo \u2014 the helper falls off the ctx-bound transaction.",
+      "Hard-deleting rows with .Remove() instead of setting deleted_at via SetDeletedAt.",
+      "Adding raw SQL outside a sql.P / sql.Selector wrapper \u2014 bypasses Ent's query builder and breaks dialect portability.",
+      "Returning a non-domain error (e.g. raw ent error) without mapping via db.IsNotFound / db.IsConstraintError.",
+      "Skipping input.Validate() to save a round-trip \u2014 callers in the service layer also validate, but the adapter is the last defense before the DB."
+    ],
+    "decisions": [
+      {
+        "decision": "entutils.TransactingRepo used on every write, not only explicit tx callers.",
+        "rationale": "Ent transactions are carried implicitly in ctx; any helper that holds a raw *entdb.Client falls off the transaction unless it rebinds via TransactingRepo."
+      },
+      {
+        "decision": "JSONB containment query via raw sql.Selector for GetTaxCodeByAppMapping.",
+        "rationale": "Ent has no built-in @> operator for JSONB array containment; the raw predicate is the only way to express 'find rows whose app_mappings array contains this element'."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new mutating Repository method following the existing pattern.",
+        "code": "import (\n\t\"context\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/ent/db\"\n\ttaxcodedb \"github.com/openmeterio/openmeter/openmeter/ent/db/taxcode\"\n\t\"github.com/openmeterio/openmeter/openmeter/taxcode\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n)\n\nfunc (a *adapter) ArchiveTaxCode(ctx context.Context, input taxcode.ArchiveTaxCodeInput) (taxcode.TaxCode, error) {\n\tif err := input.Validate(); err != nil {\n\t\treturn taxcode.TaxCode{}, err\n\t}\n\n\treturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (taxcode.TaxCode, error) {\n\t\tentity, err := a.db.TaxCode.UpdateOneID(input.ID).\n\t\t\tWhere(taxcodedb.NamespaceEQ(input.Namespace)).\n\t\t\tWhere(taxcodedb.DeletedAtIsNil()).\n\t\t\tSetArchivedAt(clock.Now()).\n\t\t\tSave(ctx)\n\t\tif err != nil {\n\t\t\tif db.IsNotFound(err) {\n\t\t\t\treturn taxcode.TaxCode{}, taxcode.NewTaxCodeNotFoundError(input.ID)\n\t\t\t}\n\t\t\treturn taxcode.TaxCode{}, fmt.Errorf(\"failed to archive tax code: %w\", err)\n\t\t}\n\t\treturn MapTaxCodeFromEntity(entity)\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/taxcode/service": {
+    "purpose": "Business-logic layer for tax codes implementing taxcode.Service; enforces system-managed protection, upsert-on-conflict for app mappings, and wraps all adapter calls in transaction.Run.",
+    "patterns": [
+      {
+        "name": "transaction.Run wraps every adapter call",
+        "description": "Every service method wraps its adapter delegation in transaction.Run (or transaction.RunWithNoValue for void returns) so the operation is atomic even when called outside an existing tx.",
+        "example": "return transaction.Run(ctx, s.adapter, func(ctx context.Context) (taxcode.TaxCode, error) { return s.adapter.CreateTaxCode(ctx, input) })"
+      },
+      {
+        "name": "IsManagedBySystem guard before mutations",
+        "description": "UpdateTaxCode and DeleteTaxCode fetch the existing record first and return models.NewGenericConflictError(taxcode.ErrTaxCodeManagedBySystem) if IsManagedBySystem() is true and input.AllowAnnotations is false.",
+        "example": "if existing.IsManagedBySystem() && !input.AllowAnnotations { return taxcode.TaxCode{}, models.NewGenericConflictError(taxcode.ErrTaxCodeManagedBySystem) }"
+      },
+      {
+        "name": "GetOrCreate with conflict retry",
+        "description": "GetOrCreateByAppMapping handles a create\u2192conflict race by catching models.IsGenericConflictError and retrying with GetTaxCodeByAppMapping.",
+        "example": "if models.IsGenericConflictError(err) { return s.adapter.GetTaxCodeByAppMapping(ctx, ...) }"
+      },
+      {
+        "name": "input.Validate() at service entry",
+        "description": "Every exported method validates input before any adapter call, returning early on error.",
+        "example": "if err := input.Validate(); err != nil { return taxcode.TaxCode{}, err }"
+      },
+      {
+        "name": "Key derivation convention for auto-created tax codes",
+        "description": "GetOrCreateByAppMapping derives the key as '<AppType>_<TaxCode>' when auto-creating a new record from an app mapping.",
+        "example": "key := fmt.Sprintf(\"%s_%s\", input.AppType, input.TaxCode)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "taxcode.go",
+        "role": "Sole service implementation; all methods delegate to taxcode.Repository after validation and system-managed checks.",
+        "watch_for": "The get-then-mutate pattern inside transaction.Run is not atomic at the DB level without the adapter's underlying transaction \u2014 ensure the adapter's TransactingRepo rebinds correctly or concurrent requests can bypass the system-managed guard."
+      },
+      {
+        "file": "taxcode_test.go",
+        "role": "Integration tests covering system-managed block/bypass and user-managed CRUD paths using taxcodetestutils.NewTestEnv.",
+        "watch_for": "Tests call t.Context() (not context.Background()); follow this for any new tests. The test bootstraps via env.DBSchemaMigrate(t) before first use."
+      }
+    ],
+    "anti_patterns": [
+      "Calling adapter methods outside transaction.Run \u2014 loses atomicity for multi-step operations like get-then-update.",
+      "Skipping IsManagedBySystem check in new mutating methods \u2014 allows external callers to overwrite system-synced records.",
+      "Using context.Background() instead of t.Context() in tests.",
+      "Implementing business logic (key derivation, conflict retry) inside the adapter instead of the service layer.",
+      "Adding adapter dependencies other than taxcode.Repository \u2014 the service must stay decoupled from Ent directly."
+    ],
+    "decisions": [
+      {
+        "decision": "transaction.Run at the service layer in addition to entutils.TransactingRepo in the adapter.",
+        "rationale": "Multi-step flows (get + mutate) must be atomic; starting the transaction at the service layer ensures both the guard read and the write share the same transaction."
+      },
+      {
+        "decision": "AllowAnnotations flag on UpdateTaxCodeInput/DeleteTaxCodeInput to bypass system-managed protection.",
+        "rationale": "The LLM cost sync job needs to update system-managed records; a flag is safer than removing the guard entirely or exposing a separate internal method."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/taxcode/testutils": {
+    "purpose": "Self-contained test environment for taxcode integration tests: wires a real Postgres DB, Ent client, adapter, and service without importing app/common.",
+    "patterns": [
+      {
+        "name": "NewTestEnv constructs the full stack from primitives",
+        "description": "TestEnv builds testutils.TestDB \u2192 entdb.Client \u2192 taxcodeadapter \u2192 taxcodeservice.New without touching app/common Wire providers, avoiding import cycles.",
+        "example": "adapter, err := taxcodeadapter.New(taxcodeadapter.Config{Client: client, Logger: logger}); env.Service = taxcodeservice.New(adapter, logger)"
+      },
+      {
+        "name": "sync.Once for safe Close",
+        "description": "TestEnv.Close uses sync.Once to prevent double-close when both t.Cleanup and explicit calls race.",
+        "example": "e.close.Do(func() { ... })"
+      },
+      {
+        "name": "DBSchemaMigrate called explicitly in each test",
+        "description": "Tests call env.DBSchemaMigrate(t) before first DB access; this runs client.Schema.Create(t.Context()) to ensure the schema is up-to-date for the isolated pgtestdb database.",
+        "example": "env.DBSchemaMigrate(t)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "env.go",
+        "role": "Sole file; exports NewTestEnv and TestEnv with Logger, Service, Client fields.",
+        "watch_for": "Close must close both EntDriver and PGDriver in order; omitting either leaks the pgtestdb template database."
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common in testutils \u2014 creates import cycles and couples test setup to the full DI graph.",
+      "Calling env.Close before DBSchemaMigrate \u2014 schema won't exist for the test.",
+      "Using context.Background() instead of t.Context() in DBSchemaMigrate or service calls."
+    ],
+    "decisions": [
+      {
+        "decision": "Build adapter and service directly from constructors rather than via Wire.",
+        "rationale": "Keeps test helpers independent from app/common so unrelated wiring changes don't create test-only import cycles."
+      }
+    ],
+    "code_examples": []
+  }
+}

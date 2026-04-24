@@ -1,0 +1,106 @@
+{
+  "api/spec/packages/aip/lib/rules": {
+    "purpose": "Custom TypeSpec linter rules enforcing AIP naming conventions and structural constraints for the v3 API spec. These rules run during `make gen-api` (tsp compile) and fail the build on errors or emit warnings on violations.",
+    "patterns": [
+      {
+        "name": "createRule factory",
+        "description": "Every rule is defined using `createRule` from `@typespec/compiler`, returning an object of TypeSpec node visitor callbacks (model, modelProperty, enum, operation, interface, union). Never use ad-hoc functions.",
+        "example": "export const myRule = createRule({ name: '...', severity: 'warning'|'error', messages: {...}, create: (context) => ({ model: (node) => { ... } }) })"
+      },
+      {
+        "name": "severity: error vs warning",
+        "description": "Rules that must block code generation use `severity: 'error'` (casingErrorsRule, friendlyNameRule, operationIdKebabCaseRule). Style guidance uses `severity: 'warning'`. New rules must pick severity intentionally.",
+        "example": "casingErrorsRule: enum member values must be snake_case \u2014 error. casingRule: model names must be PascalCase \u2014 warning."
+      },
+      {
+        "name": "casing contracts",
+        "description": "Model names: PascalCase (isPascalCaseNoAcronyms). Non-path model properties: snake_case (isSnakeCase). Path parameters: camelCase (isCamelCaseNoAcronyms). Enum names/members: PascalCase. Enum member values: snake_case. @operationId values: kebab-case. All checked via utils.js helpers.",
+        "example": "path param `subscriptionId` \u2192 camelCase OK. body field `plan_id` \u2192 snake_case OK. operationId `list-meters` \u2192 kebab-case OK."
+      },
+      {
+        "name": "@friendlyName required on all named types",
+        "description": "All named models, enums, unions, and non-Endpoints/Operations interfaces must have `@friendlyName`. Interfaces ending in `Endpoints` or `Operations` must NOT have `@friendlyName`. This is an error-severity rule.",
+        "example": "@friendlyName(\"Meter\") model MeterResource { ... }"
+      },
+      {
+        "name": "@summary required on operations",
+        "description": "Every operation must have a `@summary` decorator. Missing summary is a warning that surfaces in linting output.",
+        "example": "@summary(\"List meters\") @get op listMeters(): MeterList;"
+      },
+      {
+        "name": "@doc required on models, enums, unions, and properties",
+        "description": "All named models, enums, unions, and their non-special properties (excluding `_` and `contentType`) require a `@doc` decorator. Models ending in `Response` are exempt from property-level doc checks.",
+        "example": "@doc(\"A usage meter\") model Meter { @doc(\"Unique slug\") slug: string; }"
+      },
+      {
+        "name": "Composition over inheritance",
+        "description": "Model inheritance via `extends` is flagged as a warning if the base model lacks `@discriminator`. Prefer spread (`...BaseModel`) or `model is BaseModel` for composition.",
+        "example": "model Foo { ...BaseFields; }  // OK. model Foo extends Base { }  // warning unless @discriminator on Base."
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "utils.js",
+        "role": "Exports isPascalCaseNoAcronyms, isCamelCaseNoAcronyms, isSnakeCase, isKebabCase \u2014 shared by all rule files. PascalCase exceptions: OAuth2, URL, API, UI, ID.",
+        "watch_for": "Adding a new casing utility must be added here and imported; do not inline regex in rule files."
+      },
+      {
+        "file": "casing.js",
+        "role": "Enforces naming casing on models, properties, enums, enum members. Two rules: `casing` (warning) for structural names; `casing-aip-errors` (error) for enum member values.",
+        "watch_for": "Path parameters (`$path` decorator) use camelCase, not snake_case \u2014 the rule explicitly checks for `$path` decorator presence before switching casing check."
+      },
+      {
+        "file": "friendly-name.js",
+        "role": "Error-severity rule requiring @friendlyName on all named models, enums, unions, and interfaces (except *Endpoints/*Operations interfaces which must NOT have it).",
+        "watch_for": "Interfaces: the rule inverts \u2014 *Endpoints/*Operations must NOT have @friendlyName; all others must. Getting this backwards produces an error."
+      },
+      {
+        "file": "field-prefix.js",
+        "role": "Warns when 2+ fields share the same underscore prefix within a model (e.g. billing_id, billing_status \u2192 should be billing.id, billing.status). EXCLUDED_PREFIXES list exempts AIP-standard prefixes.",
+        "watch_for": "New prefixes that should be exempt must be added to EXCLUDED_PREFIXES or they will trigger warnings on all existing uses."
+      },
+      {
+        "file": "no-nullable.js",
+        "role": "Warns against `field: T | null` \u2014 use `field?: T` instead for optional properties.",
+        "watch_for": "Only fires on non-optional (`!property.node?.optional`) union properties that include a null variant."
+      },
+      {
+        "file": "operation-id.js",
+        "role": "Error rule enforcing kebab-case on explicit `@operationId` decorator values.",
+        "watch_for": "Only checks properties with explicit @operationId \u2014 auto-generated operation IDs are not checked."
+      },
+      {
+        "file": "composition-over-inheritance.js",
+        "role": "Warning rule discouraging `extends` without `@discriminator` on base. Distinguishes template instances (different message) from plain model extension.",
+        "watch_for": "isTemplateInstance check \u2014 template base models get a different diagnostic message than plain model bases."
+      }
+    ],
+    "anti_patterns": [
+      "Defining rules outside `createRule` (e.g. raw functions that call context.report) \u2014 TypeSpec rule registration requires createRule",
+      "Using `| null` on model properties instead of the optional `?` modifier",
+      "Adding underscore-prefixed field groups without checking EXCLUDED_PREFIXES in field-prefix.js",
+      "Using `extends` for composition without adding `@discriminator` to the base model",
+      "Omitting `@friendlyName`, `@doc`, or `@summary` on new types/operations \u2014 these are linting errors/warnings that block CI"
+    ],
+    "decisions": [
+      {
+        "decision": "Two-severity model: errors block compilation, warnings surface in lint but don't fail build",
+        "rationale": "Structural invariants (enum values must be snake_case for JSON wire format, operationId must be kebab-case for SDK method names) are errors; stylistic consistency (docs, composition preference) are warnings to allow incremental adoption."
+      },
+      {
+        "decision": "PascalCase exceptions list (OAuth2, URL, API, UI, ID) codified in utils.js",
+        "rationale": "AIP naming conventions acknowledge common industry acronyms; the regex would incorrectly flag OAuthToken or APIKey without the exceptions list."
+      },
+      {
+        "decision": "field-prefix rule EXCLUDED_PREFIXES exempts AIP-standard boolean-flag prefixes (is_, enable_, disable_, etc.)",
+        "rationale": "AIP itself defines standard boolean field prefixes that intentionally repeat; grouping them under a nested object would violate AIP guidance."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new custom lint rule that warns when an operation lacks a @tag decorator",
+        "code": "import { createRule, paramMessage } from '@typespec/compiler'\n\nexport const operationTagRule = createRule({\n  name: 'operation-tag',\n  severity: 'warning',\n  description: 'Ensure operations have a @tag decorator.',\n  messages: {\n    default: paramMessage`Operation '${'name'}' must have a @tag decorator.`,\n  },\n  create: (context) => ({\n    operation: (node) => {\n      if (\n        node.name &&\n        !node.decorators.some((d) => d.decorator.name === '$tag')\n      ) {\n        context.reportDiagnostic({\n          format: { name: node.name },\n          target: node,\n          messageId: 'default',\n        })\n      }\n    },\n  }),\n})"
+      }
+    ]
+  }
+}

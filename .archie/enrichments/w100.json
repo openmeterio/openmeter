@@ -1,0 +1,162 @@
+{
+  "openmeter/meterevent/adapter": {
+    "purpose": "Implements the meterevent.Service interface by delegating to streaming.Connector for raw event queries, then enriching results with customer IDs and validating events against meter definitions. This is the single service implementation \u2014 not a DB adapter; it composes three injected services (streaming, customer, meter).",
+    "patterns": [
+      {
+        "name": "Interface compliance assertion",
+        "description": "Declare `var _ meterevent.Service = (*adapter)(nil)` at the top of adapter.go to guarantee compile-time conformance.",
+        "example": "var _ meterevent.Service = (*adapter)(nil)"
+      },
+      {
+        "name": "Validate-before-delegate",
+        "description": "Both ListEvents and ListEventsV2 call params.Validate() and wrap the error in models.NewGenericValidationError before calling the streaming connector.",
+        "example": "if err := params.Validate(); err != nil { return nil, models.NewGenericValidationError(fmt.Errorf(\"validate input: %w\", err)) }"
+      },
+      {
+        "name": "Post-process pipeline",
+        "description": "After fetching raw events, always call eventPostProcess (mapEventsToMeterEvents \u2192 enrichEventsWithCustomerID \u2192 validateEvents). Never short-circuit this pipeline.",
+        "example": "meterEvents, err = a.eventPostProcess(ctx, params.Namespace, rawEvents)"
+      },
+      {
+        "name": "Early-empty-return on customer resolution",
+        "description": "When customerIDs filter is provided but no matching customers exist, return an empty slice immediately rather than querying the streaming layer.",
+        "example": "if len(customers) == 0 { return []meterevent.Event{}, nil }"
+      },
+      {
+        "name": "Subject\u2192customerID cache",
+        "description": "enrichEventsWithCustomerID uses a per-call map[string]string cache to avoid repeated DB lookups for the same subject. New enrichment helpers must follow this pattern.",
+        "example": "cache := make(map[string]string); if customerID, ok := cache[event.Subject]; ok { ... }"
+      },
+      {
+        "name": "Cursor emission only on full page",
+        "description": "In ListEventsV2, emit NextCursor only when len(meterEvents) == effectiveLimit; otherwise leave it nil.",
+        "example": "if len(meterEvents) > 0 && len(meterEvents) == effectiveLimit { cursor := meterEvents[len(meterEvents)-1].Cursor(); result.NextCursor = &cursor }"
+      },
+      {
+        "name": "ValidationErrors attached to event, not returned as error",
+        "description": "validateEvents populates Event.ValidationErrors per event; it does NOT return an error for individual invalid events. The caller receives all events regardless.",
+        "example": "event.ValidationErrors = validationErrors; validatedEvents = append(validatedEvents, event)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Constructor and struct definition. New() returns meterevent.Service. Holds streamingConnector, customerService, meterService.",
+        "watch_for": "Do not add DB client here; this adapter never touches Ent/Postgres directly."
+      },
+      {
+        "file": "event.go",
+        "role": "All method implementations: ListEvents, ListEventsV2, listCustomers, eventPostProcess, mapEventsToMeterEvents, validateEvents, enrichEventsWithCustomerID.",
+        "watch_for": "enrichEventsWithCustomerID has a FIXME: it calls GetCustomerByUsageAttribution per event. The cache mitigates N+1 only within a single call. Batching is a known TODO."
+      }
+    ],
+    "anti_patterns": [
+      "Importing openmeter/ent/db or any Ent-generated package \u2014 this adapter is streaming-only.",
+      "Returning an error from validateEvents for individual event failures \u2014 attach to Event.ValidationErrors instead.",
+      "Skipping params.Validate() before delegating to the streaming connector.",
+      "Emitting NextCursor when the result page is smaller than the effective limit.",
+      "Calling customerService or meterService inside the hot loop without caching (already flagged as FIXME for customerService)."
+    ],
+    "decisions": [
+      {
+        "decision": "Service is implemented as an adapter/ sub-package rather than a service/ sub-package.",
+        "rationale": "meterevent has no separate business logic layer; the 'service' is purely a composition of streaming queries + customer/meter lookups, so the adapter pattern suffices without a distinct service struct."
+      },
+      {
+        "decision": "ValidationErrors are per-event fields, not returned as a top-level error.",
+        "rationale": "Event listing is a query API; callers need to see all events including partially-invalid ones (e.g. unknown meter type). Failing the whole request for one bad event would break observability workflows."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new filter that resolves IDs from a domain service before querying the streaming layer",
+        "code": "import (\n\t\"context\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/meterevent\"\n\t\"github.com/openmeterio/openmeter/openmeter/streaming\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nfunc (a *adapter) ListEventsV2(ctx context.Context, params meterevent.ListEventsV2Params) (...) {\n\tif err := params.Validate(); err != nil {\n\t\treturn ..., models.NewGenericValidationError(fmt.Errorf(\"validate input: %w\", err))\n\t}\n\tlistParams := streaming.ListEventsV2Params{ /* map fields */ }\n\tif params.CustomerID != nil && len(*params.CustomerID.In) > 0 {\n\t\tcustomers, err := a.listCustomers(ctx, params.Namespace, *params.CustomerID.In)\n\t\tif err != nil { return ..., fmt.Errorf(\"list customers: %w\", err) }\n\t\tif len(customers) == 0 { return pagination.Result[meterevent.Event]{}, nil }\n\t\tlistParams.Customers = &customers\n\t}\n\tevents, err := a.streamingConnector.ListEventsV2(ctx, listParams)\n\tif err != nil { return ..., fmt.Errorf(\"query events: %w\", err) }\n\tmeterEvents, err := a.eventPostProcess(ctx, params.Namespace, events)\n\t// ... cursor logic\n}"
+      }
+    ]
+  },
+  "openmeter/meterevent/httphandler": {
+    "purpose": "HTTP handler layer for the meterevent domain, adapting v1 (ListEvents) and v2 (ListEventsV2) REST endpoints to meterevent.Service calls. Uses the generic httptransport.HandlerWithArgs pattern and is mounted by openmeter/server/router.",
+    "patterns": [
+      {
+        "name": "HandlerWithArgs triple: decoder / operation / encoder",
+        "description": "Every endpoint is created with httptransport.NewHandlerWithArgs(decoderFn, operationFn, commonhttp.JSONResponseEncoderWithStatus[Response](http.StatusOK), options...).",
+        "example": "return httptransport.NewHandlerWithArgs(func(ctx, r, params) (Req, error) {...}, func(ctx, req) (Resp, error) {...}, commonhttp.JSONResponseEncoderWithStatus[ListEventsResponse](http.StatusOK), opts...)"
+      },
+      {
+        "name": "Type alias block per endpoint",
+        "description": "Each handler file declares a type block aliasing Params, Request, Response, and Handler types before the method. Params and Response alias api.* types; Request aliases meterevent.* params.",
+        "example": "type (\n\tListEventsParams   = api.ListEventsParams\n\tListEventsResponse = []api.IngestedEvent\n\tListEventsHandler  httptransport.HandlerWithArgs[ListEventsRequest, ListEventsResponse, ListEventsParams]\n)\ntype ListEventsRequest = meterevent.ListEventsParams"
+      },
+      {
+        "name": "Namespace resolved via namespaceDecoder in decoder fn",
+        "description": "The decoder function always calls h.resolveNamespace(ctx) first. Never pass namespace as a query param from outside.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return ListEventsRequest{}, err }"
+      },
+      {
+        "name": "Validation errors wrapped with models.NewGenericValidationError in decoder",
+        "description": "If convertListEventsV2Params returns an error, wrap it in models.NewGenericValidationError before returning from the decoder \u2014 not in the operation.",
+        "example": "if err != nil { return ListEventsV2Request{}, models.NewGenericValidationError(err) }"
+      },
+      {
+        "name": "OperationName option appended to handler options",
+        "description": "Each handler appends httptransport.WithOperationName(\"<camelCaseName>\") to h.options via httptransport.AppendOptions.",
+        "example": "httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"listEventsV2\"))..."
+      },
+      {
+        "name": "Mapping functions in mapping.go, not inline",
+        "description": "All API\u2194domain type conversions (convertEvent, convertListEventsV2Params, convertListEventsV2Response) live in mapping.go. Handler files call them but do not inline mapping logic.",
+        "example": "result[i], err = convertEvent(event)"
+      },
+      {
+        "name": "Interface composition for Handler",
+        "description": "The exported Handler interface embeds fine-grained sub-interfaces (EventHandler). Add new groups as separate embedded interfaces, not as direct methods on Handler.",
+        "example": "type Handler interface { EventHandler }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Defines Handler/EventHandler interfaces, the private handler struct, New() constructor, and resolveNamespace helper.",
+        "watch_for": "resolveNamespace returns http.StatusInternalServerError on missing namespace \u2014 never return 400 here; missing namespace is a server misconfiguration."
+      },
+      {
+        "file": "event.go",
+        "role": "ListEvents handler (v1). Applies MaximumFromDuration default floor and MaximumLimit default.",
+        "watch_for": "minimumFrom adds one second to avoid edge-case validation failures \u2014 preserve this when changing time window logic."
+      },
+      {
+        "file": "event_v2.go",
+        "role": "ListEventsV2 handler (v2). Delegates param conversion to convertListEventsV2Params in mapping.go.",
+        "watch_for": "The StoredAt filter is NOT forwarded through ListEventsV2 from event_v2.go (missing in convertListEventsV2Params). Adding it requires both mapping.go and the domain params struct."
+      },
+      {
+        "file": "mapping.go",
+        "role": "All API\u2194domain conversions. convertEvent marshals meterevent.Event to api.IngestedEvent including ValidationErrors join. convertListEventsV2Response builds the cursor-paginated response.",
+        "watch_for": "ValidationErrors are joined with errors.Join and placed in api.IngestedEvent.ValidationError as *string \u2014 nil when no errors."
+      }
+    ],
+    "anti_patterns": [
+      "Calling meterevent.Service methods directly in the decoder function \u2014 decoder maps params only; the operation function calls the service.",
+      "Inlining type conversion logic in handler files instead of mapping.go.",
+      "Returning a non-200 status from JSONResponseEncoderWithStatus for successful responses (errors go through the error encoder chain).",
+      "Adding business logic (e.g. time window enforcement) in the operation function instead of the decoder.",
+      "Omitting WithOperationName from handler options \u2014 breaks tracing and metrics labeling."
+    ],
+    "decisions": [
+      {
+        "decision": "v1 and v2 list handlers are in separate files (event.go vs event_v2.go).",
+        "rationale": "v1 uses a simple slice response with a hard default limit; v2 uses cursor pagination and richer filters. Keeping them separate avoids branching inside a single handler."
+      },
+      {
+        "decision": "mapping.go centralizes all API\u2194domain conversions.",
+        "rationale": "Keeps handler files focused on the request lifecycle (decode\u2192operate\u2192encode) and makes conversion logic independently testable and auditable."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new v2-style list endpoint to this handler",
+        "code": "// In a new file, e.g. subject.go:\npackage httphandler\n\nimport (\n\t\"context\"\n\t\"net/http\"\n\n\t\"github.com/openmeterio/openmeter/api\"\n\t\"github.com/openmeterio/openmeter/openmeter/meterevent\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/commonhttp\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\ntype (\n\tListSubjectsParams   = api.ListSubjectsParams\n\tListSubjectsRequest  = meterevent.ListSubjectsParams\n\tListSubjectsResponse = api.SubjectCursorPaginatedResponse\n\tListSubjectsHandler  httptransport.HandlerWithArgs[ListSubjectsRequest, ListSubjectsResponse, ListSubjectsParams]\n)\n\nfunc (h *handler) ListSubjects() ListSubjectsHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, params ListSubjectsParams) (ListSubjectsRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil { return ListSubjectsRequest{}, err }\n\t\t\tp, err := convertListSubjectsParams(params, ns) // in mapping.go\n\t\t\tif err != nil { return ListSubjectsRequest{}, models.NewGenericValidationError(err) }\n\t\t\treturn p, nil\n\t\t},\n\t\tfunc(ctx context.Context, params ListSubjectsRequest) (ListSubjectsResponse, error) {\n\t\t\tresult, err := h.metereventService.ListSubjects(ctx, params)\n\t\t\tif err != nil { return ListSubjectsResponse{}, err }\n\t\t\treturn convertListSubjectsResponse(result) // in mapping.go\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[ListSubjectsResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(h.options, httptransport.WithOperationName(\"listSubjects\"))...,\n\t)\n}"
+      }
+    ]
+  }
+}

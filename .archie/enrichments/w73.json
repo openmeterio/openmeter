@@ -1,0 +1,86 @@
+{
+  "openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater": {
+    "purpose": "Applies a typed patch set (create/update/delete lines and split-line-groups) to billing invoices during subscription sync reconciliation. It is the write-side of the reconciler: it translates abstract diff patches into concrete billing.Service calls, branching on invoice type (gathering vs standard) and mutability (mutable vs immutable).",
+    "patterns": [
+      {
+        "name": "Sealed Patch discriminated union",
+        "description": "Patch is a value type with a private op field; callers construct via New*Patch() constructors and type-assert via As*Patch() methods that error on wrong op. Never add public fields to Patch or bypass As*Patch().",
+        "example": "patch := NewUpdateLinePatch(line); create, err := patch.AsCreateLinePatch() // errors if op != PatchOpLineCreate"
+      },
+      {
+        "name": "Invoice-type branch in ApplyPatches",
+        "description": "After fetching the invoice, branch on invoice.Type() == billing.InvoiceTypeGathering first, then StandardInvoice.StatusDetails.Immutable. Each branch calls a dedicated private method (updateGatheringInvoice, updateMutableStandardInvoice, updateImmutableInvoice).",
+        "example": "if invoice.Type() == billing.InvoiceTypeGathering { updateGatheringInvoice(...) } else if !standardInvoice.StatusDetails.Immutable { updateMutableStandardInvoice(...) } else { updateImmutableInvoice(...) }"
+      },
+      {
+        "name": "EditFn closure for atomic invoice updates",
+        "description": "Mutations to gathering and mutable-standard invoices go through billing.Service's UpdateGatheringInvoice / UpdateStandardInvoice with an EditFn closure. Never call low-level adapter methods directly.",
+        "example": "u.billingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{EditFn: func(invoice *billing.StandardInvoice) error { ... }})"
+      },
+      {
+        "name": "Immutable invoice \u2192 ValidationIssue accumulation",
+        "description": "When the invoice is immutable, differences are not applied; instead they are collected as billing.ValidationIssue values with Severity=Warning and Code=ImmutableInvoiceHandlingNotSupportedErrorCode, then upserted via billing.Service.UpsertValidationIssues.",
+        "example": "validationIssues = append(validationIssues, newValidationIssueOnLine(existingLine, \"flat fee line's per unit amount cannot be changed...\"))"
+      },
+      {
+        "name": "Currency-grouped line provisioning",
+        "description": "New gathering lines are grouped by currencyx.Code via lo.GroupBy before calling CreatePendingInvoiceLines once per currency group.",
+        "example": "linesByCurrency := lo.GroupBy(lines, func(l billing.GatheringLine) currencyx.Code { return l.Currency })"
+      },
+      {
+        "name": "Dry-run log suppression for current-period creates",
+        "description": "isDryRunLoggablePatch suppresses PatchOpLineCreate patches whose line is in the current billing period (isCurrentBillingPeriod using clock.Now()); other patch types are always logged.",
+        "example": "case PatchOpLineCreate: return !isCurrentBillingPeriod(createPatch.Line)"
+      },
+      {
+        "name": "FlatFee helpers isolate price-type logic",
+        "description": "feehelper.go exposes IsFlatFee, GetFlatFeePerUnitAmount, SetFlatFeePerUnitAmount to keep price-type branching out of invoiceupdate.go. Add new price-type helpers here, not inline in update logic.",
+        "example": "if IsFlatFee(targetState) { existingAmt, _ := GetFlatFeePerUnitAmount(existingLine); ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "invoiceupdate.go",
+        "role": "Core Updater struct and ApplyPatches orchestration; owns all billing.Service call sites",
+        "watch_for": "Invoice fetch happens once per invoiceID inside the loop \u2014 do not add extra fetches; empty-invoice deletion after mutable-standard update is intentional and must be preserved"
+      },
+      {
+        "file": "patch.go",
+        "role": "Patch value type, PatchOperation constants, New*/As* constructors, GetDeletePatchesForLine helper",
+        "watch_for": "Adding a new PatchOperation requires: new constant, new payload struct, new As* method, new New* constructor, new Log case, and handling in parsePatches switch \u2014 all five must be updated together"
+      },
+      {
+        "file": "feehelper.go",
+        "role": "Flat-fee price-type helpers operating on billing.GenericInvoiceLineReader/billing.GenericInvoiceLine",
+        "watch_for": "SetFlatFeePerUnitAmount mutates the line in place via line.SetPrice(); callers must hold a mutable reference"
+      }
+    ],
+    "anti_patterns": [
+      "Calling billing.Adapter methods directly instead of going through billing.Service (EditFn pattern)",
+      "Adding a new PatchOperation without updating all five locations: constant, struct, As*, New*, parsePatches switch",
+      "Fetching the same invoice multiple times within one ApplyPatches call",
+      "Producing ValidationIssues for mutable invoices \u2014 ValidationIssues are only for immutable invoice drift",
+      "Using context.Background() instead of propagating the ctx parameter through all billing.Service calls"
+    ],
+    "decisions": [
+      {
+        "decision": "Patch is a sealed value type (private op, As* accessors) rather than an interface",
+        "rationale": "Prevents callers from constructing invalid patch combinations and keeps the switch exhaustive and compiler-checked within this package"
+      },
+      {
+        "decision": "Immutable invoices receive ValidationIssues instead of hard errors",
+        "rationale": "Invoice immutability is a billing state (e.g. issued/paid); reporting drift as warnings lets operators see subscription/invoice divergence without blocking the reconciler loop"
+      },
+      {
+        "decision": "New lines are grouped by currency before CreatePendingInvoiceLines",
+        "rationale": "billing.CreatePendingInvoiceLinesInput requires a single currency per call; grouping here prevents the caller from needing to pre-split lines"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Applying a mixed patch set to invoices of different types",
+        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/openmeter/billing\"\n\t\"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater\"\n\t\"github.com/openmeterio/openmeter/openmeter/customer\"\n)\n\npatches := []invoiceupdater.Patch{\n\tinvoiceupdater.NewCreateLinePatch(newGatheringLine),\n\tinvoiceupdater.NewUpdateLinePatch(updatedLine),\n\tinvoiceupdater.NewDeleteLinePatch(lineID, invoiceID),\n}\nupdater := invoiceupdater.New(billingService, logger)\nif err := updater.ApplyPatches(ctx, customer.CustomerID{Namespace: ns, ID: cid}, patches); err != nil {\n\treturn fmt.Errorf(\"applying patches: %w\", err)\n}"
+      }
+    ]
+  }
+}

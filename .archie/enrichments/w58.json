@@ -1,0 +1,71 @@
+{
+  "openmeter/billing/charges/flatfee/service/realizations": {
+    "purpose": "Owns flat-fee credit allocation and correction mechanics: persisting credit realization records and their lineage segments. It must not make state-machine decisions \u2014 all charge lifecycle transitions happen in the parent charges.Service layer.",
+    "patterns": [
+      {
+        "name": "Config struct with Validate() before construction",
+        "description": "All dependencies are declared in a Config struct; Config.Validate() collects all nil-check errors via errors.Join before New() returns a *Service. Never construct Service directly.",
+        "example": "func New(config Config) (*Service, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+      },
+      {
+        "name": "Input structs carry a Validate() method",
+        "description": "Each method input (AllocateCreditsOnlyInput, CorrectAllCreditRealizationsInput) has a Validate() that checks zero-values and negative amounts before any adapter call. Call Validate() at the top of every service method.",
+        "example": "if err := in.Validate(); err != nil { return AllocateCreditsOnlyResult{}, err }"
+      },
+      {
+        "name": "Currency rounding before validation",
+        "description": "RoundToPrecision is called on monetary amounts before Validate() to avoid false negatives from floating-point comparisons. Pattern: round first, then validate, then assert sum equality.",
+        "example": "in.Amount = in.CurrencyCalculator.RoundToPrecision(in.Amount); if err := in.Validate(); err != nil { ... }"
+      },
+      {
+        "name": "Lineage persistence is always paired with adapter writes",
+        "description": "CreateCreditAllocations calls adapter.CreateCreditAllocations, then lineage.CreateInitialLineages, then lineage.PersistCorrectionLineageSegments \u2014 all three must succeed or the caller's transaction rolls back. Never skip lineage steps.",
+        "example": "realizations, err := s.adapter.CreateCreditAllocations(...); ... s.lineage.CreateInitialLineages(...); s.lineage.PersistCorrectionLineageSegments(...)"
+      },
+      {
+        "name": "Handler delegates external credit allocation decisions",
+        "description": "The Service does not compute how credits are split \u2014 it delegates to flatfee.Handler.OnCreditsOnlyUsageAccrued / OnCreditsOnlyUsageAccruedCorrection. Service only validates sum equality after the fact.",
+        "example": "creditAllocations, err := s.handler.OnCreditsOnlyUsageAccrued(ctx, input)"
+      },
+      {
+        "name": "Sum equality assertion after allocation",
+        "description": "After handler returns allocations, the sum is re-rounded and checked against the original amount. Mismatch returns models.NewGenericValidationError, not an internal error.",
+        "example": "if !allocated.Equal(in.Amount) { return ..., models.NewGenericValidationError(fmt.Errorf(\"credit allocations do not match total ...\")) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "The entire package is this single file. Defines Service struct, Config, all input/result types, and three exported methods: CreateCreditAllocations, AllocateCreditsOnly, CorrectAllCredits.",
+        "watch_for": "Adding state-machine logic here violates the layer contract \u2014 state transitions belong in the parent charges service. Also watch for missing lineage.PersistCorrectionLineageSegments calls after adapter writes."
+      }
+    ],
+    "anti_patterns": [
+      "Making state-machine decisions (charge status transitions) inside this package \u2014 it must remain a pure realization mechanics layer",
+      "Calling adapter.CreateCreditAllocations without following up with both lineage.CreateInitialLineages and lineage.PersistCorrectionLineageSegments",
+      "Skipping Validate() on input structs before adapter calls",
+      "Performing currency arithmetic without rounding via CurrencyCalculator.RoundToPrecision first",
+      "Returning a raw internal error instead of models.NewGenericValidationError when allocation sums don't match"
+    ],
+    "decisions": [
+      {
+        "decision": "Service delegates allocation-splitting to flatfee.Handler rather than computing it internally",
+        "rationale": "Different flat-fee billing strategies (immediate full allocation vs. pro-rated) need to vary the split logic without touching realization persistence code."
+      },
+      {
+        "decision": "Lineage persistence is mandatory and co-located in CreateCreditAllocations",
+        "rationale": "Realization records without lineage segments break correction lookups in CorrectAllCredits; coupling the two writes in one method makes it impossible to forget lineage."
+      },
+      {
+        "decision": "Config+Validate pattern instead of variadic options",
+        "rationale": "Consistent with the broader billing/charges constructor pattern; makes missing-dependency errors surface at startup rather than at first call."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Allocate credits for a flat-fee charge amount, persist realizations and lineage",
+        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee\"\n\t\"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service/realizations\"\n\t\"github.com/openmeterio/openmeter/pkg/currencyx\"\n)\n\nsvc, _ := realizations.New(realizations.Config{\n\tAdapter: adapter,\n\tHandler: handler,\n\tLineage: lineageSvc,\n})\n\nresult, err := svc.AllocateCreditsOnly(ctx, realizations.AllocateCreditsOnlyInput{\n\tCharge:             charge,\n\tAmount:             amount,\n\tCurrencyCalculator: calc,\n})\n// result.Realizations holds persisted credit realization records"
+      }
+    ]
+  }
+}

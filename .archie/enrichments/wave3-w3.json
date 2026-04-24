@@ -1,0 +1,210 @@
+{
+  "api/spec/packages/aip": {
+    "purpose": "Root package for the v3 AIP TypeSpec spec: compiles domain operation interfaces into api/v3/openapi.yaml via two root namespace files (openmeter.tsp, konnect.tsp), runs post-processing (flatten-allof.mjs), and enforces naming/structural constraints via a custom linter (lib/). All route binding, tag metadata, and security schemes live here; domain definitions do not.",
+    "patterns": [
+      {
+        "name": "Two-step compile pipeline",
+        "description": "tsp compile produces OpenAPI YAML, then scripts/flatten-allof.mjs normalises allOf schemas. Both steps run via `pnpm compile` (package.json). Never hand-edit the output.",
+        "example": "pnpm compile in api/spec/packages/aip runs both steps sequentially"
+      },
+      {
+        "name": "Route and tag binding at root only",
+        "description": "@route and @tag are declared exclusively in src/openmeter.tsp and src/konnect.tsp, never inside domain sub-folder operation files.",
+        "example": "openmeter.tsp: interface MeterRoutes extends MeterOperations { @route(\"/api/v1/meters\") @tag(\"Meters\") ... }"
+      },
+      {
+        "name": "Security via @useRef to external YAML",
+        "description": "Security schemes are TypeSpec model stubs with @useRef pointing to external YAML fragments, not inline credential definitions.",
+        "example": "@useRef(\"../common/definitions/security.yaml\") model CloudTokenAuth {}"
+      },
+      {
+        "name": "Domain ops imported via index.tsp barrels",
+        "description": "Each domain sub-folder exposes an index.tsp; root files import only the barrel, not individual operation files.",
+        "example": "import \"../meters/index.tsp\";"
+      },
+      {
+        "name": "Custom linter via createRule factory",
+        "description": "All lint rules in lib/rules/ use the createRule factory and are registered in lib/index.js $linter. Error severity blocks gen-api; warning does not.",
+        "example": "lib/rules/casing.js exports createRule({ name: 'casing', ... }); registered in lib/index.js"
+      },
+      {
+        "name": "omit-unreachable-types: true in tspconfig",
+        "description": "tspconfig.yaml sets omit-unreachable-types: true so only reachable schemas appear in the emitted OpenAPI.",
+        "example": "options: '@typespec/openapi3': omit-unreachable-types: true"
+      },
+      {
+        "name": "PascalCase acronym exceptions in utils.js",
+        "description": "Accepted uppercase acronyms (OAuth2, URL, API, UI, ID) live exclusively in lib/rules/utils.js pascalCaseExceptions; never add them inline in rule files.",
+        "example": "const pascalCaseExceptions = ['OAuth2', 'URL', 'API', 'UI', 'ID'];"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "src/main.tsp",
+        "role": "Compilation entry point; imports openmeter.tsp and konnect.tsp",
+        "watch_for": "Missing import here silently drops a namespace from output"
+      },
+      {
+        "file": "src/openmeter.tsp",
+        "role": "Binds all domain interfaces to routes and tags for the OpenMeter variant",
+        "watch_for": "Adding @tagMetadata for a new domain import is mandatory or the tag description is absent from generated OpenAPI"
+      },
+      {
+        "file": "src/konnect.tsp",
+        "role": "Konnect variant root; overrides security and some sub-routes",
+        "watch_for": "Inline security scheme bodies here duplicate config; use @useRef instead"
+      },
+      {
+        "file": "scripts/flatten-allof.mjs",
+        "role": "Post-processes emitted YAML to move sibling properties into allOf branches",
+        "watch_for": "Removing x-flatten-allOf marker check causes infinite re-run loops; changing YAML_OPTIONS.lineWidth from 0 creates spurious diffs"
+      },
+      {
+        "file": "lib/index.js",
+        "role": "Registers all linter rules via defineLinter/$linter export",
+        "watch_for": "A new rule file has zero effect until its export is added to the rules array here"
+      },
+      {
+        "file": "lib/rules/utils.js",
+        "role": "Centralised casing helpers and acronym exception list",
+        "watch_for": "Duplicating regex or exceptions in individual rule files causes divergence"
+      },
+      {
+        "file": "tspconfig.yaml",
+        "role": "Compiler config: emitter output dir, omit-unreachable-types, linter extends",
+        "watch_for": "omit-unreachable-types must stay true; linter extends must reference @openmeter/api-spec-aip/all"
+      }
+    ],
+    "anti_patterns": [
+      "Declaring @route or @tag inside a domain sub-folder's operations.tsp \u2014 routing is bound only in openmeter.tsp and konnect.tsp",
+      "Hand-editing api/v3/openapi.yaml \u2014 always regenerate via `make gen-api`",
+      "Defining a lint rule without registering it in lib/index.js \u2014 the rule has no effect",
+      "Adding new accepted PascalCase acronyms anywhere other than pascalCaseExceptions in lib/rules/utils.js",
+      "Adding a domain import in openmeter.tsp without a matching @tagMetadata declaration"
+    ],
+    "decisions": [
+      {
+        "decision": "Two root namespace files (openmeter.tsp, konnect.tsp) instead of one parameterised file",
+        "rationale": "The two variants differ in security schemes and some sub-route overrides; keeping them as separate files avoids conditional logic in TypeSpec which has no preprocessor"
+      },
+      {
+        "decision": "Post-processing flatten-allof.mjs runs after tsp compile",
+        "rationale": "TypeSpec emitter produces allOf schemas with sibling properties that confuse SDK generators; normalisation must happen outside the compiler to avoid patching the upstream emitter"
+      },
+      {
+        "decision": "Custom linter with error vs warning severity split",
+        "rationale": "Only friendlyName (SDK-visible names) and structurally breaking rules use error severity to block gen-api; stylistic rules use warning to surface guidance without blocking developer flow"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new domain to the v3 spec",
+        "code": "// 1. Create domain ops file: src/widgets/operations.tsp\nimport \"@typespec/http\";\nusing TypeSpec.Http;\n\ninterface WidgetOperations {\n  @get\n  @doc(\"List widgets\")\n  @operationId(\"listWidgets\")\n  list(@query namespace: string): Widget[] | OpenMeterError;\n}\n\n// 2. Create barrel: src/widgets/index.tsp\nimport \"./operations.tsp\";\n\n// 3. In src/openmeter.tsp \u2014 import barrel, bind route+tag, add tagMetadata:\nimport \"../widgets/index.tsp\";\n@tagMetadata(\"Widgets\", { description: \"Manage widgets\" })\ninterface WidgetRoutes extends WidgetOperations {\n  @route(\"/api/v3/widgets\") @tag(\"Widgets\") list is WidgetOperations.list;\n}"
+      }
+    ]
+  },
+  "api/spec/packages/legacy": {
+    "purpose": "TypeSpec source for the v1/v2 OpenMeter REST API and OpenMeter Cloud API; compiles to api/openapi.yaml and api/openapi.cloud.yaml plus the Python SDK. src/ is the composition root with shared primitives; cloud/ is the cloud-variant entry point. New v1 domain features go here; v3 changes go to api/spec/packages/aip instead.",
+    "patterns": [
+      {
+        "name": "main.tsp as sole compilation entry point",
+        "description": "All sub-domain .tsp files must be imported into src/cloud/main.tsp (or src/main.tsp for client). Unlisted files are silently excluded from the compiled spec.",
+        "example": "src/cloud/main.tsp: import \"../meters.tsp\"; import \"../billing/main.tsp\";"
+      },
+      {
+        "name": "@friendlyName on every model, enum, union, interface",
+        "description": "Controls the OpenAPI schema name; required on all types to produce deterministic SDK class names. linter enforces this at error severity.",
+        "example": "@friendlyName(\"MeterCreate\") model MeterCreate is TypeSpec.Rest.Resource.ResourceCreateModel<Meter>;"
+      },
+      {
+        "name": "@visibility lifecycle decorators on model fields",
+        "description": "Use Lifecycle.Read, Lifecycle.Create, Lifecycle.Update to control which fields appear in which request/response shapes from a single model definition.",
+        "example": "@visibility(Lifecycle.Read) id: ULID; @visibility(Lifecycle.Read, Lifecycle.Create) slug: Key;"
+      },
+      {
+        "name": "REST resource templates for CRUD request bodies",
+        "description": "Use TypeSpec.Rest.Resource.ResourceCreateModel<T>, ResourceReplaceModel<T>, ResourceCreateOrUpdateModel<T> to derive request bodies; avoids ad-hoc types and ensures visibility filtering.",
+        "example": "@friendlyName(\"MeterUpdate\") model MeterUpdate is TypeSpec.Rest.Resource.ResourceReplaceModel<Meter>;"
+      },
+      {
+        "name": "Shared primitives in types.tsp, never re-declared in sub-domains",
+        "description": "ULID, DateTime, Key, Resource, ResourceTimestamps, CadencedResource and pagination models live in src/types.tsp under the OpenMeter namespace; importing them avoids duplicate schema definitions.",
+        "example": "// In a sub-domain file: use OpenMeter.ULID, not a local re-declaration"
+      },
+      {
+        "name": "Filter models with @extension(\"x-omitempty\", true) on all operator fields",
+        "description": "Filter types in filter.tsp mark every operator property with @extension(\"x-omitempty\", true) so absent filters are excluded from serialised queries.",
+        "example": "@extension(\"x-omitempty\", true) eq?: string;"
+      },
+      {
+        "name": "@operationId on every interface operation",
+        "description": "Explicit camelCase verb+noun operationId prevents non-deterministic SDK function names.",
+        "example": "@operationId(\"createMeter\") create(@body body: MeterCreate): Meter | OpenMeterError;"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "src/cloud/main.tsp",
+        "role": "Cloud-variant compilation entry point; imports all sub-domain files",
+        "watch_for": "New sub-domain file not imported here is silently excluded from api/openapi.cloud.yaml"
+      },
+      {
+        "file": "src/main.tsp",
+        "role": "Client-emit entry point for Python SDK generation",
+        "watch_for": "Separate from cloud/main.tsp; both must be kept in sync for new domains"
+      },
+      {
+        "file": "src/types.tsp",
+        "role": "Shared primitive types: ULID, DateTime, Key, Resource, pagination models",
+        "watch_for": "Never re-declare these in sub-domain files; import from this file instead"
+      },
+      {
+        "file": "src/errors.tsp",
+        "role": "OpenMeterError and error union types; @error decorator required",
+        "watch_for": "Extending Error without @error breaks OpenAPI error schema generation"
+      },
+      {
+        "file": "src/filter.tsp",
+        "role": "Generic filter operator models; all fields must have @extension(\"x-omitempty\", true)",
+        "watch_for": "Missing x-omitempty causes empty filter fields to be serialised as null in query strings"
+      },
+      {
+        "file": "lib/index.js",
+        "role": "Registers all v1 linter rules via defineLinter",
+        "watch_for": "New rule file has zero effect without registration here"
+      },
+      {
+        "file": "tspconfig.yaml / tspconfig.client.yaml",
+        "role": "Two configs: OpenAPI emit and Python SDK emit respectively",
+        "watch_for": "Both extend @openmeter/api-spec-legacy/all linter; changing emitter-output-dir breaks `make gen-api` path expectations"
+      }
+    ],
+    "anti_patterns": [
+      "Defining new domain models directly in root-level .tsp files instead of a sub-folder with its own main.tsp",
+      "Re-declaring primitive types (ULID, DateTime, Key, Resource) in sub-domain files \u2014 they already exist in types.tsp",
+      "Using `extends Error` without the @error decorator \u2014 breaks OpenAPI error schema generation",
+      "Omitting @operationId on interface operations \u2014 causes non-deterministic generated SDK function names",
+      "Adding new sub-domain files without registering them in cloud/main.tsp and src/main.tsp imports"
+    ],
+    "decisions": [
+      {
+        "decision": "Two separate tspconfig files (tspconfig.yaml for OpenAPI, tspconfig.client.yaml for Python SDK)",
+        "rationale": "OpenAPI and Python SDK emitters need different output directories and emitter options; a single config cannot parameterise both without overriding emitter-output-dir per run"
+      },
+      {
+        "decision": "Shared primitive types centralised in types.tsp with Resource base models",
+        "rationale": "Keeps schema naming deterministic across all sub-domains and prevents duplicate $ref targets in generated OpenAPI that confuse SDK generators"
+      },
+      {
+        "decision": "friendlyNameRule is error-severity (blocks gen-api); all other rules are warnings",
+        "rationale": "@friendlyName controls SDK class names; a missing or wrong name produces irreversible public API breakage, justifying a hard block on compilation"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new v1 resource (e.g. Widget) with CRUD operations",
+        "code": "// src/widgets/main.tsp\nimport \"@typespec/http\";\nimport \"@typespec/rest\";\nusing TypeSpec.Http;\nusing TypeSpec.Rest;\nusing TypeSpec.Rest.Resource;\n\n@friendlyName(\"Widget\")\nmodel Widget {\n  @visibility(Lifecycle.Read)\n  id: OpenMeter.ULID;\n\n  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)\n  name: string;\n}\n\n@friendlyName(\"WidgetCreate\")\nmodel WidgetCreate is ResourceCreateModel<Widget>;\n\n@route(\"/api/v1/widgets\")\n@tag(\"Widgets\")\ninterface Widgets {\n  @get @operationId(\"listWidgets\")\n  list(@query namespace: string): Widget[] | OpenMeter.OpenMeterError;\n\n  @post @operationId(\"createWidget\")\n  create(@body body: WidgetCreate): Widget | OpenMeter.OpenMeterError;\n}\n\n// Then add to src/cloud/main.tsp:\n// import \"../widgets/main.tsp\";"
+      }
+    ]
+  }
+}

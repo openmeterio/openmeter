@@ -1,0 +1,251 @@
+{
+  "collector/benthos/input": {
+    "purpose": "Houses all custom Benthos BatchInput plugin implementations (kubernetes_resources, otel_log, prometheus, run_ai, schedule). Each file registers one plugin via service.RegisterBatchInput in an init() function; plugins are activated simply by importing this package.",
+    "patterns": [
+      {
+        "name": "init-based plugin registration",
+        "description": "Every input plugin calls service.RegisterBatchInput (or service.RegisterInput) inside an init() function. If registration fails, it panics. The plugin is activated by blank-importing this package.",
+        "example": "func init() { err := service.RegisterBatchInput(\"my_input\", myInputConfig(), func(...) (service.BatchInput, error) { ... }); if err != nil { panic(err) } }"
+      },
+      {
+        "name": "ConfigSpec factory + constructor separation",
+        "description": "Each plugin has a dedicated XxxInputConfig() function returning *service.ConfigSpec with all fields declared, and a separate newXxxInput() constructor that reads those fields via conf.FieldXxx. Never mix schema and construction logic.",
+        "example": "func prometheusInputConfig() *service.ConfigSpec { return service.NewConfigSpec().Fields(...) }\nfunc newPrometheusInput(conf *service.ParsedConfig, res *service.Resources) (*prometheusInput, error) { url, _ := conf.FieldString(fieldURL); ... }"
+      },
+      {
+        "name": "leaderelection guard in ReadBatch/Connect",
+        "description": "Polling inputs (kubernetes_resources, prometheus, run_ai) check leaderelection.IsLeader(in.resources) before emitting data or starting the scheduler goroutine. Non-leaders return an empty batch immediately.",
+        "example": "if !leaderelection.IsLeader(in.resources) { return batch, func(context.Context, error) error { return nil }, nil }"
+      },
+      {
+        "name": "nack-restore in AckFunc",
+        "description": "Scheduler-based inputs (prometheus, run_ai) move items from store to processing before returning them. The AckFunc restores items to store on nack (err != nil) so they are retried on the next ReadBatch call.",
+        "example": "processing[t] = results; delete(in.store, t)\nreturn batch, func(ctx context.Context, err error) error { if err != nil { in.mu.Lock(); in.store[t] = processing[t]; in.mu.Unlock() }; return nil }, nil"
+      },
+      {
+        "name": "gocron scheduler with leader-aware goroutine",
+        "description": "Scheduler-based inputs (prometheus, run_ai) create a gocron.Scheduler in the constructor, add a CronJob in Connect, then run a goroutine that calls scheduler.Start()/StopJobs() based on leader state polled every 1 second.",
+        "example": "go func() { running := false; for { select { case <-ctx.Done(): ...; case <-time.After(1*time.Second): if leaderelection.IsLeader(...) && !running { in.scheduler.Start(); running = true } } } }()"
+      },
+      {
+        "name": "message metadata decoration",
+        "description": "All inputs set msg.MetaSet() keys (scrape_time, scrape_interval, resource_type, etc.) on each service.Message so downstream Bloblang mappings can read them via @metadata.",
+        "example": "msg.MetaSet(\"scrape_time\", t.Format(time.RFC3339))\nmsg.MetaSet(\"scrape_interval\", in.interval.String())"
+      },
+      {
+        "name": "graceful shutdown via cancel + done channel",
+        "description": "Long-lived background goroutines (kubernetes manager, otel gRPC server) are stopped via a context cancel and a done channel closed when the goroutine exits. Close() blocks on <-in.done or ctx.Done().",
+        "example": "in.cancel(); select { case <-in.done: ...; case <-ctx.Done(): return ctx.Err() }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "kubernetes.go",
+        "role": "Registers kubernetes_resources BatchInput. Uses controller-runtime manager with a cache-backed client. Checks leader state in ReadBatch.",
+        "watch_for": "Cache must sync before ReadBatch returns data \u2014 handled by WaitForCacheSync in Connect. Manager runs in a goroutine; cancel/done pattern is required for Close to not leak it."
+      },
+      {
+        "file": "otel_log.go",
+        "role": "Registers otel_log BatchInput backed by a gRPC server (OTLP Logs exporter). Uses an internal message.Transaction channel to bridge gRPC Export calls to ReadBatch.",
+        "watch_for": "Uses internal shutdown.Signaller from collector/benthos/internal/shutdown \u2014 do not replace with a plain cancel. Export blocks until ack is received or timeout; slow downstream output will trigger deadline errors upstream."
+      },
+      {
+        "file": "prometheus.go",
+        "role": "Registers prometheus BatchInput that executes PromQL queries on a gocron schedule and buffers results in an in-memory map keyed by scrape time.",
+        "watch_for": "store is guarded by mu \u2014 always hold lock when reading or writing. Interval is derived by computing the gap between next two cron occurrences, not from a simple duration field."
+      },
+      {
+        "file": "run_ai.go",
+        "role": "Registers run_ai BatchInput that scrapes Run:ai workload/pod metrics via the collector/benthos/input/runai sub-package. Nearly identical scheduler pattern to prometheus.go.",
+        "watch_for": "runai.Service handles metric chunking internally (max 9 per call). pageSize is validated 100\u2013500 in the constructor \u2014 reject invalid values early. TimingMetrics and resourceTypeMetrics are wired from the RegisterBatchInput closure, not from the constructor."
+      },
+      {
+        "file": "schedule.go",
+        "role": "Registers schedule BatchInput that wraps a child input and gates ReadBatch behind a time.Ticker. Decorates messages with schedule_time and schedule_interval metadata.",
+        "watch_for": "Uses conf.FieldInput to obtain an *service.OwnedInput \u2014 the child must be closed in Close(). Ticker fires non-blocking (default: case) so ReadBatch returns an empty batch when the interval has not elapsed."
+      }
+    ],
+    "anti_patterns": [
+      "Registering a new plugin outside init() \u2014 the Benthos plugin registry requires init-time registration before the process starts.",
+      "Calling leaderelection.IsLeader inside the gocron task rather than the Connect goroutine \u2014 the scheduler must be started/stopped at the goroutine level, not per-task.",
+      "Holding in.mu across a network call or ReadBatch return \u2014 the mutex guards only the in-memory store; IO must happen outside the lock.",
+      "Returning an error from ReadBatch for transient per-resource failures \u2014 non-fatal errors should be logged and skipped; a returned error will halt the Benthos pipeline.",
+      "Defining a new input without a dedicated XxxInputConfig() function \u2014 mixing field declarations inside the RegisterBatchInput closure makes the spec untestable."
+    ],
+    "decisions": [
+      {
+        "decision": "All plugins use service.BatchInput (not service.Input) so they can return multiple messages per ReadBatch call.",
+        "rationale": "Polling sources (Kubernetes, Prometheus, Run:ai) naturally produce batches; BatchInput avoids a wrapper and exposes a single AckFunc for the whole batch."
+      },
+      {
+        "decision": "Leader election state is polled from service.Resources generic map rather than a dedicated channel.",
+        "rationale": "service.Resources is already injected into every plugin by the Benthos framework; storing state there avoids a separate DI wire and keeps leader state accessible across plugins without coupling them."
+      },
+      {
+        "decision": "Scheduler-based inputs buffer results in an in-memory map[time.Time][]T and drain on ReadBatch rather than sending results directly.",
+        "rationale": "Benthos calls ReadBatch in a tight loop; decoupling the cron-fired scrape from ReadBatch prevents blocking the scrape goroutine on downstream backpressure."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Minimal scheduled BatchInput with leader guard, nack-restore, and metadata decoration",
+        "code": "package input\n\nimport (\n\t\"context\"\n\t\"encoding/json\"\n\t\"sync\"\n\t\"time\"\n\n\t\"github.com/go-co-op/gocron/v2\"\n\t\"github.com/redpanda-data/benthos/v4/public/service\"\n\n\t\"github.com/openmeterio/openmeter/collector/benthos/services/leaderelection\"\n)\n\nfunc myInputConfig() *service.ConfigSpec {\n\treturn service.NewConfigSpec().Fields(\n\t\tservice.NewStringField(\"schedule\").Default(\"0 * * * * *\"),\n\t)\n}\n\nfunc init() {\n\terr := service.RegisterBatchInput(\"my_input\", myInputConfig(), func(conf *service.ParsedConfig, mgr *service.Resources) (service.BatchInput, error) {\n\t\treturn newMyInput(conf, mgr)\n\t})\n\tif err != nil {\n\t\tpanic(err)\n\t}\n}\n\ntype myInput struct {\n\tresources *service.Resources\n\tscheduler gocron.Scheduler\n\tstore     map[time.Time][]any\n\tmu        sync.Mutex\n}\n\nfunc newMyInput(conf *service.ParsedConfig, res *service.Resources) (*myInput, error) {\n\tschedule, _ := conf.FieldString(\"schedule\")\n\ts, _ := gocron.NewScheduler()\n\tin := &myInput{resources: res, scheduler: s, store: make(map[time.Time][]any)}\n\t_ = schedule\n\treturn in, nil\n}\n\nfunc (in *myInput) Connect(ctx context.Context) error {\n\t_, err := in.scheduler.NewJob(gocron.CronJob(\"0 * * * * *\", true), gocron.NewTask(func(ctx context.Context) error {\n\t\tt := time.Now().UTC()\n\t\tin.mu.Lock()\n\t\tin.store[t] = []any{\"item\"}\n\t\tin.mu.Unlock()\n\t\treturn nil\n\t}), gocron.WithContext(ctx))\n\tif err != nil {\n\t\treturn err\n\t}\n\tgo func() {\n\t\trunning := false\n\t\tfor {\n\t\t\tselect {\n\t\t\tcase <-ctx.Done():\n\t\t\t\treturn\n\t\t\tcase <-time.After(1 * time.Second):\n\t\t\t\tif leaderelection.IsLeader(in.resources) && !running {\n\t\t\t\t\tin.scheduler.Start(); running = true\n\t\t\t\t} else if !leaderelection.IsLeader(in.resources) && running {\n\t\t\t\t\t_ = in.scheduler.StopJobs(); running = false\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}()\n\treturn nil\n}\n\nfunc (in *myInput) ReadBatch(_ context.Context) (service.MessageBatch, service.AckFunc, error) {\n\tin.mu.Lock()\n\tdefer in.mu.Unlock()\n\tif len(in.store) == 0 {\n\t\treturn nil, func(context.Context, error) error { return nil }, nil\n\t}\n\tprocessing := make(map[time.Time][]any)\n\tvar batch service.MessageBatch\n\tfor t, items := range in.store {\n\t\tfor _, item := range items {\n\t\t\tb, _ := json.Marshal(item)\n\t\t\tmsg := service.NewMessage(b)\n\t\t\tmsg.MetaSet(\"scrape_time\", t.Format(time.RFC3339))\n\t\t\tbatch = append(batch, msg)\n\t\t}\n\t\tprocessing[t] = items\n\t\tdelete(in.store, t)\n\t}\n\treturn batch, func(_ context.Context, err error) error {\n\t\tif err != nil {\n\t\t\tin.mu.Lock(); defer in.mu.Unlock()\n\t\t\tfor t, v := range processing { in.store[t] = v }\n\t\t}\n\t\treturn nil\n\t}, nil\n}\n\nfunc (in *myInput) Close(_ context.Context) error { return in.scheduler.Shutdown() }"
+      }
+    ]
+  },
+  "collector/benthos/internal": {
+    "purpose": "Internal utility packages shared by all collector/benthos plugins: a logr bridge (logging), a Batch/Transaction primitive for delivery-guaranteed message routing (message), and a two-tier graceful shutdown primitive (shutdown). None of these packages contain Benthos plugin registrations or business logic.",
+    "patterns": [
+      {
+        "name": "logging bridge: Benthos logger \u2192 logr.LogSink",
+        "description": "logging.NewLogrLogger wraps *service.Logger as a logr.LogSink. Consumers call ctrllog.SetLogger(logrLogger) once at startup so controller-runtime and klog route through Benthos. Do not create additional logger abstractions.",
+        "example": "ctrlLogger := logging.NewLogrLogger(res.Logger()); ctrllog.SetLogger(ctrlLogger)"
+      },
+      {
+        "name": "Transaction-based delivery guarantee",
+        "description": "message.NewTransaction(batch, resChan) pairs a MessageBatch with a chan<-error. The gRPC or HTTP server sends a Transaction into a channel; ReadBatch returns the batch and an AckFunc that sends on resChan. Never skip sending on resChan after processing.",
+        "example": "resChan := make(chan error, 1)\nin.transactions <- message.NewTransaction(batch, resChan)\nres := <-resChan"
+      },
+      {
+        "name": "Two-tier shutdown: CloseAtLeisure then CloseNow",
+        "description": "Components own a *shutdown.Signaller. Orchestrators call CloseAtLeisure() (soft drain) then CloseNow() (hard stop). Components call ShutdownComplete() when their goroutine exits. Callers block on HasClosedChan().",
+        "example": "defer in.shutSig.ShutdownComplete()\n<-in.shutSig.CloseAtLeisureChan() // drain\n// then forced stop:\n<-in.shutSig.CloseNowChan()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "internal/logging/logging.go",
+        "role": "Implements logr.LogSink backed by *service.Logger. Must be initialized once per component via SetupKlog.",
+        "watch_for": "WithValues and WithName are no-ops \u2014 do not rely on them for structured field propagation. Call SetupKlog before any k8s client-go or controller-runtime code runs."
+      },
+      {
+        "file": "internal/message/transaction.go",
+        "role": "Defines message.Transaction holding a MessageBatch and an ack mechanism (chan<-error or func). Used by otel_log to bridge gRPC Export to ReadBatch.",
+        "watch_for": "Ack must be called exactly once. The channel variant is buffered (cap 1) to avoid blocking the sender if the receiver has already exited."
+      },
+      {
+        "file": "internal/shutdown/signaller.go",
+        "role": "Provides shutdown.Signaller with two close tiers plus a HasClosed gate.",
+        "watch_for": "Forgetting ShutdownComplete causes HasClosedChan to block forever. CloseAtLeisureCtx fires on either tier; CloseNowCtx fires only on CloseNow \u2014 use the right one for your drain logic."
+      }
+    ],
+    "anti_patterns": [
+      "Adding business logic or Benthos plugin registrations to internal/ \u2014 it is a pure utilities layer.",
+      "Calling logging.SetupKlog more than once \u2014 klog global state is not idempotent.",
+      "Calling Ack (Transaction.Ack) multiple times \u2014 the channel send is not idempotent and will panic or block.",
+      "Forgetting shutdown.Signaller.ShutdownComplete() in a component goroutine \u2014 orchestrators block on HasClosedChan indefinitely.",
+      "Implementing WithValues/WithName in the logr bridge with real state \u2014 Benthos logger is format-string based; structured fields are not supported."
+    ],
+    "decisions": [
+      {
+        "decision": "Three separate sub-packages (logging, message, shutdown) rather than a single internal package.",
+        "rationale": "Each primitive has a single responsibility and independent consumers; splitting them prevents accidental coupling and keeps import graphs minimal."
+      },
+      {
+        "decision": "message.Transaction uses a buffered chan<-error (cap 1) for the ack path.",
+        "rationale": "Buffering allows the sender (gRPC handler) to send without blocking if the receiver (ReadBatch loop) has already moved on, avoiding a goroutine leak on timeout."
+      }
+    ],
+    "code_examples": []
+  },
+  "collector/benthos/presets": {
+    "purpose": "Self-contained YAML pipeline presets for the Benthos collector \u2014 no Go code. Each sub-folder is one deployable pipeline config (http-server for CloudEvent ingestion, kubernetes-pod-exec-time for Kubernetes billing). They compose the custom input/output plugins registered in collector/benthos/input and collector/benthos/output.",
+    "patterns": [
+      {
+        "name": "Environment variable substitution for secrets",
+        "description": "All URLs, tokens, and credentials use ${ENV_VAR:default} substitution. Never hardcode values.",
+        "example": "url: \"${OPENMETER_URL:http://localhost:8888}\"\ntoken: \"${OPENMETER_TOKEN:}\""
+      },
+      {
+        "name": "catch-log-delete for validation failures",
+        "description": "After json_schema validation, a catch block logs the error and deletes the message to prevent pipeline stalls. Never let a validation error propagate uncaught.",
+        "example": "processors:\n  - json_schema: ...\n  - catch:\n    - log: { level: ERROR, message: ... }\n    - mapping: root = deleted()"
+      },
+      {
+        "name": "switch output with DEBUG stdout branch",
+        "description": "When DEBUG=true the pipeline outputs to stdout instead of the real output. The openmeter case must always come last in the switch so the debug branch short-circuits correctly.",
+        "example": "output:\n  switch:\n    cases:\n      - check: env(\"DEBUG\") == \"true\"\n        output: { stdout: {} }\n      - output: { openmeter: { ... } }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "presets/http-server/config.yaml",
+        "role": "Receive-validate-forward pipeline. HTTP input \u2192 CloudEvents JSON schema validation \u2192 SQLite buffer \u2192 openmeter output.",
+        "watch_for": "SQLite buffer requires a post-processor split; changing the buffer type will break the split step. sync_response metadata must be set before buffering or the HTTP client receives no response."
+      },
+      {
+        "file": "presets/kubernetes-pod-exec-time/config.yaml",
+        "role": "Kubernetes pod billing pipeline. schedule+kubernetes_resources input \u2192 Bloblang CloudEvents mapping \u2192 openmeter output.",
+        "watch_for": "duration_seconds is derived from schedule_interval metadata \u2014 do not compute it as a static env var. resource_quantity() calls must use .number(0) fallback for pods missing resource limits."
+      }
+    ],
+    "anti_patterns": [
+      "Adding transformation or enrichment logic to http-server/config.yaml \u2014 it is a receive-validate-forward pipeline only.",
+      "Hardcoding OPENMETER_URL or OPENMETER_TOKEN instead of env var substitution.",
+      "Using the generic http_client output instead of the custom openmeter output plugin \u2014 the plugin handles batching and auth.",
+      "Reordering switch cases so stdout appears after openmeter \u2014 DEBUG mode will no longer short-circuit the real output.",
+      "Omitting .number(0) on resource_quantity() calls \u2014 pods without resource requests will produce nil mapping errors."
+    ],
+    "decisions": [
+      {
+        "decision": "Presets are pure YAML with no Go code.",
+        "rationale": "Operators deploy these directly without recompilation; keeping them as config files allows tuning schedules, selectors, and outputs without a code change."
+      },
+      {
+        "decision": "kubernetes-pod-exec-time derives duration_seconds from schedule_interval metadata at mapping time.",
+        "rationale": "The actual interval may differ from the configured value due to leader failover or scheduler jitter; reading it from message metadata guarantees accuracy."
+      }
+    ],
+    "code_examples": []
+  },
+  "collector/benthos/services": {
+    "purpose": "Benthos service-layer packages that provide cross-cutting infrastructure to input/output plugins without being plugins themselves. Currently one sub-package: leaderelection, which implements Kubernetes lease-based leader election and exposes leader state via service.Resources so plugins can gate work to a single active replica.",
+    "patterns": [
+      {
+        "name": "Config struct as CLI-to-service handoff",
+        "description": "CLI flags are declared as package-level constants in flags.go and parsed into a Config struct. Service.New accepts only Config \u2014 never a cli.Context. This makes the service testable without a CLI.",
+        "example": "cfg := leaderelection.Config{LeaseDuration: 15*time.Second, ...}\nsvc := leaderelection.New(cfg, logger)"
+      },
+      {
+        "name": "IsLeader via service.Resources generic map",
+        "description": "Leader state is stored under IsLeaderKey in the Benthos service.Resources generic map. Plugins call leaderelection.IsLeader(res) \u2014 absent key defaults to true (single-replica safe). Never read IsLeaderKey directly.",
+        "example": "if !leaderelection.IsLeader(in.resources) { return emptyBatch, noopAck, nil }"
+      },
+      {
+        "name": "Infinite retry loop in Start goroutine",
+        "description": "leaderelection.Service.Start runs an infinite loop that creates a new LeaderElector per cycle. The elector must be re-created each time \u2014 never reuse a LeaderElector across cycles.",
+        "example": "for { elector, _ := leaderelection.NewLeaderElector(cfg); elector.Run(ctx); if ctx.Err() != nil { return } }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "services/leaderelection/flags.go",
+        "role": "Declares CLI flag name constants and GetLeaderElectionCLIOpts. Import this to add leader election flags to a Benthos CLI app.",
+        "watch_for": "Always reference flag names via the constants, not raw strings \u2014 the constants are the contract between the CLI and service.go."
+      },
+      {
+        "file": "services/leaderelection/service.go",
+        "role": "Core leader election logic: constructs client-go LeaderElector, runs it in a goroutine, updates service.Resources on acquire/release, exposes IsLeader().",
+        "watch_for": "logging.SetupKlog must be called here before any client-go code runs. ReleaseOnCancel:true means leadership is released when ctx is cancelled \u2014 Start's ctx must be tied to process lifecycle. leaseHealthCheckTimeout defaults to LeaseDuration when zero."
+      }
+    ],
+    "anti_patterns": [
+      "Reading IsLeaderKey directly via res.GetGeneric instead of using IsLeader(res) \u2014 the helper applies the absent-key=true default.",
+      "Reusing a LeaderElector instance across election cycles \u2014 client-go electors are single-use; recreate per cycle.",
+      "Calling leaderelection.Service.Start with context.Background() \u2014 breaks cancellation on Benthos shutdown.",
+      "Skipping logging.SetupKlog when adding another client-go-based service \u2014 klog bypasses the structured logger.",
+      "Reading CLI flag names as raw string literals instead of the declared constants in flags.go."
+    ],
+    "decisions": [
+      {
+        "decision": "Leader state stored in service.Resources generic map, not a channel or atomic.",
+        "rationale": "service.Resources is already injected by Benthos into every plugin; using it avoids a separate DI step and keeps leader state accessible to all plugins without coupling them to the leaderelection package's internals."
+      },
+      {
+        "decision": "Absent IsLeaderKey defaults to true (i.e., act as leader when no election service is running).",
+        "rationale": "Single-replica deployments that do not configure leader election must not have their plugins silently no-op; the default-true behavior preserves backwards compatibility."
+      }
+    ],
+    "code_examples": []
+  }
+}

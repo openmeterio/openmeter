@@ -1,0 +1,81 @@
+{
+  "openmeter/notification/webhook": {
+    "purpose": "Defines the webhook.Handler interface (WebhookHandler + MessageHandler + EventTypeHandler), all shared input/output types, the error taxonomy, and the event-type registry for the notification delivery subsystem. It is the contract layer \u2014 implementations (svix/, noop/) live in sub-packages; callers depend only on this package.",
+    "patterns": [
+      {
+        "name": "models.Validator on every Input type",
+        "description": "Every *Input struct implements models.Validator with a Validate() method that collects field errors into []error, joins with errors.Join, and wraps with NewValidationError. The compile-time assertion var _ models.Validator = (*XInput)(nil) must appear adjacent to the type.",
+        "example": "var _ models.Validator = (*CreateWebhookInput)(nil)\nfunc (i CreateWebhookInput) Validate() error {\n    var errs []error\n    if i.Namespace == \"\" { errs = append(errs, errors.New(\"namespace is required\")) }\n    return NewValidationError(errors.Join(errs...))\n}"
+      },
+      {
+        "name": "Typed error hierarchy with Is* helpers",
+        "description": "Every error category (ValidationError, NotFoundError, RetryableError, MessageAlreadyExistsError, UnrecoverableError) is a distinct struct wrapping an inner error, with a public New* constructor and Is* predicate using errors.As via the generic isError[T] helper. Never return raw errors from handler methods.",
+        "example": "func IsValidationError(err error) bool { return isError[ValidationError](err) }"
+      },
+      {
+        "name": "Handler interface composition",
+        "description": "Handler embeds WebhookHandler + MessageHandler + EventTypeHandler. New capabilities are added to the appropriate sub-interface, not directly to Handler.",
+        "example": "type Handler interface {\n    WebhookHandler\n    MessageHandler\n    EventTypeHandler\n}"
+      },
+      {
+        "name": "EventType as a value type with group/schema metadata",
+        "description": "EventType carries Name, Description, GroupName, Schemas map, and Deprecated. New event types are declared as package-level vars using EventType literals and appended to NotificationEventTypes in events.go.",
+        "example": "var EventTypeInvoiceCreated = EventType{\n    Name: InvoiceCreatedType,\n    Description: InvoiceCreatedDescription,\n    GroupName: InvoiceEventGroupName,\n}"
+      },
+      {
+        "name": "MaxChannelsPerWebhook constant enforced at validation",
+        "description": "The hard limit (10) is expressed as MaxChannelsPerWebhook and ErrMaxChannelsPerWebhookExceeded in errors.go. Channel-count checks in implementations must reference these constants, not inline literals.",
+        "example": "var ErrMaxChannelsPerWebhookExceeded = fmt.Errorf(\"maximum number of channels (%d) per webhook exceeded\", MaxChannelsPerWebhook)"
+      },
+      {
+        "name": "RetryableError carries retry duration",
+        "description": "Transient failures from Svix (rate limits, etc.) must be returned as RetryableError with a non-zero retryAfter so callers can back off correctly. DefaultRetryAfter (15s) is used when after==0.",
+        "example": "return webhook.NewRetryableError(err, svixRateLimitRetryAfter)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Defines all Input/Output types, the Webhook and Message domain structs, ExpandParams, and the Handler interface composition. This is the only file callers need to import.",
+        "watch_for": "Adding a new method to Handler without updating both the svix/ and noop/ implementations causes compile failures. Every new Input type needs a Validate() method and a var _ models.Validator assertion."
+      },
+      {
+        "file": "errors.go",
+        "role": "Defines the full error taxonomy: ValidationError, NotFoundError, RetryableError, MessageAlreadyExistsError, UnrecoverableError, ErrNotImplemented, ErrMaxChannelsPerWebhookExceeded. Contains the generic isError[T] helper.",
+        "watch_for": "Never add domain error types in sub-packages (svix/, noop/) \u2014 they belong here. Svix-specific HTTP errors are mapped to these types via internal.WrapSvixError in the svix/ sub-package."
+      },
+      {
+        "file": "events.go",
+        "role": "Registry of all supported notification event types as package-level vars. NotificationEventTypes slice is passed to RegisterEventTypes at startup.",
+        "watch_for": "Adding a new event type requires: a const block for Name+Description, a var EventType{...} value, and appending to NotificationEventTypes. Missing the NotificationEventTypes append means the event type is never registered with Svix."
+      }
+    ],
+    "anti_patterns": [
+      "Adding Svix API calls or Svix SDK imports to this package \u2014 all Svix logic belongs in webhook/svix/",
+      "Returning raw errors from Input.Validate() \u2014 always wrap with NewValidationError so HTTP 400 mapping works",
+      "Defining error types in svix/ or noop/ sub-packages \u2014 all error taxonomy lives in errors.go",
+      "Adding a new Input struct without a var _ models.Validator compile-time assertion",
+      "Hardcoding the channel limit (10) inline instead of referencing MaxChannelsPerWebhook"
+    ],
+    "decisions": [
+      {
+        "decision": "Handler is a composed interface (WebhookHandler + MessageHandler + EventTypeHandler) rather than a flat interface",
+        "rationale": "Allows callers to depend only on the capability slice they need and lets noop/svix implementations be verified against each sub-interface independently."
+      },
+      {
+        "decision": "Typed error structs with Is* predicates instead of sentinel errors",
+        "rationale": "Enables the HTTP encoder chain to pattern-match on error category (ValidationError \u2192 400, NotFoundError \u2192 404, RetryableError \u2192 retry logic) without importing Svix types into the HTTP layer."
+      },
+      {
+        "decision": "events.go holds all EventType definitions as package-level vars, not inside sub-packages",
+        "rationale": "Ensures the canonical event-type list is visible to all consumers (notification service, test helpers) without importing the Svix implementation."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new notification event type (e.g. invoice.voided)",
+        "code": "// events.go\nconst (\n    InvoiceVoidedType        = \"invoice.voided\"\n    InvoiceVoidedDescription = \"Notification event for voided invoice.\"\n)\n\nvar EventTypeInvoiceVoided = EventType{\n    Name:        InvoiceVoidedType,\n    Description: InvoiceVoidedDescription,\n    GroupName:   InvoiceEventGroupName,\n}\n\n// append to NotificationEventTypes:\nvar NotificationEventTypes = []EventType{\n    EventTypeEntitlementsBalanceThreshold,\n    EventTypeEntitlementsReset,\n    EventTypeInvoiceCreated,\n    EventTypeInvoiceUpdated,\n    EventTypeInvoiceVoided, // new\n}"
+      }
+    ]
+  }
+}

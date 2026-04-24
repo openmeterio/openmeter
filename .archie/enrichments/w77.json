@@ -1,0 +1,125 @@
+{
+  "openmeter/currencies/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing currencies.Adapter for custom currencies and cost bases. All DB access is transaction-aware via entutils.TransactingRepo; the adapter struct implements TxCreator so it can start or join caller-supplied transactions.",
+    "patterns": [
+      {
+        "name": "TransactingRepo wrapping every method",
+        "description": "Every public adapter method body is wrapped with entutils.TransactingRepo(ctx, a, func(ctx, tx) ...) \u2014 never call a.db directly without this wrapper so the ctx-bound transaction is honoured.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (currencies.Currency, error) { curr, err := a.db.CustomCurrency.Create()... })"
+      },
+      {
+        "name": "Compile-time interface assertion",
+        "description": "Declare var _ currencies.Adapter = (*adapter)(nil) in both adapter.go and currencies.go to catch interface drift at compile time.",
+        "example": "var _ currencies.Adapter = (*adapter)(nil)"
+      },
+      {
+        "name": "Config struct + Validate + New constructor",
+        "description": "Adapter is constructed via New(Config) with a Config.Validate() guard; callers never instantiate the adapter struct directly.",
+        "example": "func New(config Config) (currencies.Adapter, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+      },
+      {
+        "name": "Tx / WithTx / Self triad",
+        "description": "The adapter implements the TxCreator protocol: Tx() hijacks a new pg transaction, WithTx() rebinds the adapter to an existing tx driver, Self() returns itself \u2014 required for entutils.TransactingRepo to work.",
+        "example": "func (a *adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) { txCtx, rawConfig, eDriver, err := a.db.HijackTx(...) }"
+      },
+      {
+        "name": "entdb.IsConstraintError \u2192 GenericConflictError",
+        "description": "On Ent constraint violations wrap with models.NewGenericConflictError so the HTTP layer maps it to 409 automatically.",
+        "example": "if entdb.IsConstraintError(err) { return currencies.Currency{}, models.NewGenericConflictError(...) }"
+      },
+      {
+        "name": "mapXFromDB mapper functions",
+        "description": "DB row \u2192 domain type conversion is always in package-level mapXFromDB functions (mapCurrencyFromDB, mapCostBasisFromDB); never inline struct construction in query handlers.",
+        "example": "func mapCurrencyFromDB(c *entdb.CustomCurrency) currencies.Currency { return currencies.Currency{...} }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Defines Config, New constructor, the adapter struct, and the Tx/WithTx/Self transaction plumbing \u2014 the skeleton every new adapter method depends on.",
+        "watch_for": "Do not add business logic here; it is strictly wiring. If Self() or WithTx() is removed, TransactingRepo breaks silently."
+      },
+      {
+        "file": "currencies.go",
+        "role": "Implements all currencies.Adapter methods (ListCustomCurrencies, CreateCurrency, CreateCostBasis, ListCostBases) plus the DB\u2192domain mappers.",
+        "watch_for": "Pagination in ListCustomCurrencies uses manual Offset/Limit; ListCostBases uses the generated q.Paginate helper \u2014 keep them consistent if extending."
+      }
+    ],
+    "anti_patterns": [
+      "Calling a.db.X directly inside a method body without entutils.TransactingRepo \u2014 bypasses the ctx-bound transaction",
+      "Adding service-layer validation or business logic inside the adapter \u2014 belongs in openmeter/currencies/service",
+      "Constructing *adapter directly instead of calling New(Config)",
+      "Returning raw Ent errors to callers \u2014 always wrap or map to models.Generic* errors"
+    ],
+    "decisions": [
+      {
+        "decision": "Tx/WithTx/Self triad on the adapter struct rather than a separate TxWrapper type",
+        "rationale": "entutils.TransactingRepo requires the repository itself to implement TxCreator; inlining the triad avoids an extra indirection layer and matches the pattern used across all other domain adapters."
+      },
+      {
+        "decision": "Separate mapper functions (mapCurrencyFromDB, mapCostBasisFromDB) rather than methods on Ent types",
+        "rationale": "Keeps generated Ent types isolated from domain types; changes to Ent schema only require updating the mapper, not every call site."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new adapter method that writes to the DB",
+        "code": "import (\n\t\"context\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/currencies\"\n\tentdb \"github.com/openmeterio/openmeter/openmeter/ent/db\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nfunc (a *adapter) UpdateCurrency(ctx context.Context, params currencies.UpdateCurrencyInput) (currencies.Currency, error) {\n\treturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (currencies.Currency, error) {\n\t\tcurr, err := a.db.CustomCurrency.UpdateOneID(params.ID).\n\t\t\tSetName(params.Name).\n\t\t\tSave(ctx)\n\t\tif err != nil {\n\t\t\tif entdb.IsNotFound(err) {\n\t\t\t\treturn currencies.Currency{}, models.NewGenericNotFoundError(fmt.Errorf(\"currency %s not found\", params.ID))\n\t\t\t}\n\t\t\treturn currencies.Currency{}, fmt.Errorf(\"failed to update currency: %w\", err)\n\t\t}\n\t\treturn mapCurrencyFromDB(curr), nil\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/currencies/service": {
+    "purpose": "Business-logic layer for currencies and cost bases. Validates inputs, resolves fiat vs. custom currency enumeration in-memory, and delegates persistence to currencies.Adapter via transaction.Run.",
+    "patterns": [
+      {
+        "name": "Input validation before transaction",
+        "description": "Every public method calls params.Validate() and returns models.NewGenericValidationError if it fails \u2014 before opening a transaction.",
+        "example": "if params.Validate() != nil { return ..., models.NewGenericValidationError(fmt.Errorf(\"invalid input: %w\", params.Validate())) }"
+      },
+      {
+        "name": "transaction.Run wrapping adapter calls",
+        "description": "All adapter interactions are wrapped in transaction.Run(ctx, s.adapter, func(ctx) ...) so the service participates in caller-supplied transactions.",
+        "example": "return transaction.Run(ctx, s.adapter, func(ctx context.Context) (currencies.Currency, error) { return s.adapter.CreateCurrency(ctx, params) })"
+      },
+      {
+        "name": "In-memory fiat enumeration via GOBL",
+        "description": "Fiat currencies come from currency.Definitions() (invopop/gobl) filtered to ISO-numeric-only; custom currencies come from the adapter. Combined listing merges both slices and applies manual pagination in-memory.",
+        "example": "for _, def := range lo.Filter(currency.Definitions(), func(def *currency.Def, _ int) bool { return def.ISONumeric != \"\" }) { items = append(items, ...) }"
+      },
+      {
+        "name": "Compile-time interface assertion",
+        "description": "var _ currencies.CurrencyService = (*Service)(nil) at package top ensures Service always satisfies the interface.",
+        "example": "var _ currencies.CurrencyService = (*Service)(nil)"
+      },
+      {
+        "name": "Business-logic only \u2014 no Ent imports",
+        "description": "The service package must not import openmeter/ent/db; all DB access must flow through currencies.Adapter to preserve the layer boundary.",
+        "example": "// service.go imports only: currencies, transaction, models, pagination, gobl, samber/lo"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Single file implementing currencies.CurrencyService: ListCurrencies (merges fiat+custom), CreateCurrency, CreateCostBasis (enforces future-only EffectiveFrom), ListCostBases.",
+        "watch_for": "ListCurrencies has two separate pagination paths \u2014 DB-level (custom-only) vs. in-memory (fiat or combined); adding a third filter type must handle both correctly. EffectiveFrom defaulting to time.Now() when nil is service-layer business logic, not adapter logic."
+      }
+    ],
+    "anti_patterns": [
+      "Importing openmeter/ent/db directly \u2014 all DB access must go through the currencies.Adapter interface",
+      "Skipping params.Validate() before calling the adapter \u2014 constraint errors from the DB are harder to diagnose than early validation errors",
+      "Applying pagination logic inside the adapter for combined fiat+custom queries \u2014 the adapter only handles DB rows; in-memory merging and pagination belong here",
+      "Using context.Background() instead of propagating the caller's ctx through transaction.Run"
+    ],
+    "decisions": [
+      {
+        "decision": "Fiat currency list sourced in-memory from GOBL, not stored in the DB",
+        "rationale": "ISO fiat currencies are stable and exhaustive in the GOBL library; storing them in Postgres would require synchronisation and add write paths with no benefit."
+      },
+      {
+        "decision": "EffectiveFrom defaulting and future-date validation lives in the service, not the adapter",
+        "rationale": "Adapter is a pure persistence layer; temporal business rules (must be in the future, default to now) belong in the service so they are enforced regardless of which code path calls the adapter."
+      }
+    ],
+    "code_examples": []
+  }
+}

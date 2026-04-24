@@ -1,0 +1,119 @@
+{
+  "pkg/framework/tracex": {
+    "purpose": "Provides a generic, type-safe OTel span wrapper that automatically records errors, sets span status, and handles panics. Eliminates boilerplate span lifecycle management from all domain services.",
+    "patterns": [
+      {
+        "name": "Span[T] for value-returning operations",
+        "description": "Use tracex.Start[T] + Span.Wrap when the wrapped function returns (T, error). Status is set to Ok or Error automatically; panic is recorded and re-panicked after span.End().",
+        "example": "span := tracex.Start[*billing.Invoice](ctx, tracer, \"billing.GetInvoice\"); return span.Wrap(func(ctx context.Context) (*billing.Invoice, error) { return adapter.Get(ctx, id) })"
+      },
+      {
+        "name": "SpanNoValue for error-only operations",
+        "description": "Use tracex.StartWithNoValue + SpanNoValue.Wrap when the wrapped function returns only error. Internally delegates to Span[any].Wrap to share status-setting logic.",
+        "example": "span := tracex.StartWithNoValue(ctx, tracer, \"billing.DeleteInvoice\"); return span.Wrap(func(ctx context.Context) error { return adapter.Delete(ctx, id) })"
+      },
+      {
+        "name": "Options via functional option pattern",
+        "description": "Customise the OkStatusDescription via tracex.WithOkStatusDescription(desc) passed as variadic opts to Wrap. Default is \"success\".",
+        "example": "span.Wrap(fn, tracex.WithOkStatusDescription(\"invoice fetched\"))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "tracex.go",
+        "role": "Entire package \u2014 defines Span[T], SpanNoValue, Start, StartWithNoValue, Wrap, and Options. Only file in the package.",
+        "watch_for": "Span.Wrap always calls span.End() via defer-on-panic and explicit call after fn; do not call span.End() outside Wrap or the span will be double-ended."
+      }
+    ],
+    "anti_patterns": [
+      "Calling tracer.Start directly and managing span.End/RecordError manually \u2014 use tracex.Start + Wrap instead",
+      "Introducing context.Background() inside Wrap callbacks \u2014 the Span carries the correct child ctx; always pass s.ctx through",
+      "Adding new Span variants that don't delegate to Span[any].Wrap \u2014 SpanNoValue already shows the correct delegation pattern"
+    ],
+    "decisions": [
+      {
+        "decision": "Generic Span[T] instead of a single untyped wrapper",
+        "rationale": "Preserves compile-time type safety for the return value while sharing the identical error-recording and panic-recovery logic across all call sites."
+      },
+      {
+        "decision": "Panic is re-panicked after span.End()",
+        "rationale": "The span must be closed (exported) before the stack unwinds further, but the caller's defer/recover chain must still see the original panic."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Wrap a DB read in a named span with automatic error recording",
+        "code": "import (\n\t\"context\"\n\t\"go.opentelemetry.io/otel/trace\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/tracex\"\n)\n\nfunc (s *service) GetInvoice(ctx context.Context, id string) (*Invoice, error) {\n\tspan := tracex.Start[*Invoice](ctx, s.tracer, \"billing.GetInvoice\")\n\treturn span.Wrap(func(ctx context.Context) (*Invoice, error) {\n\t\treturn s.adapter.Get(ctx, id)\n\t})\n}"
+      }
+    ]
+  },
+  "pkg/framework/transaction": {
+    "purpose": "Database-agnostic transaction abstraction: propagates a Driver (commit/rollback/savepoint) through context, and provides Run/RunWithNoValue helpers that start-or-reuse a transaction, set savepoints for nested calls, and rollback on error or panic.",
+    "patterns": [
+      {
+        "name": "Run[R] for transactional value-returning operations",
+        "description": "Call transaction.Run(ctx, creator, cb) to execute cb inside a transaction. If a Driver is already in ctx it is reused (nested savepoint); otherwise creator.Tx starts a new one.",
+        "example": "result, err := transaction.Run(ctx, a.db, func(ctx context.Context) (*Entity, error) { return a.insertRow(ctx) })"
+      },
+      {
+        "name": "RunWithNoValue for error-only transactional operations",
+        "description": "Use transaction.RunWithNoValue(ctx, creator, cb) when the callback returns only error. Delegates to Run[interface{}] internally.",
+        "example": "err := transaction.RunWithNoValue(ctx, a.db, func(ctx context.Context) error { return a.deleteRow(ctx, id) })"
+      },
+      {
+        "name": "Driver propagation via context key",
+        "description": "SetDriverOnContext stores a Driver under a package-private key; GetDriverFromContext retrieves it. A DriverConflictError is returned if a driver is already set, which Run uses to detect and reuse the existing tx.",
+        "example": "ctx, err := transaction.SetDriverOnContext(ctx, tx)  // called internally by Run; adapters should NOT call this directly"
+      },
+      {
+        "name": "Savepoints for nested transactions",
+        "description": "manage() calls tx.SavePoint() before cb and tx.Rollback() on error, enabling partial rollback within an outer transaction. Commit() is only called when the outermost Run succeeds.",
+        "example": "// Implicit \u2014 transaction.Run calls manage which calls tx.SavePoint() automatically"
+      },
+      {
+        "name": "Creator interface for adapter integration",
+        "description": "Any adapter that can start a transaction implements transaction.Creator via a Tx(ctx) method returning (ctx, Driver, error). Wire injects the concrete Creator (e.g. entutils adapter) into services.",
+        "example": "type Creator interface { Tx(ctx context.Context) (context.Context, Driver, error) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "context.go",
+        "role": "Defines the typed context key, GetDriverFromContext, SetDriverOnContext, DriverNotFoundError, and DriverConflictError. DriverConflictError signals an existing tx in ctx \u2014 Run treats this as tx-reuse, not a hard error.",
+        "watch_for": "SetDriverOnContext returns DriverConflictError (not nil) if a driver is already present \u2014 Run explicitly ignores this error type to reuse the existing tx."
+      },
+      {
+        "file": "transaction.go",
+        "role": "Defines Driver, Creator interfaces and Run/RunWithNoValue/getTx/manage. The manage function owns panic recovery (rollback + re-panic), savepoint creation, and commit/rollback on error.",
+        "watch_for": "manage() uses defer+recover to rollback and re-panic on any panic \u2014 never suppress this panic in adapter code. getTx reuses the existing Driver from ctx silently if present."
+      }
+    ],
+    "anti_patterns": [
+      "Calling creator.Tx() directly in adapter code instead of using transaction.Run \u2014 bypasses savepoint and rollback logic",
+      "Storing a *entdb.Tx or raw DB client on adapter structs and using them directly \u2014 falls off the ctx-bound transaction",
+      "Calling SetDriverOnContext manually outside of transaction.Run \u2014 Run already handles this; double-setting will return DriverConflictError and break nesting",
+      "Using context.Background() inside a Run callback \u2014 loses the Driver already stored in ctx, breaking nested transaction reuse",
+      "Ignoring DriverConflictError from SetDriverOnContext outside of the Run helper \u2014 the error signals tx reuse and must not be treated as fatal"
+    ],
+    "decisions": [
+      {
+        "decision": "Driver interface with SavePoint/Commit/Rollback instead of exposing *sql.Tx directly",
+        "rationale": "Keeps the transaction package DB-agnostic; Ent, pgx, and any future driver can implement Driver without leaking ORM types into the framework layer."
+      },
+      {
+        "decision": "Savepoints used for every nested Run call",
+        "rationale": "Allows partial rollback of nested operations while keeping the outer transaction alive, which is required for multi-step charge advancement and billing invoice mutations."
+      },
+      {
+        "decision": "Panic recovery inside manage() rolls back then re-panics",
+        "rationale": "The DB transaction must be cleaned up even on unexpected panics, but the panic must propagate so upper-layer recovery (Chi middleware, test harness) still sees it."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adapter method that must run inside a transaction, reusing an existing one from ctx if present",
+        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transaction\"\n)\n\nfunc (a *adapter) CreateAndLink(ctx context.Context, in CreateInput) (*Entity, error) {\n\treturn transaction.Run(ctx, a.db, func(ctx context.Context) (*Entity, error) {\n\t\te, err := a.insertEntity(ctx, in)\n\t\tif err != nil {\n\t\t\treturn nil, err\n\t\t}\n\t\tif err := a.insertLink(ctx, e.ID); err != nil {\n\t\t\treturn nil, err // triggers Rollback via manage()\n\t\t}\n\t\treturn e, nil\n\t})\n}"
+      }
+    ]
+  }
+}

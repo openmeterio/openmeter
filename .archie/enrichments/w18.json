@@ -1,0 +1,77 @@
+{
+  "api/spec/packages/aip/src/currencies/cost-bases": {
+    "purpose": "Defines TypeSpec models and REST operations for billing cost bases \u2014 the per-fiat-currency rate records attached to custom currencies. All output is compiled; no hand-written OpenAPI or Go here.",
+    "patterns": [
+      {
+        "name": "Visibility-scoped fields",
+        "description": "Every field uses @visibility(Lifecycle.Create, Lifecycle.Read) or @visibility(Lifecycle.Read) to control which fields appear in create vs read responses. System-assigned fields (id, created_at) are Read-only.",
+        "example": "@visibility(Lifecycle.Read) id: Shared.ULID; @visibility(Lifecycle.Create, Lifecycle.Read) fiat_code: Shared.CurrencyCode;"
+      },
+      {
+        "name": "Shared generic wrappers",
+        "description": "Use Shared.CreateRequest<T> / Shared.CreateResponse<T> / Shared.PagePaginatedResponse<T> for request/response envelopes \u2014 never write ad-hoc body/response shapes.",
+        "example": "@body body: Shared.CreateRequest<CostBasis>): Shared.CreateResponse<CostBasis>"
+      },
+      {
+        "name": "deepObject filter query params",
+        "description": "Filtering parameters are grouped into a dedicated filter model and annotated @query(#{ style: 'deepObject', explode: true }) so URL params follow filter[field]=value convention.",
+        "example": "@query(#{ style: \"deepObject\", explode: true }) filter?: ListCostBasesParamsFilter"
+      },
+      {
+        "name": "Extension decorators for visibility/stability",
+        "description": "Every operation carries @extension(Shared.PrivateExtension, true), @extension(Shared.UnstableExtension, true), and/or @extension(Shared.InternalExtension, true) to annotate API maturity. Add these before shipping any new operation.",
+        "example": "@extension(Shared.PrivateExtension, true) @extension(Shared.UnstableExtension, true) @extension(Shared.InternalExtension, true) @get"
+      },
+      {
+        "name": "Explicit @operationId and @summary",
+        "description": "Every operation must declare @operationId (kebab-case) and @summary for deterministic SDK method naming and OpenAPI documentation.",
+        "example": "@operationId(\"list-cost-bases\") @summary(\"List cost bases\")"
+      },
+      {
+        "name": "Namespace scoping",
+        "description": "Models and operations are declared inside 'namespace Currencies;' matching the parent domain \u2014 never use the root namespace or a different one.",
+        "example": "namespace Currencies; model CostBasis { ... }"
+      },
+      {
+        "name": "Pagination via Common.PagePaginationQuery spread",
+        "description": "List operations spread ...Common.PagePaginationQuery into the parameter list rather than declaring page/pageSize manually.",
+        "example": "get_cost_bases(@path currencyId: Shared.ULID, ...Common.PagePaginationQuery): Shared.PagePaginatedResponse<CostBasis>"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "cost-basis.tsp",
+        "role": "Defines the CostBasis model. Single source of truth for field names, types, and visibility. @friendlyName sets the generated Go/JS type name.",
+        "watch_for": "Omitting @visibility causes fields to appear in both create and read payloads unintentionally; @friendlyName must be globally unique across the spec."
+      },
+      {
+        "file": "operations.tsp",
+        "role": "Declares the CurrenciesCustomCostBasesOperations interface with list and create endpoints. All imports, HTTP decorators, and using statements live here.",
+        "watch_for": "Missing 'using TypeSpec.Http;' causes @get/@post/@query to be unknown decorators. Error union must include both domain-specific errors (Common.NotFound) and the catch-all Common.ErrorResponses."
+      }
+    ],
+    "anti_patterns": [
+      "Hand-editing generated OpenAPI or Go files instead of modifying these .tsp sources and running make gen-api",
+      "Declaring fields without @visibility \u2014 fields default to all lifecycle phases and leak write-only or system fields into create payloads",
+      "Adding operations without the three @extension stability decorators \u2014 breaks internal API maturity tracking",
+      "Writing ad-hoc pagination parameters instead of spreading ...Common.PagePaginationQuery",
+      "Using a @friendlyName that duplicates an existing model name \u2014 causes SDK type collisions"
+    ],
+    "decisions": [
+      {
+        "decision": "Models and operations split across two files (cost-basis.tsp + operations.tsp)",
+        "rationale": "Keeps the domain model (fields, types) separate from HTTP routing concerns (decorators, error unions, query params), matching the pattern used by sibling folders under aip/src/."
+      },
+      {
+        "decision": "All operations marked @extension(Shared.InternalExtension) / PrivateExtension / UnstableExtension",
+        "rationale": "Cost-basis endpoints are billing-internal and not yet stable; the extensions prevent them from appearing in public SDK docs and signal breaking-change freedom."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new read-only field to CostBasis (e.g. updated_at)",
+        "code": "// In cost-basis.tsp, inside model CostBasis:\n/**\n * An ISO-8601 timestamp of the last update.\n */\n@visibility(Lifecycle.Read)\nupdated_at?: Shared.DateTime;\n// Then run: make gen-api && make generate"
+      }
+    ]
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "openmeter/billing/charges/usagebased/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing usagebased.Adapter for the usage-based charge lifecycle. It persists charges, realization runs, credit allocations, invoiced usage, payments, and detailed lines \u2014 all within context-propagated transactions.",
+    "patterns": [
+      {
+        "name": "TransactingRepo wrapping on every write method",
+        "description": "Every mutating adapter method wraps its body with entutils.TransactingRepo (or TransactingRepoWithNoValue for void returns). This rebinds the Ent client to any transaction already in ctx, or starts a new one. Never use a.db directly inside a method body.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (usagebased.ChargeBase, error) { ... tx.db.ChargeUsageBased.UpdateOneID(...).Save(ctx) })"
+      },
+      {
+        "name": "Interface compliance assertions at compile time",
+        "description": "Every adapter sub-interface is asserted with a blank var declaration at the top of each file (e.g. var _ usagebased.ChargeAdapter = (*adapter)(nil)). Add one per file when implementing a new sub-interface.",
+        "example": "var _ usagebased.RealizationRunPaymentAdapter = (*adapter)(nil)"
+      },
+      {
+        "name": "Config struct + Validate() + New() constructor",
+        "description": "The adapter is constructed via New(Config) which calls config.Validate() before returning. All dependencies (Client, Logger, MetaAdapter) are in Config. Never expose a raw struct literal constructor.",
+        "example": "func New(config Config) (usagebased.Adapter, error) { if err := config.Validate(); err != nil { return nil, err }; return &adapter{...}, nil }"
+      },
+      {
+        "name": "WithTx + Self() for entutils transaction rebinding",
+        "description": "The adapter implements WithTx(ctx, *TxDriver) *adapter and Self() *adapter so entutils.TransactingRepo can rebind the Ent client to the ctx-carried transaction. Both must stay in sync with every field on the adapter struct.",
+        "example": "func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txDb := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txDb.Client(), logger: a.logger, metaAdapter: a.metaAdapter} }"
+      },
+      {
+        "name": "Input validation before entering TransactingRepo",
+        "description": "Every public method calls input.Validate() (or charge.Validate(), etc.) before calling TransactingRepo. Validation errors escape without opening a transaction.",
+        "example": "if err := input.Validate(); err != nil { return nil, err }"
+      },
+      {
+        "name": "Mapper functions in mapper.go, not inline in methods",
+        "description": "All DB\u2192domain conversions are delegated to named MapX functions in mapper.go (MapChargeFromDB, MapChargeBaseFromDB, MapRealizationRunFromDB, MapRealizationRunBaseFromDB). Methods call these; they do not map inline.",
+        "example": "return MapChargeBaseFromDB(dbUpdatedChargeBase), nil"
+      },
+      {
+        "name": "Soft-delete via DeletedAt + namespace filter on all queries",
+        "description": "Deletions set DeletedAt on the row (and call metaAdapter.DeleteRegisteredCharge) rather than hard-deleting. Queries must filter DeletedAtIsNil() for active records. Every query also scopes by Namespace to enforce multi-tenancy.",
+        "example": "Where(dbchargeusagebasedrundetailedline.DeletedAtIsNil()).Where(dbchargeusagebasedrundetailedline.NamespaceEQ(...))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Struct definition, Config/Validate/New constructor, Tx/WithTx/Self transaction plumbing",
+        "watch_for": "If you add a field to adapter struct, you MUST update WithTx to copy it \u2014 otherwise the tx-rebound copy loses the dependency"
+      },
+      {
+        "file": "charge.go",
+        "role": "CRUD for ChargeUsageBased rows: CreateCharges, GetByID, GetByIDs, UpdateCharge, DeleteCharge",
+        "watch_for": "expandRealizations helper builds Ent WithRuns eager-load chain; add new edges here when new run-level sub-entities are added"
+      },
+      {
+        "file": "mapper.go",
+        "role": "Pure DB\u2192domain mapping functions; no Ent queries here",
+        "watch_for": "MapRealizationRunFromDB asserts edges loaded via OrErr \u2014 if you add a new edge to expandRealizations, add the corresponding OrErr check and map it here"
+      },
+      {
+        "file": "detailedline.go",
+        "role": "UpsertRunDetailedLines (soft-delete + bulk create with ON CONFLICT) and FetchDetailedLines",
+        "watch_for": "The ON CONFLICT clause lists specific columns; if schema changes add new upsertable fields, add the corresponding UpdateX() call in the Exec chain"
+      },
+      {
+        "file": "realizationrun.go",
+        "role": "CreateRealizationRun and UpdateRealizationRun for ChargeUsageBasedRuns rows",
+        "watch_for": "Uses mo.Option pattern (IsPresent/OrEmpty) for partial updates \u2014 only set fields that are present to avoid overwriting with zero values"
+      },
+      {
+        "file": "detailedline_test.go",
+        "role": "Integration test suite for UpsertRunDetailedLines upsert/soft-delete semantics; uses testutils.InitPostgresDB + real migrations",
+        "watch_for": "Tests bootstrap metaadapter.New directly (not app/common) to avoid import cycles; follow this pattern for new test suites here"
+      },
+      {
+        "file": "creditallocation.go",
+        "role": "CreateRunCreditRealization \u2014 bulk-creates credit allocation rows for a realization run",
+        "watch_for": "Uses lo.Map + CreateBulk \u2014 all rows share the same runID namespace; validate runID first"
+      },
+      {
+        "file": "payment.go",
+        "role": "CreateRunPayment and UpdateRunPayment for ChargeUsageBasedRunPayment rows",
+        "watch_for": "Namespace mismatch between runID and payment.InvoicedCreate is a hard error \u2014 check is explicit before TransactingRepo"
+      }
+    ],
+    "anti_patterns": [
+      "Calling a.db.X directly inside a method body without TransactingRepo \u2014 bypasses ctx-carried transaction and causes partial writes",
+      "Mapping DB rows inline inside query methods instead of delegating to mapper.go functions",
+      "Hard-deleting rows \u2014 this package uses soft-delete (SetDeletedAt) everywhere for audit trail",
+      "Omitting namespace filter on any Ent query \u2014 breaks multi-tenancy isolation",
+      "Adding fields to adapter struct without updating WithTx to propagate them to the tx-rebound copy"
+    ],
+    "decisions": [
+      {
+        "decision": "entutils.TransactingRepo wraps every write, even helpers that receive a raw *entdb.Client",
+        "rationale": "Ent transactions propagate implicitly via ctx; bypassing rebinding causes partial writes under concurrent charge advancement (see AGENTS.md pitfalls)"
+      },
+      {
+        "decision": "Soft-delete with DeletedAt + metaAdapter.DeleteRegisteredCharge instead of hard DELETE",
+        "rationale": "Audit trail and idempotent realization runs require historical charge state to remain queryable"
+      },
+      {
+        "decision": "UpsertRunDetailedLines uses ON CONFLICT with ChildUniqueReferenceID as the idempotency key",
+        "rationale": "Rating reruns must replace existing detailed lines for the same logical line ID without creating duplicates, while preserving lines not in the new set via selective soft-delete"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new mutation method to the adapter following TransactingRepo discipline",
+        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n)\n\nfunc (a *adapter) SetRunResult(ctx context.Context, runID usagebased.RealizationRunID, result usagebased.RunResult) error {\n\tif err := runID.Validate(); err != nil {\n\t\treturn err\n\t}\n\tif err := result.Validate(); err != nil {\n\t\treturn err\n\t}\n\treturn entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {\n\t\t_, err := tx.db.ChargeUsageBasedRuns.UpdateOneID(runID.ID).\n\t\t\tWhere(dbchargeusagebasedruns.NamespaceEQ(runID.Namespace)).\n\t\t\tSetResult(result.Value).\n\t\t\tSave(ctx)\n\t\treturn err\n\t})\n}"
+      }
+    ]
+  }
+}

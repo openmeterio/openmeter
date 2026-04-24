@@ -1,0 +1,62 @@
+{
+  "openmeter/info/httpdriver": {
+    "purpose": "HTTP handler layer for the info domain, exposing stateless endpoints (e.g. currency list) via the httptransport pattern. No service dependency \u2014 data comes from external library calls (gobl/currency) or static definitions, so no adapter or Wire provider is needed.",
+    "patterns": [
+      {
+        "name": "httptransport.NewHandler triple",
+        "description": "Every endpoint is a dedicated named handler type (e.g. ListCurrenciesHandler) defined as httptransport.Handler[Req, Resp] and constructed via httptransport.NewHandler with a decoder func, an operation func, and a response encoder.",
+        "example": "type ListCurrenciesHandler httptransport.Handler[ListCurrenciesRequest, ListCurrenciesResponse]\nreturn httptransport.NewHandler(decoderFn, operationFn, commonhttp.JSONResponseEncoderWithStatus[...](http.StatusOK), opts...)"
+      },
+      {
+        "name": "Handler interface + private handler struct",
+        "description": "driver.go defines a public Handler interface listing all endpoint methods, and a private handler struct carrying shared options. New handlers are added as methods on *handler and listed in the Handler interface.",
+        "example": "type Handler interface { ListCurrencies() ListCurrenciesHandler }\ntype handler struct { options []httptransport.HandlerOption }\nfunc New(options ...httptransport.HandlerOption) Handler { return &handler{options: options} }"
+      },
+      {
+        "name": "Options forwarded via httptransport.AppendOptions",
+        "description": "Handler-level options (e.g. WithOperationName) are appended to h.options using httptransport.AppendOptions so cross-cutting concerns (tracing, error handling) from the caller propagate correctly.",
+        "example": "httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"listCurrencies\"))..."
+      },
+      {
+        "name": "No-op request decoder for parameterless endpoints",
+        "description": "When an endpoint has no path/query parameters, the decoder simply returns an empty request struct and nil error.",
+        "example": "func(ctx context.Context, r *http.Request) (ListCurrenciesRequest, error) { return ListCurrenciesRequest{}, nil }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "driver.go",
+        "role": "Defines the Handler interface and New constructor \u2014 the only public API of this package. Add new handler method signatures here when adding endpoints.",
+        "watch_for": "Do not add business logic here; driver.go is pure wiring."
+      },
+      {
+        "file": "currencies.go",
+        "role": "Implements ListCurrencies using gobl/currency.Definitions() filtered to ISO currencies. Representative template for all future handlers in this package.",
+        "watch_for": "The ISONumeric != '' filter intentionally excludes crypto/non-ISO currencies \u2014 do not remove it without understanding the API contract."
+      }
+    ],
+    "anti_patterns": [
+      "Injecting a domain service or adapter into handler struct when data comes from a static library \u2014 keep stateless handlers dependency-free",
+      "Returning raw error from operation func without using domain error types \u2014 breaks the generic error encoder chain",
+      "Defining handler types outside this package or in driver.go \u2014 each handler belongs in its own file",
+      "Hand-editing generated API types in api/ instead of regenerating via make gen-api",
+      "Adding request validation logic inside the decoder instead of returning a models.GenericValidationError from the operation func"
+    ],
+    "decisions": [
+      {
+        "decision": "No domain service dependency \u2014 data sourced directly from gobl/currency library",
+        "rationale": "Currency definitions are static ISO data; introducing a service/adapter layer would add unnecessary indirection and wiring cost."
+      },
+      {
+        "decision": "httptransport.Handler[Req, Resp] generic over plain http.HandlerFunc",
+        "rationale": "Keeps decoder, operation, and encoder as separate typed functions, enabling independent testing of each phase and reuse of shared error encoders."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new stateless info endpoint (e.g. ListTimezones)",
+        "code": "// timezones.go\npackage httpdriver\n\nimport (\n\t\"context\"\n\t\"net/http\"\n\n\t\"github.com/openmeterio/openmeter/api\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/commonhttp\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport\"\n)\n\ntype (\n\tListTimezonesRequest  struct{}\n\tListTimezonesResponse []api.Timezone\n\tListTimezonesHandler  httptransport.Handler[ListTimezonesRequest, ListTimezonesResponse]\n)\n\nfunc (h *handler) ListTimezones() ListTimezonesHandler {\n\treturn httptransport.NewHandler(\n\t\tfunc(ctx context.Context, r *http.Request) (ListTimezonesRequest, error) {\n\t\t\treturn ListTimezonesRequest{}, nil\n\t\t},\n\t\tfunc(ctx context.Context, request ListTimezonesRequest) (ListTimezonesResponse, error) {\n\t\t\t// populate from static data\n\t\t\treturn ListTimezonesResponse{}, nil\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[ListTimezonesResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(h.options, httptransport.WithOperationName(\"listTimezones\"))...,\n\t)\n}\n// Then add ListTimezones() ListTimezonesHandler to the Handler interface in driver.go"
+      }
+    ]
+  }
+}

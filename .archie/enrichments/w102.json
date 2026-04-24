@@ -1,0 +1,31 @@
+{
+  "openmeter/namespace/namespacedriver": {
+    "purpose": "Provides the NamespaceDecoder abstraction for extracting namespace context from HTTP requests. The only implementation is StaticNamespaceDecoder, which always returns a fixed string \u2014 used in self-hosted deployments where every request belongs to the default namespace.",
+    "patterns": [
+      {
+        "name": "NamespaceDecoder interface",
+        "description": "New namespace-resolution strategies must implement GetNamespace(ctx context.Context) (string, bool) \u2014 returning false signals 'namespace not found' and lets callers reject the request.",
+        "example": "type StaticNamespaceDecoder string\nfunc (d StaticNamespaceDecoder) GetNamespace(ctx context.Context) (string, bool) { return string(d), true }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "decoder.go",
+        "role": "Defines NamespaceDecoder interface and its sole StaticNamespaceDecoder implementation. Entire package is a single file \u2014 keep it that way unless adding a dynamic decoder.",
+        "watch_for": "Do not add business logic or imports of openmeter domain packages here; this file must remain import-free to avoid cycles with callers like openmeter/server/router."
+      }
+    ],
+    "anti_patterns": [
+      "Importing domain packages (billing, customer, entitlement) \u2014 this package sits at the infrastructure/transport boundary and must stay dependency-free",
+      "Adding state or initialization logic to StaticNamespaceDecoder \u2014 it is intentionally a plain string type",
+      "Returning true with an empty string from GetNamespace \u2014 callers treat empty namespace as valid and will silently scope queries to an unintended tenant"
+    ],
+    "decisions": [
+      {
+        "decision": "StaticNamespaceDecoder is a named string type rather than a struct",
+        "rationale": "Avoids constructor boilerplate for the common case where the namespace is a config value; the string itself IS the decoder."
+      }
+    ],
+    "code_examples": []
+  }
+}

@@ -1,0 +1,122 @@
+{
+  "openmeter/ingest/httpdriver": {
+    "purpose": "HTTP transport layer for CloudEvent ingestion. Decodes incoming requests (single event, batch, cloudevents+json, cloudevents-batch+json) into ingest.IngestEventsRequest and delegates to ingest.Service. Owned by the ingest domain; mounted by openmeter/server/router.",
+    "patterns": [
+      {
+        "name": "httptransport.NewHandler triple",
+        "description": "Every endpoint is constructed with httptransport.NewHandler(decoderFn, operationFn, encoderFn, ...options). Decoder extracts namespace + body; operation calls the service; encoder writes the response.",
+        "example": "httptransport.NewHandler(decoder, func(ctx, req) (resp, error) { return h.service.IngestEvents(ctx, req) }, commonhttp.EmptyResponseEncoder[IngestEventsResponse](http.StatusNoContent), opts...)"
+      },
+      {
+        "name": "Handler interface composition",
+        "description": "handler.go defines a Handler interface composed of sub-interfaces (IngestHandler), and each method returns a typed httptransport.Handler alias so callers depend on the narrowest surface.",
+        "example": "type Handler interface { IngestHandler }; type IngestHandler interface { IngestEvents() IngestEventsHandler }"
+      },
+      {
+        "name": "Namespace resolution via NamespaceDecoder",
+        "description": "Namespace is always resolved from context through namespacedriver.NamespaceDecoder.GetNamespace(ctx) in a shared helper h.resolveNamespace(ctx). Never hard-code or read namespace from path params.",
+        "example": "ns, ok := h.namespaceDecoder.GetNamespace(ctx); if !ok { return commonhttp.NewHTTPError(http.StatusInternalServerError, ...) }"
+      },
+      {
+        "name": "Domain-local error types + errorEncoder chain",
+        "description": "errors.go defines package-local error structs (ErrorInvalidContentType, ErrorInvalidEvent) that implement Error()/Message()/Details(). errorEncoder() uses commonhttp.HandleErrorIfTypeMatches to map them to 400.",
+        "example": "commonhttp.HandleErrorIfTypeMatches[ErrorInvalidContentType](ctx, http.StatusBadRequest, err, w)"
+      },
+      {
+        "name": "Content-type switch for multi-format ingestion",
+        "description": "ingest.go switches on Content-Type header to decode application/json (single or batch via AsEvent/AsIngestEventsBody1), application/cloudevents+json, and application/cloudevents-batch+json. Unknown types return ErrorInvalidContentType.",
+        "example": "switch contentType { case \"application/cloudevents+json\": ... case \"application/cloudevents-batch+json\": ... default: return req, ErrorInvalidContentType{...} }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Constructs the handler struct and exposes New(). All dependency injection (NamespaceDecoder, ingest.Service, HandlerOptions) happens here.",
+        "watch_for": "Do not add business logic here; it is wiring only. Always accept variadic httptransport.HandlerOption so callers can attach middleware."
+      },
+      {
+        "file": "ingest.go",
+        "role": "Implements IngestEvents() endpoint: multi-format request decoding and service dispatch. Type aliases IngestEventsRequest/Response/Handler live here.",
+        "watch_for": "The json/application body can be a single event OR a batch \u2014 both paths via AsEvent() and AsIngestEventsBody1() must be tried before returning ErrorInvalidEvent."
+      },
+      {
+        "file": "errors.go",
+        "role": "Defines domain-local HTTP error types and the errorEncoder() factory passed to httptransport.NewHandler.",
+        "watch_for": "Error types must implement Error(), Message(), and optionally Details(). Register new errors in errorEncoder() via commonhttp.HandleErrorIfTypeMatches \u2014 do not return raw errors that skip encoding."
+      },
+      {
+        "file": "ingest_test.go",
+        "role": "Table-driven tests using httptest.NewServer + ingest.NewInMemoryCollector. Covers single event, batch, and invalid-body paths.",
+        "watch_for": "Tests use StaticNamespaceDecoder('test') \u2014 always use a deterministic namespace in tests so collector.Events('test') is predictable."
+      }
+    ],
+    "anti_patterns": [
+      "Adding business logic (validation, transformation) inside the decoder function \u2014 delegate to ingest.Service instead",
+      "Returning raw errors from the decoder without wrapping in ErrorInvalidEvent or ErrorInvalidContentType \u2014 they bypass the errorEncoder and produce 500s",
+      "Reading namespace from URL path params instead of h.resolveNamespace(ctx)",
+      "Importing app/common or wire providers \u2014 this package must stay dependency-injection-agnostic",
+      "Defining a new endpoint without adding it to the Handler / IngestHandler interface composition in handler.go"
+    ],
+    "decisions": [
+      {
+        "decision": "Content-type switch instead of a single decoder",
+        "rationale": "CloudEvents spec defines three wire formats (JSON, cloudevents+json, cloudevents-batch+json); dispatching by Content-Type is spec-correct and keeps each parse path isolated."
+      },
+      {
+        "decision": "Domain-local error types instead of generic HTTP errors",
+        "rationale": "ErrorInvalidContentType and ErrorInvalidEvent carry structured details (contentType field) useful for client debugging, and are matched by type in errorEncoder to produce precise 400 responses."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new ingest endpoint following the existing pattern",
+        "code": "// ingest.go\ntype (\n\tMyNewRequest  = ingest.MyNewRequest\n\tMyNewResponse = struct{}\n\tMyNewHandler  httptransport.Handler[MyNewRequest, MyNewResponse]\n)\n\nfunc (h *handler) MyNew() MyNewHandler {\n\treturn httptransport.NewHandler(\n\t\tfunc(ctx context.Context, r *http.Request) (MyNewRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil { return MyNewRequest{}, err }\n\t\t\t// decode body...\n\t\t\treturn MyNewRequest{Namespace: ns}, nil\n\t\t},\n\t\tfunc(ctx context.Context, req MyNewRequest) (MyNewResponse, error) {\n\t\t\t_, err := h.service.MyNew(ctx, req)\n\t\t\treturn MyNewResponse{}, err\n\t\t},\n\t\tcommonhttp.EmptyResponseEncoder[MyNewResponse](http.StatusNoContent),\n\t\thttptransport.AppendOptions(h.options,\n\t\t\thttptransport.WithOperationName(\"MyNew\"),\n\t\t\thttptransport.WithErrorEncoder(errorEncoder()),\n\t\t)...,\n\t)\n}"
+      }
+    ]
+  },
+  "openmeter/ingest/ingestadapter": {
+    "purpose": "OTel instrumentation decorator for ingest.Collector. Wraps any Collector implementation to emit spans and two Int64Counters (events ingested, errors) without changing ingest behavior. Applied at wiring time in app/common.",
+    "patterns": [
+      {
+        "name": "Decorator / wrapper pattern over ingest.Collector",
+        "description": "collectorTelemetry embeds an ingest.Collector and implements the same interface. WithTelemetry() is the sole constructor \u2014 callers pass in the inner collector and receive an instrumented collector back.",
+        "example": "return &collectorTelemetry{collector: collector, tracer: tracer, ingestEventsCounter: c1, ingestErrorsCounter: c2}, nil"
+      },
+      {
+        "name": "Span-per-call with RecordError on failure",
+        "description": "Ingest() opens a trace span, delegates to the inner collector, then calls span.RecordError + span.SetStatus on error before incrementing the errors counter. Always defer span.End().",
+        "example": "ctx, span := c.tracer.Start(ctx, \"openmeter.ingest.events\", ...); defer span.End(); err = c.collector.Ingest(...); if err != nil { span.RecordError(err); ... }"
+      },
+      {
+        "name": "Metric naming convention openmeter.<domain>.<noun>",
+        "description": "Counter names follow openmeter.<domain>.<noun> (e.g. openmeter.ingest.events, openmeter.ingest.errors) with unit strings in UCUM {event} / {error} notation.",
+        "example": "metricMeter.Int64Counter(\"openmeter.ingest.events\", metric.WithDescription(...), metric.WithUnit(\"{event}\"))"
+      },
+      {
+        "name": "Attribute scoping by namespace",
+        "description": "Both counters and the span carry attribute.String(\"namespace\", namespace) so metrics are filterable per tenant without additional label cardinality.",
+        "example": "namespaceAttr := attribute.String(\"namespace\", namespace); c.ingestEventsCounter.Add(ctx, 1, metric.WithAttributes(namespaceAttr))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "telemetry.go",
+        "role": "Sole file. Defines collectorTelemetry struct, WithTelemetry constructor, and implements Ingest/Close. Metric counters are pre-allocated in the constructor, not per-call.",
+        "watch_for": "Counters must be created once in WithTelemetry and stored on the struct \u2014 metric.Meter.Int64Counter is not cheap to call on every event. Close() must delegate to the inner collector."
+      }
+    ],
+    "anti_patterns": [
+      "Creating metric instruments inside Ingest() instead of in the constructor \u2014 causes allocation and registration overhead on every event",
+      "Swallowing the inner collector's error \u2014 always propagate it after recording the span error",
+      "Adding business logic or event transformation here \u2014 this package must remain a pure observability decorator",
+      "Omitting the namespace attribute from counters \u2014 tenant-scoped metrics are a hard requirement"
+    ],
+    "decisions": [
+      {
+        "decision": "Separate ingestadapter package instead of embedding telemetry in kafkaingest",
+        "rationale": "Keeps observability concerns decoupled from transport; any Collector implementation (kafkaingest, in-memory, test stub) can be wrapped without modification."
+      }
+    ],
+    "code_examples": []
+  }
+}

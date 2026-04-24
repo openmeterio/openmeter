@@ -1,0 +1,244 @@
+{
+  "openmeter/productcatalog": {
+    "purpose": "Root domain package for the product catalog: defines shared value types (RateCard, Price, Discount, EntitlementTemplate, EffectivePeriod, PlanAddon, Phase, ProRatingConfig) and validators consumed by all sub-packages (addon, plan, planaddon, feature, subscription). Acts as the shared type contract between billing, entitlement, and subscription layers.",
+    "patterns": [
+      {
+        "name": "ValidatorFunc composition",
+        "description": "All domain types implement models.Validator and models.CustomValidator[T]; validation is composed from named ValidatorFunc[T] functions (e.g. ValidateAddonMeta(), ValidateAddonRateCards()) and called via models.Validate(). Never inline validation logic directly in Validate().",
+        "example": "func (a Addon) Validate() error { return a.ValidateWith(ValidateAddonMeta(), ValidateAddonRateCards()) }"
+      },
+      {
+        "name": "ValidationIssue sentinel errors",
+        "description": "All domain errors are package-level models.ValidationIssue vars with ErrorCode constants (ErrCodeXxx / ErrXxx pairs). HTTP status codes are attached via commonhttp.WithHTTPStatusCodeAttribute. Never return plain fmt.Errorf at the package boundary.",
+        "example": "var ErrRateCardFeatureNotFound = models.NewValidationIssue(ErrCodeRateCardFeatureNotFound, \"feature not found\", models.WithCriticalSeverity(), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest))"
+      },
+      {
+        "name": "Discriminated union types with custom JSON",
+        "description": "Polymorphic types (RateCard, Price, EntitlementTemplate) use unexported type-switch structs with explicit MarshalJSON/UnmarshalJSON. Always read the type discriminator field first, then unmarshal the concrete variant.",
+        "example": "EntitlementTemplate.MarshalJSON embeds typed sub-structs with a 'type' field; UnmarshalJSON reads serde.Type then delegates to MeteredEntitlementTemplate / StaticEntitlementTemplate / BooleanEntitlementTemplate."
+      },
+      {
+        "name": "EffectivePeriod status derivation",
+        "description": "Status (Draft/Active/Archived/Invalid) is always computed from EffectivePeriod.EffectiveFrom/EffectiveTo relative to clock.Now() or a supplied time \u2014 never stored as a separate field. Use StatusAt(t) for deterministic testing.",
+        "example": "AddonMeta.Status() calls StatusAt(clock.Now()); zero EffectivePeriod = Draft, EffectiveFrom set + EffectiveTo zero or future = Active."
+      },
+      {
+        "name": "RateCards collection helpers",
+        "description": "RateCards ([]RateCard) exposes collection-level methods: SingleBillingCadence(), AsProductCatalogRateCards(), ValidateRateCards(). Use these helpers rather than ranging over the slice directly to preserve validation semantics.",
+        "example": "ValidateAddonHasSingleBillingCadence checks a.RateCards.SingleBillingCadence() before publishing."
+      },
+      {
+        "name": "models.ErrorWithFieldPrefix for structured error paths",
+        "description": "Field-path context is always attached via models.ErrorWithFieldPrefix(models.NewFieldSelectorGroup(models.NewFieldSelector(\"field\")), err) so that HTTP encoders can generate JSONPath selectors for client-side field highlighting.",
+        "example": "models.ErrorWithFieldPrefix(models.NewFieldSelectorGroup(models.NewFieldSelector(\"ratecards\").WithExpression(models.WildCard)), ErrRateCardMultipleBillingCadence)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "openmeter/productcatalog/errors.go",
+        "role": "Single source of truth for all productcatalog-level ValidationIssue sentinel errors. Every new validation error must be added here as an ErrCode const + var pair.",
+        "watch_for": "Forgetting commonhttp.WithHTTPStatusCodeAttribute on errors that need a non-500 HTTP mapping; using plain errors.New instead of models.NewValidationIssue."
+      },
+      {
+        "file": "openmeter/productcatalog/ratecard.go",
+        "role": "Defines the RateCard interface (Type, AsMeta, Key, Merge, Clone, Compatible, GetBillingCadence, IsBillable) and RateCardMeta. All concrete rate card types (FlatFeeRateCard, UsageBasedRateCard) implement this interface.",
+        "watch_for": "Adding fields to RateCardMeta without updating Clone(); forgetting to add a case in the type-switch JSON serializer."
+      },
+      {
+        "file": "openmeter/productcatalog/price.go",
+        "role": "Defines the Price discriminated union (FlatPrice, UnitPrice, TieredPrice, DynamicPrice, PackagePrice) with custom JSON and the PaymentTermType enum.",
+        "watch_for": "Adding a new PriceType without updating the pricer interface, MarshalJSON/UnmarshalJSON switch, and all downstream adapters that map Price entities."
+      },
+      {
+        "file": "openmeter/productcatalog/entitlement.go",
+        "role": "Defines EntitlementTemplate discriminated union (Metered, Static, Boolean) with custom JSON. Used as a field of RateCardMeta.",
+        "watch_for": "Adding a new EntitlementType without updating all four switch statements in MarshalJSON, UnmarshalJSON, Validate, and Equal."
+      },
+      {
+        "file": "openmeter/productcatalog/addon.go",
+        "role": "Defines AddonMeta, Addon, AddonInstanceType and their validators including Publishable() which enforces stricter rules than Validate().",
+        "watch_for": "Calling Validate() where Publishable() is required; adding validators without registering them in ValidateWith chains."
+      },
+      {
+        "file": "openmeter/productcatalog/effectiveperiod.go",
+        "role": "Shared EffectivePeriod type embedded by Plan and Addon. Governs Draft/Active/Archived status transitions.",
+        "watch_for": "Setting EffectivePeriod fields directly to alter status \u2014 only Publish/Archive operations should mutate these fields."
+      },
+      {
+        "file": "openmeter/productcatalog/alignment.go",
+        "role": "Provides ValidateBillingCadencesAlign for checking that a rate card's billing cadence is divisible by (or equal to) the plan cadence.",
+        "watch_for": "Calling this with un-simplified ISODurations \u2014 always pass through ISODuration.Simplify(true) or rely on the validator helpers."
+      }
+    ],
+    "anti_patterns": [
+      "Returning plain fmt.Errorf or errors.New at the package boundary \u2014 always use models.NewValidationIssue sentinels or wrap with models.NewGenericValidationError.",
+      "Directly mutating EffectivePeriod.EffectiveFrom/EffectiveTo outside of Publish/Archive operations \u2014 status is derived, not stored.",
+      "Adding a new discriminated union variant (RateCardType, PriceType, EntitlementType) without updating MarshalJSON, UnmarshalJSON, Equal, Validate, and all downstream adapter type-switches.",
+      "Importing app/common or any DI package from this package \u2014 it must remain a pure domain types package with no wiring dependencies.",
+      "Calling RateCard.Compatible() or RateCard.Merge() without first verifying Type() equality \u2014 mismatched types cause panics or silent data loss."
+    ],
+    "decisions": [
+      {
+        "decision": "ValidatorFunc[T] composition instead of inline Validate()",
+        "rationale": "Allows callers to run stricter validation (Publishable) by composing additional ValidatorFunc values on top of the base set, without duplicating logic or adding conditional branches inside Validate()."
+      },
+      {
+        "decision": "EffectivePeriod-based status derivation (no stored status field)",
+        "rationale": "Avoids status synchronization bugs: status is always consistent with the stored timestamps and requires no additional write when times are updated."
+      },
+      {
+        "decision": "Discriminated union types with unexported fields and custom JSON",
+        "rationale": "Prevents accidental construction of zero-valued union types; forces callers through typed constructors (NewEntitlementTemplateFrom, NewPriceFrom) that set the discriminator correctly."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new ValidatorFunc and wiring it into Publishable validation",
+        "code": "// productcatalog/addon.go\nfunc ValidateAddonHasCompatiblePrices() models.ValidatorFunc[Addon] {\n    return func(a Addon) error {\n        switch a.InstanceType {\n        case AddonInstanceTypeMultiple:\n            for _, rc := range a.RateCards {\n                if price := rc.AsMeta().Price; price != nil && price.Type() != FlatPriceType {\n                    return models.ErrorWithFieldPrefix(\n                        models.NewFieldSelectorGroup(models.NewFieldSelector(\"ratecards\").\n                            WithExpression(models.NewFieldAttrValue(\"key\", rc.Key()))),\n                        ErrAddonInvalidPriceForMultiInstance,\n                    )\n                }\n            }\n        }\n        return nil\n    }\n}\n\nfunc (a Addon) Publishable() error {\n    return a.ValidateWith(\n        ValidateAddonMeta(),\n        ValidateAddonRateCards(),\n        ValidateAddonStatusPublishable(),\n        ValidateAddonHasSingleBillingCadence(),\n        ValidateAddonHasCompatiblePrices(), // new validator added here\n    )\n}"
+      }
+    ]
+  },
+  "openmeter/subject": {
+    "purpose": "Domain package for subject lifecycle (create, update, get, list, delete) \u2014 subjects are the usage measurement keys (analogous to users or devices). Backed by an Ent adapter and exposes ServiceHooks for lifecycle events consumed by entitlement/balanceworker.",
+    "patterns": [
+      {
+        "name": "Service interface with <Verb>Input types",
+        "description": "All mutating operations accept typed input structs (CreateInput, UpdateInput) that implement Validate(). Service methods call input.Validate() before delegating to the adapter.",
+        "example": "type CreateInput struct { Namespace string; Key string; DisplayName *string; ... }; func (i CreateInput) Validate() error { ... }"
+      },
+      {
+        "name": "OptionalNullable[T] for partial updates",
+        "description": "UpdateInput fields use OptionalNullable[T]{Value *T; IsSet bool} to distinguish between 'not provided' and 'explicitly set to null'. This pattern is unique to this package \u2014 do not replicate in new packages.",
+        "example": "UpdateInput.DisplayName OptionalNullable[string] \u2014 IsSet=false means keep existing, IsSet=true+Value=nil means clear."
+      },
+      {
+        "name": "ServiceHooks registry for cross-domain callbacks",
+        "description": "Subject.Service exposes RegisterHooks to allow other packages (entitlement/balanceworker) to subscribe to lifecycle events without creating import cycles. Uses the generic models.ServiceHooks[T] registry.",
+        "example": "Service.RegisterHooks(hooks SubjectServiceHooks) allows balanceworker to react to subject deletion."
+      },
+      {
+        "name": "Namespace-scoped operations",
+        "description": "Every operation requires a non-empty Namespace field in its input. GetByIdOrKey supports both ID and key lookup within a namespace \u2014 always prefer GetByIdOrKey over separate Get methods when the caller may have either identifier.",
+        "example": "GetByIdOrKey(ctx, models.NamespacedID{Namespace: ns, ID: id}) or GetByKey(ctx, ns, key)."
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "openmeter/subject/service.go",
+        "role": "Defines the Service interface and all Input/Output types including the OptionalNullable helper and ListSortBy enum.",
+        "watch_for": "OptionalNullable is explicitly marked as a unique pattern not to be reused elsewhere; new update inputs should use nullable.Nullable from pkg/nullable instead."
+      },
+      {
+        "file": "openmeter/subject/subject.go",
+        "role": "Defines the Subject domain type embedding models.ManagedModel with Namespace, Id, Key, DisplayName, Metadata fields.",
+        "watch_for": "Subject has both Id and Key \u2014 never conflate them; Key is the user-facing stable identifier, Id is the internal ULID."
+      }
+    ],
+    "anti_patterns": [
+      "Using context.Background() instead of the caller's ctx in service or adapter methods.",
+      "Bypassing the Service interface to call adapter methods directly from outside the package.",
+      "Importing app/common in subject testutils \u2014 build test deps from raw constructors to avoid import cycles.",
+      "Adding new update fields as plain pointer types instead of OptionalNullable when partial-null semantics are needed (though note this pattern is discouraged for new code)."
+    ],
+    "decisions": [
+      {
+        "decision": "OptionalNullable[T] for UpdateInput instead of nullable.Nullable",
+        "rationale": "Historical decision predating the pkg/nullable package; the code comment explicitly marks it as unique to this adapter and not to be replicated."
+      },
+      {
+        "decision": "ServiceHooks for cross-domain lifecycle callbacks",
+        "rationale": "Prevents circular imports between subject and entitlement/balanceworker by using the generic hook registry pattern from pkg/models."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/subscription": {
+    "purpose": "Core subscription domain package: defines SubscriptionSpec (the mutable spec driving phase/item/RateCard layout), the patch system (AppliesToSpec), uniqueness validation, annotation helpers, and the Service interface. Primary constraint: all mutations go through the patch system applied to SubscriptionSpec, never direct field writes.",
+    "patterns": [
+      {
+        "name": "SubscriptionSpec as mutable spec object",
+        "description": "SubscriptionSpec is the central object manipulated by patches, addons, and the service layer. It holds phases (map[string]*SubscriptionPhaseSpec) keyed by phase key. Always use GetSortedPhases() for ordered iteration \u2014 phase ordering is by StartAfter, not map insertion order.",
+        "example": "spec.GetSortedPhases() returns []*SubscriptionPhaseSpec sorted by StartAfter; spec.GetCurrentPhaseAt(t) returns the active phase at time t."
+      },
+      {
+        "name": "AppliesToSpec patch interface",
+        "description": "All mutations (patches, addon applications) implement AppliesToSpec with an ApplyTo(spec *SubscriptionSpec, actx ApplyContext) method. The method must only be called through SubscriptionSpec.ApplyX wrapper methods, never invoked directly.",
+        "example": "type AppliesToSpec interface { ApplyTo(spec *SubscriptionSpec, actx ApplyContext) error }"
+      },
+      {
+        "name": "pg_advisory_lock via GetCustomerLock",
+        "description": "Per-customer serialization uses lockr.Key from GetCustomerLock(customerId). The lock must be acquired inside an active Postgres transaction before any write operation.",
+        "example": "lockr.NewKey(\"customer\", customerId, \"subscription\") \u2014 pass this to billing.Service.WithLock before invoice/charge mutations."
+      },
+      {
+        "name": "ValidateUniqueConstraintByFeatures cross-subscription check",
+        "description": "Before persisting a new or updated subscription, ValidateUniqueConstraintByFeatures([]SubscriptionSpec) must be called to prevent two overlapping billable subscriptions from covering the same feature+customer simultaneously.",
+        "example": "subscription.ValidateUniqueConstraintByFeatures([]subscription.SubscriptionSpec{s1, s2}) returns ValidationIssues with JSONPath selectors on overlap."
+      },
+      {
+        "name": "Annotation helpers via annotationParser",
+        "description": "Subscription-level metadata (e.g. PreviousSubscriptionID, SupersedingSubscriptionID, entitlement counts) is stored in models.Annotations as typed keys. Always use the annotationParser getter/setter methods \u2014 never read raw annotation map keys.",
+        "example": "annotationParser{}.GetPreviousSubscriptionID(annotations) \u2014 returns *string, nil if not set."
+      },
+      {
+        "name": "SubscriptionSpec.GetAlignedBillingPeriodAt for billing period calculation",
+        "description": "For aligned subscriptions, billing periods must be computed via GetAlignedBillingPeriodAt(at time.Time) rather than manually advancing the plan cadence, to handle phase reanchoring correctly.",
+        "example": "spec.GetAlignedBillingPeriodAt(now) returns (timeutil.ClosedPeriod, error)."
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "openmeter/subscription/apply.go",
+        "role": "Defines AppliesToSpec interface and ApplyContext. All patches and addon applications implement this interface.",
+        "watch_for": "The FIXME comment notes ApplyTo should be private but isn't yet \u2014 never call ApplyTo directly, always go through SubscriptionSpec.ApplyX."
+      },
+      {
+        "file": "openmeter/subscription/spec.go",
+        "role": "Defines SubscriptionSpec and SubscriptionPhaseSpec. Contains GetSortedPhases, GetCurrentPhaseAt, GetAlignedBillingPeriodAt, HasEntitlements, HasBillables.",
+        "watch_for": "Phase map is keyed by phase key string \u2014 must call GetSortedPhases() for ordered traversal; direct map iteration gives undefined phase order."
+      },
+      {
+        "file": "openmeter/subscription/locks.go",
+        "role": "Provides GetCustomerLock(customerId) for pg_advisory_lock key construction.",
+        "watch_for": "Lock must be used inside an active Postgres transaction; lockr.Locker fails if no transaction is present in ctx."
+      },
+      {
+        "file": "openmeter/subscription/uniqueness.go",
+        "role": "Implements ValidateUniqueConstraintByFeatures for cross-subscription overlap detection on billable features.",
+        "watch_for": "Must be called with all active+new subscriptions for a customer, not just the two being compared \u2014 otherwise partial overlap cases are missed."
+      },
+      {
+        "file": "openmeter/subscription/annotation.go",
+        "role": "Typed annotation getter/setter helpers (PreviousSubscriptionID, SupersedingSubscriptionID, entitlement counts).",
+        "watch_for": "Never read annotation keys directly \u2014 always use annotationParser methods to avoid key string typos and type assertion errors."
+      }
+    ],
+    "anti_patterns": [
+      "Calling patch.ApplyTo(spec, actx) directly \u2014 always route through SubscriptionSpec.ApplyX wrapper methods so subsequent validation runs.",
+      "Iterating over SubscriptionSpec.Phases map directly \u2014 always call GetSortedPhases() to get deterministic phase order.",
+      "Skipping ValidateUniqueConstraintByFeatures before persisting a new or updated subscription covering a billable feature.",
+      "Reading or writing annotation map keys as raw strings instead of using annotationParser methods.",
+      "Calling subscription.Service directly for create/change/migrate \u2014 always route through PlanSubscriptionService or WorkflowService."
+    ],
+    "decisions": [
+      {
+        "decision": "Patch system (AppliesToSpec) as the only mutation path",
+        "rationale": "Ensures all changes go through a validated, ordered application pipeline so that SubscriptionSpec invariants (phase ordering, feature uniqueness, billing cadence alignment) are always checked after every mutation."
+      },
+      {
+        "decision": "SubscriptionSpec as an in-memory spec object separate from persisted Subscription",
+        "rationale": "Allows the service layer to build, validate, and diff specs before writing to the DB, supporting EditRunning and ChangeToPlan operations that need to compute diffs against the current live state."
+      },
+      {
+        "decision": "pg_advisory_lock per customer for subscription serialization",
+        "rationale": "Prevents concurrent subscription creates/edits for the same customer from producing conflicting billing line items or overlapping entitlement grants."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Applying a patch to a SubscriptionSpec and validating uniqueness",
+        "code": "// openmeter/subscription/service/service.go (conceptual)\nspec, err := svc.GetSpecForCustomer(ctx, customerID)\nif err != nil { return err }\n\n// Apply the patch through the spec wrapper (not patch.ApplyTo directly)\nif err := spec.ApplyPatch(patch, subscription.ApplyContext{CurrentTime: now}); err != nil {\n    return err\n}\n\n// Validate cross-subscription uniqueness before persisting\nallSpecs, err := svc.GetAllActiveSpecsForCustomer(ctx, customerID)\nif err != nil { return err }\nif err := subscription.ValidateUniqueConstraintByFeatures(append(allSpecs, spec)); err != nil {\n    return err\n}\n\nreturn svc.adapter.Upsert(ctx, spec)"
+      }
+    ]
+  }
+}

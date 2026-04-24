@@ -1,0 +1,96 @@
+{
+  "api/spec/packages/legacy/src/entitlements/v2": {
+    "purpose": "TypeSpec definitions for the v2 entitlements and grants API surface under `/api/v2/`. Extends and reshapes v1 entitlement/grant models (via OmitProperties + new fields) to expose customer-scoped CRUD, value/history/reset sub-routes, and admin list endpoints \u2014 all compiled into api/openapi.yaml Go server stubs and SDKs.",
+    "patterns": [
+      {
+        "name": "Discriminated union for polymorphic entitlement types",
+        "description": "Union types with `@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" })` and a `type` literal field on each variant. Both response unions (EntitlementV2) and input unions (EntitlementV2CreateInputs) follow this shape.",
+        "example": "@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" })\nunion EntitlementV2 { metered: EntitlementMeteredV2, static: EntitlementStaticV2, boolean: EntitlementBooleanV2 }"
+      },
+      {
+        "name": "OmitProperties for model composition",
+        "description": "New V2 models reuse existing V1 models via `OmitProperties<Base, \"field1\" | \"field2\">` spreads rather than copy-pasting fields. Deprecated fields are kept on the create-input model with `#deprecated` annotations.",
+        "example": "model EntitlementMeteredV2 { ...OmitProperties<EntitlementMeteredV2CreateInputs, \"type\" | \"grants\">; ...EntitlementCustomerFields; }"
+      },
+      {
+        "name": "Interface-per-route-group with @route + @tag",
+        "description": "Each logical URL prefix gets its own `interface` decorated with `@route`, `@tag`, and `@friendlyName`. Sub-routes use `@route` on individual operations. Never mix URL prefixes inside one interface.",
+        "example": "@route(\"/api/v2/customers/{customerIdOrKey}/entitlements\")\n@tag(\"Entitlements\")\ninterface CustomerEntitlementsV2Endpoints { ... }"
+      },
+      {
+        "name": "Explicit operationId on every operation",
+        "description": "Every operation carries `@operationId(\"verbNounV2\")` with a camelCase V2 suffix so generated SDK method names are stable and distinct from V1 counterparts.",
+        "example": "@operationId(\"createCustomerEntitlementV2\")"
+      },
+      {
+        "name": "PaginatedResponse wrapper with QueryPagination/QueryOrdering spreads",
+        "description": "List operations return `PaginatedResponse<T>` and spread `...QueryPagination`, `...QueryLimitOffset`, and `...QueryOrdering<OrderByEnum>` for consistent pagination params across all list endpoints.",
+        "example": "list(...QueryPagination, ...QueryLimitOffset, ...QueryOrdering<EntitlementOrderBy>): PaginatedResponse<EntitlementV2> | CommonErrors"
+      },
+      {
+        "name": "Version suffix naming (V2) on all public symbols",
+        "description": "Every model, union, and interface name exported from this package ends with `V2` (e.g. EntitlementV2, GrantV2, GrantCreateInputV2). main.tsp documents this as mandatory for versioned packages to avoid SDK symbol collisions.",
+        "example": "model GrantV2 { ... }  // NOT Grant or EntitlementGrant"
+      },
+      {
+        "name": "CommonErrors + typed error union on every operation",
+        "description": "Every operation returns `| CommonErrors` at minimum, plus `| NotFoundError`, `| ConflictError` where applicable. Never return a bare error or omit error unions.",
+        "example": "get(...): EntitlementV2 | CommonErrors | NotFoundError"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "main.tsp",
+        "role": "Package entry point: imports all sibling .tsp files and the parent namespace. Declares no models \u2014 only wires the package together.",
+        "watch_for": "All new .tsp files in this folder must be imported here; forgetting breaks compilation silently."
+      },
+      {
+        "file": "entitlements.tsp",
+        "role": "Defines admin list/get endpoints at /api/v2/entitlements and the core discriminated union models (EntitlementV2, EntitlementV2CreateInputs) plus all three variant models.",
+        "watch_for": "EntitlementV2 and EntitlementV2CreateInputs are the canonical union types \u2014 adding a new entitlement sub-type requires updating both unions here."
+      },
+      {
+        "file": "customer.tsp",
+        "role": "Customer-scoped CRUD plus value/history/reset/grants sub-routes. Also defines EntitlementValueV2 response model and EntitlementMeteredV2CreateInputs with deprecated field bridging.",
+        "watch_for": "Two separate interfaces for the two URL prefixes; the second interface (CustomerEntitlementV2Endpoints) owns all sub-resource routes \u2014 don't add sub-routes to the first interface."
+      },
+      {
+        "file": "grant.tsp",
+        "role": "Defines GrantV2 response model and GrantCreateInputV2 create-input model; imported by customer.tsp and grants.tsp. No HTTP routes here \u2014 pure model file.",
+        "watch_for": "Does NOT use `using TypeSpec.Http` \u2014 adding HTTP decorators here requires adding the import and using declaration first."
+      },
+      {
+        "file": "grants.tsp",
+        "role": "Admin list endpoint at /api/v2/grants. Intentionally thin \u2014 no per-grant routes.",
+        "watch_for": "Uses both `QueryPagination` and `QueryLimitOffset` spread params; all new list endpoints in this package should do the same."
+      }
+    ],
+    "anti_patterns": [
+      "Redefining V1 models instead of composing via OmitProperties \u2014 creates divergence when V1 types change.",
+      "Omitting the V2 suffix from model, union, or interface friendly names \u2014 causes SDK name collisions with V1 symbols.",
+      "Adding a new entitlement type variant without updating both EntitlementV2 and EntitlementV2CreateInputs discriminated unions in entitlements.tsp.",
+      "Forgetting to import a new .tsp file in main.tsp \u2014 the file compiles in isolation but is invisible to the package.",
+      "Using HTTP decorators in a file that lacks `import \"@typespec/http\"` and `using TypeSpec.Http` (e.g. grant.tsp) \u2014 causes compilation failure."
+    ],
+    "decisions": [
+      {
+        "decision": "V2 models compose V1 types via OmitProperties rather than standalone redefinitions",
+        "rationale": "Keeps V1\u2192V2 delta minimal and auditable; V1 field changes propagate automatically unless explicitly omitted."
+      },
+      {
+        "decision": "Deprecated fields (issueAfterReset, issueAfterResetPriority) kept on create-input with #deprecated instead of removed",
+        "rationale": "SDK consumers using V1-style fields must not break on upgrade; the V2 replacement (issue: IssueAfterReset) is additive."
+      },
+      {
+        "decision": "Two separate interfaces in customer.tsp for the two /customers/{id}/entitlements URL prefixes",
+        "rationale": "TypeSpec interface-level @route applies to all operations; splitting ensures sub-resource paths (/grants, /value, /history, /reset) don't pollute the top-level collection interface."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new list filter param to an existing V2 list endpoint",
+        "code": "// In entitlements.tsp \u2014 add param inside the list() operation signature:\nlist(\n  @query(#{ explode: true }) feature?: string[],\n  // new filter:\n  @query(#{ explode: true }) subjectKeys?: string[],\n  ...QueryPagination,\n  ...QueryLimitOffset,\n  ...QueryOrdering<EntitlementOrderBy>,\n): PaginatedResponse<EntitlementV2> | CommonErrors;"
+      }
+    ]
+  }
+}

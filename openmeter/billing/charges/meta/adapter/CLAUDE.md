@@ -1,0 +1,59 @@
+# adapter
+
+<!-- archie:ai-start -->
+
+> Ent/PostgreSQL adapter implementing meta.Adapter for the charges meta-registry — persists charge cross-reference records (the Charge join table linking charge IDs to their typed sub-entities) and manages their soft-delete lifecycle. All DB writes are transaction-aware via entutils.TransactingRepoWithNoValue.
+
+## Patterns
+
+**TransactingRepoWithNoValue wrapping every write** — Every mutating method calls entutils.TransactingRepoWithNoValue(ctx, a, func(ctx, tx *adapter) error{...}). This rebinds to the caller's ctx-propagated transaction or starts a new one. Passing the raw a.db directly would bypass the tx. (`return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error { return tx.db.Charge.Create()...Save(ctx) })`)
+**Compile-time interface assertion** — var _ meta.Adapter = (*adapter)(nil) at package level ensures adapter always satisfies meta.Adapter at compile time. (`var _ meta.Adapter = (*adapter)(nil)`)
+**Config struct with Validate() before New()** — Config holds Client *entdb.Client and Logger *slog.Logger. New() calls config.Validate() and returns error before constructing the adapter — never returns a broken adapter. (`func New(config Config) (meta.Adapter, error) { if err := config.Validate(); err != nil { return nil, err } ... }`)
+**WithTx / Self / Tx triad for entutils.TxDriver** — adapter implements WithTx(ctx, *TxDriver) *adapter, Self() *adapter, and Tx(ctx) for entutils.TransactingRepo to rebind or start transactions. All three must be present for TransactingRepoWithNoValue to work. (`func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txDb := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txDb.Client(), logger: a.logger} }`)
+**Soft-delete via SetDeletedAt(clock.Now())** — DeleteRegisteredCharge updates the record's deleted_at column with clock.Now() and a chargedb.DeletedAtIsNil() predicate to guard against double-deletion — never issues a hard DELETE. (`tx.db.Charge.UpdateOneID(in.ID).Where(chargedb.DeletedAtIsNil(), chargedb.Namespace(in.Namespace)).SetDeletedAt(clock.Now()).Exec(ctx)`)
+**Input Validate() before any Ent call** — Every exported method calls in.Validate() first, returning its error before touching the DB. Input types own their own validation. (`func (a *adapter) RegisterCharges(ctx context.Context, in meta.RegisterChargesInput) error { if err := in.Validate(); err != nil { return err } ... }`)
+**Type-switched charge foreign-key assignment** — When creating a Charge row, the adapter switches on in.Type (FlatFee / UsageBased / CreditPurchase) and calls the matching SetCharge*ID builder method, ensuring exactly one FK column is populated per charge type. (`switch in.Type { case meta.ChargeTypeFlatFee: create = create.SetChargeFlatFeeID(charge.ID) ... }`)
+
+## Key Files
+
+| File | Role | Watch For |
+|------|------|-----------|
+| `adapter.go` | Defines Config, New constructor, and the adapter struct with Tx/WithTx/Self. This is the only place where *entdb.Client is stored; all DB access elsewhere goes through tx.db obtained from WithTx. | Never store or use a bare *entdb.Client outside of Tx/WithTx/Self — doing so bypasses the ctx-bound transaction. |
+| `charges.go` | Implements RegisterCharges (bulk-create) and DeleteRegisteredCharge (soft-delete). Both operations wrap their Ent calls in TransactingRepoWithNoValue. | If you add a new write method, it must also call TransactingRepoWithNoValue. Missing this wrapping causes writes to fall outside the caller's transaction. |
+
+## Anti-Patterns
+
+- Calling tx.db.Charge... directly in an exported method body without TransactingRepoWithNoValue — bypasses the ctx transaction
+- Hard-deleting rows (tx.db.Charge.DeleteOneID) instead of soft-deleting via SetDeletedAt
+- Storing business logic or validation in this adapter — logic belongs in the meta service layer
+- Adding new fields to Config without a corresponding nil-check in Config.Validate()
+- Removing or bypassing the var _ meta.Adapter = (*adapter)(nil) assertion
+
+## Decisions
+
+- **TransactingRepoWithNoValue instead of direct Ent calls** — Charge advancement mixes multiple writes; if any helper uses the raw client instead of rebinding to ctx's transaction, partial writes occur under concurrency. Explicit wrapping is the only compiler-enforceable guard.
+- **Separate Config struct with Validate() before construction** — Fails fast with a descriptive error rather than a nil-pointer panic at first DB call, which could be deep inside a billing transaction.
+- **Soft-delete with DeletedAtIsNil predicate guard** — Billing charge records are audit-critical; hard deletes lose history. The IsNil predicate makes double-soft-delete a no-op rather than an error-prone state.
+
+## Example: Add a new write method that bulk-updates charge status
+
+```
+import (
+	"context"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+)
+
+func (a *adapter) MarkChargesProcessed(ctx context.Context, in meta.MarkChargesProcessedInput) error {
+	if err := in.Validate(); err != nil {
+		return err
+	}
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
+		_, err := tx.db.Charge.Update().
+			Where(chargedb.IDIn(in.IDs...), chargedb.Namespace(in.Namespace)).
+			SetProcessedAt(clock.Now()).
+			Save(ctx)
+// ...
+```
+
+<!-- archie:ai-end -->

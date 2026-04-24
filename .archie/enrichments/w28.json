@@ -1,0 +1,326 @@
+{
+  "api/v3/handlers/featurecost": {
+    "purpose": "Single-operation v3 HTTP handler for querying feature cost by delegating to cost.Service using meter query params built via shared query.BuildQueryParams logic. Bridges feature lookup, meter resolution, and cost calculation into one endpoint.",
+    "patterns": [
+      {
+        "name": "HandlerWithArgs for path-param endpoints",
+        "description": "Use httptransport.NewHandlerWithArgs when the URL has a path parameter (featureID here). The third type param is the path param type (string). Plain httptransport.NewHandler is for body-only endpoints.",
+        "example": "QueryFeatureCostHandler httptransport.HandlerWithArgs[QueryFeatureCostRequest, QueryFeatureCostResponse, QueryFeatureCostParams]"
+      },
+      {
+        "name": "Shared query param construction",
+        "description": "Reuse query.BuildQueryParams from api/v3/handlers/meters/query for streaming query param construction rather than duplicating the logic. Pass a query.NewCustomerResolver wrapping customerService.",
+        "example": "params, err := query.BuildQueryParams(ctx, m, req.Body, query.NewCustomerResolver(h.customerService))"
+      },
+      {
+        "name": "Domain validation before service call",
+        "description": "Validate domain preconditions (e.g., feature has a meter) in the operation func using models.NewGenericValidationError before calling the service.",
+        "example": "if feat.MeterID == nil { return QueryFeatureCostResponse{}, models.NewGenericValidationError(...) }"
+      },
+      {
+        "name": "Nil-safe conversion with empty slice fallback",
+        "description": "ToAPIFeatureCostQueryResult returns an empty Data slice (not nil) when result is nil, preventing null in JSON.",
+        "example": "if result == nil { return api.FeatureCostQueryResult{..., Data: []api.FeatureCostQueryRow{}} }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Defines Handler interface (one method: QueryFeatureCost) and handler struct with resolveNamespace, costService, featureConnector, meterService, customerService.",
+        "watch_for": "All injected services must be present in New() signature; missing one causes Wire compile failure."
+      },
+      {
+        "file": "query.go",
+        "role": "Implements QueryFeatureCost operation: resolves namespace, parses optional body, looks up feature, validates meter association, builds query params, calls cost service.",
+        "watch_for": "ParseOptionalBody is used (not ParseBody) because the request body is optional for this query endpoint."
+      },
+      {
+        "file": "convert.go",
+        "role": "Converts cost.CostQueryResult to api.FeatureCostQueryResult. Uses nullable.NewNullNullable for absent cost field.",
+        "watch_for": "nullable.NewNullNullable vs nullable.NewNullableWithValue must be chosen correctly; using wrong one silently produces unexpected JSON nullability."
+      }
+    ],
+    "anti_patterns": [
+      "Duplicating query.BuildQueryParams logic inline instead of calling the shared function from api/v3/handlers/meters/query",
+      "Returning nil instead of empty slice for Data when result is nil",
+      "Using context.Background() instead of propagating the request ctx"
+    ],
+    "decisions": [
+      {
+        "decision": "Cost querying reuses meter query param builder (query.BuildQueryParams)",
+        "rationale": "Feature cost uses the same streaming query structure as meter queries; sharing the builder avoids drift between the two filter/window handling paths."
+      }
+    ],
+    "code_examples": []
+  },
+  "api/v3/handlers/features": {
+    "purpose": "Full CRUD v3 HTTP handler package for product-catalog features (list, get, create, update, delete/archive). Includes LLM pricing enrichment on get/update responses and domain-error-specific HTTP status mapping via a local errorEncoder.",
+    "patterns": [
+      {
+        "name": "Per-operation file split",
+        "description": "Each CRUD verb lives in its own file (create.go, get.go, list.go, update.go, delete.go). handler.go declares the Handler interface and New() constructor. convert.go holds all domain<->API type conversions. error_encoder.go holds domain-error HTTP status mapping.",
+        "example": "func (h *handler) CreateFeature() CreateFeatureHandler { return httptransport.NewHandler(...) }"
+      },
+      {
+        "name": "Goverter-free manual conversion with unit tests",
+        "description": "This package uses hand-written convert.go functions (not Goverter) and covers them with convert_test.go. All convert functions return (T, error) to propagate parse failures.",
+        "example": "func convertFeatureToAPI(f feature.Feature) (api.Feature, error)"
+      },
+      {
+        "name": "Domain-specific errorEncoder chained after GenericErrorEncoder",
+        "description": "Append httptransport.WithErrorEncoder(errorEncoder()) after apierrors.GenericErrorEncoder() in AppendOptions. errorEncoder handles feature-domain typed errors (FeatureInvalidFiltersError \u2192 400, ForbiddenError \u2192 403, FeatureWithNameAlreadyExistsError \u2192 409).",
+        "example": "httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()), httptransport.WithErrorEncoder(errorEncoder())"
+      },
+      {
+        "name": "Conditional LLM pricing enrichment on read responses",
+        "description": "After converting a feature to API, check UnitCost.Type == UnitCostTypeLLM and call resolveLLMPricing; if pricing returned is non-nil call enrichFeatureResponseWithPricing. This is done in both get.go and update.go.",
+        "example": "if feat.UnitCost != nil && feat.UnitCost.Type == feature.UnitCostTypeLLM && h.llmcostService != nil { pricing := resolveLLMPricing(ctx, h.llmcostService, feat); if pricing != nil { enrichFeatureResponseWithPricing(&resp, pricing) } }"
+      },
+      {
+        "name": "Meter validation at decode time",
+        "description": "Meter ID resolution and filter key validation happen in the request decoder (first func of NewHandler), not in the operation func. Use models.NewGenericValidationError for filter key mismatches.",
+        "example": "func validateMeterFilters(filters map[string]api.QueryFilterStringMapItem, m meter.Meter) error { for k := range filters { if _, ok := m.GroupBy[k]; !ok { return models.NewGenericValidationError(...) } } }"
+      },
+      {
+        "name": "nullable.Nullable for optional-null PATCH fields",
+        "description": "Update inputs use nullable.Nullable[T]; check IsNull() to clear, IsSpecified()+Get() to set, neither to leave unchanged. Test all three branches.",
+        "example": "if body.UnitCost.IsNull() { input.UnitCost = nullable.NewNullNullable[feature.UnitCost]() } else if body.UnitCost.IsSpecified() { ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Handler interface with 5 methods; handler struct holds resolveNamespace, connector (feature.FeatureConnector), meterService, llmcostService, options.",
+        "watch_for": "llmcostService may be nil (optional dependency); guard with != nil before calling."
+      },
+      {
+        "file": "convert.go",
+        "role": "All domain<->API conversions: convertFeatureToAPI, convertCreateRequestToDomain, convertUpdateRequestToDomain, convertUnitCostToAPI/FromAPI, enrichFeatureResponseWithPricing, resolveLLMPricing, filter conversions.",
+        "watch_for": "UnitCost discriminator switch must cover all UnitCostType values; unknown type returns error."
+      },
+      {
+        "file": "error_encoder.go",
+        "role": "Maps feature-domain typed errors to HTTP status codes using commonhttp.HandleErrorIfTypeMatches.",
+        "watch_for": "Add new feature-domain errors here; do not let them fall through to 500."
+      },
+      {
+        "file": "list.go",
+        "role": "List with pagination (default page 1/size 20), filter[meter_id], filter[key], filter[name], sort. Uses apierrors.NewBadRequestError for invalid filter/sort params.",
+        "watch_for": "Page validation must be called after construction; missing it allows page=0 through."
+      },
+      {
+        "file": "create.go",
+        "role": "Validates meter reference exists and filter keys match meter GroupBy dimensions before calling CreateFeature.",
+        "watch_for": "validateMeterFilters only checks key existence, not operator validity; operator validation is done downstream in MeterGroupByFilters.Validate."
+      }
+    ],
+    "anti_patterns": [
+      "Calling h.connector directly from handler.go methods instead of delegating to per-operation files",
+      "Skipping errorEncoder() in AppendOptions \u2014 feature domain errors will become 500",
+      "Returning pricing enrichment errors instead of silently skipping \u2014 pricing is best-effort",
+      "Accepting llmcostService as non-optional if it can be nil in some wirings"
+    ],
+    "decisions": [
+      {
+        "decision": "Hand-written conversions instead of Goverter",
+        "rationale": "UnitCost is a discriminated union (manual/llm) requiring switch-based dispatch that Goverter cannot generate cleanly; hand-written code with tests is more explicit."
+      },
+      {
+        "decision": "LLM pricing resolved at read time, not stored",
+        "rationale": "Pricing data changes independently of feature configuration; resolving at read time from llmcost.Service ensures freshness without coupling the feature write path to pricing."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new CRUD operation (e.g. PatchFeature)",
+        "code": "// patch.go\npackage features\n\nimport (\n\t\"context\"\n\t\"net/http\"\n\n\tapi \"github.com/openmeterio/openmeter/api/v3\"\n\t\"github.com/openmeterio/openmeter/api/v3/apierrors\"\n\t\"github.com/openmeterio/openmeter/api/v3/request\"\n\t\"github.com/openmeterio/openmeter/openmeter/productcatalog/feature\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/commonhttp\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport\"\n)\n\ntype (\n\tPatchFeatureRequest  = feature.PatchFeatureInputs\n\tPatchFeatureResponse = api.Feature\n\tPatchFeatureParams   = string\n\tPatchFeatureHandler  httptransport.HandlerWithArgs[PatchFeatureRequest, PatchFeatureResponse, PatchFeatureParams]\n)\n\nfunc (h *handler) PatchFeature() PatchFeatureHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, featureID PatchFeatureParams) (PatchFeatureRequest, error) {\n\t\t\tvar body api.PatchFeatureRequest\n\t\t\tif err := request.ParseBody(r, &body); err != nil {\n\t\t\t\treturn PatchFeatureRequest{}, err\n\t\t\t}\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil {\n\t\t\t\treturn PatchFeatureRequest{}, err\n\t\t\t}\n\t\t\treturn convertPatchRequestToDomain(ns, featureID, body)\n\t\t},\n\t\tfunc(ctx context.Context, req PatchFeatureRequest) (PatchFeatureResponse, error) {\n\t\t\tupdated, err := h.connector.PatchFeature(ctx, req)\n\t\t\tif err != nil {\n\t\t\t\treturn PatchFeatureResponse{}, err\n\t\t\t}\n\t\t\treturn convertFeatureToAPI(updated)\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[PatchFeatureResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(\n\t\t\th.options,\n\t\t\thttptransport.WithOperationName(\"patch-feature\"),\n\t\t\thttptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),\n\t\t\thttptransport.WithErrorEncoder(errorEncoder()),\n\t\t)...,\n\t)\n}"
+      }
+    ]
+  },
+  "api/v3/handlers/llmcost": {
+    "purpose": "v3 HTTP handler package for LLM cost price catalog: listing system and manual prices, getting a price by ID, and managing per-namespace manual overrides (create, list, delete). Bridges llmcost.Service to HTTP using the standard httptransport pattern.",
+    "patterns": [
+      {
+        "name": "Decimal-as-string for pricing fields",
+        "description": "All per-token pricing amounts are transmitted as api.Numeric strings and parsed/serialized via alpacadecimal. Use decimalFromString (wraps alpacadecimal.NewFromString + models.NewGenericValidationError) for all inbound conversions.",
+        "example": "inputPerToken, err := decimalFromString(p.InputPerToken)"
+      },
+      {
+        "name": "Provider display name mapping",
+        "description": "providerDisplayNames map in convert.go provides canonical display names for known provider IDs. Unknown providers are title-cased by splitting on hyphen/underscore. Never hardcode provider display names in handler files.",
+        "example": "Provider: api.LLMCostProvider{Id: providerID, Name: formatProviderName(providerID)}"
+      },
+      {
+        "name": "Source mapping: internal vs API enum",
+        "description": "Internal PriceSourceManual maps to api.LLMCostPriceSourceManual; everything else maps to api.LLMCostPriceSourceSystem. This is a one-directional mapping (reads only expose system/manual).",
+        "example": "source := api.LLMCostPriceSourceSystem; if p.Source == llmcost.PriceSourceManual { source = api.LLMCostPriceSourceManual }"
+      },
+      {
+        "name": "Sort field allowlist validation",
+        "description": "Validate sort fields against an explicit allowlist (validPriceSortField) before passing to the service. Return apierrors.NewBadRequestError with a descriptive Reason listing all valid fields.",
+        "example": "if !validPriceSortField(sort.Field) { return req, apierrors.NewBadRequestError(...) }"
+      },
+      {
+        "name": "Nil pointer optional pricing fields",
+        "description": "Optional pricing fields (CacheReadPerToken, CacheWritePerToken, ReasoningPerToken) are *alpacadecimal.Decimal in domain and *string in API; use lo.ToPtr(d.String()) for non-nil values.",
+        "example": "if p.CacheReadPerToken != nil { out.CacheReadPerToken = lo.ToPtr(p.CacheReadPerToken.String()) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Defines Handler interface (5 methods) and handler struct with resolveNamespace, llmcost.Service, options.",
+        "watch_for": "Only one domain service (llmcost.Service) is injected; unlike features handler, no secondary services needed."
+      },
+      {
+        "file": "convert.go",
+        "role": "All domain<->API conversions including domainPriceToAPI, apiPricingToDomain, apiCreateOverrideToDomain, provider display name formatting, and validPriceSortField.",
+        "watch_for": "decimalFromString wraps validation error; callers must propagate the error, not ignore it."
+      },
+      {
+        "file": "list_prices.go",
+        "role": "Handles pagination, sort (with field allowlist), and filters (provider, model_id, model_name, currency, source) for the global price catalog.",
+        "watch_for": "Source filter uses filters.FromAPIFilterString, same as other string fields \u2014 not an enum filter."
+      },
+      {
+        "file": "list_overrides.go",
+        "role": "Handles pagination and filters (provider, model_id, model_name, currency) for per-namespace overrides. No sort support unlike list_prices.",
+        "watch_for": "Overrides do not support sort \u2014 do not add sort without updating the service layer."
+      }
+    ],
+    "anti_patterns": [
+      "Hardcoding provider display names in handler response logic instead of using formatProviderName",
+      "Accepting decimal strings without using decimalFromString \u2014 bypasses validation error wrapping",
+      "Exposing internal PriceSource values directly to API instead of mapping through the source enum"
+    ],
+    "decisions": [
+      {
+        "decision": "Provider display names in a static map with title-case fallback",
+        "rationale": "API consumers need human-readable provider names; a central map avoids scatter while the fallback handles new/unknown providers without code changes."
+      }
+    ],
+    "code_examples": []
+  },
+  "api/v3/handlers/subscriptions": {
+    "purpose": "v3 HTTP handler package for billing subscription lifecycle: list, get, create (from plan), cancel, unschedule cancellation, and change-plan. Delegates to plansubscription.PlanSubscriptionService for create/change and subscription.Service for get/list/cancel/continue.",
+    "patterns": [
+      {
+        "name": "Pre-validation of referenced entities in decoder",
+        "description": "Resolve and validate customer and plan references inside the request decoder (first func). Use apierrors.NewBadRequestError with InvalidParameters for missing required fields (plan.id/plan.key, customer.id/customer.key).",
+        "example": "if body.Plan.Id == nil && body.Plan.Key == nil { return ..., apierrors.NewBadRequestError(ctx, errors.New(reason), []apierrors.InvalidParameter{{Field: \"plan.id\", ...}, {Field: \"plan.key\", ...}}) }"
+      },
+      {
+        "name": "Helper methods for ID-or-key entity lookup",
+        "description": "getCustomerByIDOrKey and getPlanByIDOrKey are private handler methods. They accept namespace + optional ID + optional Key pointers and return the entity. TODO comments note these should eventually move to the service layer.",
+        "example": "customerEntity, err := h.getCustomerByIDOrKey(ctx, ns, body.Customer.Id, body.Customer.Key)"
+      },
+      {
+        "name": "Timing union type decoding: datetime before enum",
+        "description": "FromAPIBillingSubscriptionEditTiming tries AsDateTime() first (RFC3339) before AsBillingSubscriptionEditTimingEnum(). This order is critical \u2014 datetime strings also match as strings, so enum fallback must be second.",
+        "example": "if custom, err := t.AsDateTime(); err == nil { return subscription.Timing{Custom: &custom}, nil }"
+      },
+      {
+        "name": "PlanInput via FromRef",
+        "description": "Always construct plansubscription.PlanInput via planInput.FromRef(&PlanRefInput{Key: ..., Version: ...}) after resolving the concrete plan. Never set PlanInput fields directly.",
+        "example": "planInput.FromRef(&plansubscription.PlanRefInput{Key: planEntity.Key, Version: &planEntity.Version})"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Handler interface (6 methods) and handler struct: resolveNamespace, customerService, planService, planSubscriptionService, subscriptionService.",
+        "watch_for": "Two distinct subscription services: planSubscriptionService (create/change) vs subscriptionService (get/list/cancel/continue). Using the wrong one silently changes workflow semantics."
+      },
+      {
+        "file": "create.go",
+        "role": "Creates subscription from plan; validates customer and plan exist, builds PlanInput via FromRef, calls planSubscriptionService.Create.",
+        "watch_for": "getCustomerByIDOrKey and getPlanByIDOrKey are defined here as private handler methods."
+      },
+      {
+        "file": "change.go",
+        "role": "Changes running subscription to a new plan; fetches current subscription for name/desc/metadata defaults, builds ChangeSubscriptionWorkflowInput, calls planSubscriptionService.Change.",
+        "watch_for": "Response is BillingSubscriptionChangeResponse{Current, Next} \u2014 not a single subscription."
+      },
+      {
+        "file": "convert.go",
+        "role": "ToAPIBillingSubscription, FromAPIBillingSubscriptionEditTiming, FromAPIBillingSubscriptionCreate. Timing decode order (datetime before enum) is load-bearing.",
+        "watch_for": "clock.Now() is used for GetStatusAt \u2014 tests must mock clock if status assertions are needed."
+      }
+    ],
+    "anti_patterns": [
+      "Swapping planSubscriptionService and subscriptionService calls \u2014 Create/Change must go through plan service for billing sync hooks",
+      "Checking plan.Key/Version after planSubscriptionService.Create instead of before \u2014 plan must be validated and resolved pre-call",
+      "Reversing timing decode order (enum before datetime) \u2014 datetime strings will be misidentified as enum values"
+    ],
+    "decisions": [
+      {
+        "decision": "Two separate subscription services (plan-aware and base)",
+        "rationale": "plansubscription.PlanSubscriptionService orchestrates billing sync and plan versioning on top of the core subscription.Service; the split keeps billing-coupling out of the generic subscription lifecycle."
+      }
+    ],
+    "code_examples": []
+  },
+  "api/v3/handlers/taxcodes": {
+    "purpose": "Full CRUD v3 HTTP handler package for billing tax codes (list, get, create, update/upsert, delete). Uses Goverter-generated conversions (convert.gen.go) driven by annotated convert.go; includes custom AppType mapping (external_invoicing \u2194 custom_invoicing) for backwards compatibility.",
+    "patterns": [
+      {
+        "name": "Goverter variables pattern for conversions",
+        "description": "convert.go declares package-level var functions annotated with goverter directives. convert.gen.go is generated and must never be hand-edited. The //go:generate directive at the top of convert.go regenerates it.",
+        "example": "// goverter:variables\nvar FromAPICreateTaxCodeRequest func(namespace string, createTaxCodeRequest api.CreateTaxCodeRequest) (taxcode.CreateTaxCodeInput, error)"
+      },
+      {
+        "name": "Backwards-compatible AppType mapping",
+        "description": "FromAPIBillingAppType maps API value 'external_invoicing' to domain AppTypeCustomInvoicing. ToAPIBillingAppType maps domain AppTypeCustomInvoicing back to 'external_invoicing'. This pair must stay in sync.",
+        "example": "func FromAPIBillingAppType(source api.BillingAppType) app.AppType { if source == \"external_invoicing\" { return app.AppTypeCustomInvoicing } ... }"
+      },
+      {
+        "name": "Nil-to-empty-slice in ToAPIBillingTaxCodeAppMappings",
+        "description": "Return []api.BillingTaxCodeAppMapping{} (not nil) when source is nil to prevent JSON null in AppMappings field.",
+        "example": "func ToAPIBillingTaxCodeAppMappings(source taxcode.TaxCodeAppMappings) []api.BillingTaxCodeAppMapping { if source == nil { return []api.BillingTaxCodeAppMapping{} } ... }"
+      },
+      {
+        "name": "Goverter context for namespace injection",
+        "description": "Use goverter:context to pass namespace/namespacedID into generated converters. Implement NamespaceFromContext and ResolveNamespacedIDFromContext as context extractor functions.",
+        "example": "// goverter:context namespace\n// goverter:map Namespace | NamespaceFromContext\nvar FromAPICreateTaxCodeRequest func(namespace string, ...) (...)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "convert.go",
+        "role": "Source-of-truth for Goverter conversion declarations. Contains //go:generate directive, var declarations with goverter annotations, and hand-written helper functions (AppType mapping, nil-safe app mappings).",
+        "watch_for": "Editing annotations here requires running 'make generate' to regenerate convert.gen.go. Do NOT edit convert.gen.go directly."
+      },
+      {
+        "file": "convert.gen.go",
+        "role": "Generated by Goverter from convert.go. DO NOT EDIT \u2014 has '// Code generated by github.com/jmattheis/goverter, DO NOT EDIT.' header.",
+        "watch_for": "If this file is out of sync with convert.go, builds will produce stale or incorrect conversions."
+      },
+      {
+        "file": "handler.go",
+        "role": "Handler interface (5 methods) and handler struct with resolveNamespace and taxcode.Service only \u2014 minimal dependencies.",
+        "watch_for": "No secondary service needed; taxcode.Service handles all CRUD."
+      },
+      {
+        "file": "update.go",
+        "role": "Uses UpsertTaxCodeRequest (not UpdateTaxCodeRequest) as the API body type \u2014 the endpoint is an upsert, not a partial update.",
+        "watch_for": "Operation name is 'upsert-tax-code' not 'update-tax-code' \u2014 keep consistent with TypeSpec."
+      }
+    ],
+    "anti_patterns": [
+      "Editing convert.gen.go directly \u2014 regenerate via 'make generate' instead",
+      "Forgetting the AppType backwards-compat mapping \u2014 'external_invoicing' must round-trip correctly",
+      "Returning nil for AppMappings instead of empty slice \u2014 causes JSON null which breaks API contract"
+    ],
+    "decisions": [
+      {
+        "decision": "Goverter for tax code conversions instead of hand-written",
+        "rationale": "Tax code conversion is straightforward field mapping without discriminated unions; Goverter reduces boilerplate while the context mechanism cleanly injects namespace."
+      },
+      {
+        "decision": "'external_invoicing' \u2194 'custom_invoicing' mapping in both directions",
+        "rationale": "The domain type was renamed from external_invoicing to custom_invoicing; the API preserves the old name for backwards compatibility with existing clients."
+      }
+    ],
+    "code_examples": []
+  }
+}

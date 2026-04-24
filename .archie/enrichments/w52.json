@@ -1,0 +1,239 @@
+{
+  "openmeter/app/custominvoicing/adapter": {
+    "purpose": "Ent/PostgreSQL persistence adapter for the custominvoicing app domain \u2014 implements appcustominvoicing.Adapter by reading and writing AppCustomInvoicing and AppCustomInvoicingCustomer Ent entities. All mutations are soft-deletes (SetDeletedAt) and all queries filter DeletedAtIsNil().",
+    "patterns": [
+      {
+        "name": "TransactingRepo wrapping",
+        "description": "Every method body is wrapped in entutils.TransactingRepo or entutils.TransactingRepoWithNoValue so it rebinds to any transaction already carried in ctx rather than executing on the raw client.",
+        "example": "entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error { return tx.db.AppCustomInvoicing... })"
+      },
+      {
+        "name": "Soft-delete pattern",
+        "description": "Records are never hard-deleted. Mutations set SetDeletedAt(time.Now()); queries always add DeletedAtIsNil() predicate.",
+        "example": "tx.db.AppCustomInvoicing.Update().Where(appcustominvoicing.DeletedAtIsNil()).SetDeletedAt(time.Now()).Exec(ctx)"
+      },
+      {
+        "name": "Upsert via OnConflictColumns",
+        "description": "Create operations use OnConflictColumns(...).UpdateNewValues() to achieve idempotent upserts without a read-then-write.",
+        "example": ".OnConflictColumns(appcustominvoicing.FieldID, appcustominvoicing.FieldNamespace).UpdateNewValues().Exec(ctx)"
+      },
+      {
+        "name": "Tx/WithTx/Self triad for transaction plumbing",
+        "description": "adapter implements Tx() (HijackTx + NewTxDriver), WithTx() (NewTxClientFromRawConfig), and Self() so entutils.TransactingRepo can reuse the ctx-bound transaction.",
+        "example": "func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txDb := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txDb.Client(), logger: a.logger} }"
+      },
+      {
+        "name": "Compile-time interface assertion",
+        "description": "var _ appcustominvoicing.Adapter = (*adapter)(nil) at package level ensures the adapter satisfies the interface at compile time.",
+        "example": "var _ appcustominvoicing.Adapter = (*adapter)(nil)"
+      },
+      {
+        "name": "Config struct with Validate()",
+        "description": "Constructor accepts a Config struct with a Validate() method that checks all required fields before constructing the adapter.",
+        "example": "func New(config Config) (appcustominvoicing.Adapter, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Adapter constructor, Config, and transaction plumbing (Tx/WithTx/Self). Foundation for all other files in this package.",
+        "watch_for": "Do not bypass WithTx/Self \u2014 other files rely on TransactingRepo rebinding through these methods."
+      },
+      {
+        "file": "appconfig.go",
+        "role": "CRUD for app-level configuration (AppCustomInvoicing entity): GetAppConfiguration, UpsertAppConfiguration, DeleteAppConfiguration.",
+        "watch_for": "GetAppConfiguration returns an empty Configuration{} (not an error) on NotFound \u2014 callers rely on this zero-value sentinel."
+      },
+      {
+        "file": "customerdata.go",
+        "role": "CRUD for per-customer data (AppCustomInvoicingCustomer entity): GetCustomerData, UpsertCustomerData, DeleteCustomerData.",
+        "watch_for": "Input.Validate() is called at the top of each method before entering the transaction \u2014 validation errors should not be wrapped in a transaction."
+      }
+    ],
+    "anti_patterns": [
+      "Using a.db directly in a method body instead of going through TransactingRepo/TransactingRepoWithNoValue \u2014 falls off ctx-bound transactions",
+      "Hard-deleting rows instead of setting DeletedAt",
+      "Reading then writing instead of using OnConflictColumns upsert",
+      "Returning an error on NotFound from GetAppConfiguration or GetCustomerData \u2014 callers expect zero-value returns"
+    ],
+    "decisions": [
+      {
+        "decision": "Soft-delete everywhere",
+        "rationale": "Preserves audit trail for billing apps; aligns with the rest of the billing domain's deletion convention."
+      },
+      {
+        "decision": "Tx/WithTx/Self triad instead of passing *entdb.Tx explicitly",
+        "rationale": "Keeps transaction plumbing implicit in ctx; entutils.TransactingRepo handles rebinding without leaking *entdb.Tx into every call site."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new adapter method that writes a record inside the caller's transaction",
+        "code": "func (a *adapter) SetFlag(ctx context.Context, input appcustominvoicing.SetFlagInput) error {\n\tif err := input.Validate(); err != nil {\n\t\treturn err\n\t}\n\treturn entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {\n\t\treturn tx.db.AppCustomInvoicing.Update().\n\t\t\tWhere(appcustominvoicing.ID(input.ID), appcustominvoicing.Namespace(input.Namespace), appcustominvoicing.DeletedAtIsNil()).\n\t\t\tSetFlag(input.Value).\n\t\t\tExec(ctx)\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/app/custominvoicing/httpdriver": {
+    "purpose": "HTTP handler layer for the custominvoicing app \u2014 exposes DraftSyncronized, IssuingSyncronized, and UpdatePaymentStatus endpoints by decoding API requests, delegating to appcustominvoicing.SyncService, and encoding billing.StandardInvoice responses via the shared httptransport pattern.",
+    "patterns": [
+      {
+        "name": "httptransport.NewHandlerWithArgs per endpoint",
+        "description": "Each endpoint is a method returning a typed HandlerWithArgs[Request, Response, Params]. The method inlines the decoder func (namespace extraction + body decode), operation func (validate + delegate to service), and encoder.",
+        "example": "return httptransport.NewHandlerWithArgs(decoderFn, operationFn, commonhttp.JSONResponseEncoderWithStatus[Resp](http.StatusOK), httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"X\"), httptransport.WithErrorEncoder(errorEncoder()))...)"
+      },
+      {
+        "name": "Type aliases for Request/Response/Params/Handler",
+        "description": "Each endpoint declares four type aliases at the top of its block: *Request = domain input, *Response = api type, *Params = path/query params struct, *Handler = typed handler alias.",
+        "example": "type DraftSyncronizedRequest = appcustominvoicing.SyncDraftInvoiceInput; type DraftSyncronizedHandler httptransport.HandlerWithArgs[DraftSyncronizedRequest, DraftSyncronizedResponse, DraftSyncronizedParams]"
+      },
+      {
+        "name": "Namespace resolved from context in decoder",
+        "description": "Every decoder calls h.resolveNamespace(ctx) first; on failure it returns an empty request and wraps the error.",
+        "example": "namespace, err := h.resolveNamespace(ctx); if err != nil { return DraftSyncronizedRequest{}, fmt.Errorf(\"failed to resolve namespace: %w\", err) }"
+      },
+      {
+        "name": "Input.Validate() called at the start of the operation func",
+        "description": "The operation function validates the decoded request before calling the service \u2014 not inside the decoder.",
+        "example": "func(ctx context.Context, request DraftSyncronizedRequest) (DraftSyncronizedResponse, error) { if err := request.Validate(); err != nil { return DraftSyncronizedResponse{}, err } ... }"
+      },
+      {
+        "name": "Domain-specific error encoder chain",
+        "description": "errors.go defines errorEncoder() returning a chain of commonhttp.HandleErrorIfTypeMatches calls covering billing.NotFoundError, ValidationError, UpdateAfterDeleteError, ValidationIssue, AppError \u2014 attached to every handler via httptransport.WithErrorEncoder.",
+        "example": "return commonhttp.HandleErrorIfTypeMatches[billing.NotFoundError](ctx, http.StatusNotFound, err, w, billing.EncodeValidationIssues) || ..."
+      },
+      {
+        "name": "Response mapped via billinghttpdriver.MapStandardInvoiceToAPI",
+        "description": "All three endpoints return api.Invoice by delegating to billinghttpdriver.MapStandardInvoiceToAPI \u2014 never inline-constructing the API type.",
+        "example": "return billinghttpdriver.MapStandardInvoiceToAPI(invoice)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Handler interface definition, handler struct, New() constructor, and resolveNamespace helper. Entry point for wiring.",
+        "watch_for": "SyncService is the only service dependency \u2014 do not inject billing.Service directly here; access billing through SyncService."
+      },
+      {
+        "file": "custominvoicing.go",
+        "role": "Three endpoint handler methods: DraftSyncronized, IssuingSyncronized, UpdatePaymentStatus.",
+        "watch_for": "Each method returns a new handler instance on every call \u2014 they are not cached on the struct."
+      },
+      {
+        "file": "errors.go",
+        "role": "Centralized error encoder shared by all three handlers.",
+        "watch_for": "New billing error types must be added here to get correct HTTP status codes \u2014 missing an error type causes 500s."
+      },
+      {
+        "file": "mapper.go",
+        "role": "API \u2194 domain type conversions: mapUpsertStandardInvoiceResultFromAPI, mapFinalizeStandardInvoiceResultFromAPI, mapPaymentTriggerFromAPI.",
+        "watch_for": "mapPaymentTriggerFromAPI uses a switch with a default that returns GenericValidationError \u2014 new API trigger values must be added here."
+      }
+    ],
+    "anti_patterns": [
+      "Injecting billing.Service directly into handler \u2014 use SyncService as the single dependency",
+      "Inline-constructing api.Invoice in operation functions \u2014 always delegate to billinghttpdriver.MapStandardInvoiceToAPI",
+      "Skipping request.Validate() in the operation function",
+      "Adding new error types to the billing domain without updating errorEncoder() in errors.go"
+    ],
+    "decisions": [
+      {
+        "decision": "SyncService as the sole handler dependency",
+        "rationale": "Keeps the HTTP layer thin \u2014 all business logic (app type validation, billing triggers) lives in the service layer."
+      },
+      {
+        "decision": "Shared errorEncoder() instead of per-handler error mapping",
+        "rationale": "All three endpoints expose the same billing error surface; centralising avoids divergence."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new endpoint GetInvoiceStatus that decodes an invoiceId param and returns api.Invoice",
+        "code": "type (\n\tGetInvoiceStatusRequest  = appcustominvoicing.GetInvoiceStatusInput\n\tGetInvoiceStatusResponse = api.Invoice\n\tGetInvoiceStatusParams   = struct{ InvoiceID string `json:\"invoiceId\"` }\n\tGetInvoiceStatusHandler  httptransport.HandlerWithArgs[GetInvoiceStatusRequest, GetInvoiceStatusResponse, GetInvoiceStatusParams]\n)\n\nfunc (h *handler) GetInvoiceStatus() GetInvoiceStatusHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, params GetInvoiceStatusParams) (GetInvoiceStatusRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil { return GetInvoiceStatusRequest{}, fmt.Errorf(\"failed to resolve namespace: %w\", err) }\n\t\t\treturn GetInvoiceStatusRequest{InvoiceID: billing.InvoiceID{ID: params.InvoiceID, Namespace: ns}}, nil\n\t\t},\n\t\tfunc(ctx context.Context, request GetInvoiceStatusRequest) (GetInvoiceStatusResponse, error) {\n\t\t\tif err := request.Validate(); err != nil { return GetInvoiceStatusResponse{}, err }\n\t\t\tinv, err := h.service.GetInvoiceStatus(ctx, request)\n\t\t\tif err != nil { return GetInvoiceStatusResponse{}, err }\n\t\t\treturn billinghttpdriver.MapStandardInvoiceToAPI(inv)\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[GetInvoiceStatusResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(h.options,\n\t\t\thttptransport.WithOperationName(\"GetInvoiceStatus\"),\n\t\t\thttptransport.WithErrorEncoder(errorEncoder()),\n\t\t)...,\n\t)\n}"
+      }
+    ]
+  },
+  "openmeter/app/custominvoicing/service": {
+    "purpose": "Business logic layer for the custominvoicing app \u2014 implements appcustominvoicing.Service (factory + customer data + sync) by orchestrating appcustominvoicing.Adapter, app.Service, and billing.Service within explicit transactions.",
+    "patterns": [
+      {
+        "name": "transaction.Run wrapping multi-step writes",
+        "description": "Operations that touch multiple entities (e.g. CreateApp: create app base + upsert config) run inside transaction.Run or transaction.RunWithNoValue to ensure atomicity.",
+        "example": "return transaction.Run(ctx, s.adapter, func(ctx context.Context) (app.AppBase, error) { appBase, err := s.appService.CreateApp(...); s.adapter.UpsertAppConfiguration(...); return appBase, nil })"
+      },
+      {
+        "name": "Config struct with Validate() + compile-time assertion",
+        "description": "Service constructor takes a Config struct; Validate() checks all required fields. var _ appcustominvoicing.Service = (*Service)(nil) enforces interface at compile time.",
+        "example": "var _ appcustominvoicing.Service = (*Service)(nil)"
+      },
+      {
+        "name": "ValidateInvoiceApp guard before billing mutations",
+        "description": "sync.go's sync methods call s.ValidateInvoiceApp(invoice) before and after billing mutations to assert the invoice belongs to the custom invoicing app.",
+        "example": "if err := s.ValidateInvoiceApp(invoice); err != nil { return billing.StandardInvoice{}, err }"
+      },
+      {
+        "name": "input.Validate() at service method entry",
+        "description": "Every exported service method calls input.Validate() before any business logic or transaction.",
+        "example": "if err := input.Validate(); err != nil { return billing.StandardInvoice{}, err }"
+      },
+      {
+        "name": "Critical ValidationIssue check after state-machine triggers",
+        "description": "HandlePaymentTrigger re-reads the invoice post-trigger and returns a billing.ValidationError if any critical ValidationIssues are present \u2014 causing transaction rollback.",
+        "example": "criticalIssues := lo.Filter(invoice.ValidationIssues, func(i billing.ValidationIssue, _ int) bool { return i.Severity == billing.ValidationIssueSeverityCritical }); if len(criticalIssues) > 0 { return billing.StandardInvoice{}, billing.ValidationError{Err: criticalIssues.AsError()} }"
+      },
+      {
+        "name": "Metadata timestamping via clock.Now()",
+        "description": "SyncDraftInvoice and SyncIssuingInvoice inject AdditionalMetadata with clock.Now() timestamps \u2014 uses pkg/clock not time.Now() for testability.",
+        "example": "AdditionalMetadata: map[string]string{appcustominvoicing.MetadataKeyDraftSyncedAt: clock.Now().Format(time.RFC3339)}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Service struct definition, Config, Validate, New constructor. Sets up the three dependencies: adapter, appService, billingService.",
+        "watch_for": "Service struct is exported (uppercase) unlike most sibling packages \u2014 this is intentional to allow direct use in Wire provider sets."
+      },
+      {
+        "file": "sync.go",
+        "role": "SyncService implementation: SyncDraftInvoice, SyncIssuingInvoice, HandlePaymentTrigger, ValidateInvoiceApp.",
+        "watch_for": "HandlePaymentTrigger does get-trigger-get \u2014 second GetStandardInvoiceById is needed to observe post-trigger state; do not collapse into one read."
+      },
+      {
+        "file": "factory.go",
+        "role": "FactoryService implementation: CreateApp (two-step: appService.CreateApp + adapter.UpsertAppConfiguration), DeleteApp, UpsertAppConfiguration, GetAppConfiguration.",
+        "watch_for": "CreateApp wraps both steps in a single transaction.Run \u2014 if adapter.UpsertAppConfiguration fails, the app row is rolled back."
+      },
+      {
+        "file": "customerdata.go",
+        "role": "CustomerDataService implementation: thin delegation to adapter wrapped in transaction.Run/RunWithNoValue.",
+        "watch_for": "No business logic here \u2014 if validation is needed, it belongs in the input types, not this file."
+      }
+    ],
+    "anti_patterns": [
+      "Calling time.Now() directly instead of clock.Now() \u2014 breaks deterministic tests",
+      "Skipping ValidateInvoiceApp before billing mutations \u2014 allows cross-app invoice mutations",
+      "Not wrapping multi-entity writes in transaction.Run \u2014 risks partial writes on appService + adapter calls",
+      "Returning an error for a NotFound from adapter.GetAppConfiguration \u2014 the adapter returns zero value; callers expect that",
+      "Adding billing.Service calls directly in customerdata.go \u2014 customer data operations must stay adapter-only"
+    ],
+    "decisions": [
+      {
+        "decision": "Service struct is exported (uppercase)",
+        "rationale": "Allows Wire to inject *Service directly when both FactoryService and SyncService sub-interfaces are needed at different wiring sites."
+      },
+      {
+        "decision": "ValidateInvoiceApp is a standalone exported method",
+        "rationale": "Used both internally (before triggers) and passed as a callback (InvoiceValidator) to billing.Service sync methods, requiring a stable method signature."
+      },
+      {
+        "decision": "Critical-issue check causes transaction rollback in HandlePaymentTrigger",
+        "rationale": "Ensures the state-machine trigger and any resulting side-effects are atomically reverted if the invoice ends up in an invalid state."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new SyncService method that fires a billing trigger and validates the result",
+        "code": "func (s *Service) VoidInvoice(ctx context.Context, input appcustominvoicing.VoidInvoiceInput) (billing.StandardInvoice, error) {\n\tif err := input.Validate(); err != nil {\n\t\treturn billing.StandardInvoice{}, err\n\t}\n\treturn transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.StandardInvoice, error) {\n\t\tinvoice, err := s.billingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{Invoice: input.InvoiceID})\n\t\tif err != nil { return billing.StandardInvoice{}, err }\n\t\tif err := s.ValidateInvoiceApp(invoice); err != nil { return billing.StandardInvoice{}, err }\n\t\tif err := s.billingService.TriggerInvoice(ctx, billing.InvoiceTriggerServiceInput{\n\t\t\tInvoiceTriggerInput: billing.InvoiceTriggerInput{Invoice: input.InvoiceID, Trigger: billing.TriggerVoid},\n\t\t\tAppType: app.AppTypeCustomInvoicing,\n\t\t\tCapability: app.CapabilityTypeCollectPayments,\n\t\t}); err != nil { return billing.StandardInvoice{}, err }\n\t\tinvoice, err = s.billingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{Invoice: input.InvoiceID})\n\t\tif err != nil { return billing.StandardInvoice{}, err }\n\t\tcritical := lo.Filter(invoice.ValidationIssues, func(i billing.ValidationIssue, _ int) bool { return i.Severity == billing.ValidationIssueSeverityCritical })\n\t\tif len(critical) > 0 { return billing.StandardInvoice{}, billing.ValidationError{Err: critical.AsError()} }\n\t\treturn invoice, nil\n\t})\n}"
+      }
+    ]
+  }
+}

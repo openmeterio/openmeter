@@ -1,0 +1,147 @@
+{
+  "openmeter/secret/adapter": {
+    "purpose": "Plaintext (no-op) implementation of secret.Adapter \u2014 stores secrets as their raw value in the SecretID itself. This is a stub implementation; a production deployment would replace it with a real secret store (Vault, AWS Secrets Manager, etc.).",
+    "patterns": [
+      {
+        "name": "Interface compliance assertion",
+        "description": "Every adapter file must declare `var _ secret.Adapter = (*adapter)(nil)` at the top to catch interface drift at compile time.",
+        "example": "var _ secret.Adapter = (*adapter)(nil)"
+      },
+      {
+        "name": "Stateless adapter struct",
+        "description": "The adapter struct holds no fields because secrets are encoded into SecretID. If a real backend is added, inject the client via New() and store it on the struct.",
+        "example": "type adapter struct{}"
+      },
+      {
+        "name": "No Ent dependency in this implementation",
+        "description": "Despite the component description mentioning Ent, this adapter uses only secretentity types \u2014 no *entdb.Client. A future real adapter would receive a client via New().",
+        "example": "func New() secret.Adapter { return &adapter{} }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Constructor and compile-time interface assertion. Wire calls New() to obtain a secret.Adapter.",
+        "watch_for": "If secret.Adapter gains new methods, the compile-time assertion will fail here first \u2014 add the method to secret.go."
+      },
+      {
+        "file": "secret.go",
+        "role": "All four CRUD methods: CreateAppSecret, UpdateAppSecret, GetAppSecret, DeleteAppSecret. All are no-ops that encode the value into the SecretID.",
+        "watch_for": "CreateAppSecret and UpdateAppSecret return secretentity.NewSecretID(input.AppID, input.Value, input.Key) \u2014 the ID IS the plaintext value. A real implementation must never do this."
+      }
+    ],
+    "anti_patterns": [
+      "Storing state on the adapter struct without injecting a client through New()",
+      "Returning errors from DeleteAppSecret or CreateAppSecret in the stub \u2014 callers expect these to always succeed",
+      "Importing openmeter/ent/db in this package \u2014 this stub has no DB dependency; Ent belongs in a future real adapter sub-package",
+      "Adding business logic here \u2014 validation belongs in secretservice, not the adapter"
+    ],
+    "decisions": [
+      {
+        "decision": "SecretID encodes the plaintext value as the ID field",
+        "rationale": "Simplest possible stub that satisfies the Adapter interface without an external secret store; callers reconstruct the value from GetAppSecret by reading input.ID directly."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/secret/entity": {
+    "purpose": "Pure domain types for the secret package: SecretID (namespaced composite key), Secret (ID + value), all input structs, and the SecretNotFoundError sentinel. No persistence logic lives here.",
+    "patterns": [
+      {
+        "name": "Validate() on every input type",
+        "description": "All input structs (CreateAppSecretInput, UpdateAppSecretInput) expose a Validate() error method that wraps field errors in models.NewGenericValidationError. Service layer calls Validate() before delegating to the adapter.",
+        "example": "func (i CreateAppSecretInput) Validate() error { if i.Key == \"\" { return models.NewGenericValidationError(errors.New(\"key is required\")) }; return nil }"
+      },
+      {
+        "name": "Embed models.NamespacedID in identity types",
+        "description": "SecretID embeds models.NamespacedID so it carries both Namespace and ID and can reuse NamespacedID.Validate().",
+        "example": "type SecretID struct { models.NamespacedID; AppID app.AppID; Key string }"
+      },
+      {
+        "name": "Error wraps models.GenericNotFoundError",
+        "description": "SecretNotFoundError wraps models.NewGenericNotFoundError so the HTTP encoder maps it to 404 automatically. Add `var _ models.GenericError = (*SecretNotFoundError)(nil)` for compile-time verification.",
+        "example": "var _ models.GenericError = (*SecretNotFoundError)(nil)"
+      },
+      {
+        "name": "Type aliases for symmetric input types",
+        "description": "GetAppSecretInput and DeleteAppSecretInput are type aliases for SecretID, avoiding redundant wrapper structs when the input is just an identifier.",
+        "example": "type GetAppSecretInput = SecretID"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "secret.go",
+        "role": "SecretID and Secret domain types plus NewSecretID constructor and Validate methods.",
+        "watch_for": "SecretID.Validate() chains NamespacedID.Validate() \u2192 AppID.Validate() \u2192 Key check; all must pass. Skipping AppID.Validate() lets invalid IDs reach the adapter."
+      },
+      {
+        "file": "input.go",
+        "role": "All four input structs. GetAppSecretInput and DeleteAppSecretInput are aliases, not new types.",
+        "watch_for": "UpdateAppSecretInput has both AppID and SecretID \u2014 Validate() calls both. New fields must be validated here, not in the service."
+      },
+      {
+        "file": "errors.go",
+        "role": "SecretNotFoundError sentinel and IsSecretNotFoundError helper.",
+        "watch_for": "Always use models.NewGenericNotFoundError as the inner error so the HTTP layer maps it to 404 without special-casing."
+      }
+    ],
+    "anti_patterns": [
+      "Adding persistence logic or Ent imports to this package \u2014 it must remain a pure domain type package",
+      "Returning raw errors instead of models.NewGenericValidationError from Validate() \u2014 breaks HTTP status code mapping",
+      "Creating new input structs without a Validate() method \u2014 service layer calls Validate() unconditionally",
+      "Duplicating validation logic in the adapter that already exists in input Validate() methods"
+    ],
+    "decisions": [
+      {
+        "decision": "Input types live in a separate entity sub-package rather than in the root secret package",
+        "rationale": "Breaks the import cycle: input.go imports openmeter/app for AppID, while openmeter/app imports openmeter/secret \u2014 placing types in a sub-package (secretentity) lets both import it without a cycle."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/secret/service": {
+    "purpose": "Concrete implementation of secret.Service that validates inputs then delegates all persistence to the injected secret.Adapter. Contains no business logic beyond validation.",
+    "patterns": [
+      {
+        "name": "Config struct constructor with Validate()",
+        "description": "New(config Config) (*Service, error) validates config before constructing. Config.Validate() checks that required fields (Adapter) are non-nil. This is the standard service constructor pattern in this repo.",
+        "example": "func New(config Config) (*Service, error) { if err := config.Validate(); err != nil { return nil, err }; return &Service{adapter: config.Adapter}, nil }"
+      },
+      {
+        "name": "Double interface assertion",
+        "description": "service.go asserts `var _ secret.Service = (*Service)(nil)` and secret.go asserts `var _ secret.SecretService = (*Service)(nil)` \u2014 both must be kept in sync when secret.Service changes.",
+        "example": "var _ secret.Service = (*Service)(nil)"
+      },
+      {
+        "name": "Validate-then-delegate in every method",
+        "description": "Each service method calls input.Validate() and wraps any error in models.NewGenericValidationError before calling the adapter. No logic beyond validation.",
+        "example": "func (s *Service) CreateAppSecret(ctx context.Context, input secretentity.CreateAppSecretInput) (secretentity.SecretID, error) { if err := input.Validate(); err != nil { return secretentity.SecretID{}, models.NewGenericValidationError(fmt.Errorf(\"error create app secret: %w\", err)) }; return s.adapter.CreateAppSecret(ctx, input) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Service struct, Config struct, New() constructor. Only field is adapter secret.Adapter.",
+        "watch_for": "Config.Validate() only checks Adapter != nil. If new required dependencies are added to Service, add them to Config and Validate() here."
+      },
+      {
+        "file": "secret.go",
+        "role": "All four method implementations (Create, Update, Get, Delete). Each wraps adapter call with validation.",
+        "watch_for": "UpdateAppSecret returns input.SecretID (not zero value) on validation error \u2014 intentional to return the original ID. Other methods return zero values on error."
+      }
+    ],
+    "anti_patterns": [
+      "Adding business logic or cross-domain calls to this service \u2014 it is a thin validation+delegation layer only",
+      "Calling the adapter without first calling input.Validate() \u2014 adapter is a stub and won't catch bad inputs",
+      "Injecting *entdb.Client directly into Service \u2014 persistence is the adapter's concern; Service only holds secret.Adapter",
+      "Bypassing the Config struct and constructing Service{} directly \u2014 Validate() in New() is the only nil-safety gate"
+    ],
+    "decisions": [
+      {
+        "decision": "Service is a thin pass-through with validation only",
+        "rationale": "The secret domain has no business rules beyond ensuring inputs are structurally valid before reaching the adapter; all complexity lives in the adapter implementation (real or stub)."
+      }
+    ],
+    "code_examples": []
+  }
+}

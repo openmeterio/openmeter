@@ -1,0 +1,91 @@
+{
+  "collector/quickstart/collector/resources": {
+    "purpose": "Declares shared Benthos cache resources for the quickstart collector pipeline. The single dedupe cache resource (label: dedupe_cache, memory backend, 1h TTL) is referenced by name from stream processors to deduplicate incoming CloudEvents.",
+    "patterns": [
+      {
+        "name": "Named cache label convention",
+        "description": "Cache resources must be declared with a label that exactly matches the string referenced in dedupe processor `cache:` fields elsewhere in the pipeline.",
+        "example": "cache_resources:\n  - label: dedupe_cache\n    memory:\n      default_ttl: 1h"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "dedupe-cache.yaml",
+        "role": "Defines the in-memory deduplication cache shared by the input stream's dedupe processor.",
+        "watch_for": "Changing the label breaks the dedupe processor reference in streams/input.yaml; changing TTL affects dedup window and memory usage."
+      }
+    ],
+    "anti_patterns": [
+      "Adding business logic or processors directly in a resource file \u2014 resources are declarations only.",
+      "Using a persistent cache backend (Redis, etc.) here without updating the collector's deployment configuration.",
+      "Renaming `dedupe_cache` without updating all `cache:` references in stream processors."
+    ],
+    "decisions": [
+      {
+        "decision": "In-memory cache with 1h TTL for deduplication.",
+        "rationale": "Quickstart is a lightweight local demo; a persistent cache would require additional infrastructure. The 1h TTL matches expected event replay windows."
+      }
+    ],
+    "code_examples": []
+  },
+  "collector/quickstart/collector/streams": {
+    "purpose": "Defines the two-stream Benthos pipeline for the quickstart collector: input.yaml receives CloudEvents over HTTP, deduplicates and validates them, then passes to an inproc channel; output.yaml reads from that inproc channel, buffers to SQLite, and forwards to the OpenMeter API in batches.",
+    "patterns": [
+      {
+        "name": "Inproc channel coupling between streams",
+        "description": "input.yaml writes validated events to `inproc: openmeter`; output.yaml reads from `inproc: openmeter`. The string label must match exactly across both files.",
+        "example": "# input.yaml output section\n- inproc: openmeter\n# output.yaml input section\ninput:\n  inproc: openmeter"
+      },
+      {
+        "name": "Content-Type switch before dedup/validation",
+        "description": "A pipeline switch processor splits `application/cloudevents-batch+json` (unarchive json_array) from `application/cloudevents+json` (noop). Unknown Content-Types return HTTP 400 via sync_response and drop the message.",
+        "example": "processors:\n  - switch:\n      - check: meta(\"Content-Type\").lowercase() == \"application/cloudevents-batch+json\"\n        processors:\n          - unarchive:\n              format: json_array"
+      },
+      {
+        "name": "Sync response for HTTP status propagation",
+        "description": "HTTP response status is set via `meta http_response_status` and surfaced through the fan_out output's `sync_response: {}` branch. The address block echoes `${! meta(\"http_response_status\").or(\"204\") }`.",
+        "example": "sync_response:\n  status: '${! meta(\"http_response_status\").or(\"204\") }'"
+      },
+      {
+        "name": "SQLite buffer for durable output",
+        "description": "output.yaml uses a SQLite buffer at `/var/lib/collector/buffer.sqlite` with a split post-processor to re-expand batched messages before forwarding.",
+        "example": "buffer:\n  sqlite:\n    path: /var/lib/collector/buffer.sqlite\n    post_processors:\n      - split: {}"
+      },
+      {
+        "name": "Environment variable configuration for output",
+        "description": "All deployment-specific values (OPENMETER_URL, OPENMETER_TOKEN, BATCH_SIZE, BATCH_PERIOD) are injected via environment variables with safe defaults.",
+        "example": "output:\n  openmeter:\n    url: \"${OPENMETER_URL:https://openmeter.cloud}\"\n    token: \"${OPENMETER_TOKEN:}\"\n    batching:\n      count: ${BATCH_SIZE:1}\n      period: ${BATCH_PERIOD:30s}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "input.yaml",
+        "role": "HTTP server entry point: receives CloudEvents, enforces Content-Type, deduplicates via dedupe_cache, validates against CloudEvents JSON schema, and fans out to inproc channel + sync_response.",
+        "watch_for": "The dedupe processor references `dedupe_cache` by label \u2014 that label must exist in resources/dedupe-cache.yaml. The catch block after json_schema validation returns 400 and drops invalid events; missing catch leaves schema errors unhandled."
+      },
+      {
+        "file": "output.yaml",
+        "role": "Reads from inproc channel, buffers to SQLite for durability, then batches and forwards to the openmeter output plugin.",
+        "watch_for": "The `split: {}` post-processor is required to re-expand messages packed by the SQLite buffer; removing it sends unexpanded batch payloads to OpenMeter."
+      }
+    ],
+    "anti_patterns": [
+      "Renaming the `inproc: openmeter` label in either file without updating the other \u2014 breaks the inter-stream channel.",
+      "Removing the fan_out sync_response branch \u2014 clients will never receive HTTP responses.",
+      "Bypassing the Content-Type switch and sending raw bytes directly to dedupe \u2014 dedup hash would be computed on non-normalized payloads.",
+      "Hardcoding OPENMETER_URL or OPENMETER_TOKEN instead of using environment variable interpolation.",
+      "Removing the SQLite buffer without an alternative durability mechanism \u2014 events lost on collector restart."
+    ],
+    "decisions": [
+      {
+        "decision": "Two-file stream split (input + output) connected by inproc channel.",
+        "rationale": "Separates HTTP ingestion concerns (validation, dedup, sync response) from forwarding concerns (buffering, batching, auth), making each independently configurable."
+      },
+      {
+        "decision": "xxhash64 content hash as dedupe key.",
+        "rationale": "Fast non-cryptographic hash over the full message content provides exact-once deduplication for retried CloudEvent payloads without requiring an event ID field."
+      }
+    ],
+    "code_examples": []
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "openmeter/billing/rating/service": {
+    "purpose": "Stateless rating service that implements rating.Service by dispatching to per-price-type Pricer implementations via a priceMutator pipeline. Orchestrates pre/post-calculation mutators around concrete pricers to produce DetailedLines with totals.",
+    "patterns": [
+      {
+        "name": "priceMutator pipeline assembly",
+        "description": "getPricerFor() constructs a priceMutator combining a concrete rate.Pricer with ordered PreCalculation and PostCalculation mutator slices. Caller must not bypass getPricerFor() and instantiate pricers directly.",
+        "example": "priceMutator{PreCalculation: []mutator.PreCalculationMutator{&mutator.DiscountUsage{}}, Pricer: rate.Unit{}, PostCalculation: [...]}"
+      },
+      {
+        "name": "opts.IgnoreMinimumCommitment gate",
+        "description": "MinAmountCommitment mutator is only appended when GenerateDetailedLinesOptions.IgnoreMinimumCommitment is false. Charges pricing sets this flag to suppress minimum commitment on partial billing runs.",
+        "example": "if !opts.IgnoreMinimumCommitment { postCalculationMutators = append(postCalculationMutators, &mutator.MinAmountCommitment{}) }"
+      },
+      {
+        "name": "Usage nil check before FlatPrice",
+        "description": "input.Usage is only populated for non-FlatPrice lines. Flat lines must not set Usage; non-flat lines must call GetMeteredQuantity/GetMeteredPreLinePeriodQuantity and set input.Usage before calling linePricer.GenerateDetailedLines.",
+        "example": "if in.GetPrice().Type() != productcatalog.FlatPriceType { input.Usage = &rating.Usage{...} }"
+      },
+      {
+        "name": "CurrencyCalculator for all rounding",
+        "description": "currencyx.Calculator obtained from in.GetCurrency().Calculator() must be used for all arithmetic rounding via calc.RoundToPrecision. Raw alpacadecimal.Mul results are only rounded by the calculator.",
+        "example": "amount := calc.RoundToPrecision(line.PerUnitAmount.Mul(line.Quantity))"
+      },
+      {
+        "name": "getTotalsFromDetailedLines aggregation",
+        "description": "After linePricer.GenerateDetailedLines returns, getTotalsFromDetailedLines computes per-DetailedLine totals and sums them with totals.Sum. Do not compute totals inline in the pricer; always go through this function.",
+        "example": "outWithTotals := getTotalsFromDetailedLines(out, currencyCalc)"
+      },
+      {
+        "name": "validateStandardLine before any pricer call",
+        "description": "GenerateDetailedLines calls validateStandardLine first to enforce that price is non-nil and that progressively-billed service period matches service period for non-progressive lines.",
+        "example": "if err := validateStandardLine(in); err != nil { return ..., fmt.Errorf(\"validating billable line: %w\", err) }"
+      },
+      {
+        "name": "isDependingOnIncreaseOnlyMeters for progressive billing gate",
+        "description": "ResolveBillablePeriod forcibly disables ProgressiveBilling unless the underlying meter aggregation is Sum, Count, Max, or UniqueCount. Other aggregations must be billed in arrears.",
+        "example": "if !meterTypeAllowsProgressiveBilling { in.ProgressiveBilling = false }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Zero-field service struct and New() constructor; sole entry point for DI consumers to obtain rating.Service.",
+        "watch_for": "service has no fields \u2014 all state is passed via method arguments; do not add fields without reason."
+      },
+      {
+        "file": "pricer.go",
+        "role": "getPricerFor() factory that maps productcatalog price types to concrete rate.Pricer + mutator slices; priceMutator orchestrates the pipeline.",
+        "watch_for": "New price types require a new case in the switch; forgetting a case returns an unsupported-price-type error at runtime."
+      },
+      {
+        "file": "detailedline.go",
+        "role": "GenerateDetailedLines entry point: validates input, resolves currency calculator, builds PricerCalculateInput, calls pipeline, aggregates totals.",
+        "watch_for": "Usage must not be set for FlatPriceType lines; getTotalsFromDetailedLines must always be called on pricer output."
+      },
+      {
+        "file": "billableperiod.go",
+        "role": "ResolveBillablePeriod delegates to the pricer after gating ProgressiveBilling on meter aggregation type.",
+        "watch_for": "Returning true from isDependingOnIncreaseOnlyMeters for a non-monotonic aggregation (e.g. Avg, Latest) causes incorrect progressive billing."
+      }
+    ],
+    "anti_patterns": [
+      "Instantiating rate.Unit{}/rate.Flat{}/etc. directly in service methods instead of going through getPricerFor()",
+      "Setting input.Usage for FlatPriceType lines \u2014 causes validation errors in PricerCalculateInput.Validate()",
+      "Computing DetailedLine totals inside a pricer or mutator instead of delegating to getTotalsFromDetailedLines",
+      "Adding state (fields) to the service struct \u2014 the service is intentionally stateless; all computation inputs must flow through method parameters",
+      "Using raw alpacadecimal arithmetic for final amounts without passing through currencyx.Calculator.RoundToPrecision"
+    ],
+    "decisions": [
+      {
+        "decision": "priceMutator wraps a single Pricer with ordered pre/post mutator slices rather than embedding mutation logic inside each Pricer.",
+        "rationale": "Keeps pricing concerns (tier math, period gating) separate from cross-cutting concerns (discounts, commitments, credits) so each can evolve independently."
+      },
+      {
+        "decision": "service struct has no fields; New() returns an interface backed by an empty struct.",
+        "rationale": "The rating service is purely computational \u2014 it holds no connection pools, caches, or configuration. Statelessness simplifies testing and avoids accidental shared state across concurrent billing runs."
+      },
+      {
+        "decision": "getTotalsFromDetailedLines is called in GenerateDetailedLines, not inside priceMutator.GenerateDetailedLines.",
+        "rationale": "Totals aggregation depends on the currency calculator which is resolved at the service layer; pricers and mutators operate on raw DetailedLines to stay currency-agnostic."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new price type pricer: register it in getPricerFor and implement rate.Pricer",
+        "code": "// In pricer.go, add a new case:\ncase productcatalog.MyNewPriceType:\n    basePricer = rate.MyNew{}\n\n// In openmeter/billing/rating/service/rate/mynew.go:\npackage rate\n\nimport (\n    \"github.com/openmeterio/openmeter/openmeter/billing/rating\"\n    \"github.com/openmeterio/openmeter/pkg/timeutil\"\n)\n\nvar _ Pricer = MyNew{}\n\ntype MyNew struct{ NonProgressiveBillingPricer }\n\nfunc (p MyNew) GenerateDetailedLines(in PricerCalculateInput) ([]rating.DetailedLine, error) {\n    usage := in.GetUsage() // always call GetUsage(), never in.Usage directly\n    _ = usage\n    return []rating.DetailedLine{{...}}, nil\n}\n\nfunc (p MyNew) ResolveBillablePeriod(in rating.ResolveBillablePeriodInput) (*timeutil.ClosedPeriod, error) {\n    return p.NonProgressiveBillingPricer.ResolveBillablePeriod(in)\n}"
+      }
+    ]
+  }
+}

@@ -40,6 +40,21 @@ DerivedData/
 coverage/
 .nyc_output/
 
+# CI/CD + security-tool metadata (describes pipelines, not the codebase's
+# architecture — framework detection picks up "uses GitHub Actions" without
+# needing to read every workflow file)
+.github/
+.gitlab/
+.circleci/
+.grype/
+.trivyignore/
+
+# Agent-skill installation dirs (Archie and other agent tools sometimes
+# install slash commands here via --commands-dir). These are framework
+# config, not project source.
+.agents/
+.cursor/
+
 # Archie internals
 .archie/
 .claude/

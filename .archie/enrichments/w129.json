@@ -1,0 +1,37 @@
+{
+  "openmeter/watermill/driver/noop": {
+    "purpose": "Provides a no-op implementation of the Watermill message.Publisher interface for use when event publishing must be disabled (e.g., tests, credits-disabled wiring, or feature-flagged paths). Satisfies the compiler without sending any messages.",
+    "patterns": [
+      {
+        "name": "Compile-time interface assertion",
+        "description": "var _ message.Publisher = (*Publisher)(nil) at package level ensures Publisher always satisfies the Watermill message.Publisher interface; add this line for any new interface implementation in this package.",
+        "example": "var _ message.Publisher = (*Publisher)(nil)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "publisher.go",
+        "role": "Entire package \u2014 defines the zero-value Publisher struct with Publish and Close methods that silently succeed.",
+        "watch_for": "Do not add state, logging, or metrics here; this must be a true no-op. Never return errors from Publish or Close."
+      }
+    ],
+    "anti_patterns": [
+      "Adding logging or metrics to the noop publisher \u2014 defeats the purpose and adds unwanted side-effects in disabled paths",
+      "Returning non-nil errors from Publish or Close \u2014 callers treat errors as real failures",
+      "Adding constructor functions that accept dependencies \u2014 the zero-value struct is the intended usage",
+      "Growing this package beyond the single Publisher type \u2014 other noop concerns belong in their own packages"
+    ],
+    "decisions": [
+      {
+        "decision": "Zero-value struct with no fields",
+        "rationale": "noop.Publisher{} can be used directly without construction, making Wire provider functions trivially simple when publishing is disabled (e.g. credits.enabled=false paths)."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Wire provider returning noop publisher when feature is disabled",
+        "code": "import \"github.com/openmeterio/openmeter/openmeter/watermill/driver/noop\"\n\nfunc ProvidePublisher(cfg config.Configuration) message.Publisher {\n    if !cfg.SomeFeature.Enabled {\n        return noop.Publisher{}\n    }\n    return kafkaPublisher\n}"
+      }
+    ]
+  }
+}

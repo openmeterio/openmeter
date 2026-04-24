@@ -1,0 +1,228 @@
+{
+  "openmeter/productcatalog/plan/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing plan.Repository for plan lifecycle persistence (CRUD, phase management, rate card bulk creation). Primary constraint: all mutations must wrap Ent calls in entutils.TransactingRepo to honor ctx-carried transactions.",
+    "patterns": [
+      {
+        "name": "TransactingRepo wrapping",
+        "description": "Every adapter method body must be a closure passed to entutils.TransactingRepo[T, *adapter](ctx, a, fn) so the call rebinds to any transaction already in ctx.",
+        "example": "return entutils.TransactingRepo[*plan.Plan, *adapter](ctx, a, fn)"
+      },
+      {
+        "name": "Config.Validate() on construction",
+        "description": "Constructor New(Config) calls config.Validate() first and returns error if Client or Logger are nil; Config implements models.Validator.",
+        "example": "var _ models.Validator = (*Config)(nil)"
+      },
+      {
+        "name": "WithTx / Self pattern",
+        "description": "adapter implements WithTx(ctx, *TxDriver) *adapter and Self() *adapter so entutils.TransactingRepo can rebind the db field to a tx-scoped client.",
+        "example": "func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txClient.Client(), logger: a.logger} }"
+      },
+      {
+        "name": "Eager load with typed helper vars",
+        "description": "Reusable query modifier vars (planPhaseEagerLoadRateCardsFn, rateCardEagerLoadFeaturesFn, rateCardEagerLoadTaxCodesFn, planEagerLoadActiveAddons) compose WithRatecards/WithFeatures/WithTaxCode so every query loads the full graph consistently.",
+        "example": "query = query.WithPhases(planPhaseIncludeDeleted(false), planPhaseEagerLoadRateCardsFn)"
+      },
+      {
+        "name": "Soft-delete via DeletedAt",
+        "description": "DeletePlan sets DeletedAt timestamp; phases are intentionally NOT soft-deleted so state before deletion remains inspectable. Queries filter with plandb.DeletedAtIsNil() unless IncludeDeleted is true.",
+        "example": "err = a.db.Plan.UpdateOneID(p.ID).Where(plandb.Namespace(p.Namespace)).SetDeletedAt(deletedAt).Exec(ctx)"
+      },
+      {
+        "name": "Status filtering via clock.Now()",
+        "description": "ListPlans maps PlanStatus enum values to EffectiveFrom/EffectiveTo predicates using clock.Now().UTC() so tests can override time via clock.SetTime.",
+        "example": "now := clock.Now().UTC(); predicates = append(predicates, plandb.And(plandb.EffectiveFromLTE(now), plandb.Or(plandb.EffectiveToGTE(now), plandb.EffectiveToIsNil())))"
+      },
+      {
+        "name": "Bulk rate card create then re-query",
+        "description": "After CreateBulk for rate cards, the phase row is re-fetched with eager loads (WithRatecards+WithFeatures+WithTaxCode) to return a fully populated struct instead of relying on in-memory assembly.",
+        "example": "planPhaseRow, err = a.db.PlanPhase.Query().Where(...).WithRatecards(rateCardEagerLoadFeaturesFn, rateCardEagerLoadTaxCodesFn).First(ctx)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Config, constructor, Tx/WithTx/Self methods \u2014 the transaction rebinding plumbing lives here.",
+        "watch_for": "Never store a tx-scoped client on the struct permanently; WithTx returns a new *adapter."
+      },
+      {
+        "file": "plan.go",
+        "role": "ListPlans, CreatePlan, GetPlan, UpdatePlan, DeletePlan \u2014 all core CRUD wrapped in TransactingRepo.",
+        "watch_for": "UpdatePlan phase replacement uses delete-all + re-create, not an incremental diff; callers must supply the full phase set."
+      },
+      {
+        "file": "phase.go",
+        "role": "createPhase helper and rateCardBulkCreate \u2014 internal helpers used by CreatePlan and UpdatePlan.",
+        "watch_for": "rateCardBulkCreate accepts raw *entdb.PlanRateCardClient; ensure it is always called from within a TransactingRepo closure so it inherits the tx."
+      },
+      {
+        "file": "mapping.go",
+        "role": "FromPlanRow, FromPlanPhaseRow, fromPlanRateCardRow, asPlanRateCardRow \u2014 bidirectional Ent\u2194domain conversion. Checks Edges.AddonsOrErr() to distinguish 'not loaded' (nil) from 'loaded empty slice'.",
+        "watch_for": "New plan fields added to the Ent schema must be mapped here in both directions; missing field silently drops data."
+      }
+    ],
+    "anti_patterns": [
+      "Calling a.db directly outside a TransactingRepo closure \u2014 bypasses ctx-carried transaction.",
+      "Assembling plan.Plan from in-memory state after CreateBulk instead of re-querying with eager loads.",
+      "Using entdb.IsNotFound without wrapping in plan.NewNotFoundError \u2014 callers expect domain errors.",
+      "Soft-deleting phases on plan deletion \u2014 breaks ability to inspect pre-deletion plan state (see comment in DeletePlan).",
+      "Directly editing openmeter/ent/db/ generated files \u2014 always regenerate with make generate."
+    ],
+    "decisions": [
+      {
+        "decision": "All methods wrap Ent access in entutils.TransactingRepo even for reads.",
+        "rationale": "Ent transactions propagate via ctx; not rebinding causes a helper to fall off the caller's transaction, risking partial writes."
+      },
+      {
+        "decision": "Phases are deleted and re-created wholesale on UpdatePlan when params.Phases != nil.",
+        "rationale": "Simplifies correctness over incremental diffing; callers that only change plan metadata pass nil Phases to skip phase reconciliation."
+      },
+      {
+        "decision": "Status filtering built from clock predicates at query time rather than a stored status column.",
+        "rationale": "Plan status is a derived function of EffectiveFrom/EffectiveTo; no separate status field avoids dual-write consistency bugs."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new adapter method that reads and writes inside the caller's transaction",
+        "code": "func (a *adapter) MyMethod(ctx context.Context, params plan.MyInput) (*plan.Plan, error) {\n\tfn := func(ctx context.Context, a *adapter) (*plan.Plan, error) {\n\t\tif err := params.Validate(); err != nil {\n\t\t\treturn nil, fmt.Errorf(\"invalid params: %w\", err)\n\t\t}\n\t\trow, err := a.db.Plan.Query().Where(plandb.Namespace(params.Namespace), plandb.ID(params.ID)).\n\t\t\tWithPhases(planPhaseIncludeDeleted(false), planPhaseEagerLoadRateCardsFn).\n\t\t\tFirst(ctx)\n\t\tif err != nil {\n\t\t\tif entdb.IsNotFound(err) {\n\t\t\t\treturn nil, plan.NewNotFoundError(plan.NotFoundErrorParams{Namespace: params.Namespace, ID: params.ID})\n\t\t\t}\n\t\t\treturn nil, fmt.Errorf(\"failed to get Plan: %w\", err)\n\t\t}\n\t\treturn FromPlanRow(*row)\n\t}\n\treturn entutils.TransactingRepo[*plan.Plan, *adapter](ctx, a, fn)\n}"
+      }
+    ]
+  },
+  "openmeter/productcatalog/plan/httpdriver": {
+    "purpose": "v1 HTTP handler layer for plan lifecycle endpoints, translating between api.* types and plan.Service calls via httptransport.Handler. Primary constraint: never call Ent or adapters directly \u2014 all persistence goes through plan.Service.",
+    "patterns": [
+      {
+        "name": "httptransport.NewHandler / NewHandlerWithArgs",
+        "description": "Each endpoint method returns a typed handler alias (e.g. ListPlansHandler = httptransport.HandlerWithArgs[Req,Resp,Params]). The handler is built with a decoder closure, an operation closure delegating to h.service, a response encoder, and AppendOptions for operationName + ValidationErrorEncoder.",
+        "example": "return httptransport.NewHandlerWithArgs(decoderFn, operationFn, commonhttp.JSONResponseEncoderWithStatus[Resp](http.StatusOK), httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"listPlans\"), httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindPlan)))...)"
+      },
+      {
+        "name": "Namespace decoded from context",
+        "description": "h.resolveNamespace(ctx) is called in every decoder; failure returns commonhttp.NewHTTPError(500) since the namespace must always be set by middleware.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return Req{}, fmt.Errorf(\"failed to resolve namespace: %w\", err) }"
+      },
+      {
+        "name": "credits.Enabled guard in decoder",
+        "description": "CreditOnlySettlementMode is rejected in CreatePlan and UpdatePlan decoders when h.credits.Enabled is false, producing models.NewGenericValidationError.",
+        "example": "if !h.credits.Enabled && req.SettlementMode == productcatalog.CreditOnlySettlementMode { return CreatePlanRequest{}, models.NewGenericValidationError(...) }"
+      },
+      {
+        "name": "Type alias pattern for request/response/handler",
+        "description": "Each endpoint declares three type aliases (XxxRequest, XxxResponse, XxxHandler) at package level so the interface method signature is self-documenting.",
+        "example": "type (ListPlansRequest = plan.ListPlansInput; ListPlansResponse = api.PlanPaginatedResponse; ListPlansHandler httptransport.HandlerWithArgs[...])"
+      },
+      {
+        "name": "ref.ParseIDOrKey for dual ID/Key routing",
+        "description": "GetPlan and NextPlan use ref.ParseIDOrKey to distinguish ULID IDs from string keys without separate endpoints.",
+        "example": "idOrKey := ref.ParseIDOrKey(params.IDOrKey); return GetPlanRequest{NamespacedID: models.NamespacedID{Namespace: ns, ID: idOrKey.ID}, Key: idOrKey.Key, ...}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "driver.go",
+        "role": "Handler/PlanHandler interface declaration, handler struct, New constructor. Credits config injected here for settlement mode guards.",
+        "watch_for": "credits appconfig.CreditsConfiguration must be passed to New; omitting it silently allows CreditOnly plans when credits are off."
+      },
+      {
+        "file": "plan.go",
+        "role": "All endpoint implementations (ListPlans, CreatePlan, UpdatePlan, DeletePlan, GetPlan, PublishPlan, ArchivePlan, NextPlan).",
+        "watch_for": "IgnoreNonCriticalIssues=true is set in Create and Update decoders \u2014 do not remove, plans may have non-critical validation issues."
+      },
+      {
+        "file": "mapping.go",
+        "role": "FromPlan, FromPlanPhase, AsCreatePlanRequest, AsUpdatePlanRequest, AsPlanPhase \u2014 api\u2194domain conversion. Calls http.FromRateCard/AsRateCards for rate card mapping.",
+        "watch_for": "New plan fields must be mapped in both FromPlan and AsCreatePlanRequest/AsUpdatePlanRequest or the API silently ignores them."
+      }
+    ],
+    "anti_patterns": [
+      "Importing entdb or calling plan.Repository directly from httpdriver \u2014 all access must go through plan.Service.",
+      "Hardcoding namespace strings instead of calling h.resolveNamespace(ctx).",
+      "Omitting httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(...)) \u2014 plan validation errors won't map to proper HTTP status codes.",
+      "Adding credits guard logic outside the decoder closure \u2014 guards belong in request decoding, not in the operation."
+    ],
+    "decisions": [
+      {
+        "decision": "Credits feature guard duplicated in both CreatePlan and UpdatePlan decoders.",
+        "rationale": "credits.enabled must be enforced at the HTTP boundary; service layer does not know about deployment config."
+      },
+      {
+        "decision": "EffectivePeriod is zeroed in UpdatePlan service call; Publish/Archive are the only paths that change it.",
+        "rationale": "Prevents callers from setting plan status directly via update; status transitions are gated through explicit PublishPlan/ArchivePlan operations."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/productcatalog/plan/service": {
+    "purpose": "Business-logic service implementing plan.Service: validates inputs, resolves feature/taxcode references, enforces status-based mutation guards, delegates to plan.Repository, and publishes domain events. Primary constraint: state transitions (publish/archive/next) are separate operations; UpdatePlan only modifies metadata and phases on Draft/Scheduled plans.",
+    "patterns": [
+      {
+        "name": "transaction.Run wrapping for mutations",
+        "description": "All mutating methods wrap their closure in transaction.Run(ctx, s.adapter, fn) to ensure atomicity across adapter calls and event publishing.",
+        "example": "return transaction.Run(ctx, s.adapter, fn)"
+      },
+      {
+        "name": "resolveFeatures before adapter calls",
+        "description": "Before CreatePlan/UpdatePlan hits the adapter, s.resolveFeatures populates FeatureKey\u2194FeatureID cross-references by querying feature.FeatureConnector; missing features are converted to GenericValidationError.",
+        "example": "if err = s.resolveFeatures(ctx, params.Namespace, &phase.RateCards); err != nil { if models.IsGenericNotFoundError(err) { err = models.NewGenericValidationError(err) }; return nil, ... }"
+      },
+      {
+        "name": "Publish domain events after adapter write",
+        "description": "Create/Update/Delete/Publish/Archive/Next all call s.publisher.Publish(ctx, plan.NewPlanXxxEvent(ctx, p)) after the adapter mutation succeeds, inside the transaction closure.",
+        "example": "event := plan.NewPlanCreateEvent(ctx, p); if err := s.publisher.Publish(ctx, event); err != nil { return nil, fmt.Errorf(\"failed to publish plan created event: %w\", err) }"
+      },
+      {
+        "name": "Status-guard before mutations",
+        "description": "UpdatePlan, DeletePlan, PublishPlan, ArchivePlan each check allowed statuses via lo.Contains before delegating to adapter; violations return models.NewGenericValidationError.",
+        "example": "allowedPlanStatuses := []productcatalog.PlanStatus{productcatalog.PlanStatusDraft, productcatalog.PlanStatusScheduled}; if !lo.Contains(allowedPlanStatuses, planStatus) { return nil, models.NewGenericValidationError(...) }"
+      },
+      {
+        "name": "Config-based constructor with nil checks",
+        "description": "New(Config) validates all dependencies (Adapter, Feature, TaxCode, Logger, Publisher) are non-nil before returning the service.",
+        "example": "var _ plan.Service = (*service)(nil)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Config struct, New constructor, service struct definition. All dependency fields (adapter, feature, taxCode, logger, publisher) are private.",
+        "watch_for": "Adding a new dependency requires updating Config, New validation, and service struct \u2014 all three must stay in sync."
+      },
+      {
+        "file": "plan.go",
+        "role": "All plan.Service method implementations. resolveFeatures and resolveTaxCodes are private helpers called before adapter writes.",
+        "watch_for": "CreatePlan auto-increments version based on existing versions; callers should not pass a Version in CreatePlanInput."
+      },
+      {
+        "file": "service_test.go",
+        "role": "Integration tests using pctestutils.NewTestEnv which wires the full stack (adapter + service). Tests drive behavior through env.Plan (service) not env.PlanRepository (adapter).",
+        "watch_for": "Tests use context.Background() \u2014 in new tests prefer t.Context() per project convention."
+      }
+    ],
+    "anti_patterns": [
+      "Calling s.adapter directly for mutations without wrapping in transaction.Run \u2014 breaks atomicity with event publishing.",
+      "Allowing EffectivePeriod to be set via UpdatePlan \u2014 it is explicitly zeroed to prevent direct status manipulation.",
+      "Skipping resolveFeatures before CreatePlan/UpdatePlan \u2014 rate cards with FeatureKey-only or FeatureID-only refs will have incomplete cross-references in the DB.",
+      "Publishing events outside the transaction closure \u2014 if the DB write succeeds but the event publish fails, the transaction rolls back only if both are inside transaction.Run."
+    ],
+    "decisions": [
+      {
+        "decision": "Feature and TaxCode resolution is done in service layer, not in the adapter.",
+        "rationale": "Adapter only handles persistence; cross-entity lookups (feature by key/ID, tax code by stripe code) are orchestration concerns belonging in the service."
+      },
+      {
+        "decision": "Version is auto-incremented from existing versions; callers cannot set it directly.",
+        "rationale": "Prevents version gaps and ensures monotonically increasing versions per key across create calls."
+      },
+      {
+        "decision": "Default settlement mode CreditThenInvoice is applied in service, not in the HTTP handler.",
+        "rationale": "Keeps the default a domain invariant independent of the transport layer."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new mutating service method that calls the adapter and publishes an event",
+        "code": "func (s service) MyMutation(ctx context.Context, params plan.MyInput) (*plan.Plan, error) {\n\tfn := func(ctx context.Context) (*plan.Plan, error) {\n\t\tif err := params.Validate(); err != nil {\n\t\t\treturn nil, fmt.Errorf(\"invalid params: %w\", err)\n\t\t}\n\t\tp, err := s.adapter.GetPlan(ctx, plan.GetPlanInput{NamespacedID: params.NamespacedID})\n\t\tif err != nil {\n\t\t\treturn nil, fmt.Errorf(\"failed to get Plan: %w\", err)\n\t\t}\n\t\tif !lo.Contains([]productcatalog.PlanStatus{productcatalog.PlanStatusDraft}, p.Status()) {\n\t\t\treturn nil, models.NewGenericValidationError(fmt.Errorf(\"plan must be in draft status\"))\n\t\t}\n\t\tp, err = s.adapter.UpdatePlan(ctx, plan.UpdatePlanInput{NamespacedID: params.NamespacedID})\n\t\tif err != nil {\n\t\t\treturn nil, fmt.Errorf(\"failed to update Plan: %w\", err)\n\t\t}\n\t\tevent := plan.NewPlanUpdateEvent(ctx, p)\n\t\tif err := s.publisher.Publish(ctx, event); err != nil {\n\t\t\treturn nil, fmt.Errorf(\"failed to publish event: %w\", err)\n\t\t}\n\t\treturn p, nil\n\t}\n\treturn transaction.Run(ctx, s.adapter, fn)\n}"
+      }
+    ]
+  }
+}

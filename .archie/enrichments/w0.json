@@ -1,0 +1,106 @@
+{
+  "e2e": {
+    "purpose": "End-to-end test suite that runs against a live OpenMeter stack (openmeter + sink-worker + all infra) bootstrapped via Docker Compose. Tests call the real HTTP API through the generated Go client and v3 raw HTTP client, asserting full stack behavior including async Kafka\u2192ClickHouse pipelines.",
+    "patterns": [
+      {
+        "name": "OPENMETER_ADDRESS guard",
+        "description": "Every test file calls initClient(t) or newV3Client(t), both of which call t.Skip when OPENMETER_ADDRESS env var is not set. New tests must never bypass this; tests must not run without a live server.",
+        "example": "address := os.Getenv(\"OPENMETER_ADDRESS\"); if address == \"\" { t.Skip(...) }"
+      },
+      {
+        "name": "assert.EventuallyWithT for async pipelines",
+        "description": "Any assertion on ClickHouse data (meter queries, entitlement balances) must use assert.EventuallyWithT with a 1-minute timeout and 1-second interval \u2014 Kafka\u2192sink-worker\u2192ClickHouse is async. Never assert synchronously after ingest.",
+        "example": "assert.EventuallyWithT(t, func(t *assert.CollectT) { /* query meter */ }, time.Minute, time.Second)"
+      },
+      {
+        "name": "v3Client typed wrapper (plans/addons/planaddons)",
+        "description": "v3 API tests use *v3Client from v3helpers_test.go, not the generated SDK. Methods return (statusCode, *T, *v3Problem). Assertions check statusCode first, then the typed body. New v3 tests must follow the same (status, body, problem) triple pattern.",
+        "example": "status, plan, problem := c.CreatePlan(body); require.Equal(t, http.StatusCreated, status, \"problem: %+v\", problem)"
+      },
+      {
+        "name": "unique keys via timestamp/ULID to avoid shared-DB collisions",
+        "description": "Feature keys, plan keys, and customer keys use a timestamp or ULID suffix to avoid conflicts when tests run against a shared persistent DB. Never use hardcoded keys for entities that cannot be idempotently re-created.",
+        "example": "randKey := fmt.Sprintf(\"entitlement_uc_test_feature_%d\", time.Now().Unix())"
+      },
+      {
+        "name": "slow-test guard for minute-resolution assertions",
+        "description": "Tests that sleep >5 s (waiting for a new minute for entitlement reset or credit granularity) must be gated behind shouldRunSlowTests(t), which checks RUN_SLOW_TESTS env var. Gate new slow tests the same way.",
+        "example": "if !shouldRunSlowTests(t) { t.Skip(\"Skipping slow test...\") }"
+      },
+      {
+        "name": "CreateCustomerWithSubject helper for customer+subject setup",
+        "description": "Tests that need a customer with a subject mapping call helpers.go:CreateCustomerWithSubject(t, client, customerKey, subjectKey). Do not inline this boilerplate; the helper enforces the create-then-upsert-subject order required by the API.",
+        "example": "cust := CreateCustomerWithSubject(t, client, \"cust-key\", \"subj-key\")"
+      },
+      {
+        "name": "assertProblemDetail / assertValidationCode / assertInvalidParameterRule for error assertions",
+        "description": "Negative-path tests must use the v3helpers assertion helpers to verify error shapes. assertValidationCode checks extensions.validationErrors[].code; assertInvalidParameterRule checks schema-layer invalid_parameters[].rule; assertProblemDetail checks a substring in Detail.",
+        "example": "assertValidationCode(t, problem, \"plan_phase_duplicated_key\")"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "setup_test.go",
+        "role": "Provides initClient (v1 SDK client) and shouldRunSlowTests. Single source of truth for test bootstrapping guards.",
+        "watch_for": "Adding test setup logic here that skips rather than fails will silently ignore tests in CI when the env var is missing."
+      },
+      {
+        "file": "v3helpers_test.go",
+        "role": "Defines *v3Client (raw HTTP), v3Problem (RFC 7807 parse), decodeTyped generic, all typed CRUD wrappers for plans/addons/planaddons, validXxx fixture builders, and assertion helpers (assertProblemDetail, assertValidationCode, assertInvalidParameterRule).",
+        "watch_for": "The v3Client.do method uses t.Context() timeout (v3RequestTimeout). Do not bypass this with context.Background()."
+      },
+      {
+        "file": "helpers.go",
+        "role": "CreateCustomerWithSubject (creates customer then upserts subject), GetMeterIDBySlug, QueryMeterV3 (raw HTTP v3 meter query). Shared cross-test helpers.",
+        "watch_for": "QueryMeterV3 uses raw http.DefaultClient and reads OPENMETER_ADDRESS directly \u2014 it will skip if the address is empty."
+      },
+      {
+        "file": "config.yaml",
+        "role": "OpenMeter config injected into the Docker Compose stack. credits.enabled=false \u2014 tests in productcatalog_test.go (TestSettlementMode) depend on this being false. Meter definitions here must exist before any test ingests to those slugs.",
+        "watch_for": "Adding a new meter slug in a test without adding the corresponding meter definition here will cause the test to silently produce no data."
+      },
+      {
+        "file": "ledger_backfill_test.go",
+        "role": "Tests the openmeter-jobs ledger backfill-accounts command by running docker compose exec and then verifying ledger_customer_accounts rows via direct pgxpool queries against the e2e Postgres.",
+        "watch_for": "ensureLocalComposeBackfillSupport skips when OPENMETER_ADDRESS is not the localhost:38888 compose stack \u2014 this test cannot run against remote envs."
+      },
+      {
+        "file": "docker-compose.infra.yaml + docker-compose.openmeter.yaml",
+        "role": "Compose files for infra (Kafka, ClickHouse, Redis, Postgres) and openmeter/sink-worker services. The Makefile always combines both sets. Port range 30000+ to avoid conflicts with main dev environment.",
+        "watch_for": "docker-compose.openmeter-local.yaml overrides image: with build: .. so local tests use the locally built binary, not a released image."
+      },
+      {
+        "file": "Makefile",
+        "role": "test-local target: tears down, brings up compose stack, waits for sink-worker /healthz, then runs go test with TZ=UTC OPENMETER_ADDRESS=http://localhost:38888.",
+        "watch_for": "TZ=UTC is essential for deterministic time-window assertions. Do not run e2e tests without it."
+      }
+    ],
+    "anti_patterns": [
+      "Asserting meter query results synchronously after ingest without EventuallyWithT \u2014 data flows async through Kafka and ClickHouse.",
+      "Using hardcoded feature/plan/customer keys shared across test functions \u2014 causes 409 or silent state pollution in a shared persistent DB.",
+      "Importing app/common or any Wire provider package \u2014 e2e tests must only use the HTTP client, never internal domain packages (except for constant types from openmeter/ledger etc.).",
+      "Running tests without OPENMETER_ADDRESS set and expecting them to do anything other than skip.",
+      "Adding new meters to tests without a corresponding entry in e2e/config.yaml \u2014 the sink-worker validates events against known meters and will silently drop events to unknown meters."
+    ],
+    "decisions": [
+      {
+        "decision": "Two client layers: generated api.ClientWithResponses for v1 and a hand-rolled v3Client for v3.",
+        "rationale": "The v3 API is still evolving and the generated client requires heavy union-type machinery; a thin hand-rolled wrapper returning (status, *T, *v3Problem) gives tests direct control over HTTP-level assertions without fighting the generated code."
+      },
+      {
+        "decision": "credits.enabled=false in e2e config.yaml.",
+        "rationale": "E2e tests for settlement-mode validation depend on credits being off to assert that credit_only settlement mode is rejected. This is explicitly documented in the config comment."
+      },
+      {
+        "decision": "Separate docker-compose.openmeter-local.yaml that overrides image: with build: for local runs.",
+        "rationale": "Makes 'make test-local' always test the locally built binary while CI can swap in a published image by using docker-compose.openmeter-latest.yaml without changing test code."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Writing a new v3 resource lifecycle test (create \u2192 assert status \u2192 use resource ID in subsequent steps)",
+        "code": "func TestV3MyResource(t *testing.T) {\n\tc := newV3Client(t) // skips if OPENMETER_ADDRESS not set\n\n\tvar resourceID string\n\n\tt.Run(\"Should create the resource\", func(t *testing.T) {\n\t\tstatus, res, problem := c.CreateMyResource(validMyResourceRequest(\"test_key\"))\n\t\trequire.Equal(t, http.StatusCreated, status, \"problem: %+v\", problem)\n\t\trequire.NotNil(t, res)\n\t\tresourceID = res.Id\n\t})\n\n\tt.Run(\"Should get the resource\", func(t *testing.T) {\n\t\trequire.NotEmpty(t, resourceID)\n\t\tstatus, res, problem := c.GetMyResource(resourceID)\n\t\trequire.Equal(t, http.StatusOK, status, \"problem: %+v\", problem)\n\t\trequire.NotNil(t, res)\n\t})\n}"
+      }
+    ]
+  }
+}

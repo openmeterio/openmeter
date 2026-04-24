@@ -1,0 +1,76 @@
+{
+  "openmeter/subject/service": {
+    "purpose": "Concrete implementation of subject.Service that orchestrates CRUD lifecycle for subjects (usage measurement subjects) via subject.Adapter, wraps mutating operations in transactions, and fans out lifecycle events through a models.ServiceHookRegistry. All writes run inside transaction.Run / transaction.RunWithNoValue so hooks execute within the same DB transaction as the mutation.",
+    "patterns": [
+      {
+        "name": "Interface compliance guard",
+        "description": "var _ subject.Service = (*Service)(nil) at package scope ensures the struct satisfies the interface at compile time.",
+        "example": "var _ subject.Service = (*Service)(nil)"
+      },
+      {
+        "name": "Input validation before any adapter call",
+        "description": "Every mutating method calls input.Validate() and wraps errors with models.NewGenericValidationError before touching the adapter.",
+        "example": "if err := input.Validate(); err != nil { return subject.Subject{}, fmt.Errorf(\"invalid input: %w\", models.NewGenericValidationError(err)) }"
+      },
+      {
+        "name": "Wrap mutating adapter calls in transaction.Run / transaction.RunWithNoValue",
+        "description": "Create, Update, and Delete use transaction.Run or transaction.RunWithNoValue so hook execution and adapter writes share the same DB transaction.",
+        "example": "return transaction.Run(ctx, s.subjectAdapter, func(ctx context.Context) (subject.Subject, error) { ... })"
+      },
+      {
+        "name": "ServiceHookRegistry fan-out in lifecycle order",
+        "description": "Hooks fire in the correct order: PostCreate after insert, PreUpdate/PostUpdate around update, PreDelete/PostDelete around delete. All hook calls propagate ctx.",
+        "example": "s.hooks.PostCreate(ctx, &sub); s.hooks.PreUpdate(ctx, &sub); s.hooks.PostUpdate(ctx, &sub)"
+      },
+      {
+        "name": "Read-only methods bypass transaction",
+        "description": "GetById, GetByKey, GetByIdOrKey, and List delegate directly to s.subjectAdapter without wrapping in transaction.Run.",
+        "example": "func (s *Service) GetById(ctx context.Context, id models.NamespacedID) (subject.Subject, error) { return s.subjectAdapter.GetById(ctx, id) }"
+      },
+      {
+        "name": "Constructor nil-guard on Adapter",
+        "description": "New() returns an error if subjectAdapter is nil, preventing wiring mistakes from producing a silently broken service.",
+        "example": "if subjectAdapter == nil { return nil, fmt.Errorf(\"subject adapter is required\") }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Single-file service implementation. Holds all subject.Service method bodies plus the ServiceHookRegistry field and RegisterHooks forwarder.",
+        "watch_for": "Adding adapter calls outside a transaction.Run/RunWithNoValue block for write paths; forgetting to call hooks in the correct pre/post order; introducing context.Background() instead of propagating the incoming ctx."
+      },
+      {
+        "file": "service_test.go",
+        "role": "Integration test for the full CRUD surface driven via subjecttestutils.NewTestEnv; tests hooks indirectly through customer/entitlement interactions.",
+        "watch_for": "Tests use t.Context() throughout \u2014 never context.Background(); env is built from concrete constructors (adapter + service), not from app/common wiring."
+      }
+    ],
+    "anti_patterns": [
+      "Calling adapter methods outside transaction.Run / transaction.RunWithNoValue in Create, Update, or Delete.",
+      "Firing hooks outside the transaction boundary (after transaction.Run returns), breaking atomic rollback on hook error.",
+      "Importing app/common in tests \u2014 use subjecttestutils.NewTestEnv which wires from concrete constructors.",
+      "Using context.Background() or context.TODO() instead of propagating the caller's ctx.",
+      "Adding business logic directly in hook callback methods \u2014 delegate to a provisioner struct to keep single-responsibility."
+    ],
+    "decisions": [
+      {
+        "decision": "Transactions wrap both adapter writes and hook execution",
+        "rationale": "Hooks may write to other tables (e.g. provisioning a customer-subject row); rolling back the transaction on hook failure reverts all writes atomically."
+      },
+      {
+        "decision": "ServiceHookRegistry is a value type embedded in Service, not an interface parameter",
+        "rationale": "Hooks are registered at startup via RegisterHooks; embedding the registry avoids an extra constructor parameter and lets Wire inject the service before hooks are registered."
+      },
+      {
+        "decision": "Read methods bypass transactions",
+        "rationale": "Reads have no side-effects and no hooks; wrapping them in a transaction would introduce unnecessary savepoint overhead."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Implement a new mutating method on Service following the established pattern",
+        "code": "import (\n    \"context\"\n    \"fmt\"\n\n    \"github.com/openmeterio/openmeter/openmeter/subject\"\n    \"github.com/openmeterio/openmeter/pkg/framework/transaction\"\n    \"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nfunc (s *Service) Rename(ctx context.Context, input subject.RenameInput) (subject.Subject, error) {\n    if err := input.Validate(); err != nil {\n        return subject.Subject{}, fmt.Errorf(\"invalid input: %w\", models.NewGenericValidationError(err))\n    }\n\n    return transaction.Run(ctx, s.subjectAdapter, func(ctx context.Context) (subject.Subject, error) {\n        existing, err := s.subjectAdapter.GetById(ctx, models.NamespacedID{Namespace: input.Namespace, ID: input.ID})\n        if err != nil {\n            return subject.Subject{}, err\n        }\n        if err = s.hooks.PreUpdate(ctx, &existing); err != nil {\n            return subject.Subject{}, err\n        }\n        updated, err := s.subjectAdapter.Rename(ctx, input)\n        if err != nil {\n            return subject.Subject{}, err\n        }\n        if err = s.hooks.PostUpdate(ctx, &updated); err != nil {\n            return subject.Subject{}, err\n        }\n        return updated, nil\n    })\n}"
+      }
+    ]
+  }
+}

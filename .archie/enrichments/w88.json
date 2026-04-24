@@ -1,0 +1,89 @@
+{
+  "openmeter/event/metadata": {
+    "purpose": "Defines shared event identity primitives: the canonical event name format (`io.openmeter.<subsystem>.<version>.<name>`), event metadata (ID, time, source, subject), and resource path helpers for constructing `//openmeter.io/...` URIs. All event payloads across the system reference these types for consistent naming and routing.",
+    "patterns": [
+      {
+        "name": "EventType triple (Subsystem/Version/Name)",
+        "description": "Every event kind is declared as an `EventType{Subsystem, Version, Name}` value. The canonical string form is produced by `EventType.EventName()` \u2014 never build the string manually.",
+        "example": "EventType{Subsystem: \"ingest\", Version: \"v1\", Name: \"flush\"}.EventName() // \"io.openmeter.ingest.v1.flush\""
+      },
+      {
+        "name": "Resource paths via ComposeResourcePath",
+        "description": "All `source` / `subject` fields in `EventMetadata` must be built with `ComposeResourcePath(namespace, entityType, id)` or `ComposeResourcePathRaw(...)`. Never construct `//openmeter.io/...` paths by hand.",
+        "example": "ComposeResourcePath(ns, EntityEntitlement, entID) // \"//openmeter.io/namespace/<ns>/entitlement/<id>\""
+      },
+      {
+        "name": "Entity constant registry",
+        "description": "All entity type strings (e.g. `EntityInvoice`, `EntityCustomer`) are declared as package-level constants. New entity types must be added here, not as inline strings in event producers.",
+        "example": "const EntitySubscriptionAddon = \"subscriptionAddon\""
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "event_type.go",
+        "role": "Canonical event naming: EventType struct + EventName()/VersionSubsystem() formatters, plus EventMetadata for ID/time/source/subject.",
+        "watch_for": "Do not bypass EventType.EventName() to build the name string; version is the second segment, not the third \u2014 the format is `<subsystem>.<version>.<name>`."
+      },
+      {
+        "file": "resourcepath.go",
+        "role": "Entity-type constants and ComposeResourcePath/ComposeResourcePathRaw helpers for all `//openmeter.io/...` URIs.",
+        "watch_for": "New domain entities need a matching `Entity*` constant added here; missing constants cause inconsistent resource paths across event sources."
+      }
+    ],
+    "anti_patterns": [
+      "Building `io.openmeter.*` event name strings by hand instead of using EventType.EventName()",
+      "Constructing `//openmeter.io/...` paths with fmt.Sprintf instead of ComposeResourcePath",
+      "Adding a new entity type as an inline string literal in an event struct rather than adding an EntityXxx constant here"
+    ],
+    "decisions": [
+      {
+        "decision": "EventName format encodes subsystem + version + name in a fixed dot-separated URI",
+        "rationale": "Watermill consumers route and filter events by name prefix; a deterministic format prevents routing mismatches across worker binaries."
+      },
+      {
+        "decision": "Resource paths follow `//openmeter.io/namespace/<ns>/<entity>/<id>` convention",
+        "rationale": "CloudEvents spec requires unambiguous source/subject URIs; the `//openmeter.io/` authority prefix scopes all paths to this system globally."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Declaring a new event type and building its metadata",
+        "code": "import \"github.com/openmeterio/openmeter/openmeter/event/metadata\"\n\nvar MyEventType = metadata.EventType{\n    Subsystem: \"billing\",\n    Version:   \"v1\",\n    Name:      \"invoiceCreated\",\n}\n\nmeta := metadata.EventMetadata{\n    ID:      ulid.Make().String(),\n    Time:    time.Now(),\n    Source:  metadata.ComposeResourcePath(ns, metadata.EntityInvoice, invoiceID),\n    Subject: metadata.ComposeResourcePath(ns, metadata.EntityCustomer, customerID),\n}"
+      }
+    ]
+  },
+  "openmeter/event/models": {
+    "purpose": "Holds shared payload model types for events that cross subsystem boundaries (e.g. FeatureKeyAndID, NamespaceID). These are minimal value types with inline Validate() methods used inside event payloads, not domain entities.",
+    "patterns": [
+      {
+        "name": "Inline Validate() on every model",
+        "description": "Each struct exported from this package implements `Validate() error` that checks required fields. Callers must invoke Validate() before using the value in an event payload.",
+        "example": "if err := f.Validate(); err != nil { return fmt.Errorf(\"invalid feature ref: %w\", err) }"
+      },
+      {
+        "name": "Minimal shared types only",
+        "description": "Only cross-subsystem value types belong here. Domain-specific structs belong in their own domain package, not in this shared models package.",
+        "example": "FeatureKeyAndID{Key: \"storage\", ID: \"feat_01\"} \u2014 used in both entitlement and billing event payloads"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "models.go",
+        "role": "Declares FeatureKeyAndID and NamespaceID \u2014 small value types with Validate() used as embedded fields inside event payloads across subsystems.",
+        "watch_for": "Do not add domain-specific structs here; this package is imported by many subsystems so adding heavy types creates wide coupling."
+      }
+    ],
+    "anti_patterns": [
+      "Adding domain-specific types (e.g. Invoice, Subscription) to this package \u2014 they belong in their own domain packages",
+      "Skipping Validate() calls on values received in event payloads",
+      "Importing openmeter domain packages from this package (creates circular dependencies)"
+    ],
+    "decisions": [
+      {
+        "decision": "Separate package for cross-subsystem event model types",
+        "rationale": "Prevents import cycles: both entitlement and billing packages can import event/models without pulling in each other's full domain."
+      }
+    ],
+    "code_examples": []
+  }
+}

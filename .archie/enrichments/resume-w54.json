@@ -1,0 +1,96 @@
+{
+  "test/subscription": {
+    "purpose": "Integration test suite for subscription lifecycle scenarios \u2014 verifying the full billing+sync stack (plan creation, subscription create/edit/cancel, billing sync, invoice line generation) against a real PostgreSQL database via pgtestdb. Tests are scenario-based and exercise cross-domain flows that unit tests cannot cover.",
+    "patterns": [
+      {
+        "name": "Single shared setup() function via testDeps",
+        "description": "All tests call setup(t, setupConfig{}) which wires every dependency from scratch using direct constructors (no app/common imports). The returned testDeps struct embeds subscriptiontestutils.SubscriptionDependencies and adds billing, sync, and app services.",
+        "example": "tDeps := setup(t, setupConfig{}); defer tDeps.cleanup(t)"
+      },
+      {
+        "name": "clock.SetTime for deterministic time control",
+        "description": "Tests set a fixed RFC3339 start time via testutils.GetRFC3339Time then advance it with clock.SetTime(currentTime.Add(...)). All services use pkg/clock so this controls all time-dependent billing logic.",
+        "example": "currentTime := testutils.GetRFC3339Time(t, \"2025-01-20T13:11:07Z\"); clock.SetTime(currentTime)"
+      },
+      {
+        "name": "Numbered step comments for scenario readability",
+        "description": "Test bodies use numbered comments (// 1st, // 2nd, etc.) to document the causal sequence: feature creation \u2192 plan creation \u2192 publish \u2192 customer creation \u2192 subscription creation \u2192 mutations \u2192 assertions.",
+        "example": "// 1st, let's create the features ... // 2nd, let's create the plan ... // 4th, let's create the subscription"
+      },
+      {
+        "name": "Plan published before subscription creation",
+        "description": "Every scenario calls PlanService.PublishPlan with EffectiveFrom before creating a subscription via pcSubscriptionService.Create. An unpublished plan will cause the subscription creation to fail.",
+        "example": "p, err = tDeps.PlanService.PublishPlan(ctx, plan.PublishPlanInput{NamespacedID: p.NamespacedID, EffectivePeriod: ...})"
+      },
+      {
+        "name": "minimalCreateProfileInputTemplate for billing profile setup",
+        "description": "Tests that exercise billing use the shared minimalCreateProfileInputTemplate(appID) helper defined in framework_test.go with AlignmentKindSubscription and PT0S collection interval. Override fields as needed before calling billingService.CreateProfile.",
+        "example": "profInput := minimalCreateProfileInputTemplate(tDeps.sandboxApp.GetID()); profInput.WorkflowConfig.Collection.Alignment = billing.AlignmentKindAnchored"
+      },
+      {
+        "name": "Hardcoded test-namespace",
+        "description": "All tests use namespace := \"test-namespace\" \u2014 this is hardcoded in subscriptiontestutils.SetupDBDeps. Do not use a different namespace string or test infrastructure will break.",
+        "example": "namespace := \"test-namespace\""
+      },
+      {
+        "name": "Direct constructor wiring, no app/common imports",
+        "description": "framework_test.go builds billingservice, billingadapter, subscriptionsyncservice, appservice, etc. by calling their New(Config{...}) constructors directly. Importing app/common would create import cycles with testutils.",
+        "example": "billingService, err := billingservice.New(billingservice.Config{Adapter: billingAdapter, ...})"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "framework_test.go",
+        "role": "Defines testDeps struct, setup() function, and minimalCreateProfileInputTemplate helper. All scenario files share this single test package (package subscription_test) and depend on this file.",
+        "watch_for": "Adding a new service to setup() requires a matching field in testDeps; forgetting cleanup(t) leaks the pgtestdb database; the sandbox app must be registered via appsandbox.NewMockableFactory before being used in billingService wiring."
+      },
+      {
+        "file": "scenario_editaligned_test.go",
+        "role": "Tests that editing a running subscription preserves the metered entitlement's current usage period boundaries (cadence alignment is maintained after remove+add item patch).",
+        "watch_for": "Assertions compare sView.Phases[0].ItemsByKey[key][0] (old) vs sUpdated.Phases[0].ItemsByKey[key][1] (new) \u2014 index 1 is the replacement entitlement after the edit; index 0 is the expired one."
+      },
+      {
+        "file": "scenario_editcancel_test.go",
+        "role": "Tests editing a subscription then immediately canceling it; also stress-tests with 10 parallel customers/subscriptions to surface concurrency issues.",
+        "watch_for": "Extra customers are created in a loop with unique subject keys (subject_2..subject_11); ensure subject keys are unique per customer or the customer service will reject duplicates."
+      },
+      {
+        "file": "scenario_entinnextphase_test.go",
+        "role": "Regression test for a bug where creating a subscription with a metered entitlement in the second phase (not the first) would fail. The comment 'THIS IS THE TEST, it used to fail' marks the key assertion.",
+        "watch_for": "Does NOT create a billing profile \u2014 tests only subscription creation correctness, not invoice generation."
+      },
+      {
+        "file": "scenario_firstofmonth_test.go",
+        "role": "Tests billing anchor alignment: billing lines for in-arrears usage, in-advance flat fee, and daily cadence ratecards are verified to align to the first-of-month anchor. Also tests early-cancel + sync-past-anchor produces correct line.",
+        "watch_for": "Uses subscriptionSyncService.SynchronizeSubscription directly to trigger invoice line generation. Assertions group lines by feature key via lo.GroupBy and sort by period start \u2014 line count depends on days between startOfSub and endOfMonth."
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common or any Wire provider set \u2014 creates import cycles with domain testutils packages",
+      "Using context.Background() where t.Context() is available (test harness lifecycle must own context cancellation)",
+      "Using a namespace other than 'test-namespace' \u2014 hardcoded in SetupDBDeps infrastructure",
+      "Calling subscriptionSyncService or billingService without first creating a billing profile \u2014 profile is required for invoice generation",
+      "Mutating clock.Now() without restoring it after the test \u2014 leaked global clock state affects parallel tests"
+    ],
+    "decisions": [
+      {
+        "decision": "Scenario files rather than table-driven tests",
+        "rationale": "Each scenario exercises a different causal sequence of domain operations that varies in setup, timing, and assertions; a table-driven structure would obscure the temporal flow that is central to billing correctness."
+      },
+      {
+        "decision": "All wiring done via direct constructors in framework_test.go instead of app/common Wire sets",
+        "rationale": "Avoids import cycles between domain testutils and the application wiring layer; keeps test dependencies minimal and explicit so unrelated wiring changes cannot silently affect these tests."
+      },
+      {
+        "decision": "Shared testDeps with embedded SubscriptionDependencies rather than per-test setup",
+        "rationale": "Each test calls setup() independently (getting a fresh pgtestdb database), but the struct shape is shared so scenario files can access all services without re-declaring them."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Standard scenario structure: setup deps, control clock, create feature+plan+customer, create subscription, advance time, assert",
+        "code": "func TestMyScenario(t *testing.T) {\n\tnamespace := \"test-namespace\"\n\tcurrentTime := testutils.GetRFC3339Time(t, \"2025-06-15T12:00:00Z\")\n\tctx, cancel := context.WithCancel(context.Background())\n\tdefer cancel()\n\n\ttDeps := setup(t, setupConfig{})\n\tdefer tDeps.cleanup(t)\n\tclock.SetTime(currentTime)\n\n\t// Create billing profile (required for invoice generation)\n\t_, err := tDeps.billingService.CreateProfile(ctx, minimalCreateProfileInputTemplate(tDeps.sandboxApp.GetID()))\n\trequire.NoError(t, err)\n\n\t// Create feature, plan, publish plan, create customer, then subscription\n\t// ...\n\n\t// Advance time\n\tclock.SetTime(currentTime.Add(time.Hour))\n\n\t// Sync and assert invoices\n\trequire.NoError(t, tDeps.subscriptionSyncService.SynchronizeSubscription(ctx, view, nextAnchor))\n}"
+      }
+    ]
+  }
+}

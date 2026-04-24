@@ -1,0 +1,62 @@
+{
+  "openmeter/entitlement/validators/customer": {
+    "purpose": "Implements customer.RequestValidator to block deletion of customers that still have active entitlements. Single-file package that bridges the entitlement and customer domains without creating a circular import.",
+    "patterns": [
+      {
+        "name": "RequestValidator interface compliance",
+        "description": "The Validator struct must satisfy customer.RequestValidator via a compile-time assertion `var _ customer.RequestValidator = (*Validator)(nil)`. Embed customer.NoopRequestValidator to get default no-op implementations for any methods not explicitly overridden.",
+        "example": "var _ customer.RequestValidator = (*Validator)(nil)\ntype Validator struct {\n    customer.NoopRequestValidator\n    entitlementRepo entitlement.EntitlementRepo\n}"
+      },
+      {
+        "name": "Constructor nil-guard",
+        "description": "NewValidator returns (*Validator, error) and explicitly rejects a nil entitlementRepo dependency with a descriptive error. All constructors in this pattern must guard every required dependency.",
+        "example": "if entitlementRepo == nil {\n    return nil, fmt.Errorf(\"entitlement repository is required\")\n}"
+      },
+      {
+        "name": "Conflict error for blocked deletions",
+        "description": "When validation fails because a resource still has dependents, wrap the error with models.NewGenericConflictError so the HTTP layer maps it to HTTP 409.",
+        "example": "return models.NewGenericConflictError(fmt.Errorf(\"customer %s still has active entitlements\", input.ID))"
+      },
+      {
+        "name": "Use EntitlementRepo, not entitlement.Service",
+        "description": "This package depends on entitlement.EntitlementRepo (the low-level repository interface) rather than entitlement.Service to avoid a heavy dependency on the full service and prevent import cycles.",
+        "example": "entitlementRepo entitlement.EntitlementRepo"
+      },
+      {
+        "name": "Clock-aware active check",
+        "description": "Use clock.Now() (not time.Now()) when computing the current time for ActiveAt filtering so the package is testable with a fake clock.",
+        "example": "now := clock.Now()\nActiveAt: lo.ToPtr(now),\nIncludeDeletedAfter: now,"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "validator.go",
+        "role": "Only file in the package. Defines Validator, its constructor, and the ValidateDeleteCustomer guard. All future validation methods for customer mutations (create, update) would be added here.",
+        "watch_for": "Do not call entitlement.Service here \u2014 use entitlement.EntitlementRepo to avoid import cycles. Always embed NoopRequestValidator so unimplemented methods have safe defaults."
+      }
+    ],
+    "anti_patterns": [
+      "Importing entitlement.Service instead of entitlement.EntitlementRepo \u2014 causes a heavy dependency and risks import cycles",
+      "Returning a non-conflict error type for 'has active entitlements' \u2014 the HTTP layer maps only models.GenericConflictError to 409",
+      "Using time.Now() instead of clock.Now() \u2014 makes tests non-deterministic",
+      "Adding business logic beyond pre-mutation validation \u2014 this package is only for RequestValidator guards, not for state transitions",
+      "Omitting the compile-time interface assertion \u2014 silent drift if customer.RequestValidator evolves"
+    ],
+    "decisions": [
+      {
+        "decision": "Depend on entitlement.EntitlementRepo rather than entitlement.Service",
+        "rationale": "The service layer would create a circular dependency (customer \u2192 entitlement \u2192 customer). The repo interface is a lower-level dependency that satisfies the validation need without pulling in the full service graph."
+      },
+      {
+        "decision": "Embed customer.NoopRequestValidator",
+        "rationale": "Provides safe no-op defaults for all RequestValidator methods not yet implemented, so adding a new method to the interface does not break this validator until it needs a real implementation."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new ValidateUpdateCustomer guard that blocks updates when active entitlements exist",
+        "code": "import (\n    \"context\"\n    \"fmt\"\n\n    \"github.com/samber/lo\"\n    \"github.com/openmeterio/openmeter/openmeter/customer\"\n    \"github.com/openmeterio/openmeter/openmeter/entitlement\"\n    \"github.com/openmeterio/openmeter/pkg/clock\"\n    \"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nfunc (v *Validator) ValidateUpdateCustomer(ctx context.Context, input customer.UpdateCustomerInput) error {\n    if err := input.Validate(); err != nil {\n        return err\n    }\n    now := clock.Now()\n    entitlements, err := v.entitlementRepo.ListEntitlements(ctx, entitlement.ListEntitlementsParams{\n        CustomerIDs: []string{input.ID},\n        Namespaces:  []string{input.Namespace},\n        ActiveAt:    lo.ToPtr(now),\n    })\n    if err != nil {\n        return fmt.Errorf(\"failed to list customer entitlements: %w\", err)\n    }\n    if len(entitlements.Items) > 0 {\n        return models.NewGenericConflictError(fmt.Errorf(\"customer %s has active entitlements\", input.ID))\n    }\n    return nil\n}"
+      }
+    ]
+  }
+}

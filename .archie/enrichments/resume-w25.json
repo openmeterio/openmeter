@@ -1,0 +1,106 @@
+{
+  "openmeter/billing/charges/flatfee/service": {
+    "purpose": "Implements the flatfee.Service interface: charge creation, state-machine-driven lifecycle advancement, line engine integration, and invoice event hooks. It is the orchestration layer \u2014 it holds business logic but never owns state-machine transition rules (those live in typed StateMachine structs per settlement mode).",
+    "patterns": [
+      {
+        "name": "Config+Validate before construction",
+        "description": "Every constructor accepts a typed Config struct and calls Config.Validate() before building the service. Missing dependencies are returned as joined errors, never panics.",
+        "example": "func New(config Config) (flatfee.Service, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+      },
+      {
+        "name": "transaction.Run wraps all multi-step adapter calls",
+        "description": "Any method that calls the adapter more than once (or must be atomic) wraps the body in transaction.Run / transaction.RunWithNoValue, never calls the adapter bare.",
+        "example": "return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]flatfee.ChargeWithGatheringLine, error) { ... s.adapter.CreateCharges(ctx, ...) ... })"
+      },
+      {
+        "name": "withLockedCharge for mutation triggers",
+        "description": "AdvanceCharge and TriggerPatch always open a transaction AND acquire a pg_advisory lock via s.locker.LockForTX before fetching and mutating the charge. Never mutate a charge without both.",
+        "example": "return s.withLockedCharge(ctx, input.ChargeID, func(ctx context.Context, charge flatfee.Charge) (*flatfee.Charge, error) { ... stateMachine.AdvanceUntilStateStable(ctx) })"
+      },
+      {
+        "name": "Settlement-mode dispatch via newStateMachine",
+        "description": "triggers.go dispatches to the correct StateMachine subtype (e.g. CreditsOnlyStateMachine) by switching on charge.Intent.SettlementMode. Unsupported modes return models.NewGenericNotImplementedError.",
+        "example": "case productcatalog.CreditOnlySettlementMode: return NewCreditsOnlyStateMachine(config)"
+      },
+      {
+        "name": "Input.Validate() before any adapter call",
+        "description": "Every exported method validates its input struct before any DB or state-machine operation. Returning a raw fmt.Errorf for validation is wrong \u2014 use the typed Validate() result.",
+        "example": "if err := input.Validate(); err != nil { return nil, err }"
+      },
+      {
+        "name": "LineEngine as a thin wrapper over service",
+        "description": "LineEngine embeds *service and implements billing.LineEngine. It delegates heavy work (credit allocation, detailed-line generation, persistence) back to service methods rather than containing logic itself.",
+        "example": "var _ billing.LineEngine = (*LineEngine)(nil)\nfunc (e *LineEngine) GetLineEngineType() billing.LineEngineType { return billing.LineEngineTypeChargeFlatFee }"
+      },
+      {
+        "name": "Currency rounding before any amount comparison or allocation",
+        "description": "Before passing an amount to handler or realizations, round with currencyCalculator.RoundToPrecision. Raw amounts from the DB must not be used in arithmetic comparisons.",
+        "example": "amount := currencyCalculator.RoundToPrecision(s.Charge.State.AmountAfterProration)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Defines Config, Validate, and New constructor; builds the flatfeerealizations.Service internally; exposes GetLineEngine(). This is the single wiring point \u2014 all dependencies enter here.",
+        "watch_for": "Adding dependencies that bypass Config.Validate; constructing flatfeerealizations.Service anywhere else."
+      },
+      {
+        "file": "triggers.go",
+        "role": "Houses AdvanceCharge, TriggerPatch, newStateMachine, and withLockedCharge. All charge lifecycle mutations flow through here.",
+        "watch_for": "Any mutation that skips withLockedCharge (missing advisory lock); adding a settlement-mode branch without a corresponding StateMachine type."
+      },
+      {
+        "file": "statemachine.go",
+        "role": "Defines the base stateMachine struct, StateMachineConfig, and newStateMachineBase. Wires Persistence callbacks (UpdateBase, Refetch) to the adapter.",
+        "watch_for": "Refetch must always pass ExpandRealizations expand; omitting it causes stale state in subsequent state-machine steps."
+      },
+      {
+        "file": "creditsonly.go",
+        "role": "CreditsOnlyStateMachine: the only currently supported settlement mode. Defines state graph (Created\u2192Active\u2192Final\u2192Deleted) and OnActive handlers that call Realizations.",
+        "watch_for": "AllocateCredits calls RoundToPrecision before passing to Realizations \u2014 do not remove. DeleteCharge must call RefetchCharge after adapter.DeleteCharge."
+      },
+      {
+        "file": "invoice.go",
+        "role": "PostLineAssignedToInvoice and PostInvoiceIssued: hooks called by the line engine when a standard invoice is created or issued. Both run inside transactions.",
+        "watch_for": "PostInvoiceIssued must guard against accrued usage already existing (lifecycle violation check). Zero-total lines must skip ledger accrual."
+      },
+      {
+        "file": "lineengine.go",
+        "role": "Implements billing.LineEngine for LineEngineTypeChargeFlatFee. OnStandardInvoiceCreated fetches charges, calls PostLineAssignedToInvoice, then CalculateLines, then persistDetailedLines.",
+        "watch_for": "CalculateLines requires a non-empty invoice ID and at least one line; returns fmt.Errorf if missing. SplitGatheringLine always errors \u2014 flat fee is not progressively billed."
+      },
+      {
+        "file": "create.go",
+        "role": "Bulk charge creation: validates input, computes proration, resolves feature IDs, calls adapter.CreateCharges, then maps to ChargeWithGatheringLine. CreditOnly charges skip the gathering-line path.",
+        "watch_for": "intent.Normalized() must be called before CalculateAmountAfterProration. GatheringLine must carry Engine: billing.LineEngineTypeChargeFlatFee."
+      }
+    ],
+    "anti_patterns": [
+      "Making charge status transitions (state-machine decisions) inside create.go, invoice.go, or lineengine.go \u2014 all transitions must go through newStateMachine + AdvanceUntilStateStable or FireAndActivate",
+      "Calling adapter methods outside a transaction.Run / transaction.RunWithNoValue block in any method that writes more than one row",
+      "Mutating a charge via AdvanceCharge or TriggerPatch without the advisory lock from withLockedCharge",
+      "Using raw (unrounded) currency amounts in allocation or comparison logic instead of calling currencyCalculator.RoundToPrecision first",
+      "Returning fmt.Errorf for unsupported settlement modes instead of models.NewGenericNotImplementedError"
+    ],
+    "decisions": [
+      {
+        "decision": "Settlement-mode dispatch at the service layer via newStateMachine switch, not inside the generic statemachine package",
+        "rationale": "Each settlement mode has a distinct state graph; keeping dispatch in triggers.go makes it easy to add new modes without modifying shared infrastructure."
+      },
+      {
+        "decision": "flatfeerealizations.Service is constructed inside New() and never exposed directly",
+        "rationale": "Realization mechanics are an implementation detail of this service; callers interact only through flatfee.Service, preventing direct realization calls that bypass lifecycle guards."
+      },
+      {
+        "decision": "LineEngine is a separate struct that holds a pointer to service, not an embedded interface",
+        "rationale": "Keeps the billing.LineEngine registration surface separate from the flatfee.Service surface so callers cannot confuse the two responsibilities."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Advancing a credit-only flat-fee charge through its state machine with advisory lock",
+        "code": "// triggers.go\nfunc (s *service) AdvanceCharge(ctx context.Context, input flatfee.AdvanceChargeInput) (*flatfee.Charge, error) {\n\tif err := input.Validate(); err != nil {\n\t\treturn nil, fmt.Errorf(\"validate: %w\", err)\n\t}\n\treturn s.withLockedCharge(ctx, input.ChargeID, func(ctx context.Context, charge flatfee.Charge) (*flatfee.Charge, error) {\n\t\tstateMachine, err := s.newStateMachine(StateMachineConfig{\n\t\t\tCharge:       charge,\n\t\t\tAdapter:      s.adapter,\n\t\t\tRealizations: s.realizations,\n\t\t})\n\t\tif err != nil {\n\t\t\treturn nil, fmt.Errorf(\"new state machine: %w\", err)\n\t\t}\n\t\treturn stateMachine.AdvanceUntilStateStable(ctx)\n\t})\n}"
+      }
+    ]
+  }
+}

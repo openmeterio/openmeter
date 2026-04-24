@@ -1,0 +1,160 @@
+{
+  "pkg/models": {
+    "purpose": "Foundational domain primitive library shared by all openmeter/* and api/* packages. Provides namespace-scoped identity types (NamespacedID, NamespacedKey), lifecycle base models (ManagedModel, CadencedModel, VersionedModel), generic service hook registry, structured validation errors (ValidationIssue/ValidationIssues), RFC 7807 problem types, and field-path descriptors for error attribution. The primary constraint is zero-import from openmeter/* domain packages \u2014 this package must remain a leaf.",
+    "patterns": [
+      {
+        "name": "Generic error wrapping with typed sentinels",
+        "description": "All domain errors are wrapped in typed GenericXxxError structs (GenericNotFoundError, GenericValidationError, GenericConflictError, etc.) that implement GenericError (error + Unwrap). Use NewGenericXxxError(err) constructors; check with IsGenericXxxError(err). HTTP layer maps these types to status codes.",
+        "example": "return nil, models.NewGenericNotFoundError(fmt.Errorf(\"customer %s not found\", id))"
+      },
+      {
+        "name": "ValidationIssue builder pattern (immutable with-chains)",
+        "description": "ValidationIssue is constructed via NewValidationIssue(code, message, opts...) or NewValidationError/NewValidationWarning. Mutations return new copies: issue.WithField(...), .WithAttr(key, val), .WithSeverity(...), .WithPathString(...). Never mutate a ValidationIssue directly \u2014 all With* methods clone first.",
+        "example": "issue := models.NewValidationError(\"invalid_field\", \"must be positive\").WithPathString(\"lineItems\", \"amount\").WithAttr(httpStatusCodeAttr, 422)"
+      },
+      {
+        "name": "FieldDescriptor tree for structured field paths",
+        "description": "Field paths in ValidationIssue use FieldDescriptor trees built via NewFieldSelector(field), NewFieldSelectorGroup(selectors...), and .WithPrefix(). They produce both human-readable strings (plan[key=pro].phases[key=trial]) and JSONPath expressions ($.plan[?(@.key=='pro')].phases[?(@.key=='trial')]) used in error serialization.",
+        "example": "models.NewFieldSelectorGroup(models.NewFieldSelector(\"phases\").WithExpression(models.NewFieldAttrValue(\"key\", \"trial\")), models.NewFieldSelector(\"rateCards\"))"
+      },
+      {
+        "name": "ServiceHookRegistry for cross-domain lifecycle callbacks",
+        "description": "ServiceHookRegistry[T] implements both ServiceHooks[T] (RegisterHooks) and ServiceHook[T] (Pre/Post Create/Update/Delete). It uses a per-registry context key to prevent re-entrant hook invocations. Domain services embed *ServiceHookRegistry[DomainType] and expose RegisterHooks externally so other packages register callbacks without import cycles.",
+        "example": "registry := models.NewServiceHookRegistry[Customer]()\nregistry.RegisterHooks(ledgerHook, notificationHook)\n// Before delete: registry.PreDelete(ctx, &customer)"
+      },
+      {
+        "name": "CadencedModel for time-bounded entities",
+        "description": "Entities active over a half-open interval [ActiveFrom, ActiveTo) embed CadencedModel. Use IsActiveAt(t) to test point-in-time membership. CadenceList[T] validates sorted, non-overlapping, and continuous cadence sequences via GetOverlaps() and IsContinuous().",
+        "example": "if !entity.CadencedModel.IsActiveAt(clock.Now()) { return nil, models.NewGenericNotFoundError(...) }"
+      },
+      {
+        "name": "Validator interface on all input types",
+        "description": "Service input types and model types implement models.Validator (Validate() error). NamespacedID.Validate(), ManagedResource.Validate(), and NamespacedModel.Validate() are called at service entry points before any adapter interaction. Use models.Validate[T](v, ...ValidatorFunc[T]) for composing multiple validators.",
+        "example": "if err := input.Validate(); err != nil { return nil, models.NewGenericValidationError(err) }"
+      },
+      {
+        "name": "RFC 7807 Problem via NewStatusProblem",
+        "description": "HTTP error responses use StatusProblem serialized as application/problem+json. NewStatusProblem(ctx, err, statusCode) extracts request-id from Chi middleware context, maps 'context canceled' to 408, and suppresses detail on 500. Extensions map carries validationErrors array when applicable.",
+        "example": "problem := models.NewStatusProblem(ctx, err, http.StatusBadRequest)\nproblem.Extensions = models.EncodeValidationIssues(err)\nproblem.Respond(w)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "pkg/models/errors.go",
+        "role": "Defines all generic domain error types (NotFound, Validation, Conflict, Forbidden, Unauthorized, NotImplemented, PreConditionFailed, StatusFailedDependency) plus ErrorWithFieldPrefix and ErrorWithComponent wrappers for structured error propagation.",
+        "watch_for": "Do not add new error types without also adding an IsXxxError(err) checker and ensuring the HTTP error encoder maps it to a status code."
+      },
+      {
+        "file": "pkg/models/validationissue.go",
+        "role": "ValidationIssue is the structured error type used for API validation responses. AsValidationIssues(err) traverses a mixed error tree and converts componentWrapper/fieldPrefixedWrapper/ValidationIssue nodes into a flat ValidationIssues slice; unknown leaf errors return an error only if no component context was seen.",
+        "watch_for": "WithAttr/WithAttrs panic on nil or non-comparable keys. Clone() sets wraps=self so errors.Is chains work \u2014 don't set wraps manually."
+      },
+      {
+        "file": "pkg/models/servicehook.go",
+        "role": "Thread-safe generic hook registry with re-entrancy prevention. The per-registry context key (a loopKey pointer-based string) ensures a hook that calls back through the same service does not trigger infinite recursion.",
+        "watch_for": "init() is lazy via sync.Once \u2014 the id field is set on first use. Do not compare registries by value; the id field depends on pointer identity."
+      },
+      {
+        "file": "pkg/models/fielddescriptor.go",
+        "role": "FieldDescriptor forms a tree via treex.Node for representing nested field paths. WithPrefix() prepends a subtree; WithExpression() attaches array/condition filter. String() and JSONPath() walk leaf nodes only via DFS.",
+        "watch_for": "WithPrefix and WithExpression return new *FieldDescriptor values (copy-on-write); original is not mutated. NewFieldSelectorGroup with all-nil selectors returns nil \u2014 callers must nil-check."
+      },
+      {
+        "file": "pkg/models/model.go",
+        "role": "ManagedModel (CreatedAt/UpdatedAt/DeletedAt), NamespacedModel (Namespace), ManagedResource, ManagedUniqueResource, and VersionedModel base structs that all persistent domain entities embed.",
+        "watch_for": "NewManagedResource converts all times to UTC via .UTC() \u2014 always store UTC. IsDeletedAt uses !DeletedAt.After(t), meaning entity deleted exactly at t is considered deleted."
+      },
+      {
+        "file": "pkg/models/problem.go",
+        "role": "RFC 7807 HTTP problem response. NewStatusProblem suppresses the error detail for 500 responses to avoid leaking internals. Extensions is initialized as an empty map (never nil) so callers can always assign to it.",
+        "watch_for": "context canceled substring check is string-based \u2014 not errors.Is \u2014 to catch wrapped context errors. Do not produce 500 problems with Detail set."
+      },
+      {
+        "file": "pkg/models/cadencelist.go",
+        "role": "CadenceList[T] helpers for validating time-ordered entity sequences. GetOverlaps is O(n) scanning adjacent pairs only (assumes sorted input). IsContinuous requires exact ActiveTo == next.ActiveFrom equality.",
+        "watch_for": "GetOverlaps returns empty slice (not nil) for no overlaps. Use NewSortedCadenceList for auto-sorted input."
+      },
+      {
+        "file": "pkg/models/annotation.go",
+        "role": "Annotations is map[string]interface{} with Clone (deep copy via brunoga/deep), Merge (right-wins shallow merge of deep-copied values), and typed getters GetBool/GetString/GetInt with float64 integer coercion.",
+        "watch_for": "GetInt accepts float64 whole numbers (JSON numbers deserialize as float64). Non-comparable or fractional float64 returns (0, false)."
+      }
+    ],
+    "anti_patterns": [
+      "Importing from openmeter/* domain packages inside pkg/models \u2014 it must remain a leaf package with no openmeter/* imports.",
+      "Mutating a ValidationIssue in place \u2014 always use With* methods which clone; direct struct field assignment bypasses the immutability contract.",
+      "Returning a plain errors.New() from a service layer where ValidationIssue is expected \u2014 callers use AsValidationIssues which can only extract ValidationIssue nodes, not raw errors.",
+      "Using reflect.DeepEqual for Annotations or ValidationIssue equality \u2014 use the provided Equal() methods which handle nil and non-comparable values correctly.",
+      "Creating a custom Paginator type instead of using NewPaginator[T](fn) \u2014 the paginator[T] unexported struct is the only implementation; wrap your list function via NewPaginator."
+    ],
+    "decisions": [
+      {
+        "decision": "ValidationIssue uses a private constructor (newValidationIssue with option functions) and copy-on-write With* methods instead of a builder pattern.",
+        "rationale": "Ensures every ValidationIssue instance is valid at construction (code + message required) and prevents accidental shared mutation when issues are passed through multiple error-wrapping layers."
+      },
+      {
+        "decision": "ServiceHookRegistry uses a pointer-identity-based context key (loopKey derived from fmt.Sprintf(\"%p\", r)) to prevent re-entrant hook invocations.",
+        "rationale": "Domain hooks (e.g. ledger hook on customer.PostCreate) may themselves call back into the customer service; the context sentinel blocks infinite recursion without requiring hooks to be aware of each other."
+      },
+      {
+        "decision": "FieldDescriptor forms a tree (via pkg/treex) rather than a simple dot-delimited string.",
+        "rationale": "Enables WithPrefix composition (prepend path segments from outer service layer), structured JSONPath generation for API error payloads, and attribute attachment at any node level \u2014 all impossible with a flat string."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Returning a structured ValidationIssue with field path from a domain service",
+        "code": "import (\n    \"github.com/openmeterio/openmeter/pkg/models\"\n)\n\n// Build a validation error with a nested field path and custom attribute\nfunc validateAmount(amount float64) error {\n    if amount <= 0 {\n        return models.NewValidationError(\"invalid_amount\", \"amount must be positive\").\n            WithPathString(\"lineItems\", \"amount\").\n            WithAttr(httpStatusCodeAttr, 422)\n    }\n    return nil\n}\n\n// In HTTP handler, convert to API response\nif validationIssues, err := models.AsValidationIssues(err); err == nil {\n    problem := models.NewStatusProblem(ctx, err, http.StatusUnprocessableEntity)\n    problem.Extensions = map[string]interface{}{\n        \"validationErrors\": validationIssues.AsErrorExtensions(),\n    }\n    problem.Respond(w)\n}"
+      }
+    ]
+  },
+  "pkg/pagination": {
+    "purpose": "Offset-based pagination primitives (Page, Result[T], Paginator[T]) and a cursor-based v2 sub-package. Provides the standard list-query contract used by all domain service List methods: callers pass pagination.Page, services return pagination.Result[T]. The v2 sub-package provides cursor pagination for time+ID ordered queries.",
+    "patterns": [
+      {
+        "name": "Page/Result contract for all list services",
+        "description": "All domain List methods accept pagination.Page (PageSize + PageNumber) embedded in their ListInput struct and return pagination.Result[T] with Items, TotalCount, and the echoed Page. Use MapResult[Out, In] or MapResultErr[Out, In] to transform items without rebuilding the Result wrapper.",
+        "example": "func (s *service) List(ctx context.Context, params ListParams) (pagination.Result[Entity], error) {\n    rows, total, err := s.adapter.List(ctx, params)\n    return pagination.MapResult(rows, toDomain), nil\n}"
+      },
+      {
+        "name": "Paginator[T] via NewPaginator for iterative collection",
+        "description": "Wrap any list function as a Paginator[T] using NewPaginator[T](fn). Use CollectAll[T](ctx, paginator, pageSize) to accumulate all pages up to MAX_SAFE_ITER (10,000). CollectAll returns (nil, err) on any page error; it does not return partial results.",
+        "example": "p := pagination.NewPaginator[Customer](func(ctx context.Context, page pagination.Page) (pagination.Result[Customer], error) {\n    return svc.List(ctx, ListParams{Page: page})\n})\nall, err := pagination.CollectAll[Customer](ctx, p, 100)"
+      },
+      {
+        "name": "Result MarshalJSON flattens Page fields",
+        "description": "Result[T].MarshalJSON() promotes PageSize and PageNumber into the top-level JSON object (not nested under 'page'). The Page field in Result has json:\"-\". This is intentional for API wire format consistency \u2014 do not override with a custom marshaler.",
+        "example": "// Output: {\"pageSize\":10,\"page\":1,\"totalCount\":25,\"items\":[...]}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "pkg/pagination/page.go",
+        "role": "Page value type with Offset() and Limit() helpers. Validate() returns InvalidError if PageSize < 0 or PageNumber < 1. IsZero() is true when both are 0 (uninitialised).",
+        "watch_for": "Offset() uses 1-based PageNumber: (PageNumber-1)*PageSize. PageNumber must be >= 1 for valid pages."
+      },
+      {
+        "file": "pkg/pagination/result.go",
+        "role": "Result[T] generic with MapResult and MapResultErr helpers. MarshalJSON flattens Page into the JSON root \u2014 this is load-bearing for API compatibility.",
+        "watch_for": "MapResultErr returns (Result[Out]{}, err) on first mapping error \u2014 no partial results. Use MapResult when the mapping is infallible."
+      },
+      {
+        "file": "pkg/pagination/collect.go",
+        "role": "CollectAll iterates pages until Items count < pageSize, returning nil on error. MAX_SAFE_ITER = 10_000 caps infinite loops from misbehaving paginators.",
+        "watch_for": "Uses 1-based page numbering (starts at PageNumber=1). On error returns (nil, err) \u2014 not partial results."
+      }
+    ],
+    "anti_patterns": [
+      "Implementing offset-based pagination by computing SQL OFFSET directly in handlers \u2014 always use Page.Offset() and Page.Limit() so the contract stays consistent.",
+      "Constructing pagination.Result manually instead of using MapResult/MapResultErr \u2014 the Page field echo and TotalCount assignment are easy to get wrong.",
+      "Ignoring the error return from CollectAll \u2014 it returns nil items on error, so checking only len(items) will silently lose data."
+    ],
+    "decisions": [
+      {
+        "decision": "Result[T] flattens Page into the JSON root rather than nesting it under a 'page' key.",
+        "rationale": "API wire format requires pageSize and page at the top level for SDK compatibility; the embedded Page struct is the internal type but must not appear in serialized responses."
+      }
+    ],
+    "code_examples": []
+  }
+}

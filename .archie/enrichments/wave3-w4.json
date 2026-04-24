@@ -1,0 +1,111 @@
+{
+  "api/v3/handlers": {
+    "purpose": "Structural umbrella for all v3 HTTP handler sub-packages; each child owns one API resource slice and bridges generated api/v3 request/response types to domain services via the httptransport.Handler pattern. Every handler in this tree must follow the same decode/operate/encode contract and error-encoder chain.",
+    "patterns": [
+      {
+        "name": "Type-alias triad per operation",
+        "description": "Each operation file declares Request, Response, and optionally Params type aliases from api/v3 generated types, keeping operation files self-contained.",
+        "example": "type ListMetersRequest = api.ListMetersRequestObject; type ListMetersResponse = api.ListMetersResponseObject"
+      },
+      {
+        "name": "httptransport.NewHandlerWithArgs for path-param endpoints",
+        "description": "Endpoints that take URL path parameters (e.g. meterID, planID) must use NewHandlerWithArgs; parameter-less list endpoints use NewHandler.",
+        "example": "httptransport.NewHandlerWithArgs(op, decode, encode, httptransport.AppendOptions(opts, httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()))...)"
+      },
+      {
+        "name": "Namespace resolved in decoder, never in operation",
+        "description": "Every decoder closure must call h.resolveNamespace(ctx) (or equivalent injected resolver) to obtain the namespace string before building the domain input.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return req, err }"
+      },
+      {
+        "name": "apierrors.GenericErrorEncoder always last in error chain",
+        "description": "Every handler's AppendOptions block must include httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()) so domain errors map to correct HTTP status codes.",
+        "example": "httptransport.AppendOptions(opts, httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()))"
+      },
+      {
+        "name": "Domain-specific errorEncoder chained before GenericErrorEncoder",
+        "description": "Packages with domain-specific errors (billing, features) define a local errorEncoder() and chain it before GenericErrorEncoder so billing.NotFoundError \u2192 404 etc.",
+        "example": "httptransport.WithErrorEncoder(errorEncoder(), apierrors.GenericErrorEncoder())"
+      },
+      {
+        "name": "convert.go owns all domain\u2194API mappings; convert.gen.go is generated",
+        "description": "Hand-written bidirectional conversion lives in convert.go; Goverter-driven generation targets convert.gen.go. Never edit convert.gen.go directly.",
+        "example": "// convert.go: func ToAPIAddon(a addon.Addon) apiv3.Addon { ... }"
+      },
+      {
+        "name": "IgnoreNonCriticalIssues=true on mutating inputs",
+        "description": "Create and Update decoders must set req.IgnoreNonCriticalIssues = true so plans/addons with only non-critical validation issues are not rejected.",
+        "example": "input.IgnoreNonCriticalIssues = true // set in decoder, not in domain service"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "api/v3/handlers/*/handler.go",
+        "role": "Declares the Handler interface and unexported handler struct; constructs httptransport.Handler instances and wires them to domain service fields. var _ Handler = (*handler)(nil) compile-time check is required.",
+        "watch_for": "Missing var _ Handler check; storing domain service under a wrong field type; omitting error encoder from any operation's AppendOptions."
+      },
+      {
+        "file": "api/v3/handlers/*/convert.go",
+        "role": "Owns all bidirectional API\u2194domain struct transformations for the resource. Discriminated unions (price types, app types) are hand-coded here.",
+        "watch_for": "Adding a new union variant in TypeSpec without adding matching cases here; partial round-trips (ToAPI without FromAPI)."
+      },
+      {
+        "file": "api/v3/handlers/*/convert.gen.go",
+        "role": "Goverter-generated conversion code. DO NOT EDIT. Regenerate with make generate.",
+        "watch_for": "Any manual edit will be overwritten on next make generate."
+      },
+      {
+        "file": "api/v3/handlers/*/error_encoder.go",
+        "role": "Present in packages with domain-specific error types (billing, features). Maps domain error structs to HTTP status codes before GenericErrorEncoder runs.",
+        "watch_for": "Packages that add a new domain error type without updating this file will silently return 500."
+      },
+      {
+        "file": "api/v3/handlers/meters/query/",
+        "role": "Sub-package that builds streaming.QueryParams from MeterQueryRequest fields; shared by meters and featurecost handlers.",
+        "watch_for": "Never duplicate this logic inline; always call query.BuildQueryParams."
+      },
+      {
+        "file": "api/v3/handlers/plans/convert.go",
+        "role": "Rich bidirectional transformer for the Plan \u2192 Phase \u2192 RateCard \u2192 Price hierarchy. Price type switch must be exhaustive with an unsupported-type guard.",
+        "watch_for": "Adding a new price type in TypeSpec without updating both ToAPIBillingPrice and FromAPIBillingPrice plus round-trip tests in convert_test.go."
+      },
+      {
+        "file": "api/v3/handlers/customers/billing/handler.go",
+        "role": "Entry point for customer billing-override sub-resource; wired separately from core customer CRUD.",
+        "watch_for": "Mixing billing-override operations with core customer operations in the parent package."
+      },
+      {
+        "file": "api/v3/handlers/apps/convert.go",
+        "role": "Polymorphic app mapping; each app type requires its own case in the ToAPIBillingApp switch via type assertion on app.App.",
+        "watch_for": "Adding a new app type without a matching case causes a runtime panic or silent nil return."
+      }
+    ],
+    "anti_patterns": [
+      "Using httptransport.NewHandler instead of NewHandlerWithArgs for any endpoint that takes a URL path parameter.",
+      "Resolving the namespace inside the operation closure instead of the decoder closure \u2014 breaks testability and violates the decode/operate separation.",
+      "Hand-editing any convert.gen.go file \u2014 it is always overwritten by make generate.",
+      "Omitting apierrors.GenericErrorEncoder() from an operation's AppendOptions \u2014 domain errors will return 500 to callers.",
+      "Adding business logic (validation, defaults, service calls) inside the encoder closure (third argument) \u2014 all domain calls belong in the operation closure."
+    ],
+    "decisions": [
+      {
+        "decision": "Each resource lives in its own sub-package under api/v3/handlers/ rather than a single flat handlers package.",
+        "rationale": "Isolates generated type aliases, conversion logic, and error encoders per resource; prevents import cycles and keeps each package small and independently regenerable."
+      },
+      {
+        "decision": "Goverter is used only for struct-level field mappings; discriminated unions (price types, app types, app type strings) are always hand-coded in convert.go.",
+        "rationale": "Goverter cannot express type-assertion switches or one-of union dispatch; hand-coding these makes the exhaustiveness check explicit and reviewable."
+      },
+      {
+        "decision": "Domain-specific error encoders (billingprofiles, features) chain before GenericErrorEncoder rather than replacing it.",
+        "rationale": "GenericErrorEncoder handles the common model error types (NotFound, Validation, Conflict); domain encoders only need to add cases for errors GenericErrorEncoder does not know about."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new path-param v3 handler operation (e.g. GetAddon)",
+        "code": "// api/v3/handlers/addons/get.go\npackage addons\n\nimport (\n\t\"context\"\n\n\tapiv3 \"github.com/openmeterio/openmeter/api/v3\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport/apierrors\"\n)\n\ntype GetAddonRequest = apiv3.GetAddonRequestObject\ntype GetAddonResponse = apiv3.GetAddonResponseObject\n\nfunc (h *handler) GetAddon(ctx context.Context, req GetAddonRequest) (GetAddonResponse, error) {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r GetAddonRequest) (GetAddonResponse, error) {\n\t\t\ta, err := h.addonService.GetAddon(ctx, addon.GetAddonInput{Namespace: r.Namespace, ID: r.AddonId})\n\t\t\tif err != nil {\n\t\t\t\treturn nil, err\n\t\t\t}\n\t\t\treturn apiv3.GetAddon200JSONResponse(ToAPIAddon(*a)), nil\n\t\t},\n\t\tfunc(ctx context.Context, r *http.Request) (GetAddonRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil {\n\t\t\t\treturn GetAddonRequest{}, err\n\t\t\t}\n\t\t\treturn GetAddonRequest{Namespace: ns, AddonId: chi.URLParam(r, \"addonId\")}, nil\n\t\t},\n\t\tttptransport.JSONResponseEncoder[GetAddonResponse],\n\t\thttptransport.AppendOptions(h.options, httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder())),\n\t).ServeHTTP\n}"
+      }
+    ]
+  }
+}

@@ -1,0 +1,165 @@
+{
+  "app/common": {
+    "purpose": "Houses all Google Wire provider sets and constructor functions that wire domain services, adapters, Kafka clients, database clients, telemetry, and configuration into fully-assembled application structs. One file per domain area; openmeter_*.go files define binary-specific Wire sets. Contains zero business logic.",
+    "patterns": [
+      {
+        "name": "One domain file per Wire set",
+        "description": "Each domain has exactly one file (billing.go, customer.go, subscription.go, etc.) exporting a PascalCase wire.NewSet var. Binary-specific sets (openmeter_server.go, openmeter_billingworker.go, etc.) compose domain sets.",
+        "example": "var Billing = wire.NewSet(BillingAdapter, NewBillingRatingService, NewBillingRegistry, NewBillingCustomerOverrideService)"
+      },
+      {
+        "name": "Registry structs for multi-service domains",
+        "description": "When a domain exposes multiple related services, group them in a <Domain>Registry struct (BillingRegistry, AppRegistry, SubscriptionServiceWithWorkflow) and pass the registry instead of individual services.",
+        "example": "type BillingRegistry struct { Billing billing.Service; Charges *ChargesRegistry }; func (r BillingRegistry) ChargesServiceOrNil() charges.Service"
+      },
+      {
+        "name": "Credits.Enabled guard at provider level",
+        "description": "Every provider that touches ledger writes checks creditsConfig.Enabled and returns a noop when false. This must be done independently in ledger.go, customer.go, customerbalance.go, and any new provider that uses ledger.",
+        "example": "if !creditsConfig.Enabled { return ledgernoop.AccountService{} }; return accountservice.New(...)"
+      },
+      {
+        "name": "Hook and validator registration inside wiring",
+        "description": "Cross-domain hooks (billing customer validator, subscription validator, entitlement validator, ledger hook) are registered inside provider functions in app/common, not in domain packages, to avoid circular imports.",
+        "example": "customerService.RegisterRequestValidator(validator); subscriptionServices.Service.RegisterHook(subscriptionValidator)"
+      },
+      {
+        "name": "Noop providers for optional features",
+        "description": "Optional integrations (Svix, credits, portal, progressmanager) return noop implementations when disabled. Type-assert against noop types (e.g. ledgernoop.AccountResolver) to conditionally skip handler registration.",
+        "example": "if _, ok := accountResolver.(ledgernoop.AccountResolver); ok { return ledgernoop.NamespaceHandler{} }"
+      },
+      {
+        "name": "Closer function pattern for stateful resources",
+        "description": "Providers returning closeable resources return a func() closer as a second return value. The wire graph propagates these closers to the binary's run.Group or calls them on shutdown.",
+        "example": "func NewPostgresDriver(...) (*pgdriver.Driver, func(), error)"
+      },
+      {
+        "name": "config.go wire.FieldsOf for sub-struct injection",
+        "description": "config.go declares all Wire FieldsOf bindings so downstream providers receive strongly-typed sub-config structs (e.g. config.BillingConfiguration, config.CreditsConfiguration) without importing the top-level Configuration.",
+        "example": "wire.FieldsOf(new(config.Configuration), \"Credits\"), wire.FieldsOf(new(config.BillingConfiguration), \"FeatureSwitches\")"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "app/common/billing.go",
+        "role": "Wires the full billing + charges stack. newChargesRegistry is private and only invoked when creditsConfig.Enabled. Registers billing customer and subscription validators as side-effects.",
+        "watch_for": "Any new ledger write path must be gated on creditsConfig.Enabled here. ChargesRegistry is nil when credits disabled \u2014 always use BillingRegistry.ChargesServiceOrNil()."
+      },
+      {
+        "file": "app/common/charges.go",
+        "role": "Constructor functions for every charges sub-service (flatfee, usagebased, creditpurchase, lineage, meta) and their ledger handlers. Also registers line engines with billingService.RegisterLineEngine.",
+        "watch_for": "Line engine registration order matters; each charge type engine must be registered before the first invoice advance. Called only from newChargesRegistry in billing.go."
+      },
+      {
+        "file": "app/common/ledger.go",
+        "role": "Full LedgerStack Wire provider set. All functions return noop types when credits disabled. NewLedgerNamespaceHandler skips real handler registration via type-assert against ledgernoop.AccountResolver.",
+        "watch_for": "NewLedgerHistoricalLedger contains a known hack: it creates a second accountservice.New with no Querier to avoid circular deps \u2014 do not remove the comment."
+      },
+      {
+        "file": "app/common/customer.go",
+        "role": "Creates customer.Service and registers the ledger hook (guarded by creditsConfig.Enabled), subject hook, and entitlement validator hook.",
+        "watch_for": "NewCustomerLedgerServiceHook must return ledgerresolvers.NoopCustomerLedgerHook{} when credits disabled \u2014 bypassing this causes ledger writes when credits are off."
+      },
+      {
+        "file": "app/common/config.go",
+        "role": "Declares all wire.FieldsOf bindings decomposing config.Configuration into injectable sub-structs. This is the single source of truth for what config paths Wire knows about.",
+        "watch_for": "Adding a new config sub-struct requires a wire.FieldsOf entry here before it can be injected."
+      },
+      {
+        "file": "app/common/openmeter_billingworker.go",
+        "role": "BillingWorker Wire set for cmd/billing-worker. Composes App, Customer, Secret, Lockr, FFX, Subscription, ProductCatalog, Entitlement, Billing, LedgerStack sets and wires the Watermill subscriber and run.Group.",
+        "watch_for": "BillingWorkerGroup adds run.SignalHandler \u2014 do not add another one."
+      },
+      {
+        "file": "app/common/telemetry.go",
+        "role": "Bootstraps OTel logger/meter/tracer providers, Prometheus handler, health checks, and telemetry HTTP server. GlobalInitializer.SetGlobals() must be called early in main.",
+        "watch_for": "Shutdown contexts use context.Background() with a 5s timeout \u2014 this is intentional to run after the parent ctx is cancelled."
+      },
+      {
+        "file": "app/common/watermill.go",
+        "role": "Watermill + Kafka publisher/subscriber wiring. WatermillNoPublisher set is shared with sink-worker which needs to control publisher close timing independently.",
+        "watch_for": "Sink-worker uses NewSinkWorkerPublisher (in openmeter_sinkworker.go) which returns an empty closer \u2014 do not add publisher.Close() in FlushHandlerManager until drain is complete."
+      }
+    ],
+    "anti_patterns": [
+      "Adding business logic (validation, computation, state mutation) inside app/common provider functions \u2014 providers must only construct and wire.",
+      "Calling customerService.RegisterHooks / RegisterRequestValidator from domain packages \u2014 always do this inside app/common to avoid circular imports.",
+      "Creating a new provider for ledger-backed features without a creditsConfig.Enabled guard returning a noop.",
+      "Depending on BillingRegistry.Charges directly without nil-check \u2014 always use BillingRegistry.ChargesServiceOrNil().",
+      "Importing app/common from any openmeter/* or pkg/* package \u2014 this package is a leaf node that depends on everything else, never the reverse."
+    ],
+    "decisions": [
+      {
+        "decision": "All wiring concentrated in app/common with domain packages exposing plain constructors",
+        "rationale": "Compile-time Wire verification catches missing providers; seven binaries share provider sets without duplicating wiring code; domain packages stay import-cycle-free."
+      },
+      {
+        "decision": "Credits feature guarded independently in each ledger-touching provider",
+        "rationale": "Credits cross-cuts ledger, customer hooks, namespace provisioning, and HTTP handlers \u2014 no single choke point can gate all paths, so each must independently return noops."
+      },
+      {
+        "decision": "Registry structs (BillingRegistry, AppRegistry, SubscriptionServiceWithWorkflow) instead of individual service injection",
+        "rationale": "Groups logically cohesive services, reduces Wire graph complexity for callers (routers, workers), and lets ChargesServiceOrNil() encapsulate the credits-disabled nil case."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new ledger-backed provider that must be disabled when credits are off",
+        "code": "// In app/common/newdomain.go\nfunc NewMyDomainService(\n    creditsConfig config.CreditsConfiguration,\n    ledgerService ledger.Ledger,\n    db *entdb.Client,\n) (mydomain.Service, error) {\n    if !creditsConfig.Enabled {\n        return mydomainnoop.NewService(), nil\n    }\n    adapter, err := mydomainadapter.New(mydomainadapter.Config{Client: db})\n    if err != nil {\n        return nil, fmt.Errorf(\"init mydomain adapter: %w\", err)\n    }\n    return mydomainservice.New(mydomainservice.Config{\n        Adapter: adapter,\n        Ledger:  ledgerService,\n    })\n}"
+      }
+    ]
+  },
+  "app/config": {
+    "purpose": "Defines the single shared config.Configuration struct (Viper-based) used by all binaries, with one file per concern. Provides Configure* functions that set Viper defaults and pflag bindings, plus Validate() methods on every sub-struct.",
+    "patterns": [
+      {
+        "name": "One config struct per concern file",
+        "description": "Each domain concern has its own file (billing.go, kafka.go, aggregation.go, etc.) with a typed struct, a Validate() error method, and a Configure*(v *viper.Viper) function setting defaults.",
+        "example": "type BillingConfiguration struct { AdvancementStrategy billing.AdvancementStrategy; Worker BillingWorkerConfiguration }; func (c BillingConfiguration) Validate() error"
+      },
+      {
+        "name": "Validate() returns errors.Join",
+        "description": "All Validate() methods accumulate errors using var errs []error + errs = append(errs, ...) + return errors.Join(errs...) to surface all failures at once.",
+        "example": "func (c BalanceWorkerConfiguration) Validate() error { var errs []error; ...; return errors.Join(errs...) }"
+      },
+      {
+        "name": "SetViperDefaults as the single registration point",
+        "description": "config.go's SetViperDefaults calls every Configure* function in order. New config concerns must add a Configure* call here to be picked up.",
+        "example": "func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) { ...; ConfigureBilling(v, flags); ConfigureProductCatalog(v); ... }"
+      },
+      {
+        "name": "Sub-config helper methods for derived values",
+        "description": "Config structs expose helper methods (AsURL(), GetClientOptions(), AsConsumerConfig()) that transform config fields into types expected by third-party clients, keeping that translation out of app/common.",
+        "example": "func (c ClickHouseAggregationConfiguration) GetClientOptions() *clickhouse.Options"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "app/config/config.go",
+        "role": "Root Configuration struct aggregating all sub-configs. SetViperDefaults registers all defaults. Validate() fans out to all sub-config validators and validates meters.",
+        "watch_for": "credits is validated twice (both a Credits and credit prefix) \u2014 known duplication. New sub-configs must be added to both the struct and Validate()."
+      },
+      {
+        "file": "app/config/billing.go",
+        "role": "BillingConfiguration and BillingFeatureSwitchesConfiguration. FeatureSwitches.NamespaceLockdown is a []string allowlist that gates billing ops per namespace.",
+        "watch_for": "AdvancementStrategy references openmeter/billing domain type directly \u2014 config package imports the billing domain package."
+      },
+      {
+        "file": "app/config/aggregation.go",
+        "role": "ClickHouse connection config including TLS, retry, pool metrics. GetClientOptions() produces *clickhouse.Options for the client.",
+        "watch_for": "All numeric fields default to >0; Validate() rejects 0-valued fields \u2014 always set defaults in ConfigureAggregation."
+      }
+    ],
+    "anti_patterns": [
+      "Adding business logic or state to config structs \u2014 they are pure data containers with validation.",
+      "Calling SetViperDefaults from tests without also calling each Configure* function \u2014 tests must call SetViperDefaults to get defaults.",
+      "Adding config fields without corresponding Validate() check and Configure* default \u2014 silent zero-value misconfigurations result."
+    ],
+    "decisions": [
+      {
+        "decision": "Single shared config.Configuration type for all binaries",
+        "rationale": "Wire FieldsOf in app/common/config.go decomposes it into typed sub-structs per domain; each binary only injects the sub-structs it needs, but all binaries load the same config file shape."
+      }
+    ],
+    "code_examples": []
+  }
+}

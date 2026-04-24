@@ -1,0 +1,91 @@
+{
+  "collector/benthos/input/runai": {
+    "purpose": "HTTP client library for the Run:ai API, providing typed access to workloads, pods, and their metrics. All network calls go through a single resty.Client configured in service.go with automatic JWT token refresh on every non-token request.",
+    "patterns": [
+      {
+        "name": "Service method per API endpoint",
+        "description": "Every API endpoint is a method on *Service (e.g. ListPods, ListWorkloads, GetWorkloadMetrics). Methods set Accept header, query params via SetQueryParams, and call SetResult with a typed pointer before executing the resty verb.",
+        "example": "resp.Result().(*ListPodsResponse)"
+      },
+      {
+        "name": "Paginated list helpers: ListX + ListAllX",
+        "description": "Each resource has a ListX (single page, max 500) and a ListAllX (loops until resp.Next == 0) pair. ListAllX calls s.resourceTypeMetrics.Set after collecting all pages.",
+        "example": "ListPods / ListAllPods, ListWorkloads / ListAllWorkloads"
+      },
+      {
+        "name": "Metric chunking (max 9 per request)",
+        "description": "GetAllWorkloadWithMetrics and GetAllPodWithMetrics chunk MetricType slices with lo.Chunk(params.MetricType, 9) before calling GetWorkloadMetrics/GetPodMetrics to avoid exceeding API limits.",
+        "example": "for _, metricTypes := range lo.Chunk(params.MetricType, 9) { ... }"
+      },
+      {
+        "name": "ResourceWithMetrics interface for polymorphic metric resources",
+        "description": "WorkloadWithMetrics and PodWithMetrics both implement ResourceWithMetrics (GetType, GetMetrics, json.Marshaler). MarshalJSON injects a resourceType discriminator field via an anonymous struct embed.",
+        "example": "var _ ResourceWithMetrics = (*WorkloadWithMetrics)(nil)"
+      },
+      {
+        "name": "OnBeforeRequest JWT auto-refresh",
+        "description": "service.go registers an OnBeforeRequest hook that calls service.RefreshToken then SetAuthToken on every non-token request. OnAfterResponse clears token on 401 and records timing metrics with path normalization.",
+        "example": "if request.URL == \"/api/v1/token\" { return nil }"
+      },
+      {
+        "name": "Non-fatal per-resource metric errors",
+        "description": "In GetAllWorkloadWithMetrics and GetAllPodWithMetrics, a per-resource metric error is logged (s.logger.Errorf) and the loop continues with continue rather than returning the error.",
+        "example": "s.logger.With(...).Errorf(\"failed to get workload metrics: %w\", err); continue"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Constructs *Service with a resty.Client; holds all shared state (logger, client, token, pageSize, resourceTypeMetrics). The single constructor NewService is the only entry point.",
+        "watch_for": "TimingMetrics path normalization uses regex in OnAfterResponse \u2014 add new endpoints here when adding new API paths, otherwise metrics will be untagged."
+      },
+      {
+        "file": "token.go",
+        "role": "JWT lifecycle: NewToken posts to /api/v1/token, RefreshToken checks expiry via verifyToken (parses without signature verification), SetToken/GetToken are plain field accessors.",
+        "watch_for": "verifyToken uses jwt.WithoutClaimsValidation() \u2014 it only checks expiry, not signature. Token is cleared on 401 by OnAfterResponse in service.go."
+      },
+      {
+        "file": "metrics.go",
+        "role": "Defines MetricType constants for both workload and pod scopes, MeasurementParams/Measurement/MeasurementResponse/Metrics types, and the four public methods: GetWorkloadMetrics, GetAllWorkloadWithMetrics, GetPodMetrics, GetAllPodWithMetrics.",
+        "watch_for": "PodMetricType and WorkloadMetricType share the MetricType string type \u2014 some constant names collide (e.g. CPU_MEMORY_USAGE_BYTES, GPU_UTILIZATION appear in both groups). Don't assume a constant is scoped."
+      },
+      {
+        "file": "workloads.go",
+        "role": "Defines Workload struct, ListWorkloads (with hardcoded phase filter excluding non-running workloads), and ListAllWorkloads.",
+        "watch_for": "ListWorkloads filters workloads client-side by RunningPods > 0 after the API call; the phase filter is also applied as a filterBy query param. Adding new phases to include requires editing both."
+      },
+      {
+        "file": "pods.go",
+        "role": "Defines Pod struct and ListPods/ListAllPods. ListAllPods calls s.resourceTypeMetrics.Set(int64(len(pods)), \"pod\") after pagination completes.",
+        "watch_for": "ListPods hardcodes completed=false query param; running pod listing only."
+      }
+    ],
+    "anti_patterns": [
+      "Adding a new API resource without providing both a ListX (single page) and ListAllX (pagination loop) method.",
+      "Calling GetWorkloadMetrics or GetPodMetrics with more than 9 MetricType values in one request \u2014 always chunk with lo.Chunk(..., 9).",
+      "Returning an error from the per-resource metric loop instead of logging and continuing \u2014 this would abort collection for all remaining resources.",
+      "Editing token verification to check signature \u2014 the Run:ai JWT is not verified by signature here by design.",
+      "Adding timing metrics without normalizing the URL path in the OnAfterResponse regex block in service.go."
+    ],
+    "decisions": [
+      {
+        "decision": "Single *Service struct holds all HTTP state including token and resty.Client",
+        "rationale": "Simplifies token refresh: the OnBeforeRequest hook has a closure over *Service so it can call RefreshToken without passing credentials through every method."
+      },
+      {
+        "decision": "Metric fetches chunk at 9 MetricType values per request",
+        "rationale": "The Run:ai API has an undocumented max on simultaneous metric types; chunking at 9 stays safely under that limit while maps.Copy merges results into a single Metrics struct."
+      },
+      {
+        "decision": "ResourceWithMetrics interface + MarshalJSON discriminator",
+        "rationale": "Allows the Benthos input plugin to handle both WorkloadWithMetrics and PodWithMetrics polymorphically while producing self-describing JSON with a resourceType field for downstream consumers."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new resource type (e.g. nodes) with pagination and metric support",
+        "code": "// nodes.go\npackage runai\n\nimport (\n\t\"context\"\n\t\"fmt\"\n\t\"net/http\"\n)\n\ntype Node struct {\n\tID   string `json:\"id\"`\n\tName string `json:\"name\"`\n}\n\ntype ListNodesResponse struct {\n\tNodes []Node `json:\"nodes\"`\n\tNext  int    `json:\"next\"`\n}\n\nfunc (s *Service) ListNodes(ctx context.Context, params ListWorkloadParams) (*ListNodesResponse, error) {\n\tif params.Limit > 500 {\n\t\treturn nil, fmt.Errorf(\"limit must be less than 500\")\n\t}\n\tresp, err := s.client.R().\n\t\tSetContext(ctx).\n\t\tSetHeader(\"Accept\", \"application/json\").\n\t\tSetResult(&ListNodesResponse{}).\n\t\tGet(\"/api/v1/nodes\")\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\tif resp.StatusCode() != http.StatusOK {\n\t\treturn nil, fmt.Errorf(\"failed to list nodes, status code: %d\", resp.StatusCode())\n\t}\n\treturn resp.Result().(*ListNodesResponse), nil\n}\n\nfunc (s *Service) ListAllNodes(ctx context.Context) ([]Node, error) {\n\tnodes := make([]Node, 0)\n\tfor {\n\t\tresp, err := s.ListNodes(ctx, ListWorkloadParams{Limit: s.pageSize, Offset: len(nodes)})\n\t\tif err != nil {\n\t\t\treturn nil, err\n\t\t}\n\t\tnodes = append(nodes, resp.Nodes...)\n\t\tif resp.Next == 0 {\n\t\t\tbreak\n\t\t}\n\t}\n\ts.resourceTypeMetrics.Set(int64(len(nodes)), \"node\")\n\treturn nodes, nil\n}"
+      }
+    ]
+  }
+}

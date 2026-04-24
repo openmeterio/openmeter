@@ -1,0 +1,239 @@
+{
+  "openmeter/billing/charges/creditpurchase/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing creditpurchase.Adapter \u2014 all DB reads and writes for credit-purchase charges, credit grants, external payments, and invoiced payments. Every method must honor the ctx-bound transaction via entutils.TransactingRepo.",
+    "patterns": [
+      {
+        "name": "TransactingRepo on every write",
+        "description": "Every mutating method wraps its Ent calls in entutils.TransactingRepo(ctx, a, func(...) ...) so it rebinds to any transaction already carried in ctx rather than using the raw *entdb.Client.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (creditpurchase.Charge, error) { ... tx.db.ChargeCreditPurchase... })"
+      },
+      {
+        "name": "TransactingRepo on reads too",
+        "description": "Even read-only queries (GetByID, GetByIDs, ListCharges) use entutils.TransactingRepo to participate in caller transactions for consistent reads.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (creditpurchase.Charge, error) { entity, err := tx.db.ChargeCreditPurchase.Query()... })"
+      },
+      {
+        "name": "WithTx + Self for TransactingRepo rebind",
+        "description": "adapter implements WithTx(ctx, tx) and Self() required by entutils.TxUser so TransactingRepo can rebind to a new txClient derived from the TxDriver.",
+        "example": "func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txDb := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txDb.Client(), ...} }"
+      },
+      {
+        "name": "Config.Validate() before construction",
+        "description": "New() calls config.Validate() and returns an error if any required field (Client, Logger, MetaAdapter) is nil \u2014 never construct with zero values.",
+        "example": "func New(config Config) (creditpurchase.Adapter, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+      },
+      {
+        "name": "withExpands for edge loading",
+        "description": "Ent edge loading (WithCreditGrant, WithExternalPayment, WithInvoicedPayment) is gated behind a withExpands helper that checks meta.Expands flags \u2014 never eager-load unconditionally.",
+        "example": "func withExpands(query *db.ChargeCreditPurchaseQuery, expands meta.Expands) *db.ChargeCreditPurchaseQuery { if expands.Has(meta.ExpandRealizations) { query = query.WithCreditGrant()... } return query }"
+      },
+      {
+        "name": "Mapper functions in mapper.go",
+        "description": "All Ent-to-domain mapping lives in Map* functions in mapper.go (MapChargeBaseFromDB, MapCreditPurchaseChargeFromDB). Adapter methods call these; they never inline mapping logic.",
+        "example": "return MapCreditPurchaseChargeFromDB(dbCreditPurchase, meta.ExpandNone)"
+      },
+      {
+        "name": "Namespace predicate on every query",
+        "description": "Every query includes a namespace WHERE predicate (dbchargecreditpurchase.NamespaceEQ / dbchargecreditpurchase.Namespace) to enforce multi-tenant isolation.",
+        "example": "Where(dbchargecreditpurchase.Namespace(input.ChargeID.Namespace), dbchargecreditpurchase.ID(input.ChargeID.ID))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Adapter constructor, Config validation, Tx/WithTx/Self for entutils integration.",
+        "watch_for": "Never omit WithTx or Self \u2014 TransactingRepo requires both for tx rebinding."
+      },
+      {
+        "file": "charge.go",
+        "role": "CRUD for ChargeCreditPurchase rows: UpdateCharge, CreateCharge, GetByID, GetByIDs, ListCharges.",
+        "watch_for": "CreateCharge also calls metaAdapter.RegisterCharges inside the same transaction \u2014 ordering matters."
+      },
+      {
+        "file": "creditgrant.go",
+        "role": "Creates ChargeCreditPurchaseCreditGrant rows linking a charge to a ledger transaction group.",
+        "watch_for": "GrantedAt must be stored in UTC (entity.GrantedAt.In(time.UTC))."
+      },
+      {
+        "file": "funded_credit_activity.go",
+        "role": "Cursor-based pagination over credit grants joined to credit purchases; exposes ListFundedCreditActivities as both adapter method and package-level function.",
+        "watch_for": "Before-cursor reverses sort order then slices.Reverse(items) \u2014 both steps are required for correct bidirectional pagination."
+      },
+      {
+        "file": "mapper.go",
+        "role": "MapChargeBaseFromDB and MapCreditPurchaseChargeFromDB translate Ent rows to domain types; edge fields are only read when expands flag is set.",
+        "watch_for": "Missing NotLoadedError check when mapping edges will panic; use lo.ErrorsAs[*entdb.NotLoadedError]."
+      },
+      {
+        "file": "payment.go",
+        "role": "Create/Update for external and invoiced payment settlement rows.",
+        "watch_for": "All four methods wrap in TransactingRepo \u2014 never bypass even for simple saves."
+      }
+    ],
+    "anti_patterns": [
+      "Using a.db directly inside a method body instead of the tx.db from TransactingRepo \u2014 falls off the caller's transaction.",
+      "Calling Ent edges without setting up withExpands \u2014 results in NotLoadedError panics in mapper.",
+      "Omitting namespace predicate from queries \u2014 returns cross-tenant data.",
+      "Inlining Ent-to-domain mapping instead of using Map* functions in mapper.go.",
+      "Constructing adapter with a nil Client or MetaAdapter without calling Validate() \u2014 causes nil-pointer panics at first use."
+    ],
+    "decisions": [
+      {
+        "decision": "TransactingRepo wraps every method (reads and writes) rather than only writes.",
+        "rationale": "Charge advancement mixes reads and writes across multiple helpers; consistent reads inside a caller tx prevent phantom reads between steps."
+      },
+      {
+        "decision": "ListFundedCreditActivities is also exported as a package-level function (not only an adapter method).",
+        "rationale": "Tests and potential callers need to call it with a raw *db.Client without constructing a full adapter \u2014 the function signature enables both uses."
+      },
+      {
+        "decision": "Edge loading (WithCreditGrant, etc.) is gated behind meta.Expands rather than always eager-loaded.",
+        "rationale": "Avoiding unnecessary joins keeps list/get queries fast; callers explicitly opt in to realizations data."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new mutating adapter method",
+        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n)\n\nfunc (a *adapter) SomeUpdate(ctx context.Context, in creditpurchase.SomeInput) (creditpurchase.SomeResult, error) {\n\tif err := in.Validate(); err != nil {\n\t\treturn creditpurchase.SomeResult{}, err\n\t}\n\treturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (creditpurchase.SomeResult, error) {\n\t\tentity, err := tx.db.ChargeCreditPurchase.UpdateOneID(in.ID).\n\t\t\tWhere(dbchargecreditpurchase.NamespaceEQ(in.Namespace)).\n\t\t\t// ... set fields ...\n\t\t\tSave(ctx)\n\t\tif err != nil {\n\t\t\treturn creditpurchase.SomeResult{}, err\n\t\t}\n\t\treturn MapSomeResultFromDB(entity), nil\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/billing/charges/creditpurchase/lineengine": {
+    "purpose": "Implements billing.LineEngine for the credit-purchase line type (LineEngineTypeChargeCreditPurchase). Delegates detailed line generation to rating.Service; explicitly disallows progressive billing (SplitGatheringLine always errors).",
+    "patterns": [
+      {
+        "name": "billing.LineEngine interface compliance",
+        "description": "Engine must implement all billing.LineEngine methods: GetLineEngineType, IsLineBillableAsOf, SplitGatheringLine, BuildStandardInvoiceLines, OnCollectionCompleted, OnStandardInvoiceCreated, OnInvoiceIssued, OnPaymentAuthorized, OnPaymentSettled. Unused lifecycle hooks return input.Lines unchanged or nil error.",
+        "example": "var _ billing.LineEngine = (*Engine)(nil)"
+      },
+      {
+        "name": "Config.Validate() before construction",
+        "description": "New(Config) validates that RatingService is non-nil before constructing the Engine.",
+        "example": "func New(config Config) (*Engine, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+      },
+      {
+        "name": "CalculateLines delegates to ratingService.GenerateDetailedLines",
+        "description": "Line calculation calls ratingService.GenerateDetailedLines(stdLine) then invoicecalc.MergeGeneratedDetailedLines for each line; never computes amounts inline.",
+        "example": "generatedDetailedLines, err := e.ratingService.GenerateDetailedLines(stdLine)\nif err := invoicecalc.MergeGeneratedDetailedLines(stdLine, generatedDetailedLines); err != nil { ... }"
+      },
+      {
+        "name": "SplitGatheringLine always errors",
+        "description": "Credit purchases are never progressively billed so SplitGatheringLine must return an error \u2014 do not add partial-period splitting logic here.",
+        "example": "func (e *Engine) SplitGatheringLine(...) (billing.SplitGatheringLineResult, error) { return billing.SplitGatheringLineResult{}, fmt.Errorf(\"credit purchase line is not progressively billed\") }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "engine.go",
+        "role": "Single file containing the entire Engine implementation; all billing.LineEngine method stubs plus CalculateLines.",
+        "watch_for": "ChargeID must be non-nil on every StandardLine passed to CalculateLines \u2014 validated before calling ratingService."
+      }
+    ],
+    "anti_patterns": [
+      "Implementing SplitGatheringLine with real logic \u2014 credit purchases are not progressively billed.",
+      "Computing line amounts directly in the engine instead of delegating to ratingService.GenerateDetailedLines.",
+      "Skipping invoicecalc.MergeGeneratedDetailedLines after GenerateDetailedLines \u2014 leaves detailed lines unattached to the standard line."
+    ],
+    "decisions": [
+      {
+        "decision": "Engine is a thin dispatcher to rating.Service rather than computing amounts itself.",
+        "rationale": "rating.Service owns all billing-period and amount calculation; the engine's role is orchestration and lifecycle hook compliance."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/billing/charges/creditpurchase/service": {
+    "purpose": "Business-logic service implementing creditpurchase.Service \u2014 orchestrates charge creation, settlement path dispatch (promotional/external/invoice), and invoice lifecycle callbacks. All multi-step flows run inside transaction.Run to ensure atomicity.",
+    "patterns": [
+      {
+        "name": "transaction.Run wraps every service method",
+        "description": "Every public method wraps its adapter calls in transaction.Run(ctx, s.adapter, func(ctx context.Context) ...) or transaction.RunWithNoValue for side-effect-only calls \u2014 never calls adapter methods outside a transaction boundary.",
+        "example": "return transaction.Run(ctx, s.adapter, func(ctx context.Context) (creditpurchase.ChargeWithGatheringLine, error) { charge, err := s.adapter.CreateCharge(ctx, ...); ... })"
+      },
+      {
+        "name": "Settlement-type dispatch in Create",
+        "description": "Create inspects charge.Intent.Settlement.Type() and dispatches to onPromotionalCreditPurchase, onExternalCreditPurchase, or the invoice path \u2014 each path has its own file (promotional.go, external.go, invoice.go).",
+        "example": "switch charge.Intent.Settlement.Type() {\ncase creditpurchase.SettlementTypePromotional: charge, err = s.onPromotionalCreditPurchase(ctx, charge)\ncase creditpurchase.SettlementTypeInvoice: // noop until invoice created\ncase creditpurchase.SettlementTypeExternal: charge, err = s.onExternalCreditPurchase(ctx, charge)\n}"
+      },
+      {
+        "name": "handler.On* for ledger side-effects",
+        "description": "Ledger interactions (credit grants, payment authorization, payment settlement) are always routed through creditpurchase.Handler methods (OnCreditPurchaseInitiated, OnCreditPurchasePaymentAuthorized, OnCreditPurchasePaymentSettled, OnPromotionalCreditPurchase) \u2014 never called directly against the ledger.",
+        "example": "ledgerTransactionGroupReference, err := s.handler.OnCreditPurchaseInitiated(ctx, charge)"
+      },
+      {
+        "name": "lineage.BackfillAdvanceLineageSegments after grant",
+        "description": "After creating a credit grant with a non-empty TransactionGroupID, call s.lineage.BackfillAdvanceLineageSegments to record lineage \u2014 required for both external and invoice settlement paths.",
+        "example": "if ledgerTransactionGroupReference.TransactionGroupID != \"\" { if err := s.lineage.BackfillAdvanceLineageSegments(ctx, lineage.BackfillAdvanceLineageSegmentsInput{...}); err != nil { return ... } }"
+      },
+      {
+        "name": "Validate input then delegate to adapter",
+        "description": "Every service method calls input.Validate() before entering the transaction. Delegation to adapter is always inside transaction.Run.",
+        "example": "func (s *service) ListFundedCreditActivities(ctx context.Context, input ...) (...) { if err := input.Validate(); err != nil { return ..., err }; return transaction.Run(ctx, s.adapter, func(...) { return s.adapter.ListFundedCreditActivities(ctx, input) }) }"
+      },
+      {
+        "name": "Config.Validate() + New() constructor pattern",
+        "description": "service.New(Config) calls config.Validate() collecting all nil-check errors with errors.Join before returning a service.",
+        "example": "func New(config Config) (creditpurchase.Service, error) { if err := config.Validate(); err != nil { return nil, err } return &service{...}, nil }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Config, Validate, New constructor, service struct declaration.",
+        "watch_for": "All four fields (Adapter, Handler, Lineage, MetaAdapter) are required \u2014 nil Handler means ledger calls will panic."
+      },
+      {
+        "file": "create.go",
+        "role": "Create entry-point: normalizes intent, validates, creates DB row, dispatches to settlement path, optionally builds GatheringLine for invoice settlement.",
+        "watch_for": "buildInvoiceCreditPurchaseGatheringLine sets AnnotationKeyTaxable=false and AnnotationKeyReason=CreditPurchase \u2014 these annotations must stay for downstream billing correctness."
+      },
+      {
+        "file": "external.go",
+        "role": "External settlement path: onExternalCreditPurchase, HandleExternalPaymentAuthorized, HandleExternalPaymentSettled.",
+        "watch_for": "onExternalCreditPurchase may chain through two state transitions (authorized then settled) based on targetStatus \u2014 ordering is: initiate \u2192 authorize \u2192 settle."
+      },
+      {
+        "file": "invoice.go",
+        "role": "Invoice settlement lifecycle hooks called by billing service: PostInvoiceDraftCreated, PostInvoicePaymentAuthorized, PostInvoicePaymentSettled.",
+        "watch_for": "PostInvoicePaymentAuthorized and PostInvoicePaymentSettled are called inside billing's PostUpdate hook (already in a transaction) \u2014 do not start a new outer transaction."
+      },
+      {
+        "file": "promotional.go",
+        "role": "Promotional credit purchase path: grants credits immediately and moves charge to StatusFinal in one step.",
+        "watch_for": "Checks activePromotionalCreditPurchaseStatuses before processing to prevent double-grant on re-invocation."
+      },
+      {
+        "file": "funded_credit_activity.go",
+        "role": "Thin delegation to adapter.ListFundedCreditActivities inside transaction.Run.",
+        "watch_for": "No business logic here \u2014 if logic is needed, add it to the adapter's package-level function, not this file."
+      }
+    ],
+    "anti_patterns": [
+      "Calling adapter methods outside transaction.Run \u2014 breaks atomicity across multi-step charge flows.",
+      "Directly calling ledger APIs instead of routing through creditpurchase.Handler \u2014 bypasses the handler abstraction and breaks credits.enabled=false guard.",
+      "Skipping lineage.BackfillAdvanceLineageSegments after a non-empty TransactionGroupID \u2014 leaves lineage records incomplete.",
+      "Adding settlement-type logic directly in Create instead of dispatching to a dedicated file (promotional.go, external.go, invoice.go).",
+      "Omitting input.Normalize() (e.g., input.Intent.Normalized()) before Validate() in Create \u2014 allows denormalized intents to reach the adapter."
+    ],
+    "decisions": [
+      {
+        "decision": "Settlement paths are split across three files (promotional.go, external.go, invoice.go) rather than inlined in create.go.",
+        "rationale": "Each settlement type has distinct ledger interactions and state machine steps; keeping them separate avoids a large switch-case blob and makes each path independently testable."
+      },
+      {
+        "decision": "Ledger interactions are always mediated through creditpurchase.Handler rather than called directly.",
+        "rationale": "Enables noop handler injection when credits are disabled (credits.enabled=false) without changing service code."
+      },
+      {
+        "decision": "transaction.Run is used in the service layer even though the adapter also uses entutils.TransactingRepo.",
+        "rationale": "The service needs to atomically combine multiple adapter calls (create charge + create grant + update status); TransactingRepo alone in the adapter only scopes individual calls."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new service method that writes to adapter and calls handler",
+        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transaction\"\n)\n\nfunc (s *service) SomeOperation(ctx context.Context, input creditpurchase.SomeInput) (creditpurchase.SomeResult, error) {\n\tif err := input.Validate(); err != nil {\n\t\treturn creditpurchase.SomeResult{}, err\n\t}\n\treturn transaction.Run(ctx, s.adapter, func(ctx context.Context) (creditpurchase.SomeResult, error) {\n\t\tledgerRef, err := s.handler.OnSomeEvent(ctx, input.Charge)\n\t\tif err != nil {\n\t\t\treturn creditpurchase.SomeResult{}, err\n\t\t}\n\t\t// ... adapter calls ...\n\t\treturn result, nil\n\t})\n}"
+      }
+    ]
+  }
+}

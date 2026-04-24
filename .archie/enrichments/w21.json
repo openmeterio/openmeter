@@ -1,0 +1,312 @@
+{
+  "api/spec/packages/legacy/src/app": {
+    "purpose": "TypeSpec definitions for the installed Apps API \u2014 marketplace listings, OAuth2/API-key install flows, Stripe, Sandbox, and CustomInvoicing app types, plus per-customer app data. Every model here feeds api/openapi.yaml and the generated Go/JS/Python SDKs.",
+    "patterns": [
+      {
+        "name": "Discriminated union for polymorphic app types",
+        "description": "App, AppReplaceUpdate, and CustomerAppData are all `@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" })` unions. Adding a new app type requires a new union variant in each of these three types.",
+        "example": "@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }) union App { stripe: StripeApp, sandbox: SandboxApp, custom_invoicing: CustomInvoicingApp }"
+      },
+      {
+        "name": "AppBase spread for concrete app models",
+        "description": "All concrete app models (StripeApp, SandboxApp, CustomInvoicingApp) spread `...AppBase` and add a literal `type: AppType.<Value>` field. Never duplicate AppBase fields.",
+        "example": "model SandboxApp { ...AppBase; type: AppType.Sandbox; }"
+      },
+      {
+        "name": "CustomerAppBase generic for per-app customer data",
+        "description": "Per-app customer data models spread `...CustomerAppBase<AppType.X>` to inherit the common `id?` and `type` fields, then add provider-specific fields.",
+        "example": "model StripeCustomerAppData { ...CustomerAppBase<AppType.Stripe>; ...StripeCustomerAppDataBase; @visibility(Lifecycle.Read) app?: StripeApp; }"
+      },
+      {
+        "name": "Interface-per-resource with @route, @tag, @operationId",
+        "description": "Each HTTP resource is an `interface` decorated with `@route`, `@tag`, and operations use `@operationId` + `@summary`. Never write bare operations outside an interface.",
+        "example": "@route(\"/api/v1/apps\") @tag(\"Apps\") interface AppsEndpoints { @get @operationId(\"listApps\") list(...): PaginatedResponse<App> | CommonErrors; }"
+      },
+      {
+        "name": "main.tsp as the import manifest",
+        "description": "main.tsp only imports other .tsp files; it contains no type definitions. It is the entry point imported by cloud/main.tsp.",
+        "example": "// main.tsp\nimport \"./app.tsp\";\nimport \"./stripe.tsp\";\nimport \"./custominvoicing.tsp\";"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "app.tsp",
+        "role": "Defines AppsEndpoints interface, AppBase, App union, AppStatus enum, AppType enum, and AppReference. Core scaffolding for all app types.",
+        "watch_for": "App and AppReplaceUpdate unions must stay in sync \u2014 adding an app type to App without adding it to AppReplaceUpdate breaks PUT."
+      },
+      {
+        "file": "marketplace.tsp",
+        "role": "MarketplaceEndpoints interface covering listing discovery, OAuth2 install, API-key install, and plain install. Defines MarketplaceListing, AppInstallMethod, and install request/response models.",
+        "watch_for": "installMethods on MarketplaceListing is informational only \u2014 actual install routes live in MarketplaceEndpoints."
+      },
+      {
+        "file": "stripe.tsp",
+        "role": "AppStripeEndpoints (webhook, updateStripeAPIKey deprecated, createCheckoutSession) plus all Stripe-specific checkout session option models.",
+        "watch_for": "updateStripeAPIKey is deprecated; new stripe config changes go through PUT /api/v1/apps/{id}."
+      },
+      {
+        "file": "custominvoicing.tsp",
+        "role": "CustomInvoicingApp model and AppCustomInvoicingEndpoints for draft/issuing sync callbacks and payment status updates.",
+        "watch_for": "CustomInvoicing uses async hooks (enableDraftSyncHook, enableIssuingSyncHook); consumers must POST to draftSynchronized/issuingSynchronized to progress invoice state."
+      },
+      {
+        "file": "oauth.tsp",
+        "role": "OAuth2 namespace with AuthorizationCodeGrantParams combining success and error query params into a single model.",
+        "watch_for": "Uses `OAuth2` namespace, not `OpenMeter` \u2014 imports from this file must reference `OAuth2.ClientAppStartResponse` etc."
+      },
+      {
+        "file": "customer.tsp",
+        "role": "CustomerAppData union and per-provider customer app data models (StripeCustomerAppData, SandboxCustomerAppData, CustomInvoicingCustomerAppData).",
+        "watch_for": "customer.tsp here is under the `app/` sub-folder and is separate from the `customer/` folder's customer.tsp."
+      }
+    ],
+    "anti_patterns": [
+      "Adding app-type-specific fields directly to AppBase \u2014 each app type has its own concrete model.",
+      "Defining new endpoints outside a named interface with @route and @tag.",
+      "Adding a new AppType variant only to App union without updating AppReplaceUpdate and CustomerAppData.",
+      "Importing types from sibling app/*.tsp files without going through main.tsp at build time.",
+      "Using `@body` on list/GET operations \u2014 paginated params use spread models like `...QueryPagination`."
+    ],
+    "decisions": [
+      {
+        "decision": "Discriminated unions with envelope:none for App/AppReplaceUpdate/CustomerAppData",
+        "rationale": "Allows a single OpenAPI oneOf with a flat discriminator property, matching client SDK code-gen expectations and the Go handler type-switch pattern."
+      },
+      {
+        "decision": "Separate AppBase model spread into each concrete app",
+        "rationale": "Avoids deep inheritance chains that TypeSpec/oapi-codegen struggle with; each concrete model is self-contained for SDK generation."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new app type (e.g. PayPal)",
+        "code": "// 1. Add to AppType enum in app.tsp\nenum AppType { ..., PayPal: \"paypal\" }\n\n// 2. Create paypal.tsp\nmodel PayPalApp { ...AppBase; type: AppType.PayPal; }\n\n// 3. Add to App and AppReplaceUpdate unions in app.tsp\nunion App { ..., paypal: PayPalApp }\nunion AppReplaceUpdate { ..., paypal: TypeSpec.Rest.Resource.ResourceReplaceModel<PayPalApp> }\n\n// 4. Add to CustomerAppData in customer.tsp\nunion CustomerAppData { ..., paypal: PayPalCustomerAppData }\n\n// 5. Import in main.tsp\nimport \"./paypal.tsp\";"
+      }
+    ]
+  },
+  "api/spec/packages/legacy/src/cloud": {
+    "purpose": "Cloud-variant spec entry point that re-exports the entire OpenMeter API under the `OpenMeterCloud` namespace with cloud-specific auth schemes (BearerAuth + cookie + portal token) and Svix/cloud server URLs. Contains no new type definitions \u2014 only namespace interface extensions.",
+    "patterns": [
+      {
+        "name": "Interface extension via `extends`",
+        "description": "Every interface in cloud/main.tsp extends an OpenMeter interface with a new `@route` and `@tag` override, e.g. `interface MetersEndpoints extends OpenMeter.MetersEndpoints {}`. Never copy-paste operations \u2014 always extend.",
+        "example": "@route(\"/api/v1/meters\") @tag(\"Meters\") interface MetersEndpoints extends OpenMeter.MetersEndpoints {}"
+      },
+      {
+        "name": "Separate OpenMeterCloud namespace blocks",
+        "description": "Related interface groups are collected in separate `namespace OpenMeterCloud { ... }` blocks for readability. Multiple blocks with the same namespace name are valid TypeSpec.",
+        "example": "namespace OpenMeterCloud { @route(\"/api/v1/apps\") interface AppsEndpoints extends OpenMeter.AppsEndpoints {} }"
+      },
+      {
+        "name": "Auth overrides at service level",
+        "description": "auth.tsp defines CloudTokenAuth, CloudCookieAuth, CloudPortalTokenAuth. The `@useAuth(CloudTokenAuth | CloudCookieAuth)` decorator on the `@service` replaces the default OpenMeter self-hosted auth for the cloud spec.",
+        "example": "@service(#{ title: \"OpenMeter Cloud API\" }) @useAuth(CloudTokenAuth | CloudCookieAuth) namespace OpenMeterCloud;"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "auth.tsp",
+        "role": "Defines the three cloud auth schemes as models. No routes or operations here.",
+        "watch_for": "CloudPortalTokenAuth is a BearerAuth; the portal meters endpoint separately applies `@useAuth(CloudPortalTokenAuth)` to scope portal-only access."
+      },
+      {
+        "file": "main.tsp",
+        "role": "The cloud OpenAPI spec entry point. Imports `..` (the main legacy spec), then auth.tsp, then declares OpenMeterCloud namespace with all interface extensions. All cloud-facing endpoint routing lives here.",
+        "watch_for": "When adding a new endpoint group to the base OpenMeter namespace, add a corresponding `extends` interface here so it appears in the cloud OpenAPI output."
+      }
+    ],
+    "anti_patterns": [
+      "Defining new models or type aliases in cloud/ \u2014 all types belong in the base OpenMeter namespace.",
+      "Duplicating operation definitions instead of using `extends`.",
+      "Adding auth decorators to individual operations in cloud/main.tsp \u2014 service-level `@useAuth` covers all."
+    ],
+    "decisions": [
+      {
+        "decision": "cloud/main.tsp extends rather than duplicates base OpenMeter interfaces",
+        "rationale": "Single source of truth for operation contracts; cloud only differs in auth, servers, and tag metadata."
+      }
+    ],
+    "code_examples": []
+  },
+  "api/spec/packages/legacy/src/customer": {
+    "purpose": "TypeSpec definitions for the Customer API \u2014 CRUD, listing with filters, per-customer app data (Stripe, Sandbox, CustomInvoicing), and a legacy Stripe convenience endpoint. Models feed api/openapi.yaml and SDKs; the Customer model is referenced throughout subscriptions, billing, and entitlements.",
+    "patterns": [
+      {
+        "name": "ResourceCreateModel / ResourceReplaceModel for mutation bodies",
+        "description": "Create bodies use `TypeSpec.Rest.Resource.ResourceCreateModel<Customer>` and update bodies use `TypeSpec.Rest.Resource.ResourceReplaceModel<Customer>`. Never inline field lists for create/update.",
+        "example": "@post create(@body customer: TypeSpec.Rest.Resource.ResourceCreateModel<Customer>): { @statusCode _: 201; @body body: Customer; } | CommonErrors;"
+      },
+      {
+        "name": "@visibility annotations control lifecycle exposure",
+        "description": "Fields like `currentSubscriptionId`, `subscriptions`, and `annotations` carry `@visibility(Lifecycle.Read)` so they are excluded from create/update. Spread `...Resource` on entity models to inherit id/timestamps automatically.",
+        "example": "@visibility(Lifecycle.Read) annotations?: Annotations;"
+      },
+      {
+        "name": "Filter params as spread models in interface operations",
+        "description": "List filter params (name, key, primaryEmail, subject, planKey) are declared as a `model ListCustomersParams` and spread into the list operation, keeping operation signatures short.",
+        "example": "@get list(...ListCustomersParams): PaginatedResponse<Customer> | CommonErrors;"
+      },
+      {
+        "name": "ULIDOrExternalKey path param for customer lookup",
+        "description": "All per-customer endpoints use `@path customerIdOrKey: ULIDOrExternalKey` to support both ULID and string key lookup without duplicate routes.",
+        "example": "@get @route(\"/{customerIdOrKey}\") get(@path customerIdOrKey: ULIDOrExternalKey, ...GetCustomerParams): Customer | NotFoundError | CommonErrors;"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "customer.tsp",
+        "role": "Defines Customer model, CustomersEndpoints interface, and all list/filter param models. Customer spreads `...Resource` and exposes `subscriptions` as a Lifecycle.Read-only expand.",
+        "watch_for": "`subscriptions` field is only populated when `expand=subscriptions` is passed; it is not part of default responses."
+      },
+      {
+        "file": "app.tsp",
+        "role": "CustomerAppsEndpoints interface for list/upsert/delete of CustomerAppData, and ListCustomerAppDataParams model.",
+        "watch_for": "This app.tsp is under customer/ and defines customer-scoped app data endpoints, not the app-domain app.tsp."
+      },
+      {
+        "file": "stripe.tsp",
+        "role": "CustomerStripeEndpoints with get/upsert Stripe app data and createPortalSession. Stripe-specific convenience endpoints separate from the generic app data API.",
+        "watch_for": "createPortalSession returns 201, not 200 \u2014 matches the Go handler response encoding."
+      },
+      {
+        "file": "main.tsp",
+        "role": "Imports app.tsp, customer.tsp, stripe.tsp. No definitions.",
+        "watch_for": "Add new customer sub-resource .tsp files here."
+      }
+    ],
+    "anti_patterns": [
+      "Adding billing-specific fields to the Customer model \u2014 billing overrides live in the billing/ sub-folder.",
+      "Hardcoding filter params inline in an operation instead of a spread model.",
+      "Using `@body` on GET list operations \u2014 list filters must be `@query` params.",
+      "Duplicating Stripe-specific customer fields in the generic CustomerAppData models."
+    ],
+    "decisions": [
+      {
+        "decision": "CustomerUsageAttribution as a nested model rather than flat subjectKeys array on Customer",
+        "rationale": "Preserves room for future attribution dimensions (e.g. account-level attribution) without a breaking change."
+      },
+      {
+        "decision": "Stripe customer portal session in customer/stripe.tsp rather than app/stripe.tsp",
+        "rationale": "The portal session is customer-scoped (requires customerIdOrKey path param), not app-scoped."
+      }
+    ],
+    "code_examples": []
+  },
+  "api/spec/packages/legacy/src/info": {
+    "purpose": "TypeSpec definitions for static lookup endpoints: supported currencies list and async operation progress tracking. Small self-contained sub-package; no mutable resources, no pagination on currencies.",
+    "patterns": [
+      {
+        "name": "Flat model for static lookup entities",
+        "description": "Currency and Progress have no Resource spread (no id/timestamps) because they are not persisted domain entities with lifecycle. Currency returns a plain array, not a paginated response.",
+        "example": "interface CurrenciesEndpoints { @get listCurrencies(): Currency[] | CommonErrors; }"
+      },
+      {
+        "name": "routes.tsp holds interface definitions, currencies.tsp holds models",
+        "description": "Model types (Currency, Progress) live in their own files; routing interfaces live in routes.tsp or the model file. main.tsp imports all and re-exports.",
+        "example": "// routes.tsp imports ../rest.tsp and defines CurrenciesEndpoints\n// currencies.tsp defines the Currency model only"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "routes.tsp",
+        "role": "CurrenciesEndpoints interface at /api/v1/info/currencies. Single list endpoint returning Currency[].",
+        "watch_for": "Returns a plain array, not PaginatedResponse \u2014 do not add pagination here without a spec change."
+      },
+      {
+        "file": "progress.tsp",
+        "role": "ProgressEndpoints interface and Progress model. GET by string id, not ULID.",
+        "watch_for": "Progress id is a plain `string`, not `ULID` \u2014 matches the progressmanager domain."
+      },
+      {
+        "file": "currencies.tsp",
+        "role": "Currency model with code, name, symbol, subunits. No routes here.",
+        "watch_for": "subunits is uint32; zero-subunit currencies (JPY) are valid."
+      }
+    ],
+    "anti_patterns": [
+      "Adding paginated responses to the currencies list endpoint \u2014 it returns all currencies as a flat array.",
+      "Adding mutable (POST/PUT/DELETE) operations \u2014 this folder is read-only lookup data."
+    ],
+    "decisions": [],
+    "code_examples": []
+  },
+  "api/spec/packages/legacy/src/notification": {
+    "purpose": "TypeSpec definitions for the Notifications API \u2014 channels (webhook), rules (balance threshold, entitlement reset, invoice events), and event/delivery-status tracking. Discriminated unions on NotificationRule and NotificationChannel allow type-safe multi-variant webhook rules.",
+    "patterns": [
+      {
+        "name": "Discriminated union for polymorphic rule and channel types",
+        "description": "NotificationRule, NotificationRuleCreateRequest, NotificationChannel, and NotificationChannelCreateRequest are all `@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" })` unions. Adding a rule type requires updating all four unions.",
+        "example": "@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }) union NotificationRule { `entitlements.balance.threshold`: NotificationRuleBalanceThreshold, ... }"
+      },
+      {
+        "name": "NotificationRuleCommon<T> generic for rule base fields",
+        "description": "All rule models spread `...NotificationRuleCommon<NotificationEventType.X>` to inherit id, type (literal), name, disabled, channels, and metadata. Never duplicate these fields.",
+        "example": "model NotificationRuleBalanceThreshold { ...NotificationRuleCommon<NotificationEventType.entitlementsBalanceThreshold>; thresholds: Array<NotificationRuleBalanceThresholdValue>; }"
+      },
+      {
+        "name": "CreateRequest models use OmitProperties to strip read-only references",
+        "description": "Rule create request models use `OmitProperties<NotificationRuleXxx, \"channels\" | \"features\">` then re-add `channels: Array<ULID>` (IDs only, not full objects) and `features?: Array<ULIDOrKey>` for the writable form.",
+        "example": "@withVisibility(Lifecycle.Create, Lifecycle.Update) model NotificationRuleBalanceThresholdCreateRequest { ...OmitProperties<NotificationRuleBalanceThreshold, \"channels\" | \"features\">; channels: Array<ULID>; features?: Array<ULIDOrKey>; }"
+      },
+      {
+        "name": "Payload models carry the full denormalized context",
+        "description": "NotificationEventBalanceThresholdPayload and NotificationEventResetPayload spread `...NotificationEventEntitlementValuePayloadBase` to embed entitlement, feature, subject, value, and customer inline \u2014 payloads are self-contained for webhook consumers.",
+        "example": "model NotificationEventBalanceThresholdPayloadData { ...NotificationEventEntitlementValuePayloadBase; threshold: NotificationRuleBalanceThresholdValue; }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "channel.tsp",
+        "role": "NotificationChannel/NotificationChannelWebhook models, NotificationChannelsEndpoints interface, NotificationChannelType enum. Includes CRUD for channels.",
+        "watch_for": "NotificationChannelType.webhook uses uppercase value `\"WEBHOOK\"` with a legacy `#suppress` annotation \u2014 preserve this for backward compat."
+      },
+      {
+        "file": "rule.tsp",
+        "role": "NotificationRulesEndpoints interface, NotificationRule union, all rule variant models, and NotificationRuleCreateRequest union. Also has a `/{ruleId}/test` POST endpoint.",
+        "watch_for": "Rule update uses PUT with NotificationRuleCreateRequest (same schema as create) \u2014 not PATCH."
+      },
+      {
+        "file": "entitlements.tsp",
+        "role": "Entitlement-specific rule and event payload models: NotificationRuleBalanceThreshold, NotificationRuleEntitlementReset, and their payload models. Also defines FeatureMeta.",
+        "watch_for": "NotificationRuleBalanceThresholdValueType has deprecated PERCENT/NUMBER variants \u2014 keep them for backward compat, add new variants alongside."
+      },
+      {
+        "file": "invoice.tsp",
+        "role": "Invoice event payload models (NotificationEventInvoicePayload) and invoice notification rules (NotificationRuleInvoiceCreated, NotificationRuleInvoiceUpdated).",
+        "watch_for": "Invoice notification rules reference billing Invoice models \u2014 ensure billing/ imports are present."
+      },
+      {
+        "file": "event.tsp",
+        "role": "NotificationEventType enum, NotificationEventDeliveryStatus/State models, and delivery attempt models.",
+        "watch_for": "All NotificationEventType values use dotted lowercase (entitlements.balance.threshold) with `#suppress` for casing \u2014 maintain this pattern for new event types."
+      },
+      {
+        "file": "main.tsp",
+        "role": "Import manifest only. No definitions.",
+        "watch_for": "Add new .tsp files here when adding notification event families."
+      }
+    ],
+    "anti_patterns": [
+      "Adding a new rule type only to NotificationRule union without also updating NotificationRuleCreateRequest.",
+      "Putting delivery status logic into channel.tsp \u2014 delivery status models belong in event.tsp.",
+      "Using PATCH for rule updates \u2014 the API uses PUT with the full create-request body.",
+      "Hardcoding feature/channel lists inline in rule models instead of using FeatureMeta and NotificationChannelMeta spread models."
+    ],
+    "decisions": [
+      {
+        "decision": "OmitProperties + re-add writable-form fields for create requests",
+        "rationale": "Prevents accidental write of server-assigned fields (channel full objects, feature full objects) while keeping the shared model as the source of truth for read responses."
+      },
+      {
+        "decision": "Payload models embed full denormalized context (entitlement, feature, subject, customer)",
+        "rationale": "Webhook consumers should not need a second API call to act on a notification \u2014 payloads are designed to be self-contained."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new notification rule type (e.g. subscription.cancelled)",
+        "code": "// 1. Add to NotificationEventType enum in event.tsp\nenum NotificationEventType { ..., `subscription.cancelled`: \"subscription.cancelled\" }\n\n// 2. Create a new file subscription.tsp with rule + payload models\nmodel NotificationRuleSubscriptionCancelled {\n  ...NotificationRuleCommon<NotificationEventType.`subscription.cancelled`>;\n}\nmodel NotificationRuleSubscriptionCancelledCreateRequest {\n  ...OmitProperties<NotificationRuleSubscriptionCancelled, \"channels\">;\n  channels: Array<ULID>;\n}\n\n// 3. Add variants to unions in rule.tsp\nunion NotificationRule { ..., `subscription.cancelled`: NotificationRuleSubscriptionCancelled }\nunion NotificationRuleCreateRequest { ..., `subscription.cancelled`: NotificationRuleSubscriptionCancelledCreateRequest }\n\n// 4. Import subscription.tsp in main.tsp"
+      }
+    ]
+  }
+}
