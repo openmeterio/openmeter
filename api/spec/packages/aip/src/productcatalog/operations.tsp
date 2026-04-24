@@ -25,9 +25,9 @@ model ListPlansParamsFilter {
   #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
   name?: Common.StringFieldFilter;
   #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
-  status?: Common.StringFieldFilter;
+  status?: Common.StringFieldFilterExact;
   #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
-  currency?: Common.StringFieldFilter;
+  currency?: Common.StringFieldFilterExact;
 }
 
 interface PlanOperations {

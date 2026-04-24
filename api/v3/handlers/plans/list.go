@@ -72,7 +72,7 @@ func (h *handler) ListPlans() ListPlansHandler {
 				}
 				req.Name = name
 
-				currency, err := filters.FromAPIFilterString(params.Filter.Currency)
+				currency, err := filters.FromAPIFilterStringExact(params.Filter.Currency)
 				if err != nil {
 					return ListPlansRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 						{Field: "filter[currency]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},

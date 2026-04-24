@@ -778,12 +778,12 @@ func FromAPIBillingRateCardDiscounts(d api.BillingRateCardDiscounts) (productcat
 	return result, nil
 }
 
-func fromAPIStatusFilter(ctx context.Context, f *api.StringFieldFilter) ([]productcatalog.PlanStatus, error) {
+func fromAPIStatusFilter(ctx context.Context, f *api.StringFieldFilterExact) ([]productcatalog.PlanStatus, error) {
 	if f == nil {
 		return nil, nil
 	}
-	if f.Neq != nil || f.Contains != nil || len(f.Ocontains) > 0 || f.Exists != nil {
-		err := errors.New("only eq and oeq operators are supported")
+	if f.Neq != nil {
+		err := errors.New("only eq and oeq operators are supported for status")
 		return nil, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 			{Field: "filter[status]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 		})

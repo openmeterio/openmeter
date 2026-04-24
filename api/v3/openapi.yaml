@@ -7651,9 +7651,9 @@ components:
         name:
           $ref: '#/components/schemas/StringFieldFilter'
         status:
-          $ref: '#/components/schemas/StringFieldFilter'
+          $ref: '#/components/schemas/StringFieldFilterExact'
         currency:
-          $ref: '#/components/schemas/StringFieldFilter'
+          $ref: '#/components/schemas/StringFieldFilterExact'
       description: Filter options for listing plans.
     Meter:
       type: object
