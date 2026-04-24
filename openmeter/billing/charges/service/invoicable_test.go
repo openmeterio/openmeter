@@ -630,7 +630,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 		currentRun, err := usageBasedFromDB.Realizations.GetByID(*usageBasedFromDB.State.CurrentRealizationRunID)
 		s.NoError(err)
 		s.True(finalStoredAtLT.Equal(currentRun.StoredAtLT))
-		s.NotNil(currentRun.StoredAtLT)
+		s.False(currentRun.StoredAtLT.IsZero())
 		s.True(expectedCollectionEnd.Equal(currentRun.StoredAtLT.UTC()))
 		s.Equal(float64(3), currentRun.MeteredQuantity.InexactFloat64())
 		s.RequireTotals(billingtest.ExpectedTotals{
@@ -726,7 +726,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 
 		finalRun := usageBasedFromDB.Realizations[0]
 		s.True(finalStoredAtLT.Equal(finalRun.StoredAtLT))
-		s.NotNil(finalRun.StoredAtLT)
+		s.False(finalRun.StoredAtLT.IsZero())
 		s.True(expectedCollectionEnd.Equal(finalRun.StoredAtLT.UTC()))
 		s.Equal(float64(8), finalRun.MeteredQuantity.InexactFloat64())
 		s.RequireTotals(billingtest.ExpectedTotals{
@@ -1811,7 +1811,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreateImmediatelyFinal() {
 
 	finalRun := returnedCharge.Realizations[0]
 	s.True(expectedStoredAtLT.Equal(finalRun.StoredAtLT))
-	s.NotNil(finalRun.StoredAtLT)
+	s.False(finalRun.StoredAtLT.IsZero())
 	s.True(expectedCollectionEnd.Equal(finalRun.StoredAtLT.UTC()))
 	s.Equal(expectedUsage, finalRun.MeteredQuantity.InexactFloat64())
 	s.RequireTotals(billingtest.ExpectedTotals{
