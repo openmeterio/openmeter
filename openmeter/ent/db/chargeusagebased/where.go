@@ -1550,6 +1550,36 @@ func FeatureIDContainsFold(v string) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldContainsFold(FieldFeatureID, v))
 }
 
+// RatingEngineEQ applies the EQ predicate on the "rating_engine" field.
+func RatingEngineEQ(v usagebased.RatingEngine) predicate.ChargeUsageBased {
+	vc := v
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldRatingEngine, vc))
+}
+
+// RatingEngineNEQ applies the NEQ predicate on the "rating_engine" field.
+func RatingEngineNEQ(v usagebased.RatingEngine) predicate.ChargeUsageBased {
+	vc := v
+	return predicate.ChargeUsageBased(sql.FieldNEQ(FieldRatingEngine, vc))
+}
+
+// RatingEngineIn applies the In predicate on the "rating_engine" field.
+func RatingEngineIn(vs ...usagebased.RatingEngine) predicate.ChargeUsageBased {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeUsageBased(sql.FieldIn(FieldRatingEngine, v...))
+}
+
+// RatingEngineNotIn applies the NotIn predicate on the "rating_engine" field.
+func RatingEngineNotIn(vs ...usagebased.RatingEngine) predicate.ChargeUsageBased {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeUsageBased(sql.FieldNotIn(FieldRatingEngine, v...))
+}
+
 // CurrentRealizationRunIDEQ applies the EQ predicate on the "current_realization_run_id" field.
 func CurrentRealizationRunIDEQ(v string) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldEQ(FieldCurrentRealizationRunID, v))

@@ -121,6 +121,7 @@ func (a *adapter) UpsertDetailedLines(ctx context.Context, chargeID meta.ChargeI
 			UpdateTaxCodeID().
 			UpdateTaxBehavior().
 			UpdateIndex().
+			UpdatePricerReferenceID().
 			UpdateDeletedAt().
 			UpdateInvoicingAppExternalID().
 			UpdateChildUniqueReferenceID().
@@ -139,7 +140,8 @@ func buildDetailedLineCreate(db *entdb.Client, chargeID meta.ChargeID, line flat
 	create := db.ChargeFlatFeeDetailedLine.Create().
 		SetID(line.ID).
 		SetNamespace(chargeID.Namespace).
-		SetChargeID(chargeID.ID)
+		SetChargeID(chargeID.ID).
+		SetPricerReferenceID(line.ChildUniqueReferenceID)
 
 	create = stddetailedline.Create(create, line)
 

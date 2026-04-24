@@ -5,6 +5,8 @@ import (
 	"errors"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating/delta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating/periodpreserving"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -45,12 +47,20 @@ type Service interface {
 	// GetDetailedRatingForUsage returns rated detailed lines and the metered quantity snapshot used to compute them.
 	// Prefer GetTotalsForUsage when only totals are required because it is faster.
 	GetDetailedRatingForUsage(ctx context.Context, in GetDetailedRatingForUsageInput) (GetDetailedRatingForUsageResult, error)
+	// GetPreferredRatingEngineFor returns the preferred rating engine for a given intent.
+	GetPreferredRatingEngineFor(intent usagebased.Intent) usagebased.RatingEngine
+}
+
+func (s *service) GetPreferredRatingEngineFor(_ usagebased.Intent) usagebased.RatingEngine {
+	return usagebased.RatingEngineDelta
 }
 
 type service struct {
-	streamingConnector   streaming.Connector
-	ratingService        billingrating.Service
-	detailedLinesFetcher DetailedLinesFetcher
+	streamingConnector    streaming.Connector
+	ratingService         billingrating.Service
+	detailedLinesFetcher  DetailedLinesFetcher
+	deltaRater            delta.Engine
+	periodPreservingRater periodpreserving.Engine
 }
 
 func New(config Config) (Service, error) {
@@ -59,8 +69,10 @@ func New(config Config) (Service, error) {
 	}
 
 	return &service{
-		streamingConnector:   config.StreamingConnector,
-		ratingService:        config.RatingService,
-		detailedLinesFetcher: config.DetailedLinesFetcher,
+		streamingConnector:    config.StreamingConnector,
+		ratingService:         config.RatingService,
+		detailedLinesFetcher:  config.DetailedLinesFetcher,
+		deltaRater:            delta.New(config.RatingService),
+		periodPreservingRater: periodpreserving.New(config.RatingService),
 	}, nil
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	ratingtestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating/testutils"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
@@ -31,7 +32,6 @@ import (
 type getDetailedRatingForUsageFixture struct {
 	config Config
 	input  GetDetailedRatingForUsageInput
-	rater  *stubRatingService
 }
 
 func TestFormatDetailedLineChildUniqueReferenceID(t *testing.T) {
@@ -45,43 +45,37 @@ func TestFormatDetailedLineChildUniqueReferenceID(t *testing.T) {
 	require.Equal(
 		t,
 		"unit-price-usage@[2025-01-01T11:30:45Z..2025-02-01T09:02:03Z]",
-		formatDetailedLineChildUniqueReferenceID("unit-price-usage", servicePeriod),
+		ratingtestutils.FormatDetailedLineChildUniqueReferenceID("unit-price-usage", servicePeriod),
 	)
 }
 
-func TestGetDetailedRatingForUsageAddsServicePeriodToDetailedLineChildUniqueReferenceIDs(t *testing.T) {
+func TestGetPreferredRatingEngineFor(t *testing.T) {
 	t.Parallel()
 
-	fixture := newGetDetailedRatingForUsageFixture(t, billingrating.GenerateDetailedLinesResult{
-		DetailedLines: billingrating.DetailedLines{
-			{
-				Name:                   "Usage",
-				Quantity:               alpacadecimal.NewFromInt(12),
-				PerUnitAmount:          alpacadecimal.NewFromInt(3),
-				ChildUniqueReferenceID: "unit-price-usage",
-			},
-			{
-				Name:                   "Discount",
-				Quantity:               alpacadecimal.NewFromInt(1),
-				PerUnitAmount:          alpacadecimal.NewFromInt(1),
-				ChildUniqueReferenceID: "rateCardDiscount/correlationID=discount-50pct",
-			},
-		},
-	})
+	fixture := newGetDetailedRatingForUsageFixture(t, billingrating.GenerateDetailedLinesResult{})
 
 	svc, err := New(fixture.config)
 	require.NoError(t, err)
 
-	out, err := svc.GetDetailedRatingForUsage(t.Context(), fixture.input)
-	require.NoError(t, err)
-
-	require.Equal(t, "unit-price-usage@[2025-01-01T00:00:00Z..2025-02-01T00:00:00Z]", out.DetailedLines[0].ChildUniqueReferenceID)
-	require.Equal(t, "rateCardDiscount/correlationID=discount-50pct@[2025-01-01T00:00:00Z..2025-02-01T00:00:00Z]", out.DetailedLines[1].ChildUniqueReferenceID)
-	require.Equal(t, float64(12), out.Quantity.InexactFloat64())
-	require.False(t, fixture.rater.lastOpts.IgnoreMinimumCommitment)
+	require.Equal(t, usagebased.RatingEngineDelta, svc.GetPreferredRatingEngineFor(usagebased.Intent{}))
 }
 
-func TestMapBillingRatingDetailedLinesToUsageBasedDetailedLines(t *testing.T) {
+func TestGetDetailedRatingForUsageDisablesCreditsMutator(t *testing.T) {
+	t.Parallel()
+
+	fixture := newGetDetailedRatingForUsageFixture(t, billingrating.GenerateDetailedLinesResult{})
+	ratingService := fixture.config.RatingService.(*stubRatingService)
+
+	svc, err := New(fixture.config)
+	require.NoError(t, err)
+
+	_, err = svc.GetDetailedRatingForUsage(t.Context(), fixture.input)
+	require.NoError(t, err)
+
+	require.True(t, ratingService.lastOpts.DisableCreditsMutator)
+}
+
+func TestNewDetailedLinesFromBilling(t *testing.T) {
 	t.Parallel()
 
 	defaultServicePeriod := timeutil.ClosedPeriod{
@@ -97,7 +91,7 @@ func TestMapBillingRatingDetailedLinesToUsageBasedDetailedLines(t *testing.T) {
 		Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 	}
 
-	out := mapBillingRatingDetailedLinesToUsageBasedDetailedLines(
+	out := usagebased.NewDetailedLinesFromBilling(
 		intent,
 		defaultServicePeriod,
 		billingrating.DetailedLines{
@@ -141,21 +135,6 @@ func TestMapBillingRatingDetailedLinesToUsageBasedDetailedLines(t *testing.T) {
 	require.Equal(t, stddetailedline.CategoryCommitment, out[1].Category)
 }
 
-func TestGetDetailedRatingForUsageIgnoresMinimumCommitmentForPartialRun(t *testing.T) {
-	t.Parallel()
-
-	fixture := newGetDetailedRatingForUsageFixture(t, billingrating.GenerateDetailedLinesResult{})
-	partialServicePeriodTo := fixture.input.Charge.Intent.ServicePeriod.From.Add(24 * time.Hour)
-	fixture.input.ServicePeriodTo = partialServicePeriodTo
-
-	svc, err := New(fixture.config)
-	require.NoError(t, err)
-
-	_, err = svc.GetDetailedRatingForUsage(t.Context(), fixture.input)
-	require.NoError(t, err)
-	require.True(t, fixture.rater.lastOpts.IgnoreMinimumCommitment)
-}
-
 func TestGetDetailedRatingForUsageIgnoresCurrentRunOnCharge(t *testing.T) {
 	t.Parallel()
 
@@ -168,6 +147,99 @@ func TestGetDetailedRatingForUsageIgnoresCurrentRunOnCharge(t *testing.T) {
 
 	_, err = svc.GetDetailedRatingForUsage(t.Context(), fixture.input)
 	require.NoError(t, err)
+}
+
+func TestGetDetailedRatingForUsageUsesPeriodPreservingRatingEngine(t *testing.T) {
+	t.Parallel()
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	priorPeriod := timeutil.ClosedPeriod{
+		From: servicePeriod.From,
+		To:   servicePeriod.From.Add(24 * time.Hour),
+	}
+	currentPeriod := timeutil.ClosedPeriod{
+		From: priorPeriod.To,
+		To:   servicePeriod.To,
+	}
+
+	streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
+	streamingConnector.AddSimpleEvent("meter-1", 4, servicePeriod.From.Add(30*time.Minute))
+	streamingConnector.AddSimpleEvent("meter-1", 3, priorPeriod.To.Add(30*time.Minute))
+
+	priorRun := newDetailedRatingTestRun("prior", priorPeriod.To, 3)
+	priorRun.DetailedLines = mo.Some(usagebased.DetailedLines{
+		{
+			PricerReferenceID: billingrating.UnitPriceUsageChildUniqueReferenceID,
+			Base: stddetailedline.Base{
+				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+					Name: "Usage",
+				}),
+				ServicePeriod:          priorPeriod,
+				Currency:               currencyx.Code("USD"),
+				ChildUniqueReferenceID: ratingtestutils.FormatDetailedLineChildUniqueReferenceID(billingrating.UnitPriceUsageChildUniqueReferenceID, priorPeriod),
+				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+				PerUnitAmount:          alpacadecimal.NewFromInt(3),
+				Quantity:               alpacadecimal.NewFromInt(3),
+				Category:               stddetailedline.CategoryRegular,
+				Totals: totals.Totals{
+					Amount: alpacadecimal.NewFromInt(9),
+					Total:  alpacadecimal.NewFromInt(9),
+				},
+			},
+		},
+	})
+
+	charge := newDetailedRatingTestCharge(servicePeriod, usagebased.RealizationRuns{priorRun})
+	charge.State.RatingEngine = usagebased.RatingEnginePeriodPreserving
+
+	svc, err := New(Config{
+		StreamingConnector:   streamingConnector,
+		RatingService:        billingratingservice.New(),
+		DetailedLinesFetcher: passthroughDetailedLinesFetcher,
+	})
+	require.NoError(t, err)
+
+	out, err := svc.GetDetailedRatingForUsage(t.Context(), GetDetailedRatingForUsageInput{
+		Charge:          charge,
+		ServicePeriodTo: servicePeriod.To,
+		StoredAtLT:      servicePeriod.To,
+		Customer:        newDetailedRatingTestCustomer(),
+		FeatureMeter:    newDetailedRatingTestFeatureMeter(),
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, []ratingtestutils.ExpectedDetailedLine{
+		{
+			ChildUniqueReferenceID: ratingtestutils.FormatDetailedLineChildUniqueReferenceID(billingrating.UnitPriceUsageChildUniqueReferenceID, priorPeriod),
+			Category:               stddetailedline.CategoryRegular,
+			ServicePeriod:          lo.ToPtr(priorPeriod),
+			CorrectsRunID:          lo.ToPtr("prior"),
+			PerUnitAmount:          3,
+			Quantity:               1,
+			Totals: ratingtestutils.ExpectedTotals{
+				Amount: 3,
+				Total:  3,
+			},
+		},
+		{
+			ChildUniqueReferenceID: ratingtestutils.FormatDetailedLineChildUniqueReferenceID(billingrating.UnitPriceUsageChildUniqueReferenceID, currentPeriod),
+			Category:               stddetailedline.CategoryRegular,
+			ServicePeriod:          lo.ToPtr(currentPeriod),
+			PerUnitAmount:          3,
+			Quantity:               3,
+			Totals: ratingtestutils.ExpectedTotals{
+				Amount: 9,
+				Total:  9,
+			},
+		},
+	}, ratingtestutils.ToExpectedDetailedLinesWithServicePeriod(out.DetailedLines))
+	require.Equal(t, ratingtestutils.ExpectedTotals{
+		Amount: 12,
+		Total:  12,
+	}, ratingtestutils.ToExpectedTotals(out.Totals))
 }
 
 func TestGetDetailedRatingForUsageLoadsPriorDetailedLines(t *testing.T) {
@@ -356,7 +428,6 @@ func newGetDetailedRatingForUsageFixture(t *testing.T, result billingrating.Gene
 			Customer:        newDetailedRatingTestCustomer(),
 			FeatureMeter:    newDetailedRatingTestFeatureMeter(),
 		},
-		rater: ratingService,
 	}
 }
 
@@ -413,7 +484,8 @@ func newDetailedRatingTestCharge(period timeutil.ClosedPeriod, runs usagebased.R
 			},
 			Status: usagebased.StatusCreated,
 			State: usagebased.State{
-				FeatureID: "feature-1",
+				FeatureID:    "feature-1",
+				RatingEngine: usagebased.RatingEngineDelta,
 			},
 		},
 		Realizations: runs,

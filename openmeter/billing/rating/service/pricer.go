@@ -26,12 +26,17 @@ func getPricerFor(line rating.PriceAccessor, opts rating.GenerateDetailedLinesOp
 	}
 
 	if linePrice.Type() == productcatalog.FlatPriceType {
+		postCalculationMutators := []mutator.PostCalculationMutator{
+			&mutator.DiscountPercentage{},
+		}
+
+		if !opts.DisableCreditsMutator {
+			postCalculationMutators = append(postCalculationMutators, &mutator.Credits{})
+		}
+
 		return &priceMutator{
-			Pricer: rate.Flat{},
-			PostCalculation: []mutator.PostCalculationMutator{
-				&mutator.DiscountPercentage{},
-				&mutator.Credits{},
-			},
+			Pricer:          rate.Flat{},
+			PostCalculation: postCalculationMutators,
 		}, nil
 	}
 
@@ -61,7 +66,9 @@ func getPricerFor(line rating.PriceAccessor, opts rating.GenerateDetailedLinesOp
 		postCalculationMutators = append(postCalculationMutators, &mutator.MinAmountCommitment{})
 	}
 
-	postCalculationMutators = append(postCalculationMutators, &mutator.Credits{})
+	if !opts.DisableCreditsMutator {
+		postCalculationMutators = append(postCalculationMutators, &mutator.Credits{})
+	}
 
 	// This priceMutator captures the calculation flow for discounts and commitments:
 	return &priceMutator{

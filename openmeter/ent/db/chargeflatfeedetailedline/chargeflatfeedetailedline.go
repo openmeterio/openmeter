@@ -79,6 +79,8 @@ const (
 	FieldTotal = "total"
 	// FieldChargeID holds the string denoting the charge_id field in the database.
 	FieldChargeID = "charge_id"
+	// FieldPricerReferenceID holds the string denoting the pricer_reference_id field in the database.
+	FieldPricerReferenceID = "pricer_reference_id"
 	// EdgeCharge holds the string denoting the charge edge name in mutations.
 	EdgeCharge = "charge"
 	// EdgeTaxCode holds the string denoting the tax_code edge name in mutations.
@@ -135,6 +137,7 @@ var Columns = []string{
 	FieldCreditsTotal,
 	FieldTotal,
 	FieldChargeID,
+	FieldPricerReferenceID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -160,6 +163,8 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// PricerReferenceIDValidator is a validator for the "pricer_reference_id" field. It is called by the builders before save.
+	PricerReferenceIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -339,6 +344,11 @@ func ByTotal(opts ...sql.OrderTermOption) OrderOption {
 // ByChargeID orders the results by the charge_id field.
 func ByChargeID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldChargeID, opts...).ToFunc()
+}
+
+// ByPricerReferenceID orders the results by the pricer_reference_id field.
+func ByPricerReferenceID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPricerReferenceID, opts...).ToFunc()
 }
 
 // ByChargeField orders the results by charge field.

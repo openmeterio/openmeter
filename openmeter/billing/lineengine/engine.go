@@ -11,7 +11,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
-var _ billing.LineEngine = (*Engine)(nil)
+var (
+	_ billing.LineEngine     = (*Engine)(nil)
+	_ billing.LineCalculator = (*Engine)(nil)
+)
 
 type Config struct {
 	SplitLineGroupAdapter SplitLineGroupAdapter

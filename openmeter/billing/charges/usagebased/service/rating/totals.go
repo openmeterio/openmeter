@@ -57,7 +57,9 @@ func (s *service) GetTotalsForUsage(ctx context.Context, in GetTotalsForUsageInp
 		return totals.Totals{}, fmt.Errorf("get snapshot quantity: %w", err)
 	}
 
-	opts := []billingrating.GenerateDetailedLinesOption{}
+	opts := []billingrating.GenerateDetailedLinesOption{
+		billingrating.WithCreditsMutatorDisabled(),
+	}
 	if in.IgnoreMinimumCommitment {
 		opts = append(opts, billingrating.WithMinimumCommitmentIgnored())
 	}

@@ -278,6 +278,20 @@ func (_u *ChargeUsageBasedUpdate) SetNillableFeatureID(v *string) *ChargeUsageBa
 	return _u
 }
 
+// SetRatingEngine sets the "rating_engine" field.
+func (_u *ChargeUsageBasedUpdate) SetRatingEngine(v usagebased.RatingEngine) *ChargeUsageBasedUpdate {
+	_u.mutation.SetRatingEngine(v)
+	return _u
+}
+
+// SetNillableRatingEngine sets the "rating_engine" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableRatingEngine(v *usagebased.RatingEngine) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetRatingEngine(*v)
+	}
+	return _u
+}
+
 // SetCurrentRealizationRunID sets the "current_realization_run_id" field.
 func (_u *ChargeUsageBasedUpdate) SetCurrentRealizationRunID(v string) *ChargeUsageBasedUpdate {
 	_u.mutation.SetCurrentRealizationRunID(v)
@@ -483,6 +497,11 @@ func (_u *ChargeUsageBasedUpdate) check() error {
 			return &ValidationError{Name: "feature_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.feature_id": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.RatingEngine(); ok {
+		if err := chargeusagebased.RatingEngineValidator(v); err != nil {
+			return &ValidationError{Name: "rating_engine", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.rating_engine": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.StatusDetailed(); ok {
 		if err := chargeusagebased.StatusDetailedValidator(v); err != nil {
 			return &ValidationError{Name: "status_detailed", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.status_detailed": %w`, err)}
@@ -581,6 +600,9 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if _u.mutation.DiscountsCleared() {
 		_spec.ClearField(chargeusagebased.FieldDiscounts, field.TypeString)
+	}
+	if value, ok := _u.mutation.RatingEngine(); ok {
+		_spec.SetField(chargeusagebased.FieldRatingEngine, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.StatusDetailed(); ok {
 		_spec.SetField(chargeusagebased.FieldStatusDetailed, field.TypeEnum, value)
@@ -995,6 +1017,20 @@ func (_u *ChargeUsageBasedUpdateOne) SetNillableFeatureID(v *string) *ChargeUsag
 	return _u
 }
 
+// SetRatingEngine sets the "rating_engine" field.
+func (_u *ChargeUsageBasedUpdateOne) SetRatingEngine(v usagebased.RatingEngine) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetRatingEngine(v)
+	return _u
+}
+
+// SetNillableRatingEngine sets the "rating_engine" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableRatingEngine(v *usagebased.RatingEngine) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetRatingEngine(*v)
+	}
+	return _u
+}
+
 // SetCurrentRealizationRunID sets the "current_realization_run_id" field.
 func (_u *ChargeUsageBasedUpdateOne) SetCurrentRealizationRunID(v string) *ChargeUsageBasedUpdateOne {
 	_u.mutation.SetCurrentRealizationRunID(v)
@@ -1213,6 +1249,11 @@ func (_u *ChargeUsageBasedUpdateOne) check() error {
 			return &ValidationError{Name: "feature_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.feature_id": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.RatingEngine(); ok {
+		if err := chargeusagebased.RatingEngineValidator(v); err != nil {
+			return &ValidationError{Name: "rating_engine", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.rating_engine": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.StatusDetailed(); ok {
 		if err := chargeusagebased.StatusDetailedValidator(v); err != nil {
 			return &ValidationError{Name: "status_detailed", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.status_detailed": %w`, err)}
@@ -1328,6 +1369,9 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 	}
 	if _u.mutation.DiscountsCleared() {
 		_spec.ClearField(chargeusagebased.FieldDiscounts, field.TypeString)
+	}
+	if value, ok := _u.mutation.RatingEngine(); ok {
+		_spec.SetField(chargeusagebased.FieldRatingEngine, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.StatusDetailed(); ok {
 		_spec.SetField(chargeusagebased.FieldStatusDetailed, field.TypeEnum, value)

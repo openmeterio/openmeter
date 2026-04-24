@@ -7971,6 +7971,22 @@ func (c *ChargeUsageBasedRunDetailedLineClient) QueryRun(_m *ChargeUsageBasedRun
 	return query
 }
 
+// QueryCorrectsRun queries the corrects_run edge of a ChargeUsageBasedRunDetailedLine.
+func (c *ChargeUsageBasedRunDetailedLineClient) QueryCorrectsRun(_m *ChargeUsageBasedRunDetailedLine) *ChargeUsageBasedRunsQuery {
+	query := (&ChargeUsageBasedRunsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedrundetailedline.Table, chargeusagebasedrundetailedline.FieldID, id),
+			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedrundetailedline.CorrectsRunTable, chargeusagebasedrundetailedline.CorrectsRunColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryTaxCode queries the tax_code edge of a ChargeUsageBasedRunDetailedLine.
 func (c *ChargeUsageBasedRunDetailedLineClient) QueryTaxCode(_m *ChargeUsageBasedRunDetailedLine) *TaxCodeQuery {
 	query := (&TaxCodeClient{config: c.config}).Query()
@@ -8491,6 +8507,22 @@ func (c *ChargeUsageBasedRunsClient) QueryDetailedLines(_m *ChargeUsageBasedRuns
 			sqlgraph.From(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID, id),
 			sqlgraph.To(chargeusagebasedrundetailedline.Table, chargeusagebasedrundetailedline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, chargeusagebasedruns.DetailedLinesTable, chargeusagebasedruns.DetailedLinesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCorrectedDetailedLines queries the corrected_detailed_lines edge of a ChargeUsageBasedRuns.
+func (c *ChargeUsageBasedRunsClient) QueryCorrectedDetailedLines(_m *ChargeUsageBasedRuns) *ChargeUsageBasedRunDetailedLineQuery {
+	query := (&ChargeUsageBasedRunDetailedLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID, id),
+			sqlgraph.To(chargeusagebasedrundetailedline.Table, chargeusagebasedrundetailedline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, chargeusagebasedruns.CorrectedDetailedLinesTable, chargeusagebasedruns.CorrectedDetailedLinesColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil

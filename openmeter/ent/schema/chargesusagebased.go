@@ -59,6 +59,9 @@ func (ChargeUsageBased) Fields() []ent.Field {
 				dialect.Postgres: "char(26)",
 			}),
 
+		field.Enum("rating_engine").
+			GoType(usagebased.RatingEngine("")),
+
 		field.String("price").
 			GoType(&productcatalog.Price{}).
 			ValueScanner(PriceValueScanner).
@@ -183,6 +186,8 @@ func (ChargeUsageBasedRuns) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "numeric",
 			}),
+
+		field.Bool("no_fiat_transaction_required"),
 	}
 }
 
@@ -210,6 +215,9 @@ func (ChargeUsageBasedRuns) Edges() []ent.Edge {
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("detailed_lines", ChargeUsageBasedRunDetailedLine.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("corrected_detailed_lines", ChargeUsageBasedRunDetailedLine.Type).
+			StorageKey(edge.Symbol("cub_run_corrected_detailed_lines")).
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 		edge.To("invoiced_usage", ChargeUsageBasedRunInvoicedUsage.Type).
 			Unique().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
@@ -246,6 +254,17 @@ func (ChargeUsageBasedRunDetailedLine) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
 			}),
+
+		field.String("pricer_reference_id").
+			NotEmpty(),
+
+		field.String("corrects_run_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			NotEmpty().
+			Nillable(),
 	}
 }
 
@@ -261,6 +280,11 @@ func (ChargeUsageBasedRunDetailedLine) Edges() []ent.Edge {
 			Field("run_id").
 			Unique().
 			Required(),
+		edge.From("corrects_run", ChargeUsageBasedRuns.Type).
+			Ref("corrected_detailed_lines").
+			Field("corrects_run_id").
+			Unique().
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 		edge.From("tax_code", TaxCode.Type).
 			Ref("charge_usage_based_run_detailed_lines").
 			Field("tax_code_id").

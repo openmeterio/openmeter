@@ -277,6 +277,12 @@ func (_c *ChargeUsageBasedCreate) SetFeatureID(v string) *ChargeUsageBasedCreate
 	return _c
 }
 
+// SetRatingEngine sets the "rating_engine" field.
+func (_c *ChargeUsageBasedCreate) SetRatingEngine(v usagebased.RatingEngine) *ChargeUsageBasedCreate {
+	_c.mutation.SetRatingEngine(v)
+	return _c
+}
+
 // SetPrice sets the "price" field.
 func (_c *ChargeUsageBasedCreate) SetPrice(v *productcatalog.Price) *ChargeUsageBasedCreate {
 	_c.mutation.SetPrice(v)
@@ -560,6 +566,14 @@ func (_c *ChargeUsageBasedCreate) check() error {
 			return &ValidationError{Name: "feature_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.feature_id": %w`, err)}
 		}
 	}
+	if _, ok := _c.mutation.RatingEngine(); !ok {
+		return &ValidationError{Name: "rating_engine", err: errors.New(`db: missing required field "ChargeUsageBased.rating_engine"`)}
+	}
+	if v, ok := _c.mutation.RatingEngine(); ok {
+		if err := chargeusagebased.RatingEngineValidator(v); err != nil {
+			return &ValidationError{Name: "rating_engine", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.rating_engine": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Price(); !ok {
 		return &ValidationError{Name: "price", err: errors.New(`db: missing required field "ChargeUsageBased.price"`)}
 	}
@@ -716,6 +730,10 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 	if value, ok := _c.mutation.FeatureKey(); ok {
 		_spec.SetField(chargeusagebased.FieldFeatureKey, field.TypeString, value)
 		_node.FeatureKey = value
+	}
+	if value, ok := _c.mutation.RatingEngine(); ok {
+		_spec.SetField(chargeusagebased.FieldRatingEngine, field.TypeEnum, value)
+		_node.RatingEngine = value
 	}
 	if value, ok := _c.mutation.Price(); ok {
 		vv, err := chargeusagebased.ValueScanner.Price.Value(value)
@@ -1171,6 +1189,18 @@ func (u *ChargeUsageBasedUpsert) UpdateFeatureID() *ChargeUsageBasedUpsert {
 	return u
 }
 
+// SetRatingEngine sets the "rating_engine" field.
+func (u *ChargeUsageBasedUpsert) SetRatingEngine(v usagebased.RatingEngine) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldRatingEngine, v)
+	return u
+}
+
+// UpdateRatingEngine sets the "rating_engine" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateRatingEngine() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldRatingEngine)
+	return u
+}
+
 // SetCurrentRealizationRunID sets the "current_realization_run_id" field.
 func (u *ChargeUsageBasedUpsert) SetCurrentRealizationRunID(v string) *ChargeUsageBasedUpsert {
 	u.Set(chargeusagebased.FieldCurrentRealizationRunID, v)
@@ -1562,6 +1592,20 @@ func (u *ChargeUsageBasedUpsertOne) SetFeatureID(v string) *ChargeUsageBasedUpse
 func (u *ChargeUsageBasedUpsertOne) UpdateFeatureID() *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.UpdateFeatureID()
+	})
+}
+
+// SetRatingEngine sets the "rating_engine" field.
+func (u *ChargeUsageBasedUpsertOne) SetRatingEngine(v usagebased.RatingEngine) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetRatingEngine(v)
+	})
+}
+
+// UpdateRatingEngine sets the "rating_engine" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateRatingEngine() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateRatingEngine()
 	})
 }
 
@@ -2131,6 +2175,20 @@ func (u *ChargeUsageBasedUpsertBulk) SetFeatureID(v string) *ChargeUsageBasedUps
 func (u *ChargeUsageBasedUpsertBulk) UpdateFeatureID() *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.UpdateFeatureID()
+	})
+}
+
+// SetRatingEngine sets the "rating_engine" field.
+func (u *ChargeUsageBasedUpsertBulk) SetRatingEngine(v usagebased.RatingEngine) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetRatingEngine(v)
+	})
+}
+
+// UpdateRatingEngine sets the "rating_engine" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateRatingEngine() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateRatingEngine()
 	})
 }
 

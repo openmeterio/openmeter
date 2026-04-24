@@ -57,7 +57,8 @@ type ChargeWithGatheringLine struct {
 
 type CreateIntent struct {
 	Intent
-	FeatureID string
+	FeatureID    string
+	RatingEngine RatingEngine
 }
 
 func (i CreateIntent) Validate() error {
@@ -69,6 +70,10 @@ func (i CreateIntent) Validate() error {
 
 	if i.FeatureID == "" {
 		errs = append(errs, errors.New("feature id is required"))
+	}
+
+	if err := i.RatingEngine.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("rating engine: %w", err))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
