@@ -1,0 +1,11 @@
+[
+  {
+    "timestamp": "2026-04-24T10:14:12.006031+00:00",
+    "erosion": 0.5359,
+    "gini": 0.7677,
+    "top20_share": 0.8248,
+    "verbosity": 0.1093,
+    "total_loc": 742092,
+    "scan_type": "deep"
+  }
+]

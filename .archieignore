@@ -1,0 +1,70 @@
+# Archie default ignore patterns
+# Edit this file to customize what Archie scans
+# These patterns are merged with .gitignore
+
+# Version control
+.git/
+
+# Dependencies & caches
+node_modules/
+__pycache__/
+.venv/
+venv/
+vendor/
+Pods/
+.devenv/
+.swiftpm/
+.pub-cache/
+.dart_tool/
+.ccache/
+
+# Build outputs
+dist/
+build/
+.build/
+.next/
+.nuxt/
+.svelte-kit/
+DerivedData/
+
+# IDE & tooling
+.gradle/
+.idea/
+.vscode/
+.turbo/
+.parcel-cache/
+.tox/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+coverage/
+.nyc_output/
+
+# Archie internals
+.archie/
+.claude/
+
+# Binary & media files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.svg
+*.webp
+*.mp3
+*.mp4
+*.zip
+*.tar
+*.gz
+*.woff
+*.woff2
+*.ttf
+*.pdf
+*.pyc
+*.so
+*.dylib
+*.dll
+*.exe
+*.lock
+*.sum

@@ -1,0 +1,138 @@
+{
+  "pattern_divergences": [],
+  "naming_violations": [],
+  "dependency_violations": [],
+  "structural_outliers": [
+    {
+      "type": "structural_outlier",
+      "folder": ".github",
+      "message": "Uses [.md, .yml] while siblings mostly use [.yaml]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "quickstart",
+      "message": "Uses [.go, .md] while siblings mostly use [.yaml]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "api/client/go",
+      "message": "Uses [.go, .yaml] while siblings mostly use [.md]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "api/client/javascript",
+      "message": "Uses [.json, .ts, .yaml] while siblings mostly use [.md]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "api/client/python",
+      "message": "Uses [.in, .toml] while siblings mostly use [.md]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "openmeter/billing",
+      "message": "Has 38 files \u2014 significantly more than sibling average (7). May be a god-folder that should be split.",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "pkg/models",
+      "message": "Has 28 files \u2014 significantly more than sibling average (4). May be a god-folder that should be split.",
+      "severity": "info"
+    }
+  ],
+  "antipattern_clusters": [],
+  "summary": {
+    "total_findings": 15,
+    "warnings": 7,
+    "informational": 7,
+    "checks_run": [
+      "pattern_divergences",
+      "naming_violations",
+      "dependency_violations",
+      "structural_outliers",
+      "antipattern_clusters"
+    ],
+    "timestamp": "2026-04-24T10:14:15.425712+00:00",
+    "deep_findings": 8
+  },
+  "deep_findings": [
+    {
+      "folder": "openmeter/app/stripe/client",
+      "file": "openmeter/app/stripe/client/appclient.go",
+      "type": "pitfall_triggered",
+      "severity": "error",
+      "decision_or_pattern": "context.Background() prohibition (AGENTS.md)",
+      "evidence": "func (c *stripeAppClient) providerError \u2014 line 240: c.appService.UpdateAppStatus(context.Background(), ...)",
+      "message": "Production application code in a request-error path calls UpdateAppStatus with context.Background() instead of propagating the caller's context, dropping cancellation signals and trace spans."
+    },
+    {
+      "folder": "openmeter/notification/eventhandler",
+      "file": "openmeter/notification/eventhandler/dispatch.go",
+      "type": "pitfall_triggered",
+      "severity": "warn",
+      "decision_or_pattern": "context.Background() prohibition (AGENTS.md)",
+      "evidence": "func (h *Handler) Dispatch \u2014 line 29: context.WithTimeout(context.Background(), notification.DefaultDispatchTimeout)",
+      "message": "Dispatch goroutine intentionally starts a new trace root but uses context.Background() as its base; per AGENTS.md, application paths should not introduce context.Background()."
+    },
+    {
+      "folder": "e2e",
+      "file": "e2e/helpers.go",
+      "type": "pitfall_triggered",
+      "severity": "warn",
+      "decision_or_pattern": "t.Context() in tests (AGENTS.md)",
+      "evidence": "CreateCustomerWithSubject (line 25), GetMeterIDBySlug (line 59), QueryMeterV3 (line 81) each use context.Background() despite receiving *testing.T",
+      "message": "Test helper functions accept testing.T but create contexts from context.Background() instead of t.Context(), breaking test-scoped lifecycle and cancellation."
+    },
+    {
+      "folder": "openmeter/billing/charges/testutils",
+      "file": "openmeter/billing/charges/testutils/service.go",
+      "type": "pitfall_triggered",
+      "severity": "warn",
+      "decision_or_pattern": "Usage-based charges lifecycle tests (AGENTS.md)",
+      "evidence": "NewServices constructs and exposes FlatFeeService, UsageBasedService, CreditPurchaseService individually (lines 80-85), making it easy for callers to bypass charges.Service",
+      "message": "The test helper surfaces lower-level sub-services directly alongside the top-level charges.Service, tempting callers to drive lifecycle through the sub-service adapters rather than exclusively through charges.Service.Create / AdvanceCharges / ApplyPatches."
+    },
+    {
+      "folder": "api/v3/handlers",
+      "file": "api/v3/handlers/billingprofiles/list.go",
+      "type": "semantic_duplication",
+      "severity": "warn",
+      "decision_or_pattern": "DRY handler pattern (blueprint v3_http_api)",
+      "evidence": "Identical page-parsing boilerplate (pagination.NewPage(1,20) default, lo.FromPtrOr(params.Page.Number/Size), page.Validate()) duplicated verbatim in billingprofiles/list.go, taxcodes/list.go, and llmcost/list_overrides.go",
+      "message": "Three v3 list handlers repeat the exact same page-number/size parsing and validation block; this logic should be extracted into a shared request helper (e.g. api/v3/request or pagination package)."
+    },
+    {
+      "folder": "openmeter/billing/charges/flatfee/adapter",
+      "file": "openmeter/billing/charges/flatfee/adapter/charge.go",
+      "type": "responsibility_leak",
+      "severity": "warn",
+      "decision_or_pattern": "TransactingRepo discipline (AGENTS.md)",
+      "evidence": "func (a *adapter) buildCreateFlatFeeCharge \u2014 uses a.db directly (line 266: a.db.ChargeFlatFee.Create()) without being wrapped by TransactingRepo",
+      "message": "buildCreateFlatFeeCharge is a shared helper that accesses a.db directly; although it is currently called only from within a TransactingRepo closure (so tx is the receiver), the function signature does not enforce this and future callers on the non-tx adapter would silently bypass transaction rebinding."
+    },
+    {
+      "folder": "openmeter/app/common",
+      "file": "app/common/creditgrant.go",
+      "type": "pitfall_triggered",
+      "severity": "warn",
+      "decision_or_pattern": "credits.enabled guard completeness (blueprint pitfall pf_0002)",
+      "evidence": "NewCreditGrantService checks billingRegistry.Charges == nil (line 21) but never checks creditsConfig.Enabled before constructing the real creditgrant.Service",
+      "message": "CreditGrant wiring skips the credits.enabled feature-flag check that all neighbouring providers (ledger.go, customer.go, customerbalance.go) perform, so the credit-grant service will be wired even when credits are explicitly disabled."
+    },
+    {
+      "folder": "openmeter/notification/eventhandler",
+      "file": "openmeter/notification/eventhandler/handler.go",
+      "type": "pitfall_triggered",
+      "severity": "warn",
+      "decision_or_pattern": "context.Background() prohibition (AGENTS.md)",
+      "evidence": "func (h *Handler) Start \u2014 line 84: ctx, cancel := context.WithCancel(context.Background())",
+      "message": "Long-lived reconciler goroutine roots its context in context.Background() rather than accepting a lifecycle context from the caller, preventing clean shutdown propagation via context cancellation."
+    }
+  ]
+}

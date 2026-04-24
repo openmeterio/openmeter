@@ -1,0 +1,135 @@
+# Archie bulk-content classifier — files that exist but are never read.
+#
+# Each non-comment line: <glob>    <category>    <framework>
+# (whitespace-separated, `-` or omitted framework is fine)
+#
+# Semantics: the scanner records the file's path and tags it with the category
+# and framework, but never reads its contents. AI agents get the manifest in
+# their inputs and are instructed not to Read these paths. Existence still
+# counts toward `frontend_ratio` and similar inventory metrics.
+#
+# Precedence (most-restrictive wins): .gitignore > .archieignore > .archiebulk
+# A path that would be fully ignored by .archieignore stays ignored.
+#
+# Glob syntax: `**/` matches any depth, `*` matches within a path segment,
+# `?` matches a single non-slash char, `[abc]` is a character class.
+#
+# Categories used by the scanner:
+#   ui_resource   — counts toward `frontend_ratio` numerator (Android res/, iOS storyboards)
+#   generated     — codegen output (.g.dart, .pb.go, .min.js, dist/)
+#   localization  — translation files
+#   migration     — schema migrations
+#   fixture       — test/data fixtures, snapshots
+#   asset         — images, fonts, media (not counted as source shape)
+#   lockfile      — dependency lockfiles (visible inventory, not source shape)
+#   dependency    — vendored third-party code
+#   data          — large data files
+
+# ── Android ──────────────────────────────────────────────────────────
+**/res/layout/**            ui_resource     android
+**/res/layout-*/**          ui_resource     android
+**/res/drawable/**          ui_resource     android
+**/res/drawable-*/**        ui_resource     android
+**/res/menu/**              ui_resource     android
+**/res/values/**            ui_resource     android
+**/res/values-*/**          ui_resource     android
+**/res/navigation/**        ui_resource     android
+**/res/color/**             ui_resource     android
+**/res/anim/**              ui_resource     android
+**/res/animator/**          ui_resource     android
+**/res/xml/**               ui_resource     android
+**/res/font/**              asset           android
+**/res/mipmap-*/**          asset           android
+**/res/raw/**               asset           android
+
+# ── iOS / macOS ──────────────────────────────────────────────────────
+**/*.storyboard             ui_resource     ios
+**/*.xib                    ui_resource     ios
+**/Assets.xcassets/**       asset           ios
+**/*.xcstrings              localization    ios
+**/*.strings                localization    ios
+**/*.stringsdict            localization    ios
+
+# ── Flutter / Dart ───────────────────────────────────────────────────
+**/*.g.dart                 generated       flutter
+**/*.freezed.dart           generated       flutter
+**/*.mocks.dart             generated       flutter
+**/*.gr.dart                generated       flutter
+**/*.config.dart            generated       flutter
+**/*.arb                    localization    flutter
+pubspec.lock                lockfile        flutter
+
+# ── JS / TS / Node / React / Vue / Svelte ────────────────────────────
+**/*.min.js                 generated       bundler
+**/*.min.css                generated       bundler
+**/*.map                    generated       bundler
+**/*.d.ts                   generated       typescript
+**/dist/**                  generated       bundler
+**/out/**                   generated       bundler
+**/.next/**                 generated       nextjs
+**/.nuxt/**                 generated       nuxt
+**/.svelte-kit/**           generated       sveltekit
+**/storybook-static/**      generated       storybook
+**/coverage/**              generated       test
+**/public/locales/**        localization    web
+**/locales/**               localization    -
+**/i18n/**                  localization    -
+**/messages/*.json          localization    -
+**/*.po                     localization    gettext
+package-lock.json           lockfile        node
+yarn.lock                   lockfile        node
+pnpm-lock.yaml              lockfile        node
+bun.lock                    lockfile        bun
+bun.lockb                   lockfile        bun
+
+# ── Go ───────────────────────────────────────────────────────────────
+**/*.pb.go                  generated       protobuf
+**/*_grpc.pb.go             generated       grpc
+**/mocks/mock_*.go          generated       gomock
+**/wire_gen.go              generated       wire
+**/zz_generated_*.go        generated       kubebuilder
+**/vendor/**                dependency      go
+go.sum                      lockfile        go
+
+# ── Python ───────────────────────────────────────────────────────────
+**/*_pb2.py                 generated       protobuf
+**/*_pb2_grpc.py            generated       grpc
+**/migrations/**/*.py       migration       django
+**/alembic/versions/**      migration       alembic
+Pipfile.lock                lockfile        python
+poetry.lock                 lockfile        python
+uv.lock                     lockfile        python
+
+# ── Rust / other ─────────────────────────────────────────────────────
+Cargo.lock                  lockfile        rust
+
+# ── Ruby / PHP ───────────────────────────────────────────────────────
+Gemfile.lock                lockfile        ruby
+composer.lock               lockfile        php
+
+# ── Database / SQL ───────────────────────────────────────────────────
+**/db/migrate/**            migration       rails
+**/migrations/**/*.sql      migration       sql
+**/prisma/migrations/**     migration       prisma
+**/supabase/migrations/**   migration       supabase
+
+# ── OpenAPI / codegen / GraphQL ──────────────────────────────────────
+**/gen/**                   generated       codegen
+**/generated/**             generated       codegen
+**/__generated__/**         generated       graphql
+**/*.graphql.ts             generated       graphql
+
+# ── Test fixtures / snapshots ────────────────────────────────────────
+**/fixtures/**              fixture         -
+**/seeds/**                 fixture         -
+**/testdata/**              fixture         -
+**/snapshots/**             fixture         test
+**/__snapshots__/**         fixture         jest
+
+# ── Data ─────────────────────────────────────────────────────────────
+**/*.csv                    data            -
+
+# ── Infra ────────────────────────────────────────────────────────────
+**/.terraform/**            generated       terraform
+.terraform.lock.hcl         lockfile        terraform
+**/charts/**/*.lock         lockfile        helm

@@ -33,3 +33,11 @@ api/v3/templates/chi-middleware.tmpl
 
 # CodeGraph
 .codegraph/
+
+# Archie (installed tooling — outputs are NOT ignored)
+.archie/*.py
+.archie/__pycache__/
+.archie/platform_rules.json
+.claude/commands/archie-*.md
+.claude/hooks/
+.claude/settings.local.json

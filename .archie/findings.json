@@ -1,0 +1,144 @@
+{
+  "findings": [
+    {
+      "id": "f_0001",
+      "problem_statement": "Charges adapter helpers that accept a raw *entdb.Client can silently bypass the transaction already carried in ctx, producing partial writes during charge advancement.",
+      "evidence": [
+        "AGENTS.md: 'In openmeter/billing/charges/.../adapter, keep Ent access transaction-aware even in shared helper functions. If a helper accepts a raw *entdb.Client, still wrap its body with entutils.TransactingRepo(...) / TransactingRepoWithNoValue(...) so it rebinds to the transaction already carried in ctx.'",
+        "openmeter/billing/charges/adapter.go defines the adapter surface for charges lifecycle.",
+        "openmeter/billing/charges/service.go exposes Create / AdvanceCharges / ApplyPatches which drive multi-step writes."
+      ],
+      "root_cause": "Ent transactions are propagated implicitly through ctx; a helper that receives a *entdb.Client but does not call entutils.TransactingRepo will use the non-tx client and escape the outer transaction.",
+      "fix_direction": [
+        "Audit every helper under openmeter/billing/charges/**/adapter that takes *entdb.Client.",
+        "Wrap each helper body with entutils.TransactingRepo or TransactingRepoWithNoValue so it rebinds to any tx in ctx.",
+        "Add a lint/review checklist item requiring tx-aware wrapping for new charge adapter helpers."
+      ],
+      "severity": "error",
+      "confidence": 0.9,
+      "applies_to": [
+        "openmeter/billing/charges/adapter",
+        "openmeter/billing/charges"
+      ],
+      "source": "deep:synthesis",
+      "depth": "canonical",
+      "pitfall_id": "pf_0001",
+      "first_seen": "2026-04-24",
+      "confirmed_in_scan": 1,
+      "status": "active"
+    },
+    {
+      "id": "f_0002",
+      "problem_statement": "Credits-disabled deployments can still perform real ledger writes if any of the independent wiring layers forgets to guard on credits.enabled.",
+      "evidence": [
+        "AGENTS.md: 'credits.enabled needs explicit guarding at multiple layers: ledger-backed customer credit handlers in api/v3/server, customer ledger hooks, and namespace/default-account provisioning are wired separately and must each stay disabled when credits are off.'",
+        "AGENTS.md: 'When credits.enabled is false, app/common wires ledger account services/resolvers to noop implementations. Any ledger account backfill that must write real ledger_accounts / ledger_customer_accounts rows needs to construct concrete ledger account + resolver adapters directly.'",
+        "app/common/customer.go wires customer service with ledger and subject hooks.",
+        "openmeter/ledger/customerbalance is exposed to api/v3/server credits endpoints."
+      ],
+      "root_cause": "The credits feature is cross-cutting across unrelated call graphs (HTTP handlers, customer hooks, namespace provisioning), so a single guard cannot stop ledger side effects originating elsewhere.",
+      "fix_direction": [
+        "Map every call site that writes to ledger_accounts or ledger_customer_accounts.",
+        "For each, verify the Wire provider falls back to a noop when credits.enabled is false.",
+        "Add an integration test that boots with credits.enabled=false and asserts zero rows are written to ledger_* tables under representative flows."
+      ],
+      "severity": "error",
+      "confidence": 0.85,
+      "applies_to": [
+        "app/common",
+        "api/v3/server",
+        "openmeter/customer",
+        "openmeter/namespace",
+        "openmeter/ledger"
+      ],
+      "source": "deep:synthesis",
+      "depth": "canonical",
+      "pitfall_id": "pf_0002",
+      "first_seen": "2026-04-24",
+      "confirmed_in_scan": 1,
+      "status": "active"
+    },
+    {
+      "id": "f_0003",
+      "problem_statement": "Notification event payload versioning is implicit; hardcoded version constants in the notification pipeline create silent compatibility risk across producers (billing-worker, balance-worker, ingest) and the Svix-backed consumer.",
+      "evidence": [
+        "openmeter/notification/consumer/consumer.go subscribes to system events and dispatches to Svix; the producers emit from openmeter/billing/worker and openmeter/entitlement/balanceworker.",
+        "AGENTS.md references a /notification skill covering 'payload versioning'.",
+        "openmeter/watermill/eventbus/eventbus.go routes typed events; version is carried in the payload rather than the topic."
+      ],
+      "root_cause": "Payload schema version is encoded as constants inside emitter packages rather than being derived from the TypeSpec/OpenAPI contract, so a producer can silently emit a newer shape than the consumer expects.",
+      "fix_direction": [
+        "Catalog every payload version constant in openmeter/notification and its producers.",
+        "Add an explicit version handshake (or contract test) between producer and consumer packages.",
+        "Pin webhook payload versions to TypeSpec models where possible so SDK consumers receive a stable shape."
+      ],
+      "severity": "warn",
+      "confidence": 0.75,
+      "applies_to": [
+        "openmeter/notification",
+        "openmeter/notification/consumer",
+        "openmeter/watermill/eventbus"
+      ],
+      "source": "deep:synthesis",
+      "depth": "canonical",
+      "pitfall_id": null,
+      "first_seen": "2026-04-24",
+      "confirmed_in_scan": 1,
+      "status": "active"
+    },
+    {
+      "id": "f_0004",
+      "problem_statement": "Sequential timestamped Atlas migrations plus atlas.sum chain hashing produces predictable merge conflicts on long-running feature branches.",
+      "evidence": [
+        "AGENTS.md documents the migration flow: 'atlas migrate --env local diff <migration-name>' writes to tools/migrate/migrations/ and updates atlas.sum.",
+        "AGENTS.md references a /rebase skill that handles 'sequential migrations, atlas.sum conflicts, Ent regeneration'.",
+        "atlas.hcl pins schema source to ent://openmeter/ent/schema and migrations dir to file://tools/migrate/migrations."
+      ],
+      "root_cause": "Atlas chain hash in atlas.sum enforces a linear migration history; any two branches that both add a migration will collide by construction.",
+      "fix_direction": [
+        "When rebasing, delete the branch's migration + its atlas.sum entry, rebase, and regenerate with atlas migrate diff.",
+        "Regenerate Ent code (make generate) before the atlas diff so the schema tree matches.",
+        "Use the /rebase skill checklist to keep atlas.sum integrity."
+      ],
+      "severity": "warn",
+      "confidence": 0.95,
+      "applies_to": [
+        "tools/migrate/migrations",
+        "openmeter/ent/schema"
+      ],
+      "source": "deep:synthesis",
+      "depth": "canonical",
+      "pitfall_id": "pf_0004",
+      "first_seen": "2026-04-24",
+      "confirmed_in_scan": 1,
+      "status": "active"
+    },
+    {
+      "id": "f_0005",
+      "problem_statement": "context.Background() / context.TODO() introductions in application code silently drop cancellation, deadlines, and request-scoped values, violating the project rule.",
+      "evidence": [
+        "AGENTS.md: 'Do not introduce context.Background() or context.TODO() to sidestep missing context propagation in application code. Either propagate the caller's context through the full call path, or remove the unused context.Context parameter.'",
+        "AGENTS.md: 'In tests, prefer t.Context() when a testing.T or testing.TB is available instead of introducing context.Background().'"
+      ],
+      "root_cause": "When a helper doesn't receive a ctx, engineers frequently reach for context.Background() rather than plumbing the caller's ctx through, which breaks tracing and cancellation across Kafka consumers and HTTP handlers.",
+      "fix_direction": [
+        "Grep for context.Background()/context.TODO() in openmeter/ and app/common/.",
+        "Plumb the caller's ctx through every call site; if ctx is truly unused, remove the parameter.",
+        "In tests, replace context.Background() with t.Context()."
+      ],
+      "severity": "warn",
+      "confidence": 0.9,
+      "applies_to": [
+        "openmeter/",
+        "app/common/"
+      ],
+      "source": "deep:synthesis",
+      "depth": "canonical",
+      "pitfall_id": null,
+      "first_seen": "2026-04-24",
+      "confirmed_in_scan": 1,
+      "status": "active"
+    }
+  ],
+  "scanned_at": "2026-04-24T1009"
+}
