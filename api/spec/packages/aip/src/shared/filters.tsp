@@ -13,11 +13,7 @@ namespace Shared;
  */
 @friendlyName("QueryFilterString")
 @summary("Query String Filter")
-@minProperties(1)
-@maxProperties(1)
 model QueryFilterString {
-  ...Record<never>;
-
   /**
    * The attribute equals the provided value.
    */
@@ -73,8 +69,6 @@ model QueryFilterString {
  */
 @friendlyName("QueryFilterStringMapItem")
 @summary("Query String Map Item Filter")
-@minProperties(1)
-@maxProperties(1)
 model QueryFilterStringMapItem {
   /**
    * The attribute exists.
@@ -92,11 +86,7 @@ alias QueryFilterStringMap = Record<QueryFilterStringMapItem>;
  */
 @friendlyName("QueryFilterInteger")
 @summary("Query Integer Filter")
-@minProperties(1)
-@maxProperties(1)
 model QueryFilterInteger {
-  ...Record<never>;
-
   /**
    * The attribute equals the provided value.
    */
@@ -162,11 +152,7 @@ model QueryFilterInteger {
  */
 @friendlyName("QueryFilterFloat")
 @summary("Query Float Filter")
-@minProperties(1)
-@maxProperties(1)
 model QueryFilterFloat {
-  ...Record<never>;
-
   /**
    * The attribute is greater than the provided value.
    */
@@ -208,11 +194,7 @@ model QueryFilterFloat {
  */
 @friendlyName("QueryFilterNumeric")
 @summary("Query Numeric Filter")
-@minProperties(1)
-@maxProperties(1)
 model QueryFilterNumeric {
-  ...Record<never>;
-
   /**
    * The attribute is greater than the provided value.
    */
@@ -254,11 +236,7 @@ model QueryFilterNumeric {
  */
 @friendlyName("QueryFilterBoolean")
 @summary("Query Boolean Filter")
-@minProperties(1)
-@maxProperties(1)
 model QueryFilterBoolean {
-  ...Record<never>;
-
   /**
    * The attribute equals the provided value.
    */
@@ -271,11 +249,7 @@ model QueryFilterBoolean {
  */
 @friendlyName("QueryFilterDateTime")
 @summary("Query Date-time Filter")
-@minProperties(1)
-@maxProperties(1)
 model QueryFilterDateTime {
-  ...Record<never>;
-
   /**
    * The attribute is greater than the provided value.
    */

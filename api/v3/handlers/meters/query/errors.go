@@ -76,21 +76,6 @@ func NewUnsupportedFilterOperatorError(path ...string) error {
 	return ErrUnsupportedFilterOperator.WithPathString(append([]string{"filters"}, path...)...)
 }
 
-const ErrCodeUnknownFilterOperator models.ErrorCode = "unknown_filter_operator"
-
-var ErrUnknownFilterOperator = models.NewValidationIssue(
-	ErrCodeUnknownFilterOperator,
-	"unknown filter operator",
-	models.WithCriticalSeverity(),
-	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
-)
-
-func NewUnknownFilterOperatorError(operator string, path ...string) error {
-	return ErrUnknownFilterOperator.
-		WithPathString(append([]string{"filters"}, path...)...).
-		WithAttr("operator", operator)
-}
-
 const ErrCodeCustomerNotFound models.ErrorCode = "customer_not_found"
 
 var ErrCustomerNotFound = models.NewValidationIssue(

@@ -8179,10 +8179,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/QueryFilterString'
-      additionalProperties:
-        not: {}
-      minProperties: 1
-      maxProperties: 1
       description: |-
         A query filter for a string attribute.
         Operators are mutually exclusive, only one operator is allowed at a time.
@@ -8233,10 +8229,6 @@ components:
           minItems: 1
           maxItems: 10
           description: Combines the provided filters with a logical OR.
-      additionalProperties:
-        not: {}
-      minProperties: 1
-      maxProperties: 1
       description: |-
         A query filter for an item in a string map attribute.
         Operators are mutually exclusive, only one operator is allowed at a time.
