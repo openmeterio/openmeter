@@ -137,7 +137,7 @@ model StringFieldFilterExact {
 }
 
 /**
- * Filters on the given ULID field value by either exact or fuzzy match.
+ * Filters on the given ULID field value by exact match.
  * All properties are optional; provide exactly one to specify the comparison.
  */
 @friendlyName("ULIDFieldFilter")
