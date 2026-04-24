@@ -42,3 +42,13 @@ func TestResolveInvoiceCreatedTrigger(t *testing.T) {
 		require.Equal(t, meta.TriggerFinalInvoiceCreated, trigger)
 	})
 }
+
+func TestIgnoreMinimumCommitmentForRunType(t *testing.T) {
+	t.Run("partial invoice run", func(t *testing.T) {
+		require.True(t, ignoreMinimumCommitmentForRunType(usagebased.RealizationRunTypePartialInvoice))
+	})
+
+	t.Run("final realization run", func(t *testing.T) {
+		require.False(t, ignoreMinimumCommitmentForRunType(usagebased.RealizationRunTypeFinalRealization))
+	})
+}
