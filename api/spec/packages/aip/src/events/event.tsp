@@ -125,7 +125,7 @@ model IngestedEvent {
   stored_at: Shared.DateTime;
 
   /**
-   * The validation errors of the ingested events.
+   * The validation errors of the ingested event.
    */
   validation_errors?: IngestedEventValidationError[];
 }

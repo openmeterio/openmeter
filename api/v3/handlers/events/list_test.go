@@ -62,11 +62,11 @@ func TestFromAPICustomerIDFilter(t *testing.T) {
 	})
 }
 
-func TestParseEventSort(t *testing.T) {
+func TestFromAPIEventSort(t *testing.T) {
 	ctx := t.Context()
 
 	t.Run("nil returns empty values", func(t *testing.T) {
-		field, order, err := parseEventSort(ctx, nil)
+		field, order, err := fromAPIEventSort(ctx, nil)
 		require.NoError(t, err)
 		require.Equal(t, streaming.EventSortField(""), field)
 		require.Equal(t, sortx.Order(""), order)
@@ -74,7 +74,7 @@ func TestParseEventSort(t *testing.T) {
 
 	t.Run("time defaults to desc when no suffix", func(t *testing.T) {
 		sort := api.SortQuery("time")
-		field, order, err := parseEventSort(ctx, &sort)
+		field, order, err := fromAPIEventSort(ctx, &sort)
 		require.NoError(t, err)
 		require.Equal(t, streaming.EventSortFieldTime, field)
 		require.Equal(t, sortx.OrderDesc, order)
@@ -82,7 +82,7 @@ func TestParseEventSort(t *testing.T) {
 
 	t.Run("ingested_at desc", func(t *testing.T) {
 		sort := api.SortQuery("ingested_at desc")
-		field, order, err := parseEventSort(ctx, &sort)
+		field, order, err := fromAPIEventSort(ctx, &sort)
 		require.NoError(t, err)
 		require.Equal(t, streaming.EventSortFieldIngestedAt, field)
 		require.Equal(t, sortx.OrderDesc, order)
@@ -90,7 +90,7 @@ func TestParseEventSort(t *testing.T) {
 
 	t.Run("stored_at defaults to desc when no suffix", func(t *testing.T) {
 		sort := api.SortQuery("stored_at")
-		field, order, err := parseEventSort(ctx, &sort)
+		field, order, err := fromAPIEventSort(ctx, &sort)
 		require.NoError(t, err)
 		require.Equal(t, streaming.EventSortFieldStoredAt, field)
 		require.Equal(t, sortx.OrderDesc, order)
@@ -98,7 +98,7 @@ func TestParseEventSort(t *testing.T) {
 
 	t.Run("time asc suffix is honored", func(t *testing.T) {
 		sort := api.SortQuery("time asc")
-		field, order, err := parseEventSort(ctx, &sort)
+		field, order, err := fromAPIEventSort(ctx, &sort)
 		require.NoError(t, err)
 		require.Equal(t, streaming.EventSortFieldTime, field)
 		require.Equal(t, sortx.OrderAsc, order)
@@ -106,14 +106,14 @@ func TestParseEventSort(t *testing.T) {
 
 	t.Run("unknown field is rejected", func(t *testing.T) {
 		sort := api.SortQuery("created_at")
-		_, _, err := parseEventSort(ctx, &sort)
+		_, _, err := fromAPIEventSort(ctx, &sort)
 		require.Error(t, err)
 		assertBadRequestField(t, err, "sort")
 	})
 
 	t.Run("malformed input is rejected", func(t *testing.T) {
 		sort := api.SortQuery("time bogus extra")
-		_, _, err := parseEventSort(ctx, &sort)
+		_, _, err := fromAPIEventSort(ctx, &sort)
 		require.Error(t, err)
 		assertBadRequestField(t, err, "sort")
 	})
