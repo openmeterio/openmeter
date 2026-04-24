@@ -123,4 +123,36 @@ model IngestedEvent {
    * The date and time the event was stored in the database.
    */
   stored_at: Shared.DateTime;
+
+  /**
+   * The validation errors of the ingested events.
+   */
+  validation_errors?: IngestedEventValidationError[];
+}
+
+/**
+ * Event validation errors.
+ */
+@friendlyName("MeteringIngestedEventValidationError")
+model IngestedEventValidationError {
+  /**
+   * The machine readable code of the error.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Code")
+  code: string;
+
+  /**
+   * The human readable description of the error.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Message")
+  message: string;
+
+  /**
+   * Additional attributes.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Attributes")
+  attributes?: Record<unknown>;
 }

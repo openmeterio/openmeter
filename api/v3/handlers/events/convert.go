@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/oapi-codegen/nullable"
+	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
@@ -33,10 +34,11 @@ func toAPIMeteringIngestedEvent(e meterevent.Event) (api.MeteringIngestedEvent, 
 	}
 
 	return api.MeteringIngestedEvent{
-		Event:      event,
-		Customer:   toAPICustomerReference(e.CustomerID),
-		IngestedAt: e.IngestedAt,
-		StoredAt:   e.StoredAt,
+		Event:            event,
+		Customer:         toAPICustomerReference(e.CustomerID),
+		IngestedAt:       e.IngestedAt,
+		StoredAt:         e.StoredAt,
+		ValidationErrors: toAPIMeteringIngestedEventValidationErrors(e.ValidationErrors),
 	}, nil
 }
 
@@ -45,4 +47,27 @@ func toAPICustomerReference(id *string) *api.CustomerReference {
 		return nil
 	}
 	return &api.CustomerReference{Id: *id}
+}
+
+func toAPIMeteringIngestedEventValidationErrors(errs []error) *[]api.MeteringIngestedEventValidationError {
+	if len(errs) == 0 {
+		return nil
+	}
+
+	result := lo.FilterMap(errs, func(err error, _ int) (api.MeteringIngestedEventValidationError, bool) {
+		if err == nil {
+			return api.MeteringIngestedEventValidationError{}, false
+		}
+
+		return api.MeteringIngestedEventValidationError{
+			Code:    "validation_error",
+			Message: err.Error(),
+		}, true
+	})
+
+	if len(result) == 0 {
+		return nil
+	}
+
+	return lo.ToPtr(result)
 }

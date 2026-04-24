@@ -7975,6 +7975,11 @@ components:
           allOf:
             - $ref: '#/components/schemas/DateTime'
           description: The date and time the event was stored in the database.
+        validation_errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/MeteringIngestedEventValidationError'
+          description: The validation errors of the ingested events.
       description: An ingested metering event with ingestion metadata.
       title: Ingested Event
       example:
@@ -7989,6 +7994,29 @@ components:
           id: 01G65Z755AFWAKHE12NY0CQ9FH
         ingested_at: '2023-01-01T01:01:01.001Z'
         stored_at: '2023-01-01T01:01:02.001Z'
+    MeteringIngestedEventValidationError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: The machine readable code of the error.
+          title: Code
+          readOnly: true
+        message:
+          type: string
+          description: The human readable description of the error.
+          title: Message
+          readOnly: true
+        attributes:
+          type: object
+          additionalProperties: {}
+          description: Additional attributes.
+          title: Attributes
+          readOnly: true
+      description: Event validation errors.
     Numeric:
       type: string
       pattern: ^\-?[0-9]+(\.[0-9]+)?$
