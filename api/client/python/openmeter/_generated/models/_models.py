@@ -15089,6 +15089,8 @@ class TaxConfig(_Model):
     :vartype stripe: ~openmeter._generated.models.StripeTaxConfig
     :ivar custom_invoicing: Custom invoicing tax config.
     :vartype custom_invoicing: ~openmeter._generated.models.CustomInvoicingTaxConfig
+    :ivar tax_code_id: Tax code ID.
+    :vartype tax_code_id: str
     """
 
     behavior: Optional[Union[str, "_models.TaxBehavior"]] = rest_field(
@@ -15101,6 +15103,10 @@ class TaxConfig(_Model):
         name="customInvoicing", visibility=["read", "create", "update", "delete", "query"]
     )
     """Custom invoicing tax config."""
+    tax_code_id: Optional[str] = rest_field(
+        name="taxCodeId", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """Tax code ID."""
 
     @overload
     def __init__(
@@ -15109,6 +15115,7 @@ class TaxConfig(_Model):
         behavior: Optional[Union[str, "_models.TaxBehavior"]] = None,
         stripe: Optional["_models.StripeTaxConfig"] = None,
         custom_invoicing: Optional["_models.CustomInvoicingTaxConfig"] = None,
+        tax_code_id: Optional[str] = None,
     ) -> None: ...
 
     @overload

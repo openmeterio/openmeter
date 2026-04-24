@@ -11771,6 +11771,12 @@ export interface components {
        * @description Custom invoicing tax config.
        */
       customInvoicing?: components['schemas']['CustomInvoicingTaxConfig']
+      /**
+       * Tax code ID
+       * @description Tax code reference.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      taxCodeId?: string
     }
     /**
      * @description The mode of the tiered price.

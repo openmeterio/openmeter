@@ -192,19 +192,46 @@ func (s service) resolveTaxCodes(ctx context.Context, namespace string, rateCard
 
 	for _, rc := range *rateCards {
 		meta := rc.AsMeta()
-		if meta.TaxConfig == nil || meta.TaxConfig.Stripe == nil || meta.TaxConfig.Stripe.Code == "" {
+		if meta.TaxConfig == nil {
 			continue
 		}
 
-		stripeCode := meta.TaxConfig.Stripe.Code
+		var tc taxcode.TaxCode
 
-		tc, err := s.taxCode.GetOrCreateByAppMapping(ctx, taxcode.GetOrCreateByAppMappingInput{
-			Namespace: namespace,
-			AppType:   app.AppTypeStripe,
-			TaxCode:   stripeCode,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to resolve tax code for stripe code %s: %w", stripeCode, err)
+		switch {
+		case meta.TaxConfig.Stripe != nil && meta.TaxConfig.Stripe.Code != "":
+			// Existing path: resolve/create TaxCode from Stripe code.
+			resolved, err := s.taxCode.GetOrCreateByAppMapping(ctx, taxcode.GetOrCreateByAppMappingInput{
+				Namespace: namespace,
+				AppType:   app.AppTypeStripe,
+				TaxCode:   meta.TaxConfig.Stripe.Code,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to resolve tax code for stripe code %s: %w", meta.TaxConfig.Stripe.Code, err)
+			}
+			tc = resolved
+
+		case meta.TaxConfig.TaxCodeID != nil:
+			// New path: caller supplied a taxCodeId — validate it exists and backfill app mappings.
+			resolved, err := s.taxCode.GetTaxCode(ctx, taxcode.GetTaxCodeInput{
+				NamespacedID: models.NamespacedID{
+					Namespace: namespace,
+					ID:        *meta.TaxConfig.TaxCodeID,
+				},
+			})
+			if err != nil {
+				if taxcode.IsTaxCodeNotFoundError(err) {
+					return models.NewGenericValidationError(fmt.Errorf("tax code %s not found", *meta.TaxConfig.TaxCodeID))
+				}
+				return fmt.Errorf("failed to resolve tax code %s: %w", *meta.TaxConfig.TaxCodeID, err)
+			}
+			tc = resolved
+			if m, ok := tc.GetAppMapping(app.AppTypeStripe); ok && meta.TaxConfig.Stripe == nil {
+				meta.TaxConfig.Stripe = &productcatalog.StripeTaxConfig{Code: m.TaxCode}
+			}
+
+		default:
+			continue
 		}
 
 		meta.TaxConfig.TaxCodeID = lo.ToPtr(tc.ID)
@@ -231,7 +258,7 @@ func (s service) resolveTaxCodes(ctx context.Context, namespace string, rateCard
 			return fmt.Errorf("unsupported RateCard type: %s", rc.Type())
 		}
 
-		if err = rc.Merge(rcNew); err != nil {
+		if err := rc.Merge(rcNew); err != nil {
 			return fmt.Errorf("failed to merge RateCard: %w", err)
 		}
 	}

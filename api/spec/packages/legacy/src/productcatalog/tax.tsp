@@ -25,6 +25,12 @@ model TaxConfig {
    */
   @summary("Custom invoicing tax config")
   customInvoicing?: CustomInvoicingTaxConfig;
+
+  /**
+   * Tax code reference.
+   */
+  @summary("Tax code ID")
+  taxCodeId?: ULID;
 }
 
 /**
