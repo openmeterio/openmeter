@@ -5318,6 +5318,7 @@ type ListPlansParams struct {
 	// Sort Sort plans returned in the response.
 	// Supported sort attributes are:
 	// - `key`
+	// - `key`
 	// - `version`
 	// - `created_at` (default)
 	// - `updated_at`

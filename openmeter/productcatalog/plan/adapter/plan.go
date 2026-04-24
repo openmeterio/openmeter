@@ -128,7 +128,7 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 		case plan.OrderByVersion:
 			query = query.Order(plandb.ByVersion(order...))
 		case plan.OrderByKey:
-			query = query.Order(plandb.ByVersion(order...))
+			query = query.Order(plandb.ByKey(order...))
 		case plan.OrderByID:
 			fallthrough
 		default:
