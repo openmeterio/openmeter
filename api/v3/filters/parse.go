@@ -280,34 +280,17 @@ func parseFilterULID(qs url.Values, field string) (FilterULID, error) {
 	var f FilterULID
 
 	err := forEachFieldParam(qs, field, func(p parsedFilterParam) error {
-		if p.bare {
-			f.Exists = lo.ToPtr(true)
-			return nil
-		}
-
 		switch p.op {
 		case OpEq:
 			f.Eq = &p.value
 		case OpNeq:
 			f.Neq = &p.value
-		case OpContains:
-			f.Contains = &p.value
 		case OpOeq:
 			items, err := parseCommaSeparatedField(field, p.op, p.value)
 			if err != nil {
 				return err
 			}
 			f.Oeq = items
-		case OpOcontains:
-			items, err := parseCommaSeparatedField(field, p.op, p.value)
-			if err != nil {
-				return err
-			}
-			f.Ocontains = items
-		case OpExists:
-			f.Exists = lo.ToPtr(true)
-		case OpNexists:
-			f.Exists = lo.ToPtr(false)
 		default:
 			return fieldError(field, p.op, ErrUnsupportedOperator)
 		}

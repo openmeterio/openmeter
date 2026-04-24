@@ -8423,26 +8423,14 @@ components:
               allOf:
                 - $ref: '#/components/schemas/ULID'
               description: Value does not equal the given ULID value.
-            contains:
-              type: string
-              description: Value contains the given string value (fuzzy match).
-            ocontains:
-              type: string
-              items:
-                type: string
-              format: ArrayEncoding.commaDelimited
-              description: Returns entities that fuzzy-match any of the comma-delimited strings in the filter string.
             oeq:
               type: string
               items:
                 $ref: '#/components/schemas/ULID'
               format: ArrayEncoding.commaDelimited
               description: Returns entities that exact match any of the comma-delimited ULIDs in the filter string.
-            exists:
-              type: boolean
-              description: When true, the field must be present (non-null); when false, the field must be absent (null).
       description: |-
-        Filters on the given ULID field value by either exact or fuzzy match.
+        Filters on the given ULID field value by exact match.
         All properties are optional; provide exactly one to specify the comparison.
       x-go-type-import:
         path: github.com/openmeterio/openmeter/api/v3/filters

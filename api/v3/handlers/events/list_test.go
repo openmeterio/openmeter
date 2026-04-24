@@ -42,24 +42,6 @@ func TestFromAPICustomerIDFilter(t *testing.T) {
 		require.Error(t, err)
 		assertBadRequestField(t, err, "filter[customer_id]")
 	})
-
-	t.Run("contains is rejected", func(t *testing.T) {
-		_, err := fromAPICustomerIDFilter(ctx, &api.ULIDFieldFilter{Contains: lo.ToPtr("x")})
-		require.Error(t, err)
-		assertBadRequestField(t, err, "filter[customer_id]")
-	})
-
-	t.Run("ocontains is rejected", func(t *testing.T) {
-		_, err := fromAPICustomerIDFilter(ctx, &api.ULIDFieldFilter{Ocontains: []string{"x"}})
-		require.Error(t, err)
-		assertBadRequestField(t, err, "filter[customer_id]")
-	})
-
-	t.Run("exists is rejected", func(t *testing.T) {
-		_, err := fromAPICustomerIDFilter(ctx, &api.ULIDFieldFilter{Exists: lo.ToPtr(true)})
-		require.Error(t, err)
-		assertBadRequestField(t, err, "filter[customer_id]")
-	})
 }
 
 func TestFromAPIEventSort(t *testing.T) {
