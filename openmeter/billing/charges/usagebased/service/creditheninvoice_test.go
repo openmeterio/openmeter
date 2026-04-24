@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -10,6 +11,24 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
+
+func TestStartInvoiceCreatedRunValidatesInput(t *testing.T) {
+	var machine CreditThenInvoiceStateMachine
+	overrideCollectionPeriodEnd := time.Time{}
+
+	err := machine.startInvoiceCreatedRun(
+		context.Background(),
+		invoiceCreatedInput{
+			LineID:                      "line-1",
+			OverrideCollectionPeriodEnd: &overrideCollectionPeriodEnd,
+		},
+		usagebased.RealizationRunTypePartialInvoice,
+	)
+
+	require.Error(t, err)
+	require.ErrorContains(t, err, "validate invoice created input")
+	require.ErrorContains(t, err, "override collection period end must not be zero when set")
+}
 
 func TestResolveInvoiceCreatedTrigger(t *testing.T) {
 	servicePeriod := timeutil.ClosedPeriod{

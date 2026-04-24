@@ -143,15 +143,20 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 		}
 
 		trigger := resolveInvoiceCreatedTrigger(stateMachine.GetCharge(), stdLine.Period)
-
 		if stateMachine.GetCharge().State.CurrentRealizationRunID != nil {
 			return nil, billing.ValidationError{
 				Err: fmt.Errorf("line[%s]: %w", stdLine.ID, usagebased.ErrActiveRealizationRunAlreadyExists),
 			}
 		}
 
+		if trigger == meta.TriggerPartialInvoiceCreated {
+			// A past Period.To intentionally means "collect now" so late events can still produce an immediately collectable partial invoice.
+			stdLine.OverrideCollectionPeriodEnd = lo.ToPtr(stdLine.Period.To.Add(usagebased.InternalCollectionPeriod))
+		}
+
 		if err := stateMachine.FireAndActivate(ctx, trigger, invoiceCreatedInput{
-			LineID: stdLine.ID,
+			LineID:                      stdLine.ID,
+			OverrideCollectionPeriodEnd: stdLine.OverrideCollectionPeriodEnd,
 		}); err != nil {
 			return nil, fmt.Errorf("triggering %s for charge[%s]: %w", trigger, stateMachine.GetCharge().ID, err)
 		}

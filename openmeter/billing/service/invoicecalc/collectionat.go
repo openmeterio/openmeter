@@ -85,18 +85,30 @@ func StandardInvoiceCollectionAt(i *billing.StandardInvoice) error {
 		return nil
 	}
 
-	maxInvoiceAt := lo.MaxBy(collectableLines, func(a, b *billing.StandardLine) bool {
-		return a.InvoiceAt.After(b.InvoiceAt)
-	})
-
-	collectionAt := maxInvoiceAt.InvoiceAt
-
-	// If we have an intended collection period, we should try to honor that
-	if i.Workflow.Config.Collection.Interval.IsPositive() {
-		collectionAt, _ = i.Workflow.Config.Collection.Interval.AddTo(collectionAt)
+	var collectionAt time.Time
+	for idx, line := range collectableLines {
+		lineCollectionAt := resolveStandardLineCollectionAt(i.Workflow.Config.Collection, line)
+		if idx == 0 || lineCollectionAt.After(collectionAt) {
+			collectionAt = lineCollectionAt
+		}
 	}
 
 	i.CollectionAt = lo.ToPtr(collectionAt)
 
 	return nil
+}
+
+func resolveStandardLineCollectionAt(collectionConfig billing.CollectionConfig, line *billing.StandardLine) time.Time {
+	if line.OverrideCollectionPeriodEnd != nil {
+		return *line.OverrideCollectionPeriodEnd
+	}
+
+	collectionAt := line.InvoiceAt
+
+	// If we have an intended collection period, we should try to honor that
+	if collectionConfig.Interval.IsPositive() {
+		collectionAt, _ = collectionConfig.Interval.AddTo(collectionAt)
+	}
+
+	return collectionAt
 }

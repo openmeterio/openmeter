@@ -92,7 +92,8 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 			ChargeID:               dbLine.ChargeID,
 			ChildUniqueReferenceID: dbLine.ChildUniqueReferenceID,
 
-			InvoiceAt: dbLine.InvoiceAt.In(time.UTC),
+			InvoiceAt:                   dbLine.InvoiceAt.In(time.UTC),
+			OverrideCollectionPeriodEnd: convert.TimePtrIn(dbLine.OverrideCollectionPeriodEnd, time.UTC),
 
 			Currency: dbLine.Currency,
 

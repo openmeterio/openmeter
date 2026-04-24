@@ -280,6 +280,20 @@ func (_c *BillingInvoiceLineCreate) SetInvoiceAt(v time.Time) *BillingInvoiceLin
 	return _c
 }
 
+// SetOverrideCollectionPeriodEnd sets the "override_collection_period_end" field.
+func (_c *BillingInvoiceLineCreate) SetOverrideCollectionPeriodEnd(v time.Time) *BillingInvoiceLineCreate {
+	_c.mutation.SetOverrideCollectionPeriodEnd(v)
+	return _c
+}
+
+// SetNillableOverrideCollectionPeriodEnd sets the "override_collection_period_end" field if the given value is not nil.
+func (_c *BillingInvoiceLineCreate) SetNillableOverrideCollectionPeriodEnd(v *time.Time) *BillingInvoiceLineCreate {
+	if v != nil {
+		_c.SetOverrideCollectionPeriodEnd(*v)
+	}
+	return _c
+}
+
 // SetType sets the "type" field.
 func (_c *BillingInvoiceLineCreate) SetType(v billing.InvoiceLineAdapterType) *BillingInvoiceLineCreate {
 	_c.mutation.SetType(v)
@@ -1003,6 +1017,10 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 	if value, ok := _c.mutation.InvoiceAt(); ok {
 		_spec.SetField(billinginvoiceline.FieldInvoiceAt, field.TypeTime, value)
 		_node.InvoiceAt = value
+	}
+	if value, ok := _c.mutation.OverrideCollectionPeriodEnd(); ok {
+		_spec.SetField(billinginvoiceline.FieldOverrideCollectionPeriodEnd, field.TypeTime, value)
+		_node.OverrideCollectionPeriodEnd = &value
 	}
 	if value, ok := _c.mutation.GetType(); ok {
 		_spec.SetField(billinginvoiceline.FieldType, field.TypeEnum, value)
@@ -1760,6 +1778,24 @@ func (u *BillingInvoiceLineUpsert) UpdateInvoiceAt() *BillingInvoiceLineUpsert {
 	return u
 }
 
+// SetOverrideCollectionPeriodEnd sets the "override_collection_period_end" field.
+func (u *BillingInvoiceLineUpsert) SetOverrideCollectionPeriodEnd(v time.Time) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldOverrideCollectionPeriodEnd, v)
+	return u
+}
+
+// UpdateOverrideCollectionPeriodEnd sets the "override_collection_period_end" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateOverrideCollectionPeriodEnd() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldOverrideCollectionPeriodEnd)
+	return u
+}
+
+// ClearOverrideCollectionPeriodEnd clears the value of the "override_collection_period_end" field.
+func (u *BillingInvoiceLineUpsert) ClearOverrideCollectionPeriodEnd() *BillingInvoiceLineUpsert {
+	u.SetNull(billinginvoiceline.FieldOverrideCollectionPeriodEnd)
+	return u
+}
+
 // SetStatus sets the "status" field.
 func (u *BillingInvoiceLineUpsert) SetStatus(v billing.InvoiceLineStatus) *BillingInvoiceLineUpsert {
 	u.Set(billinginvoiceline.FieldStatus, v)
@@ -2456,6 +2492,27 @@ func (u *BillingInvoiceLineUpsertOne) SetInvoiceAt(v time.Time) *BillingInvoiceL
 func (u *BillingInvoiceLineUpsertOne) UpdateInvoiceAt() *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.UpdateInvoiceAt()
+	})
+}
+
+// SetOverrideCollectionPeriodEnd sets the "override_collection_period_end" field.
+func (u *BillingInvoiceLineUpsertOne) SetOverrideCollectionPeriodEnd(v time.Time) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetOverrideCollectionPeriodEnd(v)
+	})
+}
+
+// UpdateOverrideCollectionPeriodEnd sets the "override_collection_period_end" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateOverrideCollectionPeriodEnd() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateOverrideCollectionPeriodEnd()
+	})
+}
+
+// ClearOverrideCollectionPeriodEnd clears the value of the "override_collection_period_end" field.
+func (u *BillingInvoiceLineUpsertOne) ClearOverrideCollectionPeriodEnd() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearOverrideCollectionPeriodEnd()
 	})
 }
 
@@ -3365,6 +3422,27 @@ func (u *BillingInvoiceLineUpsertBulk) SetInvoiceAt(v time.Time) *BillingInvoice
 func (u *BillingInvoiceLineUpsertBulk) UpdateInvoiceAt() *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.UpdateInvoiceAt()
+	})
+}
+
+// SetOverrideCollectionPeriodEnd sets the "override_collection_period_end" field.
+func (u *BillingInvoiceLineUpsertBulk) SetOverrideCollectionPeriodEnd(v time.Time) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetOverrideCollectionPeriodEnd(v)
+	})
+}
+
+// UpdateOverrideCollectionPeriodEnd sets the "override_collection_period_end" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateOverrideCollectionPeriodEnd() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateOverrideCollectionPeriodEnd()
+	})
+}
+
+// ClearOverrideCollectionPeriodEnd clears the value of the "override_collection_period_end" field.
+func (u *BillingInvoiceLineUpsertBulk) ClearOverrideCollectionPeriodEnd() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearOverrideCollectionPeriodEnd()
 	})
 }
 

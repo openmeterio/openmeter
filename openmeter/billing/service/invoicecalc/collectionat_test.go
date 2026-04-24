@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -262,6 +263,46 @@ func TestStandardInvoiceCollectionAt(t *testing.T) {
 			),
 			want: time.Time{},
 		},
+		{
+			name: "uses collection period end override when all metered lines provide it",
+			invoice: newStandardInvoice(
+				mustTime(t, "2026-01-16T00:00:00Z"),
+				datetime.MustParseDuration(t, "P2D"),
+				newStandardLineWithOverride(t, "2026-01-16T00:00:00Z", "2026-01-16T00:01:00Z"),
+				newStandardLineWithOverride(t, "2026-01-16T00:00:00Z", "2026-01-16T00:02:00Z"),
+			),
+			want: mustTime(t, "2026-01-16T00:02:00Z"),
+		},
+		{
+			name: "all override lines use the max override instead of the profile interval",
+			invoice: newStandardInvoice(
+				mustTime(t, "2026-01-16T00:00:00Z"),
+				datetime.MustParseDuration(t, "P7D"),
+				newStandardLineWithOverride(t, "2026-01-16T03:00:00Z", "2026-01-16T00:04:00Z"),
+				newStandardLineWithOverride(t, "2026-01-16T01:00:00Z", "2026-01-16T00:05:00Z"),
+			),
+			want: mustTime(t, "2026-01-16T00:05:00Z"),
+		},
+		{
+			name: "uses max of overridden and default per line collection times",
+			invoice: newStandardInvoice(
+				mustTime(t, "2026-01-16T00:00:00Z"),
+				datetime.MustParseDuration(t, "PT1H"),
+				newStandardLineWithOverride(t, "2026-01-16T00:00:00Z", "2026-01-16T00:30:00Z"),
+				newStandardLine(t, "2026-01-16T01:00:00Z"),
+			),
+			want: mustTime(t, "2026-01-16T02:00:00Z"),
+		},
+		{
+			name: "mixed override and default lines use the max effective collection time",
+			invoice: newStandardInvoice(
+				mustTime(t, "2026-01-16T00:00:00Z"),
+				datetime.MustParseDuration(t, "P2D"),
+				newStandardLineWithOverride(t, "2026-01-16T00:00:00Z", "2026-01-16T00:02:00Z"),
+				newStandardLine(t, "2026-01-15T00:00:00Z"),
+			),
+			want: mustTime(t, "2026-01-17T00:00:00Z"),
+		},
 	}
 
 	for _, tt := range tests {
@@ -352,6 +393,15 @@ func newStandardLine(t *testing.T, invoiceAt string) *billing.StandardLine {
 			}),
 		},
 	}
+}
+
+func newStandardLineWithOverride(t *testing.T, invoiceAt, overrideCollectionPeriodEnd string) *billing.StandardLine {
+	t.Helper()
+
+	line := newStandardLine(t, invoiceAt)
+	line.OverrideCollectionPeriodEnd = lo.ToPtr(mustTime(t, overrideCollectionPeriodEnd))
+
+	return line
 }
 
 func newDeletedStandardLine(t *testing.T, invoiceAt string) *billing.StandardLine {

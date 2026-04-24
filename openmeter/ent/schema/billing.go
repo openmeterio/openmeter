@@ -336,6 +336,10 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 
 		field.Time("invoice_at"),
 
+		field.Time("override_collection_period_end").
+			Optional().
+			Nillable(),
+
 		// TODO[dependency]: overrides (as soon as plan override entities are ready)
 
 		field.Enum("type").

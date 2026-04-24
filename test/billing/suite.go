@@ -64,7 +64,6 @@ import (
 
 type BaseSuite struct {
 	suite.Suite
-	*require.Assertions
 
 	TestDB   *testutils.TestDB
 	DBClient *db.Client
@@ -121,7 +120,6 @@ func (s *BaseSuite) SetupSuite() {
 func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 	t := s.T()
 	t.Log("setup suite")
-	s.Assertions = require.New(t)
 	publisher := eventbus.NewMock(t)
 
 	s.TestDB = testutils.InitPostgresDB(t)

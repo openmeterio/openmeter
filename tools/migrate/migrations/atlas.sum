@@ -1,4 +1,4 @@
-h1:jVZaT0e/zwkE7IqXTIaK09mrAhXMQyCw/us4mMebQbU=
+h1:sW2r0CYu5hHcpXhotHW4RwpS5S5jcY/zk1y4JtWYEB0=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -184,3 +184,4 @@ h1:jVZaT0e/zwkE7IqXTIaK09mrAhXMQyCw/us4mMebQbU=
 20260421111210_add_charge_detailed_line_tables.up.sql h1:gczZY6X34zMiXq1Ph3y3zDWTJr//8aulX3VeYNIuly8=
 20260421150206_require_child_unique_reference_id_on_detailed_lines.up.sql h1:XReNPIrVLZunPJ1vyUTwxBBASZDqgljQO3HBAMMMzqA=
 20260422051837_simplify_mixin_detailed_line_partial_indexes.up.sql h1:3AsRyULK4pPWEcmfDd17bP6o4QuCcdH34ByUKsQdGHg=
+20260422140242_add_standard_invoice_line_override_collection_period_end.up.sql h1:V70I7Jj6NNZOwAunNXZub7V8PUoJtAaVt0I9s+RLLY8=
