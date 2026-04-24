@@ -36,7 +36,7 @@ func (s *Service) ensureDetailedLinesLoadedForRating(ctx context.Context, charge
 func mapRatingResultToRunDetailedLines(
 	charge usagebased.Charge,
 	run usagebased.RealizationRun,
-	ratingResult usagebasedrating.GetRatingForUsageResult,
+	ratingResult usagebasedrating.GetDetailedRatingForUsageResult,
 ) usagebased.DetailedLines {
 	return lo.Map(ratingResult.DetailedLines, func(line billingrating.DetailedLine, _ int) usagebased.DetailedLine {
 		period := charge.Intent.ServicePeriod
@@ -83,7 +83,7 @@ func (s *Service) PersistRunDetailedLines(
 	ctx context.Context,
 	charge usagebased.Charge,
 	run usagebased.RealizationRun,
-	ratingResult usagebasedrating.GetRatingForUsageResult,
+	ratingResult usagebasedrating.GetDetailedRatingForUsageResult,
 ) (usagebased.DetailedLines, error) {
 	detailedLines := mapRatingResultToRunDetailedLines(charge, run, ratingResult)
 
