@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/filters"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -81,15 +80,11 @@ func (h *handler) ListPlans() ListPlansHandler {
 				}
 				req.Currency = currency
 
-				if params.Filter.Status != nil {
-					s := params.Filter.Status
-					if s.Eq != nil {
-						req.Status = append(req.Status, productcatalog.PlanStatus(*s.Eq))
-					}
-					for _, v := range s.Oeq {
-						req.Status = append(req.Status, productcatalog.PlanStatus(v))
-					}
+				status, err := fromAPIStatusFilter(ctx, params.Filter.Status)
+				if err != nil {
+					return ListPlansRequest{}, err
 				}
+				req.Status = status
 			}
 
 			if params.Sort != nil {
