@@ -233,6 +233,10 @@ func (s *CreditThenInvoiceStateMachine) startInvoiceCreatedRun(
 	input invoiceCreatedInput,
 	runType usagebased.RealizationRunType,
 ) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("validate invoice created input: %w", err)
+	}
+
 	storedAtOffset := meta.NormalizeTimestamp(clock.Now())
 	collectionEnd := lo.FromPtr(input.OverrideCollectionPeriodEnd)
 	if collectionEnd.IsZero() {
