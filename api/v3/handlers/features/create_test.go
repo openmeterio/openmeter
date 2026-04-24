@@ -42,17 +42,6 @@ func TestValidateMeterFilters(t *testing.T) {
 		assert.Contains(t, err.Error(), "not a valid dimension")
 	})
 
-	t.Run("unknown filter operator", func(t *testing.T) {
-		filters := map[string]api.QueryFilterStringMapItem{
-			"provider": {
-				AdditionalProperties: map[string]interface{}{"bogus": "value"},
-			},
-		}
-
-		err := validateMeterFilters(filters, testMeter)
-		require.Error(t, err)
-	})
-
 	t.Run("empty filters", func(t *testing.T) {
 		err := validateMeterFilters(map[string]api.QueryFilterStringMapItem{}, testMeter)
 		require.NoError(t, err)

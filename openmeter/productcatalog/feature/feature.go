@@ -67,7 +67,7 @@ func (e *ForbiddenError) Error() string {
 type MeterGroupByFilters map[string]filter.FilterString
 
 func (f MeterGroupByFilters) Validate(meter meter.Meter) error {
-	for filterProp := range f {
+	for filterProp, filterValue := range f {
 		if _, ok := meter.GroupBy[filterProp]; !ok {
 			meterGroupByColumns := make([]string, 0, len(meter.GroupBy))
 			for k := range meter.GroupBy {
@@ -77,6 +77,10 @@ func (f MeterGroupByFilters) Validate(meter meter.Meter) error {
 				RequestedFilters:    f,
 				MeterGroupByColumns: meterGroupByColumns,
 			}
+		}
+
+		if err := filterValue.Validate(); err != nil {
+			return err
 		}
 	}
 

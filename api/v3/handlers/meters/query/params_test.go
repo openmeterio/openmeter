@@ -225,12 +225,13 @@ func TestBuildQueryParams_DimensionFilters(t *testing.T) {
 		require.Error(t, err)
 	})
 
-	t.Run("unknown operator in dimension filter", func(t *testing.T) {
+	t.Run("multiple operators in dimension filter", func(t *testing.T) {
 		body := api.MeterQueryRequest{
 			Filters: &api.MeterQueryFilters{
 				Dimensions: &map[string]api.QueryFilterStringMapItem{
 					"region": {
-						AdditionalProperties: map[string]interface{}{"bogus": "val"},
+						Eq:  lo.ToPtr("us-east"),
+						Neq: lo.ToPtr("us-west"),
 					},
 				},
 			},
@@ -241,13 +242,14 @@ func TestBuildQueryParams_DimensionFilters(t *testing.T) {
 	})
 }
 
-func TestBuildQueryParams_UnknownSubjectFilterOperator(t *testing.T) {
+func TestBuildQueryParams_MultipleSubjectFilterOperators(t *testing.T) {
 	m := newTestMeter()
 	body := api.MeterQueryRequest{
 		Filters: &api.MeterQueryFilters{
 			Dimensions: &map[string]api.QueryFilterStringMapItem{
 				DimensionSubject: {
-					AdditionalProperties: map[string]interface{}{"regex": ".*"},
+					Eq:  lo.ToPtr("a"),
+					Neq: lo.ToPtr("b"),
 				},
 			},
 		},

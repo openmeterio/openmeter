@@ -7,7 +7,6 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
-	queryconvert "github.com/openmeterio/openmeter/api/v3/handlers/meters/query"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -81,20 +80,15 @@ func (h *handler) CreateFeature() CreateFeatureHandler {
 	)
 }
 
-// validateMeterFilters validates that filter keys exist in the meter's dimensions
-// and that filter values contain no unknown operators.
+// validateMeterFilters validates that filter keys exist in the meter's dimensions.
+// The single-operator invariant on each filter value is enforced downstream by
+// feature.MeterGroupByFilters.Validate.
 func validateMeterFilters(filters map[string]api.QueryFilterStringMapItem, m meter.Meter) error {
-	for k, v := range filters {
-		// Check the filter key is a valid meter dimension.
+	for k := range filters {
 		if _, ok := m.GroupBy[k]; !ok {
 			return models.NewGenericValidationError(
 				fmt.Errorf("filter key %q is not a valid dimension of meter %q", k, m.Key),
 			)
-		}
-
-		// Check for unknown operators in the filter value.
-		if err := queryconvert.ValidateQueryFilterStringMapItem(v, "meter", "filters", k); err != nil {
-			return err
 		}
 	}
 	return nil
