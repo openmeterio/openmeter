@@ -16,10 +16,10 @@ import (
 )
 
 type snapshotQuantityInput struct {
-	Customer       streaming.Customer
-	FeatureMeter   feature.FeatureMeter
-	ServicePeriod  timeutil.ClosedPeriod
-	StoredAtOffset time.Time
+	Customer      streaming.Customer
+	FeatureMeter  feature.FeatureMeter
+	ServicePeriod timeutil.ClosedPeriod
+	StoredAtLT    time.Time
 }
 
 func (i snapshotQuantityInput) Validate() error {
@@ -31,8 +31,8 @@ func (i snapshotQuantityInput) Validate() error {
 		return fmt.Errorf("service period: %w", err)
 	}
 
-	if i.StoredAtOffset.IsZero() {
-		return fmt.Errorf("stored at offset is required")
+	if i.StoredAtLT.IsZero() {
+		return fmt.Errorf("stored at lt is required")
 	}
 
 	return nil
@@ -52,7 +52,7 @@ func (s *service) snapshotQuantity(ctx context.Context, in snapshotQuantityInput
 		FilterGroupBy:  in.FeatureMeter.Feature.MeterGroupByFilters,
 		FilterStoredAt: &filter.FilterTimeUnix{
 			FilterTime: filter.FilterTime{
-				Lt: &in.StoredAtOffset,
+				Lt: &in.StoredAtLT,
 			},
 		},
 	}

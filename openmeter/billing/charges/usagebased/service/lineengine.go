@@ -149,14 +149,9 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 			}
 		}
 
-		if trigger == meta.TriggerPartialInvoiceCreated {
-			// A past Period.To intentionally means "collect now" so late events can still produce an immediately collectable partial invoice.
-			stdLine.OverrideCollectionPeriodEnd = lo.ToPtr(stdLine.Period.To.Add(usagebased.InternalCollectionPeriod))
-		}
-
 		if err := stateMachine.FireAndActivate(ctx, trigger, invoiceCreatedInput{
-			LineID:                      stdLine.ID,
-			OverrideCollectionPeriodEnd: stdLine.OverrideCollectionPeriodEnd,
+			LineID:          stdLine.ID,
+			ServicePeriodTo: stdLine.Period.To,
 		}); err != nil {
 			return nil, fmt.Errorf("triggering %s for charge[%s]: %w", trigger, stateMachine.GetCharge().ID, err)
 		}
@@ -309,8 +304,9 @@ func populateUsageBasedStandardLineFromRun(stdLine *billing.StandardLine, run us
 		stdLine.UsageBased = &billing.UsageBasedLine{}
 	}
 
-	stdLine.UsageBased.Quantity = lo.ToPtr(run.MeterValue)
-	stdLine.UsageBased.MeteredQuantity = lo.ToPtr(run.MeterValue)
+	stdLine.OverrideCollectionPeriodEnd = lo.ToPtr(run.StoredAtLT.Add(usagebased.InternalCollectionPeriod))
+	stdLine.UsageBased.Quantity = lo.ToPtr(run.MeteredQuantity)
+	stdLine.UsageBased.MeteredQuantity = lo.ToPtr(run.MeteredQuantity)
 	stdLine.UsageBased.PreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
 	stdLine.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
 

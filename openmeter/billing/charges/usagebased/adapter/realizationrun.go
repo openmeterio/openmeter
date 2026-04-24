@@ -27,10 +27,10 @@ func (a *adapter) CreateRealizationRun(ctx context.Context, chargeID meta.Charge
 			SetChargeID(chargeID.ID).
 			SetFeatureID(input.FeatureID).
 			SetType(input.Type).
-			SetAsof(meta.NormalizeTimestamp(input.AsOf)).
-			SetCollectionEnd(meta.NormalizeTimestamp(input.CollectionEnd)).
+			SetStoredAtLt(meta.NormalizeTimestamp(input.StoredAtLT)).
+			SetServicePeriodTo(meta.NormalizeTimestamp(input.ServicePeriodTo)).
 			SetNillableBillingInvoiceLineID(input.LineID).
-			SetMeterValue(input.MeterValue)
+			SetMeteredQuantity(input.MeteredQuantity)
 
 		create = totals.Set(create, input.Totals)
 
@@ -52,16 +52,16 @@ func (a *adapter) UpdateRealizationRun(ctx context.Context, input usagebased.Upd
 		update := tx.db.ChargeUsageBasedRuns.UpdateOneID(input.ID.ID).
 			Where(dbchargeusagebasedruns.NamespaceEQ(input.ID.Namespace))
 
-		if input.AsOf.IsPresent() {
-			update = update.SetAsof(meta.NormalizeTimestamp(input.AsOf.OrEmpty()))
+		if input.StoredAtLT.IsPresent() {
+			update = update.SetStoredAtLt(meta.NormalizeTimestamp(input.StoredAtLT.OrEmpty()))
 		}
 
 		if input.LineID.IsPresent() {
 			update = update.SetOrClearLineID(input.LineID.OrEmpty())
 		}
 
-		if input.MeterValue.IsPresent() {
-			update = update.SetMeterValue(input.MeterValue.OrEmpty())
+		if input.MeteredQuantity.IsPresent() {
+			update = update.SetMeteredQuantity(input.MeteredQuantity.OrEmpty())
 		}
 
 		if input.Totals.IsPresent() {
