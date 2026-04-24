@@ -13,6 +13,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -208,6 +209,13 @@ func (i rateWithLateEventsInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+// SortPriorPeriods sorts the prior periods by service period from ascending.
+func (i *rateWithLateEventsInput) SortPriorPeriods() {
+	slices.SortStableFunc(i.PriorPeriod, func(a, b ratingPriorPeriod) int {
+		return cmp.Compare(a.ServicePeriod.From.UnixNano(), b.ServicePeriod.From.UnixNano())
+	})
+}
+
 type ratingCurrentPeriod struct {
 	// MeteredQuantity is the metered quantity for [intent.ServicePeriodFrom ... servicePeriod.To) capped by StoredAtLT of the current run
 	MeteredQuantity alpacadecimal.Decimal
@@ -229,6 +237,23 @@ type ratingPriorPeriod struct {
 	DetailedLines usagebased.DetailedLines
 }
 
+type epochClosedPeriod struct {
+	From int64
+	To   int64
+}
+
+func (e epochClosedPeriod) AsClosedPeriod() timeutil.ClosedPeriod {
+	return timeutil.ClosedPeriod{
+		From: time.Unix(e.From, 0).In(time.UTC),
+		To:   time.Unix(e.To, 0).In(time.UTC),
+	}
+}
+
+type epochPeriodWithQuantity struct {
+	epochClosedPeriod
+	Quantity alpacadecimal.Decimal
+}
+
 func (s *service) rateWithLateEvents(ctx context.Context, in rateWithLateEventsInput) (GetDetailedRatingForUsageResult, error) {
 	if err := in.Validate(); err != nil {
 		return GetDetailedRatingForUsageResult{}, err
@@ -239,6 +264,8 @@ func (s *service) rateWithLateEvents(ctx context.Context, in rateWithLateEventsI
 	if in.CurrentPeriod.ServicePeriod.To.Before(in.Intent.ServicePeriod.To) {
 		opts = append(opts, billingrating.WithMinimumCommitmentIgnored())
 	}
+
+	detailedLinesByEpoch, err := s.fullRatingWithEpochs(ctx, in)
 
 	// TODO[later]: Implement the proper rating logic using prior period usage qtys for late event processing
 	ratingResult, err := s.ratingService.GenerateDetailedLines(usagebased.RateableIntent{
@@ -259,4 +286,55 @@ func (s *service) rateWithLateEvents(ctx context.Context, in rateWithLateEventsI
 		GenerateDetailedLinesResult: ratingResult,
 		Quantity:                    in.CurrentPeriod.MeteredQuantity,
 	}, nil
+}
+
+func (s *service) fullRatingWithEpochs(ctx context.Context, in rateWithLateEventsInput, opts []billingrating.GenerateDetailedLinesOption) (map[epochClosedPeriod]rating.GenerateDetailedLinesResult, error) {
+	// We need to first generate the expected detailed lines for each invoice without taking the already billed lines into account.
+	fullRatingInput := make([]epochPeriodWithQuantity, 0, len(in.PriorPeriod)+1)
+	// Note: this is only to make sure that the input is sorted (it should be already sorted by the caller, but it's a safety measure in
+	// case of future changes).
+	in.SortPriorPeriods()
+
+	for _, priorPeriod := range in.PriorPeriod {
+		fullRatingInput = append(fullRatingInput, epochPeriodWithQuantity{
+			epochClosedPeriod: epochClosedPeriod{
+				From: priorPeriod.ServicePeriod.From.Unix(),
+				To:   priorPeriod.ServicePeriod.To.Unix(),
+			},
+			Quantity: priorPeriod.MeteredQuantity,
+		})
+	}
+
+	fullRatingInput = append(fullRatingInput, epochPeriodWithQuantity{
+		epochClosedPeriod: epochClosedPeriod{
+			From: in.CurrentPeriod.ServicePeriod.From.Unix(),
+			To:   in.CurrentPeriod.ServicePeriod.To.Unix(),
+		},
+		Quantity: in.CurrentPeriod.MeteredQuantity,
+	})
+
+	// Let's start the rating process
+	previouslyGeneratedDetailedLines := rating.DetailedLines{}
+	result := make(map[epochClosedPeriod]rating.GenerateDetailedLinesResult, len(fullRatingInput))
+	for _, epoch := range fullRatingInput {
+		// Detailed lines contain the expected detailed lines for the whole usage between [intent.ServicePeriodFrom ... servicePeriod.To) capped by StoredAtLT of the current run
+		billingDetailedLines, err := s.ratingService.GenerateDetailedLines(usagebased.RateableIntent{
+			Intent:        in.Intent,
+			ServicePeriod: epoch.epochClosedPeriod.AsClosedPeriod(),
+			MeterValue:    epoch.Quantity,
+		}, opts...)
+		if err != nil {
+			return nil, fmt.Errorf("generating detailed lines: %w", err)
+		}
+
+		detailedLines :=
+
+		periodNewDetailedLines, err := SubtractRatedRunDetails(
+			previouslyGeneratedDetailedLines,
+			detailedLines,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("subtracting detailed lines: %w", err)
+		}
+	}
 }

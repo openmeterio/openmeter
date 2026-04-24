@@ -14,7 +14,7 @@ func (s *service) ResolveBillablePeriod(in rating.ResolveBillablePeriodInput) (*
 		return nil, err
 	}
 
-	linePricer, err := getPricerFor(in.Line, rating.GenerateDetailedLinesOptions{})
+	linePricer, err := getPricerFor(in.Line, rating.NewGenerateDetailedLinesOptions())
 	if err != nil {
 		return nil, err
 	}
