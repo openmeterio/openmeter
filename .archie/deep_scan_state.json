@@ -17,7 +17,6 @@
     "scope": "whole",
     "intent_layer": "no",
     "scan_mode": "full",
-    "project_root": "/Users/hamutarto/DEV/gbr/openmeter",
     "monorepo_type": "none",
     "start_step": 1,
     "workspaces": []
