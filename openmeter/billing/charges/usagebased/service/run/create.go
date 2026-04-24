@@ -17,15 +17,17 @@ import (
 )
 
 type CreateRatedRunInput struct {
-	Charge             usagebased.Charge
-	CustomerOverride   billing.CustomerOverrideWithDetails
-	FeatureMeter       feature.FeatureMeter
-	Type               usagebased.RealizationRunType
-	AsOf               time.Time
-	CollectionEnd      time.Time
-	LineID             *string
-	CreditAllocation   CreditAllocationMode
-	CurrencyCalculator currencyx.Calculator
+	Charge           usagebased.Charge
+	CustomerOverride billing.CustomerOverrideWithDetails
+	FeatureMeter     feature.FeatureMeter
+	Type             usagebased.RealizationRunType
+	AsOf             time.Time
+	CollectionEnd    time.Time
+	LineID           *string
+	// IgnoreMinimumCommitment keeps interim realization runs from booking final-only minimum commitment.
+	IgnoreMinimumCommitment bool
+	CreditAllocation        CreditAllocationMode
+	CurrencyCalculator      currencyx.Calculator
 }
 
 func (i CreateRatedRunInput) Validate() error {
@@ -120,11 +122,12 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 	in.Charge = chargeWithDetailedLines
 
 	ratingResult, err := s.rater.GetDetailedLinesForUsage(ctx, usagebasedrating.GetDetailedLinesForUsageInput{
-		Charge:         in.Charge,
-		PriorRuns:      in.Charge.Realizations,
-		Customer:       in.CustomerOverride,
-		FeatureMeter:   in.FeatureMeter,
-		StoredAtOffset: in.AsOf,
+		Charge:                  in.Charge,
+		PriorRuns:               in.Charge.Realizations,
+		Customer:                in.CustomerOverride,
+		FeatureMeter:            in.FeatureMeter,
+		StoredAtOffset:          in.AsOf,
+		IgnoreMinimumCommitment: in.IgnoreMinimumCommitment,
 	})
 	if err != nil {
 		return CreateRatedRunResult{}, fmt.Errorf("get rating for usage: %w", err)

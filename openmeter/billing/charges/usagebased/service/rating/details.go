@@ -19,6 +19,8 @@ type GetDetailedLinesForUsageInput struct {
 	Customer       billing.CustomerOverrideWithDetails
 	FeatureMeter   feature.FeatureMeter
 	StoredAtOffset time.Time
+	// IgnoreMinimumCommitment suppresses minimum commitment while still applying the rest of the billing mutators.
+	IgnoreMinimumCommitment bool
 }
 
 func (i GetDetailedLinesForUsageInput) Validate() error {
@@ -73,10 +75,15 @@ func (s *service) GetDetailedLinesForUsage(ctx context.Context, in GetDetailedLi
 		return GetRatingForUsageResult{}, fmt.Errorf("get snapshot quantity: %w", err)
 	}
 
+	var opts []billingrating.GenerateDetailedLinesOption
+	if in.IgnoreMinimumCommitment {
+		opts = append(opts, billingrating.WithMinimumCommitmentIgnored())
+	}
+
 	ratingResult, err := s.ratingService.GenerateDetailedLines(usagebased.RateableIntent{
 		Intent:     in.Charge.Intent,
 		MeterValue: snapshotQuantity,
-	})
+	}, opts...)
 	if err != nil {
 		return GetRatingForUsageResult{}, fmt.Errorf("rating: %w", err)
 	}

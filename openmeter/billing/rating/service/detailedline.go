@@ -38,7 +38,7 @@ func validateStandardLine(in rating.StandardLineAccessor) error {
 	return nil
 }
 
-func (s *service) GenerateDetailedLines(in rating.StandardLineAccessor) (rating.GenerateDetailedLinesResult, error) {
+func (s *service) GenerateDetailedLines(in rating.StandardLineAccessor, opts ...rating.GenerateDetailedLinesOption) (rating.GenerateDetailedLinesResult, error) {
 	if err := validateStandardLine(in); err != nil {
 		return rating.GenerateDetailedLinesResult{}, fmt.Errorf("validating billable line: %w", err)
 	}
@@ -48,7 +48,9 @@ func (s *service) GenerateDetailedLines(in rating.StandardLineAccessor) (rating.
 		return rating.GenerateDetailedLinesResult{}, fmt.Errorf("creating currency calculator: %w", err)
 	}
 
-	linePricer, err := getPricerFor(in)
+	generateOpts := rating.NewGenerateDetailedLinesOptions(opts...)
+
+	linePricer, err := getPricerFor(in, generateOpts)
 	if err != nil {
 		return rating.GenerateDetailedLinesResult{}, fmt.Errorf("creating pricer: %w", err)
 	}

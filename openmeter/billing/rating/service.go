@@ -14,7 +14,29 @@ import (
 
 type Service interface {
 	ResolveBillablePeriod(in ResolveBillablePeriodInput) (*timeutil.ClosedPeriod, error)
-	GenerateDetailedLines(in StandardLineAccessor) (GenerateDetailedLinesResult, error)
+	GenerateDetailedLines(in StandardLineAccessor, opts ...GenerateDetailedLinesOption) (GenerateDetailedLinesResult, error)
+}
+
+type GenerateDetailedLinesOptions struct {
+	IgnoreMinimumCommitment bool
+}
+
+type GenerateDetailedLinesOption func(*GenerateDetailedLinesOptions)
+
+func NewGenerateDetailedLinesOptions(opts ...GenerateDetailedLinesOption) GenerateDetailedLinesOptions {
+	var out GenerateDetailedLinesOptions
+
+	for _, opt := range opts {
+		opt(&out)
+	}
+
+	return out
+}
+
+func WithMinimumCommitmentIgnored() GenerateDetailedLinesOption {
+	return func(o *GenerateDetailedLinesOptions) {
+		o.IgnoreMinimumCommitment = true
+	}
 }
 
 type Usage struct {

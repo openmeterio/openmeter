@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func getPricerFor(line rating.PriceAccessor) (*priceMutator, error) {
+func getPricerFor(line rating.PriceAccessor, opts rating.GenerateDetailedLinesOptions) (*priceMutator, error) {
 	if line == nil {
 		return nil, errors.New("line is nil")
 	}
@@ -50,18 +50,26 @@ func getPricerFor(line rating.PriceAccessor) (*priceMutator, error) {
 		return nil, fmt.Errorf("unsupported price type: %s", linePrice.Type())
 	}
 
+	postCalculationMutators := []mutator.PostCalculationMutator{
+		&mutator.DiscountPercentage{},
+		&mutator.MaxAmountCommitment{},
+	}
+
+	// Charges pricing needs control over the minimum commitment as it should only be included for any
+	// calculation that is after the service period end.
+	if !opts.IgnoreMinimumCommitment {
+		postCalculationMutators = append(postCalculationMutators, &mutator.MinAmountCommitment{})
+	}
+
+	postCalculationMutators = append(postCalculationMutators, &mutator.Credits{})
+
 	// This priceMutator captures the calculation flow for discounts and commitments:
 	return &priceMutator{
 		PreCalculation: []mutator.PreCalculationMutator{
 			&mutator.DiscountUsage{},
 		},
-		Pricer: basePricer,
-		PostCalculation: []mutator.PostCalculationMutator{
-			&mutator.DiscountPercentage{},
-			&mutator.MaxAmountCommitment{},
-			&mutator.MinAmountCommitment{},
-			&mutator.Credits{},
-		},
+		Pricer:          basePricer,
+		PostCalculation: postCalculationMutators,
 	}, nil
 }
 

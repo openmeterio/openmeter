@@ -248,15 +248,16 @@ func (s *CreditThenInvoiceStateMachine) startInvoiceCreatedRun(
 	}
 
 	result, err := s.Runs.CreateRatedRun(ctx, usagebasedrun.CreateRatedRunInput{
-		Charge:             s.Charge,
-		CustomerOverride:   s.CustomerOverride,
-		FeatureMeter:       s.FeatureMeter,
-		Type:               runType,
-		AsOf:               storedAtOffset,
-		CollectionEnd:      collectionEnd,
-		LineID:             lo.ToPtr(input.LineID),
-		CreditAllocation:   usagebasedrun.CreditAllocationAvailable,
-		CurrencyCalculator: s.CurrencyCalculator,
+		Charge:                  s.Charge,
+		CustomerOverride:        s.CustomerOverride,
+		FeatureMeter:            s.FeatureMeter,
+		Type:                    runType,
+		AsOf:                    storedAtOffset,
+		CollectionEnd:           collectionEnd,
+		LineID:                  lo.ToPtr(input.LineID),
+		IgnoreMinimumCommitment: ignoreMinimumCommitmentForRunType(runType),
+		CreditAllocation:        usagebasedrun.CreditAllocationAvailable,
+		CurrencyCalculator:      s.CurrencyCalculator,
 	})
 	if err != nil {
 		return err
@@ -272,6 +273,12 @@ func (s *CreditThenInvoiceStateMachine) StartPartialInvoiceRun(ctx context.Conte
 
 func (s *CreditThenInvoiceStateMachine) StartFinalInvoiceRun(ctx context.Context, input invoiceCreatedInput) error {
 	return s.startInvoiceCreatedRun(ctx, input, usagebased.RealizationRunTypeFinalRealization)
+}
+
+func ignoreMinimumCommitmentForRunType(runType usagebased.RealizationRunType) bool {
+	// Partial invoice runs are interim cumulative checkpoints. Minimum commitment is billed only on the
+	// final realization, so partial runs must suppress it during both creation and later snapshotting.
+	return runType == usagebased.RealizationRunTypePartialInvoice
 }
 
 func resolveInvoiceCreatedTrigger(charge usagebased.Charge, billedPeriod timeutil.ClosedPeriod) meta.Trigger {
@@ -303,11 +310,12 @@ func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context
 	storedAtOffset := meta.NormalizeTimestamp(currentRun.CollectionEnd)
 
 	ratingResult, err := s.Rater.GetDetailedLinesForUsage(ctx, usagebasedrating.GetDetailedLinesForUsageInput{
-		Charge:         s.Charge,
-		PriorRuns:      s.Charge.Realizations.Without(currentRun.ID),
-		Customer:       s.CustomerOverride,
-		FeatureMeter:   s.FeatureMeter,
-		StoredAtOffset: storedAtOffset,
+		Charge:                  s.Charge,
+		PriorRuns:               s.Charge.Realizations.Without(currentRun.ID),
+		Customer:                s.CustomerOverride,
+		FeatureMeter:            s.FeatureMeter,
+		StoredAtOffset:          storedAtOffset,
+		IgnoreMinimumCommitment: ignoreMinimumCommitmentForRunType(currentRun.Type),
 	})
 	if err != nil {
 		return fmt.Errorf("get rating for usage: %w", err)
