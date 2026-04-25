@@ -137,7 +137,7 @@ model StringFieldFilterExact {
 }
 
 /**
- * Filters on the given ULID field value by either exact or fuzzy match.
+ * Filters on the given ULID field value by exact match.
  * All properties are optional; provide exactly one to specify the comparison.
  */
 @friendlyName("ULIDFieldFilter")
@@ -155,19 +155,9 @@ union ULIDFieldFilter {
     /** Value does not equal the given ULID value. */
     neq?: Shared.ULID,
 
-    /** Value contains the given string value (fuzzy match). */
-    contains?: string,
-
-    /** Returns entities that fuzzy-match any of the comma-delimited strings in the filter string. */
-    @encode(ArrayEncoding.commaDelimited)
-    ocontains?: string[],
-
     /** Returns entities that exact match any of the comma-delimited ULIDs in the filter string. */
     @encode(ArrayEncoding.commaDelimited)
     oeq?: Shared.ULID[],
-
-    /** When true, the field must be present (non-null); when false, the field must be absent (null). */
-    exists?: boolean,
   },
 }
 

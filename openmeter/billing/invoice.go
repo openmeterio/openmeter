@@ -6,6 +6,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/api"
@@ -430,10 +431,6 @@ type InvoicePendingLinesInput struct {
 
 	IncludePendingLines mo.Option[[]string]
 	AsOf                *time.Time
-
-	// ProgressiveBillingOverride allows to override the progressive billing setting of the customer.
-	// This is used to make sure that system collection does not use progressive billing.
-	ProgressiveBillingOverride *bool
 }
 
 func (i InvoicePendingLinesInput) Validate() error {
@@ -452,6 +449,47 @@ func (i InvoicePendingLinesInput) Validate() error {
 	}
 
 	return nil
+}
+
+type InvoicePendingLinesOptions struct {
+	BypassCollectionAlignment bool
+
+	// PartialInvoiceLinesEnabled overrides the billing profile's progressive billing setting
+	// for this invocation:
+	// - nil: use the billing profile setting
+	// - true: include progressively billable partial lines
+	// - false: ignore progressively billable partial lines
+	PartialInvoiceLinesEnabled *bool
+}
+
+type InvoicePendingLinesOption func(*InvoicePendingLinesOptions)
+
+func NewInvoicePendingLinesOptions(opts ...InvoicePendingLinesOption) InvoicePendingLinesOptions {
+	var out InvoicePendingLinesOptions
+
+	for _, opt := range opts {
+		opt(&out)
+	}
+
+	return out
+}
+
+func WithBypassCollectionAlignment() InvoicePendingLinesOption {
+	return func(o *InvoicePendingLinesOptions) {
+		o.BypassCollectionAlignment = true
+	}
+}
+
+func WithPartialInvoiceLinesDisabled() InvoicePendingLinesOption {
+	return func(o *InvoicePendingLinesOptions) {
+		o.PartialInvoiceLinesEnabled = lo.ToPtr(false)
+	}
+}
+
+func WithPartialInvoiceLinesEnabled() InvoicePendingLinesOption {
+	return func(o *InvoicePendingLinesOptions) {
+		o.PartialInvoiceLinesEnabled = lo.ToPtr(true)
+	}
 }
 
 type UpdateInvoiceInput struct {

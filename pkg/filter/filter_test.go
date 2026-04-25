@@ -2410,6 +2410,13 @@ func TestFilterTime_IsEmpty(t *testing.T) {
 			want: false,
 		},
 		{
+			name: "exists filter",
+			filter: filter.FilterTime{
+				Exists: lo.ToPtr(true),
+			},
+			want: false,
+		},
+		{
 			name: "and filter",
 			filter: filter.FilterTime{
 				And: &[]filter.FilterTime{

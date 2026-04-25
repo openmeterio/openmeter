@@ -180,6 +180,11 @@ func InvoiceAt(v time.Time) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldInvoiceAt, v))
 }
 
+// OverrideCollectionPeriodEnd applies equality check predicate on the "override_collection_period_end" field. It's identical to OverrideCollectionPeriodEndEQ.
+func OverrideCollectionPeriodEnd(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldOverrideCollectionPeriodEnd, v))
+}
+
 // Quantity applies equality check predicate on the "quantity" field. It's identical to QuantityEQ.
 func Quantity(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldQuantity, v))
@@ -1477,6 +1482,56 @@ func InvoiceAtLT(v time.Time) predicate.BillingInvoiceLine {
 // InvoiceAtLTE applies the LTE predicate on the "invoice_at" field.
 func InvoiceAtLTE(v time.Time) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldInvoiceAt, v))
+}
+
+// OverrideCollectionPeriodEndEQ applies the EQ predicate on the "override_collection_period_end" field.
+func OverrideCollectionPeriodEndEQ(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldOverrideCollectionPeriodEnd, v))
+}
+
+// OverrideCollectionPeriodEndNEQ applies the NEQ predicate on the "override_collection_period_end" field.
+func OverrideCollectionPeriodEndNEQ(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldOverrideCollectionPeriodEnd, v))
+}
+
+// OverrideCollectionPeriodEndIn applies the In predicate on the "override_collection_period_end" field.
+func OverrideCollectionPeriodEndIn(vs ...time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldOverrideCollectionPeriodEnd, vs...))
+}
+
+// OverrideCollectionPeriodEndNotIn applies the NotIn predicate on the "override_collection_period_end" field.
+func OverrideCollectionPeriodEndNotIn(vs ...time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldOverrideCollectionPeriodEnd, vs...))
+}
+
+// OverrideCollectionPeriodEndGT applies the GT predicate on the "override_collection_period_end" field.
+func OverrideCollectionPeriodEndGT(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGT(FieldOverrideCollectionPeriodEnd, v))
+}
+
+// OverrideCollectionPeriodEndGTE applies the GTE predicate on the "override_collection_period_end" field.
+func OverrideCollectionPeriodEndGTE(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldOverrideCollectionPeriodEnd, v))
+}
+
+// OverrideCollectionPeriodEndLT applies the LT predicate on the "override_collection_period_end" field.
+func OverrideCollectionPeriodEndLT(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLT(FieldOverrideCollectionPeriodEnd, v))
+}
+
+// OverrideCollectionPeriodEndLTE applies the LTE predicate on the "override_collection_period_end" field.
+func OverrideCollectionPeriodEndLTE(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldOverrideCollectionPeriodEnd, v))
+}
+
+// OverrideCollectionPeriodEndIsNil applies the IsNil predicate on the "override_collection_period_end" field.
+func OverrideCollectionPeriodEndIsNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIsNull(FieldOverrideCollectionPeriodEnd))
+}
+
+// OverrideCollectionPeriodEndNotNil applies the NotNil predicate on the "override_collection_period_end" field.
+func OverrideCollectionPeriodEndNotNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldOverrideCollectionPeriodEnd))
 }
 
 // TypeEQ applies the EQ predicate on the "type" field.

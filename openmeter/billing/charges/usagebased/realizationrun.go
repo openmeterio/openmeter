@@ -22,11 +22,13 @@ type RealizationRunType string
 
 const (
 	RealizationRunTypeFinalRealization RealizationRunType = "final_realization"
+	RealizationRunTypePartialInvoice   RealizationRunType = "partial_invoice"
 )
 
 func (t RealizationRunType) Values() []string {
 	return []string{
 		string(RealizationRunTypeFinalRealization),
+		string(RealizationRunTypePartialInvoice),
 	}
 }
 
@@ -44,18 +46,18 @@ func (i RealizationRunID) Validate() error {
 }
 
 type CreateRealizationRunInput struct {
-	FeatureID     string                `json:"featureId"`
-	Type          RealizationRunType    `json:"type"`
-	AsOf          time.Time             `json:"asOf"`
-	CollectionEnd time.Time             `json:"collectionEnd,omitempty"`
-	LineID        *string               `json:"lineId,omitempty"`
-	MeterValue    alpacadecimal.Decimal `json:"meterValue"`
-	Totals        totals.Totals         `json:"totals"`
+	FeatureID       string                `json:"featureId"`
+	Type            RealizationRunType    `json:"type"`
+	StoredAtLT      time.Time             `json:"storedAtLT"`
+	ServicePeriodTo time.Time             `json:"servicePeriodTo"`
+	LineID          *string               `json:"lineId,omitempty"`
+	MeteredQuantity alpacadecimal.Decimal `json:"meteredQuantity"`
+	Totals          totals.Totals         `json:"totals"`
 }
 
 func (r CreateRealizationRunInput) Normalized() CreateRealizationRunInput {
-	r.AsOf = meta.NormalizeTimestamp(r.AsOf)
-	r.CollectionEnd = meta.NormalizeTimestamp(r.CollectionEnd)
+	r.StoredAtLT = meta.NormalizeTimestamp(r.StoredAtLT)
+	r.ServicePeriodTo = meta.NormalizeTimestamp(r.ServicePeriodTo)
 
 	return r
 }
@@ -71,20 +73,20 @@ func (r CreateRealizationRunInput) Validate() error {
 		errs = append(errs, fmt.Errorf("feature id must be set"))
 	}
 
-	if r.AsOf.IsZero() {
-		errs = append(errs, fmt.Errorf("as of must be set"))
+	if r.StoredAtLT.IsZero() {
+		errs = append(errs, fmt.Errorf("stored at lt must be set"))
 	}
 
-	if r.MeterValue.IsNegative() {
-		errs = append(errs, fmt.Errorf("meter value must be zero or positive"))
+	if r.MeteredQuantity.IsNegative() {
+		errs = append(errs, fmt.Errorf("metered quantity must be zero or positive"))
 	}
 
 	if err := r.Totals.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("totals: %w", err))
 	}
 
-	if r.CollectionEnd.IsZero() {
-		errs = append(errs, fmt.Errorf("collection end must be set"))
+	if r.ServicePeriodTo.IsZero() {
+		errs = append(errs, fmt.Errorf("service period to must be set"))
 	}
 
 	if r.LineID != nil && *r.LineID == "" {
@@ -97,16 +99,16 @@ func (r CreateRealizationRunInput) Validate() error {
 type UpdateRealizationRunInput struct {
 	ID RealizationRunID
 
-	AsOf       mo.Option[time.Time]             `json:"asOf"`
-	LineID     mo.Option[*string]               `json:"lineId,omitempty"`
-	MeterValue mo.Option[alpacadecimal.Decimal] `json:"meterValue"`
-	Totals     mo.Option[totals.Totals]         `json:"totals"`
+	StoredAtLT      mo.Option[time.Time]             `json:"storedAtLT"`
+	LineID          mo.Option[*string]               `json:"lineId,omitempty"`
+	MeteredQuantity mo.Option[alpacadecimal.Decimal] `json:"meteredQuantity"`
+	Totals          mo.Option[totals.Totals]         `json:"totals"`
 }
 
 func (r UpdateRealizationRunInput) Normalized() UpdateRealizationRunInput {
-	if r.AsOf.IsPresent() {
-		asOf := r.AsOf.OrEmpty()
-		r.AsOf = mo.Some(meta.NormalizeTimestamp(asOf))
+	if r.StoredAtLT.IsPresent() {
+		storedAtLT := r.StoredAtLT.OrEmpty()
+		r.StoredAtLT = mo.Some(meta.NormalizeTimestamp(storedAtLT))
 	}
 
 	return r
@@ -119,8 +121,8 @@ func (r UpdateRealizationRunInput) Validate() error {
 		errs = append(errs, fmt.Errorf("namespaced id: %w", err))
 	}
 
-	if r.AsOf.IsPresent() && r.AsOf.OrEmpty().IsZero() {
-		errs = append(errs, fmt.Errorf("as of must be non-zero when set"))
+	if r.StoredAtLT.IsPresent() && r.StoredAtLT.OrEmpty().IsZero() {
+		errs = append(errs, fmt.Errorf("stored at lt must be non-zero when set"))
 	}
 
 	if r.LineID.IsPresent() {
@@ -130,8 +132,8 @@ func (r UpdateRealizationRunInput) Validate() error {
 		}
 	}
 
-	if r.MeterValue.IsPresent() && r.MeterValue.OrEmpty().IsNegative() {
-		errs = append(errs, fmt.Errorf("meter value must be zero or positive"))
+	if r.MeteredQuantity.IsPresent() && r.MeteredQuantity.OrEmpty().IsNegative() {
+		errs = append(errs, fmt.Errorf("metered quantity must be zero or positive"))
 	}
 
 	if r.Totals.IsPresent() {
@@ -150,16 +152,18 @@ type RealizationRunBase struct {
 	FeatureID string  `json:"featureId"`
 	LineID    *string `json:"lineId,omitempty"`
 
-	Type          RealizationRunType    `json:"type"`
-	AsOf          time.Time             `json:"asOf"`
-	CollectionEnd time.Time             `json:"collectionEnd,omitempty"`
-	MeterValue    alpacadecimal.Decimal `json:"meterValue"`
-	Totals        totals.Totals         `json:"totals"`
+	Type       RealizationRunType `json:"type"`
+	StoredAtLT time.Time          `json:"storedAtLT"`
+	// ServicePeriodTo is the end of the service period for the realization run.
+	ServicePeriodTo time.Time `json:"servicePeriodTo"`
+	// MeteredQuantity is the metered quantity for time IN [intent.servicePeriod.from, servicePeriodTo) capped by stored_at < StoredAtLT.
+	MeteredQuantity alpacadecimal.Decimal `json:"meteredQuantity"`
+	Totals          totals.Totals         `json:"totals"`
 }
 
 func (r RealizationRunBase) Normalized() RealizationRunBase {
-	r.AsOf = meta.NormalizeTimestamp(r.AsOf)
-	r.CollectionEnd = meta.NormalizeTimestamp(r.CollectionEnd)
+	r.StoredAtLT = meta.NormalizeTimestamp(r.StoredAtLT)
+	r.ServicePeriodTo = meta.NormalizeTimestamp(r.ServicePeriodTo)
 
 	return r
 }
@@ -187,20 +191,20 @@ func (r RealizationRunBase) Validate() error {
 		errs = append(errs, fmt.Errorf("type: %w", err))
 	}
 
-	if r.AsOf.IsZero() {
-		errs = append(errs, fmt.Errorf("as of must be set"))
+	if r.StoredAtLT.IsZero() {
+		errs = append(errs, fmt.Errorf("stored at lt must be set"))
 	}
 
-	if r.MeterValue.IsNegative() {
-		errs = append(errs, fmt.Errorf("meter value must be zero or positive"))
+	if r.MeteredQuantity.IsNegative() {
+		errs = append(errs, fmt.Errorf("metered quantity must be zero or positive"))
 	}
 
 	if err := r.Totals.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("totals: %w", err))
 	}
 
-	if r.CollectionEnd.IsZero() {
-		errs = append(errs, fmt.Errorf("collection end must be set"))
+	if r.ServicePeriodTo.IsZero() {
+		errs = append(errs, fmt.Errorf("service period to must be set"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

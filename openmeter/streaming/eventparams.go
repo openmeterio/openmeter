@@ -5,9 +5,45 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/pkg/filter"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
+
+// EventSortField is the column used to order events returned by ListEventsV2.
+type EventSortField string
+
+const (
+	EventSortFieldTime       EventSortField = "time"
+	EventSortFieldIngestedAt EventSortField = "ingested_at"
+	EventSortFieldStoredAt   EventSortField = "stored_at"
+)
+
+// Values returns the known values for the event sort field.
+func (f EventSortField) Values() []string {
+	return []string{
+		string(EventSortFieldTime),
+		string(EventSortFieldIngestedAt),
+		string(EventSortFieldStoredAt),
+	}
+}
+
+// Validate returns an error when the sort field is not one of the known values.
+// The zero value is treated as valid and resolved to EventSortFieldTime at query time.
+func (f EventSortField) Validate() error {
+	if f == "" {
+		return nil
+	}
+
+	if !lo.Contains(f.Values(), string(f)) {
+		return models.NewGenericValidationError(fmt.Errorf("invalid event sort value: %s", f))
+	}
+
+	return nil
+}
 
 // ListEventsParams represents the input for ListEvents method.
 type ListEventsParams struct {
@@ -84,6 +120,12 @@ type ListEventsV2Params struct {
 	Time *filter.FilterTime
 	// The ingested at filter.
 	IngestedAt *filter.FilterTime
+	// The stored at filter.
+	StoredAt *filter.FilterTime
+	// The sort column; zero value defaults to EventSortFieldTime.
+	SortBy EventSortField
+	// The sort direction; zero value defaults to sortx.OrderDesc.
+	SortOrder sortx.Order
 }
 
 // Validate validates the list events parameters.
@@ -124,10 +166,6 @@ func (p ListEventsV2Params) Validate() error {
 		}
 	}
 
-	if p.Time != nil && p.IngestedAt != nil && !p.Time.IsEmpty() && !p.IngestedAt.IsEmpty() {
-		errs = append(errs, errors.New("time and ingested_at cannot both be set"))
-	}
-
 	if p.Time != nil {
 		if err := p.Time.ValidateWithComplexity(1); err != nil {
 			errs = append(errs, fmt.Errorf("time: %w", err))
@@ -138,6 +176,16 @@ func (p ListEventsV2Params) Validate() error {
 		if err := p.IngestedAt.ValidateWithComplexity(1); err != nil {
 			errs = append(errs, fmt.Errorf("ingested_at: %w", err))
 		}
+	}
+
+	if p.StoredAt != nil {
+		if err := p.StoredAt.ValidateWithComplexity(1); err != nil {
+			errs = append(errs, fmt.Errorf("stored_at: %w", err))
+		}
+	}
+
+	if err := p.SortBy.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("sort by: %w", err))
 	}
 
 	if p.Limit != nil && *p.Limit < 1 {

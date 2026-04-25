@@ -164,9 +164,9 @@ func (ChargeUsageBasedRuns) Fields() []ent.Field {
 			GoType(usagebased.RealizationRunType("")).
 			Immutable(),
 
-		field.Time("asof"),
+		field.Time("stored_at_lt"),
 
-		field.Time("collection_end").
+		field.Time("service_period_to").
 			Immutable(),
 
 		field.String("line_id").
@@ -177,7 +177,7 @@ func (ChargeUsageBasedRuns) Fields() []ent.Field {
 			NotEmpty().
 			Nillable(),
 
-		field.Other("meter_value", alpacadecimal.Decimal{}).
+		field.Other("metered_quantity", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
 				dialect.Postgres: "numeric",
 			}),

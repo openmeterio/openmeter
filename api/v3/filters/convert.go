@@ -74,21 +74,8 @@ func FromAPIFilterULID(f *FilterULID) (*filter.FilterULID, error) {
 	if f.Neq != nil {
 		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{Ne: f.Neq}})
 	}
-	if f.Exists != nil {
-		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{Exists: f.Exists}})
-	}
-	if f.Contains != nil {
-		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{Contains: f.Contains}})
-	}
 	if len(f.Oeq) > 0 {
 		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{In: convert.SliceToPointer(f.Oeq)}})
-	}
-	if len(f.Ocontains) > 0 {
-		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{
-			Or: convert.SliceToPointer(lo.Map(f.Ocontains, func(v string, _ int) filter.FilterString {
-				return filter.FilterString{Contains: &v}
-			})),
-		}})
 	}
 
 	switch len(parts) {

@@ -7,29 +7,15 @@ namespace Customers;
  * The type of the credit transaction.
  *
  * - `funded`: Credit granted and available for consumption.
- * - `consumed`: Credit consumed.
- * - `adjusted`: Manual or system adjustment.
+ * - `consumed`: Credit consumed by usage or fees.
  */
-// * - `expired`: Credit expired.
-//  * - `voided`: Credit voided.
 @friendlyName("BillingCreditTransactionType")
 enum CreditTransactionType {
   // Credit granted and available for consumption.
   Funded: "funded",
 
-  // Credit consumed.
+  // Credit consumed by usage or fees.
   Consumed: "consumed",
-
-  // // Credit expired.
-  // Expired: "expired",
-
-  // // Credit voided.
-  // Voided: "voided",
-
-  // Manual or system adjustment (e.g., correction grants, balance reconciliation).
-  Adjusted: "adjusted",
-
-  // TODO: add other types and do they have additional metadata?
 }
 
 // /**

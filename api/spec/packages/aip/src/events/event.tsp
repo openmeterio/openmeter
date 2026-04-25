@@ -84,3 +84,75 @@ model MeteringEvent {
    */
   data?: Record<unknown> | null;
 }
+
+/**
+ * An ingested metering event with ingestion metadata.
+ */
+@friendlyName("MeteringIngestedEvent")
+@summary("Ingested Event")
+@example(#{
+  event: #{
+    id: "5c10fade-1c9e-4d6c-8275-c52c36731d3c",
+    source: "service-name",
+    specversion: "1.0",
+    type: "prompt",
+    subject: "customer_key",
+    time: Shared.DateTime.fromISO("2023-01-01T01:01:01.001Z"),
+  },
+  customer: #{ id: "01G65Z755AFWAKHE12NY0CQ9FH" },
+  ingested_at: Shared.DateTime.fromISO("2023-01-01T01:01:01.001Z"),
+  stored_at: Shared.DateTime.fromISO("2023-01-01T01:01:02.001Z"),
+})
+model IngestedEvent {
+  /**
+   * The original event ingested.
+   */
+  event: MeteringEvent;
+
+  /**
+   * The customer if the event is associated with a customer.
+   */
+  customer?: Shared.ResourceReference<Customers.Customer>;
+
+  /**
+   * The date and time the event was ingested and its processing started.
+   */
+  ingested_at: Shared.DateTime;
+
+  /**
+   * The date and time the event was stored in the database.
+   */
+  stored_at: Shared.DateTime;
+
+  /**
+   * The validation errors of the ingested event.
+   */
+  validation_errors?: IngestedEventValidationError[];
+}
+
+/**
+ * Event validation errors.
+ */
+@friendlyName("MeteringIngestedEventValidationError")
+model IngestedEventValidationError {
+  /**
+   * The machine readable code of the error.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Code")
+  code: string;
+
+  /**
+   * The human readable description of the error.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Message")
+  message: string;
+
+  /**
+   * Additional attributes.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Attributes")
+  attributes?: Record<unknown>;
+}

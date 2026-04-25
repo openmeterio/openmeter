@@ -50,6 +50,7 @@ import (
 	ledgernoop "github.com/openmeterio/openmeter/openmeter/ledger/noop"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -80,6 +81,7 @@ type Config struct {
 	MeterService            meter.ManageService
 	StreamingConnector      streaming.Connector
 	IngestService           ingest.Service
+	MeterEventService       meterevent.Service
 	CustomerService         customer.Service
 	CreditGrantService      creditgrant.Service
 	Ledger                  ledger.Ledger
@@ -131,6 +133,10 @@ func (c *Config) Validate() error {
 
 	if c.IngestService == nil {
 		errs = append(errs, errors.New("ingest service is required"))
+	}
+
+	if c.MeterEventService == nil {
+		errs = append(errs, errors.New("meter event service is required"))
 	}
 
 	if c.CustomerService == nil {
@@ -257,7 +263,7 @@ func NewServer(config *Config) (*Server, error) {
 
 	addonHandler := addonshandler.New(resolveNamespace, config.AddonService, httptransport.WithErrorHandler(config.ErrorHandler))
 	appsHandler := appshandler.New(resolveNamespace, config.AppService, httptransport.WithErrorHandler(config.ErrorHandler))
-	eventsHandler := eventshandler.New(resolveNamespace, config.IngestService, httptransport.WithErrorHandler(config.ErrorHandler))
+	eventsHandler := eventshandler.New(resolveNamespace, config.IngestService, config.MeterEventService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersHandler := customershandler.New(resolveNamespace, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersBillingHandler := customersbillinghandler.New(resolveNamespace, config.BillingService, config.CustomerService, config.StripeService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customerBalanceFacade := config.CustomerBalanceFacade

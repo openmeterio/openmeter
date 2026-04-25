@@ -17,12 +17,17 @@ const (
 	// Active status and substates
 	StatusActive Status = Status(meta.ChargeStatusActive)
 
+	StatusActivePartialInvoiceStarted                Status = "active.partial_invoice.started"
+	StatusActivePartialInvoiceWaitingForCollection   Status = "active.partial_invoice.waiting_for_collection"
+	StatusActivePartialInvoiceProcessing             Status = "active.partial_invoice.processing"
+	StatusActivePartialInvoiceIssuing                Status = "active.partial_invoice.issuing"
+	StatusActivePartialInvoiceCompleted              Status = "active.partial_invoice.completed"
 	StatusActiveFinalRealizationStarted              Status = "active.final_realization.started"
 	StatusActiveFinalRealizationWaitingForCollection Status = "active.final_realization.waiting_for_collection"
 	StatusActiveFinalRealizationProcessing           Status = "active.final_realization.processing"
+	StatusActiveFinalRealizationIssuing              Status = "active.final_realization.issuing"
 	StatusActiveFinalRealizationCompleted            Status = "active.final_realization.completed"
-	StatusActivePaymentPending                       Status = "active.payment_pending"
-	StatusActiveAuthorized                           Status = "active.authorized"
+	StatusActiveAwaitingPaymentSettlement            Status = "active.awaiting_payment_settlement"
 
 	StatusFinal   Status = Status(meta.ChargeStatusFinal)
 	StatusDeleted Status = Status(meta.ChargeStatusDeleted)
@@ -32,12 +37,17 @@ func (Status) Values() []string {
 	return []string{
 		string(StatusCreated),
 		string(StatusActive),
+		string(StatusActivePartialInvoiceStarted),
+		string(StatusActivePartialInvoiceWaitingForCollection),
+		string(StatusActivePartialInvoiceProcessing),
+		string(StatusActivePartialInvoiceIssuing),
+		string(StatusActivePartialInvoiceCompleted),
 		string(StatusActiveFinalRealizationStarted),
 		string(StatusActiveFinalRealizationWaitingForCollection),
 		string(StatusActiveFinalRealizationProcessing),
+		string(StatusActiveFinalRealizationIssuing),
 		string(StatusActiveFinalRealizationCompleted),
-		string(StatusActivePaymentPending),
-		string(StatusActiveAuthorized),
+		string(StatusActiveAwaitingPaymentSettlement),
 		string(StatusFinal),
 		string(StatusDeleted),
 	}

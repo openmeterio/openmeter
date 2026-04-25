@@ -89,6 +89,7 @@ func deriveEqualLineBase(this, that *StandardLineBase) bool {
 			this.Currency == that.Currency &&
 			this.Period.Equal(that.Period) &&
 			this.InvoiceAt.Equal(that.InvoiceAt) &&
+			((this.OverrideCollectionPeriodEnd == nil && that.OverrideCollectionPeriodEnd == nil) || (this.OverrideCollectionPeriodEnd != nil && that.OverrideCollectionPeriodEnd != nil && (*(this.OverrideCollectionPeriodEnd)).Equal(*(that.OverrideCollectionPeriodEnd)))) &&
 			((this.ParentLineID == nil && that.ParentLineID == nil) || (this.ParentLineID != nil && that.ParentLineID != nil && *(this.ParentLineID) == *(that.ParentLineID))) &&
 			((this.SplitLineGroupID == nil && that.SplitLineGroupID == nil) || (this.SplitLineGroupID != nil && that.SplitLineGroupID != nil && *(this.SplitLineGroupID) == *(that.SplitLineGroupID))) &&
 			((this.ChargeID == nil && that.ChargeID == nil) || (this.ChargeID != nil && that.ChargeID != nil && *(this.ChargeID) == *(that.ChargeID))) &&

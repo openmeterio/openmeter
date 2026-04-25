@@ -250,7 +250,7 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 		return nil, fmt.Errorf("resolving tax codes: %w", err)
 	}
 
-	if err := s.invoiceCalculator.CalculateGatheringInvoiceWithLiveData(out, invoicecalc.CalculatorDependencies{
+	if err := s.invoiceCalculator.CalculateGatheringInvoiceWithLiveData(out, invoicecalc.StandardInvoiceCalculatorDependencies{
 		FeatureMeters: featureMeters,
 		RatingService: s.ratingService,
 		TaxCodes:      taxCodes,
@@ -863,7 +863,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 	}
 
 	// Let's simulate a recalculation of the invoice
-	if err := s.invoiceCalculator.Calculate(&invoice, invoicecalc.CalculatorDependencies{
+	if err := s.invoiceCalculator.Calculate(&invoice, invoicecalc.StandardInvoiceCalculatorDependencies{
 		FeatureMeters: featureMeters,
 		RatingService: s.ratingService,
 		TaxCodes:      taxCodes,
@@ -939,17 +939,23 @@ func (s *Service) RecalculateGatheringInvoices(ctx context.Context, input billin
 			return fmt.Errorf("listing gathering invoices: %w", err)
 		}
 
-		for _, invoice := range gatheringInvoices.Items {
-			var err error
+		customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+			Customer: input,
+		})
+		if err != nil {
+			return fmt.Errorf("fetching customer profile: %w", err)
+		}
 
-			if err = s.invoiceCalculator.CalculateGatheringInvoice(&invoice); err != nil {
+		for _, invoice := range gatheringInvoices.Items {
+			if err := s.invoiceCalculator.CalculateGatheringInvoice(&invoice, invoicecalc.GatheringInvoiceCalculatorDependencies{
+				Collection: customerProfile.MergedProfile.WorkflowConfig.Collection,
+			}); err != nil {
 				return fmt.Errorf("calculating gathering invoice: %w", err)
 			}
 
 			invoiceID := invoice.ID
 
-			err = s.adapter.UpdateGatheringInvoice(ctx, invoice)
-			if err != nil {
+			if err := s.adapter.UpdateGatheringInvoice(ctx, invoice); err != nil {
 				return fmt.Errorf("updating gathering invoice[%s]: %w", invoiceID, err)
 			}
 

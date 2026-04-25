@@ -763,7 +763,7 @@ func (m *InvoiceStateMachine) calculateInvoice(ctx context.Context) error {
 		return fmt.Errorf("resolving tax codes: %w", err)
 	}
 
-	return m.Calculator.Calculate(&m.Invoice, invoicecalc.CalculatorDependencies{
+	return m.Calculator.Calculate(&m.Invoice, invoicecalc.StandardInvoiceCalculatorDependencies{
 		FeatureMeters: featureMeters,
 		RatingService: m.Service.ratingService,
 		TaxCodes:      taxCodes,

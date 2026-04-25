@@ -416,6 +416,26 @@ func (_u *BillingInvoiceLineUpdate) SetNillableInvoiceAt(v *time.Time) *BillingI
 	return _u
 }
 
+// SetOverrideCollectionPeriodEnd sets the "override_collection_period_end" field.
+func (_u *BillingInvoiceLineUpdate) SetOverrideCollectionPeriodEnd(v time.Time) *BillingInvoiceLineUpdate {
+	_u.mutation.SetOverrideCollectionPeriodEnd(v)
+	return _u
+}
+
+// SetNillableOverrideCollectionPeriodEnd sets the "override_collection_period_end" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdate) SetNillableOverrideCollectionPeriodEnd(v *time.Time) *BillingInvoiceLineUpdate {
+	if v != nil {
+		_u.SetOverrideCollectionPeriodEnd(*v)
+	}
+	return _u
+}
+
+// ClearOverrideCollectionPeriodEnd clears the value of the "override_collection_period_end" field.
+func (_u *BillingInvoiceLineUpdate) ClearOverrideCollectionPeriodEnd() *BillingInvoiceLineUpdate {
+	_u.mutation.ClearOverrideCollectionPeriodEnd()
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *BillingInvoiceLineUpdate) SetStatus(v billing.InvoiceLineStatus) *BillingInvoiceLineUpdate {
 	_u.mutation.SetStatus(v)
@@ -1277,6 +1297,12 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 	}
 	if value, ok := _u.mutation.InvoiceAt(); ok {
 		_spec.SetField(billinginvoiceline.FieldInvoiceAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.OverrideCollectionPeriodEnd(); ok {
+		_spec.SetField(billinginvoiceline.FieldOverrideCollectionPeriodEnd, field.TypeTime, value)
+	}
+	if _u.mutation.OverrideCollectionPeriodEndCleared() {
+		_spec.ClearField(billinginvoiceline.FieldOverrideCollectionPeriodEnd, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(billinginvoiceline.FieldStatus, field.TypeEnum, value)
@@ -2367,6 +2393,26 @@ func (_u *BillingInvoiceLineUpdateOne) SetNillableInvoiceAt(v *time.Time) *Billi
 	return _u
 }
 
+// SetOverrideCollectionPeriodEnd sets the "override_collection_period_end" field.
+func (_u *BillingInvoiceLineUpdateOne) SetOverrideCollectionPeriodEnd(v time.Time) *BillingInvoiceLineUpdateOne {
+	_u.mutation.SetOverrideCollectionPeriodEnd(v)
+	return _u
+}
+
+// SetNillableOverrideCollectionPeriodEnd sets the "override_collection_period_end" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdateOne) SetNillableOverrideCollectionPeriodEnd(v *time.Time) *BillingInvoiceLineUpdateOne {
+	if v != nil {
+		_u.SetOverrideCollectionPeriodEnd(*v)
+	}
+	return _u
+}
+
+// ClearOverrideCollectionPeriodEnd clears the value of the "override_collection_period_end" field.
+func (_u *BillingInvoiceLineUpdateOne) ClearOverrideCollectionPeriodEnd() *BillingInvoiceLineUpdateOne {
+	_u.mutation.ClearOverrideCollectionPeriodEnd()
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *BillingInvoiceLineUpdateOne) SetStatus(v billing.InvoiceLineStatus) *BillingInvoiceLineUpdateOne {
 	_u.mutation.SetStatus(v)
@@ -3258,6 +3304,12 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 	}
 	if value, ok := _u.mutation.InvoiceAt(); ok {
 		_spec.SetField(billinginvoiceline.FieldInvoiceAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.OverrideCollectionPeriodEnd(); ok {
+		_spec.SetField(billinginvoiceline.FieldOverrideCollectionPeriodEnd, field.TypeTime, value)
+	}
+	if _u.mutation.OverrideCollectionPeriodEndCleared() {
+		_spec.ClearField(billinginvoiceline.FieldOverrideCollectionPeriodEnd, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(billinginvoiceline.FieldStatus, field.TypeEnum, value)

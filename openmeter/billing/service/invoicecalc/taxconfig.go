@@ -10,7 +10,7 @@ import (
 // SnapshotTaxConfigIntoLines merges the invoice's DefaultTaxConfig into each line and
 // stamps the resolved TaxCode entity (and its ID) onto the line's TaxConfig.
 // Skipped for gathering invoices — snapshotting only applies to standard invoices.
-func SnapshotTaxConfigIntoLines(invoice *billing.StandardInvoice, deps CalculatorDependencies) error {
+func SnapshotTaxConfigIntoLines(invoice *billing.StandardInvoice, deps StandardInvoiceCalculatorDependencies) error {
 	if invoice.Status == billing.StandardInvoiceStatusGathering {
 		return nil
 	}

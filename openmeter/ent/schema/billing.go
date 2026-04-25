@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -336,6 +335,10 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 			}).Optional().Nillable(),
 
 		field.Time("invoice_at"),
+
+		field.Time("override_collection_period_end").
+			Optional().
+			Nillable(),
 
 		// TODO[dependency]: overrides (as soon as plan override entities are ready)
 
@@ -1117,11 +1120,15 @@ func (BillingInvoice) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
-		// The timestamp set in the collection_at field defines when new draft invoice is need to be created
-		// from line-items available on the gathering invoice. It is defaulted to time.Now() on creation.
+		// The timestamp stored in the collection_at field has a dual purpose:
+		// - on gathering invoices, it defines when pending line-items should be collected into a new draft invoice
+		// - on standard invoices, it defines the post-creation collection/snapshot cutoff for metered lines
+		//
+		// The collection_at column is intentionally Optional().Nillable() so NULL can round-trip to a domain
+		// *time.Time nil value after the migration away from non-null/default-backed semantics.
 		field.Time("collection_at").
 			Optional().
-			Default(clock.Now),
+			Nillable(),
 
 		// This is the timestamp the invoice first entered the Payment Processing State (InvoiceStatusPaymentProcessingPending).
 		// This is relevant as we later use this to determine stale-ness and guard against fraud.

@@ -2,7 +2,6 @@ package query
 
 import (
 	"fmt"
-	"sort"
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -37,76 +36,6 @@ func ConvertWindowSizeToISO8601Duration(ws meter.WindowSize) (string, error) {
 	return "", fmt.Errorf("unknown WindowSize: %q", ws)
 }
 
-// ValidateQueryFilterString checks that a QueryFilterString contains no unknown operators.
-func ValidateQueryFilterString(f *api.QueryFilterString, fieldPath ...string) error {
-	if f == nil {
-		return nil
-	}
-
-	if len(f.AdditionalProperties) > 0 {
-		return NewUnknownFilterOperatorError(firstKey(f.AdditionalProperties), fieldPath...)
-	}
-
-	// Recursively validate nested filters
-	if f.And != nil {
-		for i := range *f.And {
-			if err := ValidateQueryFilterString(&(*f.And)[i], fieldPath...); err != nil {
-				return err
-			}
-		}
-	}
-
-	if f.Or != nil {
-		for i := range *f.Or {
-			if err := ValidateQueryFilterString(&(*f.Or)[i], fieldPath...); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-// ValidateQueryFilterStringMapItem checks that a QueryFilterStringMapItem contains no unknown operators.
-func ValidateQueryFilterStringMapItem(f api.QueryFilterStringMapItem, fieldPath ...string) error {
-	if len(f.AdditionalProperties) > 0 {
-		return NewUnknownFilterOperatorError(firstKey(f.AdditionalProperties), fieldPath...)
-	}
-
-	// Recursively validate nested filters
-	if f.And != nil {
-		for i := range *f.And {
-			if err := ValidateQueryFilterString(&(*f.And)[i], fieldPath...); err != nil {
-				return err
-			}
-		}
-	}
-
-	if f.Or != nil {
-		for i := range *f.Or {
-			if err := ValidateQueryFilterString(&(*f.Or)[i], fieldPath...); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-// firstKey returns the first key from a map in sorted order for deterministic error messages.
-// Returns empty string if the map is empty to avoid panics.
-func firstKey[V any](m map[string]V) string {
-	if len(m) == 0 {
-		return ""
-	}
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys[0]
-}
-
 // ExtractStringsFromQueryFilter extracts a flat list of string values from a QueryFilterString.
 // Only the eq and in operators are supported; an error is returned if any other operator is set.
 func ExtractStringsFromQueryFilter(f *api.QueryFilterString, fieldPath ...string) ([]string, error) {
@@ -117,9 +46,6 @@ func ExtractStringsFromQueryFilter(f *api.QueryFilterString, fieldPath ...string
 	if f.Neq != nil || f.Nin != nil ||
 		f.Contains != nil || f.Ncontains != nil ||
 		f.And != nil || f.Or != nil {
-		return nil, NewUnsupportedFilterOperatorError(fieldPath...)
-	}
-	if len(f.AdditionalProperties) > 0 {
 		return nil, NewUnsupportedFilterOperatorError(fieldPath...)
 	}
 	if f.Eq != nil && f.In != nil {
@@ -146,9 +72,6 @@ func ExtractStringsFromQueryFilterMapItem(f *api.QueryFilterStringMapItem, field
 	if f.Neq != nil || f.Nin != nil ||
 		f.Contains != nil || f.Ncontains != nil ||
 		f.And != nil || f.Or != nil || f.Exists != nil {
-		return nil, NewUnsupportedFilterOperatorError(fieldPath...)
-	}
-	if len(f.AdditionalProperties) > 0 {
 		return nil, NewUnsupportedFilterOperatorError(fieldPath...)
 	}
 	if f.Eq != nil && f.In != nil {

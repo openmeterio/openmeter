@@ -32,6 +32,7 @@ After any schema change, regenerate with `make generate` before running tests.
 - **Soft-delete unique indexes** include `deleted_at` in the unique constraint (e.g., `index.Fields("namespace", "key", "deleted_at").Unique()`) — always filter with `Where(<entity>db.DeletedAtIsNil())` in queries.
 - **Foreign keys** use `char(26)` schema type to match ULID IDs.
 - **Cascade deletes** use `entsql.OnDelete(entsql.Cascade)` on the parent edge.
+- **PostgreSQL identifier length** is 63 bytes by default (PostgreSQL docs, “Lexical Structure” / `NAMEDATALEN`). Long Ent-generated table, index, and FK names can truncate and collide even when their full names differ. When a schema/entity/edge name is verbose, proactively shorten generated FK symbols with `StorageKey(edge.Symbol("..."))` and shorten index names with `StorageKey("...")` before generating migrations.
 - **JSONB fields** use `entutils.JSONStringValueScanner` — see `openmeter/ent/schema/llmcostprice.go`.
 - **Non-empty strings at the DB layer**: `field.String(...).NotEmpty()` enforces Ent-side validation, but Atlas may still diff only `SET NOT NULL` for existing tables. If the database must reject empty strings too, add an explicit `entsql.Checks(...)` annotation in the schema or mixin alongside `NotEmpty()`.
 

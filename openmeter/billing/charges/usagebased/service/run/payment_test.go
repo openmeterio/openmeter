@@ -185,7 +185,7 @@ func newUsageBasedCharge() usagebased.Charge {
 				FeatureKey:     "api_requests",
 				Price:          *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
 			},
-			Status: usagebased.StatusActivePaymentPending,
+			Status: usagebased.StatusActiveAwaitingPaymentSettlement,
 			State: usagebased.State{
 				FeatureID: "feature-1",
 			},
@@ -197,14 +197,14 @@ func newUsageBasedRun(lineID string) usagebased.RealizationRun {
 	now := time.Now().UTC()
 	return usagebased.RealizationRun{
 		RealizationRunBase: usagebased.RealizationRunBase{
-			ID:            usagebased.RealizationRunID(models.NamespacedID{Namespace: "ns", ID: "run-1"}),
-			ManagedModel:  models.ManagedModel{CreatedAt: now, UpdatedAt: now},
-			FeatureID:     "feature-1",
-			LineID:        &lineID,
-			Type:          usagebased.RealizationRunTypeFinalRealization,
-			AsOf:          now,
-			CollectionEnd: now,
-			MeterValue:    alpacadecimal.NewFromInt(10),
+			ID:              usagebased.RealizationRunID(models.NamespacedID{Namespace: "ns", ID: "run-1"}),
+			ManagedModel:    models.ManagedModel{CreatedAt: now, UpdatedAt: now},
+			FeatureID:       "feature-1",
+			LineID:          &lineID,
+			Type:            usagebased.RealizationRunTypeFinalRealization,
+			StoredAtLT:      now,
+			ServicePeriodTo: now,
+			MeteredQuantity: alpacadecimal.NewFromInt(10),
 			Totals: totals.Totals{
 				Amount: alpacadecimal.NewFromInt(10),
 				Total:  alpacadecimal.NewFromInt(10),

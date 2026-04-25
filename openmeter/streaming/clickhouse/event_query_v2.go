@@ -1,12 +1,11 @@
 package clickhouse
 
 import (
-	"fmt"
-
 	"github.com/huandu/go-sqlbuilder"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 const eventQueryV2DefaultLimit = 100
@@ -81,25 +80,52 @@ func (q queryEventsTableV2) toSQL() (string, []interface{}) {
 		}
 	}
 
-	timeColumn := "time"
-	if q.Params.IngestedAt != nil {
-		timeColumn = "ingested_at"
+	if q.Params.StoredAt != nil {
+		expr := q.Params.StoredAt.SelectWhereExpr("stored_at", query)
+		if expr != "" {
+			query.Where(expr)
+		}
+	}
+
+	sortCol := string(q.Params.SortBy)
+	if sortCol == "" {
+		sortCol = string(streaming.EventSortFieldTime)
 	}
 
 	if q.Params.Cursor != nil {
-		query.Where(
-			// First filter by time
-			query.LessEqualThan(timeColumn, q.Params.Cursor.Time.Unix()),
-			// If two events share the same time, then use the id to order
-			query.Or(
-				query.LessThan(timeColumn, q.Params.Cursor.Time.Unix()),
-				query.LessThan("id", q.Params.Cursor.ID),
-			),
-		)
+		if q.Params.SortOrder == sortx.OrderAsc {
+			query.Where(
+				// First filter by sort column
+				query.GreaterEqualThan(sortCol, q.Params.Cursor.Time.Unix()),
+				// Tie-break by store_row_id (per-row unique ULID) so same-second
+				// events are not skipped across page boundaries.
+				query.Or(
+					query.GreaterThan(sortCol, q.Params.Cursor.Time.Unix()),
+					query.GreaterThan("store_row_id", q.Params.Cursor.ID),
+				),
+			)
+		} else {
+			query.Where(
+				// First filter by sort column
+				query.LessEqualThan(sortCol, q.Params.Cursor.Time.Unix()),
+				// Tie-break by store_row_id (per-row unique ULID) so same-second
+				// events are not skipped across page boundaries.
+				query.Or(
+					query.LessThan(sortCol, q.Params.Cursor.Time.Unix()),
+					query.LessThan("store_row_id", q.Params.Cursor.ID),
+				),
+			)
+		}
 	}
 
-	// Order by time (DESC) and id (DESC) for stable ordering
-	query.OrderBy(fmt.Sprintf("%s DESC", timeColumn)).OrderBy("id DESC")
+	switch q.Params.SortOrder {
+	case sortx.OrderAsc:
+		query.OrderByAsc(sortCol).OrderByAsc("store_row_id")
+	case sortx.OrderDesc:
+		fallthrough
+	default:
+		query.OrderByDesc(sortCol).OrderByDesc("store_row_id")
+	}
 
 	// Apply limit
 	query.Limit(lo.FromPtrOr(q.Params.Limit, eventQueryV2DefaultLimit))

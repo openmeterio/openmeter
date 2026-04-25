@@ -407,12 +407,7 @@ func FromAPICreatePlanRequest(ns string, body api.CreatePlanRequest) (plan.Creat
 		},
 	}
 
-	cur := currency.Code(body.Currency)
-	if err := cur.Validate(); err != nil {
-		return req, fmt.Errorf("invalid currency: %w", err)
-	}
-
-	req.Currency = cur
+	req.Currency = currency.Code(body.Currency)
 
 	billingCadence, err := datetime.ISODurationString(body.BillingCadence).Parse()
 	if err != nil {

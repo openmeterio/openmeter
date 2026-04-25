@@ -424,21 +424,6 @@ func TestAnchoredAlignment_MidMonthStart_EarlyCancel_IssueNextAnchor(t *testing.
 	})
 	require.NoError(t, err)
 
-	// Gathering and Standard, let's get the standard
-	require.Len(t, invoices.Items, 2)
-	invoice, ok := lo.Find(invoices.Items, func(i billing.Invoice) bool {
-		return i.Type() != billing.InvoiceTypeGathering
-	})
-	require.True(t, ok)
-	standardInvoice, err := invoice.AsStandardInvoice()
-	require.NoError(t, err)
-
-	// We should have a standard invoice with lines invoiceAt at end of June and collectionAt at July 1st (due to anchored alignment)
-	require.Equal(t, firstOfNextMonth, *standardInvoice.CollectionAt)
-
-	lns, ok := standardInvoice.Lines.Get()
-	require.True(t, ok)
-	for _, l := range lns {
-		require.True(t, l.InvoiceAt.Before(*standardInvoice.CollectionAt))
-	}
+	require.Len(t, invoices.Items, 1)
+	require.Equal(t, billing.InvoiceTypeGathering, invoices.Items[0].Type())
 }

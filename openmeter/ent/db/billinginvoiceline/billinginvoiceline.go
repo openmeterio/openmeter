@@ -73,6 +73,8 @@ const (
 	FieldParentLineID = "parent_line_id"
 	// FieldInvoiceAt holds the string denoting the invoice_at field in the database.
 	FieldInvoiceAt = "invoice_at"
+	// FieldOverrideCollectionPeriodEnd holds the string denoting the override_collection_period_end field in the database.
+	FieldOverrideCollectionPeriodEnd = "override_collection_period_end"
 	// FieldType holds the string denoting the type field in the database.
 	FieldType = "type"
 	// FieldStatus holds the string denoting the status field in the database.
@@ -302,6 +304,7 @@ var Columns = []string{
 	FieldManagedBy,
 	FieldParentLineID,
 	FieldInvoiceAt,
+	FieldOverrideCollectionPeriodEnd,
 	FieldType,
 	FieldStatus,
 	FieldQuantity,
@@ -543,6 +546,11 @@ func ByParentLineID(opts ...sql.OrderTermOption) OrderOption {
 // ByInvoiceAt orders the results by the invoice_at field.
 func ByInvoiceAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInvoiceAt, opts...).ToFunc()
+}
+
+// ByOverrideCollectionPeriodEnd orders the results by the override_collection_period_end field.
+func ByOverrideCollectionPeriodEnd(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOverrideCollectionPeriodEnd, opts...).ToFunc()
 }
 
 // ByType orders the results by the type field.

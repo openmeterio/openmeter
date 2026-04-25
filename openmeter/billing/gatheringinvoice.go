@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/expand"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -32,7 +33,7 @@ type GatheringInvoiceBase struct {
 	Currency      currencyx.Code        `json:"currency"`
 	ServicePeriod timeutil.ClosedPeriod `json:"servicePeriod"`
 
-	NextCollectionAt time.Time `json:"nextCollectionAt"`
+	NextCollectionAt *time.Time `json:"nextCollectionAt,omitempty"`
 
 	SchemaLevel int `json:"schemaLevel"`
 }
@@ -262,6 +263,12 @@ func (l *GatheringInvoiceLines) Sort() {
 
 func (l GatheringInvoiceLines) NonDeletedLineCount() int {
 	return lo.CountBy(l.OrEmpty(), func(l GatheringLine) bool {
+		return l.DeletedAt == nil
+	})
+}
+
+func (l GatheringInvoiceLines) NonDeletedLines() GatheringLines {
+	return lo.Filter(l.OrEmpty(), func(l GatheringLine, _ int) bool {
 		return l.DeletedAt == nil
 	})
 }
@@ -822,15 +829,15 @@ type UpdateGatheringInvoiceAdapterInput = GatheringInvoice
 type ListGatheringInvoicesInput struct {
 	pagination.Page
 
-	Namespaces      []string
-	IDs             []string
-	Customers       []string
-	Currencies      []currencyx.Code
-	OrderBy         api.InvoiceOrderBy
-	Order           sortx.Order
-	IncludeDeleted  bool
-	Expand          GatheringInvoiceExpands
-	CollectionAtLTE *time.Time
+	Namespaces     []string
+	IDs            []string
+	Customers      []string
+	Currencies     []currencyx.Code
+	OrderBy        api.InvoiceOrderBy
+	Order          sortx.Order
+	IncludeDeleted bool
+	Expand         GatheringInvoiceExpands
+	CollectionAt   filter.FilterTime
 }
 
 func (i ListGatheringInvoicesInput) Validate() error {
@@ -844,6 +851,12 @@ func (i ListGatheringInvoicesInput) Validate() error {
 
 	if err := i.Expand.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("expand: %w", err))
+	}
+
+	if !i.CollectionAt.IsEmpty() {
+		if err := i.CollectionAt.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("collectionAt: %w", err))
+		}
 	}
 
 	return errors.Join(errs...)

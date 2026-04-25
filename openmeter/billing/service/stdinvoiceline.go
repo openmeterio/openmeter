@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -126,7 +127,9 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 			return nil, fmt.Errorf("validating gathering invoice: %w", err)
 		}
 
-		if err := s.invoiceCalculator.CalculateGatheringInvoice(&gatheringInvoice); err != nil {
+		if err := s.invoiceCalculator.CalculateGatheringInvoice(&gatheringInvoice, invoicecalc.GatheringInvoiceCalculatorDependencies{
+			Collection: customerProfile.MergedProfile.WorkflowConfig.Collection,
+		}); err != nil {
 			return nil, fmt.Errorf("calculating invoice[%s]: %w", gatheringInvoiceID, err)
 		}
 

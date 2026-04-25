@@ -830,19 +830,6 @@ func TestToCreatePlanInput(t *testing.T) {
 		assert.Nil(t, result.Metadata)
 	})
 
-	t.Run("invalid currency returns error", func(t *testing.T) {
-		body := api.CreatePlanRequest{
-			Key:            "pro",
-			Name:           "Pro",
-			Currency:       "INVALID",
-			BillingCadence: "P1M",
-		}
-
-		_, err := FromAPICreatePlanRequest("ns", body)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid currency")
-	})
-
 	t.Run("invalid billing cadence returns error", func(t *testing.T) {
 		body := api.CreatePlanRequest{
 			Key:            "pro",

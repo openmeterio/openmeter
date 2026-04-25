@@ -17,20 +17,26 @@ import (
 )
 
 type CreateRatedRunInput struct {
-	Charge             usagebased.Charge
-	CustomerOverride   billing.CustomerOverrideWithDetails
-	FeatureMeter       feature.FeatureMeter
-	Type               usagebased.RealizationRunType
-	AsOf               time.Time
-	CollectionEnd      time.Time
-	LineID             *string
-	CreditAllocation   CreditAllocationMode
-	CurrencyCalculator currencyx.Calculator
+	Charge           usagebased.Charge
+	CustomerOverride billing.CustomerOverrideWithDetails
+	FeatureMeter     feature.FeatureMeter
+	Type             usagebased.RealizationRunType
+	StoredAtLT       time.Time
+	ServicePeriodTo  time.Time
+	LineID           *string
+	// IgnoreMinimumCommitment keeps interim realization runs from booking final-only minimum commitment.
+	IgnoreMinimumCommitment bool
+	CreditAllocation        CreditAllocationMode
+	CurrencyCalculator      currencyx.Calculator
 }
 
 func (i CreateRatedRunInput) Validate() error {
 	if err := i.Charge.Validate(); err != nil {
 		return fmt.Errorf("charge: %w", err)
+	}
+
+	if i.Charge.State.CurrentRealizationRunID != nil {
+		return fmt.Errorf("charge: current realization run already exists [charge_id=%s]", i.Charge.GetChargeID())
 	}
 
 	if i.CustomerOverride.Customer == nil {
@@ -45,12 +51,21 @@ func (i CreateRatedRunInput) Validate() error {
 		return fmt.Errorf("type: %w", err)
 	}
 
-	if i.AsOf.IsZero() {
-		return fmt.Errorf("as of is required")
+	if i.StoredAtLT.IsZero() {
+		return fmt.Errorf("stored at lt is required")
 	}
 
-	if i.CollectionEnd.IsZero() {
-		return fmt.Errorf("collection end is required")
+	if i.ServicePeriodTo.IsZero() {
+		return fmt.Errorf("service period to is required")
+	}
+
+	period := i.Charge.Intent.ServicePeriod
+	if !i.ServicePeriodTo.After(period.From) {
+		return fmt.Errorf("service period to must be after charge service period from")
+	}
+
+	if i.ServicePeriodTo.After(period.To) {
+		return fmt.Errorf("service period to must not be after charge service period to")
 	}
 
 	if i.LineID != nil && *i.LineID == "" {
@@ -116,11 +131,13 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 	in.Charge = chargeWithDetailedLines
 
 	ratingResult, err := s.rater.GetDetailedLinesForUsage(ctx, usagebasedrating.GetDetailedLinesForUsageInput{
-		Charge:         in.Charge,
-		PriorRuns:      in.Charge.Realizations,
-		Customer:       in.CustomerOverride,
-		FeatureMeter:   in.FeatureMeter,
-		StoredAtOffset: in.AsOf,
+		Charge:                  in.Charge,
+		PriorRuns:               in.Charge.Realizations,
+		Customer:                in.CustomerOverride,
+		FeatureMeter:            in.FeatureMeter,
+		ServicePeriodTo:         in.ServicePeriodTo,
+		StoredAtLT:              in.StoredAtLT,
+		IgnoreMinimumCommitment: in.IgnoreMinimumCommitment,
 	})
 	if err != nil {
 		return CreateRatedRunResult{}, fmt.Errorf("get rating for usage: %w", err)
@@ -136,13 +153,13 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 	}
 
 	updatedCharge, err := s.createNewRealizationRun(ctx, in.Charge, usagebased.CreateRealizationRunInput{
-		FeatureID:     in.Charge.State.FeatureID,
-		Type:          in.Type,
-		AsOf:          in.AsOf,
-		CollectionEnd: in.CollectionEnd,
-		LineID:        in.LineID,
-		MeterValue:    ratingResult.Quantity,
-		Totals:        runTotals,
+		FeatureID:       in.Charge.State.FeatureID,
+		Type:            in.Type,
+		StoredAtLT:      in.StoredAtLT,
+		ServicePeriodTo: in.ServicePeriodTo,
+		LineID:          in.LineID,
+		MeteredQuantity: ratingResult.Quantity,
+		Totals:          runTotals,
 	})
 	if err != nil {
 		return CreateRatedRunResult{}, fmt.Errorf("create new realization run: %w", err)
@@ -163,7 +180,7 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 		allocationResult, err := s.allocate(ctx, allocateCreditRealizationsInput{
 			Charge:             updatedCharge,
 			Run:                currentRun,
-			AllocateAt:         in.AsOf,
+			AllocateAt:         in.StoredAtLT,
 			AmountToAllocate:   runTotals.Total,
 			CurrencyCalculator: in.CurrencyCalculator,
 			Exact:              in.CreditAllocation == CreditAllocationExact,
@@ -177,10 +194,10 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 		runTotals.Total = in.CurrencyCalculator.RoundToPrecision(runTotals.Total.Sub(allocationResult.Allocated))
 
 		currentRunBase, err := s.adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
-			ID:         currentRun.ID,
-			AsOf:       mo.Some(in.AsOf),
-			MeterValue: mo.Some(ratingResult.Quantity),
-			Totals:     mo.Some(runTotals),
+			ID:              currentRun.ID,
+			StoredAtLT:      mo.Some(in.StoredAtLT),
+			MeteredQuantity: mo.Some(ratingResult.Quantity),
+			Totals:          mo.Some(runTotals),
 		})
 		if err != nil {
 			return CreateRatedRunResult{}, fmt.Errorf("update realization run: %w", err)

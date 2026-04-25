@@ -1076,8 +1076,8 @@ paths:
       description: |-
         List credit transactions for a customer.
 
-        Returns an immutable, chronological record of all credit movements:
-        grants funded, credits consumed, expirations, voids, and adjustments.
+        Returns an immutable, chronological record of credit movements:
+        funded credits and consumed credits.
         Transactions are returned in reverse chronological order by default.
       parameters:
         - name: customerId
@@ -1085,7 +1085,7 @@ paths:
           required: true
           schema:
             $ref: '#/components/schemas/ULID'
-        - $ref: '#/components/parameters/PagePaginationQuery'
+        - $ref: '#/components/parameters/CursorPaginationQuery'
         - name: filter
           in: query
           required: false
@@ -1095,11 +1095,11 @@ paths:
           style: deepObject
       responses:
         '200':
-          description: Page paginated response.
+          description: Cursor paginated response.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreditTransactionPagePaginatedResponse'
+                $ref: '#/components/schemas/CreditTransactionPaginatedResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1138,6 +1138,54 @@ paths:
       tags:
         - OpenMeter Entitlements
   /openmeter/events:
+    get:
+      operationId: list-metering-events
+      summary: List metering events
+      description: List ingested events.
+      parameters:
+        - $ref: '#/components/parameters/CursorPaginationQuery'
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter events returned in the response.
+
+            To filter events by subject add the following query param: filter[subject][eq]=customer-1
+          schema:
+            $ref: '#/components/schemas/ListEventsParamsFilter'
+          style: deepObject
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort events returned in the response.
+            Supported sort attributes are:
+            - `time` (default)
+            - `ingested_at`
+            - `stored_at`
+
+            When omitted, events are sorted by `time desc` (most recent first).
+            When a sort field is provided without a suffix, it sorts descending.
+            Append the `asc` suffix to sort ascending, or the `desc` suffix to sort descending.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+      responses:
+        '200':
+          description: Cursor paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestedEventPaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - Metering Events
     post:
       operationId: ingest-metering-events
       description: Ingests an event or batch of events following the CloudEvents specification.
@@ -2646,6 +2694,24 @@ paths:
       x-private: true
 components:
   parameters:
+    CursorPaginationQuery:
+      name: page
+      in: query
+      required: false
+      description: Determines which page of the collection to retrieve.
+      schema:
+        type: object
+        properties:
+          size:
+            type: integer
+            description: The number of items to include per page.
+          after:
+            type: string
+            description: Request the next page of data, starting with the item after this parameter.
+          before:
+            type: string
+            description: Request the previous page of data, starting with the item before this parameter.
+      style: deepObject
     PagePaginationQuery:
       name: page
       in: query
@@ -2656,8 +2722,10 @@ components:
         properties:
           size:
             type: integer
+            description: The number of items to include per page.
           number:
             type: integer
+            description: The page number.
       style: deepObject
   schemas:
     Addon:
@@ -4155,13 +4223,11 @@ components:
       enum:
         - funded
         - consumed
-        - adjusted
       description: |-
         The type of the credit transaction.
 
         - `funded`: Credit granted and available for consumption.
-        - `consumed`: Credit consumed.
-        - `adjusted`: Manual or system adjustment.
+        - `consumed`: Credit consumed by usage or fees.
     BillingCurrency:
       type: object
       oneOf:
@@ -6783,7 +6849,8 @@ components:
           minimum: 1
           description: |-
             The maximum number of times the add-on can be purchased for the plan.
-            Not applicable for single instance add-ons.
+            For single-instance add-ons this field must be omitted.
+            For multi-instance add-ons when omitted, unlimited quantity can be purchased.
           title: Max quantity
       description: PlanAddon create request.
     CreatePlanRequest:
@@ -6923,7 +6990,7 @@ components:
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
       description: Page paginated response.
-    CreditTransactionPagePaginatedResponse:
+    CreditTransactionPaginatedResponse:
       type: object
       required:
         - data
@@ -6934,8 +7001,8 @@ components:
           items:
             $ref: '#/components/schemas/BillingCreditTransaction'
         meta:
-          $ref: '#/components/schemas/PaginatedMeta'
-      description: Page paginated response.
+          $ref: '#/components/schemas/CursorMeta'
+      description: Cursor paginated response.
     CurrencyAmount:
       type: object
       required:
@@ -6982,12 +7049,51 @@ components:
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
       description: Page paginated response.
+    CustomerReference:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          $ref: '#/components/schemas/ULID'
+      description: Customer reference.
     DateTime:
       type: string
       format: date-time
       description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
       title: RFC3339 Date-Time
       example: '2023-01-01T01:01:01.001Z'
+    DateTimeFieldFilter:
+      anyOf:
+        - type: string
+        - type: object
+          properties:
+            eq:
+              allOf:
+                - $ref: '#/components/schemas/DateTime'
+              description: Value strictly equals given RFC-3339 formatted timestamp in UTC.
+            lt:
+              allOf:
+                - $ref: '#/components/schemas/DateTime'
+              description: Value is less than the given RFC-3339 formatted timestamp in UTC.
+            lte:
+              allOf:
+                - $ref: '#/components/schemas/DateTime'
+              description: Value is less than or equal to the given RFC-3339 formatted timestamp in UTC.
+            gt:
+              allOf:
+                - $ref: '#/components/schemas/DateTime'
+              description: Value is greater than the given RFC-3339 formatted timestamp in UTC.
+            gte:
+              allOf:
+                - $ref: '#/components/schemas/DateTime'
+              description: Value is greater than or equal to the given RFC-3339 formatted timestamp in UTC.
+      description: |-
+        Filters on the given datetime (RFC-3339) field value.
+        All properties are optional; provide exactly one to specify the comparison.
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/api/v3/filters
+      x-go-type: filters.FilterDateTime
     ExternalResourceKey:
       type: string
       minLength: 1
@@ -7173,6 +7279,19 @@ components:
       title: ISO 8601 Duration
       example: P1Y
       format: ISO8601
+    IngestedEventPaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/MeteringIngestedEvent'
+        meta:
+          $ref: '#/components/schemas/CursorMeta'
+      description: Cursor paginated response.
     LLMCostModel:
       type: object
       required:
@@ -7420,6 +7539,42 @@ components:
             - $ref: '#/components/schemas/StringFieldFilter'
           description: Filter customers by primary email.
       description: Filter options for listing customers.
+    ListEventsParamsFilter:
+      type: object
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilter'
+          description: Filter events by ID.
+        source:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilter'
+          description: Filter events by source.
+        subject:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilter'
+          description: Filter events by subject.
+        type:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilter'
+          description: Filter events by type.
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: Filter events by the associated customer ID.
+        time:
+          allOf:
+            - $ref: '#/components/schemas/DateTimeFieldFilter'
+          description: Filter events by event time.
+        ingested_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTimeFieldFilter'
+          description: Filter events by the time the event was ingested.
+        stored_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTimeFieldFilter'
+          description: Filter events by the time the event was stored.
+      description: Filter options for listing ingested events.
     ListFeatureParamsFilter:
       type: object
       properties:
@@ -7797,6 +7952,71 @@ components:
           tokens: 100
           model: gpt-4o
           type: input
+    MeteringIngestedEvent:
+      type: object
+      required:
+        - event
+        - ingested_at
+        - stored_at
+      properties:
+        event:
+          allOf:
+            - $ref: '#/components/schemas/MeteringEvent'
+          description: The original event ingested.
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/CustomerReference'
+          description: The customer if the event is associated with a customer.
+        ingested_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The date and time the event was ingested and its processing started.
+        stored_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The date and time the event was stored in the database.
+        validation_errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/MeteringIngestedEventValidationError'
+          description: The validation errors of the ingested event.
+      description: An ingested metering event with ingestion metadata.
+      title: Ingested Event
+      example:
+        event:
+          id: 5c10fade-1c9e-4d6c-8275-c52c36731d3c
+          source: service-name
+          specversion: '1.0'
+          type: prompt
+          subject: customer_key
+          time: '2023-01-01T01:01:01.001Z'
+        customer:
+          id: 01G65Z755AFWAKHE12NY0CQ9FH
+        ingested_at: '2023-01-01T01:01:01.001Z'
+        stored_at: '2023-01-01T01:01:02.001Z'
+    MeteringIngestedEventValidationError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: The machine readable code of the error.
+          title: Code
+          readOnly: true
+        message:
+          type: string
+          description: The human readable description of the error.
+          title: Message
+          readOnly: true
+        attributes:
+          type: object
+          additionalProperties: {}
+          description: Additional attributes.
+          title: Attributes
+          readOnly: true
+      description: Event validation errors.
     Numeric:
       type: string
       pattern: ^\-?[0-9]+(\.[0-9]+)?$
@@ -7860,7 +8080,8 @@ components:
           minimum: 1
           description: |-
             The maximum number of times the add-on can be purchased for the plan.
-            Not applicable for single instance add-ons.
+            For single-instance add-ons this field must be omitted.
+            For multi-instance add-ons when omitted, unlimited quantity can be purchased.
           title: Max quantity
         validation_errors:
           type: array
@@ -7986,10 +8207,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/QueryFilterString'
-      additionalProperties:
-        not: {}
-      minProperties: 1
-      maxProperties: 1
       description: |-
         A query filter for a string attribute.
         Operators are mutually exclusive, only one operator is allowed at a time.
@@ -8040,10 +8257,6 @@ components:
           minItems: 1
           maxItems: 10
           description: Combines the provided filters with a logical OR.
-      additionalProperties:
-        not: {}
-      minProperties: 1
-      maxProperties: 1
       description: |-
         A query filter for an item in a string map attribute.
         Operators are mutually exclusive, only one operator is allowed at a time.
@@ -8210,26 +8423,14 @@ components:
               allOf:
                 - $ref: '#/components/schemas/ULID'
               description: Value does not equal the given ULID value.
-            contains:
-              type: string
-              description: Value contains the given string value (fuzzy match).
-            ocontains:
-              type: string
-              items:
-                type: string
-              format: ArrayEncoding.commaDelimited
-              description: Returns entities that fuzzy-match any of the comma-delimited strings in the filter string.
             oeq:
               type: string
               items:
                 $ref: '#/components/schemas/ULID'
               format: ArrayEncoding.commaDelimited
               description: Returns entities that exact match any of the comma-delimited ULIDs in the filter string.
-            exists:
-              type: boolean
-              description: When true, the field must be present (non-null); when false, the field must be absent (null).
       description: |-
-        Filters on the given ULID field value by either exact or fuzzy match.
+        Filters on the given ULID field value by exact match.
         All properties are optional; provide exactly one to specify the comparison.
       x-go-type-import:
         path: github.com/openmeterio/openmeter/api/v3/filters
@@ -8473,7 +8674,8 @@ components:
           minimum: 1
           description: |-
             The maximum number of times the add-on can be purchased for the plan.
-            Not applicable for single instance add-ons.
+            For single-instance add-ons this field must be omitted.
+            For multi-instance add-ons when omitted, unlimited quantity can be purchased.
           title: Max quantity
       description: PlanAddon upsert request.
     UpsertPlanRequest:
@@ -8913,6 +9115,43 @@ components:
         The `desc` suffix is used to specify a descending order.
         Multiple sort attributes may be provided via a comma separated list.
         JSONPath notation may be used to specify a sub-attribute (eg: 'foo.bar desc').
+    CursorMetaPage:
+      type: object
+      required:
+        - size
+        - next
+        - previous
+      properties:
+        first:
+          description: URI to the first page
+          type: string
+          format: path
+        last:
+          description: URI to the last page
+          type: string
+          format: path
+        next:
+          description: URI to the next page
+          type: string
+          format: path
+          nullable: true
+        previous:
+          description: URI to the previous page
+          type: string
+          format: path
+          nullable: true
+        size:
+          description: Requested page size
+          type: number
+          example: 10
+    CursorMeta:
+      type: object
+      description: Pagination metadata.
+      required:
+        - page
+      properties:
+        page:
+          $ref: '#/components/schemas/CursorMetaPage'
     ConflictError:
       allOf:
         - $ref: '#/components/schemas/BaseError'

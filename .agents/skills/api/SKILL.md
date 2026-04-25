@@ -68,6 +68,7 @@ For modifying an existing endpoint:
 Look at existing domains (e.g., `meters/`, `customers/`) for conventions:
 
 - Use `Shared.CreateRequest<T>`, `Shared.GetResponse<T>`, `Shared.PagePaginatedResponse<T>` wrappers
+- For v3 cursor-based list endpoints, prefer `Shared.CursorPaginatedResponse<T>` over endpoint-specific cursor meta models. In generated Go, this maps to `api.CursorMetaPage`, where `next` / `previous` are `nullable.Nullable[string]` and `size` is `float32`; handlers may still return opaque cursor tokens and leave `first` / `last` unset.
 - Use `Common.ErrorResponses`, `Common.NotFound` for error types
 - Use `Common.PagePaginationQuery` for list operations
 - Use `@operationId`, `@summary`, `@tag` decorators on operations
