@@ -82,6 +82,11 @@ func BackingTransactionGroupID(v string) predicate.CreditRealizationLineageSegme
 	return predicate.CreditRealizationLineageSegment(sql.FieldEQ(FieldBackingTransactionGroupID, v))
 }
 
+// SourceBackingTransactionGroupID applies equality check predicate on the "source_backing_transaction_group_id" field. It's identical to SourceBackingTransactionGroupIDEQ.
+func SourceBackingTransactionGroupID(v string) predicate.CreditRealizationLineageSegment {
+	return predicate.CreditRealizationLineageSegment(sql.FieldEQ(FieldSourceBackingTransactionGroupID, v))
+}
+
 // ClosedAt applies equality check predicate on the "closed_at" field. It's identical to ClosedAtEQ.
 func ClosedAt(v time.Time) predicate.CreditRealizationLineageSegment {
 	return predicate.CreditRealizationLineageSegment(sql.FieldEQ(FieldClosedAt, v))
@@ -300,6 +305,121 @@ func BackingTransactionGroupIDEqualFold(v string) predicate.CreditRealizationLin
 // BackingTransactionGroupIDContainsFold applies the ContainsFold predicate on the "backing_transaction_group_id" field.
 func BackingTransactionGroupIDContainsFold(v string) predicate.CreditRealizationLineageSegment {
 	return predicate.CreditRealizationLineageSegment(sql.FieldContainsFold(FieldBackingTransactionGroupID, v))
+}
+
+// SourceStateEQ applies the EQ predicate on the "source_state" field.
+func SourceStateEQ(v creditrealization.LineageSegmentState) predicate.CreditRealizationLineageSegment {
+	vc := v
+	return predicate.CreditRealizationLineageSegment(sql.FieldEQ(FieldSourceState, vc))
+}
+
+// SourceStateNEQ applies the NEQ predicate on the "source_state" field.
+func SourceStateNEQ(v creditrealization.LineageSegmentState) predicate.CreditRealizationLineageSegment {
+	vc := v
+	return predicate.CreditRealizationLineageSegment(sql.FieldNEQ(FieldSourceState, vc))
+}
+
+// SourceStateIn applies the In predicate on the "source_state" field.
+func SourceStateIn(vs ...creditrealization.LineageSegmentState) predicate.CreditRealizationLineageSegment {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.CreditRealizationLineageSegment(sql.FieldIn(FieldSourceState, v...))
+}
+
+// SourceStateNotIn applies the NotIn predicate on the "source_state" field.
+func SourceStateNotIn(vs ...creditrealization.LineageSegmentState) predicate.CreditRealizationLineageSegment {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.CreditRealizationLineageSegment(sql.FieldNotIn(FieldSourceState, v...))
+}
+
+// SourceStateIsNil applies the IsNil predicate on the "source_state" field.
+func SourceStateIsNil() predicate.CreditRealizationLineageSegment {
+	return predicate.CreditRealizationLineageSegment(sql.FieldIsNull(FieldSourceState))
+}
+
+// SourceStateNotNil applies the NotNil predicate on the "source_state" field.
+func SourceStateNotNil() predicate.CreditRealizationLineageSegment {
+	return predicate.CreditRealizationLineageSegment(sql.FieldNotNull(FieldSourceState))
+}
+
+// SourceBackingTransactionGroupIDEQ applies the EQ predicate on the "source_backing_transaction_group_id" field.
+func SourceBackingTransactionGroupIDEQ(v string) predicate.CreditRealizationLineageSegment {
+	return predicate.CreditRealizationLineageSegment(sql.FieldEQ(FieldSourceBackingTransactionGroupID, v))
+}
+
+// SourceBackingTransactionGroupIDNEQ applies the NEQ predicate on the "source_backing_transaction_group_id" field.
+func SourceBackingTransactionGroupIDNEQ(v string) predicate.CreditRealizationLineageSegment {
+	return predicate.CreditRealizationLineageSegment(sql.FieldNEQ(FieldSourceBackingTransactionGroupID, v))
+}
+
+// SourceBackingTransactionGroupIDIn applies the In predicate on the "source_backing_transaction_group_id" field.
+func SourceBackingTransactionGroupIDIn(vs ...string) predicate.CreditRealizationLineageSegment {
+	return predicate.CreditRealizationLineageSegment(sql.FieldIn(FieldSourceBackingTransactionGroupID, vs...))
+}
+
+// SourceBackingTransactionGroupIDNotIn applies the NotIn predicate on the "source_backing_transaction_group_id" field.
+func SourceBackingTransactionGroupIDNotIn(vs ...string) predicate.CreditRealizationLineageSegment {
+	return predicate.CreditRealizationLineageSegment(sql.FieldNotIn(FieldSourceBackingTransactionGroupID, vs...))
+}
+
+// SourceBackingTransactionGroupIDGT applies the GT predicate on the "source_backing_transaction_group_id" field.
+func SourceBackingTransactionGroupIDGT(v string) predicate.CreditRealizationLineageSegment {
+	return predicate.CreditRealizationLineageSegment(sql.FieldGT(FieldSourceBackingTransactionGroupID, v))
+}
+
+// SourceBackingTransactionGroupIDGTE applies the GTE predicate on the "source_backing_transaction_group_id" field.
+func SourceBackingTransactionGroupIDGTE(v string) predicate.CreditRealizationLineageSegment {
+	return predicate.CreditRealizationLineageSegment(sql.FieldGTE(FieldSourceBackingTransactionGroupID, v))
+}
+
+// SourceBackingTransactionGroupIDLT applies the LT predicate on the "source_backing_transaction_group_id" field.
+func SourceBackingTransactionGroupIDLT(v string) predicate.CreditRealizationLineageSegment {
+	return predicate.CreditRealizationLineageSegment(sql.FieldLT(FieldSourceBackingTransactionGroupID, v))
+}
+
+// SourceBackingTransactionGroupIDLTE applies the LTE predicate on the "source_backing_transaction_group_id" field.
+func SourceBackingTransactionGroupIDLTE(v string) predicate.CreditRealizationLineageSegment {
+	return predicate.CreditRealizationLineageSegment(sql.FieldLTE(FieldSourceBackingTransactionGroupID, v))
+}
+
+// SourceBackingTransactionGroupIDContains applies the Contains predicate on the "source_backing_transaction_group_id" field.
+func SourceBackingTransactionGroupIDContains(v string) predicate.CreditRealizationLineageSegment {
+	return predicate.CreditRealizationLineageSegment(sql.FieldContains(FieldSourceBackingTransactionGroupID, v))
+}
+
+// SourceBackingTransactionGroupIDHasPrefix applies the HasPrefix predicate on the "source_backing_transaction_group_id" field.
+func SourceBackingTransactionGroupIDHasPrefix(v string) predicate.CreditRealizationLineageSegment {
+	return predicate.CreditRealizationLineageSegment(sql.FieldHasPrefix(FieldSourceBackingTransactionGroupID, v))
+}
+
+// SourceBackingTransactionGroupIDHasSuffix applies the HasSuffix predicate on the "source_backing_transaction_group_id" field.
+func SourceBackingTransactionGroupIDHasSuffix(v string) predicate.CreditRealizationLineageSegment {
+	return predicate.CreditRealizationLineageSegment(sql.FieldHasSuffix(FieldSourceBackingTransactionGroupID, v))
+}
+
+// SourceBackingTransactionGroupIDIsNil applies the IsNil predicate on the "source_backing_transaction_group_id" field.
+func SourceBackingTransactionGroupIDIsNil() predicate.CreditRealizationLineageSegment {
+	return predicate.CreditRealizationLineageSegment(sql.FieldIsNull(FieldSourceBackingTransactionGroupID))
+}
+
+// SourceBackingTransactionGroupIDNotNil applies the NotNil predicate on the "source_backing_transaction_group_id" field.
+func SourceBackingTransactionGroupIDNotNil() predicate.CreditRealizationLineageSegment {
+	return predicate.CreditRealizationLineageSegment(sql.FieldNotNull(FieldSourceBackingTransactionGroupID))
+}
+
+// SourceBackingTransactionGroupIDEqualFold applies the EqualFold predicate on the "source_backing_transaction_group_id" field.
+func SourceBackingTransactionGroupIDEqualFold(v string) predicate.CreditRealizationLineageSegment {
+	return predicate.CreditRealizationLineageSegment(sql.FieldEqualFold(FieldSourceBackingTransactionGroupID, v))
+}
+
+// SourceBackingTransactionGroupIDContainsFold applies the ContainsFold predicate on the "source_backing_transaction_group_id" field.
+func SourceBackingTransactionGroupIDContainsFold(v string) predicate.CreditRealizationLineageSegment {
+	return predicate.CreditRealizationLineageSegment(sql.FieldContainsFold(FieldSourceBackingTransactionGroupID, v))
 }
 
 // ClosedAtEQ applies the EQ predicate on the "closed_at" field.

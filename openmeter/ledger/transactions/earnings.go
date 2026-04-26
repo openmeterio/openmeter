@@ -42,8 +42,92 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) typeGuard() guard {
 
 var _ CustomerTransactionTemplate = (RecognizeEarningsFromAttributableAccruedTemplate{})
 
-func (t RecognizeEarningsFromAttributableAccruedTemplate) correct(CorrectionInput) ([]ledger.TransactionInput, error) {
-	return nil, templateCorrectionNotImplemented(templateName(t))
+func (t RecognizeEarningsFromAttributableAccruedTemplate) correct(scope CorrectionInput) ([]ledger.TransactionInput, error) {
+	type selectedCredit struct {
+		earningsAddress ledger.PostingAddress
+		accruedAddress  ledger.PostingAddress
+		amount          alpacadecimal.Decimal
+	}
+
+	// Collect entries from the original recognition transaction:
+	// - positive earnings entries (credits to earnings)
+	// - negative accrued entries (debits from accrued)
+	positiveEarningsEntries := make([]ledger.Entry, 0)
+	accruedAddressByCostBasis := make(map[string]ledger.PostingAddress)
+	totalAvailable := alpacadecimal.Zero
+
+	for _, entry := range scope.OriginalTransaction.Entries() {
+		switch {
+		case entry.PostingAddress().AccountType() == ledger.AccountTypeEarnings && entry.Amount().IsPositive():
+			positiveEarningsEntries = append(positiveEarningsEntries, entry)
+			totalAvailable = totalAvailable.Add(entry.Amount())
+		case entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerAccrued && entry.Amount().IsNegative():
+			accruedAddressByCostBasis[costBasisKey(entry.PostingAddress().Route().Route().CostBasis)] = entry.PostingAddress()
+		}
+	}
+
+	if scope.Amount.GreaterThan(totalAvailable) {
+		return nil, fmt.Errorf("earnings correction amount %s exceeds original recognized amount %s", scope.Amount.String(), totalAvailable.String())
+	}
+
+	// Consume earnings entries in reverse order (LIFO).
+	selected := make([]selectedCredit, 0, len(positiveEarningsEntries))
+	remaining := scope.Amount
+	for idx := len(positiveEarningsEntries) - 1; idx >= 0 && remaining.IsPositive(); idx-- {
+		entry := positiveEarningsEntries[idx]
+		amount := entry.Amount()
+		if amount.GreaterThan(remaining) {
+			amount = remaining
+		}
+
+		accruedAddress, ok := accruedAddressByCostBasis[costBasisKey(entry.PostingAddress().Route().Route().CostBasis)]
+		if !ok {
+			return nil, fmt.Errorf("missing accrued entry for earnings cost basis %s", costBasisKey(entry.PostingAddress().Route().Route().CostBasis))
+		}
+
+		selected = append(selected, selectedCredit{
+			earningsAddress: entry.PostingAddress(),
+			accruedAddress:  accruedAddress,
+			amount:          amount,
+		})
+		remaining = remaining.Sub(amount)
+	}
+
+	if remaining.IsPositive() {
+		return nil, fmt.Errorf("earnings correction amount %s could not be fully allocated", scope.Amount.String())
+	}
+
+	// Build reverse entries: negative earnings (remove), positive accrued (restore).
+	// Group accrued restores by sub-account to avoid double-posting.
+	accruedAmountsByAddress := make(map[string]selectedCredit)
+	entryInputs := make([]*EntryInput, 0, len(selected)*2)
+
+	for _, item := range selected {
+		entryInputs = append(entryInputs, &EntryInput{
+			address: item.earningsAddress,
+			amount:  item.amount.Neg(),
+		})
+
+		key := item.accruedAddress.SubAccountID()
+		current := accruedAmountsByAddress[key]
+		current.accruedAddress = item.accruedAddress
+		current.amount = current.amount.Add(item.amount)
+		accruedAmountsByAddress[key] = current
+	}
+
+	for _, item := range accruedAmountsByAddress {
+		entryInputs = append(entryInputs, &EntryInput{
+			address: item.accruedAddress,
+			amount:  item.amount,
+		})
+	}
+
+	return []ledger.TransactionInput{
+		&TransactionInput{
+			bookedAt:    scope.At,
+			entryInputs: entryInputs,
+		},
+	}, nil
 }
 
 func (t RecognizeEarningsFromAttributableAccruedTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {

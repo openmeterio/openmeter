@@ -58,6 +58,34 @@ func (_c *CreditRealizationLineageSegmentCreate) SetNillableBackingTransactionGr
 	return _c
 }
 
+// SetSourceState sets the "source_state" field.
+func (_c *CreditRealizationLineageSegmentCreate) SetSourceState(v creditrealization.LineageSegmentState) *CreditRealizationLineageSegmentCreate {
+	_c.mutation.SetSourceState(v)
+	return _c
+}
+
+// SetNillableSourceState sets the "source_state" field if the given value is not nil.
+func (_c *CreditRealizationLineageSegmentCreate) SetNillableSourceState(v *creditrealization.LineageSegmentState) *CreditRealizationLineageSegmentCreate {
+	if v != nil {
+		_c.SetSourceState(*v)
+	}
+	return _c
+}
+
+// SetSourceBackingTransactionGroupID sets the "source_backing_transaction_group_id" field.
+func (_c *CreditRealizationLineageSegmentCreate) SetSourceBackingTransactionGroupID(v string) *CreditRealizationLineageSegmentCreate {
+	_c.mutation.SetSourceBackingTransactionGroupID(v)
+	return _c
+}
+
+// SetNillableSourceBackingTransactionGroupID sets the "source_backing_transaction_group_id" field if the given value is not nil.
+func (_c *CreditRealizationLineageSegmentCreate) SetNillableSourceBackingTransactionGroupID(v *string) *CreditRealizationLineageSegmentCreate {
+	if v != nil {
+		_c.SetSourceBackingTransactionGroupID(*v)
+	}
+	return _c
+}
+
 // SetClosedAt sets the "closed_at" field.
 func (_c *CreditRealizationLineageSegmentCreate) SetClosedAt(v time.Time) *CreditRealizationLineageSegmentCreate {
 	_c.mutation.SetClosedAt(v)
@@ -176,6 +204,16 @@ func (_c *CreditRealizationLineageSegmentCreate) check() error {
 			return &ValidationError{Name: "backing_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "CreditRealizationLineageSegment.backing_transaction_group_id": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.SourceState(); ok {
+		if err := creditrealizationlineagesegment.SourceStateValidator(v); err != nil {
+			return &ValidationError{Name: "source_state", err: fmt.Errorf(`db: validator failed for field "CreditRealizationLineageSegment.source_state": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.SourceBackingTransactionGroupID(); ok {
+		if err := creditrealizationlineagesegment.SourceBackingTransactionGroupIDValidator(v); err != nil {
+			return &ValidationError{Name: "source_backing_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "CreditRealizationLineageSegment.source_backing_transaction_group_id": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "CreditRealizationLineageSegment.created_at"`)}
 	}
@@ -229,6 +267,14 @@ func (_c *CreditRealizationLineageSegmentCreate) createSpec() (*CreditRealizatio
 	if value, ok := _c.mutation.BackingTransactionGroupID(); ok {
 		_spec.SetField(creditrealizationlineagesegment.FieldBackingTransactionGroupID, field.TypeString, value)
 		_node.BackingTransactionGroupID = &value
+	}
+	if value, ok := _c.mutation.SourceState(); ok {
+		_spec.SetField(creditrealizationlineagesegment.FieldSourceState, field.TypeEnum, value)
+		_node.SourceState = &value
+	}
+	if value, ok := _c.mutation.SourceBackingTransactionGroupID(); ok {
+		_spec.SetField(creditrealizationlineagesegment.FieldSourceBackingTransactionGroupID, field.TypeString, value)
+		_node.SourceBackingTransactionGroupID = &value
 	}
 	if value, ok := _c.mutation.ClosedAt(); ok {
 		_spec.SetField(creditrealizationlineagesegment.FieldClosedAt, field.TypeTime, value)
@@ -334,6 +380,42 @@ func (u *CreditRealizationLineageSegmentUpsert) UpdateBackingTransactionGroupID(
 // ClearBackingTransactionGroupID clears the value of the "backing_transaction_group_id" field.
 func (u *CreditRealizationLineageSegmentUpsert) ClearBackingTransactionGroupID() *CreditRealizationLineageSegmentUpsert {
 	u.SetNull(creditrealizationlineagesegment.FieldBackingTransactionGroupID)
+	return u
+}
+
+// SetSourceState sets the "source_state" field.
+func (u *CreditRealizationLineageSegmentUpsert) SetSourceState(v creditrealization.LineageSegmentState) *CreditRealizationLineageSegmentUpsert {
+	u.Set(creditrealizationlineagesegment.FieldSourceState, v)
+	return u
+}
+
+// UpdateSourceState sets the "source_state" field to the value that was provided on create.
+func (u *CreditRealizationLineageSegmentUpsert) UpdateSourceState() *CreditRealizationLineageSegmentUpsert {
+	u.SetExcluded(creditrealizationlineagesegment.FieldSourceState)
+	return u
+}
+
+// ClearSourceState clears the value of the "source_state" field.
+func (u *CreditRealizationLineageSegmentUpsert) ClearSourceState() *CreditRealizationLineageSegmentUpsert {
+	u.SetNull(creditrealizationlineagesegment.FieldSourceState)
+	return u
+}
+
+// SetSourceBackingTransactionGroupID sets the "source_backing_transaction_group_id" field.
+func (u *CreditRealizationLineageSegmentUpsert) SetSourceBackingTransactionGroupID(v string) *CreditRealizationLineageSegmentUpsert {
+	u.Set(creditrealizationlineagesegment.FieldSourceBackingTransactionGroupID, v)
+	return u
+}
+
+// UpdateSourceBackingTransactionGroupID sets the "source_backing_transaction_group_id" field to the value that was provided on create.
+func (u *CreditRealizationLineageSegmentUpsert) UpdateSourceBackingTransactionGroupID() *CreditRealizationLineageSegmentUpsert {
+	u.SetExcluded(creditrealizationlineagesegment.FieldSourceBackingTransactionGroupID)
+	return u
+}
+
+// ClearSourceBackingTransactionGroupID clears the value of the "source_backing_transaction_group_id" field.
+func (u *CreditRealizationLineageSegmentUpsert) ClearSourceBackingTransactionGroupID() *CreditRealizationLineageSegmentUpsert {
+	u.SetNull(creditrealizationlineagesegment.FieldSourceBackingTransactionGroupID)
 	return u
 }
 
@@ -444,6 +526,48 @@ func (u *CreditRealizationLineageSegmentUpsertOne) UpdateBackingTransactionGroup
 func (u *CreditRealizationLineageSegmentUpsertOne) ClearBackingTransactionGroupID() *CreditRealizationLineageSegmentUpsertOne {
 	return u.Update(func(s *CreditRealizationLineageSegmentUpsert) {
 		s.ClearBackingTransactionGroupID()
+	})
+}
+
+// SetSourceState sets the "source_state" field.
+func (u *CreditRealizationLineageSegmentUpsertOne) SetSourceState(v creditrealization.LineageSegmentState) *CreditRealizationLineageSegmentUpsertOne {
+	return u.Update(func(s *CreditRealizationLineageSegmentUpsert) {
+		s.SetSourceState(v)
+	})
+}
+
+// UpdateSourceState sets the "source_state" field to the value that was provided on create.
+func (u *CreditRealizationLineageSegmentUpsertOne) UpdateSourceState() *CreditRealizationLineageSegmentUpsertOne {
+	return u.Update(func(s *CreditRealizationLineageSegmentUpsert) {
+		s.UpdateSourceState()
+	})
+}
+
+// ClearSourceState clears the value of the "source_state" field.
+func (u *CreditRealizationLineageSegmentUpsertOne) ClearSourceState() *CreditRealizationLineageSegmentUpsertOne {
+	return u.Update(func(s *CreditRealizationLineageSegmentUpsert) {
+		s.ClearSourceState()
+	})
+}
+
+// SetSourceBackingTransactionGroupID sets the "source_backing_transaction_group_id" field.
+func (u *CreditRealizationLineageSegmentUpsertOne) SetSourceBackingTransactionGroupID(v string) *CreditRealizationLineageSegmentUpsertOne {
+	return u.Update(func(s *CreditRealizationLineageSegmentUpsert) {
+		s.SetSourceBackingTransactionGroupID(v)
+	})
+}
+
+// UpdateSourceBackingTransactionGroupID sets the "source_backing_transaction_group_id" field to the value that was provided on create.
+func (u *CreditRealizationLineageSegmentUpsertOne) UpdateSourceBackingTransactionGroupID() *CreditRealizationLineageSegmentUpsertOne {
+	return u.Update(func(s *CreditRealizationLineageSegmentUpsert) {
+		s.UpdateSourceBackingTransactionGroupID()
+	})
+}
+
+// ClearSourceBackingTransactionGroupID clears the value of the "source_backing_transaction_group_id" field.
+func (u *CreditRealizationLineageSegmentUpsertOne) ClearSourceBackingTransactionGroupID() *CreditRealizationLineageSegmentUpsertOne {
+	return u.Update(func(s *CreditRealizationLineageSegmentUpsert) {
+		s.ClearSourceBackingTransactionGroupID()
 	})
 }
 
@@ -724,6 +848,48 @@ func (u *CreditRealizationLineageSegmentUpsertBulk) UpdateBackingTransactionGrou
 func (u *CreditRealizationLineageSegmentUpsertBulk) ClearBackingTransactionGroupID() *CreditRealizationLineageSegmentUpsertBulk {
 	return u.Update(func(s *CreditRealizationLineageSegmentUpsert) {
 		s.ClearBackingTransactionGroupID()
+	})
+}
+
+// SetSourceState sets the "source_state" field.
+func (u *CreditRealizationLineageSegmentUpsertBulk) SetSourceState(v creditrealization.LineageSegmentState) *CreditRealizationLineageSegmentUpsertBulk {
+	return u.Update(func(s *CreditRealizationLineageSegmentUpsert) {
+		s.SetSourceState(v)
+	})
+}
+
+// UpdateSourceState sets the "source_state" field to the value that was provided on create.
+func (u *CreditRealizationLineageSegmentUpsertBulk) UpdateSourceState() *CreditRealizationLineageSegmentUpsertBulk {
+	return u.Update(func(s *CreditRealizationLineageSegmentUpsert) {
+		s.UpdateSourceState()
+	})
+}
+
+// ClearSourceState clears the value of the "source_state" field.
+func (u *CreditRealizationLineageSegmentUpsertBulk) ClearSourceState() *CreditRealizationLineageSegmentUpsertBulk {
+	return u.Update(func(s *CreditRealizationLineageSegmentUpsert) {
+		s.ClearSourceState()
+	})
+}
+
+// SetSourceBackingTransactionGroupID sets the "source_backing_transaction_group_id" field.
+func (u *CreditRealizationLineageSegmentUpsertBulk) SetSourceBackingTransactionGroupID(v string) *CreditRealizationLineageSegmentUpsertBulk {
+	return u.Update(func(s *CreditRealizationLineageSegmentUpsert) {
+		s.SetSourceBackingTransactionGroupID(v)
+	})
+}
+
+// UpdateSourceBackingTransactionGroupID sets the "source_backing_transaction_group_id" field to the value that was provided on create.
+func (u *CreditRealizationLineageSegmentUpsertBulk) UpdateSourceBackingTransactionGroupID() *CreditRealizationLineageSegmentUpsertBulk {
+	return u.Update(func(s *CreditRealizationLineageSegmentUpsert) {
+		s.UpdateSourceBackingTransactionGroupID()
+	})
+}
+
+// ClearSourceBackingTransactionGroupID clears the value of the "source_backing_transaction_group_id" field.
+func (u *CreditRealizationLineageSegmentUpsertBulk) ClearSourceBackingTransactionGroupID() *CreditRealizationLineageSegmentUpsertBulk {
+	return u.Update(func(s *CreditRealizationLineageSegmentUpsert) {
+		s.ClearSourceBackingTransactionGroupID()
 	})
 }
 

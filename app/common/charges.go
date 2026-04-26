@@ -29,6 +29,7 @@ import (
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
+	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -267,6 +268,7 @@ func NewChargesService(
 	creditPurchaseSvc creditpurchase.Service,
 	usageBasedSvc usagebased.Service,
 	billingService billing.Service,
+	recognizerService recognizer.Service,
 	fsNamespaceLockdown []string,
 ) (charges.Service, error) {
 	chargesSvc, err := chargesservice.New(chargesservice.Config{
@@ -277,6 +279,7 @@ func NewChargesService(
 		CreditPurchaseService: creditPurchaseSvc,
 		UsageBasedService:     usageBasedSvc,
 		BillingService:        billingService,
+		RecognizerService:     recognizerService,
 		FSNamespaceLockdown:   fsNamespaceLockdown,
 	})
 	if err != nil {
@@ -284,6 +287,22 @@ func NewChargesService(
 	}
 
 	return chargesSvc, nil
+}
+
+func NewRecognizerService(
+	ledgerService ledger.Ledger,
+	accountResolver ledger.AccountResolver,
+	accountService ledgeraccount.Service,
+	lineageService lineage.Service,
+) (recognizer.Service, error) {
+	return recognizer.NewService(recognizer.Config{
+		Ledger: ledgerService,
+		Dependencies: transactions.ResolverDependencies{
+			AccountService:    accountResolver,
+			SubAccountService: accountService,
+		},
+		Lineage: lineageService,
+	})
 }
 
 // newChargesRegistry constructs the full charges stack.
@@ -317,6 +336,12 @@ func newChargesRegistry(
 	}
 
 	collectorService := NewChargesCollectorService(ledgerService, accountResolver, accountService)
+
+	recognizerService, err := NewRecognizerService(ledgerService, accountResolver, accountService, lineageService)
+	if err != nil {
+		return nil, err
+	}
+
 	flatFeeHandler := NewChargesFlatFeeHandler(ledgerService, accountResolver, accountService, collectorService)
 	usageBasedHandler := NewChargesUsageBasedHandler(ledgerService, accountResolver, accountService, collectorService)
 	creditPurchaseHandler := NewChargesCreditPurchaseHandler(ledgerService, accountResolver, accountService)
@@ -393,6 +418,7 @@ func newChargesRegistry(
 		creditPurchaseSvc,
 		usageBasedSvc,
 		billingService,
+		recognizerService,
 		fsNamespaceLockdown,
 	)
 	if err != nil {
@@ -404,5 +430,6 @@ func newChargesRegistry(
 		FlatFeeService:        flatFeeSvc,
 		UsageBasedService:     usageBasedSvc,
 		CreditPurchaseService: creditPurchaseSvc,
+		RecognizerService:     recognizerService,
 	}, nil
 }

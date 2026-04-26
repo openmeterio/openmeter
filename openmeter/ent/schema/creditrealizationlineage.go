@@ -119,6 +119,17 @@ func (CreditRealizationLineageSegment) Fields() []ent.Field {
 			Optional().
 			NotEmpty().
 			Nillable(),
+		field.Enum("source_state").
+			GoType(creditrealization.LineageSegmentState("")).
+			Optional().
+			Nillable(),
+		field.String("source_backing_transaction_group_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			NotEmpty().
+			Nillable(),
 		field.Time("closed_at").
 			Optional().
 			Nillable(),

@@ -13,6 +13,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -45,12 +47,16 @@ func (s *service) handleStandardInvoiceUpdate(ctx context.Context, invoice billi
 		})
 
 	case billing.StandardInvoiceStatusIssued:
-		return s.handleChargeEvent(ctx, invoice, processorByType{
+		if err := s.handleChargeEvent(ctx, invoice, processorByType{
 			flatFee:    s.flatFeeService.PostInvoiceIssued,
 			usageBased: noop[usagebased.Charge],
 			// Invoice credit purchase settlements are not requiring any special handling at this point
 			creditPurchase: noop[creditpurchase.Charge],
-		})
+		}); err != nil {
+			return err
+		}
+
+		return s.recognizeEarningsForInvoice(ctx, invoice)
 
 	case billing.StandardInvoiceStatusPaymentProcessingAuthorized:
 		return s.handleChargeEvent(ctx, invoice, processorByType{
@@ -70,11 +76,15 @@ func (s *service) handleStandardInvoiceUpdate(ctx context.Context, invoice billi
 		})
 
 	case billing.StandardInvoiceStatusPaid:
-		return s.handleChargeEvent(ctx, invoice, processorByType{
+		if err := s.handleChargeEvent(ctx, invoice, processorByType{
 			flatFee:        s.flatFeeService.PostInvoicePaymentSettled,
 			usageBased:     noop[usagebased.Charge],
 			creditPurchase: s.creditPurchaseService.PostInvoicePaymentSettled,
-		})
+		}); err != nil {
+			return err
+		}
+
+		return s.recognizeEarningsForInvoice(ctx, invoice)
 	}
 
 	return nil
@@ -215,6 +225,18 @@ func (s *service) getLinesWithChargesForStandardInvoice(ctx context.Context, ns 
 			StandardLineWithInvoiceHeader: lineWithHeader,
 		}, nil
 	})
+}
+
+func (s *service) recognizeEarningsForInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
+	if _, err := s.recognizerService.RecognizeEarnings(ctx, recognizer.RecognizeEarningsInput{
+		CustomerID: invoice.CustomerID(),
+		At:         clock.Now(),
+		Currency:   invoice.Currency,
+	}); err != nil {
+		return fmt.Errorf("recognize earnings: %w", err)
+	}
+
+	return nil
 }
 
 func withBillingTransactionForInvoiceManipulation[T any](ctx context.Context, s *service, customerID customer.CustomerID, fn func(ctx context.Context) (T, error)) (T, error) {

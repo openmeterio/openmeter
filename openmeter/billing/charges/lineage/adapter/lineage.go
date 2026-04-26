@@ -46,13 +46,7 @@ func LoadActiveSegmentsByRealizationID(
 
 		return lo.SliceToMap(lineages, func(entry *entdb.CreditRealizationLineage) (string, []lineage.Segment) {
 			return entry.RootRealizationID, lo.Map(entry.Edges.Segments, func(segment *entdb.CreditRealizationLineageSegment, _ int) lineage.Segment {
-				return lineage.Segment{
-					ID:                        segment.ID,
-					LineageID:                 segment.LineageID,
-					Amount:                    segment.Amount,
-					State:                     segment.State,
-					BackingTransactionGroupID: segment.BackingTransactionGroupID,
-				}
+				return mapSegment(segment)
 			})
 		}), nil
 	})
@@ -96,6 +90,28 @@ func (a *adapter) CreateLineages(ctx context.Context, input lineage.CreateLineag
 		}
 
 		return nil
+	})
+}
+
+func (a *adapter) LoadLineagesByCustomer(ctx context.Context, input lineage.LoadLineagesByCustomerInput) ([]lineage.Lineage, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]lineage.Lineage, error) {
+		lineages, err := tx.db.CreditRealizationLineage.Query().
+			Where(
+				creditrealizationlineage.Namespace(input.Namespace),
+				creditrealizationlineage.CustomerIDEQ(input.CustomerID),
+				creditrealizationlineage.CurrencyEQ(input.Currency),
+			).
+			WithSegments(func(q *entdb.CreditRealizationLineageSegmentQuery) {
+				q.Where(creditrealizationlineagesegment.ClosedAtIsNil()).
+					Order(creditrealizationlineagesegment.ByCreatedAt())
+			}).
+			Order(creditrealizationlineage.ByCreatedAt()).
+			All(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		return lo.Map(lineages, mapLineage), nil
 	})
 }
 
@@ -212,6 +228,12 @@ func (a *adapter) CreateSegment(ctx context.Context, input lineage.CreateSegment
 		if input.BackingTransactionGroupID != nil {
 			create = create.SetBackingTransactionGroupID(*input.BackingTransactionGroupID)
 		}
+		if input.SourceState != nil {
+			create = create.SetSourceState(*input.SourceState)
+		}
+		if input.SourceBackingTransactionGroupID != nil {
+			create = create.SetSourceBackingTransactionGroupID(*input.SourceBackingTransactionGroupID)
+		}
 
 		_, err := create.Save(ctx)
 		return err
@@ -234,10 +256,12 @@ func mapLineage(entry *entdb.CreditRealizationLineage, _ int) lineage.Lineage {
 
 func mapSegment(segment *entdb.CreditRealizationLineageSegment) lineage.Segment {
 	return lineage.Segment{
-		ID:                        segment.ID,
-		LineageID:                 segment.LineageID,
-		Amount:                    segment.Amount,
-		State:                     segment.State,
-		BackingTransactionGroupID: segment.BackingTransactionGroupID,
+		ID:                              segment.ID,
+		LineageID:                       segment.LineageID,
+		Amount:                          segment.Amount,
+		State:                           segment.State,
+		BackingTransactionGroupID:       segment.BackingTransactionGroupID,
+		SourceState:                     segment.SourceState,
+		SourceBackingTransactionGroupID: segment.SourceBackingTransactionGroupID,
 	}
 }

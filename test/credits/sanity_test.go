@@ -1,6 +1,7 @@
 package credits
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -17,6 +18,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
+	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
@@ -26,6 +29,7 @@ import (
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
+	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	ledgerresolvers "github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
@@ -49,6 +53,7 @@ type CreditsTestSuite struct {
 	Ledger               ledger.Ledger
 	LedgerAccountService ledgeraccount.Service
 	LedgerResolver       *ledgerresolvers.AccountResolver
+	RevenueRecognizer    recognizer.Service
 }
 
 func TestCreditsTestSuite(t *testing.T) {
@@ -66,6 +71,27 @@ func (s *CreditsTestSuite) SetupSuite() {
 	s.Ledger = deps.HistoricalLedger
 	s.LedgerAccountService = deps.AccountService
 	s.LedgerResolver = deps.ResolversService
+
+	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
+		Client: s.DBClient,
+	})
+	s.NoError(err)
+
+	lineageService, err := lineageservice.New(lineageservice.Config{
+		Adapter: lineageAdapter,
+	})
+	s.NoError(err)
+
+	revenueRecognizer, err := recognizer.NewService(recognizer.Config{
+		Ledger: deps.HistoricalLedger,
+		Dependencies: transactions.ResolverDependencies{
+			AccountService:    deps.ResolversService,
+			SubAccountService: deps.AccountService,
+		},
+		Lineage: lineageService,
+	})
+	s.NoError(err)
+	s.RevenueRecognizer = revenueRecognizer
 
 	collectorService := ledgercollector.NewService(ledgercollector.Config{
 		Ledger: deps.HistoricalLedger,
@@ -96,8 +122,114 @@ func (s *CreditsTestSuite) TearDownTest() {
 }
 
 func (s *CreditsTestSuite) TestFlatFeeCreditOnlyDeleteCorrectionSanity() {
+	setup := s.setupFlatFeeCreditOnlyDeleteCorrection("charges-sanity-flatfee-credit-only-delete")
+
+	clock.FreezeTime(setup.createAt)
+	defer clock.UnFreeze()
+
+	// Given a credit-only flat fee that will be corrected by deleting the charge.
+	chargeID := s.createAndAdvanceFlatFeeCreditOnlyCharge(setup)
+
+	// Then the unfunded realization sits on the nil-cost-basis receivable/accrued route.
+	s.assertUnfundedCreditOnlyRealization(setup.customer.GetID(), setup.amount)
+
+	// When the original charge is deleted with refund-as-credits.
+	s.deleteChargeWithRefundAsCredits(setup.ctx, setup.customer.GetID(), chargeID)
+
+	// Then the unfunded receivable/accrued route is fully cleared.
+	s.assertUnfundedCreditOnlyDeleted(setup.customer.GetID())
+}
+
+func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionSanity() {
+	setup := s.setupUsageBasedCreditOnlyDeleteCorrection("charges-sanity-usagebased-credit-only-delete")
+
+	clock.FreezeTime(setup.createAt)
+	defer clock.UnFreeze()
+
+	// Given usage occurred in the already-closed service period.
+	s.recordUsageInClosedServicePeriod(setup)
+
+	// When the credit-only usage charge is created after the service period, it finalizes immediately.
+	chargeID := s.createFinalizedUsageBasedCreditOnlyCharge(setup)
+
+	// Then the unfunded realization sits on the nil-cost-basis receivable/accrued route.
+	s.assertUnfundedCreditOnlyRealization(setup.customer.GetID(), setup.amount)
+
+	// When the original charge is deleted with refund-as-credits.
+	s.deleteChargeWithRefundAsCredits(setup.ctx, setup.customer.GetID(), chargeID)
+
+	// Then the unfunded receivable/accrued route is fully cleared.
+	s.assertUnfundedCreditOnlyDeleted(setup.customer.GetID())
+}
+
+func (s *CreditsTestSuite) TestFlatFeeFundedCreditOnlyRecognizedRevenueDeleteCorrectionSanity() {
+	setup := s.setupFlatFeeCreditOnlyDeleteCorrection("charges-sanity-flatfee-funded-credit-only-recognized-delete")
+	zeroCostBasis := alpacadecimal.Zero
+
+	clock.FreezeTime(setup.createAt)
+	defer clock.UnFreeze()
+
+	// Given zero-cost-basis promotional credits fund the customer before the charge is realized.
+	startOpenReceivable := s.createPromotionalCreditFunding(setup, zeroCostBasis)
+
+	// Given a credit-only flat fee that will be corrected by deleting the charge.
+	chargeID := s.createAndAdvanceFlatFeeCreditOnlyCharge(setup)
+
+	// Then the funded credits move from FBO to accrued, without changing the grant's receivable.
+	s.assertFundedCreditOnlyAccrued(setup.customer.GetID(), setup.amount, zeroCostBasis, startOpenReceivable)
+
+	// When revenue recognition runs, the accrued funded amount is moved into earnings.
+	s.recognizeFundedCreditOnlyRevenue(setup.namespace, setup.customer.GetID(), setup.amount, zeroCostBasis)
+
+	// When the original charge is deleted with refund-as-credits.
+	s.deleteChargeWithRefundAsCredits(setup.ctx, setup.customer.GetID(), chargeID)
+
+	// Then the recognized earnings are corrected back out and the funded credits return to FBO.
+	s.assertFundedRecognizedCreditOnlyDeleted(setup.namespace, setup.customer.GetID(), setup.amount, zeroCostBasis, startOpenReceivable)
+}
+
+func (s *CreditsTestSuite) TestUsageBasedFundedCreditOnlyRecognizedRevenueDeleteCorrectionSanity() {
+	setup := s.setupUsageBasedCreditOnlyDeleteCorrection("charges-sanity-usagebased-funded-credit-only-recognized-delete")
+	zeroCostBasis := alpacadecimal.Zero
+
+	clock.FreezeTime(setup.createAt)
+	defer clock.UnFreeze()
+
+	// Given zero-cost-basis promotional credits fund the customer before the charge is realized.
+	startOpenReceivable := s.createPromotionalCreditFunding(setup, zeroCostBasis)
+
+	// Given usage occurred in the already-closed service period.
+	s.recordUsageInClosedServicePeriod(setup)
+
+	// When the credit-only usage charge is created after the service period, it finalizes immediately.
+	chargeID := s.createFinalizedUsageBasedCreditOnlyCharge(setup)
+
+	// Then the funded credits move from FBO to accrued, without changing the grant's receivable.
+	s.assertFundedCreditOnlyAccrued(setup.customer.GetID(), setup.amount, zeroCostBasis, startOpenReceivable)
+
+	// When revenue recognition runs, the accrued funded amount is moved into earnings.
+	s.recognizeFundedCreditOnlyRevenue(setup.namespace, setup.customer.GetID(), setup.amount, zeroCostBasis)
+
+	// When the original charge is deleted with refund-as-credits.
+	s.deleteChargeWithRefundAsCredits(setup.ctx, setup.customer.GetID(), chargeID)
+
+	// Then the recognized earnings are corrected back out and the funded credits return to FBO.
+	s.assertFundedRecognizedCreditOnlyDeleted(setup.namespace, setup.customer.GetID(), setup.amount, zeroCostBasis, startOpenReceivable)
+}
+
+type creditOnlyDeleteCorrectionSetup struct {
+	ctx           context.Context
+	namespace     string
+	customer      *customer.Customer
+	servicePeriod timeutil.ClosedPeriod
+	createAt      time.Time
+	amount        alpacadecimal.Decimal
+	featureKey    string
+}
+
+func (s *CreditsTestSuite) setupFlatFeeCreditOnlyDeleteCorrection(namespaceSuffix string) creditOnlyDeleteCorrectionSetup {
 	ctx := s.T().Context()
-	ns := s.GetUniqueNamespace("charges-sanity-flatfee-credit-only-delete")
+	ns := s.GetUniqueNamespace(namespaceSuffix)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.createLedgerBackedCustomer(ns, "test-subject")
@@ -107,30 +239,86 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlyDeleteCorrectionSanity() {
 		billingtest.WithManualApproval(),
 	)
 
-	createAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-01T00:00:00Z", time.UTC).AsTime()
-	servicePeriod := timeutil.ClosedPeriod{
-		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
-		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	return creditOnlyDeleteCorrectionSetup{
+		ctx:       ctx,
+		namespace: ns,
+		customer:  cust,
+		servicePeriod: timeutil.ClosedPeriod{
+			From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+			To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+		},
+		createAt: datetime.MustParseTimeInLocation(s.T(), "2025-12-01T00:00:00Z", time.UTC).AsTime(),
+		amount:   alpacadecimal.NewFromInt(30),
 	}
+}
 
-	clock.FreezeTime(createAt)
-	defer clock.UnFreeze()
+func (s *CreditsTestSuite) setupUsageBasedCreditOnlyDeleteCorrection(namespaceSuffix string) creditOnlyDeleteCorrectionSetup {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace(namespaceSuffix)
 
-	res, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+	cust := s.createLedgerBackedCustomer(ns, "test-subject")
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+
+	return creditOnlyDeleteCorrectionSetup{
+		ctx:       ctx,
+		namespace: ns,
+		customer:  cust,
+		servicePeriod: timeutil.ClosedPeriod{
+			From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+			To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+		},
+		createAt:   datetime.MustParseTimeInLocation(s.T(), "2026-02-03T00:00:00Z", time.UTC).AsTime(),
+		amount:     alpacadecimal.NewFromInt(8),
+		featureKey: apiRequestsTotal.Feature.Key,
+	}
+}
+
+func (s *CreditsTestSuite) createPromotionalCreditFunding(setup creditOnlyDeleteCorrectionSetup, costBasis alpacadecimal.Decimal) alpacadecimal.Decimal {
+	s.T().Helper()
+
+	res, err := s.Charges.Create(setup.ctx, charges.CreateInput{
+		Namespace: setup.namespace,
+		Intents: charges.ChargeIntents{
+			s.createCreditPurchaseIntent(createCreditPurchaseIntentInput{
+				customer: setup.customer.GetID(),
+				currency: USD,
+				amount:   setup.amount,
+				servicePeriod: timeutil.ClosedPeriod{
+					From: setup.createAt,
+					To:   setup.createAt,
+				},
+				settlement: creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Len(res, 1)
+	s.True(s.mustCustomerFBOBalance(setup.customer.GetID(), USD, mo.Some(&costBasis)).Equal(setup.amount))
+
+	return s.mustCustomerReceivableBalance(setup.customer.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen)
+}
+
+func (s *CreditsTestSuite) createAndAdvanceFlatFeeCreditOnlyCharge(setup creditOnlyDeleteCorrectionSetup) string {
+	s.T().Helper()
+
+	res, err := s.Charges.Create(setup.ctx, charges.CreateInput{
+		Namespace: setup.namespace,
 		Intents: charges.ChargeIntents{
 			s.createMockChargeIntent(createMockChargeIntentInput{
-				customer:       cust.GetID(),
+				customer:       setup.customer.GetID(),
 				currency:       USD,
-				servicePeriod:  servicePeriod,
+				servicePeriod:  setup.servicePeriod,
 				settlementMode: productcatalog.CreditOnlySettlementMode,
 				price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-					Amount:      alpacadecimal.NewFromInt(30),
+					Amount:      setup.amount,
 					PaymentTerm: productcatalog.InAdvancePaymentTerm,
 				}),
-				name:              "flat-fee-credit-only-delete",
+				name:              setup.namespace,
 				managedBy:         billing.SubscriptionManagedLine,
-				uniqueReferenceID: "flat-fee-credit-only-delete",
+				uniqueReferenceID: setup.namespace,
 			}),
 		},
 	})
@@ -140,10 +328,10 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlyDeleteCorrectionSanity() {
 	flatFeeChargeID, err := res[0].GetChargeID()
 	s.NoError(err)
 
-	clock.FreezeTime(servicePeriod.From)
+	clock.FreezeTime(setup.servicePeriod.From)
 
-	advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
-		Customer: cust.GetID(),
+	advancedCharges, err := s.Charges.AdvanceCharges(setup.ctx, charges.AdvanceChargesInput{
+		Customer: setup.customer.GetID(),
 	})
 	s.NoError(err)
 	s.Len(advancedCharges, 1)
@@ -153,62 +341,37 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlyDeleteCorrectionSanity() {
 	s.Equal(flatfee.StatusFinal, advancedCharge.Status)
 	s.Len(advancedCharge.Realizations.CreditRealizations, 1)
 
-	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromInt(-30)))
-	s.True(s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.NewFromInt(30)))
-
-	err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
-		CustomerID: cust.GetID(),
-		PatchesByChargeID: map[string]charges.Patch{
-			flatFeeChargeID.ID: meta.NewPatchDelete(meta.RefundAsCreditsDeletePolicy),
-		},
-	})
-	s.NoError(err)
-
-	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
-	s.True(s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
-	s.True(s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
+	return flatFeeChargeID.ID
 }
 
-func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionSanity() {
-	ctx := s.T().Context()
-	ns := s.GetUniqueNamespace("charges-sanity-usagebased-credit-only-delete")
-
-	cust := s.createLedgerBackedCustomer(ns, "test-subject")
-	sandboxApp := s.InstallSandboxApp(s.T(), ns)
-	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
-
-	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
-
-	servicePeriod := timeutil.ClosedPeriod{
-		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
-		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
-	}
-	createAt := datetime.MustParseTimeInLocation(s.T(), "2026-02-03T00:00:00Z", time.UTC).AsTime()
-
-	clock.FreezeTime(createAt)
-	defer clock.UnFreeze()
+func (s *CreditsTestSuite) recordUsageInClosedServicePeriod(setup creditOnlyDeleteCorrectionSetup) {
+	s.T().Helper()
 
 	s.MockStreamingConnector.AddSimpleEvent(
-		apiRequestsTotal.Feature.Key,
-		8,
+		setup.featureKey,
+		setup.amount.InexactFloat64(),
 		datetime.MustParseTimeInLocation(s.T(), "2026-01-15T00:00:00Z", time.UTC).AsTime(),
 	)
+}
 
-	res, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+func (s *CreditsTestSuite) createFinalizedUsageBasedCreditOnlyCharge(setup creditOnlyDeleteCorrectionSetup) string {
+	s.T().Helper()
+
+	res, err := s.Charges.Create(setup.ctx, charges.CreateInput{
+		Namespace: setup.namespace,
 		Intents: charges.ChargeIntents{
 			s.createMockChargeIntent(createMockChargeIntentInput{
-				customer:       cust.GetID(),
+				customer:       setup.customer.GetID(),
 				currency:       USD,
-				servicePeriod:  servicePeriod,
+				servicePeriod:  setup.servicePeriod,
 				settlementMode: productcatalog.CreditOnlySettlementMode,
 				price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 					Amount: alpacadecimal.NewFromInt(1),
 				}),
-				name:              "usage-based-credit-only-delete",
+				name:              setup.namespace,
 				managedBy:         billing.SubscriptionManagedLine,
-				uniqueReferenceID: "usage-based-credit-only-delete",
-				featureKey:        apiRequestsTotal.Feature.Key,
+				uniqueReferenceID: setup.namespace,
+				featureKey:        setup.featureKey,
 			}),
 		},
 	})
@@ -220,21 +383,61 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionSanity() {
 	s.Equal(meta.ChargeStatusFinal, meta.ChargeStatus(usageBasedCharge.Status))
 	s.Len(usageBasedCharge.Realizations, 1)
 	s.Len(usageBasedCharge.Realizations[0].CreditsAllocated, 1)
-	s.True(usageBasedCharge.Realizations[0].CreditsAllocated[0].Amount.Equal(alpacadecimal.NewFromInt(8)))
+	s.True(usageBasedCharge.Realizations[0].CreditsAllocated[0].Amount.Equal(setup.amount))
 
-	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromInt(-8)))
-	s.True(s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.NewFromInt(8)))
+	return usageBasedCharge.ID
+}
 
-	err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
-		CustomerID: cust.GetID(),
+func (s *CreditsTestSuite) deleteChargeWithRefundAsCredits(ctx context.Context, customerID customer.CustomerID, chargeID string) {
+	s.T().Helper()
+
+	err := s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+		CustomerID: customerID,
 		PatchesByChargeID: map[string]charges.Patch{
-			usageBasedCharge.ID: meta.NewPatchDelete(meta.RefundAsCreditsDeletePolicy),
+			chargeID: meta.NewPatchDelete(meta.RefundAsCreditsDeletePolicy),
 		},
 	})
 	s.NoError(err)
-	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
-	s.True(s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
-	s.True(s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
+}
+
+func (s *CreditsTestSuite) assertUnfundedCreditOnlyRealization(customerID customer.CustomerID, amount alpacadecimal.Decimal) {
+	s.T().Helper()
+
+	s.True(s.mustCustomerReceivableBalance(customerID, USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(amount.Neg()))
+	s.True(s.mustCustomerAccruedBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(amount))
+}
+
+func (s *CreditsTestSuite) assertUnfundedCreditOnlyDeleted(customerID customer.CustomerID) {
+	s.T().Helper()
+
+	s.True(s.mustCustomerReceivableBalance(customerID, USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
+	s.True(s.mustCustomerAccruedBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
+	s.True(s.mustCustomerFBOBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
+}
+
+func (s *CreditsTestSuite) assertFundedCreditOnlyAccrued(customerID customer.CustomerID, amount alpacadecimal.Decimal, costBasis alpacadecimal.Decimal, startOpenReceivable alpacadecimal.Decimal) {
+	s.T().Helper()
+
+	s.True(s.mustCustomerFBOBalance(customerID, USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
+	s.True(s.mustCustomerReceivableBalance(customerID, USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(startOpenReceivable))
+	s.True(s.mustCustomerAccruedBalance(customerID, USD, mo.Some(&costBasis)).Equal(amount))
+}
+
+func (s *CreditsTestSuite) recognizeFundedCreditOnlyRevenue(namespace string, customerID customer.CustomerID, amount alpacadecimal.Decimal, costBasis alpacadecimal.Decimal) {
+	s.T().Helper()
+
+	s.mustRecognizeRevenue(customerID, USD, amount)
+	s.True(s.mustCustomerAccruedBalance(customerID, USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
+	s.True(s.mustEarningsBalance(namespace, USD).Equal(amount))
+}
+
+func (s *CreditsTestSuite) assertFundedRecognizedCreditOnlyDeleted(namespace string, customerID customer.CustomerID, amount alpacadecimal.Decimal, costBasis alpacadecimal.Decimal, startOpenReceivable alpacadecimal.Decimal) {
+	s.T().Helper()
+
+	s.True(s.mustCustomerReceivableBalance(customerID, USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(startOpenReceivable))
+	s.True(s.mustCustomerAccruedBalance(customerID, USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
+	s.True(s.mustCustomerFBOBalance(customerID, USD, mo.Some(&costBasis)).Equal(amount))
+	s.True(s.mustEarningsBalance(namespace, USD).Equal(alpacadecimal.Zero))
 }
 
 func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfillSanity() {
@@ -1547,6 +1750,18 @@ func (s *CreditsTestSuite) mustEarningsBalance(namespace string, code currencyx.
 	s.NoError(err)
 
 	return balance.Settled()
+}
+
+func (s *CreditsTestSuite) mustRecognizeRevenue(customerID customer.CustomerID, code currencyx.Code, amount alpacadecimal.Decimal) {
+	s.T().Helper()
+
+	result, err := s.RevenueRecognizer.RecognizeEarnings(s.T().Context(), recognizer.RecognizeEarningsInput{
+		CustomerID: customerID,
+		At:         clock.Now(),
+		Currency:   code,
+	})
+	s.NoError(err)
+	s.True(result.RecognizedAmount.Equal(amount), "recognized=%s expected=%s", result.RecognizedAmount, amount)
 }
 
 func (s *CreditsTestSuite) mustGetChargeByID(chargeID meta.ChargeID) charges.Charge {

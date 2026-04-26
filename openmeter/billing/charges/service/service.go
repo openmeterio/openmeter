@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
 
@@ -24,6 +25,7 @@ type service struct {
 	flatFeeService        flatfee.Service
 	creditPurchaseService creditpurchase.Service
 	usageBasedService     usagebased.Service
+	recognizerService     recognizer.Service
 
 	fsNamespaceLockdown []string
 }
@@ -36,6 +38,7 @@ type Config struct {
 	FlatFeeService        flatfee.Service
 	CreditPurchaseService creditpurchase.Service
 	UsageBasedService     usagebased.Service
+	RecognizerService     recognizer.Service
 
 	BillingService billing.Service
 
@@ -81,6 +84,10 @@ func New(config Config) (*service, error) {
 		return nil, err
 	}
 
+	if config.RecognizerService == nil {
+		config.RecognizerService = recognizer.NoopService{}
+	}
+
 	svc := &service{
 		adapter:               config.Adapter,
 		billingService:        config.BillingService,
@@ -89,6 +96,7 @@ func New(config Config) (*service, error) {
 		flatFeeService:        config.FlatFeeService,
 		creditPurchaseService: config.CreditPurchaseService,
 		usageBasedService:     config.UsageBasedService,
+		recognizerService:     config.RecognizerService,
 		fsNamespaceLockdown:   config.FSNamespaceLockdown,
 	}
 
