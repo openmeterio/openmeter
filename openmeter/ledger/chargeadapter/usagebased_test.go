@@ -253,10 +253,10 @@ func TestOnUsageBasedPaymentAuthorized(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, ref.TransactionGroupID)
 
-		// Receivable is only funded into the authorized staging bucket at authorization time.
-		require.True(t, env.sumBalance(t, env.receivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(-40)))
-		require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(40)))
-		require.True(t, env.sumBalance(t, env.washSubAccount(t)).Equal(alpacadecimal.NewFromInt(-40)))
+		// Authorization only moves the receivable between status buckets.
+		require.True(t, env.sumBalance(t, env.receivableSubAccount(t)).Equal(alpacadecimal.Zero))
+		require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(-40)))
+		require.True(t, env.sumBalance(t, env.washSubAccount(t)).Equal(alpacadecimal.Zero))
 		// No revenue recognition happens here anymore.
 		require.True(t, env.sumBalance(t, env.invoiceAccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(40)))
 		require.True(t, env.sumBalance(t, env.invoiceEarningsSubAccount(t)).Equal(alpacadecimal.Zero))
@@ -280,7 +280,7 @@ func TestOnUsageBasedPaymentAuthorized(t *testing.T) {
 }
 
 func TestOnUsageBasedPaymentSettled(t *testing.T) {
-	t.Run("credit_then_invoice settles authorized receivable", func(t *testing.T) {
+	t.Run("credit_then_invoice settles authorized receivable from wash", func(t *testing.T) {
 		env := newUsageBasedHandlerTestEnv(t)
 
 		total := alpacadecimal.NewFromInt(25)
@@ -517,13 +517,13 @@ func (e *usageBasedHandlerTestEnv) fundPriority(t *testing.T, priority int, amou
 			CostBasis:      &costBasis,
 			CreditPriority: &priority,
 		},
-		transactions.FundCustomerReceivableTemplate{
+		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:        e.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
 			Currency:  e.Currency,
 			CostBasis: &costBasis,
 		},
-		transactions.SettleCustomerReceivablePaymentTemplate{
+		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:        e.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
 			Currency:  e.Currency,

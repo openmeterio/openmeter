@@ -205,8 +205,8 @@ func (h *flatFeeHandler) OnCreditsOnlyUsageAccruedCorrection(ctx context.Context
 	})
 }
 
-// OnFlatFeePaymentAuthorized currently only stages receivable funding from wash
-// for the directly-invoiced portion. Revenue recognition is handled elsewhere.
+// OnFlatFeePaymentAuthorized stages the directly-invoiced receivable as
+// authorized. Revenue recognition is handled elsewhere.
 func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error) {
 	if err := charge.Validate(); err != nil {
 		return ledgertransaction.GroupReference{}, err
@@ -234,7 +234,7 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, charge flatfee
 			CustomerID: customerID,
 			Namespace:  charge.Namespace,
 		},
-		transactions.FundCustomerReceivableTemplate{
+		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:        charge.Intent.InvoiceAt,
 			Amount:    receivableReplenishment,
 			Currency:  charge.Intent.Currency,
@@ -287,7 +287,7 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, charge flatfee.Ch
 			CustomerID: customerID,
 			Namespace:  charge.Namespace,
 		},
-		transactions.SettleCustomerReceivablePaymentTemplate{
+		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:        charge.Intent.InvoiceAt,
 			Amount:    charge.Realizations.AccruedUsage.Totals.Total,
 			Currency:  charge.Intent.Currency,

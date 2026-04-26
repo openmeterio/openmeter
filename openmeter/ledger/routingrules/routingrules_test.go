@@ -123,7 +123,7 @@ func TestDefaultValidator_RejectsMismatchedReceivableAndFBORoute(t *testing.T) {
 	require.ErrorContains(t, err, "ledger routing rule violated")
 }
 
-func TestDefaultValidator_AllowsReceivableAuthorizationStageTransition(t *testing.T) {
+func TestDefaultValidator_AllowsReceivableAuthorizationTransition(t *testing.T) {
 	validator := routingrules.DefaultValidator
 	openStatus := ledger.TransactionAuthorizationStatusOpen
 	status := ledger.TransactionAuthorizationStatusAuthorized
@@ -148,7 +148,7 @@ func TestDefaultValidator_AllowsReceivableAuthorizationStageTransition(t *testin
 	require.NoError(t, err)
 }
 
-func TestDefaultValidator_RejectsReceivableAuthorizationStageWithWrongDirection(t *testing.T) {
+func TestDefaultValidator_RejectsReceivableAuthorizationTransitionWithWrongDirection(t *testing.T) {
 	validator := routingrules.DefaultValidator
 	openStatus := ledger.TransactionAuthorizationStatusOpen
 	status := ledger.TransactionAuthorizationStatusAuthorized

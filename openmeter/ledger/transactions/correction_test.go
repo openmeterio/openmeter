@@ -70,11 +70,52 @@ func TestCorrectTransactionDispatchesTemplateStub(t *testing.T) {
 		OriginalTransaction: &correctionTestTransaction{
 			id: models.NamespacedID{Namespace: "ns", ID: "tx"},
 			annotations: ledger.TransactionAnnotations(
-				templateName(FundCustomerReceivableTemplate{}),
+				templateName(SettleCustomerReceivableFromPaymentTemplate{}),
 				ledger.TransactionDirectionForward,
 			),
 		},
 	})
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "FundCustomerReceivableTemplate correction is not implemented")
+	require.Contains(t, err.Error(), "SettleCustomerReceivableFromPaymentTemplate correction is not implemented")
+}
+
+func TestCorrectTransactionDispatchesArchivedReceivablePaymentTemplates(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		templateName  string
+		expectedError string
+	}{
+		{
+			name:          "legacy fund means settlement funding",
+			templateName:  templateName(FundCustomerReceivableTemplate{}),
+			expectedError: "FundCustomerReceivableTemplate correction is not implemented",
+		},
+		{
+			name:          "legacy settle means authorization status transfer",
+			templateName:  templateName(SettleCustomerReceivablePaymentTemplate{}),
+			expectedError: "SettleCustomerReceivablePaymentTemplate correction is not implemented",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := CorrectTransaction(t.Context(), ResolverDependencies{}, CorrectionInput{
+				At:     time.Now(),
+				Amount: alpacadecimal.NewFromInt(1),
+				OriginalTransaction: &correctionTestTransaction{
+					id: models.NamespacedID{Namespace: "ns", ID: "tx"},
+					annotations: ledger.TransactionAnnotations(
+						tt.templateName,
+						ledger.TransactionDirectionForward,
+					),
+				},
+			})
+			require.Error(t, err)
+			require.Contains(t, err.Error(), tt.expectedError)
+		})
+	}
 }
