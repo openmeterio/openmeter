@@ -1822,6 +1822,28 @@ paths:
       description: List all plans.
       parameters:
         - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort plans returned in the response.
+            Supported sort attributes are:
+            - `id`
+            - `key`
+            - `version`
+            - `created_at` (default)
+            - `updated_at`
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+        - name: filter
+          in: query
+          required: false
+          description: Filter plans returned in the response.
+          schema:
+            $ref: '#/components/schemas/ListPlansParamsFilter'
+          style: deepObject
       responses:
         '200':
           description: Page paginated response.
@@ -7621,6 +7643,18 @@ components:
             - $ref: '#/components/schemas/StringFieldFilter'
           description: Filter meters by name.
       description: Filter options for listing meters.
+    ListPlansParamsFilter:
+      type: object
+      properties:
+        key:
+          $ref: '#/components/schemas/StringFieldFilter'
+        name:
+          $ref: '#/components/schemas/StringFieldFilter'
+        status:
+          $ref: '#/components/schemas/StringFieldFilterExact'
+        currency:
+          $ref: '#/components/schemas/StringFieldFilterExact'
+      description: Filter options for listing plans.
     Meter:
       type: object
       required:
