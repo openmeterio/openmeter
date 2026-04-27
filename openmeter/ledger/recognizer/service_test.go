@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
+	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
@@ -47,9 +48,10 @@ func newRecognizerTestEnv(t *testing.T) *recognizerTestEnv {
 	require.NoError(t, err)
 
 	recSvc, err := recognizer.NewService(recognizer.Config{
-		Ledger:       base.Deps.HistoricalLedger,
-		Dependencies: deps,
-		Lineage:      lngeSvc,
+		Ledger:             base.Deps.HistoricalLedger,
+		Dependencies:       deps,
+		Lineage:            lngeSvc,
+		TransactionManager: enttx.NewCreator(base.DB),
 	})
 	require.NoError(t, err)
 

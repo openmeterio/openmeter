@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 // recognizableSegmentStates are lineage segment states from which earnings can be recognized.
@@ -33,81 +34,79 @@ func (s *service) RecognizeEarnings(ctx context.Context, in RecognizeEarningsInp
 		return RecognizeEarningsResult{}, err
 	}
 
-	// Load all lineages for this customer+currency with their active segments.
-	lineages, err := s.lnge.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
-		Namespace:  in.CustomerID.Namespace,
-		CustomerID: in.CustomerID.ID,
-		Currency:   in.Currency,
-	})
-	if err != nil {
-		return RecognizeEarningsResult{}, fmt.Errorf("load lineages: %w", err)
-	}
-
-	// Identify segments eligible for recognition, ordered deterministically by lineage ID.
-	eligible := collectEligibleLineages(lineages)
-	if len(eligible) == 0 {
-		return RecognizeEarningsResult{}, nil
-	}
-
-	totalEligible := alpacadecimal.Zero
-	for _, e := range eligible {
-		totalEligible = totalEligible.Add(e.amount)
-	}
-
-	// Resolve the recognition template against the actual ledger accrued balance.
-	resolved, err := transactions.ResolveTransactions(
-		ctx,
-		s.deps,
-		transactions.ResolutionScope{
-			CustomerID: in.CustomerID,
+	return transaction.Run(ctx, s.transactionManager, func(ctx context.Context) (RecognizeEarningsResult, error) {
+		// Load all lineages for this customer+currency with their active segments.
+		lineages, err := s.lnge.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
 			Namespace:  in.CustomerID.Namespace,
-		},
-		transactions.RecognizeEarningsFromAttributableAccruedTemplate{
-			At:       in.At,
-			Amount:   totalEligible,
-			Currency: in.Currency,
-		},
-	)
-	if err != nil {
-		return RecognizeEarningsResult{}, fmt.Errorf("resolve recognition: %w", err)
-	}
-	if len(resolved) == 0 {
-		return RecognizeEarningsResult{}, nil
-	}
-
-	// Compute actual recognized amount from the template output entries.
-	actualAmount := sumPositiveEntries(resolved)
-	if !actualAmount.IsPositive() {
-		return RecognizeEarningsResult{}, nil
-	}
-
-	// Commit the recognition to the ledger.
-	group, err := s.ledger.CommitGroup(ctx, transactions.GroupInputs(
-		in.CustomerID.Namespace,
-		nil,
-		resolved...,
-	))
-	if err != nil {
-		return RecognizeEarningsResult{}, fmt.Errorf("commit recognition: %w", err)
-	}
-
-	groupID := group.ID().ID
-
-	// Allocate actual recognized amount back to lineages in deterministic order
-	// and transition their segments to earnings_recognized.
-	if err := s.allocateRecognition(ctx, eligible, actualAmount, groupID); err != nil {
-		rollbackErr := s.rollbackRecognition(ctx, in, group, actualAmount)
-		if rollbackErr != nil {
-			return RecognizeEarningsResult{}, fmt.Errorf("allocate recognition: %w; rollback recognition: %v", err, rollbackErr)
+			CustomerID: in.CustomerID.ID,
+			Currency:   in.Currency,
+		})
+		if err != nil {
+			return RecognizeEarningsResult{}, fmt.Errorf("load lineages: %w", err)
 		}
 
-		return RecognizeEarningsResult{}, fmt.Errorf("allocate recognition: %w (ledger recognition rolled back)", err)
-	}
+		// Identify segments eligible for recognition, ordered deterministically by lineage ID.
+		eligible := collectEligibleLineages(lineages)
+		if len(eligible) == 0 {
+			return RecognizeEarningsResult{}, nil
+		}
 
-	return RecognizeEarningsResult{
-		RecognizedAmount: actualAmount,
-		LedgerGroupID:    groupID,
-	}, nil
+		totalEligible := alpacadecimal.Zero
+		for _, e := range eligible {
+			totalEligible = totalEligible.Add(e.amount)
+		}
+
+		// Resolve the recognition template against the actual ledger accrued balance.
+		resolved, err := transactions.ResolveTransactions(
+			ctx,
+			s.deps,
+			transactions.ResolutionScope{
+				CustomerID: in.CustomerID,
+				Namespace:  in.CustomerID.Namespace,
+			},
+			transactions.RecognizeEarningsFromAttributableAccruedTemplate{
+				At:       in.At,
+				Amount:   totalEligible,
+				Currency: in.Currency,
+			},
+		)
+		if err != nil {
+			return RecognizeEarningsResult{}, fmt.Errorf("resolve recognition: %w", err)
+		}
+		if len(resolved) == 0 {
+			return RecognizeEarningsResult{}, nil
+		}
+
+		// Compute actual recognized amount from the template output entries.
+		actualAmount := sumPositiveEntries(resolved)
+		if !actualAmount.IsPositive() {
+			return RecognizeEarningsResult{}, nil
+		}
+
+		// Commit the recognition to the ledger. The ledger joins the transaction
+		// already carried by ctx, so lineage and ledger state commit atomically.
+		group, err := s.ledger.CommitGroup(ctx, transactions.GroupInputs(
+			in.CustomerID.Namespace,
+			nil,
+			resolved...,
+		))
+		if err != nil {
+			return RecognizeEarningsResult{}, fmt.Errorf("commit recognition: %w", err)
+		}
+
+		groupID := group.ID().ID
+
+		// Allocate actual recognized amount back to lineages in deterministic order
+		// and transition their segments to earnings_recognized.
+		if err := s.allocateRecognition(ctx, eligible, actualAmount, groupID); err != nil {
+			return RecognizeEarningsResult{}, fmt.Errorf("allocate recognition: %w", err)
+		}
+
+		return RecognizeEarningsResult{
+			RecognizedAmount: actualAmount,
+			LedgerGroupID:    groupID,
+		}, nil
+	})
 }
 
 // collectEligibleLineages extracts lineages with recognizable active segments,
@@ -202,38 +201,6 @@ func (s *service) allocateRecognition(ctx context.Context, eligible []lineageEli
 	return nil
 }
 
-// rollbackRecognition compensates a committed recognition when lineage persistence fails.
-func (s *service) rollbackRecognition(ctx context.Context, in RecognizeEarningsInput, group ledger.TransactionGroup, amount alpacadecimal.Decimal) error {
-	tx, err := forwardRecognitionTransaction(group)
-	if err != nil {
-		return fmt.Errorf("find committed recognition transaction: %w", err)
-	}
-
-	correctionInputs, err := transactions.CorrectTransaction(ctx, s.deps, transactions.CorrectionInput{
-		At:                  in.At,
-		Amount:              amount,
-		OriginalTransaction: tx,
-		OriginalGroup:       group,
-	})
-	if err != nil {
-		return fmt.Errorf("resolve recognition rollback: %w", err)
-	}
-
-	if len(correctionInputs) == 0 {
-		return fmt.Errorf("resolve recognition rollback: no correction inputs")
-	}
-
-	if _, err := s.ledger.CommitGroup(ctx, transactions.GroupInputs(
-		in.CustomerID.Namespace,
-		nil,
-		correctionInputs...,
-	)); err != nil {
-		return fmt.Errorf("commit recognition rollback: %w", err)
-	}
-
-	return nil
-}
-
 // sumPositiveEntries sums positive entry amounts across resolved transaction inputs.
 // For recognition this is the total amount credited to earnings accounts.
 func sumPositiveEntries(inputs []ledger.TransactionInput) alpacadecimal.Decimal {
@@ -248,28 +215,6 @@ func sumPositiveEntries(inputs []ledger.TransactionInput) alpacadecimal.Decimal 
 	}
 
 	return total
-}
-
-func forwardRecognitionTransaction(group ledger.TransactionGroup) (ledger.Transaction, error) {
-	templateName := transactions.TemplateName(transactions.RecognizeEarningsFromAttributableAccruedTemplate{})
-
-	for _, tx := range group.Transactions() {
-		name, err := ledger.TransactionTemplateNameFromAnnotations(tx.Annotations())
-		if err != nil {
-			continue
-		}
-
-		direction, err := ledger.TransactionDirectionFromAnnotations(tx.Annotations())
-		if err != nil {
-			continue
-		}
-
-		if name == templateName && direction == ledger.TransactionDirectionForward {
-			return tx, nil
-		}
-	}
-
-	return nil, fmt.Errorf("no forward recognition transaction found")
 }
 
 func minDecimal(a, b alpacadecimal.Decimal) alpacadecimal.Decimal {

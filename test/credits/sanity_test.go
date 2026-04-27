@@ -25,6 +25,7 @@ import (
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
@@ -88,7 +89,8 @@ func (s *CreditsTestSuite) SetupSuite() {
 			AccountService:    deps.ResolversService,
 			SubAccountService: deps.AccountService,
 		},
-		Lineage: lineageService,
+		Lineage:            lineageService,
+		TransactionManager: enttx.NewCreator(s.DBClient),
 	})
 	s.NoError(err)
 	s.RevenueRecognizer = revenueRecognizer

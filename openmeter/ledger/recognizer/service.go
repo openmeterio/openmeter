@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 type Service interface {
@@ -20,9 +21,10 @@ type Service interface {
 }
 
 type Config struct {
-	Ledger       ledger.Ledger
-	Dependencies transactions.ResolverDependencies
-	Lineage      lineage.Service
+	Ledger             ledger.Ledger
+	Dependencies       transactions.ResolverDependencies
+	Lineage            lineage.Service
+	TransactionManager transaction.Creator
 }
 
 func (c Config) Validate() error {
@@ -40,6 +42,9 @@ func (c Config) Validate() error {
 	if c.Lineage == nil {
 		errs = append(errs, errors.New("lineage service is required"))
 	}
+	if c.TransactionManager == nil {
+		errs = append(errs, errors.New("transaction manager is required"))
+	}
 
 	return errors.Join(errs...)
 }
@@ -50,16 +55,18 @@ func NewService(config Config) (Service, error) {
 	}
 
 	return &service{
-		ledger: config.Ledger,
-		deps:   config.Dependencies,
-		lnge:   config.Lineage,
+		ledger:             config.Ledger,
+		deps:               config.Dependencies,
+		lnge:               config.Lineage,
+		transactionManager: config.TransactionManager,
 	}, nil
 }
 
 type service struct {
-	ledger ledger.Ledger
-	deps   transactions.ResolverDependencies
-	lnge   lineage.Service
+	ledger             ledger.Ledger
+	deps               transactions.ResolverDependencies
+	lnge               lineage.Service
+	transactionManager transaction.Creator
 }
 
 // RecognizeEarningsInput is the input for RecognizeEarnings.

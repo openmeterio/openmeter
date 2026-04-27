@@ -25,6 +25,7 @@ import (
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
@@ -290,6 +291,7 @@ func NewChargesService(
 }
 
 func NewRecognizerService(
+	db *entdb.Client,
 	ledgerService ledger.Ledger,
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
@@ -301,7 +303,8 @@ func NewRecognizerService(
 			AccountService:    accountResolver,
 			SubAccountService: accountService,
 		},
-		Lineage: lineageService,
+		Lineage:            lineageService,
+		TransactionManager: enttx.NewCreator(db),
 	})
 }
 
@@ -337,7 +340,7 @@ func newChargesRegistry(
 
 	collectorService := NewChargesCollectorService(ledgerService, accountResolver, accountService)
 
-	recognizerService, err := NewRecognizerService(ledgerService, accountResolver, accountService, lineageService)
+	recognizerService, err := NewRecognizerService(db, ledgerService, accountResolver, accountService, lineageService)
 	if err != nil {
 		return nil, err
 	}

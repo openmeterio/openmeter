@@ -20,6 +20,7 @@ import (
 	chargeusagebased "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
+	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
@@ -460,9 +461,10 @@ func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
 		SubAccountService: base.Deps.AccountService,
 	}
 	recognizerService, err := recognizer.NewService(recognizer.Config{
-		Ledger:       base.Deps.HistoricalLedger,
-		Dependencies: deps,
-		Lineage:      lineageService,
+		Ledger:             base.Deps.HistoricalLedger,
+		Dependencies:       deps,
+		Lineage:            lineageService,
+		TransactionManager: enttx.NewCreator(base.DB),
 	})
 	require.NoError(t, err)
 

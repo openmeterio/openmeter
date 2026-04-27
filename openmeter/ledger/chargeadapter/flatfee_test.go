@@ -16,10 +16,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	ledgertransactiongroupdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
+	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
@@ -616,9 +615,10 @@ func newFlatFeeHandlerTestEnv(t *testing.T) *flatFeeHandlerTestEnv {
 	require.NoError(t, err)
 
 	recognizerService, err := recognizer.NewService(recognizer.Config{
-		Ledger:       base.Deps.HistoricalLedger,
-		Dependencies: deps,
-		Lineage:      lineageService,
+		Ledger:             base.Deps.HistoricalLedger,
+		Dependencies:       deps,
+		Lineage:            lineageService,
+		TransactionManager: enttx.NewCreator(base.DB),
 	})
 	require.NoError(t, err)
 
@@ -865,35 +865,6 @@ func (e *flatFeeHandlerTestEnv) newChargeWithCreditRealizationsAndAccruedUsage(r
 	return charge
 }
 
-func (e *flatFeeHandlerTestEnv) newChargeWithPayment(total alpacadecimal.Decimal, authRef ledgertransaction.GroupReference) chargeflatfee.Charge {
-	now := time.Now().UTC()
-	charge := e.newChargeWithAccruedUsage(total)
-	charge.Realizations.Payment = &payment.Invoiced{
-		Payment: payment.Payment{
-			NamespacedID: models.NamespacedID{
-				Namespace: e.Namespace,
-				ID:        "payment-1",
-			},
-			ManagedModel: models.ManagedModel{
-				CreatedAt: now,
-				UpdatedAt: now,
-			},
-			Base: payment.Base{
-				ServicePeriod: charge.Intent.ServicePeriod,
-				Amount:        total,
-				Authorized: &ledgertransaction.TimedGroupReference{
-					GroupReference: authRef,
-					Time:           now,
-				},
-				Status: payment.StatusAuthorized,
-			},
-		},
-		LineID: "line-1",
-	}
-
-	return charge
-}
-
 func (e *flatFeeHandlerTestEnv) washSubAccount(t *testing.T) ledger.SubAccount {
 	return e.WashSubAccountWithCostBasis(t, testInvoiceCostBasis())
 }
@@ -904,10 +875,6 @@ func (e *flatFeeHandlerTestEnv) receivableSubAccount(t *testing.T) ledger.SubAcc
 
 func (e *flatFeeHandlerTestEnv) authorizedReceivableSubAccount(t *testing.T) ledger.SubAccount {
 	return e.ReceivableSubAccountWithCostBasisAndStatus(t, testInvoiceCostBasis(), ledger.TransactionAuthorizationStatusAuthorized)
-}
-
-func (e *flatFeeHandlerTestEnv) brokerageSubAccount(t *testing.T) ledger.SubAccount {
-	return e.BrokerageSubAccount(t)
 }
 
 func (e *flatFeeHandlerTestEnv) creditAccruedSubAccount(t *testing.T) ledger.SubAccount {
