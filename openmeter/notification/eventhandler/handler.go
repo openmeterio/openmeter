@@ -138,7 +138,7 @@ func New(config Config) (*Handler, error) {
 		config.SendingTimeout = notification.DefaultDeliveryStateSendingTimeout
 	}
 
-	if config.ReconcilerWorkers == 0 {
+	if config.ReconcilerWorkers <= 0 {
 		config.ReconcilerWorkers = notification.DefaultReconcilerWorkers
 	}
 
