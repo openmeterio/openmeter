@@ -631,32 +631,50 @@ func (s *Service) ResolveStripeAppIDFromBillingProfile(ctx context.Context, name
 	return appID, nil
 }
 
-// resolveDefaultTaxCode resolves the TaxCode entity for a DefaultTaxConfig's Stripe.Code and
-// stamps TaxCodeID back onto the pointed-to config before it is persisted. Always re-resolves
-// from Stripe.Code so that changing the code (txcd_A → txcd_B) on an already-stamped config
-// updates the FK rather than leaving the stale value. When Stripe is nil or Code is empty,
-// TaxCodeID is explicitly cleared so that a read-modify-write that removes the Stripe code
-// does not leave a stale FK in the DB. No-op when taxConfig is nil;
-// GetOrCreateByAppMapping is idempotent for the same code.
+// resolveDefaultTaxCode resolves and cross-populates TaxCodeID and provider-specific codes on
+// the pointed-to config before it is persisted. Three cases:
+//   - Stripe.Code present: upserts the TaxCode entity via GetOrCreateByAppMapping and stamps
+//     TaxCodeID (idempotent; updating the code txcd_A → txcd_B updates the FK).
+//   - TaxCodeID present (no Stripe.Code): looks up the entity, validates it exists (400 if not),
+//     and backfills Stripe.Code from the stored app mapping if Stripe is not already set.
+//   - Neither: clears TaxCodeID so a read-modify-write that removes the config doesn't leave a
+//     stale FK in the DB.
+//
+// No-op when taxConfig is nil.
 func (s *Service) resolveDefaultTaxCode(ctx context.Context, namespace string, taxConfig *productcatalog.TaxConfig) error {
 	if taxConfig == nil {
 		return nil
 	}
-	if taxConfig.Stripe == nil || taxConfig.Stripe.Code == "" {
+
+	switch {
+	case taxConfig.Stripe != nil && taxConfig.Stripe.Code != "":
+		tc, err := s.taxCodeService.GetOrCreateByAppMapping(ctx, taxcode.GetOrCreateByAppMappingInput{
+			Namespace: namespace,
+			AppType:   app.AppTypeStripe,
+			TaxCode:   taxConfig.Stripe.Code,
+		})
+		if err != nil {
+			return fmt.Errorf("resolving default tax code: %w", err)
+		}
+		taxConfig.TaxCodeID = lo.ToPtr(tc.ID)
+
+	case taxConfig.TaxCodeID != nil:
+		tc, err := s.taxCodeService.GetTaxCode(ctx, taxcode.GetTaxCodeInput{
+			NamespacedID: models.NamespacedID{Namespace: namespace, ID: *taxConfig.TaxCodeID},
+		})
+		if err != nil {
+			if taxcode.IsTaxCodeNotFoundError(err) {
+				return models.NewGenericValidationError(fmt.Errorf("tax code %s not found", *taxConfig.TaxCodeID))
+			}
+			return fmt.Errorf("resolving default tax code: %w", err)
+		}
+		if m, ok := tc.GetAppMapping(app.AppTypeStripe); ok && taxConfig.Stripe == nil {
+			taxConfig.Stripe = &productcatalog.StripeTaxConfig{Code: m.TaxCode}
+		}
+
+	default:
 		taxConfig.TaxCodeID = nil // clear any stale FK left by a previous read
-		return nil
 	}
-
-	tc, err := s.taxCodeService.GetOrCreateByAppMapping(ctx, taxcode.GetOrCreateByAppMappingInput{
-		Namespace: namespace,
-		AppType:   app.AppTypeStripe,
-		TaxCode:   taxConfig.Stripe.Code,
-	})
-	if err != nil {
-		return fmt.Errorf("resolving default tax code: %w", err)
-	}
-
-	taxConfig.TaxCodeID = lo.ToPtr(tc.ID)
 
 	return nil
 }

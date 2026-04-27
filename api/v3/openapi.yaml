@@ -5939,6 +5939,11 @@ components:
             - $ref: '#/components/schemas/BillingTaxConfigExternalInvoicing'
           description: External invoicing tax config.
           title: External invoicing tax config
+        tax_code_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: Tax code reference.
+          title: Tax code ID
       description: Set of provider specific tax configs.
     BillingTaxConfigExternalInvoicing:
       type: object

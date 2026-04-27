@@ -25,6 +25,12 @@ model TaxConfig {
    */
   @summary("External invoicing tax config")
   external_invoicing?: TaxConfigExternalInvoicing;
+
+  /**
+   * Tax code reference.
+   */
+  @summary("Tax code ID")
+  tax_code_id?: Shared.ULID;
 }
 
 /**

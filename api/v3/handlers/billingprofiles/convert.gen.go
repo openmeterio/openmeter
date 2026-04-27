@@ -65,6 +65,7 @@ func init() {
 				productcatalogTaxConfig.Behavior = &productcatalogTaxBehavior
 			}
 			productcatalogTaxConfig.Stripe = pV3BillingTaxConfigStripeToPProductcatalogStripeTaxConfig((*source).Stripe)
+			productcatalogTaxConfig.TaxCodeID = (*source).TaxCodeId
 			pProductcatalogTaxConfig = &productcatalogTaxConfig
 		}
 		return pProductcatalogTaxConfig, nil
@@ -195,6 +196,7 @@ func init() {
 			}
 			v3BillingTaxConfig.ExternalInvoicing = pProductcatalogStripeTaxConfigToPV3BillingTaxConfigExternalInvoicing((*source).Stripe)
 			v3BillingTaxConfig.Stripe = pProductcatalogStripeTaxConfigToPV3BillingTaxConfigStripe((*source).Stripe)
+			v3BillingTaxConfig.TaxCodeId = (*source).TaxCodeID
 			pV3BillingTaxConfig = &v3BillingTaxConfig
 		}
 		return pV3BillingTaxConfig, nil
