@@ -24,7 +24,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: Kong/public-shared-actions/security-actions/secret-scan@b8a3a5d84df0fde7d313e45e9da9358f5584de03 # 1.1.1
+      - uses: Kong/public-shared-actions/security-actions/secret-scan@3fde0182f188f1cc12b5e84c34289d2e1d15e408 # 1.1.1
         name: Running Secret Scan using Trufflehog
         with:
           fail_on_findings: "true"
@@ -45,7 +45,7 @@ jobs:
           persist-credentials: false
       - name: Scan Repository
         id: sca_repo
-        uses: Kong/public-shared-actions/security-actions/sca@b8a3a5d84df0fde7d313e45e9da9358f5584de03 # 6.0.0
+        uses: Kong/public-shared-actions/security-actions/sca@3fde0182f188f1cc12b5e84c34289d2e1d15e408 # 6.0.0
         with:
           asset_prefix: openmeter-cloud
           dir: "."
@@ -63,7 +63,7 @@ jobs:
           persist-credentials: false
       - name: Scan GitHub Workflows
         id: scan_gh_workflows
-        uses: Kong/public-shared-actions/security-actions/scan-gh-workflows@b8a3a5d84df0fde7d313e45e9da9358f5584de03 # 5.0.2
+        uses: Kong/public-shared-actions/security-actions/scan-gh-workflows@3fde0182f188f1cc12b5e84c34289d2e1d15e408 # 5.0.2
         with:
           fail_on_findings: "true"
           github_token: ${{ secrets.GITHUB_TOKEN }}
