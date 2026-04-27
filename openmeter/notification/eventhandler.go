@@ -2,6 +2,7 @@ package notification
 
 import (
 	"context"
+	"runtime"
 	"time"
 )
 
@@ -11,6 +12,8 @@ const (
 	DefaultDeliveryStatePendingTimeout = 3 * time.Hour
 	DefaultDeliveryStateSendingTimeout = 48 * time.Hour
 )
+
+var DefaultReconcilerWorkers = runtime.GOMAXPROCS(0)
 
 type EventHandler interface {
 	EventDispatcher

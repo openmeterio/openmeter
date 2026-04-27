@@ -25,6 +25,8 @@ type Config struct {
 	ReconcileInterval time.Duration
 	SendingTimeout    time.Duration
 	PendingTimeout    time.Duration
+	ReconcilerWorkers int
+	Lockr             *lockr.SessionLocker
 }
 
 func (c *Config) Validate() error {
@@ -46,6 +48,10 @@ func (c *Config) Validate() error {
 		errs = append(errs, fmt.Errorf("tracer is required"))
 	}
 
+	if c.Lockr == nil {
+		errs = append(errs, fmt.Errorf("session lockr is required"))
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -63,11 +69,13 @@ type Handler struct {
 	stopCh      chan struct{}
 	stopChClose func()
 
-	lockr *lockr.Locker
+	lockr *lockr.SessionLocker
 
 	// Delivery status timeouts
 	sendingTimeout time.Duration
 	pendingTimeout time.Duration
+
+	workerPoolSize int64
 }
 
 func (h *Handler) Start() error {
@@ -83,6 +91,12 @@ func (h *Handler) Start() error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	err := h.lockr.Start(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to start session lockr: %w", err)
+	}
+	defer h.lockr.Close()
 
 	ticker := time.NewTicker(h.reconcileInterval)
 	defer ticker.Stop()
@@ -124,9 +138,8 @@ func New(config Config) (*Handler, error) {
 		config.SendingTimeout = notification.DefaultDeliveryStateSendingTimeout
 	}
 
-	reconcileLockr, err := lockr.NewLocker(&lockr.LockerConfig{Logger: config.Logger})
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize lockr: %w", err)
+	if config.ReconcilerWorkers <= 0 {
+		config.ReconcilerWorkers = notification.DefaultReconcilerWorkers
 	}
 
 	stopCh := make(chan struct{})
@@ -142,8 +155,9 @@ func New(config Config) (*Handler, error) {
 		tracer:            config.Tracer,
 		stopCh:            stopCh,
 		stopChClose:       stopChClose,
-		lockr:             reconcileLockr,
+		lockr:             config.Lockr,
 		sendingTimeout:    config.SendingTimeout,
 		pendingTimeout:    config.PendingTimeout,
+		workerPoolSize:    int64(config.ReconcilerWorkers),
 	}, nil
 }
