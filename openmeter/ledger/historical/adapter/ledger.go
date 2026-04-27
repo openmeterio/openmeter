@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -90,286 +91,296 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 		return nil, ledger.ErrTransactionInputRequired
 	}
 
-	entity, err := r.db.LedgerTransaction.Create().
-		SetNamespace(groupID.Namespace).
-		SetGroupID(groupID.ID).
-		SetAnnotations(input.Annotations()).
-		SetBookedAt(input.BookedAt()).
-		Save(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create ledger transaction: %w", err)
-	}
-
-	entryInputs := input.EntryInputs()
-	accountTypesBySubAccountID := make(map[string]ledger.AccountType, len(entryInputs))
-	routeIDBySubAccountID := make(map[string]string, len(entryInputs))
-	routeKeyBySubAccountID := make(map[string]string, len(entryInputs))
-	routeKeyVersionBySubAccountID := make(map[string]ledger.RoutingKeyVersion, len(entryInputs))
-	routeBySubAccountID := make(map[string]ledger.Route, len(entryInputs))
-	createInputs := make([]*db.LedgerEntryCreate, 0, len(entryInputs))
-	for _, entryInput := range entryInputs {
-		subAccountID := entryInput.PostingAddress().SubAccountID()
-		route := entryInput.PostingAddress().Route()
-		accountTypesBySubAccountID[subAccountID] = entryInput.PostingAddress().AccountType()
-		routeIDBySubAccountID[subAccountID] = route.ID()
-		routeKeyBySubAccountID[subAccountID] = route.RoutingKey().Value()
-		routeKeyVersionBySubAccountID[subAccountID] = route.RoutingKey().Version()
-		routeBySubAccountID[subAccountID] = route.Route()
-
-		createInputs = append(createInputs, r.db.LedgerEntry.Create().
+	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (*ledgerhistorical.Transaction, error) {
+		entity, err := tx.db.LedgerTransaction.Create().
 			SetNamespace(groupID.Namespace).
-			SetSubAccountID(subAccountID).
-			SetAmount(entryInput.Amount()).
-			SetTransactionID(entity.ID))
-	}
-
-	createdEntries := make([]*db.LedgerEntry, 0, len(createInputs))
-	if len(createInputs) > 0 {
-		createdEntries, err = r.db.LedgerEntry.CreateBulk(createInputs...).Save(ctx)
+			SetGroupID(groupID.ID).
+			SetAnnotations(input.Annotations()).
+			SetBookedAt(input.BookedAt()).
+			Save(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create ledger entries: %w", err)
+			return nil, fmt.Errorf("failed to create ledger transaction: %w", err)
 		}
-	}
 
-	tx, err := ledgerhistorical.NewTransactionFromData(
-		ledgerhistorical.TransactionData{
-			ID:          entity.ID,
-			Namespace:   entity.Namespace,
-			Annotations: entity.Annotations,
-			CreatedAt:   entity.CreatedAt,
-			BookedAt:    entity.BookedAt,
-		},
-		lo.Map(createdEntries, func(e *db.LedgerEntry, _ int) ledgerhistorical.EntryData {
-			return ledgerhistorical.EntryData{
-				ID:            e.ID,
-				Namespace:     e.Namespace,
-				Annotations:   e.Annotations,
-				CreatedAt:     e.CreatedAt,
-				SubAccountID:  e.SubAccountID,
-				AccountType:   accountTypesBySubAccountID[e.SubAccountID],
-				Route:         routeBySubAccountID[e.SubAccountID],
-				RouteID:       routeIDBySubAccountID[e.SubAccountID],
-				RouteKey:      routeKeyBySubAccountID[e.SubAccountID],
-				RouteKeyVer:   routeKeyVersionBySubAccountID[e.SubAccountID],
-				Amount:        e.Amount,
-				TransactionID: e.TransactionID,
+		entryInputs := input.EntryInputs()
+		accountTypesBySubAccountID := make(map[string]ledger.AccountType, len(entryInputs))
+		routeIDBySubAccountID := make(map[string]string, len(entryInputs))
+		routeKeyBySubAccountID := make(map[string]string, len(entryInputs))
+		routeKeyVersionBySubAccountID := make(map[string]ledger.RoutingKeyVersion, len(entryInputs))
+		routeBySubAccountID := make(map[string]ledger.Route, len(entryInputs))
+		createInputs := make([]*db.LedgerEntryCreate, 0, len(entryInputs))
+		for _, entryInput := range entryInputs {
+			subAccountID := entryInput.PostingAddress().SubAccountID()
+			route := entryInput.PostingAddress().Route()
+			accountTypesBySubAccountID[subAccountID] = entryInput.PostingAddress().AccountType()
+			routeIDBySubAccountID[subAccountID] = route.ID()
+			routeKeyBySubAccountID[subAccountID] = route.RoutingKey().Value()
+			routeKeyVersionBySubAccountID[subAccountID] = route.RoutingKey().Version()
+			routeBySubAccountID[subAccountID] = route.Route()
+
+			createInputs = append(createInputs, tx.db.LedgerEntry.Create().
+				SetNamespace(groupID.Namespace).
+				SetSubAccountID(subAccountID).
+				SetAmount(entryInput.Amount()).
+				SetTransactionID(entity.ID))
+		}
+
+		createdEntries := make([]*db.LedgerEntry, 0, len(createInputs))
+		if len(createInputs) > 0 {
+			createdEntries, err = tx.db.LedgerEntry.CreateBulk(createInputs...).Save(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create ledger entries: %w", err)
 			}
-		}),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("ledger transaction view: %w", err)
-	}
+		}
 
-	return tx, nil
+		transaction, err := ledgerhistorical.NewTransactionFromData(
+			ledgerhistorical.TransactionData{
+				ID:          entity.ID,
+				Namespace:   entity.Namespace,
+				Annotations: entity.Annotations,
+				CreatedAt:   entity.CreatedAt,
+				BookedAt:    entity.BookedAt,
+			},
+			lo.Map(createdEntries, func(e *db.LedgerEntry, _ int) ledgerhistorical.EntryData {
+				return ledgerhistorical.EntryData{
+					ID:            e.ID,
+					Namespace:     e.Namespace,
+					Annotations:   e.Annotations,
+					CreatedAt:     e.CreatedAt,
+					SubAccountID:  e.SubAccountID,
+					AccountType:   accountTypesBySubAccountID[e.SubAccountID],
+					Route:         routeBySubAccountID[e.SubAccountID],
+					RouteID:       routeIDBySubAccountID[e.SubAccountID],
+					RouteKey:      routeKeyBySubAccountID[e.SubAccountID],
+					RouteKeyVer:   routeKeyVersionBySubAccountID[e.SubAccountID],
+					Amount:        e.Amount,
+					TransactionID: e.TransactionID,
+				}
+			}),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("ledger transaction view: %w", err)
+		}
+
+		return transaction, nil
+	})
 }
 
 func (r *repo) CreateTransactionGroup(ctx context.Context, transactionGroup ledgerhistorical.CreateTransactionGroupInput) (ledgerhistorical.TransactionGroupData, error) {
-	entity, err := r.db.LedgerTransactionGroup.Create().
-		SetNamespace(transactionGroup.Namespace).
-		SetAnnotations(transactionGroup.Annotations).
-		Save(ctx)
-	if err != nil {
-		return ledgerhistorical.TransactionGroupData{}, fmt.Errorf("failed to create transaction group: %w", err)
-	}
+	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (ledgerhistorical.TransactionGroupData, error) {
+		entity, err := tx.db.LedgerTransactionGroup.Create().
+			SetNamespace(transactionGroup.Namespace).
+			SetAnnotations(transactionGroup.Annotations).
+			Save(ctx)
+		if err != nil {
+			return ledgerhistorical.TransactionGroupData{}, fmt.Errorf("failed to create transaction group: %w", err)
+		}
 
-	return ledgerhistorical.TransactionGroupData{
-		ID:          entity.ID,
-		Namespace:   entity.Namespace,
-		CreatedAt:   entity.CreatedAt,
-		Annotations: entity.Annotations,
-	}, nil
+		return ledgerhistorical.TransactionGroupData{
+			ID:          entity.ID,
+			Namespace:   entity.Namespace,
+			CreatedAt:   entity.CreatedAt,
+			Annotations: entity.Annotations,
+		}, nil
+	})
 }
 
 func (r *repo) GetTransactionGroup(ctx context.Context, id models.NamespacedID) (*ledgerhistorical.TransactionGroup, error) {
-	entity, err := r.db.LedgerTransactionGroup.Query().
-		Where(
-			ledgertransactiongroupdb.Namespace(id.Namespace),
-			ledgertransactiongroupdb.ID(id.ID),
-		).
-		WithTransactions(func(q *db.LedgerTransactionQuery) {
-			q.Order(
-				ledgertransactiondb.ByCreatedAt(),
-				ledgertransactiondb.ByID(),
-			)
-			q.WithEntries(func(eq *db.LedgerEntryQuery) {
-				eq.Order(
+	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (*ledgerhistorical.TransactionGroup, error) {
+		entity, err := tx.db.LedgerTransactionGroup.Query().
+			Where(
+				ledgertransactiongroupdb.Namespace(id.Namespace),
+				ledgertransactiongroupdb.ID(id.ID),
+			).
+			WithTransactions(func(q *db.LedgerTransactionQuery) {
+				q.Order(
+					ledgertransactiondb.ByCreatedAt(),
+					ledgertransactiondb.ByID(),
+				)
+				q.WithEntries(func(eq *db.LedgerEntryQuery) {
+					eq.Order(
+						ledgerentrydb.ByCreatedAt(),
+						ledgerentrydb.ByID(),
+					)
+					eq.WithSubAccount(func(sq *db.LedgerSubAccountQuery) {
+						sq.WithAccount()
+						sq.WithRoute()
+					})
+				})
+			}).
+			Only(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to query transaction group: %w", err)
+		}
+
+		transactions, err := slicesx.MapWithErr(entity.Edges.Transactions, hydrateHistoricalTransaction)
+		if err != nil {
+			return nil, fmt.Errorf("failed to hydrate transaction group transactions: %w", err)
+		}
+
+		return ledgerhistorical.NewTransactionGroupFromData(
+			ledgerhistorical.TransactionGroupData{
+				ID:          entity.ID,
+				Namespace:   entity.Namespace,
+				CreatedAt:   entity.CreatedAt,
+				Annotations: entity.Annotations,
+			},
+			transactions,
+		), nil
+	})
+}
+
+func (r *repo) SumEntries(ctx context.Context, query ledger.Query) (alpacadecimal.Decimal, error) {
+	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (alpacadecimal.Decimal, error) {
+		q := sumEntriesQuery{
+			query: query,
+		}
+
+		entryQuery, err := q.Build(tx.db)
+		if err != nil {
+			return alpacadecimal.Decimal{}, err
+		}
+
+		var rows []struct {
+			SumAmount stdsql.NullString `json:"sum_amount,omitempty"`
+		}
+
+		err = entryQuery.
+			Aggregate(db.As(db.Sum(ledgerentrydb.FieldAmount), "sum_amount")).
+			Scan(ctx, &rows)
+		if err != nil {
+			return alpacadecimal.Decimal{}, fmt.Errorf("failed to query ledger entries to sum: %w", err)
+		}
+
+		if len(rows) == 0 || !rows[0].SumAmount.Valid {
+			return alpacadecimal.NewFromInt(0), nil
+		}
+
+		total, err := alpacadecimal.NewFromString(rows[0].SumAmount.String)
+		if err != nil {
+			return alpacadecimal.Decimal{}, fmt.Errorf("failed to parse summed amount %q: %w", rows[0].SumAmount.String, err)
+		}
+
+		return total, nil
+	})
+}
+
+func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactionsInput) (ledger.ListTransactionsResult, error) {
+	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (ledger.ListTransactionsResult, error) {
+		entryPredicates := listTransactionsEntryPredicates(input.AccountIDs, input.Currency)
+
+		query := tx.db.LedgerTransaction.Query().
+			Where(ledgertransactiondb.Namespace(input.Namespace)).
+			WithEntries(func(q *db.LedgerEntryQuery) {
+				if len(entryPredicates) > 0 {
+					q.Where(entryPredicates...)
+				}
+				q.Order(
 					ledgerentrydb.ByCreatedAt(),
 					ledgerentrydb.ByID(),
 				)
-				eq.WithSubAccount(func(sq *db.LedgerSubAccountQuery) {
+				q.WithSubAccount(func(sq *db.LedgerSubAccountQuery) {
 					sq.WithAccount()
 					sq.WithRoute()
 				})
 			})
-		}).
-		Only(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query transaction group: %w", err)
-	}
 
-	transactions, err := slicesx.MapWithErr(entity.Edges.Transactions, hydrateHistoricalTransaction)
-	if err != nil {
-		return nil, fmt.Errorf("failed to hydrate transaction group transactions: %w", err)
-	}
+		if input.TransactionID != nil {
+			query = query.Where(ledgertransactiondb.ID(input.TransactionID.ID))
+		}
 
-	return ledgerhistorical.NewTransactionGroupFromData(
-		ledgerhistorical.TransactionGroupData{
-			ID:          entity.ID,
-			Namespace:   entity.Namespace,
-			CreatedAt:   entity.CreatedAt,
-			Annotations: entity.Annotations,
-		},
-		transactions,
-	), nil
-}
-
-func (r *repo) SumEntries(ctx context.Context, query ledger.Query) (alpacadecimal.Decimal, error) {
-	q := sumEntriesQuery{
-		query: query,
-	}
-
-	entryQuery, err := q.Build(r.db)
-	if err != nil {
-		return alpacadecimal.Decimal{}, err
-	}
-
-	var rows []struct {
-		SumAmount stdsql.NullString `json:"sum_amount,omitempty"`
-	}
-
-	err = entryQuery.
-		Aggregate(db.As(db.Sum(ledgerentrydb.FieldAmount), "sum_amount")).
-		Scan(ctx, &rows)
-	if err != nil {
-		return alpacadecimal.Decimal{}, fmt.Errorf("failed to query ledger entries to sum: %w", err)
-	}
-
-	if len(rows) == 0 || !rows[0].SumAmount.Valid {
-		return alpacadecimal.NewFromInt(0), nil
-	}
-
-	total, err := alpacadecimal.NewFromString(rows[0].SumAmount.String)
-	if err != nil {
-		return alpacadecimal.Decimal{}, fmt.Errorf("failed to parse summed amount %q: %w", rows[0].SumAmount.String, err)
-	}
-
-	return total, nil
-}
-
-func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactionsInput) (ledger.ListTransactionsResult, error) {
-	entryPredicates := listTransactionsEntryPredicates(input.AccountIDs, input.Currency)
-
-	query := r.db.LedgerTransaction.Query().
-		Where(ledgertransactiondb.Namespace(input.Namespace)).
-		WithEntries(func(q *db.LedgerEntryQuery) {
-			if len(entryPredicates) > 0 {
-				q.Where(entryPredicates...)
-			}
-			q.Order(
-				ledgerentrydb.ByCreatedAt(),
-				ledgerentrydb.ByID(),
-			)
-			q.WithSubAccount(func(sq *db.LedgerSubAccountQuery) {
-				sq.WithAccount()
-				sq.WithRoute()
-			})
-		})
-
-	if input.TransactionID != nil {
-		query = query.Where(ledgertransactiondb.ID(input.TransactionID.ID))
-	}
-
-	// Scope to specific accounts.
-	if len(input.AccountIDs) > 0 {
-		query = query.Where(
-			ledgertransactiondb.HasEntriesWith(
-				ledgerentrydb.HasSubAccountWith(
-					ledgersubaccountdb.AccountIDIn(input.AccountIDs...),
-				),
-			),
-		)
-	}
-
-	if input.Currency != nil {
-		query = query.Where(
-			ledgertransactiondb.HasEntriesWith(
-				ledgerentrydb.HasSubAccountWith(
-					ledgersubaccountdb.HasRouteWith(
-						ledgersubaccountroutedb.Currency(string(*input.Currency)),
+		// Scope to specific accounts.
+		if len(input.AccountIDs) > 0 {
+			query = query.Where(
+				ledgertransactiondb.HasEntriesWith(
+					ledgerentrydb.HasSubAccountWith(
+						ledgersubaccountdb.AccountIDIn(input.AccountIDs...),
 					),
 				),
-			),
-		)
-	}
+			)
+		}
 
-	// Filter by annotation key-value matches.
-	for key, value := range input.AnnotationFilters {
-		query = query.Where(func(s *sql.Selector) {
-			s.Where(sqljson.ValueEQ(ledgertransactiondb.FieldAnnotations, value, sqljson.Path(key)))
-		})
-	}
+		if input.Currency != nil {
+			query = query.Where(
+				ledgertransactiondb.HasEntriesWith(
+					ledgerentrydb.HasSubAccountWith(
+						ledgersubaccountdb.HasRouteWith(
+							ledgersubaccountroutedb.Currency(string(*input.Currency)),
+						),
+					),
+				),
+			)
+		}
 
-	if input.CreditMovement != ledger.ListTransactionsCreditMovementUnspecified {
-		pred, err := ledgerTransactionCreditMovementPredicate(input.AccountIDs, input.Currency, input.CreditMovement)
+		// Filter by annotation key-value matches.
+		for key, value := range input.AnnotationFilters {
+			query = query.Where(func(s *sql.Selector) {
+				s.Where(sqljson.ValueEQ(ledgertransactiondb.FieldAnnotations, value, sqljson.Path(key)))
+			})
+		}
+
+		if input.CreditMovement != ledger.ListTransactionsCreditMovementUnspecified {
+			pred, err := ledgerTransactionCreditMovementPredicate(input.AccountIDs, input.Currency, input.CreditMovement)
+			if err != nil {
+				return ledger.ListTransactionsResult{}, err
+			}
+			if pred != nil {
+				query = query.Where(pred)
+			}
+		}
+
+		if input.Cursor != nil {
+			query = query.Where(ledgerTransactionAfterCursorPredicate(*input.Cursor))
+		}
+
+		if input.Before != nil {
+			query = query.Where(ledgerTransactionBeforeCursorPredicate(*input.Before))
+		}
+
+		query = query.Order(listTransactionsOrdering(input.Before != nil)...)
+
+		query = query.Limit(input.Limit + 1)
+
+		dbItems, err := query.All(ctx)
 		if err != nil {
-			return ledger.ListTransactionsResult{}, err
+			return ledger.ListTransactionsResult{}, fmt.Errorf("failed to list transactions: %w", err)
 		}
-		if pred != nil {
-			query = query.Where(pred)
+		if len(dbItems) == 0 {
+			return ledger.ListTransactionsResult{
+				Items: []ledger.Transaction{},
+			}, nil
 		}
-	}
 
-	if input.Cursor != nil {
-		query = query.Where(ledgerTransactionAfterCursorPredicate(*input.Cursor))
-	}
+		hasMore := len(dbItems) > input.Limit
+		if hasMore {
+			dbItems = dbItems[:input.Limit]
+		}
 
-	if input.Before != nil {
-		query = query.Where(ledgerTransactionBeforeCursorPredicate(*input.Before))
-	}
+		items, err := slicesx.MapWithErr(dbItems, func(tx *db.LedgerTransaction) (*ledgerhistorical.Transaction, error) {
+			return hydrateHistoricalTransaction(tx)
+		})
+		if err != nil {
+			return ledger.ListTransactionsResult{}, fmt.Errorf("failed to hydrate listed transactions: %w", err)
+		}
 
-	query = query.Order(listTransactionsOrdering(input.Before != nil)...)
+		if input.Before != nil {
+			slices.Reverse(items)
+		}
 
-	query = query.Limit(input.Limit + 1)
+		var nextCursor *ledger.TransactionCursor
+		if hasMore && len(items) > 0 {
+			nextItem := items[len(items)-1]
+			cursor := nextItem.Cursor()
+			nextCursor = &cursor
+		}
 
-	dbItems, err := query.All(ctx)
-	if err != nil {
-		return ledger.ListTransactionsResult{}, fmt.Errorf("failed to list transactions: %w", err)
-	}
-	if len(dbItems) == 0 {
 		return ledger.ListTransactionsResult{
-			Items: []ledger.Transaction{},
+			Items: lo.Map(items, func(item *ledgerhistorical.Transaction, _ int) ledger.Transaction {
+				return item
+			}),
+			NextCursor: nextCursor,
 		}, nil
-	}
-
-	hasMore := len(dbItems) > input.Limit
-	if hasMore {
-		dbItems = dbItems[:input.Limit]
-	}
-
-	items, err := slicesx.MapWithErr(dbItems, func(tx *db.LedgerTransaction) (*ledgerhistorical.Transaction, error) {
-		return hydrateHistoricalTransaction(tx)
 	})
-	if err != nil {
-		return ledger.ListTransactionsResult{}, fmt.Errorf("failed to hydrate listed transactions: %w", err)
-	}
-
-	if input.Before != nil {
-		slices.Reverse(items)
-	}
-
-	var nextCursor *ledger.TransactionCursor
-	if hasMore && len(items) > 0 {
-		nextItem := items[len(items)-1]
-		cursor := nextItem.Cursor()
-		nextCursor = &cursor
-	}
-
-	return ledger.ListTransactionsResult{
-		Items: lo.Map(items, func(item *ledgerhistorical.Transaction, _ int) ledger.Transaction {
-			return item
-		}),
-		NextCursor: nextCursor,
-	}, nil
 }
 
 func listTransactionsEntryPredicates(accountIDs []string, currency *currencyx.Code) []predicate.LedgerEntry {
