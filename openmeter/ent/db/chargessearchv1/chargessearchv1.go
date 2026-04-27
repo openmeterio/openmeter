@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 const (
@@ -46,6 +47,10 @@ const (
 	FieldSubscriptionItemID = "subscription_item_id"
 	// FieldAdvanceAfter holds the string denoting the advance_after field in the database.
 	FieldAdvanceAfter = "advance_after"
+	// FieldTaxCodeID holds the string denoting the tax_code_id field in the database.
+	FieldTaxCodeID = "tax_code_id"
+	// FieldTaxBehavior holds the string denoting the tax_behavior field in the database.
+	FieldTaxBehavior = "tax_behavior"
 	// FieldAnnotations holds the string denoting the annotations field in the database.
 	FieldAnnotations = "annotations"
 	// FieldID holds the string denoting the id field in the database.
@@ -86,6 +91,8 @@ var Columns = []string{
 	FieldSubscriptionPhaseID,
 	FieldSubscriptionItemID,
 	FieldAdvanceAfter,
+	FieldTaxCodeID,
+	FieldTaxBehavior,
 	FieldAnnotations,
 	FieldID,
 	FieldNamespace,
@@ -141,6 +148,16 @@ func ManagedByValidator(mb billing.InvoiceLineManagedBy) error {
 		return nil
 	default:
 		return fmt.Errorf("chargessearchv1: invalid enum value for managed_by field: %q", mb)
+	}
+}
+
+// TaxBehaviorValidator is a validator for the "tax_behavior" field enum values. It is called by the builders before save.
+func TaxBehaviorValidator(tb productcatalog.TaxBehavior) error {
+	switch tb {
+	case "inclusive", "exclusive":
+		return nil
+	default:
+		return fmt.Errorf("chargessearchv1: invalid enum value for tax_behavior field: %q", tb)
 	}
 }
 
@@ -225,6 +242,16 @@ func BySubscriptionItemID(opts ...sql.OrderTermOption) OrderOption {
 // ByAdvanceAfter orders the results by the advance_after field.
 func ByAdvanceAfter(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAdvanceAfter, opts...).ToFunc()
+}
+
+// ByTaxCodeID orders the results by the tax_code_id field.
+func ByTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxCodeID, opts...).ToFunc()
+}
+
+// ByTaxBehavior orders the results by the tax_behavior field.
+func ByTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxBehavior, opts...).ToFunc()
 }
 
 // ByID orders the results by the id field.

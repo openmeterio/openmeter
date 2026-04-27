@@ -23,6 +23,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -62,6 +64,10 @@ type ChargeCreditPurchase struct {
 	SubscriptionItemID *string `json:"subscription_item_id,omitempty"`
 	// AdvanceAfter holds the value of the "advance_after" field.
 	AdvanceAfter *time.Time `json:"advance_after,omitempty"`
+	// TaxCodeID holds the value of the "tax_code_id" field.
+	TaxCodeID *string `json:"tax_code_id,omitempty"`
+	// TaxBehavior holds the value of the "tax_behavior" field.
+	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// Annotations holds the value of the "annotations" field.
 	Annotations models.Annotations `json:"annotations,omitempty"`
 	// Namespace holds the value of the "namespace" field.
@@ -112,9 +118,11 @@ type ChargeCreditPurchaseEdges struct {
 	SubscriptionItem *SubscriptionItem `json:"subscription_item,omitempty"`
 	// Customer holds the value of the customer edge.
 	Customer *Customer `json:"customer,omitempty"`
+	// TaxCode holds the value of the tax_code edge.
+	TaxCode *TaxCode `json:"tax_code,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [8]bool
+	loadedTypes [9]bool
 }
 
 // ExternalPaymentOrErr returns the ExternalPayment value or an error if the edge
@@ -205,6 +213,17 @@ func (e ChargeCreditPurchaseEdges) CustomerOrErr() (*Customer, error) {
 	return nil, &NotLoadedError{edge: "customer"}
 }
 
+// TaxCodeOrErr returns the TaxCode value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeCreditPurchaseEdges) TaxCodeOrErr() (*TaxCode, error) {
+	if e.TaxCode != nil {
+		return e.TaxCode, nil
+	} else if e.loadedTypes[8] {
+		return nil, &NotFoundError{label: dbtaxcode.Label}
+	}
+	return nil, &NotLoadedError{edge: "tax_code"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*ChargeCreditPurchase) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -216,7 +235,7 @@ func (*ChargeCreditPurchase) scanValues(columns []string) ([]any, error) {
 			values[i] = new(alpacadecimal.Decimal)
 		case chargecreditpurchase.FieldPriority:
 			values[i] = new(sql.NullInt64)
-		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldCustomerID, chargecreditpurchase.FieldStatus, chargecreditpurchase.FieldUniqueReferenceID, chargecreditpurchase.FieldCurrency, chargecreditpurchase.FieldManagedBy, chargecreditpurchase.FieldSubscriptionID, chargecreditpurchase.FieldSubscriptionPhaseID, chargecreditpurchase.FieldSubscriptionItemID, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldName, chargecreditpurchase.FieldDescription, chargecreditpurchase.FieldStatusDetailed:
+		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldCustomerID, chargecreditpurchase.FieldStatus, chargecreditpurchase.FieldUniqueReferenceID, chargecreditpurchase.FieldCurrency, chargecreditpurchase.FieldManagedBy, chargecreditpurchase.FieldSubscriptionID, chargecreditpurchase.FieldSubscriptionPhaseID, chargecreditpurchase.FieldSubscriptionItemID, chargecreditpurchase.FieldTaxCodeID, chargecreditpurchase.FieldTaxBehavior, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldName, chargecreditpurchase.FieldDescription, chargecreditpurchase.FieldStatusDetailed:
 			values[i] = new(sql.NullString)
 		case chargecreditpurchase.FieldServicePeriodFrom, chargecreditpurchase.FieldServicePeriodTo, chargecreditpurchase.FieldBillingPeriodFrom, chargecreditpurchase.FieldBillingPeriodTo, chargecreditpurchase.FieldFullServicePeriodFrom, chargecreditpurchase.FieldFullServicePeriodTo, chargecreditpurchase.FieldAdvanceAfter, chargecreditpurchase.FieldCreatedAt, chargecreditpurchase.FieldUpdatedAt, chargecreditpurchase.FieldDeletedAt, chargecreditpurchase.FieldEffectiveAt:
 			values[i] = new(sql.NullTime)
@@ -337,6 +356,20 @@ func (_m *ChargeCreditPurchase) assignValues(columns []string, values []any) err
 			} else if value.Valid {
 				_m.AdvanceAfter = new(time.Time)
 				*_m.AdvanceAfter = value.Time
+			}
+		case chargecreditpurchase.FieldTaxCodeID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_code_id", values[i])
+			} else if value.Valid {
+				_m.TaxCodeID = new(string)
+				*_m.TaxCodeID = value.String
+			}
+		case chargecreditpurchase.FieldTaxBehavior:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
+			} else if value.Valid {
+				_m.TaxBehavior = new(productcatalog.TaxBehavior)
+				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
 			}
 		case chargecreditpurchase.FieldAnnotations:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -477,6 +510,11 @@ func (_m *ChargeCreditPurchase) QueryCustomer() *CustomerQuery {
 	return NewChargeCreditPurchaseClient(_m.config).QueryCustomer(_m)
 }
 
+// QueryTaxCode queries the "tax_code" edge of the ChargeCreditPurchase entity.
+func (_m *ChargeCreditPurchase) QueryTaxCode() *TaxCodeQuery {
+	return NewChargeCreditPurchaseClient(_m.config).QueryTaxCode(_m)
+}
+
 // Update returns a builder for updating this ChargeCreditPurchase.
 // Note that you need to call ChargeCreditPurchase.Unwrap() before calling this method if this ChargeCreditPurchase
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -553,6 +591,16 @@ func (_m *ChargeCreditPurchase) String() string {
 	if v := _m.AdvanceAfter; v != nil {
 		builder.WriteString("advance_after=")
 		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.TaxCodeID; v != nil {
+		builder.WriteString("tax_code_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.TaxBehavior; v != nil {
+		builder.WriteString("tax_behavior=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("annotations=")

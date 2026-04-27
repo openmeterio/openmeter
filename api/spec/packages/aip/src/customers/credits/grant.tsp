@@ -204,8 +204,7 @@ model CreditGrant {
    * Tax configuration for the grant.
    *
    * For `invoice` and `external` funding methods, tax configuration should be provided to ensure correct revenue recognition.
-   *
-   * Defaults to the billing profile's tax configuration when not provided.
+   * When not provided, no tax configuration is applied.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
   tax_config?: CreditGrantTaxConfig;

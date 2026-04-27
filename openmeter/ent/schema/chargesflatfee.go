@@ -122,6 +122,11 @@ func (ChargeFlatFee) Edges() []ent.Edge {
 			Ref("flat_fee_charges").
 			Field("feature_id").
 			Unique(),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("charge_flat_fees").
+			Field("tax_code_id").
+			Unique().
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 	}
 }
 
@@ -154,7 +159,8 @@ func (ChargeFlatFeeDetailedLine) Edges() []ent.Edge {
 		edge.From("tax_code", TaxCode.Type).
 			Ref("charge_flat_fee_detailed_lines").
 			Field("tax_code_id").
-			Unique(),
+			Unique().
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 	}
 }
 

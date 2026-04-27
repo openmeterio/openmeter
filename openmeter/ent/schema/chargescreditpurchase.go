@@ -91,6 +91,11 @@ func (ChargeCreditPurchase) Edges() []ent.Edge {
 			Unique().
 			Required().
 			Immutable(),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("charge_credit_purchases").
+			Field("tax_code_id").
+			Unique().
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 	}
 }
 

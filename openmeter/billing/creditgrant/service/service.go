@@ -243,7 +243,6 @@ func toSettlement(input creditgrant.CreateInput) creditpurchase.Settlement {
 			GenericSettlement: creditpurchase.GenericSettlement{
 				Currency:  input.Purchase.Currency,
 				CostBasis: lo.FromPtrOr(input.Purchase.PerUnitCostBasis, alpacadecimal.NewFromInt(1)),
-				TaxConfig: input.TaxConfig,
 			},
 		}
 		return creditpurchase.NewSettlement(settlement)
@@ -258,7 +257,6 @@ func toSettlement(input creditgrant.CreateInput) creditpurchase.Settlement {
 			GenericSettlement: creditpurchase.GenericSettlement{
 				Currency:  input.Purchase.Currency,
 				CostBasis: lo.FromPtrOr(input.Purchase.PerUnitCostBasis, alpacadecimal.NewFromInt(1)),
-				TaxConfig: input.TaxConfig,
 			},
 			InitialStatus: initialStatus,
 		}

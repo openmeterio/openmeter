@@ -25,6 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 )
 
 // ChargeFlatFeeQuery is the builder for querying ChargeFlatFee entities.
@@ -44,6 +45,7 @@ type ChargeFlatFeeQuery struct {
 	withSubscriptionItem  *SubscriptionItemQuery
 	withCustomer          *CustomerQuery
 	withFeature           *FeatureQuery
+	withTaxCode           *TaxCodeQuery
 	modifiers             []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -301,6 +303,28 @@ func (_q *ChargeFlatFeeQuery) QueryFeature() *FeatureQuery {
 	return query
 }
 
+// QueryTaxCode chains the current query on the "tax_code" edge.
+func (_q *ChargeFlatFeeQuery) QueryTaxCode() *TaxCodeQuery {
+	query := (&TaxCodeClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, selector),
+			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeflatfee.TaxCodeTable, chargeflatfee.TaxCodeColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // First returns the first ChargeFlatFee entity from the query.
 // Returns a *NotFoundError when no ChargeFlatFee was found.
 func (_q *ChargeFlatFeeQuery) First(ctx context.Context) (*ChargeFlatFee, error) {
@@ -503,6 +527,7 @@ func (_q *ChargeFlatFeeQuery) Clone() *ChargeFlatFeeQuery {
 		withSubscriptionItem:  _q.withSubscriptionItem.Clone(),
 		withCustomer:          _q.withCustomer.Clone(),
 		withFeature:           _q.withFeature.Clone(),
+		withTaxCode:           _q.withTaxCode.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -619,6 +644,17 @@ func (_q *ChargeFlatFeeQuery) WithFeature(opts ...func(*FeatureQuery)) *ChargeFl
 	return _q
 }
 
+// WithTaxCode tells the query-builder to eager-load the nodes that are connected to
+// the "tax_code" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeFlatFeeQuery) WithTaxCode(opts ...func(*TaxCodeQuery)) *ChargeFlatFeeQuery {
+	query := (&TaxCodeClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withTaxCode = query
+	return _q
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
 //
@@ -697,7 +733,7 @@ func (_q *ChargeFlatFeeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 	var (
 		nodes       = []*ChargeFlatFee{}
 		_spec       = _q.querySpec()
-		loadedTypes = [10]bool{
+		loadedTypes = [11]bool{
 			_q.withCreditAllocations != nil,
 			_q.withDetailedLines != nil,
 			_q.withInvoicedUsage != nil,
@@ -708,6 +744,7 @@ func (_q *ChargeFlatFeeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 			_q.withSubscriptionItem != nil,
 			_q.withCustomer != nil,
 			_q.withFeature != nil,
+			_q.withTaxCode != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -794,6 +831,12 @@ func (_q *ChargeFlatFeeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 	if query := _q.withFeature; query != nil {
 		if err := _q.loadFeature(ctx, query, nodes, nil,
 			func(n *ChargeFlatFee, e *Feature) { n.Edges.Feature = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withTaxCode; query != nil {
+		if err := _q.loadTaxCode(ctx, query, nodes, nil,
+			func(n *ChargeFlatFee, e *TaxCode) { n.Edges.TaxCode = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -1101,6 +1144,38 @@ func (_q *ChargeFlatFeeQuery) loadFeature(ctx context.Context, query *FeatureQue
 	}
 	return nil
 }
+func (_q *ChargeFlatFeeQuery) loadTaxCode(ctx context.Context, query *TaxCodeQuery, nodes []*ChargeFlatFee, init func(*ChargeFlatFee), assign func(*ChargeFlatFee, *TaxCode)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*ChargeFlatFee)
+	for i := range nodes {
+		if nodes[i].TaxCodeID == nil {
+			continue
+		}
+		fk := *nodes[i].TaxCodeID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(dbtaxcode.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "tax_code_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 
 func (_q *ChargeFlatFeeQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
@@ -1144,6 +1219,9 @@ func (_q *ChargeFlatFeeQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if _q.withFeature != nil {
 			_spec.Node.AddColumnOnce(chargeflatfee.FieldFeatureID)
+		}
+		if _q.withTaxCode != nil {
+			_spec.Node.AddColumnOnce(chargeflatfee.FieldTaxCodeID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

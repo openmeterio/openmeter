@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 )
 
 // ChargeUsageBasedQuery is the builder for querying ChargeUsageBased entities.
@@ -41,6 +42,7 @@ type ChargeUsageBasedQuery struct {
 	withSubscriptionItem  *SubscriptionItemQuery
 	withCustomer          *CustomerQuery
 	withFeature           *FeatureQuery
+	withTaxCode           *TaxCodeQuery
 	modifiers             []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -276,6 +278,28 @@ func (_q *ChargeUsageBasedQuery) QueryFeature() *FeatureQuery {
 	return query
 }
 
+// QueryTaxCode chains the current query on the "tax_code" edge.
+func (_q *ChargeUsageBasedQuery) QueryTaxCode() *TaxCodeQuery {
+	query := (&TaxCodeClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, selector),
+			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebased.TaxCodeTable, chargeusagebased.TaxCodeColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // First returns the first ChargeUsageBased entity from the query.
 // Returns a *NotFoundError when no ChargeUsageBased was found.
 func (_q *ChargeUsageBasedQuery) First(ctx context.Context) (*ChargeUsageBased, error) {
@@ -477,6 +501,7 @@ func (_q *ChargeUsageBasedQuery) Clone() *ChargeUsageBasedQuery {
 		withSubscriptionItem:  _q.withSubscriptionItem.Clone(),
 		withCustomer:          _q.withCustomer.Clone(),
 		withFeature:           _q.withFeature.Clone(),
+		withTaxCode:           _q.withTaxCode.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -582,6 +607,17 @@ func (_q *ChargeUsageBasedQuery) WithFeature(opts ...func(*FeatureQuery)) *Charg
 	return _q
 }
 
+// WithTaxCode tells the query-builder to eager-load the nodes that are connected to
+// the "tax_code" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeUsageBasedQuery) WithTaxCode(opts ...func(*TaxCodeQuery)) *ChargeUsageBasedQuery {
+	query := (&TaxCodeClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withTaxCode = query
+	return _q
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
 //
@@ -660,7 +696,7 @@ func (_q *ChargeUsageBasedQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	var (
 		nodes       = []*ChargeUsageBased{}
 		_spec       = _q.querySpec()
-		loadedTypes = [9]bool{
+		loadedTypes = [10]bool{
 			_q.withRuns != nil,
 			_q.withDetailedLines != nil,
 			_q.withCurrentRun != nil,
@@ -670,6 +706,7 @@ func (_q *ChargeUsageBasedQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 			_q.withSubscriptionItem != nil,
 			_q.withCustomer != nil,
 			_q.withFeature != nil,
+			_q.withTaxCode != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -748,6 +785,12 @@ func (_q *ChargeUsageBasedQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	if query := _q.withFeature; query != nil {
 		if err := _q.loadFeature(ctx, query, nodes, nil,
 			func(n *ChargeUsageBased, e *Feature) { n.Edges.Feature = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withTaxCode; query != nil {
+		if err := _q.loadTaxCode(ctx, query, nodes, nil,
+			func(n *ChargeUsageBased, e *TaxCode) { n.Edges.TaxCode = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -1030,6 +1073,38 @@ func (_q *ChargeUsageBasedQuery) loadFeature(ctx context.Context, query *Feature
 	}
 	return nil
 }
+func (_q *ChargeUsageBasedQuery) loadTaxCode(ctx context.Context, query *TaxCodeQuery, nodes []*ChargeUsageBased, init func(*ChargeUsageBased), assign func(*ChargeUsageBased, *TaxCode)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*ChargeUsageBased)
+	for i := range nodes {
+		if nodes[i].TaxCodeID == nil {
+			continue
+		}
+		fk := *nodes[i].TaxCodeID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(dbtaxcode.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "tax_code_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 
 func (_q *ChargeUsageBasedQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
@@ -1076,6 +1151,9 @@ func (_q *ChargeUsageBasedQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if _q.withFeature != nil {
 			_spec.Node.AddColumnOnce(chargeusagebased.FieldFeatureID)
+		}
+		if _q.withTaxCode != nil {
+			_spec.Node.AddColumnOnce(chargeusagebased.FieldTaxCodeID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

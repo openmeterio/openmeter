@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -165,6 +166,46 @@ func (_u *ChargeUsageBasedUpdate) SetNillableAdvanceAfter(v *time.Time) *ChargeU
 // ClearAdvanceAfter clears the value of the "advance_after" field.
 func (_u *ChargeUsageBasedUpdate) ClearAdvanceAfter() *ChargeUsageBasedUpdate {
 	_u.mutation.ClearAdvanceAfter()
+	return _u
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *ChargeUsageBasedUpdate) SetTaxCodeID(v string) *ChargeUsageBasedUpdate {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableTaxCodeID(v *string) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *ChargeUsageBasedUpdate) ClearTaxCodeID() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *ChargeUsageBasedUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeUsageBasedUpdate {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *ChargeUsageBasedUpdate) ClearTaxBehavior() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -366,6 +407,11 @@ func (_u *ChargeUsageBasedUpdate) SetFeature(v *Feature) *ChargeUsageBasedUpdate
 	return _u.SetFeatureID(v.ID)
 }
 
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_u *ChargeUsageBasedUpdate) SetTaxCode(v *TaxCode) *ChargeUsageBasedUpdate {
+	return _u.SetTaxCodeID(v.ID)
+}
+
 // Mutation returns the ChargeUsageBasedMutation object of the builder.
 func (_u *ChargeUsageBasedUpdate) Mutation() *ChargeUsageBasedMutation {
 	return _u.mutation
@@ -425,6 +471,12 @@ func (_u *ChargeUsageBasedUpdate) ClearFeature() *ChargeUsageBasedUpdate {
 	return _u
 }
 
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (_u *ChargeUsageBasedUpdate) ClearTaxCode() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearTaxCode()
+	return _u
+}
+
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *ChargeUsageBasedUpdate) Save(ctx context.Context) (int, error) {
 	_u.defaults()
@@ -471,6 +523,11 @@ func (_u *ChargeUsageBasedUpdate) check() error {
 	if v, ok := _u.mutation.ManagedBy(); ok {
 		if err := chargeusagebased.ManagedByValidator(v); err != nil {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.managed_by": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := chargeusagebased.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.tax_behavior": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Discounts(); ok {
@@ -541,6 +598,12 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if _u.mutation.AdvanceAfterCleared() {
 		_spec.ClearField(chargeusagebased.FieldAdvanceAfter, field.TypeTime)
+	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(chargeusagebased.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(chargeusagebased.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.Annotations(); ok {
 		_spec.SetField(chargeusagebased.FieldAnnotations, field.TypeJSON, value)
@@ -733,6 +796,35 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.TaxCodeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.TaxCodeTable,
+			Columns: []string{chargeusagebased.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.TaxCodeTable,
+			Columns: []string{chargeusagebased.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{chargeusagebased.Label}
@@ -882,6 +974,46 @@ func (_u *ChargeUsageBasedUpdateOne) SetNillableAdvanceAfter(v *time.Time) *Char
 // ClearAdvanceAfter clears the value of the "advance_after" field.
 func (_u *ChargeUsageBasedUpdateOne) ClearAdvanceAfter() *ChargeUsageBasedUpdateOne {
 	_u.mutation.ClearAdvanceAfter()
+	return _u
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *ChargeUsageBasedUpdateOne) SetTaxCodeID(v string) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableTaxCodeID(v *string) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *ChargeUsageBasedUpdateOne) ClearTaxCodeID() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *ChargeUsageBasedUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *ChargeUsageBasedUpdateOne) ClearTaxBehavior() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -1083,6 +1215,11 @@ func (_u *ChargeUsageBasedUpdateOne) SetFeature(v *Feature) *ChargeUsageBasedUpd
 	return _u.SetFeatureID(v.ID)
 }
 
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_u *ChargeUsageBasedUpdateOne) SetTaxCode(v *TaxCode) *ChargeUsageBasedUpdateOne {
+	return _u.SetTaxCodeID(v.ID)
+}
+
 // Mutation returns the ChargeUsageBasedMutation object of the builder.
 func (_u *ChargeUsageBasedUpdateOne) Mutation() *ChargeUsageBasedMutation {
 	return _u.mutation
@@ -1139,6 +1276,12 @@ func (_u *ChargeUsageBasedUpdateOne) ClearCurrentRun() *ChargeUsageBasedUpdateOn
 // ClearFeature clears the "feature" edge to the Feature entity.
 func (_u *ChargeUsageBasedUpdateOne) ClearFeature() *ChargeUsageBasedUpdateOne {
 	_u.mutation.ClearFeature()
+	return _u
+}
+
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (_u *ChargeUsageBasedUpdateOne) ClearTaxCode() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearTaxCode()
 	return _u
 }
 
@@ -1201,6 +1344,11 @@ func (_u *ChargeUsageBasedUpdateOne) check() error {
 	if v, ok := _u.mutation.ManagedBy(); ok {
 		if err := chargeusagebased.ManagedByValidator(v); err != nil {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.managed_by": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := chargeusagebased.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.tax_behavior": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Discounts(); ok {
@@ -1288,6 +1436,12 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 	}
 	if _u.mutation.AdvanceAfterCleared() {
 		_spec.ClearField(chargeusagebased.FieldAdvanceAfter, field.TypeTime)
+	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(chargeusagebased.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(chargeusagebased.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.Annotations(); ok {
 		_spec.SetField(chargeusagebased.FieldAnnotations, field.TypeJSON, value)
@@ -1473,6 +1627,35 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.TaxCodeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.TaxCodeTable,
+			Columns: []string{chargeusagebased.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.TaxCodeTable,
+			Columns: []string{chargeusagebased.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

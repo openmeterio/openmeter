@@ -118,6 +118,11 @@ func (ChargeUsageBased) Edges() []ent.Edge {
 			Ref("usage_based_charges").
 			Unique().
 			Required(),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("charge_usage_based").
+			Field("tax_code_id").
+			Unique().
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 	}
 }
 
@@ -264,7 +269,8 @@ func (ChargeUsageBasedRunDetailedLine) Edges() []ent.Edge {
 		edge.From("tax_code", TaxCode.Type).
 			Ref("charge_usage_based_run_detailed_lines").
 			Field("tax_code_id").
-			Unique(),
+			Unique().
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 	}
 }
 
