@@ -313,7 +313,7 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 
 		chargeWithRealizations := env.newChargeWithCreditRealizationsAndAccruedUsage(allocations, alpacadecimal.Zero)
 		env.createInitialLineages(t, chargeWithRealizations.ID, chargeWithRealizations.Realizations.CreditRealizations)
-		env.recognizeCreditAccrued(t, alpacadecimal.NewFromInt(30))
+		recognitionGroupID := env.recognizeCreditAccrued(t, alpacadecimal.NewFromInt(30))
 
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
 		require.True(t, env.sumBalance(t, env.creditEarningsSubAccount(t)).Equal(alpacadecimal.NewFromInt(30)))
@@ -328,7 +328,7 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 			Charge:                       chargeWithRealizations,
 			AllocateAt:                   env.Now(),
 			Corrections:                  correctionsRequest,
-			LineageSegmentsByRealization: env.assertRecognizedSegments(t, chargeWithRealizations.Realizations.CreditRealizations),
+			LineageSegmentsByRealization: env.assertRecognizedSegments(t, chargeWithRealizations.Realizations.CreditRealizations, recognitionGroupID),
 		})
 		require.NoError(t, err)
 		require.Len(t, corrections, 1)
@@ -354,7 +354,7 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		chargeWithRealizations := env.newChargeWithCreditRealizationsAndAccruedUsage(allocations, alpacadecimal.Zero)
 		chargeWithRealizations.Intent.SettlementMode = productcatalog.CreditOnlySettlementMode
 		env.createInitialLineages(t, chargeWithRealizations.ID, chargeWithRealizations.Realizations.CreditRealizations)
-		env.recognizeCreditAccrued(t, alpacadecimal.NewFromInt(30))
+		recognitionGroupID := env.recognizeCreditAccrued(t, alpacadecimal.NewFromInt(30))
 
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
 		require.True(t, env.sumBalance(t, env.creditEarningsSubAccount(t)).Equal(alpacadecimal.NewFromInt(30)))
@@ -369,7 +369,7 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 			Charge:                       chargeWithRealizations,
 			AllocateAt:                   env.Now(),
 			Corrections:                  correctionsRequest,
-			LineageSegmentsByRealization: env.assertRecognizedSegments(t, chargeWithRealizations.Realizations.CreditRealizations),
+			LineageSegmentsByRealization: env.assertRecognizedSegments(t, chargeWithRealizations.Realizations.CreditRealizations, recognitionGroupID),
 		})
 		require.NoError(t, err)
 		require.Len(t, corrections, 1)
@@ -917,7 +917,7 @@ func (e *flatFeeHandlerTestEnv) sumBalance(t *testing.T, subAccount ledger.SubAc
 	return e.SumBalance(t, subAccount)
 }
 
-func (e *flatFeeHandlerTestEnv) recognizeCreditAccrued(t *testing.T, amount alpacadecimal.Decimal) {
+func (e *flatFeeHandlerTestEnv) recognizeCreditAccrued(t *testing.T, amount alpacadecimal.Decimal) string {
 	t.Helper()
 
 	result, err := e.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{
@@ -927,6 +927,8 @@ func (e *flatFeeHandlerTestEnv) recognizeCreditAccrued(t *testing.T, amount alpa
 	})
 	require.NoError(t, err)
 	require.True(t, result.RecognizedAmount.Equal(amount), "recognized=%s expected=%s", result.RecognizedAmount, amount)
+
+	return result.LedgerGroupID
 }
 
 func (e *flatFeeHandlerTestEnv) createInitialLineages(t *testing.T, chargeID string, realizations creditrealization.Realizations) {
@@ -958,15 +960,22 @@ func (e *flatFeeHandlerTestEnv) activeSegmentsByRealization(t *testing.T, realiz
 	return segments
 }
 
-func (e *flatFeeHandlerTestEnv) assertRecognizedSegments(t *testing.T, realizations creditrealization.Realizations) lineage.ActiveSegmentsByRealizationID {
+func (e *flatFeeHandlerTestEnv) assertRecognizedSegments(t *testing.T, realizations creditrealization.Realizations, recognitionGroupID string) lineage.ActiveSegmentsByRealizationID {
 	t.Helper()
 
 	segmentsByRealization := e.activeSegmentsByRealization(t, realizations)
 	for _, realization := range realizations {
 		segments := segmentsByRealization[realization.ID]
-		require.NotEmpty(t, segments)
-		require.Equal(t, creditrealization.LineageSegmentStateEarningsRecognized, segments[0].State)
-		require.NotNil(t, segments[0].SourceState)
+		require.Len(t, segments, 1)
+
+		segment := segments[0]
+		require.Equal(t, creditrealization.LineageSegmentStateEarningsRecognized, segment.State)
+		require.True(t, segment.Amount.Equal(realization.Amount), "segment=%s expected=%s", segment.Amount, realization.Amount)
+		require.NotNil(t, segment.BackingTransactionGroupID)
+		require.Equal(t, recognitionGroupID, *segment.BackingTransactionGroupID)
+		require.NotNil(t, segment.SourceState)
+		require.Equal(t, creditrealization.LineageSegmentStateRealCredit, *segment.SourceState)
+		require.Nil(t, segment.SourceBackingTransactionGroupID)
 	}
 
 	return segmentsByRealization

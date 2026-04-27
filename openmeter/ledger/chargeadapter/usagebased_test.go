@@ -234,7 +234,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		run.CreditsAllocated = env.realizationsFromAllocations(allocations)
 
 		env.createInitialLineages(t, charge.ID, run.CreditsAllocated)
-		env.recognizeCreditAccrued(t, alpacadecimal.NewFromInt(20))
+		recognitionGroupID := env.recognizeCreditAccrued(t, alpacadecimal.NewFromInt(20))
 		zeroCostBasis := alpacadecimal.Zero
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
 		require.True(t, env.sumBalance(t, env.EarningsSubAccountWithCostBasis(t, &zeroCostBasis)).Equal(alpacadecimal.NewFromInt(20)))
@@ -250,7 +250,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 			Run:                          run,
 			AllocateAt:                   env.Now(),
 			Corrections:                  correctionsRequest,
-			LineageSegmentsByRealization: env.assertRecognizedSegments(t, run.CreditsAllocated),
+			LineageSegmentsByRealization: env.assertRecognizedSegments(t, run.CreditsAllocated, recognitionGroupID),
 		})
 		require.NoError(t, err)
 		require.Len(t, corrections, 1)
@@ -279,7 +279,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		run.CreditsAllocated = env.realizationsFromAllocations(allocations)
 
 		env.createInitialLineages(t, charge.ID, run.CreditsAllocated)
-		env.recognizeCreditAccrued(t, alpacadecimal.NewFromInt(20))
+		recognitionGroupID := env.recognizeCreditAccrued(t, alpacadecimal.NewFromInt(20))
 		zeroCostBasis := alpacadecimal.Zero
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
 		require.True(t, env.sumBalance(t, env.EarningsSubAccountWithCostBasis(t, &zeroCostBasis)).Equal(alpacadecimal.NewFromInt(20)))
@@ -295,7 +295,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 			Run:                          run,
 			AllocateAt:                   env.Now(),
 			Corrections:                  correctionsRequest,
-			LineageSegmentsByRealization: env.assertRecognizedSegments(t, run.CreditsAllocated),
+			LineageSegmentsByRealization: env.assertRecognizedSegments(t, run.CreditsAllocated, recognitionGroupID),
 		})
 		require.NoError(t, err)
 		require.Len(t, corrections, 1)
@@ -755,7 +755,7 @@ func (e *usageBasedHandlerTestEnv) transactionBookedAtTimes(t *testing.T, groupI
 	return out
 }
 
-func (e *usageBasedHandlerTestEnv) recognizeCreditAccrued(t *testing.T, amount alpacadecimal.Decimal) {
+func (e *usageBasedHandlerTestEnv) recognizeCreditAccrued(t *testing.T, amount alpacadecimal.Decimal) string {
 	t.Helper()
 
 	result, err := e.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{
@@ -765,6 +765,8 @@ func (e *usageBasedHandlerTestEnv) recognizeCreditAccrued(t *testing.T, amount a
 	})
 	require.NoError(t, err)
 	require.True(t, result.RecognizedAmount.Equal(amount), "recognized=%s expected=%s", result.RecognizedAmount, amount)
+
+	return result.LedgerGroupID
 }
 
 func (e *usageBasedHandlerTestEnv) createInitialLineages(t *testing.T, chargeID string, realizations creditrealization.Realizations) {
@@ -796,15 +798,22 @@ func (e *usageBasedHandlerTestEnv) activeSegmentsByRealization(t *testing.T, rea
 	return segments
 }
 
-func (e *usageBasedHandlerTestEnv) assertRecognizedSegments(t *testing.T, realizations creditrealization.Realizations) lineage.ActiveSegmentsByRealizationID {
+func (e *usageBasedHandlerTestEnv) assertRecognizedSegments(t *testing.T, realizations creditrealization.Realizations, recognitionGroupID string) lineage.ActiveSegmentsByRealizationID {
 	t.Helper()
 
 	segmentsByRealization := e.activeSegmentsByRealization(t, realizations)
 	for _, realization := range realizations {
 		segments := segmentsByRealization[realization.ID]
-		require.NotEmpty(t, segments)
-		require.Equal(t, creditrealization.LineageSegmentStateEarningsRecognized, segments[0].State)
-		require.NotNil(t, segments[0].SourceState)
+		require.Len(t, segments, 1)
+
+		segment := segments[0]
+		require.Equal(t, creditrealization.LineageSegmentStateEarningsRecognized, segment.State)
+		require.True(t, segment.Amount.Equal(realization.Amount), "segment=%s expected=%s", segment.Amount, realization.Amount)
+		require.NotNil(t, segment.BackingTransactionGroupID)
+		require.Equal(t, recognitionGroupID, *segment.BackingTransactionGroupID)
+		require.NotNil(t, segment.SourceState)
+		require.Equal(t, creditrealization.LineageSegmentStateRealCredit, *segment.SourceState)
+		require.Nil(t, segment.SourceBackingTransactionGroupID)
 	}
 
 	return segmentsByRealization

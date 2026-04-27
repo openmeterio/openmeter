@@ -430,6 +430,10 @@ func (s *CreditsTestSuite) recognizeFundedCreditOnlyRevenue(namespace string, cu
 
 	s.mustRecognizeRevenue(customerID, USD, amount)
 	s.True(s.mustCustomerAccruedBalance(customerID, USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
+	s.True(s.mustCustomerAccruedBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
+	s.True(s.mustCustomerFBOBalance(customerID, USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
+	s.True(s.mustEarningsBalanceForCostBasis(namespace, USD, mo.Some(&costBasis)).Equal(amount))
+	s.True(s.mustEarningsBalanceForCostBasis(namespace, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
 	s.True(s.mustEarningsBalance(namespace, USD).Equal(amount))
 }
 
@@ -438,7 +442,11 @@ func (s *CreditsTestSuite) assertFundedRecognizedCreditOnlyDeleted(namespace str
 
 	s.True(s.mustCustomerReceivableBalance(customerID, USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(startOpenReceivable))
 	s.True(s.mustCustomerAccruedBalance(customerID, USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
+	s.True(s.mustCustomerAccruedBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
 	s.True(s.mustCustomerFBOBalance(customerID, USD, mo.Some(&costBasis)).Equal(amount))
+	s.True(s.mustCustomerFBOBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
+	s.True(s.mustEarningsBalanceForCostBasis(namespace, USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
+	s.True(s.mustEarningsBalanceForCostBasis(namespace, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
 	s.True(s.mustEarningsBalance(namespace, USD).Equal(alpacadecimal.Zero))
 }
 
@@ -1741,13 +1749,21 @@ func (s *CreditsTestSuite) mustWashBalance(namespace string, code currencyx.Code
 }
 
 func (s *CreditsTestSuite) mustEarningsBalance(namespace string, code currencyx.Code) alpacadecimal.Decimal {
+	return s.mustEarningsBalanceForCostBasis(namespace, code, mo.None[*alpacadecimal.Decimal]())
+}
+
+// Use this helper for earnings balance in a currency. Pass mo.None() for all
+// cost bases, mo.Some(nil) for the explicit nil-cost-basis route, or
+// mo.Some(&costBasis) for one concrete cost-basis route.
+func (s *CreditsTestSuite) mustEarningsBalanceForCostBasis(namespace string, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal]) alpacadecimal.Decimal {
 	s.T().Helper()
 
 	businessAccounts, err := s.LedgerResolver.GetBusinessAccounts(s.T().Context(), namespace)
 	s.NoError(err)
 
 	balance, err := businessAccounts.EarningsAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
-		Currency: code,
+		Currency:  code,
+		CostBasis: costBasis,
 	}, nil)
 	s.NoError(err)
 

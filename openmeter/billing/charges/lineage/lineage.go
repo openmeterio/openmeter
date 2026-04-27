@@ -63,10 +63,15 @@ func (s Segment) Validate() error {
 		if s.BackingTransactionGroupID == nil || *s.BackingTransactionGroupID == "" {
 			errs = append(errs, errors.New("backing transaction group id is required for earnings_recognized"))
 		}
-		if s.SourceState == nil {
+		switch {
+		case s.SourceState == nil:
 			errs = append(errs, errors.New("source state is required for earnings_recognized"))
-		} else if *s.SourceState == creditrealization.LineageSegmentStateEarningsRecognized {
+		case *s.SourceState == creditrealization.LineageSegmentStateEarningsRecognized:
 			errs = append(errs, errors.New("source state cannot be earnings_recognized"))
+		case *s.SourceState == creditrealization.LineageSegmentStateAdvanceBackfilled:
+			if s.SourceBackingTransactionGroupID == nil || *s.SourceBackingTransactionGroupID == "" {
+				errs = append(errs, errors.New("source backing transaction group id is required when source state is advance_backfilled"))
+			}
 		}
 	}
 

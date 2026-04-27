@@ -171,7 +171,7 @@ func TestRecognizeEarningsCorrection_OverCorrectionError(t *testing.T) {
 		OriginalGroup:       group,
 	})
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "exceeds original recognized amount")
+	require.Contains(t, err.Error(), "exceeds available amount")
 }
 
 func TestRecognizeEarningsCorrection_MultipleCostBases(t *testing.T) {
