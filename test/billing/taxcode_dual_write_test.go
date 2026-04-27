@@ -153,7 +153,7 @@ func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateClearsTaxCodeFK() {
 // A4b: Round-trip clear — fetch the profile (TaxCodeID populated), clear only Stripe in-place,
 // then update; the stale FK must be erased, not persisted. Behavior is kept non-nil so that
 // DefaultTaxConfig is not normalized to nil by the adapter.
-func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateClearsTaxCodeFKRoundTrip() {
+func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateRMWClearStripeHonorsTaxCodeID() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("ns-taxcode-dw")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -166,11 +166,14 @@ func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateClearsTaxCodeFKRoundTrip() 
 	}))
 
 	// Real read-modify-write: fetch first so TaxCodeID is populated, then clear Stripe in-place.
+	// TaxCodeID was stamped by the legacy Stripe path and is now a first-class reference — the
+	// service treats bare TaxCodeID as an intentional migration-path input, keeps the tax code,
+	// and backfills Stripe.Code from the stored app mapping.
 	fetched, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{Namespace: ns})
 	s.NoError(err)
 	s.assertTaxConfigHasStripeCode(fetched.WorkflowConfig.Invoicing.DefaultTaxConfig, "txcd_10000000")
 
-	fetched.WorkflowConfig.Invoicing.DefaultTaxConfig.Stripe = nil // TaxCodeID still points at the old entity
+	fetched.WorkflowConfig.Invoicing.DefaultTaxConfig.Stripe = nil
 	fetched.AppReferences = nil
 	_, err = s.BillingService.UpdateProfile(ctx, billing.UpdateProfileInput(fetched.BaseProfile))
 	s.NoError(err)
@@ -180,8 +183,8 @@ func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateClearsTaxCodeFKRoundTrip() 
 
 	cfg := readBack.WorkflowConfig.Invoicing.DefaultTaxConfig
 	s.Require().NotNil(cfg)
-	s.Nil(cfg.Stripe, "Stripe must be nil after clearing")
-	s.Nil(cfg.TaxCodeID, "FK must be cleared even when caller left stale TaxCodeID in the struct")
+	s.assertTaxConfigHasStripeCode(cfg, "txcd_10000000")
+	s.NotNil(cfg.TaxCodeID, "TaxCodeID must be preserved when supplied without Stripe.Code")
 	s.Require().NotNil(cfg.Behavior)
 	s.Equal(productcatalog.ExclusiveTaxBehavior, *cfg.Behavior, "behavior must be preserved")
 }
@@ -470,7 +473,7 @@ func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateStripeCodeChangeUpdatesFK()
 // C4: Round-trip Stripe clear with pre-populated TaxCodeID — FK must be erased, not left stale.
 // Covers the branch where the caller explicitly passes a stale TaxCodeID alongside nil Stripe.
 // Behavior is kept non-nil so DefaultTaxConfig is not normalized to nil by the adapter.
-func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateClearStripeWithStaleFK() {
+func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateBareTaxCodeIDIsHonored() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("ns-taxcode-dw")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -485,10 +488,13 @@ func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateClearStripeWithStaleFK() {
 	firstID := profile.WorkflowConfig.Invoicing.DefaultTaxConfig.TaxCodeID
 	s.Require().NotNil(firstID)
 
-	// Simulate a caller that clears Stripe but forgets to nil out TaxCodeID.
+	// A caller on the migration path: they have a TaxCodeID (stamped by the legacy Stripe
+	// resolution) and now supply it directly without Stripe.Code. The service treats bare
+	// TaxCodeID as intentional — it validates the entity, keeps the tax code, and backfills
+	// Stripe.Code from the stored app mapping.
 	profile.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
 		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-		TaxCodeID: firstID, // stale FK
+		TaxCodeID: firstID,
 	}
 	profile.AppReferences = nil
 	_, err := s.BillingService.UpdateProfile(ctx, billing.UpdateProfileInput(profile.BaseProfile))
@@ -499,8 +505,8 @@ func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateClearStripeWithStaleFK() {
 
 	cfg := readBack.WorkflowConfig.Invoicing.DefaultTaxConfig
 	s.Require().NotNil(cfg)
-	s.Nil(cfg.Stripe, "Stripe must remain nil")
-	s.Nil(cfg.TaxCodeID, "FK must be cleared even when stale TaxCodeID was explicitly passed")
+	s.assertTaxConfigHasStripeCode(cfg, "txcd_10000000")
+	s.Equal(firstID, cfg.TaxCodeID, "TaxCodeID must be preserved when supplied without Stripe.Code")
 	s.Require().NotNil(cfg.Behavior)
 	s.Equal(productcatalog.InclusiveTaxBehavior, *cfg.Behavior, "behavior must be preserved")
 }
