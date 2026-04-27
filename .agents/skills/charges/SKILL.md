@@ -459,6 +459,9 @@ Important behavior:
 - stored-at filtering uses `stored_at < cutoff`
 - the cutoff is the run's `StoredAtLT`
 - the service-period end is expected to behave as exclusive in lifecycle tests
+- `GetDetailedRatingForUsage(...)` owns the current-run filtering rule: only realization runs with `ServicePeriodTo < input.ServicePeriodTo` are prior runs; a current run already present on the charge must be ignored rather than stripped by mutating the charge in the caller
+- minimum commitment is final-only for usage-based snapshots; detailed rating ignores it when the current service-period end is before the charge intent service-period end
+- realtime/current totals should ignore minimum commitment before the charge intent service-period end and include it at/after the service-period end
 
 This means late-arriving events can become eligible in later advances if their `stored_at` was previously too new but later falls before the next cutoff.
 
@@ -511,6 +514,7 @@ Use these conventions for lifecycle tests:
 - use `streaming/testutils.WithStoredAt(...)` to simulate late events
 - when testing stored-at cutoffs, remember the predicate is exclusive: an event with `stored_at == StoredAtLT` is excluded, and an event with `stored_at` before `StoredAtLT` is included
 - when testing service-period cutoffs, remember the event-time window is half-open: an event with `event_time == ServicePeriodTo` is excluded
+- prefer `streamingtestutils.NewMockStreamingConnector(...)` plus the real billing rating service when a usage-based rating test should exercise production quantity lookup, pricing, discounts, or commitments end-to-end
 - prefer `clock.FreezeTime(...)` for exact `StoredAtLT` / `AllocateAt` assertions
 - rely on the default billing profile unless the test explicitly needs customer-specific override behavior
 - for credit-only charges (usage-based or flat fee), `Create(...)` itself may return an already-advanced charge — assert the returned charge's status, do not assume it will be `created`

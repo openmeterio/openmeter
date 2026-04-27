@@ -49,6 +49,11 @@ func (p ClosedPeriod) Overlaps(other ClosedPeriod) bool {
 	}
 }
 
+// Returns true if p contains other (both ends inclusive)
+func (p ClosedPeriod) ContainsPeriodInclusive(other ClosedPeriod) bool {
+	return p.ContainsInclusive(other.From) && p.ContainsInclusive(other.To)
+}
+
 // Returns true if the two periods overlap at any point
 // Returns true if the periods are exactly sequential, e.g.: [1, 2] and [2, 3]
 func (p ClosedPeriod) OverlapsInclusive(other ClosedPeriod) bool {

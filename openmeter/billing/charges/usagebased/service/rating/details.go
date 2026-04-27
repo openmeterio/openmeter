@@ -1,30 +1,44 @@
 package rating
 
 import (
+	"cmp"
 	"context"
+	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-type GetDetailedLinesForUsageInput struct {
-	Charge          usagebased.Charge
-	PriorRuns       usagebased.RealizationRuns
-	Customer        billing.CustomerOverrideWithDetails
-	FeatureMeter    feature.FeatureMeter
+type GetDetailedRatingForUsageInput struct {
+	// Charge general data
+
+	// Charge contains the charge intent and the prior runs with detailed lines expanded.
+	Charge usagebased.Charge
+
+	// Current run's data
+
+	// ServicePeriodTo defines the rated event-time upper bound for the current run.
 	ServicePeriodTo time.Time
-	StoredAtLT      time.Time
-	// IgnoreMinimumCommitment suppresses minimum commitment while still applying the rest of the billing mutators.
-	IgnoreMinimumCommitment bool
+	// StoredAtLT defines the stored-at cutoff for current and prior snapshots.
+	StoredAtLT time.Time
+
+	// Metering values
+
+	Customer     billing.CustomerOverrideWithDetails
+	FeatureMeter feature.FeatureMeter
 }
 
-func (i GetDetailedLinesForUsageInput) Validate() error {
+func (i GetDetailedRatingForUsageInput) Validate() error {
 	if err := i.Charge.Validate(); err != nil {
 		return fmt.Errorf("charge: %w", err)
 	}
@@ -37,11 +51,11 @@ func (i GetDetailedLinesForUsageInput) Validate() error {
 		return fmt.Errorf("feature meter is required")
 	}
 
+	period := i.Charge.Intent.ServicePeriod
 	if i.ServicePeriodTo.IsZero() {
 		return fmt.Errorf("service period to is required")
 	}
 
-	period := i.Charge.Intent.ServicePeriod
 	if !i.ServicePeriodTo.After(period.From) {
 		return fmt.Errorf("service period to must be after charge service period from")
 	}
@@ -54,12 +68,10 @@ func (i GetDetailedLinesForUsageInput) Validate() error {
 		return fmt.Errorf("stored at lt is required")
 	}
 
-	if err := i.PriorRuns.Validate(); err != nil {
-		return fmt.Errorf("prior runs: %w", err)
-	}
-
-	for idx, run := range i.PriorRuns {
-		if !run.DetailedLines.IsPresent() {
+	for idx, run := range i.Charge.Realizations {
+		// Only runs before the requested service-period boundary are prior runs;
+		// the current run, if already present on the charge, is ignored.
+		if run.ServicePeriodTo.Before(i.ServicePeriodTo) && !run.DetailedLines.IsPresent() {
 			return fmt.Errorf("prior runs[%d]: detailed lines must be expanded", idx)
 		}
 	}
@@ -67,54 +79,184 @@ func (i GetDetailedLinesForUsageInput) Validate() error {
 	return nil
 }
 
-type GetRatingForUsageResult struct {
+type GetDetailedRatingForUsageResult struct {
 	billingrating.GenerateDetailedLinesResult
+	// Quantity is the current run's meter value between [Charge.Intent.ServicePeriod.From, ServicePeriodTo)
+	// capped at StoredAtLT.
 	Quantity alpacadecimal.Decimal
 }
 
-// GetDetailedLinesForUsage returns the rated detailed lines together with the metered quantity snapshot
-// used to compute them. Prefer GetTotalsForUsage when only totals are needed because it is faster.
-func (s *service) GetDetailedLinesForUsage(ctx context.Context, in GetDetailedLinesForUsageInput) (GetRatingForUsageResult, error) {
+func (s *service) GetDetailedRatingForUsage(ctx context.Context, in GetDetailedRatingForUsageInput) (GetDetailedRatingForUsageResult, error) {
 	if err := in.Validate(); err != nil {
-		return GetRatingForUsageResult{}, err
+		return GetDetailedRatingForUsageResult{}, err
 	}
 
-	servicePeriod := in.Charge.Intent.ServicePeriod
-	servicePeriod.To = in.ServicePeriodTo
+	currentRunServicePeriod := timeutil.ClosedPeriod{
+		From: in.Charge.Intent.ServicePeriod.From,
+		To:   in.ServicePeriodTo,
+	}
 
-	snapshotQuantity, err := s.snapshotQuantity(ctx, snapshotQuantityInput{
+	currentQuantity, err := s.snapshotQuantity(ctx, snapshotQuantityInput{
 		Customer:      in.Customer.Customer,
 		FeatureMeter:  in.FeatureMeter,
-		ServicePeriod: servicePeriod,
+		ServicePeriod: currentRunServicePeriod,
 		StoredAtLT:    in.StoredAtLT,
 	})
 	if err != nil {
-		return GetRatingForUsageResult{}, fmt.Errorf("get snapshot quantity: %w", err)
+		return GetDetailedRatingForUsageResult{}, fmt.Errorf("get current quantity: %w", err)
+	}
+
+	// Let's fetch invoice based realizations that are before the current run's service period to
+	eligibleRealizations := lo.Filter(in.Charge.Realizations, func(run usagebased.RealizationRun, _ int) bool {
+		if run.Type != usagebased.RealizationRunTypeFinalRealization && run.Type != usagebased.RealizationRunTypePartialInvoice {
+			return false
+		}
+
+		return run.ServicePeriodTo.Before(in.ServicePeriodTo)
+	})
+
+	// Let's sort the eligible realizations by service period to
+	slices.SortStableFunc(eligibleRealizations, func(a, b usagebased.RealizationRun) int {
+		return cmp.Compare(a.ServicePeriodTo.UnixNano(), b.ServicePeriodTo.UnixNano())
+	})
+
+	servicePeriodFrom := in.Charge.Intent.ServicePeriod.From
+	priorPeriods := make([]ratingPriorPeriod, 0, len(eligibleRealizations))
+
+	for _, realization := range eligibleRealizations {
+		servicePeriod := timeutil.ClosedPeriod{
+			From: servicePeriodFrom,
+			To:   realization.ServicePeriodTo,
+		}
+
+		// TODO: Later persist prior-period value snapshots for previous runs to avoid re-querying them. This only
+		// helps if we have customers with a lot of interim invoices.
+		//
+		// The future optimization should snapshot prior runs as follows:
+		//
+		// - Determine the previous run as the latest non-current run with `ServicePeriodTo < current ServicePeriodTo`.
+		// - For monotonic-compatible meters (monotonic + SUM), load that previous run's stored prior-period values.
+		// - Re-query prior run quantities using the current run's `StoredAtLT`.
+		// - Iterate prior runs from newest to oldest.
+		// - Once a freshly queried prior quantity matches the value stored by the previous run, stop querying older periods.
+		// - Copy the remaining older prior-period values from the previous run instead.
+		// - This avoids expensive meter queries for older periods when the previous snapshot already proves they have not changed.
+		//
+		// An alternative approach is to do two queries and aggregate from there (for SUM, COUNT, MIN, MAX, etc.).
+		//
+		// - Query the meter between [intent.ServicePeriodFrom ... servicePeriod.To) capped by [previousStoredAtLT ... currentStoredAtLT)
+		// - Query the meter between [servicePeriod.To ... currentServicePeriod.To) capped by currentStoredAtLT
+		// - Aggregate the two results
+
+		priorPeriodQty, err := s.snapshotQuantity(ctx, snapshotQuantityInput{
+			Customer:      in.Customer.Customer,
+			FeatureMeter:  in.FeatureMeter,
+			ServicePeriod: servicePeriod,
+			StoredAtLT:    in.StoredAtLT,
+		})
+		if err != nil {
+			return GetDetailedRatingForUsageResult{}, fmt.Errorf("get prior period quantity: %w", err)
+		}
+
+		priorPeriods = append(priorPeriods, ratingPriorPeriod{
+			MeteredQuantity: priorPeriodQty,
+			ServicePeriod:   servicePeriod,
+			DetailedLines:   realization.DetailedLines.OrEmpty(),
+		})
+
+		servicePeriodFrom = servicePeriod.To
+	}
+
+	return s.rateWithLateEvents(ctx, rateWithLateEventsInput{
+		Intent: in.Charge.Intent,
+		CurrentPeriod: ratingCurrentPeriod{
+			MeteredQuantity: currentQuantity,
+			ServicePeriod:   currentRunServicePeriod,
+		},
+		PriorPeriod: priorPeriods,
+	})
+}
+
+type rateWithLateEventsInput struct {
+	Intent usagebased.Intent
+
+	CurrentPeriod ratingCurrentPeriod
+	PriorPeriod   []ratingPriorPeriod
+}
+
+func (i rateWithLateEventsInput) Validate() error {
+	var errs []error
+	if err := i.Intent.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("intent: %w", err))
+	}
+
+	intentServicePeriod := i.Intent.ServicePeriod
+	if !intentServicePeriod.ContainsPeriodInclusive(i.CurrentPeriod.ServicePeriod) {
+		errs = append(errs, fmt.Errorf("current period service period must be contained in intent service period: [%s..%s] vs [%s..%s]",
+			intentServicePeriod.From.Format(time.RFC3339), intentServicePeriod.To.Format(time.RFC3339),
+			i.CurrentPeriod.ServicePeriod.From.Format(time.RFC3339), i.CurrentPeriod.ServicePeriod.To.Format(time.RFC3339)))
+	}
+
+	for _, priorPeriod := range i.PriorPeriod {
+		if !intentServicePeriod.ContainsPeriodInclusive(priorPeriod.ServicePeriod) {
+			errs = append(errs, fmt.Errorf("prior period service period must be contained in intent service period: [%s..%s] vs [%s..%s]",
+				intentServicePeriod.From.Format(time.RFC3339), intentServicePeriod.To.Format(time.RFC3339),
+				priorPeriod.ServicePeriod.From.Format(time.RFC3339), priorPeriod.ServicePeriod.To.Format(time.RFC3339)))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type ratingCurrentPeriod struct {
+	// MeteredQuantity is the metered quantity for [intent.ServicePeriodFrom ... servicePeriod.To) capped by StoredAtLT of the current run
+	MeteredQuantity alpacadecimal.Decimal
+
+	// ServicePeriod is the service period for the current period (from is intent.ServicePeriod.From if this is the first run or
+	// the previous run's servicePeriod.To if this is not the first run)
+	ServicePeriod timeutil.ClosedPeriod
+}
+
+type ratingPriorPeriod struct {
+	// MeteredQuantity is the metered quantity for [intent.ServicePeriodFrom ... servicePeriod.To) capped by StoredAtLT of the current run
+	MeteredQuantity alpacadecimal.Decimal
+
+	// ServicePeriod is the service period for the prior period (from is intent.ServicePeriod.From, for the first item or
+	// servicePeriod.From of the previous item)
+	ServicePeriod timeutil.ClosedPeriod
+
+	// DetailedLines are the detailed lines billed for the prior period
+	DetailedLines usagebased.DetailedLines
+}
+
+func (s *service) rateWithLateEvents(ctx context.Context, in rateWithLateEventsInput) (GetDetailedRatingForUsageResult, error) {
+	if err := in.Validate(); err != nil {
+		return GetDetailedRatingForUsageResult{}, err
 	}
 
 	var opts []billingrating.GenerateDetailedLinesOption
-	if in.IgnoreMinimumCommitment {
+	// Minimum commitment is charged only on the final run, not on interim snapshots.
+	if in.CurrentPeriod.ServicePeriod.To.Before(in.Intent.ServicePeriod.To) {
 		opts = append(opts, billingrating.WithMinimumCommitmentIgnored())
 	}
 
-	intent := in.Charge.Intent
-	intent.ServicePeriod = servicePeriod
-
+	// TODO[later]: Implement the proper rating logic using prior period usage qtys for late event processing
 	ratingResult, err := s.ratingService.GenerateDetailedLines(usagebased.RateableIntent{
-		Intent:     intent,
-		MeterValue: snapshotQuantity,
+		Intent:        in.Intent,
+		ServicePeriod: in.CurrentPeriod.ServicePeriod,
+		MeterValue:    in.CurrentPeriod.MeteredQuantity,
 	}, opts...)
 	if err != nil {
-		return GetRatingForUsageResult{}, fmt.Errorf("rating: %w", err)
+		return GetDetailedRatingForUsageResult{}, fmt.Errorf("rating: %w", err)
 	}
 
 	ratingResult.DetailedLines = withServicePeriodInDetailedLineChildUniqueReferenceIDs(
 		ratingResult.DetailedLines,
-		servicePeriod,
+		in.CurrentPeriod.ServicePeriod,
 	)
 
-	return GetRatingForUsageResult{
+	return GetDetailedRatingForUsageResult{
 		GenerateDetailedLinesResult: ratingResult,
-		Quantity:                    snapshotQuantity,
+		Quantity:                    in.CurrentPeriod.MeteredQuantity,
 	}, nil
 }

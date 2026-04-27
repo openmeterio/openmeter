@@ -54,7 +54,7 @@ func TestMapRatingResultToRunDetailedLines(t *testing.T) {
 		},
 	}
 
-	in := usagebasedrating.GetRatingForUsageResult{
+	in := usagebasedrating.GetDetailedRatingForUsageResult{
 		GenerateDetailedLinesResult: billingrating.GenerateDetailedLinesResult{
 			DetailedLines: billingrating.DetailedLines{
 				{

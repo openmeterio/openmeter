@@ -17,17 +17,15 @@ import (
 )
 
 type CreateRatedRunInput struct {
-	Charge           usagebased.Charge
-	CustomerOverride billing.CustomerOverrideWithDetails
-	FeatureMeter     feature.FeatureMeter
-	Type             usagebased.RealizationRunType
-	StoredAtLT       time.Time
-	ServicePeriodTo  time.Time
-	LineID           *string
-	// IgnoreMinimumCommitment keeps interim realization runs from booking final-only minimum commitment.
-	IgnoreMinimumCommitment bool
-	CreditAllocation        CreditAllocationMode
-	CurrencyCalculator      currencyx.Calculator
+	Charge             usagebased.Charge
+	CustomerOverride   billing.CustomerOverrideWithDetails
+	FeatureMeter       feature.FeatureMeter
+	Type               usagebased.RealizationRunType
+	StoredAtLT         time.Time
+	ServicePeriodTo    time.Time
+	LineID             *string
+	CreditAllocation   CreditAllocationMode
+	CurrencyCalculator currencyx.Calculator
 }
 
 func (i CreateRatedRunInput) Validate() error {
@@ -86,7 +84,7 @@ func (i CreateRatedRunInput) Validate() error {
 type CreateRatedRunResult struct {
 	Charge usagebased.Charge
 	Run    usagebased.RealizationRun
-	Rating usagebasedrating.GetRatingForUsageResult
+	Rating usagebasedrating.GetDetailedRatingForUsageResult
 }
 
 func (s *Service) createNewRealizationRun(ctx context.Context, charge usagebased.Charge, in usagebased.CreateRealizationRunInput) (usagebased.Charge, error) {
@@ -130,17 +128,15 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 	}
 	in.Charge = chargeWithDetailedLines
 
-	ratingResult, err := s.rater.GetDetailedLinesForUsage(ctx, usagebasedrating.GetDetailedLinesForUsageInput{
-		Charge:                  in.Charge,
-		PriorRuns:               in.Charge.Realizations,
-		Customer:                in.CustomerOverride,
-		FeatureMeter:            in.FeatureMeter,
-		ServicePeriodTo:         in.ServicePeriodTo,
-		StoredAtLT:              in.StoredAtLT,
-		IgnoreMinimumCommitment: in.IgnoreMinimumCommitment,
+	ratingResult, err := s.rater.GetDetailedRatingForUsage(ctx, usagebasedrating.GetDetailedRatingForUsageInput{
+		Charge:          in.Charge,
+		StoredAtLT:      in.StoredAtLT,
+		ServicePeriodTo: in.ServicePeriodTo,
+		Customer:        in.CustomerOverride,
+		FeatureMeter:    in.FeatureMeter,
 	})
 	if err != nil {
-		return CreateRatedRunResult{}, fmt.Errorf("get rating for usage: %w", err)
+		return CreateRatedRunResult{}, fmt.Errorf("get detailed rating for usage: %w", err)
 	}
 
 	runTotals := ratingResult.Totals.RoundToPrecision(in.CurrencyCalculator)
@@ -194,10 +190,8 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 		runTotals.Total = in.CurrencyCalculator.RoundToPrecision(runTotals.Total.Sub(allocationResult.Allocated))
 
 		currentRunBase, err := s.adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
-			ID:              currentRun.ID,
-			StoredAtLT:      mo.Some(in.StoredAtLT),
-			MeteredQuantity: mo.Some(ratingResult.Quantity),
-			Totals:          mo.Some(runTotals),
+			ID:     currentRun.ID,
+			Totals: mo.Some(runTotals),
 		})
 		if err != nil {
 			return CreateRatedRunResult{}, fmt.Errorf("update realization run: %w", err)

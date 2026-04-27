@@ -184,16 +184,15 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 
 	storedAtLT := meta.NormalizeTimestamp(currentRun.StoredAtLT)
 
-	ratingResult, err := s.Rater.GetDetailedLinesForUsage(ctx, usagebasedrating.GetDetailedLinesForUsageInput{
+	ratingResult, err := s.Rater.GetDetailedRatingForUsage(ctx, usagebasedrating.GetDetailedRatingForUsageInput{
 		Charge:          s.Charge,
-		PriorRuns:       s.Charge.Realizations.Without(currentRun.ID),
+		StoredAtLT:      storedAtLT,
+		ServicePeriodTo: currentRun.ServicePeriodTo,
 		Customer:        s.CustomerOverride,
 		FeatureMeter:    s.FeatureMeter,
-		ServicePeriodTo: currentRun.ServicePeriodTo,
-		StoredAtLT:      storedAtLT,
 	})
 	if err != nil {
-		return fmt.Errorf("get rating for usage: %w", err)
+		return fmt.Errorf("get detailed rating for usage: %w", err)
 	}
 
 	currentTotals := ratingResult.Totals.RoundToPrecision(s.CurrencyCalculator)
@@ -219,12 +218,18 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 	}
 	currentRun.DetailedLines = mo.Some(runDetailedLines)
 
-	if _, err := s.Adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
+	currentRunBase, err := s.Adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
 		ID:              currentRun.ID,
 		StoredAtLT:      mo.Some(storedAtLT),
 		MeteredQuantity: mo.Some(ratingResult.Quantity),
 		Totals:          mo.Some(currentTotals),
-	}); err != nil {
+	})
+	if err != nil {
+		return fmt.Errorf("update realization run: %w", err)
+	}
+	currentRun.RealizationRunBase = currentRunBase
+
+	if err := s.Charge.Realizations.SetRealizationRun(currentRun); err != nil {
 		return fmt.Errorf("update realization run: %w", err)
 	}
 
