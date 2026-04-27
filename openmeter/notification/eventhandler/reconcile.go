@@ -92,7 +92,14 @@ func (h *Handler) Reconcile(ctx context.Context) error {
 		span.AddEvent("lock acquired")
 
 		workerPool := semaphore.NewWeighted(h.workerPoolSize)
+
 		wg := sync.WaitGroup{}
+		defer func() {
+			// Wait for all workers to finish
+			wg.Wait()
+
+			h.logger.DebugContext(ctx, "all workers finished")
+		}()
 
 		page := pagination.Page{
 			PageSize:   50,
@@ -144,9 +151,6 @@ func (h *Handler) Reconcile(ctx context.Context) error {
 
 			page.PageNumber++
 		}
-
-		// Wait for all workers to finish
-		wg.Wait()
 
 		return nil
 	}
