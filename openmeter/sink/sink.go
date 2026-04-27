@@ -27,6 +27,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
 	sinkmodels "github.com/openmeterio/openmeter/openmeter/sink/models"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 	kafkastats "github.com/openmeterio/openmeter/pkg/kafka/metrics/stats"
 )
@@ -37,6 +38,7 @@ type Sink struct {
 	flushTimer        *time.Timer
 	flushCh           chan struct{}
 	flushEventCounter metric.Int64Counter
+	flushIngestDelay  metric.Int64Histogram
 	messageCounter    metric.Int64Counter
 	namespaceRefetch  *time.Timer
 	topicResolver     topicresolver.Resolver
@@ -202,6 +204,15 @@ func NewSink(config SinkConfig) (*Sink, error) {
 		return nil, fmt.Errorf("failed to create events counter: %w", err)
 	}
 
+	flushIngestDelay, err := config.MetricMeter.Int64Histogram(
+		"sink.flush.ingest.delay",
+		metric.WithDescription("The ingestion delay calculated from ingested_at and stored_at timestamps"),
+		metric.WithUnit("ms"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create ingest delay histogram: %w", err)
+	}
+
 	kafkaMetrics, err := kafkametrics.New(config.MetricMeter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Kafka client metrics: %w", err)
@@ -226,6 +237,7 @@ func NewSink(config SinkConfig) (*Sink, error) {
 		buffer:               NewSinkBuffer(),
 		flushCh:              make(chan struct{}, 1),
 		flushEventCounter:    flushEventCounter,
+		flushIngestDelay:     flushIngestDelay,
 		messageCounter:       messageCounter,
 		kafkaMetrics:         kafkaMetrics,
 		topicResolver:        config.TopicResolver,
@@ -234,6 +246,12 @@ func NewSink(config SinkConfig) (*Sink, error) {
 	}
 
 	return sink, nil
+}
+
+func withStoredAt(storedAt time.Time) MessageTransformerFunc {
+	return func(message *sinkmodels.SinkMessage) {
+		message.StoredAt = &storedAt
+	}
 }
 
 // flush flushes the 1. buffer to storage, 2. sets dedupe and 3. store the offset
@@ -276,7 +294,9 @@ func (s *Sink) flush(ctx context.Context) error {
 		}
 	}()
 
-	messages := s.buffer.Dequeue()
+	storedAt := clock.Now()
+
+	messages := s.buffer.Dequeue(withStoredAt(storedAt))
 
 	// Start tracing
 	ctx, flushSpan := s.config.Tracer.Start(ctx, "flush", trace.WithSpanKind(trace.SpanKindConsumer), trace.WithAttributes(attribute.Int("size", len(messages))))
@@ -386,15 +406,21 @@ func (s *Sink) flush(ctx context.Context) error {
 //
 // TODO: figure out if this needs to return an error or not
 func (s *Sink) reportFlushMetrics(ctx context.Context, messages []sinkmodels.SinkMessage) error { //nolint: unparam
-	namespacesReport := map[string]int64{}
-
 	for _, message := range messages {
 		namespaceAttr := attribute.String("namespace", message.Namespace)
 		statusAttr := attribute.String("status", message.Status.State.String())
 
-		// Count events per namespace
-		namespacesReport[message.Namespace]++
 		s.flushEventCounter.Add(ctx, 1, metric.WithAttributes(namespaceAttr, statusAttr))
+
+		if message.Status.State == sinkmodels.OK && message.IngestedAt != nil && message.StoredAt != nil {
+			delay := message.StoredAt.Sub(*message.IngestedAt).Milliseconds()
+
+			if delay < 0 {
+				delay = 0
+			}
+
+			s.flushIngestDelay.Record(ctx, delay, metric.WithAttributes(namespaceAttr))
+		}
 	}
 
 	return nil
@@ -859,17 +885,26 @@ func (s *Sink) parseMessage(ctx context.Context, e *kafka.Message) (*sinkmodels.
 		},
 	}
 
-	// Get Namespace from Kafka message header
-	var namespace string
+	// Parse known headers from Kafka message
 	for _, header := range e.Headers {
-		if header.Key == kafkaingest.HeaderKeyNamespace {
-			namespace = string(header.Value)
+		if sinkMessage.Namespace == "" && header.Key == kafkaingest.HeaderKeyNamespace {
+			sinkMessage.Namespace = string(header.Value)
+		}
 
-			break
+		if sinkMessage.IngestedAt == nil && header.Key == kafkaingest.HeaderKeyIngestedAt {
+			ingestedAt, err := kafkaingest.FromIngestedAt(string(header.Value))
+			if err != nil {
+				s.config.Logger.ErrorContext(ctx, "failed to parse Kafka message header",
+					"kafka.message.header.key", kafkaingest.HeaderKeyIngestedAt,
+					"error", err,
+				)
+			} else {
+				sinkMessage.IngestedAt = &ingestedAt
+			}
 		}
 	}
 
-	if namespace == "" {
+	if sinkMessage.Namespace == "" {
 		sinkMessage.Status = sinkmodels.ProcessingStatus{
 			State: sinkmodels.DROP,
 			DropError: fmt.Errorf("failed to get namespace as header (%q) for Kafka Message is missing: %s",
@@ -880,7 +915,6 @@ func (s *Sink) parseMessage(ctx context.Context, e *kafka.Message) (*sinkmodels.
 
 		return sinkMessage, nil
 	}
-	sinkMessage.Namespace = namespace
 
 	// Parse Kafka Event
 	kafkaCloudEvent := serializer.CloudEventsKafkaPayload{}

@@ -16,6 +16,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 	kafkastats "github.com/openmeterio/openmeter/pkg/kafka/metrics/stats"
@@ -23,8 +24,17 @@ import (
 )
 
 const (
-	HeaderKeyNamespace = "namespace"
+	HeaderKeyNamespace  = "namespace"
+	HeaderKeyIngestedAt = "ingested_at"
 )
+
+func ToIngestedAt(t time.Time) string {
+	return t.UTC().Format(time.RFC3339Nano)
+}
+
+func FromIngestedAt(s string) (time.Time, error) {
+	return time.Parse(time.RFC3339Nano, s)
+}
 
 // Collector is a receiver of events that handles sending those events to a downstream Kafka broker.
 type Collector struct {
@@ -139,7 +149,7 @@ func (s Collector) Ingest(ctx context.Context, namespace string, ev event.Event)
 		Headers: []kafka.Header{
 			{Key: HeaderKeyNamespace, Value: []byte(namespace)},
 			{Key: "specversion", Value: []byte(ev.SpecVersion())},
-			{Key: "ingested_at", Value: []byte(time.Now().UTC().Format(time.RFC3339))},
+			{Key: HeaderKeyIngestedAt, Value: []byte(ToIngestedAt(clock.Now()))},
 			{Key: otelx.OTelSpanContextKey, Value: spanCtx},
 		},
 		// Key must match the dedupe hash or we will have frequent race conditions when deduplicating
