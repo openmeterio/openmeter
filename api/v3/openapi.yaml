@@ -49,6 +49,31 @@ paths:
       description: List all add-ons.
       parameters:
         - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort add-ons returned in the response.
+            Supported sort attributes are:
+            - `id`
+            - `key`
+            - `name`
+            - `created_at` (default)
+            - `updated_at`
+
+            The `asc` suffix is optional as the default sort order is ascending.
+            The `desc` suffix is used to specify a descending order.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+        - name: filter
+          in: query
+          required: false
+          description: Filter add-ons returned in the response.
+          schema:
+            $ref: '#/components/schemas/ListAddonsParamsFilter'
+          style: deepObject
       responses:
         '200':
           description: Page paginated response.
@@ -7476,6 +7501,20 @@ components:
           type: string
           description: Name of the provider, e.g., "OpenAI", "Anthropic".
       description: LLM Provider
+    ListAddonsParamsFilter:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/ULIDFieldFilter'
+        key:
+          $ref: '#/components/schemas/StringFieldFilter'
+        name:
+          $ref: '#/components/schemas/StringFieldFilter'
+        status:
+          $ref: '#/components/schemas/StringFieldFilterExact'
+        currency:
+          $ref: '#/components/schemas/StringFieldFilterExact'
+      description: Filter options for listing add-ons.
     ListChargesParamsFilter:
       type: object
       properties:
@@ -8788,6 +8827,15 @@ components:
       type: string
       minLength: 1
       description: Subject key.
+    SortQuery:
+      title: SortQuery
+      type: string
+      example: created_at desc
+      description: |
+        The `asc` suffix is optional as the default sort order is ascending.
+        The `desc` suffix is used to specify a descending order.
+        Multiple sort attributes may be provided via a comma separated list.
+        JSONPath notation may be used to specify a sub-attribute (eg: 'foo.bar desc').
     Labels:
       title: Labels
       type: object
@@ -9140,15 +9188,6 @@ components:
               example: kong:trace:1234567890
             detail:
               example: Gone
-    SortQuery:
-      title: SortQuery
-      type: string
-      example: created_at desc
-      description: |
-        The `asc` suffix is optional as the default sort order is ascending.
-        The `desc` suffix is used to specify a descending order.
-        Multiple sort attributes may be provided via a comma separated list.
-        JSONPath notation may be used to specify a sub-attribute (eg: 'foo.bar desc').
     CursorMetaPage:
       type: object
       required:

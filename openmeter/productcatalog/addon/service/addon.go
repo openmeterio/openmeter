@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -292,7 +293,7 @@ func (s service) getAddonVersions(ctx context.Context, namespace, key string) (a
 		OrderBy:        addon.OrderByVersion,
 		Order:          addon.OrderAsc,
 		Namespaces:     []string{namespace},
-		Keys:           []string{key},
+		Key:            &filter.FilterString{In: &[]string{key}},
 		IncludeDeleted: true,
 	})
 	if err != nil {

@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -17,7 +18,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -440,4 +443,172 @@ func TestAddonService(t *testing.T) {
 			})
 		})
 	})
+}
+
+func TestAddonService_List(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+
+	env.DBSchemaMigrate(t)
+
+	namespace := pctestutils.NewTestNamespace(t)
+
+	// Create some addons for testing
+	addonCount := 5
+	addons := make([]*addon.Addon, 0, addonCount)
+	for i := range addonCount {
+		addonInput := pctestutils.NewTestAddon(t, namespace, &productcatalog.FlatFeeRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:  fmt.Sprintf("rc-%d", i),
+				Name: fmt.Sprintf("RateCard %d", i),
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      decimal.NewFromInt(100),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+			},
+		})
+		addonInput.Key = fmt.Sprintf("addon-%d", i)
+		addonInput.Name = fmt.Sprintf("Addon %d", i)
+		if i%2 == 0 {
+			addonInput.Currency = "USD"
+		} else {
+			addonInput.Currency = "EUR"
+		}
+
+		a, err := env.Addon.CreateAddon(ctx, addonInput)
+		require.NoError(t, err)
+		addons = append(addons, a)
+	}
+
+	testCases := []struct {
+		name     string
+		input    addon.ListAddonsInput
+		validate func(t *testing.T, res pagination.Result[addon.Addon])
+	}{
+		{
+			name: "ListAll",
+			input: addon.ListAddonsInput{
+				Namespaces: []string{namespace},
+				Page: pagination.Page{
+					PageSize:   10,
+					PageNumber: 1,
+				},
+			},
+			validate: func(t *testing.T, res pagination.Result[addon.Addon]) {
+				assert.Len(t, res.Items, addonCount)
+			},
+		},
+		{
+			name: "FilterByID",
+			input: addon.ListAddonsInput{
+				Namespaces: []string{namespace},
+				ID: &filter.FilterULID{
+					FilterString: filter.FilterString{
+						Eq: convert.ToPointer(addons[0].ID),
+					},
+				},
+				Page: pagination.Page{
+					PageSize:   10,
+					PageNumber: 1,
+				},
+			},
+			validate: func(t *testing.T, res pagination.Result[addon.Addon]) {
+				assert.Len(t, res.Items, 1)
+				assert.Equal(t, addons[0].ID, res.Items[0].ID)
+			},
+		},
+		{
+			name: "FilterByKey",
+			input: addon.ListAddonsInput{
+				Namespaces: []string{namespace},
+				Key: &filter.FilterString{
+					Eq: convert.ToPointer(addons[1].Key),
+				},
+				Page: pagination.Page{
+					PageSize:   10,
+					PageNumber: 1,
+				},
+			},
+			validate: func(t *testing.T, res pagination.Result[addon.Addon]) {
+				assert.Len(t, res.Items, 1)
+				assert.Equal(t, addons[1].Key, res.Items[0].Key)
+			},
+		},
+		{
+			name: "FilterByName",
+			input: addon.ListAddonsInput{
+				Namespaces: []string{namespace},
+				Name: &filter.FilterString{
+					Contains: convert.ToPointer("Addon 2"),
+				},
+				Page: pagination.Page{
+					PageSize:   10,
+					PageNumber: 1,
+				},
+			},
+			validate: func(t *testing.T, res pagination.Result[addon.Addon]) {
+				assert.Len(t, res.Items, 1)
+				assert.Equal(t, "Addon 2", res.Items[0].Name)
+			},
+		},
+		{
+			name: "FilterByCurrency",
+			input: addon.ListAddonsInput{
+				Namespaces: []string{namespace},
+				Currency: &filter.FilterString{
+					Eq: convert.ToPointer("EUR"),
+				},
+				Page: pagination.Page{
+					PageSize:   10,
+					PageNumber: 1,
+				},
+			},
+			validate: func(t *testing.T, res pagination.Result[addon.Addon]) {
+				assert.Len(t, res.Items, 2)
+			},
+		},
+		{
+			name: "FilterByStatus",
+			input: addon.ListAddonsInput{
+				Namespaces: []string{namespace},
+				Status:     []productcatalog.AddonStatus{productcatalog.AddonStatusDraft},
+				Page: pagination.Page{
+					PageSize:   10,
+					PageNumber: 1,
+				},
+			},
+			validate: func(t *testing.T, res pagination.Result[addon.Addon]) {
+				assert.Len(t, res.Items, addonCount)
+			},
+		},
+		{
+			name: "SortByNameDesc",
+			input: addon.ListAddonsInput{
+				Namespaces: []string{namespace},
+				OrderBy:    addon.OrderByName,
+				Order:      addon.OrderDesc,
+				Page: pagination.Page{
+					PageSize:   10,
+					PageNumber: 1,
+				},
+			},
+			validate: func(t *testing.T, res pagination.Result[addon.Addon]) {
+				assert.Len(t, res.Items, addonCount)
+				assert.Equal(t, "Addon 4", res.Items[0].Name)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			res, err := env.Addon.ListAddons(ctx, tc.input)
+			require.NoError(t, err)
+			tc.validate(t, res)
+		})
+	}
 }
