@@ -14,7 +14,6 @@ import (
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
-	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -53,19 +52,12 @@ func (h *handler) ListAddons() ListAddonsHandler {
 					PageNumber: defaultx.WithDefault(params.Page, notification.DefaultPageNumber),
 				},
 				Namespaces:     []string{ns},
+				IDs:            lo.FromPtr(params.Id),
+				Keys:           lo.FromPtr(params.Key),
 				KeyVersions:    lo.FromPtr(params.KeyVersion),
 				IncludeDeleted: lo.FromPtr(params.IncludeDeleted),
+				Currencies:     lo.FromPtr(params.Currency),
 				Status:         statusFilter,
-			}
-
-			if params.Id != nil {
-				req.ID = &filter.FilterULID{FilterString: filter.FilterString{In: params.Id}}
-			}
-			if params.Key != nil {
-				req.Key = &filter.FilterString{In: params.Key}
-			}
-			if params.Currency != nil {
-				req.Currency = &filter.FilterString{In: params.Currency}
 			}
 
 			return req, nil

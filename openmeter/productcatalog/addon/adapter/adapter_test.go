@@ -172,6 +172,30 @@ func TestPostgresAdapter(t *testing.T) {
 			})
 
 			t.Run("List", func(t *testing.T) {
+				t.Run("ById", func(t *testing.T) {
+					listAddonV1, err := env.AddonRepository.ListAddons(ctx, addon.ListAddonsInput{
+						Namespaces: []string{namespace},
+						IDs:        []string{addonV1.ID},
+					})
+					assert.NoErrorf(t, err, "listing add-on by id filter must not fail")
+
+					require.Lenf(t, listAddonV1.Items, 1, "add-ons must not be empty")
+
+					addon.AssertAddonEqual(t, *addonV1, listAddonV1.Items[0])
+				})
+
+				t.Run("ByKey", func(t *testing.T) {
+					listAddonV1, err := env.AddonRepository.ListAddons(ctx, addon.ListAddonsInput{
+						Namespaces: []string{namespace},
+						Keys:       []string{addonV1Input.Key},
+					})
+					assert.NoErrorf(t, err, "getting add-on by key filter must not fail")
+
+					require.Lenf(t, listAddonV1.Items, 1, "add-ons must not be empty")
+
+					addon.AssertAddonEqual(t, *addonV1, listAddonV1.Items[0])
+				})
+
 				t.Run("ByIdFilter", func(t *testing.T) {
 					listAddonV1, err := env.AddonRepository.ListAddons(ctx, addon.ListAddonsInput{
 						Namespaces: []string{namespace},

@@ -37,12 +37,27 @@ func (a *adapter) ListAddons(ctx context.Context, params addon.ListAddonsInput) 
 			query = query.Where(addondb.NamespaceIn(params.Namespaces...))
 		}
 
+		var orFilters []predicate.Addon
+		if len(params.IDs) > 0 {
+			orFilters = append(orFilters, addondb.IDIn(params.IDs...))
+		}
+
+		if len(params.Keys) > 0 {
+			orFilters = append(orFilters, addondb.KeyIn(params.Keys...))
+		}
+
 		if len(params.KeyVersions) > 0 {
-			var kvFilters []predicate.Addon
 			for key, version := range params.KeyVersions {
-				kvFilters = append(kvFilters, addondb.And(addondb.Key(key), addondb.VersionIn(version...)))
+				orFilters = append(orFilters, addondb.And(addondb.Key(key), addondb.VersionIn(version...)))
 			}
-			query = query.Where(addondb.Or(kvFilters...))
+		}
+
+		if len(params.Currencies) > 0 {
+			orFilters = append(orFilters, addondb.CurrencyIn(params.Currencies...))
+		}
+
+		if len(orFilters) > 0 {
+			query = query.Where(addondb.Or(orFilters...))
 		}
 
 		query = filter.ApplyToQuery(query, params.ID, addondb.FieldID)

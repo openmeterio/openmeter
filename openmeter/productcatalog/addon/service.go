@@ -81,6 +81,12 @@ type ListAddonsInput struct {
 	// Namespaces is the list of namespaces to filter by.
 	Namespaces []string
 
+	// IDs is the list of IDs to filter by.
+	IDs []string
+
+	// Keys is the list of keys to filter by.
+	Keys []string
+
 	// KeyVersions is the map of keys to versions to filter by.
 	KeyVersions map[string][]int
 
@@ -89,6 +95,9 @@ type ListAddonsInput struct {
 
 	// Status filter
 	Status []productcatalog.AddonStatus
+
+	// Currencies is the list of currencies to filter by.
+	Currencies []string
 
 	// Filters
 	ID       *filter.FilterULID
