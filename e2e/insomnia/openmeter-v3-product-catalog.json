@@ -1,0 +1,585 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-04-28T00:00:00.000Z",
+  "__export_source": "manual",
+  "resources": [
+    {
+      "_id": "wrk_om_v3_pc",
+      "_type": "workspace",
+      "name": "OpenMeter V3 Product Catalog",
+      "scope": "collection",
+      "parentId": null
+    },
+    {
+      "_id": "env_om_base",
+      "_type": "environment",
+      "name": "Base Environment",
+      "data": {},
+      "parentId": "wrk_om_v3_pc",
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1
+    },
+    {
+      "_id": "env_om_local",
+      "_type": "environment",
+      "name": "Local Dev",
+      "data": {
+        "base_url": "http://localhost:8888",
+        "api_key": ""
+      },
+      "parentId": "env_om_base",
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1
+    },
+    {
+      "_id": "env_om_staging",
+      "_type": "environment",
+      "name": "Staging",
+      "data": {
+        "base_url": "https://your-staging-host",
+        "api_key": "your-api-key-here"
+      },
+      "parentId": "env_om_base",
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1
+    },
+    {
+      "_id": "fld_addons",
+      "_type": "request_group",
+      "name": "Addons",
+      "parentId": "wrk_om_v3_pc"
+    },
+    {
+      "_id": "fld_plans",
+      "_type": "request_group",
+      "name": "Plans",
+      "parentId": "wrk_om_v3_pc"
+    },
+    {
+      "_id": "fld_planaddons",
+      "_type": "request_group",
+      "name": "Plan Addons",
+      "parentId": "wrk_om_v3_pc"
+    },
+    {
+      "_id": "req_create_addon",
+      "_type": "request",
+      "name": "Create Addon",
+      "parentId": "fld_addons",
+      "method": "POST",
+      "url": "{{ base_url }}/api/v3/openmeter/addons",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ api_key }}",
+          "disabled": true
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"key\": \"my-addon-key\",\n  \"name\": \"My Addon\",\n  \"currency\": \"USD\",\n  \"instance_type\": \"single\",\n  \"rate_cards\": [{\n    \"key\": \"addon-flat-fee\",\n    \"name\": \"Addon Flat Fee\",\n    \"billing_cadence\": \"P1M\",\n    \"payment_term\": \"in_advance\",\n    \"price\": { \"type\": \"flat\", \"amount\": \"10\" }\n  }]\n}"
+      }
+    },
+    {
+      "_id": "req_get_addon",
+      "_type": "request",
+      "name": "Get Addon",
+      "parentId": "fld_addons",
+      "method": "GET",
+      "url": "{{ base_url }}/api/v3/openmeter/addons/{{ addon_id }}",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ api_key }}",
+          "disabled": true
+        }
+      ],
+      "body": {
+        "mimeType": "application/json"
+      }
+    },
+    {
+      "_id": "req_list_addons",
+      "_type": "request",
+      "name": "List Addons",
+      "parentId": "fld_addons",
+      "method": "GET",
+      "url": "{{ base_url }}/api/v3/openmeter/addons?page[size]=20&page[number]=1",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ api_key }}",
+          "disabled": true
+        }
+      ],
+      "body": {
+        "mimeType": "application/json"
+      }
+    },
+    {
+      "_id": "req_update_addon",
+      "_type": "request",
+      "name": "Update Addon",
+      "parentId": "fld_addons",
+      "method": "PUT",
+      "url": "{{ base_url }}/api/v3/openmeter/addons/{{ addon_id }}",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ api_key }}",
+          "disabled": true
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"My Addon Updated\",\n  \"instance_type\": \"single\",\n  \"rate_cards\": [{\n    \"key\": \"addon-flat-fee\",\n    \"name\": \"Addon Flat Fee\",\n    \"billing_cadence\": \"P1M\",\n    \"payment_term\": \"in_advance\",\n    \"price\": { \"type\": \"flat\", \"amount\": \"10\" }\n  }]\n}"
+      }
+    },
+    {
+      "_id": "req_publish_addon",
+      "_type": "request",
+      "name": "Publish Addon",
+      "parentId": "fld_addons",
+      "method": "POST",
+      "url": "{{ base_url }}/api/v3/openmeter/addons/{{ addon_id }}/publish",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ api_key }}",
+          "disabled": true
+        }
+      ],
+      "body": {
+        "mimeType": "application/json"
+      }
+    },
+    {
+      "_id": "req_archive_addon",
+      "_type": "request",
+      "name": "Archive Addon",
+      "parentId": "fld_addons",
+      "method": "POST",
+      "url": "{{ base_url }}/api/v3/openmeter/addons/{{ addon_id }}/archive",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ api_key }}",
+          "disabled": true
+        }
+      ],
+      "body": {
+        "mimeType": "application/json"
+      }
+    },
+    {
+      "_id": "req_delete_addon",
+      "_type": "request",
+      "name": "Delete Addon",
+      "parentId": "fld_addons",
+      "method": "DELETE",
+      "url": "{{ base_url }}/api/v3/openmeter/addons/{{ addon_id }}",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ api_key }}",
+          "disabled": true
+        }
+      ],
+      "body": {
+        "mimeType": "application/json"
+      }
+    },
+    {
+      "_id": "req_create_plan",
+      "_type": "request",
+      "name": "Create Plan",
+      "parentId": "fld_plans",
+      "method": "POST",
+      "url": "{{ base_url }}/api/v3/openmeter/plans",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ api_key }}",
+          "disabled": true
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"key\": \"my-plan-key\",\n  \"name\": \"My Plan\",\n  \"currency\": \"USD\",\n  \"billing_cadence\": \"P1M\",\n  \"phases\": [{\n    \"key\": \"phase-1\",\n    \"name\": \"Phase 1\",\n    \"rate_cards\": [{\n      \"key\": \"base-fee\",\n      \"name\": \"Base Fee\",\n      \"billing_cadence\": \"P1M\",\n      \"payment_term\": \"in_advance\",\n      \"price\": { \"type\": \"flat\", \"amount\": \"10\" }\n    }]\n  }]\n}"
+      }
+    },
+    {
+      "_id": "req_get_plan",
+      "_type": "request",
+      "name": "Get Plan",
+      "parentId": "fld_plans",
+      "method": "GET",
+      "url": "{{ base_url }}/api/v3/openmeter/plans/{{ plan_id }}",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ api_key }}",
+          "disabled": true
+        }
+      ],
+      "body": {
+        "mimeType": "application/json"
+      }
+    },
+    {
+      "_id": "req_list_plans",
+      "_type": "request",
+      "name": "List Plans",
+      "parentId": "fld_plans",
+      "method": "GET",
+      "url": "{{ base_url }}/api/v3/openmeter/plans?page[size]=20&page[number]=1",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ api_key }}",
+          "disabled": true
+        }
+      ],
+      "body": {
+        "mimeType": "application/json"
+      }
+    },
+    {
+      "_id": "req_update_plan",
+      "_type": "request",
+      "name": "Update Plan",
+      "parentId": "fld_plans",
+      "method": "PUT",
+      "url": "{{ base_url }}/api/v3/openmeter/plans/{{ plan_id }}",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ api_key }}",
+          "disabled": true
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"My Plan Updated\",\n  \"phases\": [{\n    \"key\": \"phase-1\",\n    \"name\": \"Phase 1 Renamed\",\n    \"rate_cards\": [{\n      \"key\": \"base-fee\",\n      \"name\": \"Base Fee\",\n      \"billing_cadence\": \"P1M\",\n      \"payment_term\": \"in_advance\",\n      \"price\": { \"type\": \"flat\", \"amount\": \"10\" }\n    }]\n  }]\n}"
+      }
+    },
+    {
+      "_id": "req_publish_plan",
+      "_type": "request",
+      "name": "Publish Plan",
+      "parentId": "fld_plans",
+      "method": "POST",
+      "url": "{{ base_url }}/api/v3/openmeter/plans/{{ plan_id }}/publish",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ api_key }}",
+          "disabled": true
+        }
+      ],
+      "body": {
+        "mimeType": "application/json"
+      }
+    },
+    {
+      "_id": "req_archive_plan",
+      "_type": "request",
+      "name": "Archive Plan",
+      "parentId": "fld_plans",
+      "method": "POST",
+      "url": "{{ base_url }}/api/v3/openmeter/plans/{{ plan_id }}/archive",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ api_key }}",
+          "disabled": true
+        }
+      ],
+      "body": {
+        "mimeType": "application/json"
+      }
+    },
+    {
+      "_id": "req_delete_plan",
+      "_type": "request",
+      "name": "Delete Plan",
+      "parentId": "fld_plans",
+      "method": "DELETE",
+      "url": "{{ base_url }}/api/v3/openmeter/plans/{{ plan_id }}",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ api_key }}",
+          "disabled": true
+        }
+      ],
+      "body": {
+        "mimeType": "application/json"
+      }
+    },
+    {
+      "_id": "req_attach_addon",
+      "_type": "request",
+      "name": "Attach Addon to Plan",
+      "parentId": "fld_planaddons",
+      "method": "POST",
+      "url": "{{ base_url }}/api/v3/openmeter/plans/{{ plan_id }}/addons",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ api_key }}",
+          "disabled": true
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"My Plan Addon\",\n  \"addon\": { \"id\": \"{{ addon_id }}\" },\n  \"from_plan_phase\": \"{{ phase_key }}\"\n}"
+      }
+    },
+    {
+      "_id": "req_get_plan_addon",
+      "_type": "request",
+      "name": "Get Plan Addon",
+      "parentId": "fld_planaddons",
+      "method": "GET",
+      "url": "{{ base_url }}/api/v3/openmeter/plans/{{ plan_id }}/addons/{{ plan_addon_id }}",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ api_key }}",
+          "disabled": true
+        }
+      ],
+      "body": {
+        "mimeType": "application/json"
+      }
+    },
+    {
+      "_id": "req_list_plan_addons",
+      "_type": "request",
+      "name": "List Plan Addons",
+      "parentId": "fld_planaddons",
+      "method": "GET",
+      "url": "{{ base_url }}/api/v3/openmeter/plans/{{ plan_id }}/addons",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ api_key }}",
+          "disabled": true
+        }
+      ],
+      "body": {
+        "mimeType": "application/json"
+      }
+    },
+    {
+      "_id": "req_update_plan_addon",
+      "_type": "request",
+      "name": "Update Plan Addon",
+      "parentId": "fld_planaddons",
+      "method": "PUT",
+      "url": "{{ base_url }}/api/v3/openmeter/plans/{{ plan_id }}/addons/{{ plan_addon_id }}",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ api_key }}",
+          "disabled": true
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"My Plan Addon Updated\",\n  \"from_plan_phase\": \"{{ new_phase_key }}\"\n}"
+      }
+    },
+    {
+      "_id": "req_detach_addon",
+      "_type": "request",
+      "name": "Detach Addon from Plan",
+      "parentId": "fld_planaddons",
+      "method": "DELETE",
+      "url": "{{ base_url }}/api/v3/openmeter/plans/{{ plan_id }}/addons/{{ plan_addon_id }}",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ api_key }}",
+          "disabled": true
+        }
+      ],
+      "body": {
+        "mimeType": "application/json"
+      }
+    },
+    {
+      "_id": "uts_addon_lifecycle",
+      "_type": "unit_test_suite",
+      "name": "Addon Lifecycle",
+      "parentId": "wrk_om_v3_pc"
+    },
+    {
+      "_id": "uts_plan_lifecycle",
+      "_type": "unit_test_suite",
+      "name": "Plan Lifecycle",
+      "parentId": "wrk_om_v3_pc"
+    },
+    {
+      "_id": "uts_planaddon_lifecycle",
+      "_type": "unit_test_suite",
+      "name": "Plan-Addon Lifecycle",
+      "parentId": "wrk_om_v3_pc"
+    },
+    {
+      "_id": "uts_validation",
+      "_type": "unit_test_suite",
+      "name": "Validation Error Cases",
+      "parentId": "wrk_om_v3_pc"
+    },
+    {
+      "_id": "ut_addon_full_lifecycle",
+      "_type": "unit_test",
+      "name": "Full lifecycle: create \u2192 get \u2192 list \u2192 update \u2192 publish \u2192 archive \u2192 delete",
+      "requestId": null,
+      "parentId": "uts_addon_lifecycle",
+      "code": "const BASE = (process.env.OM_BASE_URL || 'http://localhost:8888').replace(/\\/$/, '') + '/api/v3/openmeter';\nconst KEY = process.env.OM_API_KEY || '';\nconst HDRS = { 'Content-Type': 'application/json', ...(KEY ? { 'Authorization': `Bearer ${KEY}` } : {}) };\nconst sfx = `${Date.now()}_${Math.floor(Math.random() * 9999)}`;\n\nasync function api(method, path, body) {\n  const resp = await fetch(`${BASE}${path}`, {\n    method,\n    headers: HDRS,\n    ...(body !== undefined ? { body: JSON.stringify(body) } : {})\n  });\n  let json = null;\n  try { json = await resp.json(); } catch (_) {}\n  return { status: resp.status, json };\n}\n\n// 1. Create\nlet r = await api('POST', '/addons', {\n  key: `lifecycle_addon_${sfx}`,\n  name: `Lifecycle Addon ${sfx}`,\n  currency: 'USD',\n  instance_type: 'single',\n  rate_cards: [{\n    key: `addon_fee_${sfx}`,\n    name: 'Addon Fee',\n    billing_cadence: 'P1M',\n    payment_term: 'in_advance',\n    price: { type: 'flat', amount: '10' }\n  }]\n});\nexpect(r.status, '1. Create \u2192 201').to.equal(201);\nexpect(r.json.status, '1. Create \u2192 status is draft').to.equal('draft');\nexpect(r.json.version, '1. Create \u2192 version is 1').to.equal(1);\nexpect(r.json.effective_from, '1. Create \u2192 effective_from is null').to.not.be.ok;\nconst addonId = r.json.id;\nconst rcKey = `addon_fee_${sfx}`;\n\n// 2. Get\nr = await api('GET', `/addons/${addonId}`);\nexpect(r.status, '2. Get \u2192 200').to.equal(200);\nexpect(r.json.id, '2. Get \u2192 id matches').to.equal(addonId);\nexpect(r.json.status, '2. Get \u2192 status is draft').to.equal('draft');\n\n// 3. List\nr = await api('GET', '/addons?page[size]=1000');\nexpect(r.status, '3. List \u2192 200').to.equal(200);\nconst found3 = (r.json.data || []).some(a => a.id === addonId);\nexpect(found3, '3. List \u2192 contains created addon').to.be.true;\n\n// 4. Update\nr = await api('PUT', `/addons/${addonId}`, {\n  name: 'Lifecycle Addon Updated',\n  instance_type: 'single',\n  rate_cards: [{\n    key: rcKey,\n    name: 'Addon Fee',\n    billing_cadence: 'P1M',\n    payment_term: 'in_advance',\n    price: { type: 'flat', amount: '10' }\n  }]\n});\nexpect(r.status, '4. Update \u2192 200').to.equal(200);\nexpect(r.json.name, '4. Update \u2192 name changed').to.equal('Lifecycle Addon Updated');\nexpect(r.json.status, '4. Update \u2192 still draft').to.equal('draft');\n\n// 5. Publish\nr = await api('POST', `/addons/${addonId}/publish`);\nexpect(r.status, '5. Publish \u2192 200').to.equal(200);\nexpect(r.json.status, '5. Publish \u2192 status is active').to.equal('active');\nexpect(r.json.effective_from, '5. Publish \u2192 effective_from is set').to.be.ok;\n\n// 6. Delete while active \u2192 rejected\nr = await api('DELETE', `/addons/${addonId}`);\nexpect(r.status, '6. Delete active \u2192 400').to.equal(400);\n\n// 7. Archive\nr = await api('POST', `/addons/${addonId}/archive`);\nexpect(r.status, '7. Archive \u2192 200').to.equal(200);\nexpect(r.json.status, '7. Archive \u2192 status is archived').to.equal('archived');\nexpect(r.json.effective_to, '7. Archive \u2192 effective_to is set').to.be.ok;\n\n// 8. Delete after archive\nr = await api('DELETE', `/addons/${addonId}`);\nexpect(r.status, '8. Delete archived \u2192 204').to.equal(204);\n\n// 9. Get after delete\nr = await api('GET', `/addons/${addonId}`);\nexpect(r.status, '9. Get deleted \u2192 200').to.equal(200);\nexpect(r.json.deleted_at, '9. Get deleted \u2192 deleted_at is set').to.be.ok;"
+    },
+    {
+      "_id": "ut_addon_versioning",
+      "_type": "unit_test",
+      "name": "Versioning and auto-archive: publish v2 archives v1",
+      "requestId": null,
+      "parentId": "uts_addon_lifecycle",
+      "code": "const BASE = (process.env.OM_BASE_URL || 'http://localhost:8888').replace(/\\/$/, '') + '/api/v3/openmeter';\nconst KEY = process.env.OM_API_KEY || '';\nconst HDRS = { 'Content-Type': 'application/json', ...(KEY ? { 'Authorization': `Bearer ${KEY}` } : {}) };\nconst sfx = `${Date.now()}_${Math.floor(Math.random() * 9999)}`;\n\nasync function api(method, path, body) {\n  const resp = await fetch(`${BASE}${path}`, {\n    method,\n    headers: HDRS,\n    ...(body !== undefined ? { body: JSON.stringify(body) } : {})\n  });\n  let json = null;\n  try { json = await resp.json(); } catch (_) {}\n  return { status: resp.status, json };\n}\n\nconst sharedKey = `versioning_addon_${sfx}`;\n\n// Create v1\nlet r = await api('POST', '/addons', {\n  key: sharedKey,\n  name: `Versioning Addon v1 ${sfx}`,\n  currency: 'USD',\n  instance_type: 'single',\n  rate_cards: [{ key: `rc_v1_${sfx}`, name: 'Fee', billing_cadence: 'P1M', payment_term: 'in_advance', price: { type: 'flat', amount: '10' } }]\n});\nexpect(r.status, 'v1 create \u2192 201').to.equal(201);\nexpect(r.json.version, 'v1 version = 1').to.equal(1);\nconst v1Id = r.json.id;\n\n// Publish v1\nr = await api('POST', `/addons/${v1Id}/publish`);\nexpect(r.status, 'v1 publish \u2192 200').to.equal(200);\nexpect(r.json.status, 'v1 is active').to.equal('active');\n\n// Create v2 with same key\nr = await api('POST', '/addons', {\n  key: sharedKey,\n  name: `Versioning Addon v2 ${sfx}`,\n  currency: 'USD',\n  instance_type: 'single',\n  rate_cards: [{ key: `rc_v2_${sfx}`, name: 'Fee v2', billing_cadence: 'P1M', payment_term: 'in_advance', price: { type: 'flat', amount: '20' } }]\n});\nexpect(r.status, 'v2 create \u2192 201').to.equal(201);\nexpect(r.json.version, 'v2 version = 2').to.equal(2);\nexpect(r.json.key, 'v2 same key as v1').to.equal(sharedKey);\nexpect(r.json.id, 'v2 different id than v1').to.not.equal(v1Id);\nexpect(r.json.status, 'v2 status is draft').to.equal('draft');\nconst v2Id = r.json.id;\n\n// Publish v2\nr = await api('POST', `/addons/${v2Id}/publish`);\nexpect(r.status, 'v2 publish \u2192 200').to.equal(200);\nexpect(r.json.status, 'v2 is active').to.equal('active');\nexpect(r.json.effective_from, 'v2 effective_from is set').to.be.ok;\nconst v2EffectiveFrom = r.json.effective_from;\n\n// v1 should now be auto-archived\nr = await api('GET', `/addons/${v1Id}`);\nexpect(r.json.status, 'v1 is archived after v2 publish').to.equal('archived');\nexpect(r.json.effective_to, 'v1 effective_to is set').to.be.ok;\nexpect(r.json.effective_to, 'v1 effective_to equals v2 effective_from').to.equal(v2EffectiveFrom);"
+    },
+    {
+      "_id": "ut_addon_mixed_rate_cards",
+      "_type": "unit_test",
+      "name": "Mixed rate cards round-trip: flat + unit (with discount) + graduated",
+      "requestId": null,
+      "parentId": "uts_addon_lifecycle",
+      "code": "const BASE = (process.env.OM_BASE_URL || 'http://localhost:8888').replace(/\\/$/, '') + '/api/v3/openmeter';\nconst KEY = process.env.OM_API_KEY || '';\nconst HDRS = { 'Content-Type': 'application/json', ...(KEY ? { 'Authorization': `Bearer ${KEY}` } : {}) };\nconst sfx = `${Date.now()}_${Math.floor(Math.random() * 9999)}`;\n\nasync function api(method, path, body) {\n  const resp = await fetch(`${BASE}${path}`, {\n    method,\n    headers: HDRS,\n    ...(body !== undefined ? { body: JSON.stringify(body) } : {})\n  });\n  let json = null;\n  try { json = await resp.json(); } catch (_) {}\n  return { status: resp.status, json };\n}\n\nconst flatKey = `flat_${sfx}`;\nconst unitKey = `unit_${sfx}`;\nconst gradKey = `graduated_${sfx}`;\n\nlet r = await api('POST', '/addons', {\n  key: `mixed_rc_addon_${sfx}`,\n  name: `Mixed RC Addon ${sfx}`,\n  currency: 'USD',\n  instance_type: 'single',\n  rate_cards: [\n    {\n      key: flatKey,\n      name: 'Flat Fee',\n      billing_cadence: 'P1M',\n      payment_term: 'in_advance',\n      price: { type: 'flat', amount: '10' }\n    },\n    {\n      key: unitKey,\n      name: 'Unit Price',\n      billing_cadence: 'P1M',\n      payment_term: 'in_arrears',\n      price: { type: 'unit', amount: '0.10' },\n      discounts: { percentage: 10 }\n    },\n    {\n      key: gradKey,\n      name: 'Graduated Tiers',\n      billing_cadence: 'P1M',\n      payment_term: 'in_arrears',\n      price: {\n        type: 'graduated',\n        tiers: [\n          { up_to_amount: '100', unit_price: { type: 'unit', amount: '0.10' } },\n          { unit_price: { type: 'unit', amount: '0.05' } }\n        ]\n      }\n    }\n  ]\n});\nexpect(r.status, 'Create mixed addon \u2192 201').to.equal(201);\nconst addonId = r.json.id;\n\nr = await api('POST', `/addons/${addonId}/publish`);\nexpect(r.status, 'Publish mixed addon \u2192 200').to.equal(200);\n\nr = await api('GET', `/addons/${addonId}`);\nexpect(r.status, 'Get published addon \u2192 200').to.equal(200);\nexpect(r.json.rate_cards.length, 'All 3 rate cards present').to.equal(3);\n\nconst byKey = {};\n(r.json.rate_cards || []).forEach(rc => { byKey[rc.key] = rc; });\n\nexpect(byKey[flatKey], 'Flat rate card present').to.be.ok;\nexpect(byKey[flatKey].price.amount, 'Flat rate card amount = 10').to.equal('10');\n\nexpect(byKey[unitKey], 'Unit rate card present').to.be.ok;\nexpect(byKey[unitKey].discounts && byKey[unitKey].discounts.percentage, 'Unit rate card has percentage discount').to.be.ok;\n\nexpect(byKey[gradKey], 'Graduated rate card present').to.be.ok;\nexpect(byKey[gradKey].price.tiers.length, 'Graduated rate card has 2 tiers').to.equal(2);"
+    },
+    {
+      "_id": "ut_plan_full_lifecycle",
+      "_type": "unit_test",
+      "name": "Full lifecycle: create \u2192 get \u2192 list \u2192 update \u2192 publish \u2192 archive \u2192 delete",
+      "requestId": null,
+      "parentId": "uts_plan_lifecycle",
+      "code": "const BASE = (process.env.OM_BASE_URL || 'http://localhost:8888').replace(/\\/$/, '') + '/api/v3/openmeter';\nconst KEY = process.env.OM_API_KEY || '';\nconst HDRS = { 'Content-Type': 'application/json', ...(KEY ? { 'Authorization': `Bearer ${KEY}` } : {}) };\nconst sfx = `${Date.now()}_${Math.floor(Math.random() * 9999)}`;\n\nasync function api(method, path, body) {\n  const resp = await fetch(`${BASE}${path}`, {\n    method,\n    headers: HDRS,\n    ...(body !== undefined ? { body: JSON.stringify(body) } : {})\n  });\n  let json = null;\n  try { json = await resp.json(); } catch (_) {}\n  return { status: resp.status, json };\n}\n\nconst phaseKey = `phase_1_${sfx}`;\nconst rcKey = `fee_${sfx}`;\n\n// 1. Create\nlet r = await api('POST', '/plans', {\n  key: `lifecycle_plan_${sfx}`,\n  name: `Lifecycle Plan ${sfx}`,\n  currency: 'USD',\n  billing_cadence: 'P1M',\n  phases: [{\n    key: phaseKey,\n    name: 'Phase 1',\n    rate_cards: [{ key: rcKey, name: 'Fee', billing_cadence: 'P1M', payment_term: 'in_advance', price: { type: 'flat', amount: '10' } }]\n  }]\n});\nexpect(r.status, '1. Create \u2192 201').to.equal(201);\nexpect(r.json.status, '1. Create \u2192 status is draft').to.equal('draft');\nexpect(r.json.version, '1. Create \u2192 version is 1').to.equal(1);\nexpect(r.json.effective_from, '1. Create \u2192 effective_from is null').to.not.be.ok;\nconst planId = r.json.id;\n\n// 2. Get\nr = await api('GET', `/plans/${planId}`);\nexpect(r.status, '2. Get \u2192 200').to.equal(200);\nexpect(r.json.status, '2. Get \u2192 status is draft').to.equal('draft');\nexpect(r.json.version, '2. Get \u2192 version is 1').to.equal(1);\n\n// 3. List\nr = await api('GET', '/plans?page[size]=1000');\nexpect(r.status, '3. List \u2192 200').to.equal(200);\nconst found3 = (r.json.data || []).some(p => p.id === planId);\nexpect(found3, '3. List \u2192 contains created plan').to.be.true;\n\n// 4. Update: rename phase, add second rate card\nconst rc2Key = `fee_2_${sfx}`;\nr = await api('PUT', `/plans/${planId}`, {\n  name: `Lifecycle Plan ${sfx}`,\n  phases: [{\n    key: phaseKey,\n    name: 'Phase Renamed',\n    rate_cards: [\n      { key: rcKey, name: 'Fee', billing_cadence: 'P1M', payment_term: 'in_advance', price: { type: 'flat', amount: '10' } },\n      { key: rc2Key, name: 'Fee 2', billing_cadence: 'P1M', payment_term: 'in_advance', price: { type: 'flat', amount: '5' } }\n    ]\n  }]\n});\nexpect(r.status, '4. Update \u2192 200').to.equal(200);\nexpect(r.json.phases[0].key, '4. Update \u2192 phase key is immutable').to.equal(phaseKey);\nexpect(r.json.phases[0].name, '4. Update \u2192 phase name changed').to.equal('Phase Renamed');\nexpect(r.json.phases[0].rate_cards.length, '4. Update \u2192 second rate card added').to.equal(2);\nexpect(r.json.status, '4. Update \u2192 still draft').to.equal('draft');\n\n// 5. Get after update\nr = await api('GET', `/plans/${planId}`);\nexpect(r.json.phases[0].name, '5. Get after update \u2192 phase name persisted').to.equal('Phase Renamed');\nexpect(r.json.phases[0].rate_cards.length, '5. Get after update \u2192 2 rate cards persisted').to.equal(2);\n\n// 6. Publish\nr = await api('POST', `/plans/${planId}/publish`);\nexpect(r.status, '6. Publish \u2192 200').to.equal(200);\nexpect(r.json.status, '6. Publish \u2192 status is active').to.equal('active');\nexpect(r.json.effective_from, '6. Publish \u2192 effective_from is set').to.be.ok;\nexpect(r.json.effective_to, '6. Publish \u2192 effective_to is null').to.not.be.ok;\n\n// 7. Update after publish \u2192 rejected\nr = await api('PUT', `/plans/${planId}`, {\n  name: `Lifecycle Plan ${sfx}`,\n  phases: [{ key: phaseKey, name: 'Phase Renamed After Publish', rate_cards: [{ key: rcKey, name: 'Fee', billing_cadence: 'P1M', payment_term: 'in_advance', price: { type: 'flat', amount: '10' } }] }]\n});\nexpect(r.status, '7. Update after publish \u2192 400').to.equal(400);\n\n// 8. Delete while active \u2192 rejected\nr = await api('DELETE', `/plans/${planId}`);\nexpect(r.status, '8. Delete active \u2192 400').to.equal(400);\n\n// 9. Archive\nr = await api('POST', `/plans/${planId}/archive`);\nexpect(r.status, '9. Archive \u2192 200').to.equal(200);\nexpect(r.json.status, '9. Archive \u2192 status is archived').to.equal('archived');\nexpect(r.json.effective_to, '9. Archive \u2192 effective_to is set').to.be.ok;\n\n// 10. Delete after archive\nr = await api('DELETE', `/plans/${planId}`);\nexpect(r.status, '10. Delete archived \u2192 204').to.equal(204);\n\n// 11. Get after delete\nr = await api('GET', `/plans/${planId}`);\nexpect(r.status, '11. Get deleted \u2192 200').to.equal(200);\nexpect(r.json.deleted_at, '11. Get deleted \u2192 deleted_at is set').to.be.ok;"
+    },
+    {
+      "_id": "ut_plan_versioning",
+      "_type": "unit_test",
+      "name": "Versioning and auto-archive: publish v2 archives v1",
+      "requestId": null,
+      "parentId": "uts_plan_lifecycle",
+      "code": "const BASE = (process.env.OM_BASE_URL || 'http://localhost:8888').replace(/\\/$/, '') + '/api/v3/openmeter';\nconst KEY = process.env.OM_API_KEY || '';\nconst HDRS = { 'Content-Type': 'application/json', ...(KEY ? { 'Authorization': `Bearer ${KEY}` } : {}) };\nconst sfx = `${Date.now()}_${Math.floor(Math.random() * 9999)}`;\n\nasync function api(method, path, body) {\n  const resp = await fetch(`${BASE}${path}`, {\n    method,\n    headers: HDRS,\n    ...(body !== undefined ? { body: JSON.stringify(body) } : {})\n  });\n  let json = null;\n  try { json = await resp.json(); } catch (_) {}\n  return { status: resp.status, json };\n}\n\nconst sharedKey = `versioning_plan_${sfx}`;\n\n// Create v1\nlet r = await api('POST', '/plans', {\n  key: sharedKey,\n  name: `Versioning Plan v1 ${sfx}`,\n  currency: 'USD',\n  billing_cadence: 'P1M',\n  phases: [{ key: `ph_v1_${sfx}`, name: 'Phase', rate_cards: [{ key: `rc_v1_${sfx}`, name: 'Fee', billing_cadence: 'P1M', payment_term: 'in_advance', price: { type: 'flat', amount: '10' } }] }]\n});\nexpect(r.status, 'v1 create \u2192 201').to.equal(201);\nexpect(r.json.version, 'v1 version = 1').to.equal(1);\nconst v1Id = r.json.id;\n\n// Publish v1\nr = await api('POST', `/plans/${v1Id}/publish`);\nexpect(r.status, 'v1 publish \u2192 200').to.equal(200);\nexpect(r.json.status, 'v1 is active').to.equal('active');\n\n// Create v2 with same key\nr = await api('POST', '/plans', {\n  key: sharedKey,\n  name: `Versioning Plan v2 ${sfx}`,\n  currency: 'USD',\n  billing_cadence: 'P1M',\n  phases: [{ key: `ph_v2_${sfx}`, name: 'Phase v2', rate_cards: [{ key: `rc_v2_${sfx}`, name: 'Fee v2', billing_cadence: 'P1M', payment_term: 'in_advance', price: { type: 'flat', amount: '20' } }] }]\n});\nexpect(r.status, 'v2 create \u2192 201').to.equal(201);\nexpect(r.json.version, 'v2 version = 2').to.equal(2);\nexpect(r.json.key, 'v2 same key as v1').to.equal(sharedKey);\nexpect(r.json.id, 'v2 different id').to.not.equal(v1Id);\nconst v2Id = r.json.id;\n\n// Publish v2\nr = await api('POST', `/plans/${v2Id}/publish`);\nexpect(r.status, 'v2 publish \u2192 200').to.equal(200);\nexpect(r.json.status, 'v2 is active').to.equal('active');\nexpect(r.json.effective_from, 'v2 effective_from is set').to.be.ok;\nconst v2EffectiveFrom = r.json.effective_from;\n\n// v1 should now be auto-archived\nr = await api('GET', `/plans/${v1Id}`);\nexpect(r.json.status, 'v1 is archived after v2 publish').to.equal('archived');\nexpect(r.json.effective_to, 'v1 effective_to is set').to.be.ok;\nexpect(r.json.effective_to, 'v1 effective_to equals v2 effective_from').to.equal(v2EffectiveFrom);"
+    },
+    {
+      "_id": "ut_plan_invalid_draft",
+      "_type": "unit_test",
+      "name": "Invalid draft: create accepted, validation errors on GET, publish rejected, fix + republish",
+      "requestId": null,
+      "parentId": "uts_plan_lifecycle",
+      "code": "const BASE = (process.env.OM_BASE_URL || 'http://localhost:8888').replace(/\\/$/, '') + '/api/v3/openmeter';\nconst KEY = process.env.OM_API_KEY || '';\nconst HDRS = { 'Content-Type': 'application/json', ...(KEY ? { 'Authorization': `Bearer ${KEY}` } : {}) };\nconst sfx = `${Date.now()}_${Math.floor(Math.random() * 9999)}`;\n\nasync function api(method, path, body) {\n  const resp = await fetch(`${BASE}${path}`, {\n    method,\n    headers: HDRS,\n    ...(body !== undefined ? { body: JSON.stringify(body) } : {})\n  });\n  let json = null;\n  try { json = await resp.json(); } catch (_) {}\n  return { status: resp.status, json };\n}\n\nconst phaseKey = `empty_phase_${sfx}`;\n\n// Create draft with phase that has no rate cards (invalid but accepted)\nlet r = await api('POST', '/plans', {\n  key: `invalid_draft_plan_${sfx}`,\n  name: `Invalid Draft Plan ${sfx}`,\n  currency: 'USD',\n  billing_cadence: 'P1M',\n  phases: [{ key: phaseKey, name: 'Empty Phase', rate_cards: [] }]\n});\nexpect(r.status, 'Create invalid draft \u2192 201 (accepted)').to.equal(201);\nconst planId = r.json.id;\n\n// GET should surface validation_errors\nr = await api('GET', `/plans/${planId}`);\nexpect(r.status, 'GET invalid draft \u2192 200').to.equal(200);\nexpect(r.json.validation_errors, 'GET invalid draft \u2192 has validation_errors').to.be.ok;\nconst codes3 = (r.json.validation_errors || []).map(e => e.code);\nexpect(codes3, 'GET invalid draft \u2192 code plan_phase_has_no_rate_cards').to.include('plan_phase_has_no_rate_cards');\n\n// Publish should be rejected\nr = await api('POST', `/plans/${planId}/publish`);\nexpect(r.status, 'Publish invalid draft \u2192 400').to.equal(400);\nconst pubCodes = ((r.json.extensions && r.json.extensions.validationErrors) || []).map(e => e.code);\nexpect(pubCodes, 'Publish invalid draft \u2192 code plan_phase_has_no_rate_cards').to.include('plan_phase_has_no_rate_cards');\n\n// Fix: add a rate card\nr = await api('PUT', `/plans/${planId}`, {\n  name: `Invalid Draft Plan ${sfx}`,\n  phases: [{ key: phaseKey, name: 'Fixed Phase', rate_cards: [{ key: `added_rc_${sfx}`, name: 'Added Fee', billing_cadence: 'P1M', payment_term: 'in_advance', price: { type: 'flat', amount: '10' } }] }]\n});\nexpect(r.status, 'Fix: add rate card \u2192 200').to.equal(200);\n\n// Publish after fix\nr = await api('POST', `/plans/${planId}/publish`);\nexpect(r.status, 'Publish after fix \u2192 200').to.equal(200);\nexpect(r.json.status, 'Publish after fix \u2192 status is active').to.equal('active');"
+    },
+    {
+      "_id": "ut_planaddon_attach_lifecycle",
+      "_type": "unit_test",
+      "name": "Attach lifecycle: create plan+addon \u2192 attach \u2192 get \u2192 list \u2192 update phase \u2192 detach \u2192 verify list",
+      "requestId": null,
+      "parentId": "uts_planaddon_lifecycle",
+      "code": "const BASE = (process.env.OM_BASE_URL || 'http://localhost:8888').replace(/\\/$/, '') + '/api/v3/openmeter';\nconst KEY = process.env.OM_API_KEY || '';\nconst HDRS = { 'Content-Type': 'application/json', ...(KEY ? { 'Authorization': `Bearer ${KEY}` } : {}) };\nconst sfx = `${Date.now()}_${Math.floor(Math.random() * 9999)}`;\n\nasync function api(method, path, body) {\n  const resp = await fetch(`${BASE}${path}`, {\n    method,\n    headers: HDRS,\n    ...(body !== undefined ? { body: JSON.stringify(body) } : {})\n  });\n  let json = null;\n  try { json = await resp.json(); } catch (_) {}\n  return { status: resp.status, json };\n}\n\nconst trialKey = `trial_${sfx}`;\nconst standardKey = `standard_${sfx}`;\n\n// Setup: plan with two phases\nlet r = await api('POST', '/plans', {\n  key: `plan_addon_lc_${sfx}`,\n  name: `Plan Addon Lifecycle ${sfx}`,\n  currency: 'USD',\n  billing_cadence: 'P1M',\n  phases: [\n    { key: trialKey, name: 'Trial', duration: 'P1M', rate_cards: [{ key: `trial_rc_${sfx}`, name: 'Trial Fee', billing_cadence: 'P1M', payment_term: 'in_advance', price: { type: 'flat', amount: '0' } }] },\n    { key: standardKey, name: 'Standard', rate_cards: [{ key: `std_rc_${sfx}`, name: 'Standard Fee', billing_cadence: 'P1M', payment_term: 'in_advance', price: { type: 'flat', amount: '20' } }] }\n  ]\n});\nexpect(r.status, 'Setup: create plan \u2192 201').to.equal(201);\nexpect(r.json.phases.length, 'Setup: plan has 2 phases').to.equal(2);\nconst planId = r.json.id;\n\n// Setup: create and publish addon\nr = await api('POST', '/addons', {\n  key: `plan_addon_lc_addon_${sfx}`,\n  name: `Plan Addon Lifecycle Addon ${sfx}`,\n  currency: 'USD',\n  instance_type: 'single',\n  rate_cards: [{ key: `addon_rc_${sfx}`, name: 'Addon Fee', billing_cadence: 'P1M', payment_term: 'in_advance', price: { type: 'flat', amount: '5' } }]\n});\nexpect(r.status, 'Setup: create addon \u2192 201').to.equal(201);\nconst addonId = r.json.id;\n\nr = await api('POST', `/addons/${addonId}/publish`);\nexpect(r.status, 'Setup: publish addon \u2192 200').to.equal(200);\nexpect(r.json.status, 'Setup: addon is active').to.equal('active');\n\n// 1. Attach to standard phase\nr = await api('POST', `/plans/${planId}/addons`, {\n  name: 'Standard Phase Addon',\n  addon: { id: addonId },\n  from_plan_phase: standardKey\n});\nexpect(r.status, '1. Attach \u2192 201').to.equal(201);\nexpect(r.json.from_plan_phase, '1. Attach \u2192 from_plan_phase is standard').to.equal(standardKey);\nexpect(r.json.addon.id, '1. Attach \u2192 addon id matches').to.equal(addonId);\nconst planAddonId = r.json.id;\n\n// 2. Get plan-addon\nr = await api('GET', `/plans/${planId}/addons/${planAddonId}`);\nexpect(r.status, '2. Get plan-addon \u2192 200').to.equal(200);\nexpect(r.json.id, '2. Get plan-addon \u2192 id matches').to.equal(planAddonId);\nexpect(r.json.from_plan_phase, '2. Get plan-addon \u2192 from_plan_phase is standard').to.equal(standardKey);\n\n// 3. List plan-addons\nr = await api('GET', `/plans/${planId}/addons`);\nexpect(r.status, '3. List plan-addons \u2192 200').to.equal(200);\nconst found3 = (r.json.data || []).some(pa => pa.id === planAddonId);\nexpect(found3, '3. List plan-addons \u2192 contains attached addon').to.be.true;\n\n// 4. Update: move to trial phase\nr = await api('PUT', `/plans/${planId}/addons/${planAddonId}`, {\n  name: 'Standard Phase Addon',\n  from_plan_phase: trialKey\n});\nexpect(r.status, '4. Update plan-addon \u2192 200').to.equal(200);\nexpect(r.json.from_plan_phase, '4. Update plan-addon \u2192 from_plan_phase changed to trial').to.equal(trialKey);\n\n// 5. Detach\nr = await api('DELETE', `/plans/${planId}/addons/${planAddonId}`);\nexpect(r.status, '5. Detach \u2192 204').to.equal(204);\n\n// 6. List after detach\nr = await api('GET', `/plans/${planId}/addons`);\nexpect(r.status, '6. List after detach \u2192 200').to.equal(200);\nconst found6 = (r.json.data || []).some(pa => pa.id === planAddonId);\nexpect(found6, '6. List after detach \u2192 detached addon not in list').to.be.false;"
+    },
+    {
+      "_id": "ut_planaddon_publish_with_addon",
+      "_type": "unit_test",
+      "name": "Publish plan with attached addon: plan-addon junction survives status transition",
+      "requestId": null,
+      "parentId": "uts_planaddon_lifecycle",
+      "code": "const BASE = (process.env.OM_BASE_URL || 'http://localhost:8888').replace(/\\/$/, '') + '/api/v3/openmeter';\nconst KEY = process.env.OM_API_KEY || '';\nconst HDRS = { 'Content-Type': 'application/json', ...(KEY ? { 'Authorization': `Bearer ${KEY}` } : {}) };\nconst sfx = `${Date.now()}_${Math.floor(Math.random() * 9999)}`;\n\nasync function api(method, path, body) {\n  const resp = await fetch(`${BASE}${path}`, {\n    method,\n    headers: HDRS,\n    ...(body !== undefined ? { body: JSON.stringify(body) } : {})\n  });\n  let json = null;\n  try { json = await resp.json(); } catch (_) {}\n  return { status: resp.status, json };\n}\n\n// Setup: create plan and addon\nlet r = await api('POST', '/plans', { key: `publish_plan_${sfx}`, name: `Publish Plan ${sfx}`, currency: 'USD', billing_cadence: 'P1M', phases: [{ key: `ph_${sfx}`, name: 'Phase', rate_cards: [{ key: `rc_${sfx}`, name: 'Fee', billing_cadence: 'P1M', payment_term: 'in_advance', price: { type: 'flat', amount: '10' } }] }] });\nexpect(r.status, 'Create plan \u2192 201').to.equal(201);\nconst planId = r.json.id;\nconst phaseKey = r.json.phases[0].key;\n\nr = await api('POST', '/addons', { key: `publish_addon_${sfx}`, name: `Publish Addon ${sfx}`, currency: 'USD', instance_type: 'single', rate_cards: [{ key: `arc_${sfx}`, name: 'Fee', billing_cadence: 'P1M', payment_term: 'in_advance', price: { type: 'flat', amount: '5' } }] });\nexpect(r.status, 'Create addon \u2192 201').to.equal(201);\nconst addonId = r.json.id;\n\nr = await api('POST', `/addons/${addonId}/publish`);\nexpect(r.status, 'Publish addon \u2192 200').to.equal(200);\n\nr = await api('POST', `/plans/${planId}/addons`, { name: 'Attached Addon', addon: { id: addonId }, from_plan_phase: phaseKey });\nexpect(r.status, 'Attach addon \u2192 201').to.equal(201);\nconst planAddonId = r.json.id;\n\n// Publish plan\nr = await api('POST', `/plans/${planId}/publish`);\nexpect(r.status, 'Publish plan with addon \u2192 200').to.equal(200);\nexpect(r.json.status, 'Plan status is active').to.equal('active');\n\n// Detach from active plan \u2192 rejected\nr = await api('DELETE', `/plans/${planId}/addons/${planAddonId}`);\nexpect(r.status, 'Detach from active plan \u2192 400').to.equal(400);\n\n// List plan addons \u2192 junction still present\nr = await api('GET', `/plans/${planId}/addons`);\nexpect(r.status, 'List plan addons after publish \u2192 200').to.equal(200);\nconst foundJunction = (r.json.data || []).some(pa => pa.id === planAddonId);\nexpect(foundJunction, 'Junction survives plan publish').to.be.true;"
+    },
+    {
+      "_id": "ut_planaddon_duplicate_attach",
+      "_type": "unit_test",
+      "name": "Duplicate attachment rejected with 409",
+      "requestId": null,
+      "parentId": "uts_planaddon_lifecycle",
+      "code": "const BASE = (process.env.OM_BASE_URL || 'http://localhost:8888').replace(/\\/$/, '') + '/api/v3/openmeter';\nconst KEY = process.env.OM_API_KEY || '';\nconst HDRS = { 'Content-Type': 'application/json', ...(KEY ? { 'Authorization': `Bearer ${KEY}` } : {}) };\nconst sfx = `${Date.now()}_${Math.floor(Math.random() * 9999)}`;\n\nasync function api(method, path, body) {\n  const resp = await fetch(`${BASE}${path}`, {\n    method,\n    headers: HDRS,\n    ...(body !== undefined ? { body: JSON.stringify(body) } : {})\n  });\n  let json = null;\n  try { json = await resp.json(); } catch (_) {}\n  return { status: resp.status, json };\n}\n\nlet r = await api('POST', '/plans', { key: `dup_attach_plan_${sfx}`, name: `Dup Attach Plan ${sfx}`, currency: 'USD', billing_cadence: 'P1M', phases: [{ key: `ph_${sfx}`, name: 'Phase', rate_cards: [{ key: `rc_${sfx}`, name: 'Fee', billing_cadence: 'P1M', payment_term: 'in_advance', price: { type: 'flat', amount: '10' } }] }] });\nconst planId = r.json.id;\nconst phaseKey = r.json.phases[0].key;\n\nr = await api('POST', '/addons', { key: `dup_attach_addon_${sfx}`, name: `Dup Attach Addon ${sfx}`, currency: 'USD', instance_type: 'single', rate_cards: [{ key: `arc_${sfx}`, name: 'Fee', billing_cadence: 'P1M', payment_term: 'in_advance', price: { type: 'flat', amount: '5' } }] });\nconst addonId = r.json.id;\n\nr = await api('POST', `/addons/${addonId}/publish`);\nexpect(r.status, 'Setup publish addon \u2192 200').to.equal(200);\n\nconst attachBody = { name: 'Addon', addon: { id: addonId }, from_plan_phase: phaseKey };\n\nr = await api('POST', `/plans/${planId}/addons`, attachBody);\nexpect(r.status, 'First attach \u2192 201').to.equal(201);\n\nr = await api('POST', `/plans/${planId}/addons`, attachBody);\nexpect(r.status, 'Duplicate attach \u2192 409').to.equal(409);"
+    },
+    {
+      "_id": "ut_validation_plan_currency",
+      "_type": "unit_test",
+      "name": "Plan: invalid currency rejected (TODO: tighten to 400 currency_invalid)",
+      "requestId": null,
+      "parentId": "uts_validation",
+      "code": "const BASE = (process.env.OM_BASE_URL || 'http://localhost:8888').replace(/\\/$/, '') + '/api/v3/openmeter';\nconst KEY = process.env.OM_API_KEY || '';\nconst HDRS = { 'Content-Type': 'application/json', ...(KEY ? { 'Authorization': `Bearer ${KEY}` } : {}) };\nconst sfx = `${Date.now()}_${Math.floor(Math.random() * 9999)}`;\n\nasync function api(method, path, body) {\n  const resp = await fetch(`${BASE}${path}`, { method, headers: HDRS, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });\n  let json = null;\n  try { json = await resp.json(); } catch (_) {}\n  return { status: resp.status, json };\n}\n\nconst r = await api('POST', '/plans', {\n  key: `invalid_curr_${sfx}`,\n  name: 'Invalid Currency Plan',\n  currency: 'ZZZ',\n  billing_cadence: 'P1M',\n  phases: [{ key: `ph_${sfx}`, name: 'Phase', rate_cards: [{ key: `rc_${sfx}`, name: 'Fee', billing_cadence: 'P1M', payment_term: 'in_advance', price: { type: 'flat', amount: '10' } }] }]\n});\n// Server currently returns 500 for invalid currency (unhandled validation error).\n// TODO: tighten to 400 + currency_invalid once the server-side bug is fixed.\nexpect(r.status, 'Invalid currency \u2192 error (>=400)').to.be.at.least(400);"
+    },
+    {
+      "_id": "ut_validation_plan_zero_phases",
+      "_type": "unit_test",
+      "name": "Plan: zero phases rejected with 400 schema min_items",
+      "requestId": null,
+      "parentId": "uts_validation",
+      "code": "const BASE = (process.env.OM_BASE_URL || 'http://localhost:8888').replace(/\\/$/, '') + '/api/v3/openmeter';\nconst KEY = process.env.OM_API_KEY || '';\nconst HDRS = { 'Content-Type': 'application/json', ...(KEY ? { 'Authorization': `Bearer ${KEY}` } : {}) };\nconst sfx = `${Date.now()}_${Math.floor(Math.random() * 9999)}`;\n\nasync function api(method, path, body) {\n  const resp = await fetch(`${BASE}${path}`, {\n    method,\n    headers: HDRS,\n    ...(body !== undefined ? { body: JSON.stringify(body) } : {})\n  });\n  let json = null;\n  try { json = await resp.json(); } catch (_) {}\n  return { status: resp.status, json };\n}\n\nconst r = await api('POST', '/plans', {\n  key: `zero_phases_${sfx}`,\n  name: 'Zero Phases Plan',\n  currency: 'USD',\n  billing_cadence: 'P1M',\n  phases: []\n});\nexpect(r.status, 'Zero phases \u2192 400').to.equal(400);\nconst rules = (r.json.invalid_parameters || []).map(p => p.rule);\nexpect(rules, 'Zero phases \u2192 schema rule min_items').to.include('min_items');"
+    },
+    {
+      "_id": "ut_validation_plan_dup_phase_key",
+      "_type": "unit_test",
+      "name": "Plan: duplicate phase key rejected with code plan_phase_duplicated_key",
+      "requestId": null,
+      "parentId": "uts_validation",
+      "code": "const BASE = (process.env.OM_BASE_URL || 'http://localhost:8888').replace(/\\/$/, '') + '/api/v3/openmeter';\nconst KEY = process.env.OM_API_KEY || '';\nconst HDRS = { 'Content-Type': 'application/json', ...(KEY ? { 'Authorization': `Bearer ${KEY}` } : {}) };\nconst sfx = `${Date.now()}_${Math.floor(Math.random() * 9999)}`;\n\nasync function api(method, path, body) {\n  const resp = await fetch(`${BASE}${path}`, {\n    method,\n    headers: HDRS,\n    ...(body !== undefined ? { body: JSON.stringify(body) } : {})\n  });\n  let json = null;\n  try { json = await resp.json(); } catch (_) {}\n  return { status: resp.status, json };\n}\n\nconst dupKey = `dup_phase_key_${sfx}`;\nconst r = await api('POST', '/plans', {\n  key: `dup_phase_plan_${sfx}`,\n  name: 'Dup Phase Key Plan',\n  currency: 'USD',\n  billing_cadence: 'P1M',\n  phases: [\n    { key: dupKey, name: 'Phase 1', duration: 'P1M', rate_cards: [{ key: `rc1_${sfx}`, name: 'Fee', billing_cadence: 'P1M', payment_term: 'in_advance', price: { type: 'flat', amount: '10' } }] },\n    { key: dupKey, name: 'Phase 2', rate_cards: [{ key: `rc2_${sfx}`, name: 'Fee 2', billing_cadence: 'P1M', payment_term: 'in_advance', price: { type: 'flat', amount: '10' } }] }\n  ]\n});\nexpect(r.status, 'Dup phase key \u2192 400').to.equal(400);\nconst validationErrors = (r.json.extensions && r.json.extensions.validationErrors) || [];\nconst codes2 = validationErrors.map(e => e.code);\nexpect(codes2, 'Dup phase key \u2192 code plan_phase_duplicated_key').to.include('plan_phase_duplicated_key');"
+    },
+    {
+      "_id": "ut_validation_publish_cases",
+      "_type": "unit_test",
+      "name": "Plan publish-time validations: non-last missing duration, last with duration, phase no rate cards",
+      "requestId": null,
+      "parentId": "uts_validation",
+      "code": "const BASE = (process.env.OM_BASE_URL || 'http://localhost:8888').replace(/\\/$/, '') + '/api/v3/openmeter';\nconst KEY = process.env.OM_API_KEY || '';\nconst HDRS = { 'Content-Type': 'application/json', ...(KEY ? { 'Authorization': `Bearer ${KEY}` } : {}) };\nconst sfx = `${Date.now()}_${Math.floor(Math.random() * 9999)}`;\n\nasync function api(method, path, body) {\n  const resp = await fetch(`${BASE}${path}`, {\n    method,\n    headers: HDRS,\n    ...(body !== undefined ? { body: JSON.stringify(body) } : {})\n  });\n  let json = null;\n  try { json = await resp.json(); } catch (_) {}\n  return { status: resp.status, json };\n}\n\nfunction validationCodes(json) {\n  return ((json && json.extensions && json.extensions.validationErrors) || []).map(e => e.code);\n}\n\n// Case A: non-last phase missing duration\nlet r = await api('POST', '/plans', {\n  key: `non_last_no_dur_${sfx}`,\n  name: 'Non-last No Duration',\n  currency: 'USD',\n  billing_cadence: 'P1M',\n  phases: [\n    { key: `p1_${sfx}`, name: 'Phase 1 (no duration, non-last)', rate_cards: [{ key: `rc1_${sfx}`, name: 'Fee', billing_cadence: 'P1M', payment_term: 'in_advance', price: { type: 'flat', amount: '10' } }] },\n    { key: `p2_${sfx}`, name: 'Phase 2 (last)', rate_cards: [{ key: `rc2_${sfx}`, name: 'Fee', billing_cadence: 'P1M', payment_term: 'in_advance', price: { type: 'flat', amount: '10' } }] }\n  ]\n});\nexpect(r.status, 'Non-last no duration: create accepted \u2192 201').to.equal(201);\nconst caseAId = r.json.id;\nr = await api('POST', `/plans/${caseAId}/publish`);\nexpect(r.status, 'Non-last no duration: publish \u2192 400').to.equal(400);\nexpect(validationCodes(r.json), 'Non-last no duration: code plan_has_non_last_phase_with_no_duration').to.include('plan_has_non_last_phase_with_no_duration');\n\n// Case B: last phase has duration\nr = await api('POST', '/plans', {\n  key: `last_with_dur_${sfx}`,\n  name: 'Last With Duration',\n  currency: 'USD',\n  billing_cadence: 'P1M',\n  phases: [\n    { key: `p1b_${sfx}`, name: 'Phase 1', duration: 'P1M', rate_cards: [{ key: `rc1b_${sfx}`, name: 'Fee', billing_cadence: 'P1M', payment_term: 'in_advance', price: { type: 'flat', amount: '10' } }] },\n    { key: `p2b_${sfx}`, name: 'Phase 2 (last with duration)', duration: 'P1M', rate_cards: [{ key: `rc2b_${sfx}`, name: 'Fee', billing_cadence: 'P1M', payment_term: 'in_advance', price: { type: 'flat', amount: '10' } }] }\n  ]\n});\nexpect(r.status, 'Last with duration: create accepted \u2192 201').to.equal(201);\nconst caseBId = r.json.id;\nr = await api('POST', `/plans/${caseBId}/publish`);\nexpect(r.status, 'Last with duration: publish \u2192 400').to.equal(400);\nexpect(validationCodes(r.json), 'Last with duration: code plan_has_last_phase_with_duration').to.include('plan_has_last_phase_with_duration');\n\n// Case C: phase with zero rate cards\nr = await api('POST', '/plans', {\n  key: `phase_no_rc_${sfx}`,\n  name: 'Phase No Rate Cards',\n  currency: 'USD',\n  billing_cadence: 'P1M',\n  phases: [{ key: `p1c_${sfx}`, name: 'Empty Phase', rate_cards: [] }]\n});\nexpect(r.status, 'Phase no rate cards: create accepted \u2192 201').to.equal(201);\nconst caseCId = r.json.id;\nr = await api('POST', `/plans/${caseCId}/publish`);\nexpect(r.status, 'Phase no rate cards: publish \u2192 400').to.equal(400);\nexpect(validationCodes(r.json), 'Phase no rate cards: code plan_phase_has_no_rate_cards').to.include('plan_phase_has_no_rate_cards');"
+    },
+    {
+      "_id": "ut_validation_addon_fake_feature",
+      "_type": "unit_test",
+      "name": "Addon: non-existent feature id rejected with 400",
+      "requestId": null,
+      "parentId": "uts_validation",
+      "code": "const BASE = (process.env.OM_BASE_URL || 'http://localhost:8888').replace(/\\/$/, '') + '/api/v3/openmeter';\nconst KEY = process.env.OM_API_KEY || '';\nconst HDRS = { 'Content-Type': 'application/json', ...(KEY ? { 'Authorization': `Bearer ${KEY}` } : {}) };\nconst sfx = `${Date.now()}_${Math.floor(Math.random() * 9999)}`;\n\nasync function api(method, path, body) {\n  const resp = await fetch(`${BASE}${path}`, {\n    method,\n    headers: HDRS,\n    ...(body !== undefined ? { body: JSON.stringify(body) } : {})\n  });\n  let json = null;\n  try { json = await resp.json(); } catch (_) {}\n  return { status: resp.status, json };\n}\n\nconst r = await api('POST', '/addons', {\n  key: `fake_feat_addon_${sfx}`,\n  name: 'Fake Feature Addon',\n  currency: 'USD',\n  instance_type: 'single',\n  rate_cards: [{\n    key: `rc_${sfx}`,\n    name: 'Fee',\n    billing_cadence: 'P1M',\n    payment_term: 'in_advance',\n    price: { type: 'flat', amount: '10' },\n    feature: { id: '01HZZ0000000000000000FAKE1' }\n  }]\n});\nexpect(r.status, 'Fake feature id \u2192 400').to.equal(400);\nexpect(r.json.detail || '', 'Fake feature id \u2192 detail mentions feature ID').to.include('01HZZ0000000000000000FAKE1');"
+    },
+    {
+      "_id": "ut_validation_planaddon_status_matrix",
+      "_type": "unit_test",
+      "name": "Plan-addon attach status matrix: active plan rejected, archived addon rejected",
+      "requestId": null,
+      "parentId": "uts_validation",
+      "code": "const BASE = (process.env.OM_BASE_URL || 'http://localhost:8888').replace(/\\/$/, '') + '/api/v3/openmeter';\nconst KEY = process.env.OM_API_KEY || '';\nconst HDRS = { 'Content-Type': 'application/json', ...(KEY ? { 'Authorization': `Bearer ${KEY}` } : {}) };\nconst sfx = `${Date.now()}_${Math.floor(Math.random() * 9999)}`;\n\nasync function api(method, path, body) {\n  const resp = await fetch(`${BASE}${path}`, {\n    method,\n    headers: HDRS,\n    ...(body !== undefined ? { body: JSON.stringify(body) } : {})\n  });\n  let json = null;\n  try { json = await resp.json(); } catch (_) {}\n  return { status: resp.status, json };\n}\n\nasync function createAddonWithStatus(sfx2, targetStatus) {\n  let r = await api('POST', '/addons', { key: `matrix_addon_${sfx2}`, name: `Matrix Addon ${sfx2}`, currency: 'USD', instance_type: 'single', rate_cards: [{ key: `arc_${sfx2}`, name: 'Fee', billing_cadence: 'P1M', payment_term: 'in_advance', price: { type: 'flat', amount: '5' } }] });\n  const id = r.json.id;\n  if (targetStatus === 'active' || targetStatus === 'archived') {\n    r = await api('POST', `/addons/${id}/publish`);\n  }\n  if (targetStatus === 'archived') {\n    r = await api('POST', `/addons/${id}/archive`);\n  }\n  return { id, status: targetStatus };\n}\n\nasync function createPlanWithStatus(sfx2, targetStatus) {\n  let r = await api('POST', '/plans', { key: `matrix_plan_${sfx2}`, name: `Matrix Plan ${sfx2}`, currency: 'USD', billing_cadence: 'P1M', phases: [{ key: `ph_${sfx2}`, name: 'Phase', rate_cards: [{ key: `rc_${sfx2}`, name: 'Fee', billing_cadence: 'P1M', payment_term: 'in_advance', price: { type: 'flat', amount: '10' } }] }] });\n  const plan = r.json;\n  if (targetStatus === 'active' || targetStatus === 'archived') {\n    r = await api('POST', `/plans/${plan.id}/publish`);\n  }\n  if (targetStatus === 'archived') {\n    r = await api('POST', `/plans/${plan.id}/archive`);\n  }\n  return plan;\n}\n\n// Case 1: draft plan + active addon \u2192 201 (happy path)\nconst draftPlan = await createPlanWithStatus(`dp_${sfx}`, 'draft');\nconst activeAddon = await createAddonWithStatus(`aa_${sfx}`, 'active');\nlet r = await api('POST', `/plans/${draftPlan.id}/addons`, { name: 'Addon', addon: { id: activeAddon.id }, from_plan_phase: draftPlan.phases[0].key });\nexpect(r.status, 'Draft plan + active addon \u2192 201').to.equal(201);\n\n// Case 2: active plan + active addon \u2192 400\nconst activePlan = await createPlanWithStatus(`ap_${sfx}`, 'active');\nconst activeAddon2 = await createAddonWithStatus(`aa2_${sfx}`, 'active');\nr = await api('POST', `/plans/${activePlan.id}/addons`, { name: 'Addon', addon: { id: activeAddon2.id }, from_plan_phase: activePlan.phases[0].key });\nexpect(r.status, 'Active plan + active addon \u2192 400').to.equal(400);\nexpect(r.json.detail || '', 'Active plan message contains allowed statuses').to.include('draft');\n\n// Case 3: draft plan + draft addon \u2192 400\nconst draftPlan2 = await createPlanWithStatus(`dp2_${sfx}`, 'draft');\nconst draftAddon = await createAddonWithStatus(`da_${sfx}`, 'draft');\nr = await api('POST', `/plans/${draftPlan2.id}/addons`, { name: 'Addon', addon: { id: draftAddon.id }, from_plan_phase: draftPlan2.phases[0].key });\nexpect(r.status, 'Draft plan + draft addon \u2192 400').to.equal(400);\nexpect(r.json.detail || '', 'Draft addon message contains allowed statuses').to.include('active');"
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "__export_format": 4,
+  "__export_date": "2025-01-01T00:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v10.0.0",
+  "resources": [
+    {
+      "_id": "wrk_currencies",
+      "_type": "workspace",
+      "name": "OpenMeter Currencies",
+      "scope": "collection",
+      "parentId": null
+    },
+    {
+      "_id": "env_currencies_base",
+      "_type": "environment",
+      "name": "Base Environment",
+      "data": {},
+      "parentId": "wrk_currencies",
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": -1
+    },
+    {
+      "_id": "env_currencies_local",
+      "_type": "environment",
+      "name": "Local Dev",
+      "data": { "base_url": "http://localhost:8888" },
+      "parentId": "env_currencies_base",
+      "color": "#00AA00",
+      "isPrivate": false,
+      "metaSortKey": -2
+    },
+    {
+      "_id": "uts_currencies_lifecycle",
+      "_type": "unit_test_suite",
+      "name": "Currency Lifecycle",
+      "parentId": "wrk_currencies"
+    },
+    {
+      "_id": "uts_currencies_validation",
+      "_type": "unit_test_suite",
+      "name": "Currency Validation Errors",
+      "parentId": "wrk_currencies"
+    },
+    {
+      "_id": "ut_currencies_custom_lifecycle",
+      "_type": "unit_test",
+      "name": "Custom currency: create → list filtered → verify fiat currencies present",
+      "requestId": null,
+      "parentId": "uts_currencies_lifecycle",
+      "code": "const { expect } = chai;\nconst BASE = (process.env.OM_BASE_URL || 'http://localhost:8888').replace(/\\/$/, '') + '/api/v3/openmeter';\nconst KEY = process.env.OM_API_KEY || '';\nconst HDRS = { 'Content-Type': 'application/json', ...(KEY ? { 'Authorization': `Bearer ${KEY}` } : {}) };\nconst sfx = `${Date.now()}_${Math.floor(Math.random() * 9999)}`;\n\nasync function api(method, path, body) {\n  const resp = await fetch(`${BASE}${path}`, {\n    method,\n    headers: HDRS,\n    ...(body !== undefined ? { body: JSON.stringify(body) } : {})\n  });\n  let json = null;\n  try { json = await resp.json(); } catch (_) {}\n  return { status: resp.status, json };\n}\n\n// Custom currency codes: 3–24 chars, must not conflict with ISO fiat codes.\n// Prefix 'CUS' is not an ISO code so it is safe to use.\nconst code = `CUS${Date.now().toString().slice(-8)}`;\n\n// 1. Create custom currency — symbol is required by the domain even though\n// the OpenAPI schema marks it optional.\nlet r = await api('POST', '/currencies/custom', {\n  name: `Test Token ${sfx}`,\n  code,\n  symbol: `T${code.slice(-3)}`\n});\nexpect(r.status, '1. Create → 201').to.equal(201);\nexpect(r.json.type, '1. type').to.equal('custom');\nexpect(r.json.code, '1. code').to.equal(code);\nexpect(r.json.name, '1. name').to.equal(`Test Token ${sfx}`);\nconst currencyId = r.json.id;\nexpect(currencyId, '1. id present').to.be.ok;\n\n// 2. List with filter[type]=custom — our currency appears, no fiat currencies.\nr = await api('GET', '/currencies?filter[type]=custom&page[size]=100');\nexpect(r.status, '2. List custom-filtered → 200').to.equal(200);\nconst foundCustom = (r.json.data || []).some(c => c.id === currencyId);\nexpect(foundCustom, '2. custom list contains created currency').to.be.true;\nconst hasNoFiat = (r.json.data || []).every(c => c.type === 'custom');\nexpect(hasNoFiat, '2. custom filter returns only custom type').to.be.true;\n\n// 3. List with filter[type]=fiat — no custom currencies, fiat currencies present.\nr = await api('GET', '/currencies?filter[type]=fiat&page[size]=200');\nexpect(r.status, '3. List fiat-filtered → 200').to.equal(200);\nconst usd = (r.json.data || []).find(c => c.code === 'USD');\nexpect(usd, '3. USD in fiat list').to.be.ok;\nexpect(usd && usd.type, '3. USD type is fiat').to.equal('fiat');\nconst noCustomInFiat = (r.json.data || []).every(c => c.type === 'fiat');\nexpect(noCustomInFiat, '3. fiat filter returns only fiat type').to.be.true;\n\n// 4. List unfiltered — returns both fiat and custom.\nr = await api('GET', '/currencies?page[size]=200');\nexpect(r.status, '4. List unfiltered → 200').to.equal(200);\nconst foundInAll = (r.json.data || []).some(c => c.id === currencyId);\nexpect(foundInAll, '4. unfiltered list contains created custom currency').to.be.true;\nconst hasFiatInAll = (r.json.data || []).some(c => c.type === 'fiat');\nexpect(hasFiatInAll, '4. unfiltered list contains fiat currencies').to.be.true;"
+    },
+    {
+      "_id": "ut_currencies_cost_basis_lifecycle",
+      "_type": "unit_test",
+      "name": "Cost basis: create → list → filter by fiat_code",
+      "requestId": null,
+      "parentId": "uts_currencies_lifecycle",
+      "code": "const { expect } = chai;\nconst BASE = (process.env.OM_BASE_URL || 'http://localhost:8888').replace(/\\/$/, '') + '/api/v3/openmeter';\nconst KEY = process.env.OM_API_KEY || '';\nconst HDRS = { 'Content-Type': 'application/json', ...(KEY ? { 'Authorization': `Bearer ${KEY}` } : {}) };\nconst sfx = `${Date.now()}_${Math.floor(Math.random() * 9999)}`;\n\nasync function api(method, path, body) {\n  const resp = await fetch(`${BASE}${path}`, {\n    method,\n    headers: HDRS,\n    ...(body !== undefined ? { body: JSON.stringify(body) } : {})\n  });\n  let json = null;\n  try { json = await resp.json(); } catch (_) {}\n  return { status: resp.status, json };\n}\n\nconst code = `CBT${Date.now().toString().slice(-8)}`;\n\n// 1. Setup: create a custom currency to attach cost bases to.\nlet r = await api('POST', '/currencies/custom', {\n  name: `Cost Basis Test ${sfx}`,\n  code,\n  symbol: '$'\n});\nexpect(r.status, '1. Setup: create currency → 201').to.equal(201);\nconst currencyId = r.json.id;\nexpect(currencyId, '1. currency id present').to.be.ok;\n\n// 2. Create cost basis for USD (rate is a decimal string; no effective_from = defaults to now).\nr = await api('POST', `/currencies/custom/${currencyId}/cost-bases`, {\n  fiat_code: 'USD',\n  rate: '2.5'\n});\nexpect(r.status, '2. Create cost basis (USD) → 201').to.equal(201);\nexpect(r.json.fiat_code, '2. fiat_code').to.equal('USD');\nexpect(r.json.rate, '2. rate').to.equal('2.5');\nconst cbUsdId = r.json.id;\nexpect(cbUsdId, '2. cost basis id present').to.be.ok;\nexpect(r.json.effective_from, '2. effective_from set').to.be.ok;\n\n// 3. Create a second cost basis for EUR.\nr = await api('POST', `/currencies/custom/${currencyId}/cost-bases`, {\n  fiat_code: 'EUR',\n  rate: '2.3'\n});\nexpect(r.status, '3. Create cost basis (EUR) → 201').to.equal(201);\nconst cbEurId = r.json.id;\n\n// 4. List all cost bases for this currency.\nr = await api('GET', `/currencies/custom/${currencyId}/cost-bases`);\nexpect(r.status, '4. List cost bases → 200').to.equal(200);\nconst all = r.json.data || [];\nexpect(all.some(cb => cb.id === cbUsdId), '4. USD cost basis in list').to.be.true;\nexpect(all.some(cb => cb.id === cbEurId), '4. EUR cost basis in list').to.be.true;\n\n// 5. Filter by fiat_code=USD — only USD cost basis appears.\nr = await api('GET', `/currencies/custom/${currencyId}/cost-bases?filter[fiat_code]=USD`);\nexpect(r.status, '5. List filtered by fiat_code → 200').to.equal(200);\nconst usdOnly = r.json.data || [];\nexpect(usdOnly.some(cb => cb.id === cbUsdId), '5. USD cost basis in filtered list').to.be.true;\nexpect(usdOnly.every(cb => cb.fiat_code === 'USD'), '5. filtered list contains only USD').to.be.true;\n\n// 6. Create cost basis with explicit future effective_from.\nconst futureDate = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour from now\nr = await api('POST', `/currencies/custom/${currencyId}/cost-bases`, {\n  fiat_code: 'GBP',\n  rate: '1.9',\n  effective_from: futureDate\n});\nexpect(r.status, '6. Create cost basis with future effective_from → 201').to.equal(201);\nexpect(r.json.fiat_code, '6. fiat_code').to.equal('GBP');"
+    },
+    {
+      "_id": "ut_currencies_create_validation",
+      "_type": "unit_test",
+      "name": "CreateCurrency: missing required fields → 400; duplicate code → 409",
+      "requestId": null,
+      "parentId": "uts_currencies_validation",
+      "code": "const { expect } = chai;\nconst BASE = (process.env.OM_BASE_URL || 'http://localhost:8888').replace(/\\/$/, '') + '/api/v3/openmeter';\nconst KEY = process.env.OM_API_KEY || '';\nconst HDRS = { 'Content-Type': 'application/json', ...(KEY ? { 'Authorization': `Bearer ${KEY}` } : {}) };\nconst sfx = `${Date.now()}_${Math.floor(Math.random() * 9999)}`;\n\nasync function api(method, path, body) {\n  const resp = await fetch(`${BASE}${path}`, {\n    method,\n    headers: HDRS,\n    ...(body !== undefined ? { body: JSON.stringify(body) } : {})\n  });\n  let json = null;\n  try { json = await resp.json(); } catch (_) {}\n  return { status: resp.status, json };\n}\n\n// Note: CreateCurrency handler wraps all service errors as ConflictError.\n// However, because GenericValidationError is unwrapped by the error encoder,\n// validation failures resolve to 400 (not 409).\n// Duplicate codes use GenericConflictError from the adapter → 409.\n\n// 1. Missing name → validation error → 400.\nlet r = await api('POST', '/currencies/custom', { code: 'NONAME', symbol: '!' });\nexpect(r.status, '1. Missing name → 400').to.equal(400);\n\n// 2. Missing code → validation error → 400.\nr = await api('POST', '/currencies/custom', { name: 'No Code Currency', symbol: '!' });\nexpect(r.status, '2. Missing code → 400').to.equal(400);\n\n// 3. Missing symbol → validation error → 400 (symbol required by domain, optional in OpenAPI schema).\nr = await api('POST', '/currencies/custom', { name: 'No Symbol Currency', code: 'NOSYM' });\nexpect(r.status, '3. Missing symbol → 400').to.equal(400);\n\n// 4. Duplicate code: create the same code twice → second attempt → 409.\nconst code = `DUP${Date.now().toString().slice(-8)}`;\nr = await api('POST', '/currencies/custom', { name: `Dup ${sfx}`, code, symbol: '!' });\nexpect(r.status, '4a. First create → 201').to.equal(201);\n\nr = await api('POST', '/currencies/custom', { name: `Dup Again ${sfx}`, code, symbol: '!!' });\nexpect(r.status, '4b. Duplicate code → 409').to.equal(409);"
+    },
+    {
+      "_id": "ut_currencies_cost_basis_validation",
+      "_type": "unit_test",
+      "name": "CreateCostBasis: invalid inputs → 400; non-existent currency → 409; past effective_from → 400",
+      "requestId": null,
+      "parentId": "uts_currencies_validation",
+      "code": "const { expect } = chai;\nconst BASE = (process.env.OM_BASE_URL || 'http://localhost:8888').replace(/\\/$/, '') + '/api/v3/openmeter';\nconst KEY = process.env.OM_API_KEY || '';\nconst HDRS = { 'Content-Type': 'application/json', ...(KEY ? { 'Authorization': `Bearer ${KEY}` } : {}) };\nconst sfx = `${Date.now()}_${Math.floor(Math.random() * 9999)}`;\n\nasync function api(method, path, body) {\n  const resp = await fetch(`${BASE}${path}`, {\n    method,\n    headers: HDRS,\n    ...(body !== undefined ? { body: JSON.stringify(body) } : {})\n  });\n  let json = null;\n  try { json = await resp.json(); } catch (_) {}\n  return { status: resp.status, json };\n}\n\n// Setup: create a real currency for cost-basis validation tests.\nconst code = `VAL${Date.now().toString().slice(-8)}`;\nlet r = await api('POST', '/currencies/custom', { name: `Validation ${sfx}`, code, symbol: '!' });\nexpect(r.status, 'setup: create currency → 201').to.equal(201);\nconst currencyId = r.json.id;\n\n// 1. Zero rate → GenericValidationError from domain Validate() → 400.\nr = await api('POST', `/currencies/custom/${currencyId}/cost-bases`, { fiat_code: 'USD', rate: '0' });\nexpect(r.status, '1. Zero rate → 400').to.equal(400);\n\n// 2. Negative rate → GenericValidationError → 400.\nr = await api('POST', `/currencies/custom/${currencyId}/cost-bases`, { fiat_code: 'USD', rate: '-1' });\nexpect(r.status, '2. Negative rate → 400').to.equal(400);\n\n// 3. Missing fiat_code → GenericValidationError → 400.\nr = await api('POST', `/currencies/custom/${currencyId}/cost-bases`, { rate: '1.0' });\nexpect(r.status, '3. Missing fiat_code → 400').to.equal(400);\n\n// 4. Past effective_from → service rejects (must be in the future) → 400.\nr = await api('POST', `/currencies/custom/${currencyId}/cost-bases`, {\n  fiat_code: 'USD',\n  rate: '1.0',\n  effective_from: '2020-01-01T00:00:00Z'\n});\nexpect(r.status, '4. Past effective_from → 400').to.equal(400);\n\n// 5. Non-existent currency ID → FK constraint error in adapter → GenericConflictError → 409.\n// Use a well-formed ULID that does not exist in the database.\nr = await api('POST', '/currencies/custom/01ARZ3NDEKTSV4RRFFQ69G5FAV/cost-bases', {\n  fiat_code: 'USD',\n  rate: '1.0'\n});\nexpect(r.status, '5. Non-existent currency → 409').to.equal(409);"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "__export_format": 4,
+  "__export_date": "2025-01-01T00:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v10.0.0",
+  "resources": [
+    {
+      "_id": "wrk_meters",
+      "_type": "workspace",
+      "name": "OpenMeter Meters",
+      "scope": "collection",
+      "parentId": null
+    },
+    {
+      "_id": "env_meters_base",
+      "_type": "environment",
+      "name": "Base Environment",
+      "data": {},
+      "parentId": "wrk_meters",
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": -1
+    },
+    {
+      "_id": "env_meters_local",
+      "_type": "environment",
+      "name": "Local Dev",
+      "data": { "base_url": "http://localhost:8888" },
+      "parentId": "env_meters_base",
+      "color": "#00AA00",
+      "isPrivate": false,
+      "metaSortKey": -2
+    },
+    {
+      "_id": "uts_meter_lifecycle",
+      "_type": "unit_test_suite",
+      "name": "Meter Lifecycle",
+      "parentId": "wrk_meters"
+    },
+    {
+      "_id": "uts_meter_validation",
+      "_type": "unit_test_suite",
+      "name": "Meter Validation",
+      "parentId": "wrk_meters"
+    },
+    {
+      "_id": "ut_meter_lifecycle",
+      "_type": "unit_test",
+      "name": "Meter lifecycle: create → get → list → filter by key → update → delete → deleted_at set",
+      "requestId": null,
+      "parentId": "uts_meter_lifecycle",
+      "code": "const { expect } = chai;\nconst BASE = (process.env.OM_BASE_URL || 'http://localhost:8888').replace(/\\/$/, '') + '/api/v3/openmeter';\nconst KEY = process.env.OM_API_KEY || '';\nconst HDRS = { 'Content-Type': 'application/json', ...(KEY ? { 'Authorization': `Bearer ${KEY}` } : {}) };\nconst sfx = `${Date.now()}_${Math.floor(Math.random() * 9999)}`;\n\nasync function api(method, path, body) {\n  const resp = await fetch(`${BASE}${path}`, {\n    method,\n    headers: HDRS,\n    ...(body !== undefined ? { body: JSON.stringify(body) } : {})\n  });\n  let json = null;\n  try { json = await resp.json(); } catch (_) {}\n  return { status: resp.status, json };\n}\n\nconst meterKey = `test_meter_${sfx}`;\n\n// 1. Create meter with sum aggregation, value_property, and a dimension.\nlet r = await api('POST', '/meters', {\n  key: meterKey,\n  name: `Test Meter ${sfx}`,\n  aggregation: 'sum',\n  event_type: 'api_call',\n  value_property: '$.tokens',\n  dimensions: { model: '$.model' }\n});\nexpect(r.status, '1. Create → 201').to.equal(201);\nexpect(r.json.key, '1. key').to.equal(meterKey);\nexpect(r.json.aggregation, '1. aggregation').to.equal('sum');\nexpect(r.json.value_property, '1. value_property').to.equal('$.tokens');\nexpect(r.json.dimensions && r.json.dimensions.model, '1. dimension model').to.equal('$.model');\nconst meterId = r.json.id;\nexpect(meterId, '1. id present').to.be.ok;\n\n// 2. Get by ID.\nr = await api('GET', `/meters/${meterId}`);\nexpect(r.status, '2. Get → 200').to.equal(200);\nexpect(r.json.id, '2. id').to.equal(meterId);\nexpect(r.json.name, '2. name').to.equal(`Test Meter ${sfx}`);\nexpect(r.json.event_type, '2. event_type').to.equal('api_call');\n\n// 3. List and verify appears.\nr = await api('GET', '/meters?page[size]=100');\nexpect(r.status, '3. List → 200').to.equal(200);\nexpect((r.json.data || []).some(m => m.id === meterId), '3. in list').to.be.true;\n\n// 4. Filter by key — only meters with this exact key appear.\nr = await api('GET', `/meters?filter[key]=${encodeURIComponent(meterKey)}`);\nexpect(r.status, '4. Filter by key → 200').to.equal(200);\nconst filtered = r.json.data || [];\nexpect(filtered.some(m => m.id === meterId), '4. created meter in filtered list').to.be.true;\nexpect(filtered.every(m => m.key === meterKey), '4. only matching key in filtered list').to.be.true;\n\n// 5. Update name, description, and dimensions (aggregation/value_property are immutable).\nr = await api('PUT', `/meters/${meterId}`, {\n  name: `Updated Meter ${sfx}`,\n  description: 'updated description',\n  dimensions: { model: '$.model', type: '$.type' }\n});\nexpect(r.status, '5. Update → 200').to.equal(200);\nexpect(r.json.name, '5. updated name').to.equal(`Updated Meter ${sfx}`);\nexpect(r.json.description, '5. description').to.equal('updated description');\nexpect(r.json.dimensions && r.json.dimensions.type, '5. added dimension type').to.equal('$.type');\nexpect(r.json.aggregation, '5. aggregation unchanged').to.equal('sum');\nexpect(r.json.value_property, '5. value_property unchanged').to.equal('$.tokens');\n\n// 6. Delete.\nr = await api('DELETE', `/meters/${meterId}`);\nexpect(r.status, '6. Delete → 204').to.equal(204);\n\n// 7. Get after delete — meters are soft-deleted; resource remains retrievable with deleted_at set.\nr = await api('GET', `/meters/${meterId}`);\nexpect(r.status, '7. Get after delete → 200').to.equal(200);\nexpect(r.json.deleted_at, '7. deleted_at set').to.be.ok;"
+    },
+    {
+      "_id": "ut_meter_aggregation_rules",
+      "_type": "unit_test",
+      "name": "Aggregation rules: count forbids value_property; non-count requires value_property",
+      "requestId": null,
+      "parentId": "uts_meter_validation",
+      "code": "const { expect } = chai;\nconst BASE = (process.env.OM_BASE_URL || 'http://localhost:8888').replace(/\\/$/, '') + '/api/v3/openmeter';\nconst KEY = process.env.OM_API_KEY || '';\nconst HDRS = { 'Content-Type': 'application/json', ...(KEY ? { 'Authorization': `Bearer ${KEY}` } : {}) };\nconst sfx = `${Date.now()}_${Math.floor(Math.random() * 9999)}`;\n\nasync function api(method, path, body) {\n  const resp = await fetch(`${BASE}${path}`, {\n    method,\n    headers: HDRS,\n    ...(body !== undefined ? { body: JSON.stringify(body) } : {})\n  });\n  let json = null;\n  try { json = await resp.json(); } catch (_) {}\n  return { status: resp.status, json };\n}\n\n// 1. count aggregation without value_property → 201 (valid).\nlet r = await api('POST', '/meters', {\n  key: `count_meter_${sfx}`,\n  name: `Count Meter ${sfx}`,\n  aggregation: 'count',\n  event_type: 'api_call'\n});\nexpect(r.status, '1. count without value_property → 201').to.equal(201);\nconst countMeterId = r.json.id;\nexpect(countMeterId, '1. id present').to.be.ok;\n\n// 2. count aggregation with value_property → 400 (forbidden).\nr = await api('POST', '/meters', {\n  key: `count_meter2_${sfx}`,\n  name: `Count Meter 2 ${sfx}`,\n  aggregation: 'count',\n  event_type: 'api_call',\n  value_property: '$.tokens'\n});\nexpect(r.status, '2. count with value_property → 400').to.equal(400);\n\n// 3. sum aggregation without value_property → 400 (required).\nr = await api('POST', '/meters', {\n  key: `sum_meter_${sfx}`,\n  name: `Sum Meter ${sfx}`,\n  aggregation: 'sum',\n  event_type: 'api_call'\n});\nexpect(r.status, '3. sum without value_property → 400').to.equal(400);\n\n// Cleanup: delete the count meter created in step 1.\nawait api('DELETE', `/meters/${countMeterId}`);"
+    },
+    {
+      "_id": "ut_meter_reserved_dimension",
+      "_type": "unit_test",
+      "name": "Reserved dimensions: subject and customer_id are forbidden → 400",
+      "requestId": null,
+      "parentId": "uts_meter_validation",
+      "code": "const { expect } = chai;\nconst BASE = (process.env.OM_BASE_URL || 'http://localhost:8888').replace(/\\/$/, '') + '/api/v3/openmeter';\nconst KEY = process.env.OM_API_KEY || '';\nconst HDRS = { 'Content-Type': 'application/json', ...(KEY ? { 'Authorization': `Bearer ${KEY}` } : {}) };\nconst sfx = `${Date.now()}_${Math.floor(Math.random() * 9999)}`;\n\nasync function api(method, path, body) {\n  const resp = await fetch(`${BASE}${path}`, {\n    method,\n    headers: HDRS,\n    ...(body !== undefined ? { body: JSON.stringify(body) } : {})\n  });\n  let json = null;\n  try { json = await resp.json(); } catch (_) {}\n  return { status: resp.status, json };\n}\n\n// 1. Dimension key \"subject\" is reserved → 400.\nlet r = await api('POST', '/meters', {\n  key: `reserved_subject_${sfx}`,\n  name: `Reserved Subject ${sfx}`,\n  aggregation: 'sum',\n  event_type: 'api_call',\n  value_property: '$.tokens',\n  dimensions: { subject: '$.subject_field' }\n});\nexpect(r.status, '1. reserved dimension subject → 400').to.equal(400);\n\n// 2. Dimension key \"customer_id\" is reserved → 400.\nr = await api('POST', '/meters', {\n  key: `reserved_cid_${sfx}`,\n  name: `Reserved CID ${sfx}`,\n  aggregation: 'sum',\n  event_type: 'api_call',\n  value_property: '$.tokens',\n  dimensions: { customer_id: '$.customer_id_field' }\n});\nexpect(r.status, '2. reserved dimension customer_id → 400').to.equal(400);"
+    }
+  ]
+}
