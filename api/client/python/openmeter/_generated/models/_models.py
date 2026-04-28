@@ -2113,36 +2113,6 @@ class CreateCheckoutSessionTaxIdCollection(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CreateResponseExtensions(_Model):
-    """CreateResponseExtensions.
-
-    :ivar validation_errors: Required.
-    :vartype validation_errors: list[~openmeter._generated.models.ErrorExtension]
-    """
-
-    validation_errors: list["_models.ErrorExtension"] = rest_field(
-        name="validationErrors", visibility=["read", "create", "update", "delete", "query"]
-    )
-    """Required."""
-
-    @overload
-    def __init__(
-        self,
-        *,
-        validation_errors: list["_models.ErrorExtension"],
-    ) -> None: ...
-
-    @overload
-    def __init__(self, mapping: Mapping[str, Any]) -> None:
-        """
-        :param mapping: raw JSON to initialize the model.
-        :type mapping: Mapping[str, Any]
-        """
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-
-
 class CreateStripeCheckoutSessionConsentCollection(_Model):  # pylint: disable=name-too-long
     """Configure fields for the Checkout Session to gather active consent from customers.
 
@@ -14379,8 +14349,8 @@ class SubscriptionBadRequestErrorResponse(_Model):
      Required.
     :vartype instance: str
     :ivar extensions: Additional properties specific to the problem type may be present. Is one of
-     the following types: CreateResponseExtensions
-    :vartype extensions: ~openmeter._generated.models.CreateResponseExtensions
+     the following types: SubscriptionBadRequestErrorResponseExtensions
+    :vartype extensions: ~openmeter._generated.models.SubscriptionBadRequestErrorResponseExtensions
     """
 
     type: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
@@ -14397,7 +14367,7 @@ class SubscriptionBadRequestErrorResponse(_Model):
         visibility=["read", "create", "update", "delete", "query"]
     )
     """Additional properties specific to the problem type may be present. Is one of the following
-     types: CreateResponseExtensions"""
+     types: SubscriptionBadRequestErrorResponseExtensions"""
 
     @overload
     def __init__(
@@ -14409,6 +14379,36 @@ class SubscriptionBadRequestErrorResponse(_Model):
         instance: str,
         status: Optional[int] = None,
         extensions: Optional["_types.SubscriptionErrorExtensions"] = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(self, mapping: Mapping[str, Any]) -> None:
+        """
+        :param mapping: raw JSON to initialize the model.
+        :type mapping: Mapping[str, Any]
+        """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+
+class SubscriptionBadRequestErrorResponseExtensions(_Model):  # pylint: disable=name-too-long
+    """SubscriptionBadRequestErrorResponseExtensions.
+
+    :ivar validation_errors: Required.
+    :vartype validation_errors: list[~openmeter._generated.models.ErrorExtension]
+    """
+
+    validation_errors: list["_models.ErrorExtension"] = rest_field(
+        name="validationErrors", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """Required."""
+
+    @overload
+    def __init__(
+        self,
+        *,
+        validation_errors: list["_models.ErrorExtension"],
     ) -> None: ...
 
     @overload
@@ -14473,8 +14473,8 @@ class SubscriptionConflictErrorResponse(_Model):
      Required.
     :vartype instance: str
     :ivar extensions: Additional properties specific to the problem type may be present. Is one of
-     the following types: CreateResponseExtensions
-    :vartype extensions: ~openmeter._generated.models.CreateResponseExtensions
+     the following types: SubscriptionBadRequestErrorResponseExtensions
+    :vartype extensions: ~openmeter._generated.models.SubscriptionBadRequestErrorResponseExtensions
     """
 
     type: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
@@ -14491,7 +14491,7 @@ class SubscriptionConflictErrorResponse(_Model):
         visibility=["read", "create", "update", "delete", "query"]
     )
     """Additional properties specific to the problem type may be present. Is one of the following
-     types: CreateResponseExtensions"""
+     types: SubscriptionBadRequestErrorResponseExtensions"""
 
     @overload
     def __init__(

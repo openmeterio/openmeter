@@ -99,13 +99,11 @@ model CreditGrantTaxConfig {
   /**
    * Tax behavior applied to the invoice line item.
    */
-  @visibility(Lifecycle.Read, Lifecycle.Create)
   behavior?: Billing.TaxBehavior;
 
   /**
    * Tax code applied to the invoice line item.
    */
-  @visibility(Lifecycle.Read, Lifecycle.Create)
   tax_code?: {
     id: Shared.ULID;
   };
