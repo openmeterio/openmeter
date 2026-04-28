@@ -123,6 +123,22 @@ func TestPostgresAdapter(t *testing.T) {
 
 			require.NotNilf(t, addonV1, "add-on must not be nil")
 
+			addonV2Input := pctestutils.NewTestAddon(t, namespace, productcatalog.RateCards{
+				&productcatalog.FlatFeeRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:  features[0].Key,
+						Name: features[0].Name,
+					},
+					BillingCadence: lo.ToPtr(MonthPeriod),
+				},
+			}...)
+			addonV2Input.Key += "v2"
+			addonV2Input.Name += "v2"
+			addonV2, err := env.AddonRepository.CreateAddon(ctx, addonV2Input)
+			require.NoErrorf(t, err, "creating new add-on must not fail")
+
+			require.NotNilf(t, addonV2, "add-on must not be nil")
+
 			addon.AssertAddonCreateInputEqual(t, addonV1Input, *addonV1)
 
 			t.Run("Get", func(t *testing.T) {
@@ -194,6 +210,17 @@ func TestPostgresAdapter(t *testing.T) {
 					require.Lenf(t, listAddonV1.Items, 1, "add-ons must not be empty")
 
 					addon.AssertAddonEqual(t, *addonV1, listAddonV1.Items[0])
+				})
+
+				t.Run("ByKeyOrID", func(t *testing.T) {
+					listAddonV1, err := env.AddonRepository.ListAddons(ctx, addon.ListAddonsInput{
+						Namespaces: []string{namespace},
+						IDs:        []string{addonV2.ID},
+						Keys:       []string{addonV1.Key},
+					})
+					assert.NoErrorf(t, err, "getting add-on by key filter must not fail")
+
+					require.Lenf(t, listAddonV1.Items, 2, "add-ons must not be empty")
 				})
 
 				t.Run("ByIdFilter", func(t *testing.T) {
