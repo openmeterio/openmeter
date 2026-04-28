@@ -314,6 +314,11 @@ seed: ## Seed OpenMeter with test data
 	$(call print-target)
 	benthos -c etc/seed/seed.yaml
 
+.PHONY: test-insomnia
+test-insomnia: ## Run all Insomnia unit test suites (requires: make server)
+	$(call print-target)
+	$(MAKE) -C e2e test-insomnia
+
 .PHONY: help
 .DEFAULT_GOAL := help
 help:

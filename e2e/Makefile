@@ -33,6 +33,14 @@ env-local-up:
 		-f docker-compose.openmeter-local.yaml \
 		up -d --build --force-recreate
 
+INSOMNIA_DIR := insomnia
+INSOMNIA_ENV := Local Dev
+
+.PHONY: test-insomnia
+test-insomnia: ## Run all Insomnia unit test suites auto-discovered in $(INSOMNIA_DIR) (requires: make server)
+	$(call print-target)
+	@INSOMNIA_ENV="$(INSOMNIA_ENV)" bash $(INSOMNIA_DIR)/run.sh $(INSOMNIA_DIR)
+
 .PHONY: help
 .DEFAULT_GOAL := help
 help:

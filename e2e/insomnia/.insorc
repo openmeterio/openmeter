@@ -1,0 +1,7 @@
+workingDir: openmeter-v3-product-catalog.json
+scripts:
+  test: >-
+    inso --ci run test "Addon Lifecycle" --env "Local Dev" &&
+    inso --ci run test "Plan Lifecycle" --env "Local Dev" &&
+    inso --ci run test "Plan-Addon Lifecycle" --env "Local Dev" &&
+    inso --ci run test "Validation Error Cases" --env "Local Dev"
