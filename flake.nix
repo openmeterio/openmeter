@@ -99,6 +99,7 @@
 
               curl
               jq
+              hurl
               minikube
               kind
               kubectl
