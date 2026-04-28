@@ -144,10 +144,11 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 
 			var dueTotals totals.Totals
 			dueTotals, err = s.rater.GetTotalsForUsage(ctx, usagebasedrating.GetTotalsForUsageInput{
-				Charge:       charge,
-				Customer:     customerOverridesById[charge.GetCustomerID()],
-				FeatureMeter: featureMeter,
-				StoredAtLT:   storedAt,
+				Charge:                  charge,
+				Customer:                customerOverridesById[charge.GetCustomerID()],
+				FeatureMeter:            featureMeter,
+				StoredAtLT:              storedAt,
+				IgnoreMinimumCommitment: storedAt.Before(charge.Intent.ServicePeriod.To),
 			})
 			if err != nil {
 				err = fmt.Errorf("get totals for charge %s: %w", charge.ID, err)

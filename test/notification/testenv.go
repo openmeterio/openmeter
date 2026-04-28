@@ -28,6 +28,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
 
 const (
@@ -185,11 +186,20 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 		return nil, fmt.Errorf("failed to create webhook handler: %w", err)
 	}
 
+	sessionLockr, err := lockr.NewSessionLockr(lockr.SessionLockerConfig{
+		Logger:         logger,
+		PostgresDriver: driver.PGDriver,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize session lockr: %w", err)
+	}
+
 	eventHandler, err := eventhandler.New(eventhandler.Config{
 		Repository: adapter,
 		Webhook:    webhook,
 		Logger:     logger,
 		Tracer:     tracer,
+		Lockr:      sessionLockr,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize notification event handler: %w", err)
@@ -215,6 +225,8 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 		if err = eventHandler.Close(); err != nil {
 			errs = errors.Join(errs, fmt.Errorf("failed to close notification event handler: %w", err))
 		}
+
+		sessionLockr.Close()
 
 		if err = entClient.Close(); err != nil {
 			errs = errors.Join(errs, fmt.Errorf("failed to close ent driver: %w", err))

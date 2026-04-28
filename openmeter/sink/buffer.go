@@ -34,15 +34,25 @@ func (b *SinkBuffer) Add(message sinkmodels.SinkMessage) {
 	b.data[key] = message
 }
 
-func (b *SinkBuffer) Dequeue() []sinkmodels.SinkMessage {
+type MessageTransformerFunc func(*sinkmodels.SinkMessage)
+
+func (b *SinkBuffer) Dequeue(transformers ...MessageTransformerFunc) []sinkmodels.SinkMessage {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	list := []sinkmodels.SinkMessage{}
+
+	messages := make([]sinkmodels.SinkMessage, 0, len(b.data))
+
 	for key, message := range b.data {
-		list = append(list, message)
+		for _, transformer := range transformers {
+			transformer(&message)
+		}
+
+		messages = append(messages, message)
+
 		delete(b.data, key)
 	}
-	return list
+
+	return messages
 }
 
 // RemoveByPartitions removes messages from the buffer by partitions

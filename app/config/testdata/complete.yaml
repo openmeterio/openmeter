@@ -152,6 +152,7 @@ notification:
   reconcileInterval: 1m
   sendingTimeout: 1h
   pendingTimeout: 2h
+  reconcilerWorkers: 10
 
 svix:
   apiKey: test-svix-token

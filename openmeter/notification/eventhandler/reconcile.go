@@ -4,17 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/sync/semaphore"
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
-	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -68,66 +69,90 @@ const (
 
 func (h *Handler) Reconcile(ctx context.Context) error {
 	fn := func(ctx context.Context) error {
-		return transaction.RunWithNoValue(ctx, h.repo, func(ctx context.Context) error {
-			span := trace.SpanFromContext(ctx)
+		span := trace.SpanFromContext(ctx)
 
-			span.AddEvent("acquiring lock")
+		span.AddEvent("acquiring lock")
 
-			if err := h.lockr.LockForTXWithScopes(ctx, reconcileLockKey); err != nil {
-				if errors.Is(err, lockr.ErrLockTimeout) {
-					h.logger.WarnContext(ctx, "reconciliation lock is not available, skipping reconciliation")
+		releaser, err := h.lockr.TryLockWithScopes(ctx, reconcileLockKey)
+		if err != nil {
+			if errors.Is(err, lockr.ErrNoLockAcquired) {
+				h.logger.DebugContext(ctx, "lock not acquired, skipping reconciliation")
 
-					return nil
-				}
-
-				return fmt.Errorf("failed to acquire reconciliation lock: %w", err)
+				return nil
 			}
 
-			span.AddEvent("lock acquired")
+			return fmt.Errorf("failed to acquire lock: %w", err)
+		}
+		defer func() {
+			if err := releaser(ctx); err != nil {
+				h.logger.ErrorContext(ctx, "failed to release lock", "error", err)
+			}
+		}()
 
-			page := pagination.Page{
-				PageSize:   50,
-				PageNumber: 1,
+		span.AddEvent("lock acquired")
+
+		workerPool := semaphore.NewWeighted(h.workerPoolSize)
+
+		wg := sync.WaitGroup{}
+		defer func() {
+			// Wait for all workers to finish
+			wg.Wait()
+
+			h.logger.DebugContext(ctx, "all workers finished")
+		}()
+
+		page := pagination.Page{
+			PageSize:   50,
+			PageNumber: 1,
+		}
+
+		nextAttemptBefore := clock.Now().Add(-1 * nextAttemptDelay)
+
+		for {
+			out, err := h.repo.ListEvents(ctx, notification.ListEventsInput{
+				Page: page,
+				DeliveryStatusStates: []notification.EventDeliveryStatusState{
+					notification.EventDeliveryStatusStatePending,
+					notification.EventDeliveryStatusStateSending,
+					notification.EventDeliveryStatusStateResending,
+				},
+				NextAttemptBefore: nextAttemptBefore,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to fetch notification delivery statuses for reconciliation: %w", err)
 			}
 
-			for {
-				out, err := h.repo.ListEvents(ctx, notification.ListEventsInput{
-					Page: page,
-					DeliveryStatusStates: []notification.EventDeliveryStatusState{
-						notification.EventDeliveryStatusStatePending,
-						notification.EventDeliveryStatusStateSending,
-						notification.EventDeliveryStatusStateResending,
-					},
-					NextAttemptBefore: clock.Now().Add(-1 * nextAttemptDelay),
-				})
+			span.AddEvent("reconciling events", trace.WithAttributes(
+				attribute.Int("event_handler.reconcile.count", len(out.Items)),
+			))
+
+			for _, event := range out.Items {
+				err = workerPool.Acquire(ctx, 1)
 				if err != nil {
-					return fmt.Errorf("failed to fetch notification delivery statuses for reconciliation: %w", err)
+					return fmt.Errorf("failed to acquire worker from pool: %w", err)
 				}
 
-				span.AddEvent("reconciling events", trace.WithAttributes(
-					attribute.Int("event_handler.reconcile.count", len(out.Items)),
-				))
+				wg.Go(func() {
+					defer workerPool.Release(1)
 
-				for _, event := range out.Items {
-					// TODO: run reconciliation in parallel (goroutines)
-					if err = h.reconcileEvent(ctx, &event); err != nil {
+					if rErr := h.reconcileEvent(ctx, &event); rErr != nil {
 						h.logger.ErrorContext(ctx, "failed to reconcile notification event",
 							"namespace", event.Namespace,
 							"notification.event.id", event.ID,
-							"error", err.Error(),
+							"error", rErr.Error(),
 						)
 					}
-				}
-
-				if out.TotalCount <= page.PageSize*page.PageNumber || len(out.Items) == 0 {
-					break
-				}
-
-				page.PageNumber++
+				})
 			}
 
-			return nil
-		})
+			if out.TotalCount <= page.PageSize*page.PageNumber || len(out.Items) == 0 {
+				break
+			}
+
+			page.PageNumber++
+		}
+
+		return nil
 	}
 
 	return tracex.StartWithNoValue(ctx, h.tracer, "event_handler.reconcile").Wrap(fn)

@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 
@@ -17,6 +18,11 @@ type SinkMessage struct {
 	Status       ProcessingStatus
 	// Meters contains the list of meters this message affects
 	Meters []*meter.Meter
+
+	// IngestedAt is the time this message was ingested
+	IngestedAt *time.Time
+	// StoredAt is the time this message was stored
+	StoredAt *time.Time
 }
 
 func (m SinkMessage) GetDedupeItem() dedupe.Item {

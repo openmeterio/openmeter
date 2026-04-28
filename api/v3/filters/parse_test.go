@@ -13,6 +13,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type testStringType string
+
 // testFilter is a target exercising every filter type Parse recognizes.
 type testFilter struct {
 	Field     *FilterString      `json:"field,omitempty"`
@@ -24,6 +26,7 @@ type testFilter struct {
 	CreatedAt *FilterDateTime    `json:"created_at,omitempty"`
 	Enabled   *FilterBoolean     `json:"enabled,omitempty"`
 	Currency  *string            `json:"currency,omitempty"`
+	TxType    *testStringType    `json:"tx_type,omitempty"`
 }
 
 func TestParse_FilterString(t *testing.T) {
@@ -298,6 +301,37 @@ func TestParse_StringPtr(t *testing.T) {
 		var f testFilter
 		require.NoError(t, Parse(url.Values{"filter[currency]": {"USD"}}, &f))
 		assert.Equal(t, lo.ToPtr("USD"), f.Currency)
+	})
+}
+
+func TestParse_NamedStringType(t *testing.T) {
+	t.Run("named string type filter value", func(t *testing.T) {
+		var f testFilter
+		require.NoError(t, Parse(url.Values{"filter[tx_type]": {"funded"}}, &f))
+		require.NotNil(t, f.TxType)
+		assert.Equal(t, testStringType("funded"), *f.TxType)
+	})
+
+	t.Run("nil when no filter key present", func(t *testing.T) {
+		var f testFilter
+		require.NoError(t, Parse(url.Values{}, &f))
+		assert.Nil(t, f.TxType)
+	})
+
+	t.Run("operator-style key rejected", func(t *testing.T) {
+		var f testFilter
+		err := Parse(url.Values{"filter[tx_type][eq]": {"funded"}}, &f)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "operator-style keys are not supported")
+	})
+}
+
+func TestParse_StringPtrOperatorRejected(t *testing.T) {
+	t.Run("operator-style key rejected for *string field", func(t *testing.T) {
+		var f testFilter
+		err := Parse(url.Values{"filter[currency][eq]": {"USD"}}, &f)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "operator-style keys are not supported")
 	})
 }
 

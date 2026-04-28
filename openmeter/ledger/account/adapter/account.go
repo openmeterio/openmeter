@@ -13,7 +13,7 @@ import (
 
 func (r *repo) CreateAccount(ctx context.Context, input ledgeraccount.CreateAccountInput) (*ledgeraccount.AccountData, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (*ledgeraccount.AccountData, error) {
-		entity, err := r.db.LedgerAccount.Create().
+		entity, err := tx.db.LedgerAccount.Create().
 			SetNamespace(input.Namespace).
 			SetAccountType(input.Type).
 			SetAnnotations(input.Annotations).
@@ -28,7 +28,7 @@ func (r *repo) CreateAccount(ctx context.Context, input ledgeraccount.CreateAcco
 
 func (r *repo) GetAccountByID(ctx context.Context, id models.NamespacedID) (*ledgeraccount.AccountData, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (*ledgeraccount.AccountData, error) {
-		entity, err := r.db.LedgerAccount.Query().
+		entity, err := tx.db.LedgerAccount.Query().
 			Where(
 				ledgeraccountdb.Namespace(id.Namespace),
 				ledgeraccountdb.ID(id.ID),
@@ -44,7 +44,7 @@ func (r *repo) GetAccountByID(ctx context.Context, id models.NamespacedID) (*led
 
 func (r *repo) ListAccounts(ctx context.Context, input ledgeraccount.ListAccountsInput) ([]*ledgeraccount.AccountData, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) ([]*ledgeraccount.AccountData, error) {
-		q := r.db.LedgerAccount.Query().
+		q := tx.db.LedgerAccount.Query().
 			Where(ledgeraccountdb.Namespace(input.Namespace))
 
 		if len(input.AccountTypes) > 0 {

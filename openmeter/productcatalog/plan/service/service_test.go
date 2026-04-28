@@ -7,6 +7,7 @@ import (
 	"time"
 
 	decimal "github.com/alpacahq/alpacadecimal"
+	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -819,4 +821,237 @@ func TestPlanService(t *testing.T) {
 			})
 		})
 	})
+}
+
+func TestListPlansFilters(t *testing.T) {
+	monthPeriod := datetime.MustParseDuration(t, "P1M")
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+
+	env.DBSchemaMigrate(t)
+
+	ns := pctestutils.NewTestNamespace(t)
+
+	// createPlan builds a draft plan with a minimal FlatFeeRateCard phase (no feature reference).
+	createPlan := func(key, name string, cur currency.Code) {
+		input := pctestutils.NewTestPlan(t, ns, productcatalog.Phase{
+			PhaseMeta: productcatalog.PhaseMeta{
+				Key:  "default",
+				Name: "Default",
+			},
+			RateCards: []productcatalog.RateCard{
+				&productcatalog.FlatFeeRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:  "flat-fee",
+						Name: "Flat Fee",
+						TaxConfig: &productcatalog.TaxConfig{
+							Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+						},
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      decimal.NewFromInt(0),
+							PaymentTerm: productcatalog.InArrearsPaymentTerm,
+						}),
+					},
+					BillingCadence: &monthPeriod,
+				},
+			},
+		})
+		input.Key = key
+		input.Name = name
+		input.Currency = cur
+
+		_, err := env.Plan.CreatePlan(ctx, input)
+		require.NoError(t, err, "creating plan %q must not fail", key)
+	}
+
+	// Fixture: 4 draft plans with varied key / name / currency.
+	//   alpha-starter  — Starter Plan Alpha    — USD
+	//   beta-pro       — Professional Plan Beta — USD
+	//   gamma-enterprise — Enterprise Service   — EUR
+	//   delta-basic    — Basic Plan Delta       — EUR
+	createPlan("alpha-starter", "Starter Plan Alpha", currency.USD)
+	createPlan("beta-pro", "Professional Plan Beta", currency.USD)
+	createPlan("gamma-enterprise", "Enterprise Service", currency.EUR)
+	createPlan("delta-basic", "Basic Plan Delta", currency.EUR)
+
+	page := pagination.NewPage(1, 100)
+
+	tcs := []struct {
+		name     string
+		input    plan.ListPlansInput
+		wantKeys []string
+	}{
+		// ── key filters ────────────────────────────────────────────────────────
+		{
+			name: "key eq",
+			input: plan.ListPlansInput{
+				Namespaces: []string{ns},
+				Page:       page,
+				Key:        &filter.FilterString{Eq: lo.ToPtr("alpha-starter")},
+			},
+			wantKeys: []string{"alpha-starter"},
+		},
+		{
+			name: "key ne",
+			input: plan.ListPlansInput{
+				Namespaces: []string{ns},
+				Page:       page,
+				Key:        &filter.FilterString{Ne: lo.ToPtr("alpha-starter")},
+			},
+			wantKeys: []string{"beta-pro", "gamma-enterprise", "delta-basic"},
+		},
+		{
+			name: "key contains unique",
+			input: plan.ListPlansInput{
+				Namespaces: []string{ns},
+				Page:       page,
+				Key:        &filter.FilterString{Contains: lo.ToPtr("starter")},
+			},
+			wantKeys: []string{"alpha-starter"},
+		},
+		{
+			name: "key contains multi",
+			// "er" appears in "alpha-starter" (star-ter) and "gamma-enterprise" (ent-er-prise)
+			// but not in "beta-pro" or "delta-basic".
+			input: plan.ListPlansInput{
+				Namespaces: []string{ns},
+				Page:       page,
+				Key:        &filter.FilterString{Contains: lo.ToPtr("er")},
+			},
+			wantKeys: []string{"alpha-starter", "gamma-enterprise"},
+		},
+		{
+			name: "key in",
+			input: plan.ListPlansInput{
+				Namespaces: []string{ns},
+				Page:       page,
+				Key:        &filter.FilterString{In: lo.ToPtr([]string{"alpha-starter", "gamma-enterprise"})},
+			},
+			wantKeys: []string{"alpha-starter", "gamma-enterprise"},
+		},
+		// ── name filters ───────────────────────────────────────────────────────
+		{
+			name: "name eq",
+			input: plan.ListPlansInput{
+				Namespaces: []string{ns},
+				Page:       page,
+				Name:       &filter.FilterString{Eq: lo.ToPtr("Starter Plan Alpha")},
+			},
+			wantKeys: []string{"alpha-starter"},
+		},
+		{
+			name: "name ne",
+			input: plan.ListPlansInput{
+				Namespaces: []string{ns},
+				Page:       page,
+				Name:       &filter.FilterString{Ne: lo.ToPtr("Starter Plan Alpha")},
+			},
+			wantKeys: []string{"beta-pro", "gamma-enterprise", "delta-basic"},
+		},
+		{
+			name: "name contains Plan (case-insensitive, 3 of 4 names)",
+			input: plan.ListPlansInput{
+				Namespaces: []string{ns},
+				Page:       page,
+				Name:       &filter.FilterString{Contains: lo.ToPtr("Plan")},
+			},
+			wantKeys: []string{"alpha-starter", "beta-pro", "delta-basic"},
+		},
+		{
+			name: "name contains Service",
+			input: plan.ListPlansInput{
+				Namespaces: []string{ns},
+				Page:       page,
+				Name:       &filter.FilterString{Contains: lo.ToPtr("Service")},
+			},
+			wantKeys: []string{"gamma-enterprise"},
+		},
+		{
+			name: "name in",
+			input: plan.ListPlansInput{
+				Namespaces: []string{ns},
+				Page:       page,
+				Name:       &filter.FilterString{In: lo.ToPtr([]string{"Starter Plan Alpha", "Basic Plan Delta"})},
+			},
+			wantKeys: []string{"alpha-starter", "delta-basic"},
+		},
+		// ── currency filters ───────────────────────────────────────────────────
+		{
+			name: "currency eq USD",
+			input: plan.ListPlansInput{
+				Namespaces: []string{ns},
+				Page:       page,
+				Currency:   &filter.FilterString{Eq: lo.ToPtr("USD")},
+			},
+			wantKeys: []string{"alpha-starter", "beta-pro"},
+		},
+		{
+			name: "currency ne USD",
+			input: plan.ListPlansInput{
+				Namespaces: []string{ns},
+				Page:       page,
+				Currency:   &filter.FilterString{Ne: lo.ToPtr("USD")},
+			},
+			wantKeys: []string{"gamma-enterprise", "delta-basic"},
+		},
+		{
+			name: "currency in USD+EUR",
+			input: plan.ListPlansInput{
+				Namespaces: []string{ns},
+				Page:       page,
+				Currency:   &filter.FilterString{In: lo.ToPtr([]string{"USD", "EUR"})},
+			},
+			wantKeys: []string{"alpha-starter", "beta-pro", "gamma-enterprise", "delta-basic"},
+		},
+		// ── combined filters (AND semantics) ───────────────────────────────────
+		{
+			name: "key contains alpha AND currency eq USD",
+			input: plan.ListPlansInput{
+				Namespaces: []string{ns},
+				Page:       page,
+				Key:        &filter.FilterString{Contains: lo.ToPtr("alpha")},
+				Currency:   &filter.FilterString{Eq: lo.ToPtr("USD")},
+			},
+			wantKeys: []string{"alpha-starter"},
+		},
+		{
+			name: "name contains Plan AND currency eq EUR",
+			input: plan.ListPlansInput{
+				Namespaces: []string{ns},
+				Page:       page,
+				Name:       &filter.FilterString{Contains: lo.ToPtr("Plan")},
+				Currency:   &filter.FilterString{Eq: lo.ToPtr("EUR")},
+			},
+			wantKeys: []string{"delta-basic"},
+		},
+		{
+			name: "key contains pro AND name contains Professional",
+			input: plan.ListPlansInput{
+				Namespaces: []string{ns},
+				Page:       page,
+				Key:        &filter.FilterString{Contains: lo.ToPtr("pro")},
+				Name:       &filter.FilterString{Contains: lo.ToPtr("Professional")},
+			},
+			wantKeys: []string{"beta-pro"},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := env.Plan.ListPlans(ctx, tc.input)
+			require.NoError(t, err)
+
+			gotKeys := lo.Map(result.Items, func(p plan.Plan, _ int) string {
+				return p.Key
+			})
+
+			assert.ElementsMatch(t, tc.wantKeys, gotKeys)
+		})
+	}
 }

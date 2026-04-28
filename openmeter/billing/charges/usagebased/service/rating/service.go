@@ -32,9 +32,9 @@ type Service interface {
 	// GetTotalsForUsage returns charge totals for a usage snapshot without generating detailed lines.
 	// Prefer this when only totals are required because it is faster than generating detailed lines.
 	GetTotalsForUsage(ctx context.Context, in GetTotalsForUsageInput) (totals.Totals, error)
-	// GetDetailedLinesForUsage returns rated detailed lines and the metered quantity snapshot used to compute them.
+	// GetDetailedRatingForUsage returns rated detailed lines and the metered quantity snapshot used to compute them.
 	// Prefer GetTotalsForUsage when only totals are required because it is faster.
-	GetDetailedLinesForUsage(ctx context.Context, in GetDetailedLinesForUsageInput) (GetRatingForUsageResult, error)
+	GetDetailedRatingForUsage(ctx context.Context, in GetDetailedRatingForUsageInput) (GetDetailedRatingForUsageResult, error)
 }
 
 type service struct {
