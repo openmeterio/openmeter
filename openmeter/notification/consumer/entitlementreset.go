@@ -6,6 +6,8 @@ import (
 	"fmt"
 
 	"github.com/samber/lo"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/exp/slices"
 
 	"github.com/openmeterio/openmeter/api"
@@ -16,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	productcatalogdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/driver"
 	subjecthttphandler "github.com/openmeterio/openmeter/openmeter/subject/httphandler"
+	"github.com/openmeterio/openmeter/pkg/framework/tracex"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -31,32 +34,43 @@ func (b *EntitlementSnapshotHandler) isEntitlementResetEvent(event snapshot.Snap
 }
 
 func (b *EntitlementSnapshotHandler) handleAsEntitlementResetEvent(ctx context.Context, event snapshot.SnapshotEvent) error {
-	affectedRulesPaged, err := b.Notification.ListRules(ctx, notification.ListRulesInput{
-		Namespaces: []string{event.Namespace.ID},
-		Types:      []notification.EventType{notification.EventTypeEntitlementReset},
-	})
-	if err != nil {
-		return fmt.Errorf("failed to list notification rules: %w", err)
-	}
-
-	affectedRules := lo.Filter(affectedRulesPaged.Items, func(rule notification.Rule, _ int) bool {
-		if len(rule.Config.EntitlementReset.Features) == 0 {
-			return true
+	return tracex.StartWithNoValue(ctx, b.Tracer, "notification.consumer.entitlement_reset",
+		trace.WithAttributes(
+			attribute.String("namespace", event.Namespace.ID),
+			attribute.String("entitlement.id", event.Entitlement.ID),
+			attribute.String("feature.key", event.Entitlement.FeatureKey),
+			attribute.String("feature.id", event.Entitlement.FeatureID),
+		),
+	).Wrap(func(ctx context.Context) error {
+		affectedRulesPaged, err := b.Notification.ListRules(ctx, notification.ListRulesInput{
+			Namespaces: []string{event.Namespace.ID},
+			Types:      []notification.EventType{notification.EventTypeEntitlementReset},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to list notification rules: %w", err)
 		}
 
-		return slices.Contains(rule.Config.EntitlementReset.Features, event.Entitlement.FeatureID) ||
-			slices.Contains(rule.Config.EntitlementReset.Features, event.Entitlement.FeatureKey)
-	})
+		affectedRules := lo.Filter(affectedRulesPaged.Items, func(rule notification.Rule, _ int) bool {
+			if len(rule.Config.EntitlementReset.Features) == 0 {
+				return true
+			}
 
-	var errs []error
+			return slices.Contains(rule.Config.EntitlementReset.Features, event.Entitlement.FeatureID) ||
+				slices.Contains(rule.Config.EntitlementReset.Features, event.Entitlement.FeatureKey)
+		})
 
-	for _, rule := range affectedRules {
-		if err = b.handleResetRule(ctx, event, rule); err != nil {
-			errs = append(errs, err)
+		trace.SpanFromContext(ctx).SetAttributes(attribute.Int("rule.count", len(affectedRules)))
+
+		var errs []error
+
+		for _, rule := range affectedRules {
+			if err = b.handleResetRule(ctx, event, rule); err != nil {
+				errs = append(errs, err)
+			}
 		}
-	}
 
-	return errors.Join(errs...)
+		return errors.Join(errs...)
+	})
 }
 
 func (b *EntitlementSnapshotHandler) handleResetRule(ctx context.Context, event snapshot.SnapshotEvent, rule notification.Rule) error {
