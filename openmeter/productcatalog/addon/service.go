@@ -120,6 +120,13 @@ func (i ListAddonsInput) Validate() error {
 			errs = append(errs, err)
 		}
 	}
+	if i.Status != nil {
+		for _, status := range i.Status {
+			if err := status.Validate(); err != nil {
+				errs = append(errs, err)
+			}
+		}
+	}
 
 	if i.OrderBy != "" {
 		if err := i.OrderBy.Validate(); err != nil {

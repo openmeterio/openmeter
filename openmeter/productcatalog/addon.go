@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"slices"
 	"time"
 
 	"github.com/invopop/gobl/currency"
@@ -29,6 +30,13 @@ func (s AddonStatus) Values() []string {
 		string(AddonStatusActive),
 		string(AddonStatusArchived),
 	}
+}
+
+func (s AddonStatus) Validate() error {
+	if !slices.Contains(s.Values(), string(s)) {
+		return fmt.Errorf("invalid addon status: %s", s)
+	}
+	return nil
 }
 
 var (
