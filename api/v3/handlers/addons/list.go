@@ -96,7 +96,7 @@ func (h *handler) ListAddons() ListAddonsHandler {
 			}
 
 			if params.Sort != nil {
-				sort, err := request.ParseSortBy(string(*params.Sort))
+				sort, err := request.ParseSortBy(*params.Sort)
 				if err != nil {
 					return ListAddonsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},

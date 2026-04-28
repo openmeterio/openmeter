@@ -24,16 +24,16 @@ const (
 
 type AddonStatus string
 
-func (s AddonStatus) Values() []string {
-	return []string{
-		string(AddonStatusDraft),
-		string(AddonStatusActive),
-		string(AddonStatusArchived),
+func (s AddonStatus) Values() []AddonStatus {
+	return []AddonStatus{
+		AddonStatusDraft,
+		AddonStatusActive,
+		AddonStatusArchived,
 	}
 }
 
 func (s AddonStatus) Validate() error {
-	if !slices.Contains(s.Values(), string(s)) {
+	if !slices.Contains(s.Values(), s) {
 		return fmt.Errorf("invalid addon status: %s", s)
 	}
 	return nil

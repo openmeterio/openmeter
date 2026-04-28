@@ -7,7 +7,9 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/expand"
 	"github.com/openmeterio/openmeter/pkg/filter"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // FromAPIFilterString converts an API FilterString to filter.FilterString.
@@ -255,7 +257,13 @@ func FromAPIFilterBoolean(f *FilterBoolean) (*filter.FilterBoolean, error) {
 	}, nil
 }
 
-func FromAPIStatusFilter[T ~string](ctx context.Context, f *FilterStringExact) ([]T, error) {
+type validator[T ~string] interface {
+	~string
+	expand.Expandable[T]
+	Validate() error
+}
+
+func FromAPIStatusFilter[T validator[T]](ctx context.Context, f *FilterStringExact) ([]T, error) {
 	if f == nil {
 		return nil, nil
 	}
@@ -273,6 +281,16 @@ func FromAPIStatusFilter[T ~string](ctx context.Context, f *FilterStringExact) (
 
 	if len(statuses) == 0 {
 		return nil, nil
+	}
+
+	var errs []error
+	for _, status := range statuses {
+		if err := status.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if len(errs) > 0 {
+		return nil, models.NewNillableGenericValidationError(errors.Join(errs...))
 	}
 
 	return statuses, nil
