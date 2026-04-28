@@ -1,0 +1,105 @@
+# feature_list_filter_by_meter_id
+#
+# Source: e2e/specs/features.md ## Scenario: feature_list_filter_by_meter_id
+
+@api_base = {{process.env.OPENMETER_ADDRESS}}/api/v3
+@d__feature_list_filter_by_meter_id__suffix = {{$timestamp}}_{{$randomInt 0 1000000}}
+@d__feature_list_filter_by_meter_id__meter_a_key = filter_meter_a_{{d__feature_list_filter_by_meter_id__suffix}}
+@d__feature_list_filter_by_meter_id__meter_b_key = filter_meter_b_{{d__feature_list_filter_by_meter_id__suffix}}
+@d__feature_list_filter_by_meter_id__feature_a_key = filter_feature_a_{{d__feature_list_filter_by_meter_id__suffix}}
+@d__feature_list_filter_by_meter_id__feature_b_key = filter_feature_b_{{d__feature_list_filter_by_meter_id__suffix}}
+
+###
+# @name r__feature_list_filter_by_meter_id__create_meter_a
+# @title create meter A
+POST {{api_base}}/openmeter/meters
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_list_filter_by_meter_id__meter_a_key}}",
+  "name": "Test Meter A",
+  "event_type": "e2e_feature_test",
+  "aggregation": "count"
+}
+
+?? status == 201
+{{
+  exports.v__feature_list_filter_by_meter_id__meter_a_id = response.parsedBody.id;
+}}
+
+###
+# @name r__feature_list_filter_by_meter_id__create_meter_b
+# @title create meter B
+POST {{api_base}}/openmeter/meters
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_list_filter_by_meter_id__meter_b_key}}",
+  "name": "Test Meter B",
+  "event_type": "e2e_feature_test",
+  "aggregation": "count"
+}
+
+?? status == 201
+{{
+  exports.v__feature_list_filter_by_meter_id__meter_b_id = response.parsedBody.id;
+}}
+
+###
+# @name r__feature_list_filter_by_meter_id__create_feature_a
+# @title create feature A on meter A
+# @ref r__feature_list_filter_by_meter_id__create_meter_a
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_list_filter_by_meter_id__feature_a_key}}",
+  "name": "Test Feature",
+  "meter": { "id": "{{v__feature_list_filter_by_meter_id__meter_a_id}}" }
+}
+
+?? status == 201
+{{
+  exports.v__feature_list_filter_by_meter_id__feature_a_id = response.parsedBody.id;
+}}
+
+###
+# @name r__feature_list_filter_by_meter_id__create_feature_b
+# @title create feature B on meter B
+# @ref r__feature_list_filter_by_meter_id__create_meter_b
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_list_filter_by_meter_id__feature_b_key}}",
+  "name": "Test Feature",
+  "meter": { "id": "{{v__feature_list_filter_by_meter_id__meter_b_id}}" }
+}
+
+?? status == 201
+{{
+  exports.v__feature_list_filter_by_meter_id__feature_b_id = response.parsedBody.id;
+}}
+
+###
+# @name r__feature_list_filter_by_meter_id__list_filtered_by_meter_a
+# @title list filtered by meter A returns feature A only
+# @ref r__feature_list_filter_by_meter_id__create_feature_a
+# @ref r__feature_list_filter_by_meter_id__create_feature_b
+GET {{api_base}}/openmeter/features?filter[meter_id][eq]={{v__feature_list_filter_by_meter_id__meter_a_id}}&page[size]=1000
+
+?? status == 200
+{{
+  const { ok } = require('assert');
+  test('feature A is present, feature B is absent under meter-A filter', () => {
+    const items = response.parsedBody.data || response.parsedBody.items || [];
+    ok(
+      items.some(f => f.id === v__feature_list_filter_by_meter_id__feature_a_id),
+      'expected list to contain feature A id ' + v__feature_list_filter_by_meter_id__feature_a_id
+    );
+    ok(
+      !items.some(f => f.id === v__feature_list_filter_by_meter_id__feature_b_id),
+      'expected list NOT to contain feature B id ' + v__feature_list_filter_by_meter_id__feature_b_id
+    );
+  });
+}}

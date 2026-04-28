@@ -1,0 +1,51 @@
+# feature_create_llm_property_not_in_meter_rejected
+#
+# Source: e2e/specs/features.md ## Scenario: feature_create_llm_property_not_in_meter_rejected
+
+@api_base = {{process.env.OPENMETER_ADDRESS}}/api/v3
+@d__feature_create_llm_property_not_in_meter_rejected__meter_key = llm_prop_meter_{{$timestamp}}_{{$randomInt 0 1000000}}
+@d__feature_create_llm_property_not_in_meter_rejected__feature_key = llm_prop_feature_{{$timestamp}}_{{$randomInt 0 1000000}}
+
+###
+# @name r__feature_create_llm_property_not_in_meter_rejected__create_meter_without_token_type
+# @title create meter with provider + model dimensions only
+POST {{api_base}}/openmeter/meters
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_create_llm_property_not_in_meter_rejected__meter_key}}",
+  "name": "Test LLM Meter",
+  "event_type": "e2e_llm_test",
+  "aggregation": "count",
+  "dimensions": {
+    "provider": "$.provider",
+    "model": "$.model"
+  }
+}
+
+?? status == 201
+{{
+  exports.v__feature_create_llm_property_not_in_meter_rejected__meter_id = response.parsedBody.id;
+}}
+
+###
+# @name r__feature_create_llm_property_not_in_meter_rejected__create_feature_referencing_missing_property
+# @title POST /features with token_type_property absent from meter returns 400
+# @ref r__feature_create_llm_property_not_in_meter_rejected__create_meter_without_token_type
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_create_llm_property_not_in_meter_rejected__feature_key}}",
+  "name": "Test Feature",
+  "meter": { "id": "{{v__feature_create_llm_property_not_in_meter_rejected__meter_id}}" },
+  "unit_cost": {
+    "type": "llm",
+    "provider_property": "provider",
+    "model_property": "model",
+    "token_type_property": "token_type"
+  }
+}
+
+?? status == 400
+?? js response.parsedBody.detail.includes('token_type_property "token_type" not found in meter group-by keys')

@@ -1,0 +1,20 @@
+# feature_create_key_must_not_be_ulid
+#
+# Source: e2e/specs/features.md ## Scenario: feature_create_key_must_not_be_ulid
+
+@api_base = {{process.env.OPENMETER_ADDRESS}}/api/v3
+@d__feature_create_key_must_not_be_ulid__ulid_key = 01HXYZABCDEFGHJKMNPQRSTVWX
+
+###
+# @name r__feature_create_key_must_not_be_ulid__create_with_ulid_key
+# @title POST /features with a ULID-shaped key returns 400
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_create_key_must_not_be_ulid__ulid_key}}",
+  "name": "Test Feature"
+}
+
+?? status == 400
+?? js response.parsedBody.detail.includes('Feature key cannot be a valid ULID')

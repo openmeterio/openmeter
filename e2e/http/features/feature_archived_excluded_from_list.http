@@ -1,0 +1,48 @@
+# feature_archived_excluded_from_list
+#
+# Source: e2e/specs/features.md ## Scenario: feature_archived_excluded_from_list
+
+@api_base = {{process.env.OPENMETER_ADDRESS}}/api/v3
+@d__feature_archived_excluded_from_list__feature_key = archived_list_{{$timestamp}}_{{$randomInt 0 1000000}}
+
+###
+# @name r__feature_archived_excluded_from_list__create_feature
+# @title create feature
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_archived_excluded_from_list__feature_key}}",
+  "name": "Test Feature"
+}
+
+?? status == 201
+{{
+  exports.v__feature_archived_excluded_from_list__feature_id = response.parsedBody.id;
+}}
+
+###
+# @name r__feature_archived_excluded_from_list__delete_feature
+# @title delete feature
+# @ref r__feature_archived_excluded_from_list__create_feature
+DELETE {{api_base}}/openmeter/features/{{v__feature_archived_excluded_from_list__feature_id}}
+
+?? status == 204
+
+###
+# @name r__feature_archived_excluded_from_list__list_excludes_archived
+# @title list features and confirm archived feature is absent
+# @ref r__feature_archived_excluded_from_list__delete_feature
+GET {{api_base}}/openmeter/features?page[size]=1000
+
+?? status == 200
+{{
+  const { ok } = require('assert');
+  test('archived feature is not present in default list', () => {
+    const items = response.parsedBody.data || response.parsedBody.items || [];
+    ok(
+      !items.some(f => f.id === v__feature_archived_excluded_from_list__feature_id),
+      'expected list NOT to contain archived feature id ' + v__feature_archived_excluded_from_list__feature_id
+    );
+  });
+}}

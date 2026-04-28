@@ -1,0 +1,41 @@
+# feature_update_llm_without_meter_rejected
+#
+# Source: e2e/specs/features.md ## Scenario: feature_update_llm_without_meter_rejected
+
+@api_base = {{process.env.OPENMETER_ADDRESS}}/api/v3
+@d__feature_update_llm_without_meter_rejected__feature_key = patch_llm_no_meter_{{$timestamp}}_{{$randomInt 0 1000000}}
+
+###
+# @name r__feature_update_llm_without_meter_rejected__create_feature
+# @title create baseline feature without meter
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_update_llm_without_meter_rejected__feature_key}}",
+  "name": "Test Feature"
+}
+
+?? status == 201
+{{
+  exports.v__feature_update_llm_without_meter_rejected__feature_id = response.parsedBody.id;
+}}
+
+###
+# @name r__feature_update_llm_without_meter_rejected__patch_with_llm_unit_cost
+# @title PATCH with LLM unit_cost on unmetered feature returns 400
+# @ref r__feature_update_llm_without_meter_rejected__create_feature
+PATCH {{api_base}}/openmeter/features/{{v__feature_update_llm_without_meter_rejected__feature_id}}
+Content-Type: application/json
+
+{
+  "unit_cost": {
+    "type": "llm",
+    "provider": "openai",
+    "model": "gpt-4",
+    "token_type": "input"
+  }
+}
+
+?? status == 400
+?? js response.parsedBody.detail.includes('LLM unit cost requires a meter to be associated with the feature')

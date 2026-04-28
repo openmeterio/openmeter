@@ -1,0 +1,45 @@
+# feature_create_invalid_meter_filter_key_rejected
+#
+# Source: e2e/specs/features.md ## Scenario: feature_create_invalid_meter_filter_key_rejected
+
+@api_base = {{process.env.OPENMETER_ADDRESS}}/api/v3
+@d__feature_create_invalid_meter_filter_key_rejected__meter_key = filter_meter_{{$timestamp}}_{{$randomInt 0 1000000}}
+@d__feature_create_invalid_meter_filter_key_rejected__feature_key = filter_feature_{{$timestamp}}_{{$randomInt 0 1000000}}
+
+###
+# @name r__feature_create_invalid_meter_filter_key_rejected__create_meter_with_region_dim
+# @title create meter with single region dimension
+POST {{api_base}}/openmeter/meters
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_create_invalid_meter_filter_key_rejected__meter_key}}",
+  "name": "Test Meter",
+  "event_type": "e2e_feature_test",
+  "aggregation": "count",
+  "dimensions": { "region": "$.region" }
+}
+
+?? status == 201
+{{
+  exports.v__feature_create_invalid_meter_filter_key_rejected__meter_id = response.parsedBody.id;
+}}
+
+###
+# @name r__feature_create_invalid_meter_filter_key_rejected__create_feature_with_bad_filter_key
+# @title POST /features with meter.filters.unknown_key returns 400
+# @ref r__feature_create_invalid_meter_filter_key_rejected__create_meter_with_region_dim
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_create_invalid_meter_filter_key_rejected__feature_key}}",
+  "name": "Test Feature",
+  "meter": {
+    "id": "{{v__feature_create_invalid_meter_filter_key_rejected__meter_id}}",
+    "filters": { "unknown_key": { "eq": "x" } }
+  }
+}
+
+?? status == 400
+?? js response.parsedBody.detail.includes('filter key "unknown_key" is not a valid dimension of meter')

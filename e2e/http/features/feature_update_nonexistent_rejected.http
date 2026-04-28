@@ -1,0 +1,17 @@
+# feature_update_nonexistent_rejected
+#
+# Source: e2e/specs/features.md ## Scenario: feature_update_nonexistent_rejected
+
+@api_base = {{process.env.OPENMETER_ADDRESS}}/api/v3
+@d__feature_update_nonexistent_rejected__missing_id = 01HXYZABCDEFGHJKMNPQRSTV03
+
+###
+# @name r__feature_update_nonexistent_rejected__patch_unknown_id
+# @title PATCH /features/<random-ULID-not-in-DB> returns 404
+PATCH {{api_base}}/openmeter/features/{{d__feature_update_nonexistent_rejected__missing_id}}
+Content-Type: application/json
+
+{ "unit_cost": null }
+
+?? status == 404
+?? js response.parsedBody.detail.includes('feature not found: {{d__feature_update_nonexistent_rejected__missing_id}}')

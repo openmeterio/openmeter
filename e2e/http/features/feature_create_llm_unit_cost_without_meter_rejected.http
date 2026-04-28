@@ -1,0 +1,26 @@
+# feature_create_llm_unit_cost_without_meter_rejected
+#
+# Source: e2e/specs/features.md ## Scenario: feature_create_llm_unit_cost_without_meter_rejected
+
+@api_base = {{process.env.OPENMETER_ADDRESS}}/api/v3
+@d__feature_create_llm_unit_cost_without_meter_rejected__feature_key = llm_no_meter_{{$timestamp}}_{{$randomInt 0 1000000}}
+
+###
+# @name r__feature_create_llm_unit_cost_without_meter_rejected__create_llm_without_meter
+# @title POST /features with LLM unit_cost and no meter returns 400
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_create_llm_unit_cost_without_meter_rejected__feature_key}}",
+  "name": "Test Feature",
+  "unit_cost": {
+    "type": "llm",
+    "provider": "openai",
+    "model": "gpt-4",
+    "token_type": "input"
+  }
+}
+
+?? status == 400
+?? js response.parsedBody.detail.includes('LLM unit cost requires a meter to be associated with the feature')

@@ -1,0 +1,29 @@
+# feature_list_filter_malformed_rejected
+#
+# Source: e2e/specs/features.md ## Scenario: feature_list_filter_malformed_rejected
+#
+# Pinned 2026-04-28 against an OpenMeter deployment running behind an
+# OpenAPI binder gateway. Re-pin if the binder layer is replaced or
+# upgraded — the rule strings (`anyOf` / `format`) and the
+# umbrella-field binding are binder-topology dependent.
+
+@api_base = {{process.env.OPENMETER_ADDRESS}}/api/v3
+
+###
+# @name r__feature_list_filter_malformed_rejected__row1_bad_ulid
+# @title row 1: filter[meter_id][eq]=not-a-ulid -> 400 with invalid_parameters
+GET {{api_base}}/openmeter/features?filter[meter_id][eq]=not-a-ulid
+
+?? status == 400
+?? js response.parsedBody.invalid_parameters[0].field == meter_id
+?? js response.parsedBody.invalid_parameters[0].rule == anyOf
+
+###
+# @name r__feature_list_filter_malformed_rejected__row2_unknown_operator
+# @title row 2: filter[meter_id][zz]=<ulid> -> 400 with invalid_parameters
+GET {{api_base}}/openmeter/features?filter[meter_id][zz]=01HXYZABCDEFGHJKMNPQRSTVWX
+
+?? status == 400
+?? js response.parsedBody.invalid_parameters[0].field == filter
+?? js response.parsedBody.invalid_parameters[0].rule == format
+?? js response.parsedBody.invalid_parameters[0].reason.includes('filter[meter_id][zz]: unsupported operator')

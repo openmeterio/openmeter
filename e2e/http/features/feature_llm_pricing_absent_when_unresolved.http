@@ -1,0 +1,68 @@
+# feature_llm_pricing_absent_when_unresolved
+#
+# Source: e2e/specs/features.md ## Scenario: feature_llm_pricing_absent_when_unresolved
+
+@api_base = {{process.env.OPENMETER_ADDRESS}}/api/v3
+@d__feature_llm_pricing_absent_when_unresolved__meter_key = llm_unresolved_meter_{{$timestamp}}_{{$randomInt 0 1000000}}
+@d__feature_llm_pricing_absent_when_unresolved__feature_key = llm_unresolved_feature_{{$timestamp}}_{{$randomInt 0 1000000}}
+@d__feature_llm_pricing_absent_when_unresolved__provider = unknown_provider_{{$timestamp}}_{{$randomInt 0 1000000}}
+@d__feature_llm_pricing_absent_when_unresolved__model = unknown_model_{{$timestamp}}_{{$randomInt 0 1000000}}
+
+###
+# @name r__feature_llm_pricing_absent_when_unresolved__create_meter
+# @title create LLM-capable meter
+POST {{api_base}}/openmeter/meters
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_llm_pricing_absent_when_unresolved__meter_key}}",
+  "name": "Test LLM Meter",
+  "event_type": "e2e_llm_test",
+  "aggregation": "count",
+  "dimensions": {
+    "provider": "$.provider",
+    "model": "$.model",
+    "token_type": "$.token_type"
+  }
+}
+
+?? status == 201
+{{
+  exports.v__feature_llm_pricing_absent_when_unresolved__meter_id = response.parsedBody.id;
+}}
+
+###
+# @name r__feature_llm_pricing_absent_when_unresolved__create_llm_feature
+# @title create LLM feature with unresolvable provider/model
+# @ref r__feature_llm_pricing_absent_when_unresolved__create_meter
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_llm_pricing_absent_when_unresolved__feature_key}}",
+  "name": "Test Feature",
+  "meter": { "id": "{{v__feature_llm_pricing_absent_when_unresolved__meter_id}}" },
+  "unit_cost": {
+    "type": "llm",
+    "provider": "{{d__feature_llm_pricing_absent_when_unresolved__provider}}",
+    "model": "{{d__feature_llm_pricing_absent_when_unresolved__model}}",
+    "token_type": "input"
+  }
+}
+
+?? status == 201
+{{
+  exports.v__feature_llm_pricing_absent_when_unresolved__feature_id = response.parsedBody.id;
+}}
+
+###
+# @name r__feature_llm_pricing_absent_when_unresolved__get_feature_pricing_absent
+# @title GET LLM feature returns 200 with unit_cost.pricing absent
+# @ref r__feature_llm_pricing_absent_when_unresolved__create_llm_feature
+GET {{api_base}}/openmeter/features/{{v__feature_llm_pricing_absent_when_unresolved__feature_id}}
+
+?? status == 200
+?? js response.parsedBody.unit_cost.type == llm
+?? js response.parsedBody.unit_cost.provider == {{d__feature_llm_pricing_absent_when_unresolved__provider}}
+?? js response.parsedBody.unit_cost.model == {{d__feature_llm_pricing_absent_when_unresolved__model}}
+?? js typeof response.parsedBody.unit_cost.pricing == undefined

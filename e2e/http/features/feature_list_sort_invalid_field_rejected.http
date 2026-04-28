@@ -1,0 +1,13 @@
+# feature_list_sort_invalid_field_rejected
+#
+# Source: e2e/specs/features.md ## Scenario: feature_list_sort_invalid_field_rejected
+
+@api_base = {{process.env.OPENMETER_ADDRESS}}/api/v3
+
+###
+# @name r__feature_list_sort_invalid_field_rejected__bad_sort_field
+# @title GET /features?sort=banana returns 400
+GET {{api_base}}/openmeter/features?sort=banana
+
+?? status == 400
+?? js response.parsedBody.detail.includes('invalid feature order by: banana')

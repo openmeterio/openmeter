@@ -1,0 +1,126 @@
+# feature_lifecycle
+#
+# Source: e2e/specs/features.md ## Scenario: feature_lifecycle
+
+@api_base = {{process.env.OPENMETER_ADDRESS}}/api/v3
+@d__feature_lifecycle__feature_key = lifecycle_{{$timestamp}}_{{$randomInt 0 1000000}}
+
+###
+# @name r__feature_lifecycle__create_feature
+# @title create feature
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_lifecycle__feature_key}}",
+  "name": "Test Feature"
+}
+
+?? status == 201
+?? js response.parsedBody.key == {{d__feature_lifecycle__feature_key}}
+?? js response.parsedBody.name == Test Feature
+?? js typeof response.parsedBody.meter == undefined
+?? js typeof response.parsedBody.unit_cost == undefined
+?? js typeof response.parsedBody.deleted_at == undefined
+{{
+  exports.v__feature_lifecycle__feature_id = response.parsedBody.id;
+}}
+
+###
+# @name r__feature_lifecycle__get_feature
+# @title get feature by id
+# @ref r__feature_lifecycle__create_feature
+GET {{api_base}}/openmeter/features/{{v__feature_lifecycle__feature_id}}
+
+?? status == 200
+?? js response.parsedBody.id == {{v__feature_lifecycle__feature_id}}
+?? js response.parsedBody.key == {{d__feature_lifecycle__feature_key}}
+?? js response.parsedBody.name == Test Feature
+
+###
+# @name r__feature_lifecycle__list_features_find_created
+# @title list features and find the created feature
+# @ref r__feature_lifecycle__create_feature
+GET {{api_base}}/openmeter/features?page[size]=1000
+
+?? status == 200
+{{
+  const { ok } = require('assert');
+  test('created feature is present in list', () => {
+    const items = response.parsedBody.data || response.parsedBody.items || [];
+    ok(
+      items.some(f => f.id === v__feature_lifecycle__feature_id),
+      'expected list to contain feature id ' + v__feature_lifecycle__feature_id
+    );
+  });
+}}
+
+###
+# @name r__feature_lifecycle__patch_set_unit_cost
+# @title patch feature - set manual unit_cost
+# @ref r__feature_lifecycle__create_feature
+PATCH {{api_base}}/openmeter/features/{{v__feature_lifecycle__feature_id}}
+Content-Type: application/json
+
+{ "unit_cost": { "type": "manual", "amount": "5" } }
+
+?? status == 200
+?? js response.parsedBody.unit_cost.type == manual
+{{
+  const { strictEqual } = require('assert');
+  test('unit_cost.amount is normalized to "5"', () => {
+    // Server trims trailing zeros: "5.00" round-trips as "5".
+    strictEqual(
+      response.parsedBody.unit_cost.amount, '5',
+      'expected unit_cost.amount === "5", got ' + JSON.stringify(response.parsedBody.unit_cost.amount)
+    );
+  });
+}}
+
+###
+# @name r__feature_lifecycle__get_after_set
+# @title get feature - verify unit_cost persisted
+# @ref r__feature_lifecycle__patch_set_unit_cost
+GET {{api_base}}/openmeter/features/{{v__feature_lifecycle__feature_id}}
+
+?? status == 200
+?? js response.parsedBody.unit_cost.type == manual
+?? js response.parsedBody.unit_cost.amount == 5
+
+###
+# @name r__feature_lifecycle__patch_clear_unit_cost
+# @title patch feature - clear unit_cost
+# @ref r__feature_lifecycle__create_feature
+PATCH {{api_base}}/openmeter/features/{{v__feature_lifecycle__feature_id}}
+Content-Type: application/json
+
+{ "unit_cost": null }
+
+?? status == 200
+?? js typeof response.parsedBody.unit_cost == undefined
+
+###
+# @name r__feature_lifecycle__get_after_clear
+# @title get feature - verify unit_cost cleared
+# @ref r__feature_lifecycle__patch_clear_unit_cost
+GET {{api_base}}/openmeter/features/{{v__feature_lifecycle__feature_id}}
+
+?? status == 200
+?? js typeof response.parsedBody.unit_cost == undefined
+
+###
+# @name r__feature_lifecycle__delete_feature
+# @title delete feature
+# @ref r__feature_lifecycle__create_feature
+DELETE {{api_base}}/openmeter/features/{{v__feature_lifecycle__feature_id}}
+
+?? status == 204
+
+###
+# @name r__feature_lifecycle__get_after_delete
+# @title get feature after delete returns 404
+# @ref r__feature_lifecycle__delete_feature
+GET {{api_base}}/openmeter/features/{{v__feature_lifecycle__feature_id}}
+
+?? status == 404
+?? js response.parsedBody.detail.includes('feature not found: {{v__feature_lifecycle__feature_id}}')

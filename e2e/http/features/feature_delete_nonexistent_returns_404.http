@@ -1,0 +1,14 @@
+# feature_delete_nonexistent_returns_404
+#
+# Source: e2e/specs/features.md ## Scenario: feature_delete_nonexistent_returns_404
+
+@api_base = {{process.env.OPENMETER_ADDRESS}}/api/v3
+@d__feature_delete_nonexistent_returns_404__missing_id = 01HXYZABCDEFGHJKMNPQRSTV02
+
+###
+# @name r__feature_delete_nonexistent_returns_404__delete_unknown_id
+# @title DELETE /features/<random-ULID-not-in-DB> returns 404
+DELETE {{api_base}}/openmeter/features/{{d__feature_delete_nonexistent_returns_404__missing_id}}
+
+?? status == 404
+?? js response.parsedBody.detail.includes('feature not found: {{d__feature_delete_nonexistent_returns_404__missing_id}}')

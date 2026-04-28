@@ -1,0 +1,39 @@
+# feature_archived_get_returns_404
+#
+# Source: e2e/specs/features.md ## Scenario: feature_archived_get_returns_404
+
+@api_base = {{process.env.OPENMETER_ADDRESS}}/api/v3
+@d__feature_archived_get_returns_404__feature_key = archived_get_{{$timestamp}}_{{$randomInt 0 1000000}}
+
+###
+# @name r__feature_archived_get_returns_404__create_feature
+# @title create feature
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_archived_get_returns_404__feature_key}}",
+  "name": "Test Feature"
+}
+
+?? status == 201
+{{
+  exports.v__feature_archived_get_returns_404__feature_id = response.parsedBody.id;
+}}
+
+###
+# @name r__feature_archived_get_returns_404__delete_feature
+# @title delete feature
+# @ref r__feature_archived_get_returns_404__create_feature
+DELETE {{api_base}}/openmeter/features/{{v__feature_archived_get_returns_404__feature_id}}
+
+?? status == 204
+
+###
+# @name r__feature_archived_get_returns_404__get_archived_feature
+# @title GET archived feature returns 404 with feature-not-found detail
+# @ref r__feature_archived_get_returns_404__delete_feature
+GET {{api_base}}/openmeter/features/{{v__feature_archived_get_returns_404__feature_id}}
+
+?? status == 404
+?? js response.parsedBody.detail.includes('feature not found: {{v__feature_archived_get_returns_404__feature_id}}')

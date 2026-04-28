@@ -1,0 +1,72 @@
+# feature_cost_query_happy_path
+#
+# Source: e2e/specs/features.md ## Scenario: feature_cost_query_happy_path
+
+@api_base = {{process.env.OPENMETER_ADDRESS}}/api/v3
+@d__feature_cost_query_happy_path__meter_key = cost_query_meter_{{$timestamp}}_{{$randomInt 0 1000000}}
+@d__feature_cost_query_happy_path__feature_key = cost_query_feature_{{$timestamp}}_{{$randomInt 0 1000000}}
+
+###
+# @name r__feature_cost_query_happy_path__create_meter
+# @title create baseline meter
+POST {{api_base}}/openmeter/meters
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_cost_query_happy_path__meter_key}}",
+  "name": "Test Meter",
+  "event_type": "e2e_feature_test",
+  "aggregation": "count"
+}
+
+?? status == 201
+{{
+  exports.v__feature_cost_query_happy_path__meter_id = response.parsedBody.id;
+}}
+
+###
+# @name r__feature_cost_query_happy_path__create_feature
+# @title create metered feature with manual unit cost
+# @ref r__feature_cost_query_happy_path__create_meter
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_cost_query_happy_path__feature_key}}",
+  "name": "Test Feature",
+  "meter": { "id": "{{v__feature_cost_query_happy_path__meter_id}}" },
+  "unit_cost": { "type": "manual", "amount": "5" }
+}
+
+?? status == 201
+{{
+  exports.v__feature_cost_query_happy_path__feature_id = response.parsedBody.id;
+}}
+
+###
+# @name r__feature_cost_query_happy_path__cost_query_empty_body
+# @title POST cost/query with empty body returns default-window zero-usage row
+# @ref r__feature_cost_query_happy_path__create_feature
+POST {{api_base}}/openmeter/features/{{v__feature_cost_query_happy_path__feature_id}}/cost/query
+Content-Type: application/json
+
+{}
+
+?? status == 200
+{{
+  const { ok, strictEqual } = require('assert');
+  test('data[] is non-empty and the first row has zero-usage shape', () => {
+    const data = response.parsedBody.data || [];
+    ok(data.length >= 1, 'expected data[] to be non-empty, got ' + JSON.stringify(data));
+    const row = data[0];
+    // cost is "0" with manual unit_cost (usage * amount = 0 * 5 = 0).
+    // The spec allows null for unresolved-pricing rows; pin "0" since
+    // manual unit cost always resolves. Adjust if a future deployment
+    // emits null for zero-usage manual rows.
+    strictEqual(row.cost, '0', 'cost should be "0" for zero-usage manual unit_cost, got ' + JSON.stringify(row.cost));
+    strictEqual(row.usage, '0', 'usage should be "0" for zero usage, got ' + JSON.stringify(row.usage));
+    strictEqual(row.currency, 'USD', 'currency should be "USD", got ' + JSON.stringify(row.currency));
+    strictEqual(row.from, '1970-01-01T00:00:00Z', 'default from should be epoch, got ' + JSON.stringify(row.from));
+    strictEqual(row.to, '1970-01-01T00:01:00Z', 'default to should be epoch+60s, got ' + JSON.stringify(row.to));
+  });
+}}

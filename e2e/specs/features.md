@@ -68,7 +68,7 @@ the corresponding `## Scenario` section.
 - `feature_list_combined_filters` — Combining `filter[meter_id]` + `filter[key]` narrows intersection. — shape: matrix — priority: p1
 - `feature_list_sort_by_supported_fields` — `sort=key`, `sort=name`, `sort=created_at`, `sort=updated_at` (with `:asc` / `:desc`) returns the expected order. — shape: matrix — priority: p1
 - `feature_list_sort_invalid_field_rejected` — `sort=<unknown_field>` returns 400 with schema-rule shape. — shape: single-request — priority: p1
-- `feature_list_filter_malformed_rejected` — Malformed filter value (unknown operator, bad ULID format on `filter[meter_id]`) returns 400 with schema-rule shape. — shape: single-request — priority: p1 — NEEDS-VERIFY: exact `rule` strings the OpenAPI binder emits for ULID-format and unknown-property rejections.
+- `feature_list_filter_malformed_rejected` — Malformed filter value (unknown operator, bad ULID format on `filter[meter_id]`) returns 400 with schema-rule shape. — shape: single-request — priority: p1
 - `feature_list_pagination` — `page[number]` + `page[size]` return the expected slice and response metadata. — shape: single-request — priority: p1
 
 **p1 — cost query**
@@ -568,18 +568,18 @@ exercises one rule against a fresh fixture.
 
 **Rows:**
 
-| # | Mutation from baseline (`type` + payload) | Expect | Detail contains |
+| # | Mutation from baseline (`type` + payload) | Expect | Shape |
 |---|---|---|---|
 | 1 | manual baseline (`type: manual`, `amount: "5"`); no meter | `201 Created` | — |
 | 2 | LLM baseline (static provider/model/token_type); meter attached | `201 Created` | — |
-| 3 | manual with `amount: "-1"`; no meter | `400 Bad Request` | `"manual unit cost amount must be non-negative"` |
-| 4 | LLM with both `provider: "openai"` and `provider_property: "provider"`; meter attached | `400 Bad Request` | `"provider_property and provider are mutually exclusive"` |
-| 5 | LLM with both `model: "gpt-4"` and `model_property: "model"`; meter attached | `400 Bad Request` | `"model_property and model are mutually exclusive"` |
-| 6 | LLM with both `token_type: "input"` and `token_type_property: "token_type"`; meter attached | `400 Bad Request` | `"token_type_property and token_type are mutually exclusive"` |
-| 7 | LLM with no `provider` and no `provider_property` (model + token_type still set); meter attached | `400 Bad Request` | `"either provider_property or provider is required for LLM unit cost"` |
-| 8 | LLM with no `model` and no `model_property` (provider + token_type still set); meter attached | `400 Bad Request` | `"either model_property or model is required for LLM unit cost"` |
-| 9 | LLM with no `token_type` and no `token_type_property` (provider + model still set); meter attached | `400 Bad Request` | `"either token_type_property or token_type is required for LLM unit cost"` |
-| 10 | LLM baseline with `token_type: "banana"`; meter attached | `400 Bad Request` | `"invalid token_type \"banana\""` |
+| 3 | manual with `amount: "-1"`; no meter | `400 Bad Request` | detail equals `"validation error: manual unit cost amount must be non-negative"` |
+| 4 | LLM with both `provider: "openai"` and `provider_property: "provider"`; meter attached | `400 Bad Request` | detail equals `"validation error: provider_property and provider are mutually exclusive"` |
+| 5 | LLM with both `model: "gpt-4"` and `model_property: "model"`; meter attached | `400 Bad Request` | detail equals `"validation error: model_property and model are mutually exclusive"` |
+| 6 | LLM with both `token_type: "input"` and `token_type_property: "token_type"`; meter attached | `400 Bad Request` | detail equals `"validation error: token_type_property and token_type are mutually exclusive"` |
+| 7 | LLM with no `provider` and no `provider_property` (model + token_type still set); meter attached | `400 Bad Request` | detail equals `"validation error: either provider_property or provider is required for LLM unit cost"` |
+| 8 | LLM with no `model` and no `model_property` (provider + token_type still set); meter attached | `400 Bad Request` | detail equals `"validation error: either model_property or model is required for LLM unit cost"` |
+| 9 | LLM with no `token_type` and no `token_type_property` (provider + model still set); meter attached | `400 Bad Request` | detail equals `"validation error: either token_type_property or token_type is required for LLM unit cost"` |
+| 10 | LLM baseline with `token_type: "banana"`; meter attached | `400 Bad Request` | schema-rule: `invalid_parameters[0].field == "unit_cost"`, `rule == "allOf"` |
 
 **Steps per row:**
 
@@ -590,25 +590,54 @@ exercises one rule against a fresh fixture.
 2. **Create feature.** `POST /features` with the feature fixture for
    the row.
    - Expect the row's `Expect` status.
-   - If 4xx, expect **detail contains** the row's `Detail contains`
-     substring.
+   - If 4xx and the row's shape is **detail-equality** (rows 3–9),
+     expect `response.parsedBody.detail` to equal the full pinned
+     string (including the `"validation error: "` prefix).
+   - If 4xx and the row's shape is **schema-rule** (row 10), expect
+     `response.parsedBody.invalid_parameters[0].field` and `.rule` to
+     match the pinned values.
    - If 2xx, expect the response body parses as a `Feature`.
 
 **Notes:**
 
 - **Validation moment:** create-time. All rows fire before insert.
-- **Error shape:** detail-substring. The features family does not
-  use the **domain code** shape (`extensions.validationErrors[]`).
-- **Joined errors.** When a row removes more than one required
-  dimension, the server may surface multiple messages joined into a
-  single `detail`. Detail-substring matches still pass — pin one
-  distinctive substring per row rather than asserting the full
-  message.
+- **Two error shapes in this matrix.**
+  - Rows 3–9 are **handler rejections.** The OpenAPI binder layer
+    (when present) forwards the request — the body schema is
+    structurally valid — and the OpenMeter handler runs the
+    mutex / required / range rules, returning a domain error. The
+    framework wraps the bare message in a `"validation error:
+    <msg>"` detail field — pin the **full prefixed string** via
+    equality, since each row triggers exactly one rule and the
+    detail is deterministic.
+  - Row 10 is a **binder-layer rejection** in deployments where an
+    OpenAPI schema validator runs ahead of the handler.
+    `token_type` is constrained by an OpenAPI enum; the binder's
+    `allOf` validator rejects before the handler runs. The
+    handler's `"invalid token_type"` message is **unreachable** in
+    that topology. The expected shape is schema-rule
+    (`invalid_parameters[].rule == "allOf"`), not detail-equality.
+    In a deployment that runs the handler directly with no schema
+    validator in front, row 10 reverts to detail-substring shape
+    carrying the handler's `"invalid token_type"` message —
+    re-pin per deployment topology.
+- **Joined errors.** If a future row removes more than one required
+  dimension, the server may join multiple messages into a single
+  `detail`, breaking the equality assertion. Either split into
+  separate rows (one rule per row) or fall back to a
+  `detail.includes('<distinctive substring>')` check — but **not**
+  `?? body contains "..."`, which is unreliable on httpyac 6.16.7
+  for `application/problem+json` bodies (see
+  `e2e-httpyac/references/format.md`).
 - **Rows intentionally omitted:** the internal "Manual configuration
   must not be set when type is llm" / "llm must not be set when type
   is manual" checks. The API discriminator-based converter never
   produces those mixed-shape inputs, so they aren't reachable through
   the public surface.
+- **Pinned 2026-04-28** against an OpenMeter deployment running
+  behind an OpenAPI binder gateway. Re-pin if the deployment
+  topology changes (binder added, removed, or upgraded) or the
+  framework wrapper is upgraded.
 
 ---
 
@@ -793,8 +822,19 @@ endpoints:
   - POST /features
   - GET /features/{featureId}
 entities: [feature]
-tags: [single-request, lookup-by-key]
+tags: [single-request, lookup-by-key, deployment-gated, skipped]
+status: skipped
 ```
+
+**Status: SKIPPED.** Deployment-gated. Verified 2026-04-28: in
+deployments fronted by Kong (or any gateway whose route patterns
+require `{featureId}` to look like a ULID), a `GET
+/features/<bare-key>` request is rejected at the gateway with `404
+"The requested entity was not found"` and never reaches the OpenMeter
+handler. The handler's by-id-or-key dispatch is therefore unreachable
+through the public surface in those topologies. Re-enable when
+running against a deployment that routes arbitrary path segments to
+the handler.
 
 **Intent:** `GET /features/{featureId}` accepts either a ULID id or
 the feature's `key` in the path. Lookup by key resolves to the same
@@ -823,6 +863,11 @@ feature.
   `feature_create_key_must_not_be_ulid`): if a key parsed as a ULID,
   the by-id-or-key dispatch in `GetByIdOrKey` would be ambiguous.
   This scenario is the positive read of the same dispatch.
+- **Gateway-routing dependency.** The Kong-fronted deployment we
+  pin tests against returns `404 "The requested entity was not
+  found"` (Kong's own response) for `GET /features/<bare-key>`. The
+  handler-level 404 (`"feature not found: <id>"`) is reachable only
+  via a ULID-shaped path segment.
 
 ---
 
@@ -1016,9 +1061,8 @@ tags: [list, sort, matrix]
 ```
 
 **Intent:** The `sort` query param accepts `key`, `name`,
-`created_at` (default), and `updated_at`, optionally suffixed with
-`:asc` (default) or `:desc`. Each combination returns features in
-the expected order.
+`created_at` (default), and `updated_at`. Each value returns features
+in ascending order on the named field.
 
 **Fixtures:**
 - Three `CreateFeatureRequest`s per **Baseline feature**, each with
@@ -1030,14 +1074,10 @@ the expected order.
 
 | # | `sort` value | Expected order of fixture entries (by `id`) |
 |---|---|---|
-| 1 | `key` (or `key:asc`) | sorted ascending by `key` |
-| 2 | `key:desc` | sorted descending by `key` |
-| 3 | `name` | sorted ascending by `name` |
-| 4 | `name:desc` | sorted descending by `name` |
-| 5 | `created_at` (or omitted — the default) | A, B, C |
-| 6 | `created_at:desc` | C, B, A |
-| 7 | `updated_at` | sorted ascending by `updated_at` |
-| 8 | `updated_at:desc` | sorted descending by `updated_at` |
+| 1 | `key` | sorted ascending by `key` |
+| 2 | `name` | sorted ascending by `name` |
+| 3 | `created_at` (or omitted — the default) | A, B, C |
+| 4 | `updated_at` | sorted ascending by `updated_at` |
 
 **Steps per row:**
 
@@ -1057,6 +1097,13 @@ the expected order.
   modification time, perform a no-op PATCH (e.g.
   `unit_cost: null` on a feature with no unit_cost) to bump
   `updated_at` predictably before the assertion.
+- **No `:asc` / `:desc` suffix.** Verified 2026-04-28 against a live
+  server: `sort=key:desc` (and the other `:desc` permutations)
+  returns 400 `"invalid feature order by: key:desc"` — the suffix is
+  not parsed and the entire string is treated as the field name.
+  Descending-sort scenarios are deferred until the server grows
+  syntax for it (whether `:desc` suffix, `-key` prefix, or a separate
+  `order` query param). Re-add rows once the syntax is pinned.
 
 ---
 
@@ -1083,10 +1130,10 @@ tags: [list, sort, validation, single-request]
 **Notes:**
 
 - **Error shape:** detail-substring at status 400.
-- The valid set is `{ key, name, created_at, updated_at }`. Suffix
-  `:asc` / `:desc` is parsed and stripped before validation, so
-  `key:zzz` (bad direction) is **schema-rule** territory rather
-  than detail-substring; not pinned by this scenario.
+- The valid set is `{ key, name, created_at, updated_at }`. The
+  server does not parse a direction suffix — it treats the entire
+  `sort` value as a field name (verified 2026-04-28). See
+  `feature_list_sort_by_supported_fields` for context.
 
 ---
 
@@ -1106,32 +1153,42 @@ This is the schema-rule shape, not the domain shape.
 
 **Rows:**
 
-| # | Query | Expect `field` match | Expect `rule` |
-|---|---|---|---|
-| 1 | `filter[meter_id][eq]=not-a-ulid` | `field` references `filter.meter_id.eq` (or its parent `filter.meter_id`) | `"format"` (ULID-format rejection) — `NEEDS-VERIFY: confirm exact rule string against a live server before relying on it` |
-| 2 | `filter[meter_id][zz]=01HXYZ...` | `field` references `filter.meter_id` (or `filter.meter_id.zz`) | `"additionalProperties"` (unknown property) — `NEEDS-VERIFY: confirm exact rule string against a live server before relying on it` |
+| # | Query | Expect `field` | Expect `rule` | Expect `reason` (substring) |
+|---|---|---|---|---|
+| 1 | `filter[meter_id][eq]=not-a-ulid` | `"meter_id"` | `"anyOf"` | — |
+| 2 | `filter[meter_id][zz]=01HXYZ...` | `"filter"` | `"format"` | `"filter[meter_id][zz]: unsupported operator"` |
 
 **Steps per row:**
 
 1. **List with malformed filter.** `GET /features?<row's query>`.
    - Expect `400 Bad Request`.
-   - Expect `invalid_parameters[]` is present and non-empty.
-   - Expect at least one entry where `field` references the row's
-     bad filter param **and** `rule` matches the row's expected
-     rule string.
+   - Expect `invalid_parameters[0].field` matches the row's expected
+     value, `invalid_parameters[0].rule` matches the row's expected
+     rule string, and (row 2 only) the response body contains the
+     row's expected reason substring.
 
 **Notes:**
 
 - **Error shape:** schema-rule (`invalid_parameters[]`), not
   detail-substring. Schema validation rejects before the request
   body is processed.
-- **Rule strings flagged NEEDS-VERIFY.** Both rule strings above
-  are reasonable defaults from the JSON Schema vocabulary the
-  binder uses, but the exact value is binder-implementation-specific
-  and may differ. Confirm against a live server before generating a
-  test. If a rule turns out to be unstable across releases, fall
-  back to asserting only `field` and drop the `rule` assertion for
-  that row.
+- **Why `anyOf` for row 1.** `filter[meter_id]` is typed as
+  `ULIDFieldFilter` — a TypeSpec union of either a bare ULID string
+  or an operator object (`{eq?, neq?, ...}`). Unions compile to
+  OpenAPI `anyOf`. When the value matches neither branch, the
+  binder reports the umbrella rule `anyOf` rather than which
+  branch was closest — by design, `anyOf` rejections don't say
+  "you almost matched branch 2."
+- **Umbrella-field binding for row 2.** When a sub-operator under
+  `filter[<key>]` is unknown, the binder reports the rejection at
+  the **umbrella `filter` field**, not at `filter.meter_id`. The
+  offending sub-key (e.g. `filter[meter_id][zz]`) only appears in
+  the `reason` string. Assertions that want to pin "this rejection
+  was about meter_id" must look at `reason` (or `body contains`),
+  not `field`.
+- **Pinned 2026-04-28** against an OpenMeter deployment running
+  behind an OpenAPI binder gateway. Re-pin if the binder layer is
+  replaced or upgraded.
 
 ---
 

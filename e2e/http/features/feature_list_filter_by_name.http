@@ -1,0 +1,44 @@
+# feature_list_filter_by_name
+#
+# Source: e2e/specs/features.md ## Scenario: feature_list_filter_by_name
+
+@api_base = {{process.env.OPENMETER_ADDRESS}}/api/v3
+# Use an underscore-joined distinctive name to avoid URL-encoding the
+# space character in the filter[name][eq] query parameter.
+@d__feature_list_filter_by_name__suffix = {{$timestamp}}_{{$randomInt 0 1000000}}
+@d__feature_list_filter_by_name__feature_key = filter_by_name_{{d__feature_list_filter_by_name__suffix}}
+@d__feature_list_filter_by_name__feature_name = E2E_filter_by_name_{{d__feature_list_filter_by_name__suffix}}
+
+###
+# @name r__feature_list_filter_by_name__create_feature
+# @title create feature with unique distinctive name
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_list_filter_by_name__feature_key}}",
+  "name": "{{d__feature_list_filter_by_name__feature_name}}"
+}
+
+?? status == 201
+{{
+  exports.v__feature_list_filter_by_name__feature_id = response.parsedBody.id;
+}}
+
+###
+# @name r__feature_list_filter_by_name__list_filtered_by_name
+# @title list filtered by name returns the feature
+# @ref r__feature_list_filter_by_name__create_feature
+GET {{api_base}}/openmeter/features?filter[name][eq]={{d__feature_list_filter_by_name__feature_name}}&page[size]=1000
+
+?? status == 200
+{{
+  const { ok, strictEqual } = require('assert');
+  test('list filtered by unique name contains exactly the created feature', () => {
+    const items = response.parsedBody.data || response.parsedBody.items || [];
+    const matching = items.filter(f => f.id === v__feature_list_filter_by_name__feature_id);
+    ok(matching.length === 1, 'expected exactly one match by id, got ' + matching.length);
+    // Unique-suffix name guarantees no other feature in shared DB matches.
+    strictEqual(items.length, 1, 'expected exactly one item under unique-name filter, got ' + items.length);
+  });
+}}

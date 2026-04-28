@@ -1,0 +1,22 @@
+# feature_create_meter_not_found_rejected
+#
+# Source: e2e/specs/features.md ## Scenario: feature_create_meter_not_found_rejected
+
+@api_base = {{process.env.OPENMETER_ADDRESS}}/api/v3
+@d__feature_create_meter_not_found_rejected__feature_key = meter_not_found_{{$timestamp}}_{{$randomInt 0 1000000}}
+@d__feature_create_meter_not_found_rejected__missing_meter_id = 01HXYZABCDEFGHJKMNPQRSTV05
+
+###
+# @name r__feature_create_meter_not_found_rejected__create_with_missing_meter
+# @title POST /features with non-existent meter id returns 404
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_create_meter_not_found_rejected__feature_key}}",
+  "name": "Test Feature",
+  "meter": { "id": "{{d__feature_create_meter_not_found_rejected__missing_meter_id}}" }
+}
+
+?? status == 404
+?? js response.parsedBody.detail.includes('meter not found: {{d__feature_create_meter_not_found_rejected__missing_meter_id}}')

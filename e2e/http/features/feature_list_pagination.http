@@ -1,0 +1,146 @@
+# feature_list_pagination
+#
+# Source: e2e/specs/features.md ## Scenario: feature_list_pagination
+
+@api_base = {{process.env.OPENMETER_ADDRESS}}/api/v3
+# Shared name prefix narrows the per-page filter to exactly the three
+# fixtures, regardless of unrelated rows in a shared DB.
+@d__feature_list_pagination__suffix = {{$timestamp}}_{{$randomInt 0 1000000}}
+@d__feature_list_pagination__name_prefix = pagination_test_{{d__feature_list_pagination__suffix}}
+@d__feature_list_pagination__feature_a_key = pagination_a_{{d__feature_list_pagination__suffix}}
+@d__feature_list_pagination__feature_b_key = pagination_b_{{d__feature_list_pagination__suffix}}
+@d__feature_list_pagination__feature_c_key = pagination_c_{{d__feature_list_pagination__suffix}}
+
+###
+# @name r__feature_list_pagination__create_feature_a
+# @title create feature A
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_list_pagination__feature_a_key}}",
+  "name": "{{d__feature_list_pagination__name_prefix}}_a"
+}
+
+?? status == 201
+{{
+  exports.v__feature_list_pagination__feature_a_id = response.parsedBody.id;
+}}
+
+###
+# @name r__feature_list_pagination__create_feature_b
+# @title create feature B
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_list_pagination__feature_b_key}}",
+  "name": "{{d__feature_list_pagination__name_prefix}}_b"
+}
+
+?? status == 201
+{{
+  exports.v__feature_list_pagination__feature_b_id = response.parsedBody.id;
+}}
+
+###
+# @name r__feature_list_pagination__create_feature_c
+# @title create feature C
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_list_pagination__feature_c_key}}",
+  "name": "{{d__feature_list_pagination__name_prefix}}_c"
+}
+
+?? status == 201
+{{
+  exports.v__feature_list_pagination__feature_c_id = response.parsedBody.id;
+}}
+
+###
+# @name r__feature_list_pagination__page_1
+# @title list page 1 size 1 filtered to fixtures
+# @ref r__feature_list_pagination__create_feature_a
+# @ref r__feature_list_pagination__create_feature_b
+# @ref r__feature_list_pagination__create_feature_c
+GET {{api_base}}/openmeter/features?filter[name][contains]={{d__feature_list_pagination__name_prefix}}&page[number]=1&page[size]=1
+
+?? status == 200
+{{
+  const { strictEqual, ok } = require('assert');
+  test('page 1: meta + length', () => {
+    const data = response.parsedBody.data || response.parsedBody.items || [];
+    strictEqual(data.length, 1, 'page 1 must contain exactly one entry');
+    const meta = (response.parsedBody.meta && response.parsedBody.meta.page) || {};
+    strictEqual(meta.total, 3, 'meta.page.total must be 3');
+    strictEqual(meta.number, 1, 'meta.page.number must be 1');
+    strictEqual(meta.size, 1, 'meta.page.size must be 1');
+    exports.v__feature_list_pagination__page_1_id = data[0].id;
+    const fixtureIds = new Set([
+      v__feature_list_pagination__feature_a_id,
+      v__feature_list_pagination__feature_b_id,
+      v__feature_list_pagination__feature_c_id,
+    ]);
+    ok(fixtureIds.has(data[0].id), 'page 1 entry must be one of the fixtures');
+  });
+}}
+
+###
+# @name r__feature_list_pagination__page_2
+# @title list page 2 size 1 filtered to fixtures
+# @ref r__feature_list_pagination__page_1
+GET {{api_base}}/openmeter/features?filter[name][contains]={{d__feature_list_pagination__name_prefix}}&page[number]=2&page[size]=1
+
+?? status == 200
+{{
+  const { strictEqual, ok, notStrictEqual } = require('assert');
+  test('page 2: meta + length + differs from page 1', () => {
+    const data = response.parsedBody.data || response.parsedBody.items || [];
+    strictEqual(data.length, 1, 'page 2 must contain exactly one entry');
+    const meta = (response.parsedBody.meta && response.parsedBody.meta.page) || {};
+    strictEqual(meta.number, 2, 'meta.page.number must be 2');
+    notStrictEqual(data[0].id, v__feature_list_pagination__page_1_id, 'page 2 entry must differ from page 1');
+    exports.v__feature_list_pagination__page_2_id = data[0].id;
+    const fixtureIds = new Set([
+      v__feature_list_pagination__feature_a_id,
+      v__feature_list_pagination__feature_b_id,
+      v__feature_list_pagination__feature_c_id,
+    ]);
+    ok(fixtureIds.has(data[0].id), 'page 2 entry must be one of the fixtures');
+  });
+}}
+
+###
+# @name r__feature_list_pagination__page_3
+# @title list page 3 size 1 filtered to fixtures and union covers fixtures
+# @ref r__feature_list_pagination__page_2
+GET {{api_base}}/openmeter/features?filter[name][contains]={{d__feature_list_pagination__name_prefix}}&page[number]=3&page[size]=1
+
+?? status == 200
+{{
+  const { strictEqual, ok, notStrictEqual } = require('assert');
+  test('page 3: meta + length + differs from pages 1/2 + union covers fixtures', () => {
+    const data = response.parsedBody.data || response.parsedBody.items || [];
+    strictEqual(data.length, 1, 'page 3 must contain exactly one entry');
+    const meta = (response.parsedBody.meta && response.parsedBody.meta.page) || {};
+    strictEqual(meta.number, 3, 'meta.page.number must be 3');
+    notStrictEqual(data[0].id, v__feature_list_pagination__page_1_id, 'page 3 must differ from page 1');
+    notStrictEqual(data[0].id, v__feature_list_pagination__page_2_id, 'page 3 must differ from page 2');
+    const seen = new Set([
+      v__feature_list_pagination__page_1_id,
+      v__feature_list_pagination__page_2_id,
+      data[0].id,
+    ]);
+    const fixtureIds = new Set([
+      v__feature_list_pagination__feature_a_id,
+      v__feature_list_pagination__feature_b_id,
+      v__feature_list_pagination__feature_c_id,
+    ]);
+    strictEqual(seen.size, 3, 'three pages must yield three distinct ids');
+    for (const id of fixtureIds) {
+      ok(seen.has(id), 'fixture id ' + id + ' must appear across the three pages');
+    }
+  });
+}}

@@ -1,0 +1,42 @@
+# feature_create_invalid_meter_aggregation_rejected
+#
+# Source: e2e/specs/features.md ## Scenario: feature_create_invalid_meter_aggregation_rejected
+
+@api_base = {{process.env.OPENMETER_ADDRESS}}/api/v3
+@d__feature_create_invalid_meter_aggregation_rejected__meter_key = avg_meter_{{$timestamp}}_{{$randomInt 0 1000000}}
+@d__feature_create_invalid_meter_aggregation_rejected__feature_key = avg_feature_{{$timestamp}}_{{$randomInt 0 1000000}}
+
+###
+# @name r__feature_create_invalid_meter_aggregation_rejected__create_avg_meter
+# @title create meter with avg aggregation
+POST {{api_base}}/openmeter/meters
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_create_invalid_meter_aggregation_rejected__meter_key}}",
+  "name": "Test Meter",
+  "event_type": "e2e_feature_test",
+  "aggregation": "avg",
+  "value_property": "$.value"
+}
+
+?? status == 201
+{{
+  exports.v__feature_create_invalid_meter_aggregation_rejected__meter_id = response.parsedBody.id;
+}}
+
+###
+# @name r__feature_create_invalid_meter_aggregation_rejected__create_feature_against_avg_meter
+# @title POST /features against avg meter returns 400
+# @ref r__feature_create_invalid_meter_aggregation_rejected__create_avg_meter
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_create_invalid_meter_aggregation_rejected__feature_key}}",
+  "name": "Test Feature",
+  "meter": { "id": "{{v__feature_create_invalid_meter_aggregation_rejected__meter_id}}" }
+}
+
+?? status == 400
+?? js response.parsedBody.detail.includes('features can only be created for')

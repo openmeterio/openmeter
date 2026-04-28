@@ -1,0 +1,83 @@
+# feature_llm_pricing_enriched_on_get
+#
+# Source: e2e/specs/features.md ## Scenario: feature_llm_pricing_enriched_on_get
+#
+# STATUS: SKIPPED — Environment-gated; deferred until the e2e stack
+# provisions a deterministic LLM-cost seed (a known (openai, gpt-4)
+# price). Without that seed the scenario degrades to
+# feature_llm_pricing_absent_when_unresolved.
+# Re-enable by removing the @disabled lines once seeding is in place.
+
+@api_base = {{process.env.OPENMETER_ADDRESS}}/api/v3
+@d__feature_llm_pricing_enriched_on_get__meter_key = llm_enriched_meter_{{$timestamp}}_{{$randomInt 0 1000000}}
+@d__feature_llm_pricing_enriched_on_get__feature_key = llm_enriched_feature_{{$timestamp}}_{{$randomInt 0 1000000}}
+
+###
+# @disabled
+# @name r__feature_llm_pricing_enriched_on_get__create_meter
+# @title create LLM-capable meter
+POST {{api_base}}/openmeter/meters
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_llm_pricing_enriched_on_get__meter_key}}",
+  "name": "Test LLM Meter",
+  "event_type": "e2e_llm_test",
+  "aggregation": "count",
+  "dimensions": {
+    "provider": "$.provider",
+    "model": "$.model",
+    "token_type": "$.token_type"
+  }
+}
+
+?? status == 201
+{{
+  exports.v__feature_llm_pricing_enriched_on_get__meter_id = response.parsedBody.id;
+}}
+
+###
+# @disabled
+# @name r__feature_llm_pricing_enriched_on_get__create_llm_feature
+# @title create LLM feature with resolvable provider/model
+# @ref r__feature_llm_pricing_enriched_on_get__create_meter
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_llm_pricing_enriched_on_get__feature_key}}",
+  "name": "Test Feature",
+  "meter": { "id": "{{v__feature_llm_pricing_enriched_on_get__meter_id}}" },
+  "unit_cost": {
+    "type": "llm",
+    "provider": "openai",
+    "model": "gpt-4",
+    "token_type": "input"
+  }
+}
+
+?? status == 201
+{{
+  exports.v__feature_llm_pricing_enriched_on_get__feature_id = response.parsedBody.id;
+}}
+
+###
+# @disabled
+# @name r__feature_llm_pricing_enriched_on_get__get_feature_pricing_enriched
+# @title GET LLM feature returns 200 with unit_cost.pricing populated
+# @ref r__feature_llm_pricing_enriched_on_get__create_llm_feature
+GET {{api_base}}/openmeter/features/{{v__feature_llm_pricing_enriched_on_get__feature_id}}
+
+?? status == 200
+?? js response.parsedBody.unit_cost.type == llm
+{{
+  const { ok } = require('assert');
+  test('unit_cost.pricing is present and per-token fields parse as non-negative decimals', () => {
+    const pricing = response.parsedBody.unit_cost.pricing;
+    ok(pricing && typeof pricing === 'object', 'expected unit_cost.pricing to be present, got ' + JSON.stringify(pricing));
+    const inp = pricing.input_per_token;
+    const out = pricing.output_per_token;
+    ok(typeof inp === 'string' && Number.parseFloat(inp) >= 0, 'input_per_token must be a non-negative decimal string, got ' + JSON.stringify(inp));
+    ok(typeof out === 'string' && Number.parseFloat(out) >= 0, 'output_per_token must be a non-negative decimal string, got ' + JSON.stringify(out));
+  });
+}}

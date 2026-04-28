@@ -1,0 +1,54 @@
+# feature_create_duplicate_key_rejected
+#
+# Source: e2e/specs/features.md ## Scenario: feature_create_duplicate_key_rejected
+
+@api_base = {{process.env.OPENMETER_ADDRESS}}/api/v3
+@d__feature_create_duplicate_key_rejected__feature_key = duplicate_{{$timestamp}}_{{$randomInt 0 1000000}}
+
+###
+# @name r__feature_create_duplicate_key_rejected__create_feature
+# @title create feature with unique key
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_create_duplicate_key_rejected__feature_key}}",
+  "name": "Test Feature"
+}
+
+?? status == 201
+{{
+  // Captured here so the next step's ?? js assertion can reference the
+  // key as a real JS identifier — {{d__...}} substitution does not
+  // resolve inside ?? js (data vars are body/header-scoped only).
+  exports.v__feature_create_duplicate_key_rejected__captured_key = response.parsedBody.key;
+}}
+
+###
+# @name r__feature_create_duplicate_key_rejected__create_again_same_key
+# @title create again with same key returns 409
+# @ref r__feature_create_duplicate_key_rejected__create_feature
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_create_duplicate_key_rejected__feature_key}}",
+  "name": "Test Feature Duplicate"
+}
+
+?? status == 409
+{{
+  // ?? js with JS-side string concatenation throws SyntaxError on
+  // httpyac 6.16.7 (verified 2026-04-28). test() block is the
+  // documented fallback for assertions the ?? DSL can't express
+  // cleanly — see references/format.md, "Capture pattern".
+  const { ok } = require('assert');
+  test('detail mentions the duplicate key', () => {
+    const detail = response.parsedBody.detail || '';
+    const key = v__feature_create_duplicate_key_rejected__captured_key;
+    ok(
+      detail.includes('with key ' + key + ' already exists'),
+      'expected detail to contain "with key <key> already exists", got: ' + detail
+    );
+  });
+}}

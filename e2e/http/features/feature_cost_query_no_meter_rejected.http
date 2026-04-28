@@ -1,0 +1,34 @@
+# feature_cost_query_no_meter_rejected
+#
+# Source: e2e/specs/features.md ## Scenario: feature_cost_query_no_meter_rejected
+
+@api_base = {{process.env.OPENMETER_ADDRESS}}/api/v3
+@d__feature_cost_query_no_meter_rejected__feature_key = cost_query_no_meter_{{$timestamp}}_{{$randomInt 0 1000000}}
+
+###
+# @name r__feature_cost_query_no_meter_rejected__create_static_feature
+# @title create feature with no meter
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_cost_query_no_meter_rejected__feature_key}}",
+  "name": "Test Feature"
+}
+
+?? status == 201
+{{
+  exports.v__feature_cost_query_no_meter_rejected__feature_id = response.parsedBody.id;
+}}
+
+###
+# @name r__feature_cost_query_no_meter_rejected__cost_query_unmetered_feature
+# @title POST cost/query on unmetered feature returns 400
+# @ref r__feature_cost_query_no_meter_rejected__create_static_feature
+POST {{api_base}}/openmeter/features/{{v__feature_cost_query_no_meter_rejected__feature_id}}/cost/query
+Content-Type: application/json
+
+{}
+
+?? status == 400
+?? js response.parsedBody.detail.includes('feature {{d__feature_cost_query_no_meter_rejected__feature_key}} has no meter associated')

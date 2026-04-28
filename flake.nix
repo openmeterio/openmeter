@@ -117,6 +117,10 @@
                 exec ${pkgs.nodejs_24}/bin/npx -y @colbymchenry/codegraph@0.7.3 "$@"
               '')
 
+              # httpYac runner for wire-level e2e tests under e2e/http/.
+              # Available as a first-class nixpkgs package, so no npx wrapper needed.
+              httpyac
+
               # python
               poetry
 

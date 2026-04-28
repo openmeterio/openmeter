@@ -1,0 +1,253 @@
+# feature_create_unit_cost_validation_matrix
+#
+# Source: e2e/specs/features.md ## Scenario: feature_create_unit_cost_validation_matrix
+#
+# Rows 2 and 4-10 reuse a single shared LLM-capable meter created at
+# the top of the file. The meter is read-only across rows, so sharing
+# is safe. Rows 1 and 3 don't need a meter.
+#
+# Pinned 2026-04-28 against an OpenMeter deployment running behind an
+# OpenAPI binder gateway:
+#   - Rows 3-9: handler rejections; detail-equality on the framework's
+#     `"validation error: <bare msg>"` wrapper.
+#   - Row 10: binder-layer rejection; schema-rule shape with rule
+#     `"allOf"`. Re-pin (revert to detail-substring carrying
+#     `"invalid token_type"`) if the deployment ever runs the handler
+#     directly with no schema validator in front.
+
+@api_base = {{process.env.OPENMETER_ADDRESS}}/api/v3
+@d__feature_create_unit_cost_validation_matrix__suffix = {{$timestamp}}_{{$randomInt 0 1000000}}
+@d__feature_create_unit_cost_validation_matrix__meter_key = matrix_meter_{{d__feature_create_unit_cost_validation_matrix__suffix}}
+
+###
+# @name r__feature_create_unit_cost_validation_matrix__create_shared_meter
+# @title create shared LLM-capable meter (used by rows 2, 4-10)
+POST {{api_base}}/openmeter/meters
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_create_unit_cost_validation_matrix__meter_key}}",
+  "name": "Test LLM Meter",
+  "event_type": "e2e_llm_test",
+  "aggregation": "count",
+  "dimensions": {
+    "provider": "$.provider",
+    "model": "$.model",
+    "token_type": "$.token_type"
+  }
+}
+
+?? status == 201
+{{
+  exports.v__feature_create_unit_cost_validation_matrix__meter_id = response.parsedBody.id;
+}}
+
+###
+# @name r__feature_create_unit_cost_validation_matrix__row1_manual_baseline_succeeds
+# @title row 1: manual baseline (amount=5, no meter) -> 201
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "matrix_r1_{{$timestamp}}_{{$randomInt 0 1000000}}",
+  "name": "matrix",
+  "unit_cost": { "type": "manual", "amount": "5" }
+}
+
+?? status == 201
+
+###
+# @name r__feature_create_unit_cost_validation_matrix__row2_llm_baseline_succeeds
+# @title row 2: LLM baseline with shared meter -> 201
+# @ref r__feature_create_unit_cost_validation_matrix__create_shared_meter
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "matrix_r2_{{$timestamp}}_{{$randomInt 0 1000000}}",
+  "name": "matrix",
+  "meter": { "id": "{{v__feature_create_unit_cost_validation_matrix__meter_id}}" },
+  "unit_cost": {
+    "type": "llm",
+    "provider": "openai",
+    "model": "gpt-4",
+    "token_type": "input"
+  }
+}
+
+?? status == 201
+
+###
+# @name r__feature_create_unit_cost_validation_matrix__row3_negative_amount_rejected
+# @title row 3: manual amount=-1 -> 400 (non-negative rule)
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "matrix_r3_{{$timestamp}}_{{$randomInt 0 1000000}}",
+  "name": "matrix",
+  "unit_cost": { "type": "manual", "amount": "-1" }
+}
+
+?? status == 400
+?? js response.parsedBody.detail == validation error: manual unit cost amount must be non-negative
+
+###
+# @name r__feature_create_unit_cost_validation_matrix__row4_provider_and_provider_property_mutex
+# @title row 4: LLM with provider AND provider_property -> 400 (mutex)
+# @ref r__feature_create_unit_cost_validation_matrix__create_shared_meter
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "matrix_r4_{{$timestamp}}_{{$randomInt 0 1000000}}",
+  "name": "matrix",
+  "meter": { "id": "{{v__feature_create_unit_cost_validation_matrix__meter_id}}" },
+  "unit_cost": {
+    "type": "llm",
+    "provider": "openai",
+    "provider_property": "provider",
+    "model": "gpt-4",
+    "token_type": "input"
+  }
+}
+
+?? status == 400
+?? js response.parsedBody.detail == validation error: provider_property and provider are mutually exclusive
+
+###
+# @name r__feature_create_unit_cost_validation_matrix__row5_model_and_model_property_mutex
+# @title row 5: LLM with model AND model_property -> 400 (mutex)
+# @ref r__feature_create_unit_cost_validation_matrix__create_shared_meter
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "matrix_r5_{{$timestamp}}_{{$randomInt 0 1000000}}",
+  "name": "matrix",
+  "meter": { "id": "{{v__feature_create_unit_cost_validation_matrix__meter_id}}" },
+  "unit_cost": {
+    "type": "llm",
+    "provider": "openai",
+    "model": "gpt-4",
+    "model_property": "model",
+    "token_type": "input"
+  }
+}
+
+?? status == 400
+?? js response.parsedBody.detail == validation error: model_property and model are mutually exclusive
+
+###
+# @name r__feature_create_unit_cost_validation_matrix__row6_token_type_and_token_type_property_mutex
+# @title row 6: LLM with token_type AND token_type_property -> 400 (mutex)
+# @ref r__feature_create_unit_cost_validation_matrix__create_shared_meter
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "matrix_r6_{{$timestamp}}_{{$randomInt 0 1000000}}",
+  "name": "matrix",
+  "meter": { "id": "{{v__feature_create_unit_cost_validation_matrix__meter_id}}" },
+  "unit_cost": {
+    "type": "llm",
+    "provider": "openai",
+    "model": "gpt-4",
+    "token_type": "input",
+    "token_type_property": "token_type"
+  }
+}
+
+?? status == 400
+?? js response.parsedBody.detail == validation error: token_type_property and token_type are mutually exclusive
+
+###
+# @name r__feature_create_unit_cost_validation_matrix__row7_provider_required
+# @title row 7: LLM with no provider and no provider_property -> 400 (required)
+# @ref r__feature_create_unit_cost_validation_matrix__create_shared_meter
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "matrix_r7_{{$timestamp}}_{{$randomInt 0 1000000}}",
+  "name": "matrix",
+  "meter": { "id": "{{v__feature_create_unit_cost_validation_matrix__meter_id}}" },
+  "unit_cost": {
+    "type": "llm",
+    "model": "gpt-4",
+    "token_type": "input"
+  }
+}
+
+?? status == 400
+?? js response.parsedBody.detail == validation error: either provider_property or provider is required for LLM unit cost
+
+###
+# @name r__feature_create_unit_cost_validation_matrix__row8_model_required
+# @title row 8: LLM with no model and no model_property -> 400 (required)
+# @ref r__feature_create_unit_cost_validation_matrix__create_shared_meter
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "matrix_r8_{{$timestamp}}_{{$randomInt 0 1000000}}",
+  "name": "matrix",
+  "meter": { "id": "{{v__feature_create_unit_cost_validation_matrix__meter_id}}" },
+  "unit_cost": {
+    "type": "llm",
+    "provider": "openai",
+    "token_type": "input"
+  }
+}
+
+?? status == 400
+?? js response.parsedBody.detail == validation error: either model_property or model is required for LLM unit cost
+
+###
+# @name r__feature_create_unit_cost_validation_matrix__row9_token_type_required
+# @title row 9: LLM with no token_type and no token_type_property -> 400 (required)
+# @ref r__feature_create_unit_cost_validation_matrix__create_shared_meter
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "matrix_r9_{{$timestamp}}_{{$randomInt 0 1000000}}",
+  "name": "matrix",
+  "meter": { "id": "{{v__feature_create_unit_cost_validation_matrix__meter_id}}" },
+  "unit_cost": {
+    "type": "llm",
+    "provider": "openai",
+    "model": "gpt-4"
+  }
+}
+
+?? status == 400
+?? js response.parsedBody.detail == validation error: either token_type_property or token_type is required for LLM unit cost
+
+###
+# @name r__feature_create_unit_cost_validation_matrix__row10_invalid_token_type_rejected
+# @title row 10: LLM with token_type="banana" -> 400 (binder allOf rejection)
+# @ref r__feature_create_unit_cost_validation_matrix__create_shared_meter
+#
+# The OpenAPI binder validates the enum on token_type before the
+# request reaches the handler; the handler's "invalid token_type"
+# message is unreachable in deployments with a binder gateway in
+# front. Schema-rule shape.
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "matrix_r10_{{$timestamp}}_{{$randomInt 0 1000000}}",
+  "name": "matrix",
+  "meter": { "id": "{{v__feature_create_unit_cost_validation_matrix__meter_id}}" },
+  "unit_cost": {
+    "type": "llm",
+    "provider": "openai",
+    "model": "gpt-4",
+    "token_type": "banana"
+  }
+}
+
+?? status == 400
+?? js response.parsedBody.invalid_parameters[0].field == unit_cost
+?? js response.parsedBody.invalid_parameters[0].rule == allOf

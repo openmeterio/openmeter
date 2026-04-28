@@ -1,0 +1,188 @@
+# feature_list_sort_by_supported_fields
+#
+# Source: e2e/specs/features.md ## Scenario: feature_list_sort_by_supported_fields
+#
+# Three fixtures created in order A, B, C with letter-first keys and
+# names so that alphabetical key/name ordering matches creation order.
+# After creation, no-op PATCHes (unit_cost: null on a feature without
+# unit_cost) bump updated_at predictably in the same order, so
+# updated_at ordering also matches A < B < C.
+#
+# Verified 2026-04-28: the server does not parse `:asc` / `:desc`
+# suffixes — `sort=key:desc` returns 400 with detail "invalid
+# feature order by: key:desc". Descending rows are dropped until the
+# server grows syntax for it.
+
+@api_base = {{process.env.OPENMETER_ADDRESS}}/api/v3
+@d__feature_list_sort_by_supported_fields__suffix = {{$timestamp}}_{{$randomInt 0 1000000}}
+@d__feature_list_sort_by_supported_fields__feature_a_key = sort_a_{{d__feature_list_sort_by_supported_fields__suffix}}
+@d__feature_list_sort_by_supported_fields__feature_b_key = sort_b_{{d__feature_list_sort_by_supported_fields__suffix}}
+@d__feature_list_sort_by_supported_fields__feature_c_key = sort_c_{{d__feature_list_sort_by_supported_fields__suffix}}
+@d__feature_list_sort_by_supported_fields__feature_a_name = e2e_sort_a_{{d__feature_list_sort_by_supported_fields__suffix}}
+@d__feature_list_sort_by_supported_fields__feature_b_name = e2e_sort_b_{{d__feature_list_sort_by_supported_fields__suffix}}
+@d__feature_list_sort_by_supported_fields__feature_c_name = e2e_sort_c_{{d__feature_list_sort_by_supported_fields__suffix}}
+
+###
+# @name r__feature_list_sort_by_supported_fields__create_feature_a
+# @title create feature A (first)
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_list_sort_by_supported_fields__feature_a_key}}",
+  "name": "{{d__feature_list_sort_by_supported_fields__feature_a_name}}"
+}
+
+?? status == 201
+{{
+  exports.v__feature_list_sort_by_supported_fields__feature_a_id = response.parsedBody.id;
+}}
+
+###
+# @name r__feature_list_sort_by_supported_fields__create_feature_b
+# @title create feature B (second)
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_list_sort_by_supported_fields__feature_b_key}}",
+  "name": "{{d__feature_list_sort_by_supported_fields__feature_b_name}}"
+}
+
+?? status == 201
+{{
+  exports.v__feature_list_sort_by_supported_fields__feature_b_id = response.parsedBody.id;
+}}
+
+###
+# @name r__feature_list_sort_by_supported_fields__create_feature_c
+# @title create feature C (third)
+POST {{api_base}}/openmeter/features
+Content-Type: application/json
+
+{
+  "key": "{{d__feature_list_sort_by_supported_fields__feature_c_key}}",
+  "name": "{{d__feature_list_sort_by_supported_fields__feature_c_name}}"
+}
+
+?? status == 201
+{{
+  exports.v__feature_list_sort_by_supported_fields__feature_c_id = response.parsedBody.id;
+}}
+
+###
+# @name r__feature_list_sort_by_supported_fields__bump_updated_at_a
+# @title no-op patch on A to bump updated_at first
+# @ref r__feature_list_sort_by_supported_fields__create_feature_a
+PATCH {{api_base}}/openmeter/features/{{v__feature_list_sort_by_supported_fields__feature_a_id}}
+Content-Type: application/json
+
+{ "unit_cost": null }
+
+?? status == 200
+
+###
+# @name r__feature_list_sort_by_supported_fields__bump_updated_at_b
+# @title no-op patch on B to bump updated_at second
+# @ref r__feature_list_sort_by_supported_fields__bump_updated_at_a
+PATCH {{api_base}}/openmeter/features/{{v__feature_list_sort_by_supported_fields__feature_b_id}}
+Content-Type: application/json
+
+{ "unit_cost": null }
+
+?? status == 200
+
+###
+# @name r__feature_list_sort_by_supported_fields__bump_updated_at_c
+# @title no-op patch on C to bump updated_at third
+# @ref r__feature_list_sort_by_supported_fields__bump_updated_at_b
+PATCH {{api_base}}/openmeter/features/{{v__feature_list_sort_by_supported_fields__feature_c_id}}
+Content-Type: application/json
+
+{ "unit_cost": null }
+
+?? status == 200
+
+###
+# @name r__feature_list_sort_by_supported_fields__row1_sort_key
+# @title row 1: sort=key -> A, B, C
+# @ref r__feature_list_sort_by_supported_fields__bump_updated_at_c
+GET {{api_base}}/openmeter/features?sort=key&page[size]=1000
+
+?? status == 200
+{{
+  const { deepStrictEqual } = require('assert');
+  test('sort=key returns A, B, C', () => {
+    const items = response.parsedBody.data || response.parsedBody.items || [];
+    const fixtureIds = [
+      v__feature_list_sort_by_supported_fields__feature_a_id,
+      v__feature_list_sort_by_supported_fields__feature_b_id,
+      v__feature_list_sort_by_supported_fields__feature_c_id,
+    ];
+    const observed = items.filter(f => fixtureIds.includes(f.id)).map(f => f.id);
+    deepStrictEqual(observed, fixtureIds);
+  });
+}}
+
+###
+# @name r__feature_list_sort_by_supported_fields__row2_sort_name
+# @title row 2: sort=name -> A, B, C
+# @ref r__feature_list_sort_by_supported_fields__bump_updated_at_c
+GET {{api_base}}/openmeter/features?sort=name&page[size]=1000
+
+?? status == 200
+{{
+  const { deepStrictEqual } = require('assert');
+  test('sort=name returns A, B, C', () => {
+    const items = response.parsedBody.data || response.parsedBody.items || [];
+    const fixtureIds = [
+      v__feature_list_sort_by_supported_fields__feature_a_id,
+      v__feature_list_sort_by_supported_fields__feature_b_id,
+      v__feature_list_sort_by_supported_fields__feature_c_id,
+    ];
+    const observed = items.filter(f => fixtureIds.includes(f.id)).map(f => f.id);
+    deepStrictEqual(observed, fixtureIds);
+  });
+}}
+
+###
+# @name r__feature_list_sort_by_supported_fields__row3_sort_created_at
+# @title row 3: sort=created_at -> A, B, C
+# @ref r__feature_list_sort_by_supported_fields__bump_updated_at_c
+GET {{api_base}}/openmeter/features?sort=created_at&page[size]=1000
+
+?? status == 200
+{{
+  const { deepStrictEqual } = require('assert');
+  test('sort=created_at returns A, B, C', () => {
+    const items = response.parsedBody.data || response.parsedBody.items || [];
+    const fixtureIds = [
+      v__feature_list_sort_by_supported_fields__feature_a_id,
+      v__feature_list_sort_by_supported_fields__feature_b_id,
+      v__feature_list_sort_by_supported_fields__feature_c_id,
+    ];
+    const observed = items.filter(f => fixtureIds.includes(f.id)).map(f => f.id);
+    deepStrictEqual(observed, fixtureIds);
+  });
+}}
+
+###
+# @name r__feature_list_sort_by_supported_fields__row4_sort_updated_at
+# @title row 4: sort=updated_at -> A, B, C
+# @ref r__feature_list_sort_by_supported_fields__bump_updated_at_c
+GET {{api_base}}/openmeter/features?sort=updated_at&page[size]=1000
+
+?? status == 200
+{{
+  const { deepStrictEqual } = require('assert');
+  test('sort=updated_at returns A, B, C', () => {
+    const items = response.parsedBody.data || response.parsedBody.items || [];
+    const fixtureIds = [
+      v__feature_list_sort_by_supported_fields__feature_a_id,
+      v__feature_list_sort_by_supported_fields__feature_b_id,
+      v__feature_list_sort_by_supported_fields__feature_c_id,
+    ];
+    const observed = items.filter(f => fixtureIds.includes(f.id)).map(f => f.id);
+    deepStrictEqual(observed, fixtureIds);
+  });
+}}
