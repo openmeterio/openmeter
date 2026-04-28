@@ -1,0 +1,72 @@
+{
+  "command": "deep-scan",
+  "started_at": "2026-04-28T18:09:53Z",
+  "completed_at": "2026-04-28T18:53:11Z",
+  "total_seconds": 2598,
+  "project": {
+    "source_files": 0,
+    "total_loc": 0,
+    "directories": 0
+  },
+  "steps": [
+    {
+      "name": "scan",
+      "started_at": "2026-04-28T18:09:53Z",
+      "completed_at": "2026-04-28T18:10:16Z",
+      "seconds": 23
+    },
+    {
+      "name": "read",
+      "started_at": "2026-04-28T18:10:27Z",
+      "completed_at": "2026-04-28T18:10:37Z",
+      "seconds": 10
+    },
+    {
+      "name": "wave1",
+      "started_at": "2026-04-28T18:10:46Z",
+      "model": "sonnet",
+      "completed_at": "2026-04-28T18:23:35Z",
+      "seconds": 769
+    },
+    {
+      "name": "merge",
+      "started_at": "2026-04-28T18:23:45Z",
+      "completed_at": "2026-04-28T18:23:48Z",
+      "seconds": 3
+    },
+    {
+      "name": "wave2_synthesis",
+      "started_at": "2026-04-28T18:23:59Z",
+      "model": "opus",
+      "completed_at": "2026-04-28T18:34:44Z",
+      "seconds": 645
+    },
+    {
+      "name": "rule_synthesis",
+      "started_at": "2026-04-28T18:34:55Z",
+      "model": "sonnet",
+      "completed_at": "2026-04-28T18:41:09Z",
+      "seconds": 374
+    },
+    {
+      "name": "intent_layer",
+      "started_at": "2026-04-28T18:41:19Z",
+      "model": "sonnet",
+      "skipped": true,
+      "completed_at": "2026-04-28T18:41:19Z",
+      "seconds": 0
+    },
+    {
+      "name": "cleanup",
+      "started_at": "2026-04-28T18:41:30Z",
+      "completed_at": "2026-04-28T18:41:30Z",
+      "seconds": 0
+    },
+    {
+      "name": "drift",
+      "started_at": "2026-04-28T18:41:58Z",
+      "completed_at": "2026-04-28T18:53:11Z",
+      "seconds": 673
+    }
+  ]
+}

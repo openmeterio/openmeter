@@ -12,13 +12,15 @@
   ],
   "last_completed": 9,
   "status": "completed",
-  "started_at": "2026-04-24T09:37:02.638181+00:00",
+  "started_at": "2026-04-28T18:08:22.998093+00:00",
   "run_context": {
     "scope": "whole",
     "intent_layer": "no",
     "scan_mode": "full",
     "monorepo_type": "none",
     "start_step": 1,
-    "workspaces": []
+    "workspaces": [
+      "[]"
+    ]
   }
 }

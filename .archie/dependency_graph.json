@@ -7,7 +7,7 @@
       "inDegree": 0,
       "outDegree": 1,
       "inCycle": false,
-      "fileCount": 5
+      "fileCount": 6
     },
     {
       "id": "api/client/python/examples/sync",
@@ -16,7 +16,7 @@
       "inDegree": 0,
       "outDegree": 1,
       "inCycle": false,
-      "fileCount": 5
+      "fileCount": 6
     },
     {
       "id": "api/spec/packages/aip/lib",
@@ -25,7 +25,7 @@
       "inDegree": 0,
       "outDegree": 1,
       "inCycle": false,
-      "fileCount": 1
+      "fileCount": 2
     },
     {
       "id": "api/spec/packages/aip/lib/rules",
@@ -34,7 +34,7 @@
       "inDegree": 1,
       "outDegree": 0,
       "inCycle": false,
-      "fileCount": 9
+      "fileCount": 10
     },
     {
       "id": "api/spec/packages/legacy/lib",
@@ -43,7 +43,7 @@
       "inDegree": 0,
       "outDegree": 1,
       "inCycle": false,
-      "fileCount": 1
+      "fileCount": 2
     },
     {
       "id": "api/spec/packages/legacy/lib/rules",
@@ -52,7 +52,7 @@
       "inDegree": 1,
       "outDegree": 0,
       "inCycle": false,
-      "fileCount": 6
+      "fileCount": 7
     },
     {
       "id": "openmeter",
@@ -61,7 +61,7 @@
       "inDegree": 2,
       "outDegree": 0,
       "inCycle": false,
-      "fileCount": 0
+      "fileCount": 1
     }
   ],
   "edges": [

@@ -1,0 +1,344 @@
+{
+  "by_path_glob": {
+    "openmeter/**/*.go": [
+      "dep-001",
+      "wm-001",
+      "lock-002"
+    ],
+    "app/common/": [
+      "dep-002",
+      "credits-001",
+      "di-001",
+      "di-002"
+    ],
+    "cmd/**/*.go": [
+      "dep-004",
+      "cfg-001"
+    ],
+    "openmeter/watermill/**/*.go": [
+      "wm-002"
+    ],
+    "openmeter/billing/worker/**/*.go": [
+      "wm-002"
+    ],
+    "openmeter/notification/**/*.go": [
+      "wm-002"
+    ],
+    "openmeter/**/adapter/**/*.go": [
+      "ctx-001",
+      "ent-001"
+    ],
+    "openmeter/billing/charges/**/adapter/**/*.go": [
+      "ctx-002"
+    ],
+    "openmeter/billing/**/*.go": [
+      "billing-003",
+      "billing-005"
+    ],
+    "**/*.go": [
+      "credits-003"
+    ],
+    "openmeter/**/httpdriver/**/*.go": [
+      "api-001"
+    ],
+    "api/v3/handlers/**/*.go": [
+      "api-001"
+    ],
+    "api/openapi.yaml": [
+      "api-002"
+    ],
+    "api/openapi.cloud.yaml": [
+      "api-002"
+    ],
+    "api/v3/openapi.yaml": [
+      "api-002"
+    ],
+    "openmeter/ent/db/": [
+      "gen-001"
+    ],
+    "api/spec/": [
+      "gen-003",
+      "gen-004"
+    ],
+    "openmeter/ent/schema/": [
+      "gen-005",
+      "gen-007"
+    ],
+    "tools/migrate/migrations/": [
+      "gen-006",
+      "migration-001",
+      "migration-002"
+    ],
+    "openmeter/billing/charges/": [
+      "tx-001",
+      "test-004"
+    ],
+    "openmeter/": [
+      "tx-002",
+      "test-001",
+      "test-002",
+      "test-003",
+      "layer-001",
+      "layer-003",
+      "kafka-001",
+      "http-001",
+      "http-002",
+      "servicehook-001"
+    ],
+    "openmeter/ledger/": [
+      "credits-002"
+    ],
+    "./": [
+      "build-001",
+      "security-001"
+    ],
+    "cmd/": [
+      "layer-002"
+    ],
+    "openmeter/watermill/": [
+      "kafka-002"
+    ],
+    "openmeter/notification/": [
+      "notification-001"
+    ],
+    "openmeter/billing/": [
+      "charges-001",
+      "billing-001",
+      "billing-002",
+      "lock-001"
+    ],
+    "cmd/server/": [
+      "namespace-001"
+    ],
+    "api/v3/": [
+      "api-v3-001"
+    ]
+  },
+  "by_code_shape": [
+    {
+      "rule_id": "dep-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "\"github\\.com/openmeterio/openmeter/app/common\""
+        ]
+      }
+    },
+    {
+      "rule_id": "dep-004",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "^\\s*go func\\("
+        ],
+        "must_not_match": [
+          "run\\.Add",
+          "run\\.Group"
+        ]
+      }
+    },
+    {
+      "rule_id": "wm-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "kafka\\.NewProducer|confluent.*ProduceChannel|sarama.*SendMessage"
+        ],
+        "must_not_match": [
+          "eventbus\\.Publisher",
+          "watermill"
+        ]
+      }
+    },
+    {
+      "rule_id": "wm-002",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "func.*\\*message\\.Message.*error"
+        ],
+        "must_not_match": [
+          "msg\\.Context\\(\\)"
+        ]
+      }
+    },
+    {
+      "rule_id": "ctx-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "\\*entdb\\.Tx"
+        ],
+        "must_not_match": [
+          "entutils\\.TransactingRepo",
+          "entutils\\.TransactingRepoWithNoValue"
+        ]
+      }
+    },
+    {
+      "rule_id": "ctx-002",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "a\\.db\\.\\w+\\."
+        ],
+        "must_not_match": [
+          "entutils\\.TransactingRepo",
+          "entutils\\.TransactingRepoWithNoValue"
+        ]
+      }
+    },
+    {
+      "rule_id": "billing-003",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "charges\\.Charge\\{"
+        ]
+      }
+    },
+    {
+      "rule_id": "credits-003",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "BillingRegistry\\.Charges\\."
+        ],
+        "must_not_match": [
+          "ChargesServiceOrNil"
+        ]
+      }
+    },
+    {
+      "rule_id": "lock-002",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "\\.LockForTX\\("
+        ],
+        "must_not_match": [
+          "TransactingRepo",
+          "entutils\\.Transacting"
+        ]
+      }
+    },
+    {
+      "rule_id": "api-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "func.*Handler.*ServeHTTP|func.*http\\.ResponseWriter.*\\*http\\.Request"
+        ]
+      }
+    },
+    {
+      "rule_id": "ent-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "\\.ExecContext\\(|\\bdb\\.QueryContext\\("
+        ],
+        "must_not_match": [
+          "// clickhouse",
+          "// ClickHouse"
+        ]
+      }
+    },
+    {
+      "rule_id": "cfg-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "viper\\.SetDefault\\("
+        ]
+      }
+    },
+    {
+      "rule_id": "billing-005",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "billing\\.InvoiceLine\\{"
+        ]
+      }
+    }
+  ],
+  "for_classifier": [
+    "dep-001",
+    "dep-002",
+    "dep-003",
+    "dep-004",
+    "dep-005",
+    "dep-006",
+    "wm-001",
+    "wm-002",
+    "wm-003",
+    "ctx-001",
+    "ctx-002",
+    "layer-004",
+    "layer-005",
+    "layer-006",
+    "billing-003",
+    "billing-004",
+    "credits-003",
+    "credits-004",
+    "lock-002",
+    "sink-001",
+    "api-001",
+    "reg-001",
+    "watermill-001",
+    "error-001",
+    "ent-001",
+    "ent-002",
+    "otel-001",
+    "cfg-001",
+    "billing-005",
+    "llmcost-001",
+    "subject-001",
+    "wire-001",
+    "gen-001",
+    "gen-002",
+    "gen-003",
+    "gen-004",
+    "gen-005",
+    "gen-006",
+    "gen-007",
+    "tx-001",
+    "tx-002",
+    "credits-001",
+    "credits-002",
+    "build-001",
+    "test-001",
+    "test-002",
+    "test-003",
+    "test-004",
+    "layer-001",
+    "layer-002",
+    "layer-003",
+    "kafka-001",
+    "kafka-002",
+    "notification-001",
+    "migration-001",
+    "migration-002",
+    "security-001",
+    "charges-001",
+    "namespace-001",
+    "api-v3-001",
+    "billing-001",
+    "billing-002",
+    "di-001",
+    "di-002",
+    "http-001",
+    "http-002",
+    "servicehook-001",
+    "lock-001",
+    "android-layer-viewmodel-context",
+    "android-layer-fragment-network",
+    "android-layer-fragment-db",
+    "android-layer-activity-db",
+    "swift-layer-view-network",
+    "swift-layer-view-userdefaults",
+    "typescript-layer-component-fetch",
+    "typescript-react-dom-manipulation"
+  ]
+}

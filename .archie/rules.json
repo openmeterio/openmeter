@@ -1,6 +1,767 @@
 {
   "rules": [
     {
+      "id": "dep-001",
+      "severity_class": "decision_violation",
+      "description": "Domain packages under openmeter/ must not import app/common. Wire wiring flows outward (app/common imports domain packages); reversing the direction creates import cycles and defeats the Wire compile-time graph.",
+      "why": "Domain packages under openmeter/ have no dependency on cmd/* or app/common (enforced by leaf-node import direction). Each cmd/<binary>/wire.go composes only the provider sets it needs. Cross-domain hook/validator registration done inside app/common avoids circular imports \u2014 if a domain package imported app/common the cycle would be unresolvable.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "import cycle",
+        "app/common",
+        "domain package",
+        "wire",
+        "circular import"
+      ],
+      "check": "forbidden_import",
+      "applies_to": "openmeter/",
+      "forbidden_patterns": [
+        "\"github\\.com/openmeterio/openmeter/app/common\""
+      ],
+      "triggers": {
+        "path_glob": [
+          "openmeter/**/*.go"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "\"github\\.com/openmeterio/openmeter/app/common\""
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "dep-002",
+      "severity_class": "decision_violation",
+      "description": "Every new cmd/* worker binary must have a matching app/common/openmeter_<binary>.go Wire provider set file. Adding a binary without this file leaves its dependency graph unverified at compile time.",
+      "why": "Each cmd/<binary> binary needs its own provider graph but every domain service must be wireable identically; Wire makes this compile-time checked. Workers added without matching app/common/openmeter_*worker.go Wire set are a documented violation signal.",
+      "example": "// app/common/openmeter_billingworker.go\nvar BillingWorker = wire.NewSet(\n    Billing,\n    Charges,\n    LedgerStack,\n    // ...\n)",
+      "source": "deep_scan",
+      "keywords": [
+        "new binary",
+        "wire provider set",
+        "app/common",
+        "worker binary",
+        "openmeter_worker"
+      ],
+      "check": "file_naming",
+      "applies_to": "app/common/",
+      "file_pattern": "^openmeter_.*\\.go$"
+    },
+    {
+      "id": "dep-003",
+      "severity_class": "decision_violation",
+      "description": "Cross-domain hooks and request validators must be registered inside app/common provider functions, not inside domain package constructors. Domain packages must expose RegisterHooks/RegisterRequestValidator methods that app/common calls after wiring.",
+      "why": "Cross-domain hooks (billing \u2192 customer, ledger \u2192 customer, billing \u2192 subscription) would create circular imports if registered inside source packages. app/common/customer.go registers customerService.RegisterRequestValidator(validator) and customerService.RegisterHooks(ledgerHook, subjectHook) as side-effects of Wire provider functions to avoid circular imports.",
+      "example": "// app/common/customer.go\nfunc NewCustomerService(adapter customer.Adapter, ledgerHook customer.ServiceHook, ...) customer.Service {\n    svc := customer.New(adapter)\n    svc.RegisterHooks(ledgerHook, subjectHook)\n    svc.RegisterRequestValidator(billingValidator)\n    return svc\n}",
+      "source": "deep_scan",
+      "keywords": [
+        "register hooks",
+        "service hook",
+        "circular import",
+        "app/common",
+        "RegisterHooks",
+        "RegisterRequestValidator"
+      ]
+    },
+    {
+      "id": "dep-004",
+      "severity_class": "tradeoff_undermined",
+      "description": "Never spawn goroutines outside the oklog/run.Group in worker and server binaries. Goroutines spawned outside run.Group bypass graceful shutdown and can leak resources.",
+      "why": "Goroutine spawned outside run.Group (bypasses graceful shutdown) is an explicit violation signal for the multi-binary orchestration trade-off. cmd/server/main.go and all worker main.go files orchestrate lifecycle through an oklog/run.Group with explicit Start and Interrupt functions.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "goroutine",
+        "run.Group",
+        "graceful shutdown",
+        "oklog",
+        "background goroutine"
+      ],
+      "triggers": {
+        "path_glob": [
+          "cmd/**/*.go"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "^\\s*go func\\("
+            ],
+            "must_not_match": [
+              "run\\.Add",
+              "run\\.Group"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "dep-005",
+      "severity_class": "decision_violation",
+      "description": "New billing backend integrations must implement billing.InvoicingApp and self-register via app.Service.RegisterMarketplaceListing() in their New() constructor. Never hardcode provider-specific logic inside billing.Service.",
+      "why": "The App Factory / Registry pattern keeps billing.Service decoupled from specific payment providers. Each app's New() self-registers a factory via app.Service.RegisterMarketplaceListing in service/factory.go. No billing service code changes are needed when adding a new backend.",
+      "example": "// openmeter/app/stripe/service/factory.go\nfunc New(appSvc app.Service, ...) (*StripeApp, error) {\n    appSvc.RegisterMarketplaceListing(stripeMarketplaceListing, stripeFactory)\n    return &StripeApp{}, nil\n}",
+      "source": "deep_scan",
+      "keywords": [
+        "billing backend",
+        "InvoicingApp",
+        "RegisterMarketplaceListing",
+        "marketplace",
+        "payment provider",
+        "Stripe"
+      ]
+    },
+    {
+      "id": "dep-006",
+      "severity_class": "pattern_divergence",
+      "description": "New charge type engines must be registered with billing.Service.RegisterLineEngine() in app/common/charges.go. Do not call RegisterLineEngine from domain packages or cmd/* binaries.",
+      "why": "billingservice.engineRegistry stores a map[LineEngineType]LineEngine under a RWMutex. Each charge type implements its own Engine and registers it at startup via app/common/charges.go. The service.New() constructor also pre-registers the standard invoice line engine. All engine registration is a side-effect of Wire provider functions.",
+      "example": "// app/common/charges.go\nfunc NewFlatFeeChargesService(billingService billing.Service, ...) flatfee.Service {\n    svc := flatfee.New(...)\n    billingService.RegisterLineEngine(svc) // side-effect registration\n    return svc\n}",
+      "source": "deep_scan",
+      "keywords": [
+        "line engine",
+        "RegisterLineEngine",
+        "charges",
+        "billing",
+        "app/common"
+      ]
+    },
+    {
+      "id": "wm-001",
+      "severity_class": "decision_violation",
+      "description": "Never publish events to a Kafka topic by string literal. Always use the eventbus.Publisher from openmeter/watermill/eventbus, which routes by EventName() prefix to the correct named topic.",
+      "why": "Topic routing is by event-name prefix in openmeter/watermill/eventbus \u2014 events whose EventName() starts with ingestevents.EventVersionSubsystem go to IngestEventsTopic; balanceworkerevents.EventVersionSubsystem go to BalanceWorkerEventsTopic; everything else to SystemEventsTopic. Publishing directly to a Kafka topic string is a documented violation keyword.",
+      "example": "// Correct: domain service uses eventbus.Publisher\nif err := h.eventbus.Publish(ctx, &billingevents.InvoiceCreated{InvoiceID: inv.ID}); err != nil {\n    return fmt.Errorf(\"publish invoice created: %w\", err)\n}",
+      "source": "deep_scan",
+      "keywords": [
+        "kafka topic",
+        "eventbus",
+        "publish",
+        "topic string",
+        "watermill"
+      ],
+      "triggers": {
+        "path_glob": [
+          "openmeter/**/*.go"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "kafka\\.NewProducer|confluent.*ProduceChannel|sarama.*SendMessage"
+            ],
+            "must_not_match": [
+              "eventbus\\.Publisher",
+              "watermill"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "wm-002",
+      "severity_class": "decision_violation",
+      "description": "Watermill consumer handlers must use msg.Context() to propagate the caller's context. Never substitute context.Background() inside a NoPublishingHandler or GroupEventHandler.",
+      "why": "Context carries the Ent transaction driver, request-scoped OTel spans, and cancellation. In Watermill consumers, msg.Context() is the only correct source of the request-scoped context. Substituting context.Background() severs traces and drops the Ent transaction. The anti-pattern 'carry ctx through the consumer via msg.Context()' is explicitly required.",
+      "example": "// Correct: consumer uses msg.Context()\nrouter.AddNoPublisherHandler(\"invoice-created\", topics.System, subscriber, func(msg *message.Message) error {\n    return svc.OnInvoiceCreated(msg.Context(), ev)\n})",
+      "source": "deep_scan",
+      "keywords": [
+        "watermill",
+        "msg.Context",
+        "consumer handler",
+        "context",
+        "NoPublishingHandler"
+      ],
+      "triggers": {
+        "path_glob": [
+          "openmeter/watermill/**/*.go",
+          "openmeter/billing/worker/**/*.go",
+          "openmeter/notification/**/*.go"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "func.*\\*message\\.Message.*error"
+            ],
+            "must_not_match": [
+              "msg\\.Context\\(\\)"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "wm-003",
+      "severity_class": "pattern_divergence",
+      "description": "Watermill consumer routers must be built with openmeter/watermill/router.NewDefaultRouter. Do not construct a bare Watermill router without the fixed middleware stack (PoisonQueue, DLQ, CorrelationID, Recoverer, Retry, ProcessingTimeout, HandlerMetrics).",
+      "why": "openmeter/watermill/router/router.go defines NewDefaultRouter with a fixed middleware stack: PoisonQueue, DLQ, CorrelationID, Recoverer, Retry, ProcessingTimeout+RestoreContext, HandlerMetrics. Bypassing this loses dead-letter routing, retries, OTel span propagation, and processing-timeout enforcement across all consumer binaries.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "watermill router",
+        "NewDefaultRouter",
+        "middleware",
+        "DLQ",
+        "poison queue"
+      ]
+    },
+    {
+      "id": "ctx-001",
+      "severity_class": "pitfall_triggered",
+      "description": "Never pass a raw *entdb.Tx as a struct field or function parameter in adapters. Always rebind to the context-carried transaction via entutils.TransactingRepo / TransactingRepoWithNoValue.",
+      "why": "Ent transactions propagate implicitly via ctx; the TransactingRepo wrapper is the only way to rebind the Ent client to the active transaction. An adapter struct that stores *entdb.Tx instead of using TransactingRepo is an explicit violation signal. Adapter structs must implement TxCreator (Tx via HijackTx + NewTxDriver) and use TransactingRepo on every method body.",
+      "example": "// Correct adapter method pattern:\nfunc (a *adapter) Create(ctx context.Context, in domain.CreateInput) (*domain.Entity, error) {\n    return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*domain.Entity, error) {\n        row, err := tx.db.Entity.Create().SetNamespace(in.Namespace).Save(ctx)\n        if err != nil { return nil, err }\n        return toDomain(row), nil\n    })\n}",
+      "source": "deep_scan",
+      "keywords": [
+        "entdb.Tx",
+        "TransactingRepo",
+        "adapter",
+        "transaction",
+        "ctx"
+      ],
+      "triggers": {
+        "path_glob": [
+          "openmeter/**/adapter/**/*.go"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "\\*entdb\\.Tx"
+            ],
+            "must_not_match": [
+              "entutils\\.TransactingRepo",
+              "entutils\\.TransactingRepoWithNoValue"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ctx-002",
+      "severity_class": "pitfall_triggered",
+      "description": "Never call a.db.Foo() directly in adapter method bodies in openmeter/billing/charges/**/adapter without wrapping in entutils.TransactingRepo. The raw client ignores the active Ent transaction in ctx.",
+      "why": "Charges adapter helpers that accept a raw *entdb.Client bypass the ctx-bound Ent transaction and produce partial writes under concurrency. TransactingRepo silently falls back to repo.Self() when no tx is in ctx; a missed wrapper does not raise an error, so partial writes are correctness-fatal in the AdvanceCharges / ApplyPatches multi-step flows.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "charges adapter",
+        "a.db",
+        "TransactingRepo",
+        "partial writes",
+        "ent transaction"
+      ],
+      "check": "architectural_constraint",
+      "applies_to": "openmeter/billing/charges/",
+      "triggers": {
+        "path_glob": [
+          "openmeter/billing/charges/**/adapter/**/*.go"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "a\\.db\\.\\w+\\."
+            ],
+            "must_not_match": [
+              "entutils\\.TransactingRepo",
+              "entutils\\.TransactingRepoWithNoValue"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "layer-004",
+      "severity_class": "decision_violation",
+      "description": "The Service interface for each domain must be defined at the package root (service.go or <domain>.go). Never define the service interface inside the service/ or adapter/ sub-packages.",
+      "why": "Each domain exposes a Go interface (e.g. billing.Service, customer.Service) defined in <domain>/service.go. A concrete service struct in <domain>/service/ holds business logic and calls an Adapter interface for all DB access. The Adapter interface is defined alongside the Service interface and implemented by Ent-backed structs in <domain>/adapter/ sub-packages.",
+      "example": "// Correct structure:\n// openmeter/billing/service.go         \u2014 interface definition\n// openmeter/billing/adapter.go         \u2014 adapter interface\n// openmeter/billing/service/service.go \u2014 concrete implementation\n// openmeter/billing/adapter/adapter.go \u2014 Ent-backed implementation",
+      "source": "deep_scan",
+      "keywords": [
+        "service interface",
+        "package root",
+        "layer",
+        "adapter.go",
+        "service.go"
+      ]
+    },
+    {
+      "id": "layer-005",
+      "severity_class": "pattern_divergence",
+      "description": "v3 API handlers must be organized under api/v3/handlers/<resource>/ sub-packages and implement the generated ServerInterface methods using httptransport.Handler[Request,Response]. Do not place v3 handlers in openmeter/*/httpdriver/.",
+      "why": "v3 API handler packages are organized per resource group under api/v3/handlers/ (meters, customers, customers/billing, customers/charges, billingprofiles, plans, subscriptions, etc.). Each sub-package implements relevant ServerInterface methods using the httptransport.Handler[Request,Response] pipeline and delegates to domain services. v1 handlers live in openmeter/*/httpdriver/ or openmeter/*/httphandler/.",
+      "example": "// v3 handler in api/v3/handlers/customers/handler.go\nfunc (h *Handler) ListCustomers(ctx context.Context, req api.ListCustomersRequestObject) (api.ListCustomersResponseObject, error) {\n    items, err := h.svc.ListCustomers(ctx, customer.ListCustomersInput{Namespace: req.Params.Namespace})\n    if err != nil { return nil, err }\n    return api.ListCustomers200JSONResponse{Items: toAPI(items)}, nil\n}",
+      "source": "deep_scan",
+      "keywords": [
+        "v3 handler",
+        "api/v3/handlers",
+        "ServerInterface",
+        "httptransport",
+        "resource handler"
+      ]
+    },
+    {
+      "id": "layer-006",
+      "severity_class": "decision_violation",
+      "description": "v1 API endpoints must only be added in api/spec/packages/legacy/; v3 API endpoints only in api/spec/packages/aip/. Never mix v1 and v3 TypeSpec definitions in the same package.",
+      "why": "Route and tag bindings are declared only in root openmeter.tsp files, not in domain sub-folder operation files. api/spec/packages/aip/src/openmeter.tsp is the v3 AIP TypeSpec entry point; api/spec/packages/legacy/src/main.tsp is the v1 TypeSpec entry point. Mixing them prevents independent versioning.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "typespec",
+        "v1",
+        "v3",
+        "api/spec",
+        "legacy",
+        "aip"
+      ]
+    },
+    {
+      "id": "billing-003",
+      "severity_class": "pitfall_triggered",
+      "description": "The Charge tagged-union (charges.Charge) must be constructed via NewCharge[T] and accessed via AsFlatFeeCharge/AsUsageBasedCharge/AsCreditPurchaseCharge. Never construct a charges.Charge{} struct literal \u2014 this leaves the discriminator empty and accessors return errors.",
+      "why": "The Charge tagged-union has a private discriminator field (meta.ChargeType) set only by NewCharge[T]. A struct-literal Charge{} leaves the discriminator empty; subsequent type-switch accessors will return errors. Tagged-union Charge prevents partial construction.",
+      "example": "// Correct: use the constructor\ncharge := charges.NewCharge(flatfee.Charge{...})\nfc, err := charge.AsFlatFeeCharge()\n// Wrong: never do charges.Charge{...}",
+      "source": "deep_scan",
+      "keywords": [
+        "Charge",
+        "tagged union",
+        "NewCharge",
+        "discriminator",
+        "charges"
+      ],
+      "triggers": {
+        "path_glob": [
+          "openmeter/billing/**/*.go"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "charges\\.Charge\\{"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "billing-004",
+      "severity_class": "pattern_divergence",
+      "description": "Billing line differences and invoice sync must go through openmeter/billing/worker/subscriptionsync.Service. Do not implement subscription-to-invoice line mapping outside this service.",
+      "why": "openmeter/billing/worker/subscriptionsync bridges subscription lifecycle events to invoice line generation via SynchronizeSubscription / SynchronizeSubscriptionAndInvoiceCustomer / HandleCancelledEvent / HandleSubscriptionSyncEvent / HandleInvoiceCreation. The reconciler runs this idempotently on crash-recovery to catch missed events.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "subscriptionsync",
+        "SynchronizeSubscription",
+        "invoice line",
+        "subscription billing",
+        "reconciler"
+      ]
+    },
+    {
+      "id": "credits-003",
+      "severity_class": "pitfall_triggered",
+      "description": "ChargesRegistry must not be constructed when credits.enabled=false. BillingRegistry.ChargesServiceOrNil() must be used by callers instead of accessing BillingRegistry.Charges directly.",
+      "why": "When config.Credits.Enabled=false, app/common/billing.go's NewBillingRegistry skips newChargesRegistry entirely \u2014 BillingRegistry.Charges stays nil and ChargesServiceOrNil() returns nil. Accessing BillingRegistry.Charges directly without nil check panics at runtime when credits are disabled.",
+      "example": "// Correct: use the nil-safe accessor\nif svc := registry.ChargesServiceOrNil(); svc != nil {\n    // charges are enabled\n}",
+      "source": "deep_scan",
+      "keywords": [
+        "ChargesRegistry",
+        "credits",
+        "ChargesServiceOrNil",
+        "BillingRegistry",
+        "nil check"
+      ],
+      "triggers": {
+        "path_glob": [
+          "**/*.go"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "BillingRegistry\\.Charges\\."
+            ],
+            "must_not_match": [
+              "ChargesServiceOrNil"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "credits-004",
+      "severity_class": "decision_violation",
+      "description": "The v3 server (api/v3/server/routes.go) must check s.Credits.Enabled before dispatching to any customer credits or ledger-backed handler. Missing this guard silently enables ledger writes for credits-disabled deployments.",
+      "why": "api/v3/server/routes.go checks s.Credits.Enabled before dispatching to customer credits handlers. Credits feature flag is enforced at four independent wiring layers; the v3 route dispatch is one of them. Adding a new credits-related endpoint without this guard is a violation.",
+      "example": "// api/v3/server/routes.go\nfunc (s *Server) ListCustomerCredits(w http.ResponseWriter, r *http.Request, ...) {\n    if !s.Credits.Enabled {\n        models.NewStatusProblem(r.Context(), nil, http.StatusNotImplemented).Respond(w, r)\n        return\n    }\n    // ...\n}",
+      "source": "deep_scan",
+      "keywords": [
+        "credits.Enabled",
+        "v3 server",
+        "ledger",
+        "feature flag",
+        "route dispatch"
+      ]
+    },
+    {
+      "id": "lock-002",
+      "severity_class": "pitfall_triggered",
+      "description": "lockr.Locker.LockForTX requires an active Postgres transaction already in context before it is called. Calling LockForTX outside a TransactingRepo-established transaction will fail or use a bare connection that does not hold the advisory lock.",
+      "why": "pkg/framework/lockr/locker.go calls pg_advisory_xact_lock($1) with a CRC64-based hash of the lock key. Requires an active Postgres transaction in context (from GetDriverFromContext). Lock is released automatically on tx commit/rollback. Calling LockForTX without an active transaction in ctx cannot correctly scope the lock.",
+      "example": "// Correct: LockForTX called inside TransactingRepo\nreturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*domain.Invoice, error) {\n    if err := a.locker.LockForTX(ctx, customerID); err != nil { return nil, err }\n    // mutation work here\n})",
+      "source": "deep_scan",
+      "keywords": [
+        "LockForTX",
+        "advisory lock",
+        "transaction",
+        "lockr",
+        "pg_advisory"
+      ],
+      "triggers": {
+        "path_glob": [
+          "openmeter/**/*.go"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "\\.LockForTX\\("
+            ],
+            "must_not_match": [
+              "TransactingRepo",
+              "entutils\\.Transacting"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sink-001",
+      "severity_class": "pattern_divergence",
+      "description": "The sink worker must maintain strict three-phase flush ordering: ClickHouse BatchInsert first, then Kafka offset commit, then Redis deduplication update. Reordering these phases breaks exactly-once semantics.",
+      "why": "Flush ordering is strict: ClickHouse insert then Kafka offset commit then Redis dedupe. After flush, FlushEventHandlers are called post-flush in a goroutine with timeout for downstream notifications. Deviating from this order risks double-counting on consumer restart or losing events before offset commit.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "sink worker",
+        "flush",
+        "ClickHouse",
+        "offset commit",
+        "deduplication",
+        "exactly-once"
+      ]
+    },
+    {
+      "id": "api-001",
+      "severity_class": "decision_violation",
+      "description": "Never add a new endpoint only in the Go handler package without first adding it to the TypeSpec source in api/spec/. Adding endpoint only in Go handler is a documented violation keyword.",
+      "why": "API is authored in TypeSpec under api/spec/packages/ (aip/ for v3, legacy/ for v1) and compiled to OpenAPI YAMLs, then to Go server stubs. Drift between Go server stubs, three SDKs (Go/JS/Python), and two API versions is impossible only as long as both regen steps run. Adding endpoint only in Go handler bypasses this contract.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "TypeSpec",
+        "api/spec",
+        "endpoint",
+        "handler",
+        "OpenAPI"
+      ],
+      "triggers": {
+        "path_glob": [
+          "openmeter/**/httpdriver/**/*.go",
+          "api/v3/handlers/**/*.go"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "func.*Handler.*ServeHTTP|func.*http\\.ResponseWriter.*\\*http\\.Request"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "api-002",
+      "severity_class": "mechanical_violation",
+      "description": "Never hand-edit api/openapi.yaml, api/openapi.cloud.yaml, or api/v3/openapi.yaml. These are generated from TypeSpec source via `make gen-api`.",
+      "why": "TypeSpec is the single source of truth for both v1 and v3 HTTP APIs. api/openapi.yaml, api/openapi.cloud.yaml, and api/v3/openapi.yaml are all generated output. Manual edits are silently overwritten on the next `make gen-api` and cause SDK drift.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "openapi.yaml",
+        "api spec",
+        "TypeSpec",
+        "gen-api",
+        "generated"
+      ],
+      "check": "forbidden_content",
+      "applies_to": "api/",
+      "forbidden_patterns": [
+        "^(?!# Generated)"
+      ],
+      "triggers": {
+        "path_glob": [
+          "api/openapi.yaml",
+          "api/openapi.cloud.yaml",
+          "api/v3/openapi.yaml"
+        ]
+      }
+    },
+    {
+      "id": "reg-001",
+      "severity_class": "pattern_divergence",
+      "description": "Typed registry structs (BillingRegistry, AppRegistry, SubscriptionServiceWithWorkflow) must be used to group cohesive services. Do not add individual service fields to router.Config that already belong to an existing registry.",
+      "why": "Typed registry structs group logically cohesive services (BillingRegistry exposes ChargesServiceOrNil(), AppRegistry, SubscriptionServiceWithWorkflow) and let ChargesServiceOrNil() encapsulate the credits-disabled nil case. router.Config field for a service already inside a registry is a documented violation keyword.",
+      "example": "// Correct: access charges via registry\ncmd.billingRegistry.ChargesServiceOrNil()\n\n// Wrong: exposing charges separately in router.Config when it belongs to BillingRegistry",
+      "source": "deep_scan",
+      "keywords": [
+        "BillingRegistry",
+        "AppRegistry",
+        "registry struct",
+        "router.Config",
+        "ChargesServiceOrNil"
+      ]
+    },
+    {
+      "id": "infra-001",
+      "severity_class": "mechanical_violation",
+      "description": "Every pull request must have exactly one release-note label (release-note/ignore, kind/feature, release-note/bug-fix, release-note/breaking-change, etc.) before merging. The PR Checks workflow blocks merge without it.",
+      "why": "Always add exactly one release-note label to every PR before merging \u2014 the PR Checks workflow enforces this via mheap/github-action-required-labels. The workflow fails if the label is missing, blocking the PR from merging.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "release note",
+        "PR label",
+        "pr-checks",
+        "kind/feature",
+        "release-note/ignore"
+      ]
+    },
+    {
+      "id": "infra-002",
+      "severity_class": "mechanical_violation",
+      "description": "Never push untrusted (PR) Docker images to GHCR. Use the untrusted-artifacts.yaml reusable workflow for PRs, which builds but does not publish container images.",
+      "why": "Never push untrusted (PR) Docker images to GHCR \u2014 the untrusted-artifacts.yaml reusable workflow builds but does not publish container images for PRs. Only the artifacts.yaml workflow (triggered on verified events) publishes to GHCR.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "Docker",
+        "GHCR",
+        "PR",
+        "container image",
+        "publish"
+      ]
+    },
+    {
+      "id": "watermill-001",
+      "severity_class": "pattern_divergence",
+      "description": "Unknown Watermill event types received by a NoPublishingHandler must be silently dropped, not returned as errors. Returning errors for unknown event types poisons the DLQ during rolling deploys.",
+      "why": "Silent drop of unknown event types lets producers and consumers deploy in any order without poisoning DLQs. grouphandler.NoPublishingHandler drops unknown event types keyed on CloudEvents ce_type. Returning error for unknown event type is a documented violation keyword.",
+      "example": "// Correct: handler drops unknown types\nhandler := grouphandler.NewNoPublishingHandler(marshaler, handlers...)\n// Unknown ce_types not in handlers list are silently ignored",
+      "source": "deep_scan",
+      "keywords": [
+        "NoPublishingHandler",
+        "unknown event",
+        "silent drop",
+        "DLQ",
+        "rolling deploy",
+        "ce_type"
+      ]
+    },
+    {
+      "id": "error-001",
+      "severity_class": "pattern_divergence",
+      "description": "Validation errors with structured field paths must use pkg/models.ValidationIssue with With* copy-on-write methods and WithPathString for field location. Do not create plain error strings for field-level validation failures.",
+      "why": "pkg/models/validationissue.go defines ValidationIssue as an immutable value type with copy-on-write With* methods. The HTTP layer reads the httpStatusCodeErrorAttribute attribute set via commonhttp.WithHTTPStatusCodeAttribute to produce the correct HTTP status. ValidationIssue carries field paths, component attribution, severity, and HTTP status through service layer boundaries.",
+      "example": "// Correct: structured validation error\nerr := models.NewValidationIssue(\"invalid_amount\", \"amount must be positive\").\n    WithPathString(\"amount\").\n    WithComponent(\"charges\")\nreturn nil, commonhttp.WithHTTPStatusCodeAttribute(err, http.StatusBadRequest)",
+      "source": "deep_scan",
+      "keywords": [
+        "ValidationIssue",
+        "field path",
+        "validation error",
+        "WithPathString",
+        "structured error"
+      ]
+    },
+    {
+      "id": "ent-001",
+      "severity_class": "tradeoff_undermined",
+      "description": "Never write hand-crafted SQL queries (db.Exec, db.Query) alongside Ent queries in the same adapter. Mixing raw SQL with Ent breaks the single-schema-source guarantee and undermines Atlas diffing.",
+      "why": "Hand-written SQL added alongside Ent queries is an explicit violation signal. Ent ORM + Atlas-generated migrations as the schema pipeline means Atlas diffs the Ent schema against migration history to produce deterministic SQL; introducing raw SQL outside this pipeline creates schema drift invisible to Atlas.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "raw SQL",
+        "db.Exec",
+        "db.Query",
+        "hand-written SQL",
+        "Ent",
+        "Atlas"
+      ],
+      "check": "forbidden_content",
+      "applies_to": "openmeter/",
+      "forbidden_patterns": [
+        "\\.ExecContext\\(ctx,\\s*\"",
+        "\\.QueryContext\\(ctx,\\s*\""
+      ],
+      "triggers": {
+        "path_glob": [
+          "openmeter/**/adapter/**/*.go"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "\\.ExecContext\\(|\\bdb\\.QueryContext\\("
+            ],
+            "must_not_match": [
+              "// clickhouse",
+              "// ClickHouse"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ent-002",
+      "severity_class": "tradeoff_undermined",
+      "description": "Every new database table or relation must have a corresponding openmeter/ent/schema/*.go file. Never create tables via ad-hoc DDL outside tools/migrate/migrations/ and the Atlas pipeline.",
+      "why": "New table created without corresponding openmeter/ent/schema/*.go is an explicit violation signal. Ad-hoc DDL outside tools/migrate/migrations/ is another violation signal. Atlas can only diff and validate migrations it knows about through the Ent schema pipeline.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "ent schema",
+        "new table",
+        "DDL",
+        "Atlas",
+        "schema definition"
+      ]
+    },
+    {
+      "id": "otel-001",
+      "severity_class": "pattern_divergence",
+      "description": "Service methods that initiate significant work must create an OTel span from the injected trace.Tracer and defer span.End(). Do not skip tracing in long-running operations.",
+      "why": "Every entry point (HTTP handlers, Kafka consumers, Ent adapters) is instrumented with OpenTelemetry. trace.Tracer is injected via Wire into service constructors. OTel metric.Meter is used in grouphandler and sink worker. All domain calls must propagate ctx (no context.Background()/TODO()).",
+      "example": "func (s *svc) DoWork(ctx context.Context, id string) error {\n    ctx, span := s.tracer.Start(ctx, \"svc.DoWork\")\n    defer span.End()\n    return s.adapter.Write(ctx, id)\n}",
+      "source": "deep_scan",
+      "keywords": [
+        "OpenTelemetry",
+        "trace.Tracer",
+        "span",
+        "otel",
+        "tracing"
+      ]
+    },
+    {
+      "id": "cfg-001",
+      "severity_class": "pattern_divergence",
+      "description": "All Viper config defaults must be registered through app/config/config.go's SetViperDefaults function which calls every Configure* sub-function. Do not call viper.SetDefault directly in cmd/* binaries.",
+      "why": "SetViperDefaults is the single registration point calling every Configure* function. config.Configuration is the single shared config type for all binaries. Scattering viper.SetDefault calls across cmd/* binaries creates divergence between binary configuration models.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "Viper",
+        "SetViperDefaults",
+        "config",
+        "defaults",
+        "app/config"
+      ],
+      "triggers": {
+        "path_glob": [
+          "cmd/**/*.go"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "viper\\.SetDefault\\("
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "billing-005",
+      "severity_class": "decision_violation",
+      "description": "The InvoiceLine tagged-union must be constructed only via NewStandardInvoiceLine or NewGatheringInvoiceLine. Never use struct-literal InvoiceLine{} \u2014 the private discriminator t stays zero-valued and type accessors (AsStandardLine etc.) will error.",
+      "why": "InvoiceLine is a tagged-union type with private discriminator and NewStandardInvoiceLine/NewGatheringInvoiceLine constructors. The billing domain model enforces correct type access via AsStandardLine/AsGatheringLine/AsGenericLine. Direct struct construction bypasses the discriminator.",
+      "example": "// Correct: use constructors\nline := billing.NewStandardInvoiceLine(billing.StandardInvoiceLineInput{...})",
+      "source": "deep_scan",
+      "keywords": [
+        "InvoiceLine",
+        "tagged union",
+        "NewStandardInvoiceLine",
+        "NewGatheringInvoiceLine",
+        "billing"
+      ],
+      "triggers": {
+        "path_glob": [
+          "openmeter/billing/**/*.go"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "billing\\.InvoiceLine\\{"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "llmcost-001",
+      "severity_class": "pattern_divergence",
+      "description": "All LLM model IDs must be normalized via llmcost.NormalizeModelID before being stored or resolved. Storing unnormalized IDs causes mismatches during price resolution because provider aliases and version suffixes produce different strings.",
+      "why": "llmcost/normalize.go defines NormalizeModelID: strips version/region suffixes and normalises provider aliases. NormalizeModelID must be called before any price store or resolve. Unnormalized model IDs break the namespace-override precedence lookup.",
+      "example": "normalizedID := llmcost.NormalizeModelID(rawModelID)\nprice, err := svc.ResolvePrice(ctx, llmcost.ResolvePriceInput{ModelID: normalizedID})",
+      "source": "deep_scan",
+      "keywords": [
+        "llmcost",
+        "NormalizeModelID",
+        "model ID",
+        "LLM price",
+        "normalize"
+      ]
+    },
+    {
+      "id": "subject-001",
+      "severity_class": "pattern_divergence",
+      "description": "Subject lifecycle events must be routed via subject.Service.RegisterHooks. Do not implement subject-related side-effects by directly calling subject adapter methods from other domains.",
+      "why": "openmeter/subject exposes ServiceHooks for lifecycle events via subject.Service.RegisterHooks. Direct calls from balance-worker (openmeter/entitlement/balanceworker) go through the service interface. Bypassing the service creates coupling between balance-worker and the subject adapter, making the subject domain untestable in isolation.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "subject",
+        "ServiceHooks",
+        "RegisterHooks",
+        "lifecycle",
+        "balanceworker"
+      ]
+    },
+    {
+      "id": "wire-001",
+      "severity_class": "decision_violation",
+      "description": "wire.Build in cmd/<binary>/wire.go must list only provider sets from app/common (e.g. common.Billing, common.LedgerStack). Never call domain service constructors directly from wire.Build in cmd/* packages.",
+      "why": "Every domain package exposes plain constructors; all wiring lives in app/common/*.go. cmd/<binary>/wire.go lists the sets; cmd/<binary>/wire_gen.go is generated. Manual constructor call chains in cmd/* duplicate graphs and lose compile-time Wire graph verification.",
+      "example": "// cmd/billing-worker/wire.go\nfunc initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {\n    wire.Build(\n        common.BillingWorker, // correct: provider set from app/common\n    )\n    return Application{}, nil, nil\n}",
+      "source": "deep_scan",
+      "keywords": [
+        "wire.Build",
+        "provider set",
+        "app/common",
+        "cmd",
+        "dependency injection"
+      ]
+    },
+    {
       "id": "gen-001",
       "description": "Never manually edit files inside openmeter/ent/db/. These are generated by Ent from schema definitions in openmeter/ent/schema/ and must be regenerated with `make generate`.",
       "rationale": "openmeter/ent/db/ is the generated Ent ORM output. Manual edits are overwritten on the next `make generate` and break the schema-as-code pipeline that Atlas relies on for migration diffs. The source of truth is openmeter/ent/schema/*.go.",
