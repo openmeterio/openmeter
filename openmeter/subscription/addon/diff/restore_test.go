@@ -51,10 +51,10 @@ func TestRestore(t *testing.T) {
 		env := buildSubAndAddon(
 			t,
 			&deps.deps,
-			subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, &subscriptiontestutils.ExampleRateCard2).Build(),
+			subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, subscriptiontestutils.ExampleRateCard2.Clone()).Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
-			}, productcatalog.AddonInstanceTypeSingle, &subscriptiontestutils.ExampleAddonRateCard1),
+			}, productcatalog.AddonInstanceTypeSingle, subscriptiontestutils.ExampleAddonRateCard1.Clone()),
 			models.CadencedModel{
 				ActiveFrom: now,
 				ActiveTo:   nil,
@@ -80,10 +80,10 @@ func TestRestore(t *testing.T) {
 		env := buildSubAndAddon(
 			t,
 			&deps.deps,
-			subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, &subscriptiontestutils.ExampleRateCard2).Build(),
+			subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, subscriptiontestutils.ExampleRateCard2.Clone()).Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
-			}, productcatalog.AddonInstanceTypeSingle, &subscriptiontestutils.ExampleAddonRateCard1),
+			}, productcatalog.AddonInstanceTypeSingle, subscriptiontestutils.ExampleAddonRateCard1.Clone()),
 			models.CadencedModel{
 				ActiveFrom: now,
 				ActiveTo:   nil,
@@ -112,10 +112,10 @@ func TestRestore(t *testing.T) {
 		env := buildSubAndAddon(
 			t,
 			&deps.deps,
-			subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, &subscriptiontestutils.ExampleRateCard1, &subscriptiontestutils.ExampleRateCard2).Build(),
+			subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone(), subscriptiontestutils.ExampleRateCard2.Clone()).Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
-			}, productcatalog.AddonInstanceTypeSingle, &subscriptiontestutils.ExampleAddonRateCard1),
+			}, productcatalog.AddonInstanceTypeSingle, subscriptiontestutils.ExampleAddonRateCard1.Clone()),
 			models.CadencedModel{
 				ActiveFrom: oneMonthLater,
 				ActiveTo:   nil,
@@ -149,12 +149,12 @@ func TestRestore(t *testing.T) {
 			t,
 			&deps.deps,
 			subscriptiontestutils.BuildTestPlanInput(t).
-				AddPhase(&oneMonth, &subscriptiontestutils.ExampleRateCard1, &subscriptiontestutils.ExampleRateCard2).
-				AddPhase(nil, &subscriptiontestutils.ExampleRateCard2).
+				AddPhase(&oneMonth, subscriptiontestutils.ExampleRateCard1.Clone(), subscriptiontestutils.ExampleRateCard2.Clone()).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard2.Clone()).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
-			}, productcatalog.AddonInstanceTypeSingle, &subscriptiontestutils.ExampleAddonRateCard1),
+			}, productcatalog.AddonInstanceTypeSingle, subscriptiontestutils.ExampleAddonRateCard1.Clone()),
 			models.CadencedModel{
 				ActiveFrom: oneMonthLater, // will only affect the second phase
 				ActiveTo:   nil,
@@ -180,11 +180,11 @@ func TestRestore(t *testing.T) {
 			t,
 			&deps.deps,
 			subscriptiontestutils.BuildTestPlanInput(t).
-				AddPhase(nil, &subscriptiontestutils.ExampleRateCard1).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
-			}, productcatalog.AddonInstanceTypeSingle, &subscriptiontestutils.ExampleAddonRateCard5), // will add 50 usage
+			}, productcatalog.AddonInstanceTypeSingle, subscriptiontestutils.ExampleAddonRateCard5.Clone()), // will add 50 usage
 			models.CadencedModel{
 				ActiveFrom: now,
 				ActiveTo:   nil,
@@ -212,11 +212,11 @@ func TestRestore(t *testing.T) {
 			t,
 			&deps.deps,
 			subscriptiontestutils.BuildTestPlanInput(t).
-				AddPhase(nil, &subscriptiontestutils.ExampleRateCard1).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
-			}, productcatalog.AddonInstanceTypeSingle, &subscriptiontestutils.ExampleAddonRateCard5), // will add 50 usage
+			}, productcatalog.AddonInstanceTypeSingle, subscriptiontestutils.ExampleAddonRateCard5.Clone()), // will add 50 usage
 			models.CadencedModel{
 				ActiveFrom: now,
 				ActiveTo:   nil,
@@ -252,11 +252,11 @@ func TestRestore(t *testing.T) {
 			t,
 			&deps.deps,
 			subscriptiontestutils.BuildTestPlanInput(t).
-				AddPhase(nil, &subscriptiontestutils.ExampleRateCard1).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
-			}, productcatalog.AddonInstanceTypeSingle, &subscriptiontestutils.ExampleAddonRateCard5), // will add 50 usage
+			}, productcatalog.AddonInstanceTypeSingle, subscriptiontestutils.ExampleAddonRateCard5.Clone()), // will add 50 usage
 			models.CadencedModel{
 				ActiveFrom: now,
 				ActiveTo:   nil,
@@ -309,11 +309,11 @@ func TestRestore(t *testing.T) {
 			t,
 			&deps.deps,
 			subscriptiontestutils.BuildTestPlanInput(t).
-				AddPhase(nil, &subscriptiontestutils.ExampleRateCard1).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
-			}, productcatalog.AddonInstanceTypeSingle, &subscriptiontestutils.ExampleAddonRateCard5), // will add 50 usage
+			}, productcatalog.AddonInstanceTypeSingle, subscriptiontestutils.ExampleAddonRateCard5.Clone()), // will add 50 usage
 			models.CadencedModel{
 				ActiveFrom: oneMonthLater,
 				ActiveTo:   nil,
@@ -357,11 +357,11 @@ func TestRestore(t *testing.T) {
 					},
 					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				}).
-				AddPhase(nil, &subscriptiontestutils.ExampleRateCard1).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
-			}, productcatalog.AddonInstanceTypeSingle, &subscriptiontestutils.ExampleAddonRateCard5),
+			}, productcatalog.AddonInstanceTypeSingle, subscriptiontestutils.ExampleAddonRateCard5.Clone()),
 		)
 
 		sView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
@@ -437,11 +437,11 @@ func TestRestore(t *testing.T) {
 				t,
 				&deps.deps,
 				subscriptiontestutils.BuildTestPlanInput(t).
-					AddPhase(nil, &subscriptiontestutils.ExampleRateCard4ForAddons).
+					AddPhase(nil, subscriptiontestutils.ExampleRateCard4ForAddons.Clone()).
 					Build(),
 				subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 					EffectiveFrom: &now,
-				}, productcatalog.AddonInstanceTypeMultiple, &subscriptiontestutils.ExampleAddonRateCard6),
+				}, productcatalog.AddonInstanceTypeMultiple, subscriptiontestutils.ExampleAddonRateCard6.Clone()),
 				models.CadencedModel{
 					ActiveFrom: now,
 					ActiveTo:   nil,
@@ -473,11 +473,11 @@ func TestRestore(t *testing.T) {
 				t,
 				&deps.deps,
 				subscriptiontestutils.BuildTestPlanInput(t).
-					AddPhase(nil, &subscriptiontestutils.ExampleRateCard5ForAddons).
+					AddPhase(nil, subscriptiontestutils.ExampleRateCard5ForAddons.Clone()).
 					Build(),
 				subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 					EffectiveFrom: &now,
-				}, productcatalog.AddonInstanceTypeMultiple, &subscriptiontestutils.ExampleAddonRateCard6),
+				}, productcatalog.AddonInstanceTypeMultiple, subscriptiontestutils.ExampleAddonRateCard6.Clone()),
 				models.CadencedModel{
 					ActiveFrom: now,
 					ActiveTo:   nil,
@@ -510,11 +510,11 @@ func TestRestore(t *testing.T) {
 			t,
 			&deps.deps,
 			subscriptiontestutils.BuildTestPlanInput(t).
-				AddPhase(nil, &subscriptiontestutils.ExampleRateCard1).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
-			}, productcatalog.AddonInstanceTypeMultiple, &subscriptiontestutils.ExampleAddonRateCard5),
+			}, productcatalog.AddonInstanceTypeMultiple, subscriptiontestutils.ExampleAddonRateCard5.Clone()),
 			[]subscriptionaddon.CreateSubscriptionAddonQuantityInput{
 				{
 					ActiveFrom: now,
@@ -570,7 +570,7 @@ func TestRestore(t *testing.T) {
 			deps.deps,
 			subscriptiontestutils.BuildTestPlanInput(t).
 				AddPhase(nil,
-					&subscriptiontestutils.ExampleRateCard1, // Flat price
+					subscriptiontestutils.ExampleRateCard1.Clone(), // Flat price
 					&productcatalog.UsageBasedRateCard{ // Dynamic price
 						RateCardMeta: productcatalog.RateCardMeta{
 							Key:  "dynamic_rc_1",

@@ -1,6 +1,7 @@
 package productcatalog
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -161,6 +162,55 @@ func (s *StripeTaxConfig) Validate() error {
 
 func (s StripeTaxConfig) Clone() StripeTaxConfig {
 	return s
+}
+
+// ResolveTaxConfig cross-populates TaxCodeID and provider-specific codes on the pointed-to
+// config so the persisted record is internally consistent. Four input cases:
+//   - Only TaxCodeID: looks up the entity, validates it exists (400 if not), and sets Stripe
+//     from the entity's Stripe app mapping (or clears Stripe if the entity has no mapping).
+//   - Only Stripe.Code: upserts the TaxCode entity via GetOrCreateByAppMapping and stamps
+//     TaxCodeID (idempotent; updating the code txcd_A → txcd_B updates the FK).
+//   - Both TaxCodeID and Stripe.Code: TaxCodeID wins. Stripe is overridden from the entity's
+//     Stripe app mapping (or cleared if the entity has no mapping); the caller-supplied
+//     Stripe.Code is discarded.
+//   - Neither: no-op.
+//
+// No-op when cfg is nil.
+func ResolveTaxConfig(ctx context.Context, svc taxcode.Service, namespace string, cfg *TaxConfig) error {
+	if cfg == nil {
+		return nil
+	}
+
+	switch {
+	case cfg.TaxCodeID != nil:
+		tc, err := svc.GetTaxCode(ctx, taxcode.GetTaxCodeInput{
+			NamespacedID: models.NamespacedID{Namespace: namespace, ID: *cfg.TaxCodeID},
+		})
+		if err != nil {
+			if taxcode.IsTaxCodeNotFoundError(err) {
+				return models.NewGenericValidationError(fmt.Errorf("tax code %s not found", *cfg.TaxCodeID))
+			}
+			return fmt.Errorf("resolving tax code %s: %w", *cfg.TaxCodeID, err)
+		}
+		if m, ok := tc.GetAppMapping(app.AppTypeStripe); ok {
+			cfg.Stripe = &StripeTaxConfig{Code: m.TaxCode}
+		} else {
+			cfg.Stripe = nil
+		}
+
+	case cfg.Stripe != nil && cfg.Stripe.Code != "":
+		tc, err := svc.GetOrCreateByAppMapping(ctx, taxcode.GetOrCreateByAppMappingInput{
+			Namespace: namespace,
+			AppType:   app.AppTypeStripe,
+			TaxCode:   cfg.Stripe.Code,
+		})
+		if err != nil {
+			return fmt.Errorf("resolving tax code for stripe code %s: %w", cfg.Stripe.Code, err)
+		}
+		cfg.TaxCodeID = lo.ToPtr(tc.ID)
+	}
+
+	return nil
 }
 
 // BackfillTaxConfig fills in missing legacy TaxConfig fields from the new tax_behavior column

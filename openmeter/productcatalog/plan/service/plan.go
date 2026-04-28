@@ -7,11 +7,9 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
-	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -196,45 +194,9 @@ func (s service) resolveTaxCodes(ctx context.Context, namespace string, rateCard
 			continue
 		}
 
-		var tc taxcode.TaxCode
-
-		switch {
-		case meta.TaxConfig.Stripe != nil && meta.TaxConfig.Stripe.Code != "":
-			// Existing path: resolve/create TaxCode from Stripe code.
-			resolved, err := s.taxCode.GetOrCreateByAppMapping(ctx, taxcode.GetOrCreateByAppMappingInput{
-				Namespace: namespace,
-				AppType:   app.AppTypeStripe,
-				TaxCode:   meta.TaxConfig.Stripe.Code,
-			})
-			if err != nil {
-				return fmt.Errorf("failed to resolve tax code for stripe code %s: %w", meta.TaxConfig.Stripe.Code, err)
-			}
-			tc = resolved
-
-		case meta.TaxConfig.TaxCodeID != nil:
-			// New path: caller supplied a taxCodeId — validate it exists and backfill app mappings.
-			resolved, err := s.taxCode.GetTaxCode(ctx, taxcode.GetTaxCodeInput{
-				NamespacedID: models.NamespacedID{
-					Namespace: namespace,
-					ID:        *meta.TaxConfig.TaxCodeID,
-				},
-			})
-			if err != nil {
-				if taxcode.IsTaxCodeNotFoundError(err) {
-					return models.NewGenericValidationError(fmt.Errorf("tax code %s not found", *meta.TaxConfig.TaxCodeID))
-				}
-				return fmt.Errorf("failed to resolve tax code %s: %w", *meta.TaxConfig.TaxCodeID, err)
-			}
-			tc = resolved
-			if m, ok := tc.GetAppMapping(app.AppTypeStripe); ok && meta.TaxConfig.Stripe == nil {
-				meta.TaxConfig.Stripe = &productcatalog.StripeTaxConfig{Code: m.TaxCode}
-			}
-
-		default:
-			continue
+		if err := productcatalog.ResolveTaxConfig(ctx, s.taxCode, namespace, meta.TaxConfig); err != nil {
+			return err
 		}
-
-		meta.TaxConfig.TaxCodeID = lo.ToPtr(tc.ID)
 
 		var rcNew productcatalog.RateCard
 

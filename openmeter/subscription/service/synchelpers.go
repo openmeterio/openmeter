@@ -4,14 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/samber/lo"
-
-	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -195,47 +191,10 @@ func (s *service) resolveTaxCode(ctx context.Context, namespace string, rc produ
 		return nil
 	}
 
-	switch {
-	case meta.TaxConfig.Stripe != nil && meta.TaxConfig.Stripe.Code != "":
-		// Existing path: resolve/create TaxCode from Stripe code.
-		tc, err := s.TaxCode.GetOrCreateByAppMapping(ctx, taxcode.GetOrCreateByAppMappingInput{
-			Namespace: namespace,
-			AppType:   app.AppTypeStripe,
-			TaxCode:   meta.TaxConfig.Stripe.Code,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to resolve tax code for stripe code %s: %w", meta.TaxConfig.Stripe.Code, err)
+	return rc.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+		if err := productcatalog.ResolveTaxConfig(ctx, s.TaxCode, namespace, m.TaxConfig); err != nil {
+			return m, err
 		}
-		return rc.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
-			m.TaxConfig.TaxCodeID = lo.ToPtr(tc.ID)
-			return m, nil
-		})
-
-	case meta.TaxConfig.TaxCodeID != nil:
-		// New path: caller supplied a taxCodeId — validate it exists and backfill app mappings.
-		tc, err := s.TaxCode.GetTaxCode(ctx, taxcode.GetTaxCodeInput{
-			NamespacedID: models.NamespacedID{
-				Namespace: namespace,
-				ID:        *meta.TaxConfig.TaxCodeID,
-			},
-		})
-		if err != nil {
-			if taxcode.IsTaxCodeNotFoundError(err) {
-				return models.NewGenericValidationError(fmt.Errorf("tax code %s not found", *meta.TaxConfig.TaxCodeID))
-			}
-			return fmt.Errorf("failed to resolve tax code %s: %w", *meta.TaxConfig.TaxCodeID, err)
-		}
-		if m, ok := tc.GetAppMapping(app.AppTypeStripe); ok {
-			return rc.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
-				if meta.TaxConfig.Stripe == nil {
-					meta.TaxConfig.Stripe = &productcatalog.StripeTaxConfig{Code: m.TaxCode}
-				}
-				return meta, nil
-			})
-		}
-		return nil
-
-	default:
-		return nil
-	}
+		return m, nil
+	})
 }
