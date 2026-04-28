@@ -1,6 +1,9 @@
 package filters
 
 import (
+	"context"
+	"errors"
+
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -250,4 +253,27 @@ func FromAPIFilterBoolean(f *FilterBoolean) (*filter.FilterBoolean, error) {
 	return &filter.FilterBoolean{
 		Eq: f.Eq,
 	}, nil
+}
+
+func FromAPIStatusFilter[T ~string](ctx context.Context, f *FilterStringExact) ([]T, error) {
+	if f == nil {
+		return nil, nil
+	}
+	if f.Neq != nil {
+		return nil, errors.New("only eq and oeq operators are supported for status")
+	}
+
+	var statuses []T
+	if f.Eq != nil {
+		statuses = append(statuses, T(*f.Eq))
+	}
+	for _, v := range f.Oeq {
+		statuses = append(statuses, T(v))
+	}
+
+	if len(statuses) == 0 {
+		return nil, nil
+	}
+
+	return statuses, nil
 }

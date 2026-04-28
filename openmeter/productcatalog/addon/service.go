@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -28,9 +30,29 @@ const (
 	OrderByVersion   OrderBy = "version"
 	OrderByCreatedAt OrderBy = "created_at"
 	OrderByUpdatedAt OrderBy = "updated_at"
+	OrderByName      OrderBy = "name"
 )
 
 type OrderBy string
+
+func (f OrderBy) Values() []OrderBy {
+	return []OrderBy{
+		OrderByID,
+		OrderByKey,
+		OrderByVersion,
+		OrderByCreatedAt,
+		OrderByUpdatedAt,
+		OrderByName,
+	}
+}
+
+func (f OrderBy) Validate() error {
+	if !slices.Contains(f.Values(), f) {
+		return models.NewGenericValidationError(fmt.Errorf("invalid add-on order by: %s", f))
+	}
+
+	return nil
+}
 
 type Service interface {
 	ListAddons(ctx context.Context, params ListAddonsInput) (pagination.Result[Addon], error)
@@ -59,12 +81,6 @@ type ListAddonsInput struct {
 	// Namespaces is the list of namespaces to filter by.
 	Namespaces []string
 
-	// IDs is the list of IDs to filter by.
-	IDs []string
-
-	// Keys is the list of keys to filter by.
-	Keys []string
-
 	// KeyVersions is the map of keys to versions to filter by.
 	KeyVersions map[string][]int
 
@@ -74,12 +90,44 @@ type ListAddonsInput struct {
 	// Status filter
 	Status []productcatalog.AddonStatus
 
-	// Currencies is the list of currencies to filter by.
-	Currencies []string
+	// Filters
+	ID       *filter.FilterULID
+	Key      *filter.FilterString
+	Name     *filter.FilterString
+	Currency *filter.FilterString
 }
 
 func (i ListAddonsInput) Validate() error {
-	return nil
+	var errs []error
+
+	if i.ID != nil {
+		if err := i.ID.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if i.Key != nil {
+		if err := i.Key.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if i.Name != nil {
+		if err := i.Name.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if i.Currency != nil {
+		if err := i.Currency.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if i.OrderBy != "" {
+		if err := i.OrderBy.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type ListAddonsStatusFilter struct {

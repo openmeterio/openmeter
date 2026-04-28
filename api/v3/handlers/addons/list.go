@@ -9,7 +9,10 @@ import (
 
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/api/v3/filters"
+	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -41,18 +44,69 @@ func (h *handler) ListAddons() ListAddonsHandler {
 
 			if err := page.Validate(); err != nil {
 				return ListAddonsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-					apierrors.InvalidParameter{
-						Field:  "page",
-						Reason: err.Error(),
-						Source: apierrors.InvalidParamSourceQuery,
-					},
+					{Field: "page", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 				})
 			}
 
-			return ListAddonsRequest{
+			req := ListAddonsRequest{
 				Namespaces: []string{ns},
 				Page:       page,
-			}, nil
+			}
+
+			if params.Filter != nil {
+				id, err := filters.FromAPIFilterULID(params.Filter.Id)
+				if err != nil {
+					return ListAddonsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.ID = id
+
+				key, err := filters.FromAPIFilterString(params.Filter.Key)
+				if err != nil {
+					return ListAddonsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[key]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.Key = key
+
+				name, err := filters.FromAPIFilterString(params.Filter.Name)
+				if err != nil {
+					return ListAddonsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[name]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.Name = name
+
+				currency, err := filters.FromAPIFilterStringExact(params.Filter.Currency)
+				if err != nil {
+					return ListAddonsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[currency]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.Currency = currency
+
+				status, err := filters.FromAPIStatusFilter[productcatalog.AddonStatus](ctx, params.Filter.Status)
+				if err != nil {
+					return ListAddonsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[status]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.Status = status
+			}
+
+			if params.Sort != nil {
+				sort, err := request.ParseSortBy(string(*params.Sort))
+				if err != nil {
+					return ListAddonsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.OrderBy = addon.OrderBy(sort.Field)
+				req.Order = sort.Order.ToSortxOrder()
+			}
+
+			return req, nil
 		},
 		func(ctx context.Context, request ListAddonsRequest) (ListAddonsResponse, error) {
 			resp, err := h.service.ListAddons(ctx, request)

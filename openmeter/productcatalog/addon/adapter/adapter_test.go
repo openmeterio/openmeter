@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -171,28 +172,61 @@ func TestPostgresAdapter(t *testing.T) {
 			})
 
 			t.Run("List", func(t *testing.T) {
-				t.Run("ById", func(t *testing.T) {
+				t.Run("ByIdFilter", func(t *testing.T) {
 					listAddonV1, err := env.AddonRepository.ListAddons(ctx, addon.ListAddonsInput{
 						Namespaces: []string{namespace},
-						IDs:        []string{addonV1.ID},
+						ID: &filter.FilterULID{
+							FilterString: filter.FilterString{
+								Eq: &addonV1.ID,
+							},
+						},
 					})
-					assert.NoErrorf(t, err, "listing add-on by id must not fail")
+					assert.NoErrorf(t, err, "listing add-on by id filter must not fail")
 
 					require.Lenf(t, listAddonV1.Items, 1, "add-ons must not be empty")
 
 					addon.AssertAddonEqual(t, *addonV1, listAddonV1.Items[0])
 				})
 
-				t.Run("ByKey", func(t *testing.T) {
+				t.Run("ByKeyFilter", func(t *testing.T) {
 					listAddonV1, err := env.AddonRepository.ListAddons(ctx, addon.ListAddonsInput{
 						Namespaces: []string{namespace},
-						Keys:       []string{addonV1Input.Key},
+						Key: &filter.FilterString{
+							Eq: &addonV1Input.Key,
+						},
 					})
-					assert.NoErrorf(t, err, "getting add-on by key must not fail")
+					assert.NoErrorf(t, err, "getting add-on by key filter must not fail")
 
 					require.Lenf(t, listAddonV1.Items, 1, "add-ons must not be empty")
 
 					addon.AssertAddonEqual(t, *addonV1, listAddonV1.Items[0])
+				})
+
+				t.Run("ByNameFilter", func(t *testing.T) {
+					listAddonV1, err := env.AddonRepository.ListAddons(ctx, addon.ListAddonsInput{
+						Namespaces: []string{namespace},
+						Name: &filter.FilterString{
+							Eq: &addonV1Input.Name,
+						},
+					})
+					assert.NoErrorf(t, err, "getting add-on by name filter must not fail")
+
+					require.Lenf(t, listAddonV1.Items, 1, "add-ons must not be empty")
+
+					addon.AssertAddonEqual(t, *addonV1, listAddonV1.Items[0])
+				})
+
+				t.Run("ByCurrencyFilter", func(t *testing.T) {
+					currencyStr := string(addonV1Input.Currency)
+					listAddonV1, err := env.AddonRepository.ListAddons(ctx, addon.ListAddonsInput{
+						Namespaces: []string{namespace},
+						Currency: &filter.FilterString{
+							Eq: &currencyStr,
+						},
+					})
+					assert.NoErrorf(t, err, "getting add-on by currency filter must not fail")
+
+					require.NotEmpty(t, listAddonV1.Items, "add-ons must not be empty")
 				})
 
 				t.Run("ByKeyVersion", func(t *testing.T) {

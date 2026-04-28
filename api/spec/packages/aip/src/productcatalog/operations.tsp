@@ -153,6 +153,23 @@ interface PlanOperations {
   ): Shared.UpdateResponse<Plan> | Common.ErrorResponses | Common.NotFound;
 }
 
+/**
+ * Filter options for listing add-ons.
+ */
+@friendlyName("ListAddonsParamsFilter")
+model ListAddonsParamsFilter {
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  id?: Common.ULIDFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  key?: Common.StringFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  name?: Common.StringFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  status?: Common.StringFieldFilterExact;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  currency?: Common.StringFieldFilterExact;
+}
+
 interface AddonOperations {
   /**
    * List all add-ons.
@@ -165,6 +182,27 @@ interface AddonOperations {
   @extension(Shared.InternalExtension, true)
   listAddons(
     ...Common.PagePaginationQuery,
+
+    /**
+     * Sort add-ons returned in the response.
+     * Supported sort attributes are:
+     * - `id`
+     * - `key`
+     * - `name`
+     * - `created_at` (default)
+     * - `updated_at`
+     *
+     * The `asc` suffix is optional as the default sort order is ascending.
+     * The `desc` suffix is used to specify a descending order.
+     */
+    @query(#{ name: "sort" })
+    sort?: Common.SortQuery,
+
+    /**
+     * Filter add-ons returned in the response.
+     */
+    @query(#{ style: "deepObject", explode: true })
+    filter?: ListAddonsParamsFilter,
   ): Shared.PagePaginatedResponse<Addon> | Common.ErrorResponses;
 
   /**

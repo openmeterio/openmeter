@@ -240,13 +240,22 @@ Important behaviors baked into the converter + `ApplyToQuery` pipeline:
 - **`FilterLabels` is special:** convert with `FromAPIFilterLabels` and then apply each entry against the JSONB key in the adapter — `ApplyToQuery` does not handle map-shaped predicates on its own.
 - **DateTime:** values are already parsed to `time.Time` by `Parse`. `FromAPIFilterDateTime` cannot fail on format anymore, but still returns `error` for the interface.
 
-### Step 5: Tests
+### Step 5: Service Level Tests
 
-Write tests at three layers:
+ALWAYS add service level tests for the list function in the domain's `service_test.go`. These tests should:
+1.  Use a table-based test approach (`testCases := []struct{...}`).
+2.  Cover each new filter field (e.g., `FilterByID`, `FilterByKey`, `FilterByStatus`).
+3.  Cover the new sort options (e.g., `SortByNameDesc`).
+4.  Assert on the expected number of items and specific item properties in the result.
+
+### Step 6: Adapter & Integration Tests
+
+Write tests at three additional layers:
 
 1. **Parser tests** (`api/v3/filters/parse_test.go`): the parse layer is already covered for the generic operator surface; only add cases when introducing a new filter type or operator.
 2. **Converter tests** (`api/v3/filters/convert_test.go`): only when adding a new `FromAPIFilter*` helper.
-3. **Handler/adapter integration tests:** the important layer for new endpoints — assert that representative `?filter[...]=` query strings produce the expected results. Cover at minimum:
+3. **Adapter tests** (`adapter_test.go`): If you made changes to the adapter (e.g., adding `filter.ApplyToQuery` for new fields) that are not already covered by existing tests, add specific test cases to verify the Ent query generation for these fields.
+4. **Handler/adapter integration tests:** the important layer for new endpoints — assert that representative `?filter[...]=` query strings produce the expected results. Cover at minimum:
    - shorthand `filter[name]=foo`
    - explicit `filter[name][eq]=foo`
    - `filter[name][contains]=...`
