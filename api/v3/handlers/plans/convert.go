@@ -1,8 +1,6 @@
 package plans
 
 import (
-	"context"
-	"errors"
 	"fmt"
 
 	decimal "github.com/alpacahq/alpacadecimal"
@@ -10,7 +8,6 @@ import (
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
-	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -776,30 +773,4 @@ func FromAPIBillingRateCardDiscounts(d api.BillingRateCardDiscounts) (productcat
 	}
 
 	return result, nil
-}
-
-func fromAPIStatusFilter(ctx context.Context, f *api.StringFieldFilterExact) ([]productcatalog.PlanStatus, error) {
-	if f == nil {
-		return nil, nil
-	}
-	if f.Neq != nil {
-		err := errors.New("only eq and oeq operators are supported for status")
-		return nil, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-			{Field: "filter[status]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
-		})
-	}
-
-	var statuses []productcatalog.PlanStatus
-	if f.Eq != nil {
-		statuses = append(statuses, productcatalog.PlanStatus(*f.Eq))
-	}
-	for _, v := range f.Oeq {
-		statuses = append(statuses, productcatalog.PlanStatus(v))
-	}
-
-	if len(statuses) == 0 {
-		return nil, nil
-	}
-
-	return statuses, nil
 }
