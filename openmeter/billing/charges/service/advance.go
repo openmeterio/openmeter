@@ -9,9 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
-	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
@@ -102,30 +100,11 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 			}
 		}
 
-		return advancedCharges, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	// Post-commit recognition pass keeps ledger recognition out of charge DB transaction boundaries.
-	currencies := collectCurrencies(advancedCharges)
-	if len(currencies) == 0 {
-		return advancedCharges, nil
-	}
-
-	err = s.billingService.WithLock(ctx, input.Customer, func(ctx context.Context) error {
-		for _, currency := range currencies {
-			if _, err := s.recognizerService.RecognizeEarnings(ctx, recognizer.RecognizeEarningsInput{
-				CustomerID: input.Customer,
-				At:         clock.Now(),
-				Currency:   currency,
-			}); err != nil {
-				return fmt.Errorf("recognize earnings for currency %s: %w", currency, err)
-			}
+		if err := s.recognizeCustomerEarnings(ctx, input.Customer, collectCurrencies(advancedCharges)...); err != nil {
+			return nil, err
 		}
 
-		return nil
+		return advancedCharges, nil
 	})
 	if err != nil {
 		return nil, err

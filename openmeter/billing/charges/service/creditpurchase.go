@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
@@ -34,13 +35,26 @@ func (s *service) HandleCreditPurchaseExternalPaymentStateTransition(ctx context
 			return creditpurchase.Charge{}, err
 		}
 
+		var updatedCharge creditpurchase.Charge
 		switch input.TargetPaymentState {
 		case payment.StatusAuthorized:
-			return s.creditPurchaseService.HandleExternalPaymentAuthorized(ctx, creditPurchaseCharge)
+			updatedCharge, err = s.creditPurchaseService.HandleExternalPaymentAuthorized(ctx, creditPurchaseCharge)
 		case payment.StatusSettled:
-			return s.creditPurchaseService.HandleExternalPaymentSettled(ctx, creditPurchaseCharge)
+			updatedCharge, err = s.creditPurchaseService.HandleExternalPaymentSettled(ctx, creditPurchaseCharge)
 		default:
 			return creditpurchase.Charge{}, fmt.Errorf("invalid target payment state: %s", input.TargetPaymentState)
 		}
+		if err != nil {
+			return creditpurchase.Charge{}, err
+		}
+
+		if err := s.recognizeCustomerEarnings(ctx, customer.CustomerID{
+			Namespace: updatedCharge.Namespace,
+			ID:        updatedCharge.Intent.CustomerID,
+		}, updatedCharge.Intent.Currency); err != nil {
+			return creditpurchase.Charge{}, err
+		}
+
+		return updatedCharge, nil
 	})
 }
