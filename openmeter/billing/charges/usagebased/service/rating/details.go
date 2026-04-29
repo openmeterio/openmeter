@@ -89,18 +89,17 @@ type GetDetailedRatingForUsageResult struct {
 }
 
 func (s *service) GetDetailedRatingForUsage(ctx context.Context, in GetDetailedRatingForUsageInput) (GetDetailedRatingForUsageResult, error) {
-	chargeWithDetailedLines, err := s.ensureDetailedLinesLoadedForRating(ctx, in.Charge, in.ServicePeriodTo)
-	if err != nil {
-		return GetDetailedRatingForUsageResult{}, err
-	}
-	in.Charge = chargeWithDetailedLines
-
 	if err := in.Validate(); err != nil {
 		return GetDetailedRatingForUsageResult{}, err
 	}
 
+	charge, err := s.ensureDetailedLinesLoadedForRating(ctx, in.Charge, in.ServicePeriodTo)
+	if err != nil {
+		return GetDetailedRatingForUsageResult{}, err
+	}
+
 	currentRunServicePeriod := timeutil.ClosedPeriod{
-		From: in.Charge.Intent.ServicePeriod.From,
+		From: charge.Intent.ServicePeriod.From,
 		To:   in.ServicePeriodTo,
 	}
 
@@ -115,7 +114,7 @@ func (s *service) GetDetailedRatingForUsage(ctx context.Context, in GetDetailedR
 	}
 
 	// Let's fetch invoice based realizations that are before the current run's service period to
-	eligibleRealizations := lo.Filter(in.Charge.Realizations, func(run usagebased.RealizationRun, _ int) bool {
+	eligibleRealizations := lo.Filter(charge.Realizations, func(run usagebased.RealizationRun, _ int) bool {
 		if run.Type != usagebased.RealizationRunTypeFinalRealization && run.Type != usagebased.RealizationRunTypePartialInvoice {
 			return false
 		}
@@ -128,7 +127,7 @@ func (s *service) GetDetailedRatingForUsage(ctx context.Context, in GetDetailedR
 		return cmp.Compare(a.ServicePeriodTo.UnixNano(), b.ServicePeriodTo.UnixNano())
 	})
 
-	servicePeriodFrom := in.Charge.Intent.ServicePeriod.From
+	servicePeriodFrom := charge.Intent.ServicePeriod.From
 	priorPeriods := make([]ratingPriorPeriod, 0, len(eligibleRealizations))
 
 	for _, realization := range eligibleRealizations {
@@ -176,7 +175,7 @@ func (s *service) GetDetailedRatingForUsage(ctx context.Context, in GetDetailedR
 	}
 
 	return s.rateWithLateEvents(ctx, rateWithLateEventsInput{
-		Intent: in.Charge.Intent,
+		Intent: charge.Intent,
 		CurrentPeriod: ratingCurrentPeriod{
 			MeteredQuantity: currentQuantity,
 			ServicePeriod:   currentRunServicePeriod,
