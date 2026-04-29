@@ -209,6 +209,11 @@ etoe: ## Run e2e tests
 	$(call print-target)
 	$(MAKE) -C e2e test-local
 
+.PHONY: etoe-pw
+etoe-pw: ## Run Playwright e2e tests
+	$(call print-target)
+	cd e2e/playwright && pnpm playwright test
+
 .PHONY: etoe-slow
 etoe-slow: ## Run e2e tests with slow tests enabled
 	$(call print-target)
