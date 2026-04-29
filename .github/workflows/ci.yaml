@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -819,3 +820,88 @@ jobs:
             e2e/logs/openmeter/openmeter.log
             e2e/logs/sink-worker/openmeter.log
           retention-days: 14
+
+  e2e-playwright:
+    name: E2E Playwright
+    runs-on: depot-ubuntu-latest-8
+    needs:
+      - trusted-artifacts
+      - untrusted-artifacts
+    if: ${{ github.event_name == 'workflow_dispatch' && !cancelled() && !contains(needs.*.result, 'failure') && contains(needs.*.result, 'success') }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Create override files for e2e
+        env:
+          DEPOT_IMAGE_URL: ${{ needs.trusted-artifacts.outputs.container-image-url-depot }}
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        run: |
+          cat > e2e/docker-compose.override.yaml <<EOF
+          services:
+            openmeter:
+              image: $DEPOT_IMAGE_URL
+            sink-worker:
+              image: $DEPOT_IMAGE_URL
+          EOF
+
+      - name: Build as part of e2e
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+        run: |
+          cat > e2e/docker-compose.override.yaml <<EOF
+          services:
+            openmeter:
+              build: ..
+            sink-worker:
+              build: ..
+          EOF
+
+      - name: Launch Docker Compose infra
+        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml up -d
+        working-directory: e2e
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@903f9c1a6ebcba6cf41d87230be49611ac97822e # v6
+        with:
+          package_json_file: e2e/playwright/package.json
+
+      - name: Set up Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: e2e/playwright/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install
+        working-directory: e2e/playwright
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+        working-directory: e2e/playwright
+
+      - name: Wait for server to become ready
+        run: |
+          curl --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:30000/healthz
+          docker ps
+
+      - name: Run Playwright tests
+        env:
+          OPENMETER_ADDRESS: http://localhost:38888
+        run: make etoe-pw
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: "[${{ github.job }}] Playwright report"
+          path: e2e/playwright/playwright-report/
+          retention-days: 14
+
+      - name: Cleanup Docker Compose
+        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml down -v
+        working-directory: e2e
+        if: always()
