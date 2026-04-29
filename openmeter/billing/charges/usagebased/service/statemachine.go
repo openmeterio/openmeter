@@ -185,24 +185,3 @@ func (s *stateMachine) getCurrentRunSnapshotAfter() (time.Time, error) {
 
 	return meta.NormalizeTimestamp(currentRun.StoredAtLT.Add(usagebased.InternalCollectionPeriod)), nil
 }
-
-func (s *stateMachine) ensureDetailedLinesLoadedForRating(ctx context.Context) error {
-	if len(s.Charge.Realizations) == 0 {
-		return nil
-	}
-
-	if lo.EveryBy(s.Charge.Realizations, func(run usagebased.RealizationRun) bool {
-		return run.DetailedLines.IsPresent()
-	}) {
-		return nil
-	}
-
-	expandedCharge, err := s.Adapter.FetchDetailedLines(ctx, s.Charge)
-	if err != nil {
-		return fmt.Errorf("fetch detailed lines: %w", err)
-	}
-
-	s.Charge = expandedCharge
-
-	return nil
-}

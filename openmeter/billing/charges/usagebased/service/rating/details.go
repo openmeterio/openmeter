@@ -13,6 +13,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -80,13 +81,20 @@ func (i GetDetailedRatingForUsageInput) Validate() error {
 }
 
 type GetDetailedRatingForUsageResult struct {
-	billingrating.GenerateDetailedLinesResult
+	Totals        totals.Totals
+	DetailedLines usagebased.DetailedLines
 	// Quantity is the current run's meter value between [Charge.Intent.ServicePeriod.From, ServicePeriodTo)
 	// capped at StoredAtLT.
 	Quantity alpacadecimal.Decimal
 }
 
 func (s *service) GetDetailedRatingForUsage(ctx context.Context, in GetDetailedRatingForUsageInput) (GetDetailedRatingForUsageResult, error) {
+	chargeWithDetailedLines, err := s.ensureDetailedLinesLoadedForRating(ctx, in.Charge, in.ServicePeriodTo)
+	if err != nil {
+		return GetDetailedRatingForUsageResult{}, err
+	}
+	in.Charge = chargeWithDetailedLines
+
 	if err := in.Validate(); err != nil {
 		return GetDetailedRatingForUsageResult{}, err
 	}
@@ -256,7 +264,12 @@ func (s *service) rateWithLateEvents(ctx context.Context, in rateWithLateEventsI
 	)
 
 	return GetDetailedRatingForUsageResult{
-		GenerateDetailedLinesResult: ratingResult,
-		Quantity:                    in.CurrentPeriod.MeteredQuantity,
+		Totals: ratingResult.Totals,
+		DetailedLines: mapBillingRatingDetailedLinesToUsageBasedDetailedLines(
+			in.Intent,
+			in.CurrentPeriod.ServicePeriod,
+			ratingResult.DetailedLines,
+		),
+		Quantity: in.CurrentPeriod.MeteredQuantity,
 	}, nil
 }
