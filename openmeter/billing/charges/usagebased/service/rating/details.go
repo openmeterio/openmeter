@@ -81,12 +81,6 @@ type GetDetailedRatingForUsageResult struct {
 }
 
 func (s *service) GetDetailedRatingForUsage(ctx context.Context, in GetDetailedRatingForUsageInput) (GetDetailedRatingForUsageResult, error) {
-	chargeWithDetailedLines, err := s.ensureDetailedLinesLoadedForRating(ctx, in.Charge, in.ServicePeriodTo)
-	if err != nil {
-		return GetDetailedRatingForUsageResult{}, err
-	}
-	in.Charge = chargeWithDetailedLines
-
 	if err := in.Validate(); err != nil {
 		return GetDetailedRatingForUsageResult{}, err
 	}
