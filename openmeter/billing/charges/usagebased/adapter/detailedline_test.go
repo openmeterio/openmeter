@@ -334,6 +334,36 @@ func (s *DetailedLineAdapterSuite) TestFetchDetailedLinesUsesPersistedDetailedLi
 	s.False(fetchedCharge.Realizations[0].DetailedLines.IsPresent())
 }
 
+func (s *DetailedLineAdapterSuite) TestFetchDetailedLinesClearsStaleDetailedLinesWhenRunMetadataIsMissing() {
+	ctx := s.T().Context()
+	namespace := "usagebased-detailedline-adapter-fetch-missing-run-metadata"
+	charge, runBase, servicePeriod := s.createChargeWithRun(namespace)
+
+	missingRunBase := runBase
+	missingRunBase.ID.ID = ulid.Make().String()
+
+	staleCharge := charge
+	staleCharge.Realizations = usagebased.RealizationRuns{
+		{
+			RealizationRunBase: missingRunBase,
+			DetailedLines: mo.Some(usagebased.DetailedLines{
+				s.newDetailedLine(newDetailedLineInput{
+					Charge:                 charge,
+					RunID:                  missingRunBase.ID,
+					ServicePeriod:          servicePeriod,
+					ChildUniqueReferenceID: "stale@[2026-01-01T00:00:00Z..2026-02-01T00:00:00Z]",
+					Quantity:               1,
+				}),
+			}),
+		},
+	}
+
+	fetchedCharge, err := s.adapter.FetchDetailedLines(ctx, staleCharge)
+	s.Require().NoError(err)
+	s.Require().Len(fetchedCharge.Realizations, 1)
+	s.False(fetchedCharge.Realizations[0].DetailedLines.IsPresent())
+}
+
 func (s *DetailedLineAdapterSuite) createChargeWithRun(namespace string) (usagebased.Charge, usagebased.RealizationRunBase, timeutil.ClosedPeriod) {
 	s.T().Helper()
 

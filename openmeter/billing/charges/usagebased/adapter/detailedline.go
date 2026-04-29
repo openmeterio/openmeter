@@ -75,6 +75,7 @@ func (a *adapter) FetchDetailedLines(ctx context.Context, charge usagebased.Char
 
 			detailedLinesPresent, found := detailedLinesPresentByRunID[run.ID.ID]
 			if !found {
+				charge.Realizations[idx].DetailedLines = mo.None[usagebased.DetailedLines]()
 				continue
 			}
 
