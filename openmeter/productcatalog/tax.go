@@ -164,6 +164,54 @@ func (s StripeTaxConfig) Clone() StripeTaxConfig {
 	return s
 }
 
+// TaxCodeConfig holds a lean reference to a tax code entry — only the FK and the behavior flag.
+// Used in charge intents where provider-specific fields (e.g. Stripe.Code) are not stored and
+// are resolved at invoice snapshot time via BackfillTaxConfig.
+type TaxCodeConfig struct {
+	Behavior  *TaxBehavior `json:"behavior,omitempty"`
+	TaxCodeID *string      `json:"tax_code_id,omitempty"`
+}
+
+func (c *TaxCodeConfig) Validate() error {
+	if c == nil {
+		return nil
+	}
+
+	var errs []error
+
+	if c.Behavior != nil {
+		if err := c.Behavior.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// ToTaxConfig converts TaxCodeConfig to TaxConfig (without provider-specific fields).
+func (c *TaxCodeConfig) ToTaxConfig() *TaxConfig {
+	if c == nil {
+		return nil
+	}
+
+	return &TaxConfig{
+		Behavior:  c.Behavior,
+		TaxCodeID: c.TaxCodeID,
+	}
+}
+
+// TaxCodeConfigFrom extracts the lean reference fields from a full TaxConfig.
+func TaxCodeConfigFrom(cfg *TaxConfig) *TaxCodeConfig {
+	if cfg == nil {
+		return nil
+	}
+
+	return &TaxCodeConfig{
+		Behavior:  cfg.Behavior,
+		TaxCodeID: cfg.TaxCodeID,
+	}
+}
+
 // ResolveTaxConfig cross-populates TaxCodeID and provider-specific codes on the pointed-to
 // config so the persisted record is internally consistent. Four input cases:
 //   - Only TaxCodeID: looks up the entity, validates it exists (400 if not), and sets Stripe

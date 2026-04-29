@@ -6,18 +6,26 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
+	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
+	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
 
 func TestTaxCodePersistence(t *testing.T) {
@@ -70,7 +78,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeChargePersistsTaxConfig() {
 					name:              "flat-fee-taxcode",
 					managedBy:         billing.ManuallyManagedLine,
 					uniqueReferenceID: "flat-fee-taxcode",
-					taxConfig: &productcatalog.TaxConfig{
+					taxConfig: &productcatalog.TaxCodeConfig{
 						Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 						TaxCodeID: &tc.ID,
 					},
@@ -163,7 +171,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedChargePersistsTaxConfig() {
 					name:              "usage-based-taxcode",
 					managedBy:         billing.ManuallyManagedLine,
 					uniqueReferenceID: "usage-based-taxcode",
-					taxConfig: &productcatalog.TaxConfig{
+					taxConfig: &productcatalog.TaxCodeConfig{
 						Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 						TaxCodeID: &tc.ID,
 					},
@@ -252,7 +260,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseChargePersistsTaxConfig(
 						ServicePeriod:     servicePeriod,
 						BillingPeriod:     servicePeriod,
 						FullServicePeriod: servicePeriod,
-						TaxConfig: &productcatalog.TaxConfig{
+						TaxConfig: &productcatalog.TaxCodeConfig{
 							Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 							TaxCodeID: &tc.ID,
 						},
@@ -338,7 +346,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementPropaga
 	// queryable via ListGatheringInvoices.
 	clock.SetTime(time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC))
 
-	taxConfig := &productcatalog.TaxConfig{
+	taxConfig := &productcatalog.TaxCodeConfig{
 		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 		TaxCodeID: &tc.ID,
 	}
@@ -388,6 +396,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementPropaga
 	s.Equal(productcatalog.ExclusiveTaxBehavior, *gatheringLine.TaxConfig.Behavior)
 	s.Require().NotNil(gatheringLine.TaxConfig.TaxCodeID, "TaxCodeID must propagate to gathering line")
 	s.Equal(tc.ID, *gatheringLine.TaxConfig.TaxCodeID)
+	s.Nil(gatheringLine.TaxConfig.Stripe, "Stripe is resolved at invoice snapshot time, not on gathering lines")
 }
 
 // TestCreditPurchaseInvoiceSettlementNilTaxConfigDoesNotPropagateToGatheringLine verifies that
@@ -447,6 +456,257 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementNilTaxC
 	s.Nil(lines[0].TaxConfig, "gathering line TaxConfig must be nil when Intent.TaxConfig is nil")
 }
 
+// TestCreditPurchasePaymentSettlementPopulatesStripeCodeOnStandardInvoice verifies the dual-write
+// invariant: when a TaxCode has a Stripe app mapping, both TaxCodeID and Stripe.Code are populated
+// on the resulting standard invoice line after the credit purchase payment is settled.
+func (s *TaxCodePersistenceTestSuite) TestCreditPurchasePaymentSettlementPopulatesStripeCodeOnStandardInvoice() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-taxcode-cp-settled")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithManualApproval(),
+	)
+	cust := s.CreateTestCustomer(ns, "test-subject")
+
+	const stripeCode = "txcd_10000004"
+	tc := s.createTestTaxCodeWithStripeMapping(ctx, ns, "txcd-10000004", stripeCode)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	clock.SetTime(time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC))
+
+	initiatedCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
+	s.CreditPurchaseTestHandler.onCreditPurchaseInitiated = initiatedCallback.Handler(s.T())
+
+	_, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			charges.NewChargeIntent(creditpurchase.Intent{
+				Intent: meta.Intent{
+					Name:              "credit-purchase-settled-stripe",
+					ManagedBy:         billing.ManuallyManagedLine,
+					CustomerID:        cust.GetID().ID,
+					Currency:          USD,
+					ServicePeriod:     servicePeriod,
+					BillingPeriod:     servicePeriod,
+					FullServicePeriod: servicePeriod,
+					TaxConfig: &productcatalog.TaxCodeConfig{
+						Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+						TaxCodeID: &tc.ID,
+					},
+				},
+				CreditAmount: alpacadecimal.NewFromFloat(100),
+				Settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
+					GenericSettlement: creditpurchase.GenericSettlement{
+						Currency:  USD,
+						CostBasis: alpacadecimal.NewFromFloat(0.5),
+					},
+				}),
+			}),
+		},
+	})
+	s.NoError(err)
+
+	clock.SetTime(servicePeriod.From)
+	now := clock.Now()
+	createdInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     &now,
+	})
+	s.NoError(err)
+	s.Require().Len(createdInvoices, 1)
+	invoiceID := createdInvoices[0].GetInvoiceID()
+	s.Equal(1, initiatedCallback.nrInvocations)
+
+	_, err = s.BillingService.ApproveInvoice(ctx, invoiceID)
+	s.NoError(err)
+
+	authorizedCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
+	s.CreditPurchaseTestHandler.onCreditPurchasePaymentAuthorized = authorizedCallback.Handler(s.T())
+	settledCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
+	s.CreditPurchaseTestHandler.onCreditPurchasePaymentSettled = settledCallback.Handler(s.T())
+
+	_, err = s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
+		InvoiceID: invoiceID,
+		Trigger:   billing.TriggerPaid,
+	})
+	s.NoError(err)
+	s.Equal(1, authorizedCallback.nrInvocations)
+	s.Equal(1, settledCallback.nrInvocations)
+
+	invoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: invoiceID,
+		Expand:  billing.StandardInvoiceExpandAll,
+	})
+	s.NoError(err)
+
+	lines := invoice.Lines.OrEmpty()
+	s.Require().Len(lines, 1)
+	line := lines[0]
+
+	s.Require().NotNil(line.TaxConfig, "standard invoice line must have TaxConfig")
+	s.Require().NotNil(line.TaxConfig.TaxCodeID, "TaxCodeID must be on standard invoice line")
+	s.Equal(tc.ID, *line.TaxConfig.TaxCodeID)
+	s.Require().NotNil(line.TaxConfig.Stripe, "Stripe.Code must be backfilled on standard invoice line via TaxCode edge")
+	s.Equal(stripeCode, line.TaxConfig.Stripe.Code)
+}
+
+// TestFlatFeeCreditOnlyHandlerReceivesTaxConfig verifies that when a credit-only flat-fee charge
+// is advanced to final realization, the ledger handler receives the correct TaxConfig. This guards
+// the full path: intent → DB persistence → charge reconstruction → state machine → handler call.
+func (s *TaxCodePersistenceTestSuite) TestFlatFeeCreditOnlyHandlerReceivesTaxConfig() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-taxcode-flatfee-creditonly")
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+
+	tc := s.createTestTaxCode(ctx, ns, "txcd-20000000")
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	invoiceAt := servicePeriod.From
+	clock.FreezeTime(time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC))
+	defer clock.UnFreeze()
+
+	res, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditOnlySettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromFloat(100),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				name:              "flat-fee-creditonly-taxconfig",
+				managedBy:         billing.ManuallyManagedLine,
+				uniqueReferenceID: "flat-fee-creditonly-taxconfig",
+				taxConfig: &productcatalog.TaxCodeConfig{
+					Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+					TaxCodeID: &tc.ID,
+				},
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Require().Len(res, 1)
+
+	var capturedInput flatfee.OnCreditsOnlyUsageAccruedInput
+	s.FlatFeeTestHandler.onCreditsOnlyUsageAccrued = func(_ context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
+		capturedInput = input
+		return creditrealization.CreateAllocationInputs{
+			{
+				ServicePeriod: input.Charge.Intent.ServicePeriod,
+				Amount:        input.AmountToAllocate,
+				LedgerTransaction: ledgertransaction.GroupReference{
+					TransactionGroupID: ulid.Make().String(),
+				},
+			},
+		}, nil
+	}
+
+	clock.FreezeTime(invoiceAt)
+
+	advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: cust.GetID()})
+	s.NoError(err)
+	s.Require().Len(advancedCharges, 1)
+
+	s.Require().NotNil(capturedInput.Charge.Intent.TaxConfig, "handler must receive TaxConfig after DB roundtrip")
+	s.Require().NotNil(capturedInput.Charge.Intent.TaxConfig.Behavior)
+	s.Equal(productcatalog.InclusiveTaxBehavior, *capturedInput.Charge.Intent.TaxConfig.Behavior)
+	s.Require().NotNil(capturedInput.Charge.Intent.TaxConfig.TaxCodeID)
+	s.Equal(tc.ID, *capturedInput.Charge.Intent.TaxConfig.TaxCodeID)
+}
+
+// TestUsageBasedCreditOnlyHandlerReceivesTaxConfig verifies that when a credit-only usage-based
+// charge reaches final realization, the ledger handler receives the correct TaxConfig. This guards
+// the full path: intent → DB persistence → charge reconstruction → state machine → handler call.
+func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditOnlyHandlerReceivesTaxConfig() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-taxcode-usagebased-creditonly")
+
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+	defer apiRequestsTotal.Cleanup()
+	meterSlug := apiRequestsTotal.Feature.Key
+
+	tc := s.createTestTaxCode(ctx, ns, "txcd-20000001")
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	clock.FreezeTime(time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC))
+	defer clock.UnFreeze()
+
+	res, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditOnlySettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromFloat(1),
+				}),
+				featureKey:        meterSlug,
+				name:              "usage-based-creditonly-taxconfig",
+				managedBy:         billing.ManuallyManagedLine,
+				uniqueReferenceID: "usage-based-creditonly-taxconfig",
+				taxConfig: &productcatalog.TaxCodeConfig{
+					Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+					TaxCodeID: &tc.ID,
+				},
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Require().Len(res, 1)
+
+	// Advance into active state at service period start.
+	clock.FreezeTime(servicePeriod.From)
+	_, err = s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: cust.GetID()})
+	s.NoError(err)
+
+	// Add usage so the final realization produces a non-zero amount.
+	s.MockStreamingConnector.AddSimpleEvent(meterSlug, 5, time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC))
+
+	var capturedInput usagebased.CreditsOnlyUsageAccruedInput
+	s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued = func(_ context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
+		capturedInput = input
+		return creditrealization.CreateAllocationInputs{
+			{
+				ServicePeriod: input.Charge.Intent.ServicePeriod,
+				Amount:        input.AmountToAllocate,
+				LedgerTransaction: ledgertransaction.GroupReference{
+					TransactionGroupID: ulid.Make().String(),
+				},
+			},
+		}, nil
+	}
+
+	// Advance past service period end to trigger final realization.
+	clock.FreezeTime(time.Date(2026, 2, 3, 0, 1, 0, 0, time.UTC))
+	_, err = s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: cust.GetID()})
+	s.NoError(err)
+
+	s.Require().NotNil(capturedInput.Charge.Intent.TaxConfig, "handler must receive TaxConfig after DB roundtrip")
+	s.Require().NotNil(capturedInput.Charge.Intent.TaxConfig.Behavior)
+	s.Equal(productcatalog.ExclusiveTaxBehavior, *capturedInput.Charge.Intent.TaxConfig.Behavior)
+	s.Require().NotNil(capturedInput.Charge.Intent.TaxConfig.TaxCodeID)
+	s.Equal(tc.ID, *capturedInput.Charge.Intent.TaxConfig.TaxCodeID)
+}
+
 func (s *TaxCodePersistenceTestSuite) createTestTaxCode(ctx context.Context, ns, key string) taxcode.TaxCode {
 	s.T().Helper()
 	tc, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
@@ -455,5 +715,19 @@ func (s *TaxCodePersistenceTestSuite) createTestTaxCode(ctx context.Context, ns,
 		Name:      "Test Tax Code " + key,
 	})
 	s.Require().NoError(err, "creating test tax code must succeed")
+	return tc
+}
+
+func (s *TaxCodePersistenceTestSuite) createTestTaxCodeWithStripeMapping(ctx context.Context, ns, key, stripeCode string) taxcode.TaxCode {
+	s.T().Helper()
+	tc, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: ns,
+		Key:       key,
+		Name:      "Test Tax Code " + key,
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: stripeCode},
+		},
+	})
+	s.Require().NoError(err, "creating test tax code with stripe mapping must succeed")
 	return tc
 }

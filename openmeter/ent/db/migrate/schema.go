@@ -1716,14 +1716,6 @@ var (
 				},
 			},
 			{
-				Name:    "chargecreditpurchase_tax_code_id",
-				Unique:  false,
-				Columns: []*schema.Column{ChargeCreditPurchasesColumns[30]},
-				Annotation: &entsql.IndexAnnotation{
-					Where: "tax_code_id IS NOT NULL AND deleted_at IS NULL",
-				},
-			},
-			{
 				Name:    "chargecreditpurchase_annotations",
 				Unique:  false,
 				Columns: []*schema.Column{ChargeCreditPurchasesColumns[13]},
@@ -2002,14 +1994,6 @@ var (
 				Columns: []*schema.Column{ChargeFlatFeesColumns[14], ChargeFlatFeesColumns[30], ChargeFlatFeesColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
-				},
-			},
-			{
-				Name:    "chargeflatfee_tax_code_id",
-				Unique:  false,
-				Columns: []*schema.Column{ChargeFlatFeesColumns[35]},
-				Annotation: &entsql.IndexAnnotation{
-					Where: "tax_code_id IS NOT NULL AND deleted_at IS NULL",
 				},
 			},
 			{
@@ -2430,14 +2414,6 @@ var (
 				Columns: []*schema.Column{ChargeUsageBasedColumns[14], ChargeUsageBasedColumns[28], ChargeUsageBasedColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
-				},
-			},
-			{
-				Name:    "chargeusagebased_tax_code_id",
-				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedColumns[33]},
-				Annotation: &entsql.IndexAnnotation{
-					Where: "tax_code_id IS NOT NULL AND deleted_at IS NULL",
 				},
 			},
 			{

@@ -44,18 +44,9 @@ func mapBillingRatingDetailedLinesToUsageBasedDetailedLines(
 			Category:               category,
 			CreditsApplied:         line.CreditsApplied,
 			Totals:                 line.Totals,
-			TaxConfig:              cloneTaxConfig(intent.TaxConfig),
+			TaxConfig:              intent.TaxConfig.ToTaxConfig(),
 		}
 	})
-}
-
-func cloneTaxConfig(cfg *productcatalog.TaxConfig) *productcatalog.TaxConfig {
-	if cfg == nil {
-		return nil
-	}
-
-	cloned := cfg.Clone()
-	return &cloned
 }
 
 func (s *service) ensureDetailedLinesLoadedForRating(ctx context.Context, charge usagebased.Charge, servicePeriodTo time.Time) (usagebased.Charge, error) {

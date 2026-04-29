@@ -185,7 +185,7 @@ type createMockChargeIntentInput struct {
 	settlementMode    productcatalog.SettlementMode
 	managedBy         billing.InvoiceLineManagedBy
 	uniqueReferenceID string
-	taxConfig         *productcatalog.TaxConfig
+	taxConfig         *productcatalog.TaxCodeConfig
 }
 
 func (i *createMockChargeIntentInput) Validate() error {

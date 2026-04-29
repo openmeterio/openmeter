@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -216,7 +217,7 @@ func toIntent(input creditgrant.CreateInput) creditpurchase.Intent {
 			Description: input.Description,
 			CustomerID:  input.CustomerID,
 			Currency:    input.Currency,
-			TaxConfig:   input.TaxConfig,
+			TaxConfig:   productcatalog.TaxCodeConfigFrom(input.TaxConfig),
 			Metadata:    input.Labels,
 			ManagedBy:   billing.ManuallyManagedLine,
 			// TODO: replace with actual service period

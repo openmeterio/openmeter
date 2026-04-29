@@ -107,8 +107,6 @@ func (metaMixin) Indexes() []ent.Index {
 				entsql.IndexWhere("unique_reference_id IS NOT NULL AND deleted_at IS NULL"),
 			).
 			Unique(),
-		index.Fields("tax_code_id").
-			Annotations(entsql.IndexWhere("tax_code_id IS NOT NULL AND deleted_at IS NULL")),
 	}
 }
 
@@ -301,11 +299,11 @@ func MapFromDB[T Getter[T]](entity T) meta.Charge {
 		}
 	}
 
-	// Charge tables persist only TaxCodeID (FK) and Behavior; TaxConfig.Stripe is resolved at
-	// invoice snapshot time from the referenced TaxCode and is not stored on the charge row.
-	var taxConfig *productcatalog.TaxConfig
+	// Charge tables persist only TaxCodeID (FK) and Behavior; provider-specific fields
+	// (e.g. Stripe.Code) are resolved at invoice snapshot time and are not stored here.
+	var taxConfig *productcatalog.TaxCodeConfig
 	if entity.GetTaxCodeID() != nil || entity.GetTaxBehavior() != nil {
-		taxConfig = &productcatalog.TaxConfig{
+		taxConfig = &productcatalog.TaxCodeConfig{
 			TaxCodeID: entity.GetTaxCodeID(),
 			Behavior:  entity.GetTaxBehavior(),
 		}
