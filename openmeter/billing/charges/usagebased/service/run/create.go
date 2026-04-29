@@ -122,12 +122,6 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 		return CreateRatedRunResult{}, err
 	}
 
-	chargeWithDetailedLines, err := s.ensureDetailedLinesLoadedForRating(ctx, in.Charge)
-	if err != nil {
-		return CreateRatedRunResult{}, err
-	}
-	in.Charge = chargeWithDetailedLines
-
 	ratingResult, err := s.rater.GetDetailedRatingForUsage(ctx, usagebasedrating.GetDetailedRatingForUsageInput{
 		Charge:          in.Charge,
 		StoredAtLT:      in.StoredAtLT,
@@ -166,11 +160,10 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 		return CreateRatedRunResult{}, err
 	}
 
-	currentRunDetailedLines, err := s.PersistRunDetailedLines(ctx, updatedCharge, currentRun, ratingResult)
-	if err != nil {
-		return CreateRatedRunResult{}, err
+	if err := s.adapter.UpsertRunDetailedLines(ctx, updatedCharge.GetChargeID(), currentRun.ID, ratingResult.DetailedLines); err != nil {
+		return CreateRatedRunResult{}, fmt.Errorf("upsert run detailed lines: %w", err)
 	}
-	currentRun.DetailedLines = mo.Some(currentRunDetailedLines)
+	currentRun.DetailedLines = mo.Some(ratingResult.DetailedLines)
 
 	if in.CreditAllocation != CreditAllocationNone {
 		allocationResult, err := s.allocate(ctx, allocateCreditRealizationsInput{

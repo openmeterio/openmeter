@@ -1,16 +1,20 @@
 package rating
 
 import (
+	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
@@ -77,6 +81,66 @@ func TestGetDetailedRatingForUsageAddsServicePeriodToDetailedLineChildUniqueRefe
 	require.False(t, fixture.rater.lastOpts.IgnoreMinimumCommitment)
 }
 
+func TestMapBillingRatingDetailedLinesToUsageBasedDetailedLines(t *testing.T) {
+	t.Parallel()
+
+	defaultServicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	explicitServicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2025, 1, 15, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	intent := newDetailedRatingTestCharge(defaultServicePeriod, nil).Intent
+	intent.TaxConfig = &productcatalog.TaxConfig{
+		Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+	}
+
+	out := mapBillingRatingDetailedLinesToUsageBasedDetailedLines(
+		intent,
+		defaultServicePeriod,
+		billingrating.DetailedLines{
+			{
+				Name:                   "Usage",
+				Quantity:               alpacadecimal.NewFromInt(12),
+				PerUnitAmount:          alpacadecimal.NewFromInt(3),
+				ChildUniqueReferenceID: "unit-price-usage",
+				Totals: totals.Totals{
+					Amount: alpacadecimal.NewFromInt(36),
+					Total:  alpacadecimal.NewFromInt(36),
+				},
+			},
+			{
+				Name:                   "Commitment",
+				Quantity:               alpacadecimal.NewFromInt(1),
+				PerUnitAmount:          alpacadecimal.NewFromInt(100),
+				ChildUniqueReferenceID: "minimum-spend",
+				Period:                 lo.ToPtr(explicitServicePeriod),
+				PaymentTerm:            productcatalog.InAdvancePaymentTerm,
+				Category:               stddetailedline.CategoryCommitment,
+			},
+		},
+	)
+
+	require.Len(t, out, 2)
+	require.Empty(t, out[0].Namespace)
+	require.Equal(t, "Usage", out[0].Name)
+	require.Equal(t, defaultServicePeriod, out[0].ServicePeriod)
+	require.Equal(t, currencyx.Code("USD"), out[0].Currency)
+	require.Equal(t, productcatalog.InArrearsPaymentTerm, out[0].PaymentTerm)
+	require.Equal(t, stddetailedline.CategoryRegular, out[0].Category)
+	require.Equal(t, float64(12), out[0].Quantity.InexactFloat64())
+	require.Equal(t, float64(3), out[0].PerUnitAmount.InexactFloat64())
+	require.Equal(t, float64(36), out[0].Totals.Total.InexactFloat64())
+	require.NotNil(t, out[0].TaxConfig)
+	require.NotSame(t, intent.TaxConfig, out[0].TaxConfig)
+
+	require.Equal(t, explicitServicePeriod, out[1].ServicePeriod)
+	require.Equal(t, productcatalog.InAdvancePaymentTerm, out[1].PaymentTerm)
+	require.Equal(t, stddetailedline.CategoryCommitment, out[1].Category)
+}
+
 func TestGetDetailedRatingForUsageIgnoresMinimumCommitmentForPartialRun(t *testing.T) {
 	t.Parallel()
 
@@ -106,6 +170,69 @@ func TestGetDetailedRatingForUsageIgnoresCurrentRunOnCharge(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestGetDetailedRatingForUsageLoadsPriorDetailedLines(t *testing.T) {
+	t.Parallel()
+
+	fixture := newGetDetailedRatingForUsageFixture(t, billingrating.GenerateDetailedLinesResult{})
+	priorRun := newDetailedRatingTestRun("prior", fixture.input.Charge.Intent.ServicePeriod.From.Add(24*time.Hour), 0)
+	fixture.input.Charge.Realizations = usagebased.RealizationRuns{priorRun}
+
+	var called int
+	fixture.config.DetailedLinesFetcher = detailedLinesFetcherFunc(func(_ context.Context, charge usagebased.Charge) (usagebased.Charge, error) {
+		called++
+		charge.Realizations[0].DetailedLines = mo.Some(usagebased.DetailedLines{})
+
+		return charge, nil
+	})
+
+	svc, err := New(fixture.config)
+	require.NoError(t, err)
+
+	_, err = svc.GetDetailedRatingForUsage(t.Context(), fixture.input)
+	require.NoError(t, err)
+	require.Equal(t, 1, called)
+}
+
+func TestGetDetailedRatingForUsageDoesNotLoadCurrentRunDetailedLines(t *testing.T) {
+	t.Parallel()
+
+	fixture := newGetDetailedRatingForUsageFixture(t, billingrating.GenerateDetailedLinesResult{})
+	currentRun := newDetailedRatingTestRun("current", fixture.input.ServicePeriodTo, 0)
+	fixture.input.Charge.Realizations = usagebased.RealizationRuns{currentRun}
+
+	var called int
+	fixture.config.DetailedLinesFetcher = detailedLinesFetcherFunc(func(_ context.Context, charge usagebased.Charge) (usagebased.Charge, error) {
+		called++
+
+		return charge, nil
+	})
+
+	svc, err := New(fixture.config)
+	require.NoError(t, err)
+
+	_, err = svc.GetDetailedRatingForUsage(t.Context(), fixture.input)
+	require.NoError(t, err)
+	require.Zero(t, called)
+}
+
+func TestGetDetailedRatingForUsageWrapsDetailedLinesLoadError(t *testing.T) {
+	t.Parallel()
+
+	fixture := newGetDetailedRatingForUsageFixture(t, billingrating.GenerateDetailedLinesResult{})
+	priorRun := newDetailedRatingTestRun("prior", fixture.input.Charge.Intent.ServicePeriod.From.Add(24*time.Hour), 0)
+	fixture.input.Charge.Realizations = usagebased.RealizationRuns{priorRun}
+	fixture.config.DetailedLinesFetcher = detailedLinesFetcherFunc(func(_ context.Context, charge usagebased.Charge) (usagebased.Charge, error) {
+		return charge, errors.New("boom")
+	})
+
+	svc, err := New(fixture.config)
+	require.NoError(t, err)
+
+	_, err = svc.GetDetailedRatingForUsage(t.Context(), fixture.input)
+	require.ErrorContains(t, err, "fetch detailed lines")
+	require.ErrorContains(t, err, "boom")
+}
+
 func TestGetDetailedRatingForUsageFiltersQuantityByServicePeriodToAndStoredAtLT(t *testing.T) {
 	t.Parallel()
 
@@ -123,8 +250,9 @@ func TestGetDetailedRatingForUsageFiltersQuantityByServicePeriodToAndStoredAtLT(
 	streamingConnector.AddSimpleEvent("meter-1", 7, servicePeriodTo.Add(time.Hour), streamingtestutils.WithStoredAt(storedAtLT.Add(-time.Second)))
 
 	svc, err := New(Config{
-		StreamingConnector: streamingConnector,
-		RatingService:      &stubRatingService{},
+		StreamingConnector:   streamingConnector,
+		RatingService:        &stubRatingService{},
+		DetailedLinesFetcher: passthroughDetailedLinesFetcher,
 	})
 	require.NoError(t, err)
 
@@ -173,8 +301,9 @@ func TestGetTotalsForUsageMinimumCommitment(t *testing.T) {
 			streamingConnector.AddSimpleEvent("meter-1", 12, servicePeriod.From.Add(30*time.Minute))
 
 			svc, err := New(Config{
-				StreamingConnector: streamingConnector,
-				RatingService:      billingratingservice.New(),
+				StreamingConnector:   streamingConnector,
+				RatingService:        billingratingservice.New(),
+				DetailedLinesFetcher: passthroughDetailedLinesFetcher,
 			})
 			require.NoError(t, err)
 
@@ -216,8 +345,9 @@ func newGetDetailedRatingForUsageFixture(t *testing.T, result billingrating.Gene
 
 	return getDetailedRatingForUsageFixture{
 		config: Config{
-			StreamingConnector: streamingConnector,
-			RatingService:      ratingService,
+			StreamingConnector:   streamingConnector,
+			RatingService:        ratingService,
+			DetailedLinesFetcher: passthroughDetailedLinesFetcher,
 		},
 		input: GetDetailedRatingForUsageInput{
 			Charge:          newDetailedRatingTestCharge(servicePeriod, usagebased.RealizationRuns{}),
@@ -336,6 +466,18 @@ type stubRatingService struct {
 	result   billingrating.GenerateDetailedLinesResult
 	lastOpts billingrating.GenerateDetailedLinesOptions
 }
+
+// detailedLinesFetcherFunc keeps rating tests focused on the FetchDetailedLines behavior under test
+// without forcing each case to define a one-off struct for the single-method dependency.
+type detailedLinesFetcherFunc func(ctx context.Context, charge usagebased.Charge) (usagebased.Charge, error)
+
+func (f detailedLinesFetcherFunc) FetchDetailedLines(ctx context.Context, charge usagebased.Charge) (usagebased.Charge, error) {
+	return f(ctx, charge)
+}
+
+var passthroughDetailedLinesFetcher = detailedLinesFetcherFunc(func(_ context.Context, charge usagebased.Charge) (usagebased.Charge, error) {
+	return charge, nil
+})
 
 func (s *stubRatingService) ResolveBillablePeriod(in billingrating.ResolveBillablePeriodInput) (*timeutil.ClosedPeriod, error) {
 	return nil, nil

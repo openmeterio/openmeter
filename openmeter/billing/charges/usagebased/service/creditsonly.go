@@ -173,10 +173,6 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 		return fmt.Errorf("no realization run in progress [charge_id=%s]", s.Charge.ID)
 	}
 
-	if err := s.ensureDetailedLinesLoadedForRating(ctx); err != nil {
-		return err
-	}
-
 	currentRun, err := s.Charge.Realizations.GetByID(*s.Charge.State.CurrentRealizationRunID)
 	if err != nil {
 		return fmt.Errorf("get current realization run: %w", err)
@@ -212,11 +208,10 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 	currentTotals.CreditsTotal = currentTotals.CreditsTotal.Add(targetCreditsTotal)
 	currentTotals.Total = alpacadecimal.Zero
 
-	runDetailedLines, err := s.Runs.PersistRunDetailedLines(ctx, s.Charge, currentRun, ratingResult)
-	if err != nil {
-		return err
+	if err := s.Adapter.UpsertRunDetailedLines(ctx, s.Charge.GetChargeID(), currentRun.ID, ratingResult.DetailedLines); err != nil {
+		return fmt.Errorf("upsert run detailed lines: %w", err)
 	}
-	currentRun.DetailedLines = mo.Some(runDetailedLines)
+	currentRun.DetailedLines = mo.Some(ratingResult.DetailedLines)
 
 	currentRunBase, err := s.Adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
 		ID:              currentRun.ID,

@@ -13,6 +13,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -22,7 +23,7 @@ import (
 type GetDetailedRatingForUsageInput struct {
 	// Charge general data
 
-	// Charge contains the charge intent and the prior runs with detailed lines expanded.
+	// Charge contains the charge intent and prior runs.
 	Charge usagebased.Charge
 
 	// Current run's data
@@ -68,19 +69,12 @@ func (i GetDetailedRatingForUsageInput) Validate() error {
 		return fmt.Errorf("stored at lt is required")
 	}
 
-	for idx, run := range i.Charge.Realizations {
-		// Only runs before the requested service-period boundary are prior runs;
-		// the current run, if already present on the charge, is ignored.
-		if run.ServicePeriodTo.Before(i.ServicePeriodTo) && !run.DetailedLines.IsPresent() {
-			return fmt.Errorf("prior runs[%d]: detailed lines must be expanded", idx)
-		}
-	}
-
 	return nil
 }
 
 type GetDetailedRatingForUsageResult struct {
-	billingrating.GenerateDetailedLinesResult
+	Totals        totals.Totals
+	DetailedLines usagebased.DetailedLines
 	// Quantity is the current run's meter value between [Charge.Intent.ServicePeriod.From, ServicePeriodTo)
 	// capped at StoredAtLT.
 	Quantity alpacadecimal.Decimal
@@ -91,8 +85,13 @@ func (s *service) GetDetailedRatingForUsage(ctx context.Context, in GetDetailedR
 		return GetDetailedRatingForUsageResult{}, err
 	}
 
+	charge, err := s.ensureDetailedLinesLoadedForRating(ctx, in.Charge, in.ServicePeriodTo)
+	if err != nil {
+		return GetDetailedRatingForUsageResult{}, err
+	}
+
 	currentRunServicePeriod := timeutil.ClosedPeriod{
-		From: in.Charge.Intent.ServicePeriod.From,
+		From: charge.Intent.ServicePeriod.From,
 		To:   in.ServicePeriodTo,
 	}
 
@@ -107,7 +106,7 @@ func (s *service) GetDetailedRatingForUsage(ctx context.Context, in GetDetailedR
 	}
 
 	// Let's fetch invoice based realizations that are before the current run's service period to
-	eligibleRealizations := lo.Filter(in.Charge.Realizations, func(run usagebased.RealizationRun, _ int) bool {
+	eligibleRealizations := lo.Filter(charge.Realizations, func(run usagebased.RealizationRun, _ int) bool {
 		if run.Type != usagebased.RealizationRunTypeFinalRealization && run.Type != usagebased.RealizationRunTypePartialInvoice {
 			return false
 		}
@@ -120,7 +119,7 @@ func (s *service) GetDetailedRatingForUsage(ctx context.Context, in GetDetailedR
 		return cmp.Compare(a.ServicePeriodTo.UnixNano(), b.ServicePeriodTo.UnixNano())
 	})
 
-	servicePeriodFrom := in.Charge.Intent.ServicePeriod.From
+	servicePeriodFrom := charge.Intent.ServicePeriod.From
 	priorPeriods := make([]ratingPriorPeriod, 0, len(eligibleRealizations))
 
 	for _, realization := range eligibleRealizations {
@@ -168,7 +167,7 @@ func (s *service) GetDetailedRatingForUsage(ctx context.Context, in GetDetailedR
 	}
 
 	return s.rateWithLateEvents(ctx, rateWithLateEventsInput{
-		Intent: in.Charge.Intent,
+		Intent: charge.Intent,
 		CurrentPeriod: ratingCurrentPeriod{
 			MeteredQuantity: currentQuantity,
 			ServicePeriod:   currentRunServicePeriod,
@@ -256,7 +255,12 @@ func (s *service) rateWithLateEvents(ctx context.Context, in rateWithLateEventsI
 	)
 
 	return GetDetailedRatingForUsageResult{
-		GenerateDetailedLinesResult: ratingResult,
-		Quantity:                    in.CurrentPeriod.MeteredQuantity,
+		Totals: ratingResult.Totals,
+		DetailedLines: mapBillingRatingDetailedLinesToUsageBasedDetailedLines(
+			in.Intent,
+			in.CurrentPeriod.ServicePeriod,
+			ratingResult.DetailedLines,
+		),
+		Quantity: in.CurrentPeriod.MeteredQuantity,
 	}, nil
 }
