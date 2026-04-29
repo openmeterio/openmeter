@@ -11763,17 +11763,22 @@ export interface components {
       behavior?: components['schemas']['TaxBehavior']
       /**
        * Stripe tax config
+       * @deprecated
        * @description Stripe tax config.
        */
       stripe?: components['schemas']['StripeTaxConfig']
       /**
        * Custom invoicing tax config
+       * @deprecated
        * @description Custom invoicing tax config.
        */
       customInvoicing?: components['schemas']['CustomInvoicingTaxConfig']
       /**
        * Tax code ID
        * @description Tax code reference.
+       *
+       *     When both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:
+       *     the referenced tax code entity is used and `stripe.code` is ignored.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       taxCodeId?: string

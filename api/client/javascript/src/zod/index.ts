@@ -521,7 +521,9 @@ export const CreateAddonBody = zod
                         createAddonBodyRateCardsItemOneTaxConfigOneTaxCodeIdRegExp,
                       )
                       .optional()
-                      .describe('Tax code reference.'),
+                      .describe(
+                        'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                      ),
                   })
                   .describe('Set of provider specific tax configs.')
                   .optional()
@@ -1032,7 +1034,9 @@ export const CreateAddonBody = zod
                         createAddonBodyRateCardsItemTwoTaxConfigOneTaxCodeIdRegExp,
                       )
                       .optional()
-                      .describe('Tax code reference.'),
+                      .describe(
+                        'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                      ),
                   })
                   .describe('Set of provider specific tax configs.')
                   .optional()
@@ -1448,7 +1452,9 @@ export const UpdateAddonBody = zod
                         updateAddonBodyRateCardsItemOneTaxConfigOneTaxCodeIdRegExp,
                       )
                       .optional()
-                      .describe('Tax code reference.'),
+                      .describe(
+                        'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                      ),
                   })
                   .describe('Set of provider specific tax configs.')
                   .optional()
@@ -1959,7 +1965,9 @@ export const UpdateAddonBody = zod
                         updateAddonBodyRateCardsItemTwoTaxConfigOneTaxCodeIdRegExp,
                       )
                       .optional()
-                      .describe('Tax code reference.'),
+                      .describe(
+                        'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                      ),
                   })
                   .describe('Set of provider specific tax configs.')
                   .optional()
@@ -3455,7 +3463,9 @@ export const CreatePendingInvoiceLineBody = zod
                         createPendingInvoiceLineBodyLinesItemRateCardOneTaxConfigOneTaxCodeIdRegExp,
                       )
                       .optional()
-                      .describe('Tax code reference.'),
+                      .describe(
+                        'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                      ),
                   })
                   .describe('Set of provider specific tax configs.')
                   .optional()
@@ -3512,7 +3522,9 @@ export const CreatePendingInvoiceLineBody = zod
                     createPendingInvoiceLineBodyLinesItemTaxConfigOneTaxCodeIdRegExp,
                   )
                   .optional()
-                  .describe('Tax code reference.'),
+                  .describe(
+                    'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                  ),
               })
               .describe('Set of provider specific tax configs.')
               .optional()
@@ -4385,7 +4397,9 @@ export const SimulateInvoiceBody = zod
                         simulateInvoiceBodyLinesItemRateCardOneTaxConfigOneTaxCodeIdRegExp,
                       )
                       .optional()
-                      .describe('Tax code reference.'),
+                      .describe(
+                        'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                      ),
                   })
                   .describe('Set of provider specific tax configs.')
                   .optional()
@@ -4442,7 +4456,9 @@ export const SimulateInvoiceBody = zod
                     simulateInvoiceBodyLinesItemTaxConfigOneTaxCodeIdRegExp,
                   )
                   .optional()
-                  .describe('Tax code reference.'),
+                  .describe(
+                    'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                  ),
               })
               .describe('Set of provider specific tax configs.')
               .optional()
@@ -5631,7 +5647,9 @@ export const UpdateInvoiceBody = zod
                         updateInvoiceBodyLinesItemRateCardOneTaxConfigOneTaxCodeIdRegExp,
                       )
                       .optional()
-                      .describe('Tax code reference.'),
+                      .describe(
+                        'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                      ),
                   })
                   .describe('Set of provider specific tax configs.')
                   .optional()
@@ -5686,7 +5704,9 @@ export const UpdateInvoiceBody = zod
                   .string()
                   .regex(updateInvoiceBodyLinesItemTaxConfigOneTaxCodeIdRegExp)
                   .optional()
-                  .describe('Tax code reference.'),
+                  .describe(
+                    'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                  ),
               })
               .describe('Set of provider specific tax configs.')
               .optional()
@@ -5845,7 +5865,9 @@ export const UpdateInvoiceBody = zod
                         updateInvoiceBodyWorkflowOneWorkflowOneInvoicingOneDefaultTaxConfigOneTaxCodeIdRegExp,
                       )
                       .optional()
-                      .describe('Tax code reference.'),
+                      .describe(
+                        'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                      ),
                   })
                   .describe('Set of provider specific tax configs.')
                   .optional()
@@ -6476,7 +6498,9 @@ export const CreateBillingProfileBody = zod
                     createBillingProfileBodyWorkflowOneInvoicingOneDefaultTaxConfigOneTaxCodeIdRegExp,
                   )
                   .optional()
-                  .describe('Tax code reference.'),
+                  .describe(
+                    'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                  ),
               })
               .describe('Set of provider specific tax configs.')
               .optional()
@@ -6893,7 +6917,9 @@ export const UpdateBillingProfileBody = zod
                     updateBillingProfileBodyWorkflowOneInvoicingOneDefaultTaxConfigOneTaxCodeIdRegExp,
                   )
                   .optional()
-                  .describe('Tax code reference.'),
+                  .describe(
+                    'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                  ),
               })
               .describe('Set of provider specific tax configs.')
               .optional()
@@ -10921,7 +10947,9 @@ export const CreatePlanBody = zod
                                 createPlanBodyPhasesItemRateCardsItemOneTaxConfigOneTaxCodeIdRegExp,
                               )
                               .optional()
-                              .describe('Tax code reference.'),
+                              .describe(
+                                'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                              ),
                           })
                           .describe('Set of provider specific tax configs.')
                           .optional()
@@ -11458,7 +11486,9 @@ export const CreatePlanBody = zod
                                 createPlanBodyPhasesItemRateCardsItemTwoTaxConfigOneTaxCodeIdRegExp,
                               )
                               .optional()
-                              .describe('Tax code reference.'),
+                              .describe(
+                                'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                              ),
                           })
                           .describe('Set of provider specific tax configs.')
                           .optional()
@@ -12009,7 +12039,9 @@ export const UpdatePlanBody = zod
                                 updatePlanBodyPhasesItemRateCardsItemOneTaxConfigOneTaxCodeIdRegExp,
                               )
                               .optional()
-                              .describe('Tax code reference.'),
+                              .describe(
+                                'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                              ),
                           })
                           .describe('Set of provider specific tax configs.')
                           .optional()
@@ -12546,7 +12578,9 @@ export const UpdatePlanBody = zod
                                 updatePlanBodyPhasesItemRateCardsItemTwoTaxConfigOneTaxCodeIdRegExp,
                               )
                               .optional()
-                              .describe('Tax code reference.'),
+                              .describe(
+                                'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                              ),
                           })
                           .describe('Set of provider specific tax configs.')
                           .optional()
@@ -14958,7 +14992,9 @@ export const CreateSubscriptionBody = zod
                                         createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneTaxConfigOneTaxCodeIdRegExp,
                                       )
                                       .optional()
-                                      .describe('Tax code reference.'),
+                                      .describe(
+                                        'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                                      ),
                                   })
                                   .describe(
                                     'Set of provider specific tax configs.',
@@ -15534,7 +15570,9 @@ export const CreateSubscriptionBody = zod
                                         createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoTaxConfigOneTaxCodeIdRegExp,
                                       )
                                       .optional()
-                                      .describe('Tax code reference.'),
+                                      .describe(
+                                        'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                                      ),
                                   })
                                   .describe(
                                     'Set of provider specific tax configs.',
@@ -16058,7 +16096,9 @@ export const EditSubscriptionBody = zod
                                 editSubscriptionBodyCustomizationsItemOneRateCardOneTaxConfigOneTaxCodeIdRegExp,
                               )
                               .optional()
-                              .describe('Tax code reference.'),
+                              .describe(
+                                'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                              ),
                           })
                           .describe('Set of provider specific tax configs.')
                           .optional()
@@ -16599,7 +16639,9 @@ export const EditSubscriptionBody = zod
                                 editSubscriptionBodyCustomizationsItemOneRateCardTwoTaxConfigOneTaxCodeIdRegExp,
                               )
                               .optional()
-                              .describe('Tax code reference.'),
+                              .describe(
+                                'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                              ),
                           })
                           .describe('Set of provider specific tax configs.')
                           .optional()
@@ -17610,7 +17652,9 @@ export const ChangeSubscriptionBody = zod
                                         changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneTaxConfigOneTaxCodeIdRegExp,
                                       )
                                       .optional()
-                                      .describe('Tax code reference.'),
+                                      .describe(
+                                        'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                                      ),
                                   })
                                   .describe(
                                     'Set of provider specific tax configs.',
@@ -18186,7 +18230,9 @@ export const ChangeSubscriptionBody = zod
                                         changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoTaxConfigOneTaxCodeIdRegExp,
                                       )
                                       .optional()
-                                      .describe('Tax code reference.'),
+                                      .describe(
+                                        'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                                      ),
                                   })
                                   .describe(
                                     'Set of provider specific tax configs.',

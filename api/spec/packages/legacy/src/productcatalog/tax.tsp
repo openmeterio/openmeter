@@ -16,18 +16,28 @@ model TaxConfig {
 
   /**
    * Stripe tax config.
+   *
+   * @deprecated Use `taxCodeId` instead. When both `stripe.code` and `taxCodeId` are provided,
+   * `taxCodeId` takes precedence and `stripe.code` is ignored.
    */
+  #deprecated "Use taxCodeId instead"
   @summary("Stripe tax config")
   stripe?: StripeTaxConfig;
 
   /**
    * Custom invoicing tax config.
+   *
+   * @deprecated Use `taxCodeId` instead.
    */
+  #deprecated "Use taxCodeId instead"
   @summary("Custom invoicing tax config")
   customInvoicing?: CustomInvoicingTaxConfig;
 
   /**
    * Tax code reference.
+   *
+   * When both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:
+   * the referenced tax code entity is used and `stripe.code` is ignored.
    */
   @summary("Tax code ID")
   taxCodeId?: ULID;
