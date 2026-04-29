@@ -23,7 +23,7 @@ import (
 type GetDetailedRatingForUsageInput struct {
 	// Charge general data
 
-	// Charge contains the charge intent and the prior runs with detailed lines expanded.
+	// Charge contains the charge intent and prior runs.
 	Charge usagebased.Charge
 
 	// Current run's data
@@ -67,14 +67,6 @@ func (i GetDetailedRatingForUsageInput) Validate() error {
 
 	if i.StoredAtLT.IsZero() {
 		return fmt.Errorf("stored at lt is required")
-	}
-
-	for idx, run := range i.Charge.Realizations {
-		// Only runs before the requested service-period boundary are prior runs;
-		// the current run, if already present on the charge, is ignored.
-		if run.ServicePeriodTo.Before(i.ServicePeriodTo) && !run.DetailedLines.IsPresent() {
-			return fmt.Errorf("prior runs[%d]: detailed lines must be expanded", idx)
-		}
 	}
 
 	return nil

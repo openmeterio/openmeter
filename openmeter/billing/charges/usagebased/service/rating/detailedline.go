@@ -63,16 +63,25 @@ func (s *service) ensureDetailedLinesLoadedForRating(ctx context.Context, charge
 		return charge, nil
 	}
 
-	if lo.EveryBy(charge.Realizations, func(run usagebased.RealizationRun) bool {
+	if !lo.EveryBy(charge.Realizations, func(run usagebased.RealizationRun) bool {
 		return !run.ServicePeriodTo.Before(servicePeriodTo) || run.DetailedLines.IsPresent()
 	}) {
-		return charge, nil
+		expandedCharge, err := s.detailedLinesFetcher.FetchDetailedLines(ctx, charge)
+		if err != nil {
+			return usagebased.Charge{}, fmt.Errorf("fetch detailed lines: %w", err)
+		}
+
+		charge = expandedCharge
 	}
 
-	expandedCharge, err := s.detailedLinesFetcher.FetchDetailedLines(ctx, charge)
-	if err != nil {
-		return usagebased.Charge{}, fmt.Errorf("fetch detailed lines: %w", err)
+	for idx, run := range charge.Realizations {
+		// Extra safety: the fetcher contract should return all prior-run detailed
+		// lines, but rating must not proceed with incomplete prior runs as we will overcharge
+		// customers.
+		if run.ServicePeriodTo.Before(servicePeriodTo) && !run.DetailedLines.IsPresent() {
+			return usagebased.Charge{}, fmt.Errorf("prior runs[%d]: detailed lines must be expanded", idx)
+		}
 	}
 
-	return expandedCharge, nil
+	return charge, nil
 }
