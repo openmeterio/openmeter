@@ -7,11 +7,9 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
-	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -192,22 +190,13 @@ func (s service) resolveTaxCodes(ctx context.Context, namespace string, rateCard
 
 	for _, rc := range *rateCards {
 		meta := rc.AsMeta()
-		if meta.TaxConfig == nil || meta.TaxConfig.Stripe == nil || meta.TaxConfig.Stripe.Code == "" {
+		if meta.TaxConfig == nil {
 			continue
 		}
 
-		stripeCode := meta.TaxConfig.Stripe.Code
-
-		tc, err := s.taxCode.GetOrCreateByAppMapping(ctx, taxcode.GetOrCreateByAppMappingInput{
-			Namespace: namespace,
-			AppType:   app.AppTypeStripe,
-			TaxCode:   stripeCode,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to resolve tax code for stripe code %s: %w", stripeCode, err)
+		if err := productcatalog.ResolveTaxConfig(ctx, s.taxCode, namespace, meta.TaxConfig); err != nil {
+			return err
 		}
-
-		meta.TaxConfig.TaxCodeID = lo.ToPtr(tc.ID)
 
 		var rcNew productcatalog.RateCard
 
@@ -231,7 +220,7 @@ func (s service) resolveTaxCodes(ctx context.Context, namespace string, rateCard
 			return fmt.Errorf("unsupported RateCard type: %s", rc.Type())
 		}
 
-		if err = rc.Merge(rcNew); err != nil {
+		if err := rc.Merge(rcNew); err != nil {
 			return fmt.Errorf("failed to merge RateCard: %w", err)
 		}
 	}

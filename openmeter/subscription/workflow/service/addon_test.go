@@ -132,7 +132,7 @@ func TestAddAddon(t *testing.T) {
 
 		// Let's create a plan
 		p, err := deps.PlanService.CreatePlan(context.Background(), subscriptiontestutils.BuildTestPlanInput(t).
-			AddPhase(nil, &subscriptiontestutils.ExampleRateCard1).
+			AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
 			Build())
 		require.Nil(t, err)
 		require.NotNil(t, p)
@@ -510,7 +510,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 			t,
 			deps,
 			subscriptiontestutils.BuildTestPlanInput(t).
-				AddPhase(nil, &subscriptiontestutils.ExampleRateCard1).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t,
 				productcatalog.EffectivePeriod{
@@ -576,7 +576,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 					},
 					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				}).
-				AddPhase(nil, &subscriptiontestutils.ExampleRateCard1).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t,
 				productcatalog.EffectivePeriod{
@@ -685,7 +685,7 @@ func TestAddonCombinations(t *testing.T) {
 		// Create a plan with mixed rate cards
 		planInput := subscriptiontestutils.BuildTestPlanInput(t).
 			AddPhase(nil,
-				&subscriptiontestutils.ExampleRateCard1, // Flat price
+				subscriptiontestutils.ExampleRateCard1.Clone(), // Flat price
 				&productcatalog.UsageBasedRateCard{ // Dynamic price
 					RateCardMeta: productcatalog.RateCardMeta{
 						Key:  "dynamic_rc_1",

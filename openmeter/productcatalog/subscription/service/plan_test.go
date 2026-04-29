@@ -41,7 +41,7 @@ func TestDiscountPersisting(t *testing.T) {
 	t.Run("Should persist discounts", func(t *testing.T) {
 		withDeps(t, func(t *testing.T, deps tDeps) {
 			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
-			examplePlanInput1.Phases[0].RateCards[0] = &subscriptiontestutils.ExampleRateCardWithDiscounts
+			examplePlanInput1.Phases[0].RateCards[0] = subscriptiontestutils.ExampleRateCardWithDiscounts.Clone()
 
 			ctx := context.Background()
 

@@ -27,12 +27,12 @@ func (t TaxCodeAppMapping) Validate() error {
 
 	if t.TaxCode == "" {
 		errs = append(errs, ErrTaxCodeEmpty)
-	}
-
-	switch t.AppType {
-	case app.AppTypeStripe:
-		if !TaxCodeStripeRegexp.MatchString(t.TaxCode) {
-			errs = append(errs, ErrTaxCodeStripeInvalid)
+	} else {
+		switch t.AppType {
+		case app.AppTypeStripe:
+			if !TaxCodeStripeRegexp.MatchString(t.TaxCode) {
+				errs = append(errs, ErrTaxCodeStripeInvalid)
+			}
 		}
 	}
 

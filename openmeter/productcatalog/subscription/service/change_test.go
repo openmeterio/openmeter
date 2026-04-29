@@ -25,8 +25,6 @@ import (
 func TestChange(t *testing.T) {
 	logger := testutils.NewLogger(t)
 
-	examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
-
 	type tDeps struct {
 		subDeps subscriptiontestutils.SubscriptionDependencies
 		subSvc  subscription.Service
@@ -49,6 +47,8 @@ func TestChange(t *testing.T) {
 
 	t.Run("Should change to different plan", func(t *testing.T) {
 		withDeps(t, func(t *testing.T, deps tDeps) {
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
+
 			now := testutils.GetRFC3339Time(t, "2021-01-01T00:01:10Z")
 			clock.SetTime(now)
 			defer clock.ResetTime()
@@ -105,7 +105,7 @@ func TestChange(t *testing.T) {
 					Description: lo.ToPtr("Test Phase 4 Description"),
 				},
 				RateCards: productcatalog.RateCards{
-					&subscriptiontestutils.ExampleRateCard1,
+					subscriptiontestutils.ExampleRateCard1.Clone(),
 				},
 			})
 
@@ -153,6 +153,8 @@ func TestChange(t *testing.T) {
 
 	t.Run("Should change to different plan starting from specific phase", func(t *testing.T) {
 		withDeps(t, func(t *testing.T, deps tDeps) {
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
+
 			now := testutils.GetRFC3339Time(t, "2021-01-01T00:01:10Z")
 			clock.SetTime(now)
 			defer clock.ResetTime()
@@ -209,7 +211,7 @@ func TestChange(t *testing.T) {
 					Description: lo.ToPtr("Test Phase 4 Description"),
 				},
 				RateCards: productcatalog.RateCards{
-					&subscriptiontestutils.ExampleRateCard1,
+					subscriptiontestutils.ExampleRateCard1.Clone(),
 				},
 			})
 
@@ -279,6 +281,8 @@ func TestChange(t *testing.T) {
 
 	t.Run("Should not allow changing to inactive plan", func(t *testing.T) {
 		withDeps(t, func(t *testing.T, deps tDeps) {
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
+
 			now := testutils.GetRFC3339Time(t, "2021-01-01T00:01:10Z")
 			clock.SetTime(now)
 			defer clock.ResetTime()
@@ -335,7 +339,7 @@ func TestChange(t *testing.T) {
 					Description: lo.ToPtr("Test Phase 4 Description"),
 				},
 				RateCards: productcatalog.RateCards{
-					&subscriptiontestutils.ExampleRateCard1,
+					subscriptiontestutils.ExampleRateCard1.Clone(),
 				},
 			})
 

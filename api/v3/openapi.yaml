@@ -5934,11 +5934,22 @@ components:
             - $ref: '#/components/schemas/BillingTaxConfigStripe'
           description: Stripe tax config.
           title: Stripe tax config
+          deprecated: true
         external_invoicing:
           allOf:
             - $ref: '#/components/schemas/BillingTaxConfigExternalInvoicing'
           description: External invoicing tax config.
           title: External invoicing tax config
+          deprecated: true
+        tax_code_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: |-
+            Tax code reference.
+
+            When both `tax_code_id` and `stripe.code` are provided, `tax_code_id` takes precedence:
+            the referenced tax code entity is used and `stripe.code` is ignored.
+          title: Tax code ID
       description: Set of provider specific tax configs.
     BillingTaxConfigExternalInvoicing:
       type: object

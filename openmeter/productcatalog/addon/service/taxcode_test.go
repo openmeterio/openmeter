@@ -308,6 +308,48 @@ func TestAddonTaxCodeDualWrite(t *testing.T) {
 			assertAddonRCDBCols(t, ctx, env, a.ID, "rc-a", lo.ToPtr(tcEntityA.ID), nil)
 			assertAddonRCDBCols(t, ctx, env, a.ID, "rc-b", lo.ToPtr(tcEntityB.ID), nil)
 		})
+
+		t.Run("TaxCodeIdOnly", func(t *testing.T) {
+			// Pre-create a TaxCode entity with a Stripe mapping.
+			tcEntity, err := env.TaxCode.GetOrCreateByAppMapping(ctx, taxcode.GetOrCreateByAppMappingInput{
+				Namespace: namespace,
+				AppType:   app.AppTypeStripe,
+				TaxCode:   "txcd_60000003",
+			})
+			require.NoError(t, err)
+
+			input := newTestAddonInput(t, namespace, newTestAddonFlatRateCard(features[0], &productcatalog.TaxConfig{
+				TaxCodeID: lo.ToPtr(tcEntity.ID),
+			}))
+			input.Key = "addon-taxcodeid-only"
+			input.Name = "TaxCodeId Only"
+
+			a, err := env.Addon.CreateAddon(ctx, input)
+			require.NoError(t, err)
+
+			tc := getFirstAddonRCTaxConfig(t, a)
+			require.NotNil(t, tc)
+			require.NotNil(t, tc.TaxCodeID)
+			assert.Equal(t, tcEntity.ID, *tc.TaxCodeID)
+
+			// Stripe code should be backfilled from the TaxCode entity's app mapping.
+			require.NotNil(t, tc.Stripe, "Stripe must be backfilled from TaxCode app mapping")
+			assert.Equal(t, "txcd_60000003", tc.Stripe.Code)
+
+			assertAddonRCDBCols(t, ctx, env, a.ID, features[0].Key, lo.ToPtr(tcEntity.ID), nil)
+		})
+
+		t.Run("TaxCodeIdNotFound", func(t *testing.T) {
+			input := newTestAddonInput(t, namespace, newTestAddonFlatRateCard(features[0], &productcatalog.TaxConfig{
+				TaxCodeID: lo.ToPtr("01JNON_EXISTENT_TAX_CODE_ID"),
+			}))
+			input.Key = "addon-taxcodeid-not-found"
+			input.Name = "TaxCodeId Not Found"
+
+			_, err := env.Addon.CreateAddon(ctx, input)
+			require.Error(t, err)
+			assert.True(t, models.IsGenericValidationError(err), "expected validation error for unknown taxCodeId, got: %v", err)
+		})
 	})
 
 	t.Run("Update", func(t *testing.T) {
@@ -392,6 +434,43 @@ func TestAddonTaxCodeDualWrite(t *testing.T) {
 			newTCEntity, err := findAddonTaxCodeByStripeCode(t, ctx, env.TaxCode, namespace, "txcd_90000001")
 			require.NoError(t, err)
 			assertAddonRCDBCols(t, ctx, env, updated.ID, features[0].Key, lo.ToPtr(newTCEntity.ID), nil)
+		})
+
+		t.Run("UpdateWithTaxCodeId", func(t *testing.T) {
+			input := newTestAddonInput(t, namespace, newTestAddonFlatRateCard(features[0], nil))
+			input.Key = "addon-update-taxcodeid"
+			input.Name = "Update TaxCodeId"
+
+			a, err := env.Addon.CreateAddon(ctx, input)
+			require.NoError(t, err)
+
+			tcEntity, err := env.TaxCode.GetOrCreateByAppMapping(ctx, taxcode.GetOrCreateByAppMappingInput{
+				Namespace: namespace,
+				AppType:   app.AppTypeStripe,
+				TaxCode:   "txcd_60000004",
+			})
+			require.NoError(t, err)
+
+			updatedRateCards := productcatalog.RateCards{
+				newTestAddonFlatRateCard(features[0], &productcatalog.TaxConfig{
+					TaxCodeID: lo.ToPtr(tcEntity.ID),
+				}),
+			}
+
+			updated, err := env.Addon.UpdateAddon(ctx, addon.UpdateAddonInput{
+				NamespacedID: a.NamespacedID,
+				RateCards:    &updatedRateCards,
+			})
+			require.NoError(t, err)
+
+			tc := getFirstAddonRCTaxConfig(t, updated)
+			require.NotNil(t, tc)
+			require.NotNil(t, tc.TaxCodeID)
+			assert.Equal(t, tcEntity.ID, *tc.TaxCodeID)
+			require.NotNil(t, tc.Stripe, "Stripe must be backfilled from TaxCode app mapping")
+			assert.Equal(t, "txcd_60000004", tc.Stripe.Code)
+
+			assertAddonRCDBCols(t, ctx, env, updated.ID, features[0].Key, lo.ToPtr(tcEntity.ID), nil)
 		})
 
 		t.Run("RemoveTaxConfig", func(t *testing.T) {
