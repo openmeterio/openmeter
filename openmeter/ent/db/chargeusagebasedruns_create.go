@@ -158,6 +158,12 @@ func (_c *ChargeUsageBasedRunsCreate) SetServicePeriodTo(v time.Time) *ChargeUsa
 	return _c
 }
 
+// SetDetailedLinesPresent sets the "detailed_lines_present" field.
+func (_c *ChargeUsageBasedRunsCreate) SetDetailedLinesPresent(v bool) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetDetailedLinesPresent(v)
+	return _c
+}
+
 // SetLineID sets the "line_id" field.
 func (_c *ChargeUsageBasedRunsCreate) SetLineID(v string) *ChargeUsageBasedRunsCreate {
 	_c.mutation.SetLineID(v)
@@ -409,6 +415,9 @@ func (_c *ChargeUsageBasedRunsCreate) check() error {
 	if _, ok := _c.mutation.ServicePeriodTo(); !ok {
 		return &ValidationError{Name: "service_period_to", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.service_period_to"`)}
 	}
+	if _, ok := _c.mutation.DetailedLinesPresent(); !ok {
+		return &ValidationError{Name: "detailed_lines_present", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.detailed_lines_present"`)}
+	}
 	if v, ok := _c.mutation.LineID(); ok {
 		if err := chargeusagebasedruns.LineIDValidator(v); err != nil {
 			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRuns.line_id": %w`, err)}
@@ -518,6 +527,10 @@ func (_c *ChargeUsageBasedRunsCreate) createSpec() (*ChargeUsageBasedRuns, *sqlg
 	if value, ok := _c.mutation.ServicePeriodTo(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldServicePeriodTo, field.TypeTime, value)
 		_node.ServicePeriodTo = value
+	}
+	if value, ok := _c.mutation.DetailedLinesPresent(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldDetailedLinesPresent, field.TypeBool, value)
+		_node.DetailedLinesPresent = value
 	}
 	if value, ok := _c.mutation.MeteredQuantity(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldMeteredQuantity, field.TypeOther, value)
@@ -828,6 +841,18 @@ func (u *ChargeUsageBasedRunsUpsert) UpdateStoredAtLt() *ChargeUsageBasedRunsUps
 	return u
 }
 
+// SetDetailedLinesPresent sets the "detailed_lines_present" field.
+func (u *ChargeUsageBasedRunsUpsert) SetDetailedLinesPresent(v bool) *ChargeUsageBasedRunsUpsert {
+	u.Set(chargeusagebasedruns.FieldDetailedLinesPresent, v)
+	return u
+}
+
+// UpdateDetailedLinesPresent sets the "detailed_lines_present" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsert) UpdateDetailedLinesPresent() *ChargeUsageBasedRunsUpsert {
+	u.SetExcluded(chargeusagebasedruns.FieldDetailedLinesPresent)
+	return u
+}
+
 // SetLineID sets the "line_id" field.
 func (u *ChargeUsageBasedRunsUpsert) SetLineID(v string) *ChargeUsageBasedRunsUpsert {
 	u.Set(chargeusagebasedruns.FieldLineID, v)
@@ -1082,6 +1107,20 @@ func (u *ChargeUsageBasedRunsUpsertOne) SetStoredAtLt(v time.Time) *ChargeUsageB
 func (u *ChargeUsageBasedRunsUpsertOne) UpdateStoredAtLt() *ChargeUsageBasedRunsUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
 		s.UpdateStoredAtLt()
+	})
+}
+
+// SetDetailedLinesPresent sets the "detailed_lines_present" field.
+func (u *ChargeUsageBasedRunsUpsertOne) SetDetailedLinesPresent(v bool) *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetDetailedLinesPresent(v)
+	})
+}
+
+// UpdateDetailedLinesPresent sets the "detailed_lines_present" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertOne) UpdateDetailedLinesPresent() *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateDetailedLinesPresent()
 	})
 }
 
@@ -1511,6 +1550,20 @@ func (u *ChargeUsageBasedRunsUpsertBulk) SetStoredAtLt(v time.Time) *ChargeUsage
 func (u *ChargeUsageBasedRunsUpsertBulk) UpdateStoredAtLt() *ChargeUsageBasedRunsUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
 		s.UpdateStoredAtLt()
+	})
+}
+
+// SetDetailedLinesPresent sets the "detailed_lines_present" field.
+func (u *ChargeUsageBasedRunsUpsertBulk) SetDetailedLinesPresent(v bool) *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetDetailedLinesPresent(v)
+	})
+}
+
+// UpdateDetailedLinesPresent sets the "detailed_lines_present" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertBulk) UpdateDetailedLinesPresent() *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateDetailedLinesPresent()
 	})
 }
 

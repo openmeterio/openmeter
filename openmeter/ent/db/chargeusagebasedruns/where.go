@@ -147,6 +147,11 @@ func ServicePeriodTo(v time.Time) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldServicePeriodTo, v))
 }
 
+// DetailedLinesPresent applies equality check predicate on the "detailed_lines_present" field. It's identical to DetailedLinesPresentEQ.
+func DetailedLinesPresent(v bool) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldDetailedLinesPresent, v))
+}
+
 // LineID applies equality check predicate on the "line_id" field. It's identical to LineIDEQ.
 func LineID(v string) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldLineID, v))
@@ -910,6 +915,16 @@ func ServicePeriodToLT(v time.Time) predicate.ChargeUsageBasedRuns {
 // ServicePeriodToLTE applies the LTE predicate on the "service_period_to" field.
 func ServicePeriodToLTE(v time.Time) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldServicePeriodTo, v))
+}
+
+// DetailedLinesPresentEQ applies the EQ predicate on the "detailed_lines_present" field.
+func DetailedLinesPresentEQ(v bool) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldDetailedLinesPresent, v))
+}
+
+// DetailedLinesPresentNEQ applies the NEQ predicate on the "detailed_lines_present" field.
+func DetailedLinesPresentNEQ(v bool) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldDetailedLinesPresent, v))
 }
 
 // LineIDEQ applies the EQ predicate on the "line_id" field.

@@ -50,6 +50,8 @@ const (
 	FieldStoredAtLt = "stored_at_lt"
 	// FieldServicePeriodTo holds the string denoting the service_period_to field in the database.
 	FieldServicePeriodTo = "service_period_to"
+	// FieldDetailedLinesPresent holds the string denoting the detailed_lines_present field in the database.
+	FieldDetailedLinesPresent = "detailed_lines_present"
 	// FieldLineID holds the string denoting the line_id field in the database.
 	FieldLineID = "line_id"
 	// FieldMeteredQuantity holds the string denoting the metered_quantity field in the database.
@@ -141,6 +143,7 @@ var Columns = []string{
 	FieldType,
 	FieldStoredAtLt,
 	FieldServicePeriodTo,
+	FieldDetailedLinesPresent,
 	FieldLineID,
 	FieldMeteredQuantity,
 }
@@ -273,6 +276,11 @@ func ByStoredAtLt(opts ...sql.OrderTermOption) OrderOption {
 // ByServicePeriodTo orders the results by the service_period_to field.
 func ByServicePeriodTo(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldServicePeriodTo, opts...).ToFunc()
+}
+
+// ByDetailedLinesPresent orders the results by the detailed_lines_present field.
+func ByDetailedLinesPresent(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDetailedLinesPresent, opts...).ToFunc()
 }
 
 // ByLineID orders the results by the line_id field.

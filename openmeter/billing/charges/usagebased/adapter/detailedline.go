@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeusagebasedrundetailedline "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
+	dbchargeusagebasedruns "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
@@ -42,6 +43,22 @@ func (a *adapter) FetchDetailedLines(ctx context.Context, charge usagebased.Char
 			return usagebased.Charge{}, err
 		}
 
+		dbRuns, err := tx.db.ChargeUsageBasedRuns.Query().
+			Where(
+				dbchargeusagebasedruns.NamespaceEQ(charge.Namespace),
+				dbchargeusagebasedruns.ChargeIDEQ(charge.ID),
+				dbchargeusagebasedruns.IDIn(runIDs...),
+			).
+			All(ctx)
+		if err != nil {
+			return usagebased.Charge{}, err
+		}
+
+		detailedLinesPresentByRunID := make(map[string]bool, len(dbRuns))
+		for _, dbRun := range dbRuns {
+			detailedLinesPresentByRunID[dbRun.ID] = dbRun.DetailedLinesPresent
+		}
+
 		linesByRunID := make(map[string]usagebased.DetailedLines, len(charge.Realizations))
 		for _, dbLine := range dbLines {
 			line, err := mapDetailedLineFromDB(dbLine)
@@ -55,7 +72,21 @@ func (a *adapter) FetchDetailedLines(ctx context.Context, charge usagebased.Char
 		for idx, run := range charge.Realizations {
 			lines := linesByRunID[run.ID.ID]
 			slices.SortStableFunc(lines, stddetailedline.Compare[usagebased.DetailedLine])
-			charge.Realizations[idx].DetailedLines = mo.Some(lines)
+
+			detailedLinesPresent, found := detailedLinesPresentByRunID[run.ID.ID]
+			if !found {
+				continue
+			}
+
+			// Safety measure: only mark detailed lines as expanded when the persisted
+			// run records that detailed lines were written at least once. Treating
+			// unknown detailed lines as an empty set can make
+			// late-event rating overcharge.
+			if detailedLinesPresent {
+				charge.Realizations[idx].DetailedLines = mo.Some(lines)
+			} else {
+				charge.Realizations[idx].DetailedLines = mo.None[usagebased.DetailedLines]()
+			}
 		}
 
 		return charge, nil
@@ -115,6 +146,17 @@ func (a *adapter) UpsertRunDetailedLines(ctx context.Context, chargeID chargesme
 		}
 
 		if _, err := deleteQuery.Save(ctx); err != nil {
+			return err
+		}
+
+		if _, err := tx.db.ChargeUsageBasedRuns.Update().
+			Where(
+				dbchargeusagebasedruns.NamespaceEQ(runID.Namespace),
+				dbchargeusagebasedruns.ChargeIDEQ(chargeID.ID),
+				dbchargeusagebasedruns.ID(runID.ID),
+			).
+			SetDetailedLinesPresent(true).
+			Save(ctx); err != nil {
 			return err
 		}
 

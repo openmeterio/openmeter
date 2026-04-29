@@ -2724,6 +2724,7 @@ var (
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"final_realization", "partial_invoice"}},
 		{Name: "stored_at_lt", Type: field.TypeTime},
 		{Name: "service_period_to", Type: field.TypeTime},
+		{Name: "detailed_lines_present", Type: field.TypeBool},
 		{Name: "metered_quantity", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "line_id", Type: field.TypeString, Unique: true, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "charge_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -2737,19 +2738,19 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_usage_based_runs_billing_invoice_lines_charge_usage_based_run",
-				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[17]},
+				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[18]},
 				RefColumns: []*schema.Column{BillingInvoiceLinesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_usage_based_runs_charge_usage_based_runs",
-				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[18]},
+				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[19]},
 				RefColumns: []*schema.Column{ChargeUsageBasedColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "charge_usage_based_runs_features_usage_based_runs",
-				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[19]},
+				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[20]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -2768,7 +2769,7 @@ var (
 			{
 				Name:    "chargeusagebasedruns_namespace_charge_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedRunsColumns[1], ChargeUsageBasedRunsColumns[18]},
+				Columns: []*schema.Column{ChargeUsageBasedRunsColumns[1], ChargeUsageBasedRunsColumns[19]},
 			},
 		},
 	}
