@@ -13,18 +13,18 @@ test.describe('Currencies > create and list', () => {
     const code = uniqueCurrencyCode()
     const name = faker.string.uuid()
 
-    // Create
     const createRes = await request.post(`${BASE}/currencies/custom`, {
+      // symbol is required server-side despite being optional in the OpenAPI spec
       data: { code, name, description: 'A custom currency for testing', symbol: '¤' },
     })
     expect(createRes.status()).toBe(201)
     const currency = await createRes.json()
+    expect(currency.id).toBeTruthy()
     expect(currency.type).toBe('custom')
     expect(currency.code).toBe(code)
     expect(currency.name).toBe(name)
-    expect(currency.id).toBeTruthy()
+    expect(currency.created_at).toBeTruthy()
 
-    // List all currencies and find the created one
     const listRes = await request.get(`${BASE}/currencies`, {
       params: { 'page[size]': '1000' },
     })
@@ -37,29 +37,21 @@ test.describe('Currencies > create and list', () => {
   })
 
   test('lists only custom currencies when filter[type]=custom', async ({ request }) => {
-    const code = uniqueCurrencyCode()
-    const name = faker.string.uuid()
-
-    // Create a custom currency to ensure at least one exists
     const createRes = await request.post(`${BASE}/currencies/custom`, {
-      data: { code, name, symbol: '¤' },
+      // symbol is required server-side despite being optional in the OpenAPI spec
+      data: { code: uniqueCurrencyCode(), name: faker.string.uuid(), symbol: '¤' },
     })
     expect(createRes.status()).toBe(201)
     const currency = await createRes.json()
 
-    // List filtered to custom only
     const listRes = await request.get(`${BASE}/currencies`, {
       params: { 'page[size]': '1000', 'filter[type]': 'custom' },
     })
     expect(listRes.status()).toBe(200)
     const { data } = await listRes.json()
-
-    // Every item must be a custom currency
     for (const item of data) {
       expect(item.type).toBe('custom')
     }
-
-    // The one we created must appear
     const found = data.find((c: { id: string }) => c.id === currency.id)
     expect(found).toBeDefined()
   })
@@ -71,27 +63,21 @@ test.describe('Currencies > create and list', () => {
     expect(listRes.status()).toBe(200)
     const { data } = await listRes.json()
     expect(data.length).toBeGreaterThan(0)
-
     for (const item of data) {
       expect(item.type).toBe('fiat')
     }
   })
 
-  test('rejects create with missing required name', async ({ request }) => {
-    const res = await request.post(`${BASE}/currencies/custom`, {
-      data: { code: uniqueCurrencyCode(), symbol: '¤' },
+  for (const { label, buildBody } of [
+    { label: 'missing required name', buildBody: () => ({ code: uniqueCurrencyCode(), symbol: '¤' }) },
+    { label: 'missing required code', buildBody: () => ({ name: faker.string.uuid(), symbol: '¤' }) },
+  ]) {
+    test(`rejects create with ${label}`, async ({ request }) => {
+      const res = await request.post(`${BASE}/currencies/custom`, { data: buildBody() })
+      expect(res.status()).toBe(400)
+      const problem = await res.json()
+      const rules = (problem.invalid_parameters ?? []).map((p: any) => p.rule)
+      expect(rules).toContain('required')
     })
-    expect(res.status()).toBe(400)
-    const problem = await res.json()
-    expect(problem.type).toBeDefined()
-  })
-
-  test('rejects create with missing required code', async ({ request }) => {
-    const res = await request.post(`${BASE}/currencies/custom`, {
-      data: { name: faker.string.uuid(), symbol: '¤' },
-    })
-    expect(res.status()).toBe(400)
-    const problem = await res.json()
-    expect(problem.type).toBeDefined()
-  })
+  }
 })

@@ -1,6 +1,6 @@
 ---
 name: e2e-playwright
-description: Generate API tests using Playwright against OpenMeter's v3 API. Use when creating TypeScript-based API tests that exercise HTTP endpoints over a live server with configurable base URL and optional API key auth.
+description: Generate API tests using Playwright against OpenMeter's v3 API. Use when creating TypeScript-based API tests that exercise HTTP endpoints over a live server with configurable base URL and optional API key auth. Tests produced by this skill are suitable for contract testing — they verify the HTTP contract (status codes, request/response shapes, required fields, error schemas) as defined in the OpenAPI spec.
 user-invocable: true
 argument-hint: "[domain to test] [user journey description]"
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent
