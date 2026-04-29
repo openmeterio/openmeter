@@ -45,7 +45,7 @@ page[size]: 1000
 HTTP 200
 [Asserts]
 jsonpath "$.data" isCollection
-jsonpath "$.data[?(@.id=='{{currency_id}}')].id" == "{{currency_id}}"
+jsonpath "$.data[?(@.id=='{{currency_id}}')].id" contains "{{currency_id}}"
 
 # ── 3. List filtered by type=custom — currency present, all entries custom ───
 GET {{base_url}}/api/v3/openmeter/currencies
@@ -55,7 +55,7 @@ filter[type]: custom
 page[size]: 1000
 HTTP 200
 [Asserts]
-jsonpath "$.data[?(@.id=='{{currency_id}}')].id" == "{{currency_id}}"
+jsonpath "$.data[?(@.id=='{{currency_id}}')].id" contains "{{currency_id}}"
 jsonpath "$.data[0].type" == "custom"
 
 # ── 4. List filtered by type=fiat — only fiat currencies returned ─────────────
@@ -94,7 +94,7 @@ Authorization: Bearer {{api_key}}
 HTTP 200
 [Asserts]
 jsonpath "$.data" isCollection
-jsonpath "$.data[?(@.id=='{{cost_basis_id}}')].id" == "{{cost_basis_id}}"
+jsonpath "$.data[?(@.id=='{{cost_basis_id}}')].id" contains "{{cost_basis_id}}"
 jsonpath "$.data[0].fiat_code" == "USD"
 jsonpath "$.data[0].rate" == "1.5"
 
