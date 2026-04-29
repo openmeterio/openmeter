@@ -777,6 +777,57 @@ func TestEngine(t *testing.T) {
 			},
 		},
 		{
+			name: "Does not reapply recurrence on later activity changes",
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc, mm meterpkg.Meter) {
+				start := t1
+				recurrence := start.AddDate(0, 0, 1)
+				activityChange := recurrence.Add(time.Hour)
+				end := activityChange.Add(time.Hour)
+
+				use(30, recurrence.Add(30*time.Minute))
+				use(20, activityChange.Add(30*time.Minute))
+
+				g1 := grant1
+				g1.EffectiveAt = start
+				g1.Priority = 1
+				g1.Recurrence = &timeutil.Recurrence{
+					Interval: timeutil.RecurrencePeriodDaily,
+					Anchor:   recurrence,
+				}
+				g1 = makeGrant(g1)
+
+				g2 := grant2
+				g2.EffectiveAt = activityChange
+				g2.Priority = 2
+				g2 = makeGrant(g2)
+
+				res, err := eng.Run(
+					t.Context(),
+					engine.RunParams{
+						Meter:  mm,
+						Grants: []grant.Grant{g1, g2},
+						StartingSnapshot: balance.Snapshot{
+							Balances: balance.Map{
+								g1.ID: 100.0,
+								g2.ID: 0.0,
+							},
+							Overage: 0,
+							At:      start,
+						},
+						Until: end,
+					})
+
+				require.NoError(t, err)
+				assert.Equal(t, 50.0, res.Snapshot.Balances[g1.ID])
+				assert.Equal(t, 100.0, res.Snapshot.Balances[g2.ID])
+
+				segments := res.History.Segments()
+				require.Len(t, segments, 3)
+				assert.Equal(t, 100.0, segments[1].BalanceAtStart[g1.ID])
+				assert.Equal(t, 70.0, segments[2].BalanceAtStart[g1.ID])
+			},
+		},
+		{
 			name: "Return GrantBurnDownHistory",
 			run: func(t *testing.T, eng engine.Engine, use addUsageFunc, mm meterpkg.Meter) {
 				// burn down with usage after grant effectiveAt
