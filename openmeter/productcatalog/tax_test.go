@@ -558,28 +558,34 @@ func TestBackfillTaxConfig(t *testing.T) {
 // stubTaxCodeService is a minimal taxcode.Service implementation for unit tests.
 // Only GetTaxCode and GetOrCreateByAppMapping are wired; other methods panic.
 type stubTaxCodeService struct {
-	getTaxCode             func(ctx context.Context, input taxcode.GetTaxCodeInput) (taxcode.TaxCode, error)
+	getTaxCode              func(ctx context.Context, input taxcode.GetTaxCodeInput) (taxcode.TaxCode, error)
 	getOrCreateByAppMapping func(ctx context.Context, input taxcode.GetOrCreateByAppMappingInput) (taxcode.TaxCode, error)
 }
 
 func (s *stubTaxCodeService) GetTaxCode(ctx context.Context, input taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {
 	return s.getTaxCode(ctx, input)
 }
+
 func (s *stubTaxCodeService) GetOrCreateByAppMapping(ctx context.Context, input taxcode.GetOrCreateByAppMappingInput) (taxcode.TaxCode, error) {
 	return s.getOrCreateByAppMapping(ctx, input)
 }
+
 func (s *stubTaxCodeService) CreateTaxCode(_ context.Context, _ taxcode.CreateTaxCodeInput) (taxcode.TaxCode, error) {
 	panic("not implemented")
 }
+
 func (s *stubTaxCodeService) UpdateTaxCode(_ context.Context, _ taxcode.UpdateTaxCodeInput) (taxcode.TaxCode, error) {
 	panic("not implemented")
 }
+
 func (s *stubTaxCodeService) ListTaxCodes(_ context.Context, _ taxcode.ListTaxCodesInput) (pagination.Result[taxcode.TaxCode], error) {
 	panic("not implemented")
 }
+
 func (s *stubTaxCodeService) GetTaxCodeByAppMapping(_ context.Context, _ taxcode.GetTaxCodeByAppMappingInput) (taxcode.TaxCode, error) {
 	panic("not implemented")
 }
+
 func (s *stubTaxCodeService) DeleteTaxCode(_ context.Context, _ taxcode.DeleteTaxCodeInput) error {
 	panic("not implemented")
 }
