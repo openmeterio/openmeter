@@ -1,15 +1,18 @@
 package productcatalog
 
 import (
+	"context"
 	"errors"
 	"testing"
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 func TestTaxConfigValidation(t *testing.T) {
@@ -548,6 +551,140 @@ func TestBackfillTaxConfig(t *testing.T) {
 			t.Parallel()
 			got := BackfillTaxConfig(tt.cfg, tt.taxBehavior, tt.tc)
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+// stubTaxCodeService is a minimal taxcode.Service implementation for unit tests.
+// Only GetTaxCode and GetOrCreateByAppMapping are wired; other methods panic.
+type stubTaxCodeService struct {
+	getTaxCode             func(ctx context.Context, input taxcode.GetTaxCodeInput) (taxcode.TaxCode, error)
+	getOrCreateByAppMapping func(ctx context.Context, input taxcode.GetOrCreateByAppMappingInput) (taxcode.TaxCode, error)
+}
+
+func (s *stubTaxCodeService) GetTaxCode(ctx context.Context, input taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {
+	return s.getTaxCode(ctx, input)
+}
+func (s *stubTaxCodeService) GetOrCreateByAppMapping(ctx context.Context, input taxcode.GetOrCreateByAppMappingInput) (taxcode.TaxCode, error) {
+	return s.getOrCreateByAppMapping(ctx, input)
+}
+func (s *stubTaxCodeService) CreateTaxCode(_ context.Context, _ taxcode.CreateTaxCodeInput) (taxcode.TaxCode, error) {
+	panic("not implemented")
+}
+func (s *stubTaxCodeService) UpdateTaxCode(_ context.Context, _ taxcode.UpdateTaxCodeInput) (taxcode.TaxCode, error) {
+	panic("not implemented")
+}
+func (s *stubTaxCodeService) ListTaxCodes(_ context.Context, _ taxcode.ListTaxCodesInput) (pagination.Result[taxcode.TaxCode], error) {
+	panic("not implemented")
+}
+func (s *stubTaxCodeService) GetTaxCodeByAppMapping(_ context.Context, _ taxcode.GetTaxCodeByAppMappingInput) (taxcode.TaxCode, error) {
+	panic("not implemented")
+}
+func (s *stubTaxCodeService) DeleteTaxCode(_ context.Context, _ taxcode.DeleteTaxCodeInput) error {
+	panic("not implemented")
+}
+
+func TestResolveTaxConfig(t *testing.T) {
+	const ns = "test-ns"
+
+	tcWithStripe := taxcode.TaxCode{
+		NamespacedID: models.NamespacedID{Namespace: ns, ID: "tc-stripe"},
+		AppMappings:  taxcode.TaxCodeAppMappings{{AppType: app.AppTypeStripe, TaxCode: "txcd_10000000"}},
+	}
+	tcWithoutStripe := taxcode.TaxCode{
+		NamespacedID: models.NamespacedID{Namespace: ns, ID: "tc-no-stripe"},
+		AppMappings:  taxcode.TaxCodeAppMappings{},
+	}
+
+	tests := []struct {
+		name    string
+		svc     *stubTaxCodeService
+		cfg     *TaxConfig
+		wantCfg *TaxConfig
+		wantErr string
+	}{
+		{
+			name:    "nil cfg is no-op",
+			cfg:     nil,
+			wantCfg: nil,
+		},
+		{
+			name: "TaxCodeID set, entity has Stripe mapping — Stripe backfilled",
+			svc: &stubTaxCodeService{
+				getTaxCode: func(_ context.Context, _ taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {
+					return tcWithStripe, nil
+				},
+			},
+			cfg:     &TaxConfig{TaxCodeID: lo.ToPtr("tc-stripe")},
+			wantCfg: &TaxConfig{TaxCodeID: lo.ToPtr("tc-stripe"), Stripe: &StripeTaxConfig{Code: "txcd_10000000"}},
+		},
+		{
+			name: "TaxCodeID set, entity has no Stripe mapping — Stripe cleared",
+			svc: &stubTaxCodeService{
+				getTaxCode: func(_ context.Context, _ taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {
+					return tcWithoutStripe, nil
+				},
+			},
+			cfg:     &TaxConfig{TaxCodeID: lo.ToPtr("tc-no-stripe"), Stripe: &StripeTaxConfig{Code: "txcd_10000000"}},
+			wantCfg: &TaxConfig{TaxCodeID: lo.ToPtr("tc-no-stripe"), Stripe: nil},
+		},
+		{
+			name: "both TaxCodeID and Stripe code set — TaxCodeID wins, Stripe overwritten from entity",
+			svc: &stubTaxCodeService{
+				getTaxCode: func(_ context.Context, _ taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {
+					return tcWithStripe, nil
+				},
+			},
+			cfg:     &TaxConfig{TaxCodeID: lo.ToPtr("tc-stripe"), Stripe: &StripeTaxConfig{Code: "txcd_99999999"}},
+			wantCfg: &TaxConfig{TaxCodeID: lo.ToPtr("tc-stripe"), Stripe: &StripeTaxConfig{Code: "txcd_10000000"}},
+		},
+		{
+			name: "TaxCodeID set, entity not found — validation error",
+			svc: &stubTaxCodeService{
+				getTaxCode: func(_ context.Context, input taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {
+					return taxcode.TaxCode{}, taxcode.NewTaxCodeNotFoundError(input.ID)
+				},
+			},
+			cfg:     &TaxConfig{TaxCodeID: lo.ToPtr("missing-id")},
+			wantErr: "validation error: tax code missing-id not found",
+		},
+		{
+			name: "Stripe code set — TaxCodeID stamped",
+			svc: &stubTaxCodeService{
+				getOrCreateByAppMapping: func(_ context.Context, _ taxcode.GetOrCreateByAppMappingInput) (taxcode.TaxCode, error) {
+					return tcWithStripe, nil
+				},
+			},
+			cfg:     &TaxConfig{Stripe: &StripeTaxConfig{Code: "txcd_10000000"}},
+			wantCfg: &TaxConfig{Stripe: &StripeTaxConfig{Code: "txcd_10000000"}, TaxCodeID: lo.ToPtr("tc-stripe")},
+		},
+		{
+			name:    "neither TaxCodeID nor Stripe code — no-op",
+			svc:     &stubTaxCodeService{},
+			cfg:     &TaxConfig{Behavior: lo.ToPtr(InclusiveTaxBehavior)},
+			wantCfg: &TaxConfig{Behavior: lo.ToPtr(InclusiveTaxBehavior)},
+		},
+		{
+			name:    "empty Stripe code — no-op",
+			svc:     &stubTaxCodeService{},
+			cfg:     &TaxConfig{Stripe: &StripeTaxConfig{Code: ""}},
+			wantCfg: &TaxConfig{Stripe: &StripeTaxConfig{Code: ""}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := ResolveTaxConfig(t.Context(), tt.svc, ns, tt.cfg)
+
+			if tt.wantErr != "" {
+				require.EqualError(t, err, tt.wantErr)
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantCfg, tt.cfg)
 		})
 	}
 }
