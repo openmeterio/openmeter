@@ -58,6 +58,8 @@ type ChargeUsageBasedRuns struct {
 	StoredAtLt time.Time `json:"stored_at_lt,omitempty"`
 	// ServicePeriodTo holds the value of the "service_period_to" field.
 	ServicePeriodTo time.Time `json:"service_period_to,omitempty"`
+	// DetailedLinesPresent holds the value of the "detailed_lines_present" field.
+	DetailedLinesPresent bool `json:"detailed_lines_present,omitempty"`
 	// LineID holds the value of the "line_id" field.
 	LineID *string `json:"line_id,omitempty"`
 	// MeteredQuantity holds the value of the "metered_quantity" field.
@@ -169,6 +171,8 @@ func (*ChargeUsageBasedRuns) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargeusagebasedruns.FieldAmount, chargeusagebasedruns.FieldTaxesTotal, chargeusagebasedruns.FieldTaxesInclusiveTotal, chargeusagebasedruns.FieldTaxesExclusiveTotal, chargeusagebasedruns.FieldChargesTotal, chargeusagebasedruns.FieldDiscountsTotal, chargeusagebasedruns.FieldCreditsTotal, chargeusagebasedruns.FieldTotal, chargeusagebasedruns.FieldMeteredQuantity:
 			values[i] = new(alpacadecimal.Decimal)
+		case chargeusagebasedruns.FieldDetailedLinesPresent:
+			values[i] = new(sql.NullBool)
 		case chargeusagebasedruns.FieldID, chargeusagebasedruns.FieldNamespace, chargeusagebasedruns.FieldChargeID, chargeusagebasedruns.FieldFeatureID, chargeusagebasedruns.FieldType, chargeusagebasedruns.FieldLineID:
 			values[i] = new(sql.NullString)
 		case chargeusagebasedruns.FieldCreatedAt, chargeusagebasedruns.FieldUpdatedAt, chargeusagebasedruns.FieldDeletedAt, chargeusagebasedruns.FieldStoredAtLt, chargeusagebasedruns.FieldServicePeriodTo:
@@ -296,6 +300,12 @@ func (_m *ChargeUsageBasedRuns) assignValues(columns []string, values []any) err
 				return fmt.Errorf("unexpected type %T for field service_period_to", values[i])
 			} else if value.Valid {
 				_m.ServicePeriodTo = value.Time
+			}
+		case chargeusagebasedruns.FieldDetailedLinesPresent:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field detailed_lines_present", values[i])
+			} else if value.Valid {
+				_m.DetailedLinesPresent = value.Bool
 			}
 		case chargeusagebasedruns.FieldLineID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -433,6 +443,9 @@ func (_m *ChargeUsageBasedRuns) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("service_period_to=")
 	builder.WriteString(_m.ServicePeriodTo.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("detailed_lines_present=")
+	builder.WriteString(fmt.Sprintf("%v", _m.DetailedLinesPresent))
 	builder.WriteString(", ")
 	if v := _m.LineID; v != nil {
 		builder.WriteString("line_id=")

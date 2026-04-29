@@ -186,6 +186,20 @@ func (_u *ChargeUsageBasedRunsUpdate) SetNillableStoredAtLt(v *time.Time) *Charg
 	return _u
 }
 
+// SetDetailedLinesPresent sets the "detailed_lines_present" field.
+func (_u *ChargeUsageBasedRunsUpdate) SetDetailedLinesPresent(v bool) *ChargeUsageBasedRunsUpdate {
+	_u.mutation.SetDetailedLinesPresent(v)
+	return _u
+}
+
+// SetNillableDetailedLinesPresent sets the "detailed_lines_present" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdate) SetNillableDetailedLinesPresent(v *bool) *ChargeUsageBasedRunsUpdate {
+	if v != nil {
+		_u.SetDetailedLinesPresent(*v)
+	}
+	return _u
+}
+
 // SetLineID sets the "line_id" field.
 func (_u *ChargeUsageBasedRunsUpdate) SetLineID(v string) *ChargeUsageBasedRunsUpdate {
 	_u.mutation.SetLineID(v)
@@ -471,6 +485,9 @@ func (_u *ChargeUsageBasedRunsUpdate) sqlSave(ctx context.Context) (_node int, e
 	}
 	if value, ok := _u.mutation.StoredAtLt(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldStoredAtLt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.DetailedLinesPresent(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldDetailedLinesPresent, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.MeteredQuantity(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldMeteredQuantity, field.TypeOther, value)
@@ -824,6 +841,20 @@ func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableStoredAtLt(v *time.Time) *Ch
 	return _u
 }
 
+// SetDetailedLinesPresent sets the "detailed_lines_present" field.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetDetailedLinesPresent(v bool) *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.SetDetailedLinesPresent(v)
+	return _u
+}
+
+// SetNillableDetailedLinesPresent sets the "detailed_lines_present" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableDetailedLinesPresent(v *bool) *ChargeUsageBasedRunsUpdateOne {
+	if v != nil {
+		_u.SetDetailedLinesPresent(*v)
+	}
+	return _u
+}
+
 // SetLineID sets the "line_id" field.
 func (_u *ChargeUsageBasedRunsUpdateOne) SetLineID(v string) *ChargeUsageBasedRunsUpdateOne {
 	_u.mutation.SetLineID(v)
@@ -1139,6 +1170,9 @@ func (_u *ChargeUsageBasedRunsUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 	}
 	if value, ok := _u.mutation.StoredAtLt(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldStoredAtLt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.DetailedLinesPresent(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldDetailedLinesPresent, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.MeteredQuantity(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldMeteredQuantity, field.TypeOther, value)

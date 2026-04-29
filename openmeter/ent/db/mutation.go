@@ -61214,6 +61214,7 @@ type ChargeUsageBasedRunsMutation struct {
 	_type                       *usagebased.RealizationRunType
 	stored_at_lt                *time.Time
 	service_period_to           *time.Time
+	detailed_lines_present      *bool
 	metered_quantity            *alpacadecimal.Decimal
 	clearedFields               map[string]struct{}
 	usage_based                 *string
@@ -61966,6 +61967,42 @@ func (m *ChargeUsageBasedRunsMutation) ResetServicePeriodTo() {
 	m.service_period_to = nil
 }
 
+// SetDetailedLinesPresent sets the "detailed_lines_present" field.
+func (m *ChargeUsageBasedRunsMutation) SetDetailedLinesPresent(b bool) {
+	m.detailed_lines_present = &b
+}
+
+// DetailedLinesPresent returns the value of the "detailed_lines_present" field in the mutation.
+func (m *ChargeUsageBasedRunsMutation) DetailedLinesPresent() (r bool, exists bool) {
+	v := m.detailed_lines_present
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDetailedLinesPresent returns the old "detailed_lines_present" field's value of the ChargeUsageBasedRuns entity.
+// If the ChargeUsageBasedRuns object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunsMutation) OldDetailedLinesPresent(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDetailedLinesPresent is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDetailedLinesPresent requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDetailedLinesPresent: %w", err)
+	}
+	return oldValue.DetailedLinesPresent, nil
+}
+
+// ResetDetailedLinesPresent resets all changes to the "detailed_lines_present" field.
+func (m *ChargeUsageBasedRunsMutation) ResetDetailedLinesPresent() {
+	m.detailed_lines_present = nil
+}
+
 // SetLineID sets the "line_id" field.
 func (m *ChargeUsageBasedRunsMutation) SetLineID(s string) {
 	m.billing_invoice_line = &s
@@ -62378,7 +62415,7 @@ func (m *ChargeUsageBasedRunsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeUsageBasedRunsMutation) Fields() []string {
-	fields := make([]string, 0, 19)
+	fields := make([]string, 0, 20)
 	if m.namespace != nil {
 		fields = append(fields, chargeusagebasedruns.FieldNamespace)
 	}
@@ -62430,6 +62467,9 @@ func (m *ChargeUsageBasedRunsMutation) Fields() []string {
 	if m.service_period_to != nil {
 		fields = append(fields, chargeusagebasedruns.FieldServicePeriodTo)
 	}
+	if m.detailed_lines_present != nil {
+		fields = append(fields, chargeusagebasedruns.FieldDetailedLinesPresent)
+	}
 	if m.billing_invoice_line != nil {
 		fields = append(fields, chargeusagebasedruns.FieldLineID)
 	}
@@ -62478,6 +62518,8 @@ func (m *ChargeUsageBasedRunsMutation) Field(name string) (ent.Value, bool) {
 		return m.StoredAtLt()
 	case chargeusagebasedruns.FieldServicePeriodTo:
 		return m.ServicePeriodTo()
+	case chargeusagebasedruns.FieldDetailedLinesPresent:
+		return m.DetailedLinesPresent()
 	case chargeusagebasedruns.FieldLineID:
 		return m.LineID()
 	case chargeusagebasedruns.FieldMeteredQuantity:
@@ -62525,6 +62567,8 @@ func (m *ChargeUsageBasedRunsMutation) OldField(ctx context.Context, name string
 		return m.OldStoredAtLt(ctx)
 	case chargeusagebasedruns.FieldServicePeriodTo:
 		return m.OldServicePeriodTo(ctx)
+	case chargeusagebasedruns.FieldDetailedLinesPresent:
+		return m.OldDetailedLinesPresent(ctx)
 	case chargeusagebasedruns.FieldLineID:
 		return m.OldLineID(ctx)
 	case chargeusagebasedruns.FieldMeteredQuantity:
@@ -62657,6 +62701,13 @@ func (m *ChargeUsageBasedRunsMutation) SetField(name string, value ent.Value) er
 		}
 		m.SetServicePeriodTo(v)
 		return nil
+	case chargeusagebasedruns.FieldDetailedLinesPresent:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDetailedLinesPresent(v)
+		return nil
 	case chargeusagebasedruns.FieldLineID:
 		v, ok := value.(string)
 		if !ok {
@@ -62785,6 +62836,9 @@ func (m *ChargeUsageBasedRunsMutation) ResetField(name string) error {
 		return nil
 	case chargeusagebasedruns.FieldServicePeriodTo:
 		m.ResetServicePeriodTo()
+		return nil
+	case chargeusagebasedruns.FieldDetailedLinesPresent:
+		m.ResetDetailedLinesPresent()
 		return nil
 	case chargeusagebasedruns.FieldLineID:
 		m.ResetLineID()

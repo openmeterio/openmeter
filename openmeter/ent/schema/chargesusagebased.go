@@ -169,6 +169,8 @@ func (ChargeUsageBasedRuns) Fields() []ent.Field {
 		field.Time("service_period_to").
 			Immutable(),
 
+		field.Bool("detailed_lines_present"),
+
 		field.String("line_id").
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
