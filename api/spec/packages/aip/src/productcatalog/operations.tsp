@@ -37,7 +37,6 @@ interface PlanOperations {
   @get
   @operationId("list-plans")
   @summary("List plans")
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   listPlans(
@@ -67,8 +66,7 @@ interface PlanOperations {
    */
   @post
   @operationId("create-plan")
-  @summary("Create a new plan.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Create plan")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   createPlan(
@@ -81,8 +79,7 @@ interface PlanOperations {
   @put
   @route("/{planId}")
   @operationId("update-plan")
-  @summary("Update a plan by id.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Update plan")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   updatePlan(
@@ -100,8 +97,7 @@ interface PlanOperations {
   @get
   @route("/{planId}")
   @operationId("get-plan")
-  @summary("Get a plan by id.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Get plan")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   getPlan(@path planId: Shared.ULID):
@@ -116,8 +112,7 @@ interface PlanOperations {
   @delete
   @route("/{planId}")
   @operationId("delete-plan")
-  @summary("Delete a plan by id.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Delete plan")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   deletePlan(
@@ -130,8 +125,7 @@ interface PlanOperations {
   @post
   @route("/{planId}/archive")
   @operationId("archive-plan")
-  @summary("Archive a plan version.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Archive plan version")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   archivePlan(
@@ -144,8 +138,7 @@ interface PlanOperations {
   @post
   @route("/{planId}/publish")
   @operationId("publish-plan")
-  @summary("Publish a plan version.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Publish plan version")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   publishPlan(
@@ -176,8 +169,7 @@ interface AddonOperations {
    */
   @get
   @operationId("list-addons")
-  @summary("List all add-ons.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("List add-ons")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   listAddons(
@@ -210,8 +202,7 @@ interface AddonOperations {
    */
   @post
   @operationId("create-addon")
-  @summary("Create a new add-on.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Create add-on")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   createAddon(
@@ -224,8 +215,7 @@ interface AddonOperations {
   @put
   @route("/{addonId}")
   @operationId("update-addon")
-  @summary("Update an add-on by id.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Update add-on")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   updateAddon(
@@ -243,8 +233,7 @@ interface AddonOperations {
   @get
   @route("/{addonId}")
   @operationId("get-addon")
-  @summary("Get add-on by id.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Get add-on")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   getAddon(@path addonId: Shared.ULID):
@@ -259,8 +248,7 @@ interface AddonOperations {
   @delete
   @route("/{addonId}")
   @operationId("delete-addon")
-  @summary("Soft delete add-on by id.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Soft delete add-on")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   deleteAddon(
@@ -273,8 +261,7 @@ interface AddonOperations {
   @post
   @route("/{addonId}/archive")
   @operationId("archive-addon")
-  @summary("Archive an add-on version.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Archive add-on version")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   archiveAddon(
@@ -287,8 +274,7 @@ interface AddonOperations {
   @post
   @route("/{addonId}/publish")
   @operationId("publish-addon")
-  @summary("Publish an add-on version.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Publish add-on version")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   publishAddon(
@@ -302,8 +288,7 @@ interface PlanAddonOperations {
    */
   @get
   @operationId("list-plan-addons")
-  @summary("List add-ons for a plan.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("List add-ons for plan")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   listPlanAddons(
@@ -316,8 +301,7 @@ interface PlanAddonOperations {
    */
   @post
   @operationId("create-plan-addon")
-  @summary("Add an add-on to a plan.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Add add-on to plan")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   createPlanAddon(
@@ -331,8 +315,7 @@ interface PlanAddonOperations {
   @get
   @route("/{planAddonId}")
   @operationId("get-plan-addon")
-  @summary("Get an add-on association for a plan.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Get add-on association for plan")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   getPlanAddon(
@@ -346,8 +329,7 @@ interface PlanAddonOperations {
   @put
   @route("/{planAddonId}")
   @operationId("update-plan-addon")
-  @summary("Update an add-on association for a plan.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Update add-on association for plan")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   updatePlanAddon(
@@ -362,8 +344,7 @@ interface PlanAddonOperations {
   @delete
   @route("/{planAddonId}")
   @operationId("delete-plan-addon")
-  @summary("Remove an add-on from a plan.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Remove add-on from plan")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   deletePlanAddon(

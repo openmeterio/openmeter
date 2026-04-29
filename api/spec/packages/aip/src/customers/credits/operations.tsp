@@ -36,6 +36,9 @@ interface CustomerCreditGrantsOperations {
    * Create a new credit grant.
    * A credit grant represents an allocation of prepaid credits to a customer.
    */
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
   @post
   @operationId("create-credit-grant")
   @summary("Create a new credit grant")
@@ -47,6 +50,9 @@ interface CustomerCreditGrantsOperations {
   /**
    * Get a credit grant.
    */
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
   @get
   @operationId("get-credit-grant")
   @summary("Get a credit grant")
@@ -58,6 +64,9 @@ interface CustomerCreditGrantsOperations {
   /**
    * List credit grants.
    */
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
   @get
   @operationId("list-credit-grants")
   @summary("List credit grants")
@@ -110,6 +119,9 @@ interface CustomerCreditGrantExternalSettlementOperations {
    * Use this endpoint to synchronize the payment state of an external payment
    * with the system so that revenue recognition and credit availability work as expected.
    */
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
   @post
   @operationId("update-credit-grant-external-settlement")
   @summary("Update credit grant external settlement status")
@@ -140,6 +152,9 @@ interface CustomerCreditBalancesOperations {
   /**
    * Get a credit balance.
    */
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
   @get
   @operationId("get-customer-credit-balance")
   @summary("Get a customer's credit balance")
@@ -177,6 +192,9 @@ interface CustomerCreditTransactionOperations {
    * funded credits and consumed credits.
    * Transactions are returned in reverse chronological order by default.
    */
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
   @get
   @operationId("list-credit-transactions")
   @summary("List credit transactions")
@@ -199,6 +217,9 @@ interface CustomerCreditAdjustmentsOperations {
    * Supported use-cases:
    * - Usage correction
    */
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
   @post
   @operationId("create-credit-adjustment")
   @summary("Create a credit adjustment")
