@@ -781,9 +781,14 @@ func (s *TaxCodePersistenceTestSuite) TestTaxConfigInListCharges() {
 	}
 	clock.SetTime(servicePeriod.From)
 
-	taxConfig := &productcatalog.TaxCodeConfig{
+	tcID := tc.ID
+	taxConfigFlat := &productcatalog.TaxCodeConfig{
 		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-		TaxCodeID: &tc.ID,
+		TaxCodeID: &tcID,
+	}
+	taxConfigUsage := &productcatalog.TaxCodeConfig{
+		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+		TaxCodeID: &tcID,
 	}
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
@@ -801,7 +806,7 @@ func (s *TaxCodePersistenceTestSuite) TestTaxConfigInListCharges() {
 				name:              "flat-fee-list-taxcode",
 				managedBy:         billing.ManuallyManagedLine,
 				uniqueReferenceID: "flat-fee-list-taxcode",
-				taxConfig:         taxConfig,
+				taxConfig:         taxConfigFlat,
 			}),
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -815,7 +820,7 @@ func (s *TaxCodePersistenceTestSuite) TestTaxConfigInListCharges() {
 				name:              "usage-based-list-taxcode",
 				managedBy:         billing.ManuallyManagedLine,
 				uniqueReferenceID: "usage-based-list-taxcode",
-				taxConfig:         taxConfig,
+				taxConfig:         taxConfigUsage,
 			}),
 		},
 	})
