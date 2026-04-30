@@ -66,7 +66,9 @@ func (a *Adapter) ListMeters(ctx context.Context, params meter.ListMetersParams)
 		case meter.OrderByUpdatedAt:
 			query = query.Order(meterdb.ByUpdatedAt(order...))
 		default:
-			query = query.Order(meterdb.ByCreatedAt(order...))
+			return pagination.Result[meter.Meter]{}, models.NewGenericValidationError(
+				fmt.Errorf("unsupported order by field: %q", params.OrderBy),
+			)
 		}
 	}
 
