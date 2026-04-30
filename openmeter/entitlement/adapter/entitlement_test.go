@@ -651,7 +651,7 @@ func TestListEntitlementsByIngestedEventsQuery(t *testing.T) {
 			namespace:     "namespace-1",
 			subject:       "subject-1",
 			meters:        []string{"meter-1", "meter-2"},
-			expectedQuery: `WITH "customers" AS (SELECT "c"."id" FROM "customers" AS "c" WHERE "c"."namespace" = $1 AND "c"."key" = $2 AND "c"."deleted_at" IS NULL UNION SELECT "cs"."customer_id" FROM "customer_subjects" AS "cs" JOIN "customers" AS "c" ON "c"."id" = "cs"."customer_id" WHERE "cs"."namespace" = $3 AND "cs"."subject_key" = $4 AND "c"."deleted_at" IS NULL AND "cs"."deleted_at" IS NULL), "features" AS (SELECT "f"."id" FROM "features" AS "f" JOIN "meters" AS "m" ON "m"."id" = "f"."meter_id" WHERE "f"."namespace" = $5 AND "f"."archived_at" IS NULL AND "f"."deleted_at" IS NULL AND "m"."key" IN ($6, $7)) SELECT "e"."namespace", "e"."id", "e"."created_at", "e"."deleted_at", "e"."active_from", "e"."active_to" FROM "entitlements" AS "e" JOIN "customers" AS "cbs" ON "e"."customer_id" = "cbs"."id" JOIN "features" AS "fbm" ON "e"."feature_id" = "fbm"."id" WHERE "e"."namespace" = $8 AND "e"."deleted_at" IS NULL`,
+			expectedQuery: `WITH "customer_by_subject" AS (SELECT "c"."id" FROM "customers" AS "c" WHERE "c"."namespace" = $1 AND "c"."key" = $2 AND "c"."deleted_at" IS NULL UNION SELECT "cs"."customer_id" FROM "customer_subjects" AS "cs" JOIN "customers" AS "c" ON "c"."id" = "cs"."customer_id" WHERE "cs"."namespace" = $3 AND "cs"."subject_key" = $4 AND "c"."deleted_at" IS NULL AND "cs"."deleted_at" IS NULL), "feature_by_meter" AS (SELECT "f"."id" FROM "features" AS "f" JOIN "meters" AS "m" ON "m"."id" = "f"."meter_id" WHERE "f"."namespace" = $5 AND "f"."archived_at" IS NULL AND "f"."deleted_at" IS NULL AND "m"."deleted_at" IS NULL AND "m"."key" IN ($6, $7)) SELECT "e"."namespace", "e"."id", "e"."created_at", "e"."deleted_at", "e"."active_from", "e"."active_to" FROM "entitlements" AS "e" JOIN "customer_by_subject" AS "cbs" ON "e"."customer_id" = "cbs"."id" JOIN "feature_by_meter" AS "fbm" ON "e"."feature_id" = "fbm"."id" WHERE "e"."namespace" = $8 AND "e"."deleted_at" IS NULL`,
 			expectedArgs: []any{
 				"namespace-1",
 				"subject-1",
@@ -668,7 +668,7 @@ func TestListEntitlementsByIngestedEventsQuery(t *testing.T) {
 			namespace:     "namespace-1",
 			subject:       "subject-1",
 			meters:        []string{"meter-1"},
-			expectedQuery: `WITH "customers" AS (SELECT "c"."id" FROM "customers" AS "c" WHERE "c"."namespace" = $1 AND "c"."key" = $2 AND "c"."deleted_at" IS NULL UNION SELECT "cs"."customer_id" FROM "customer_subjects" AS "cs" JOIN "customers" AS "c" ON "c"."id" = "cs"."customer_id" WHERE "cs"."namespace" = $3 AND "cs"."subject_key" = $4 AND "c"."deleted_at" IS NULL AND "cs"."deleted_at" IS NULL), "features" AS (SELECT "f"."id" FROM "features" AS "f" JOIN "meters" AS "m" ON "m"."id" = "f"."meter_id" WHERE "f"."namespace" = $5 AND "f"."archived_at" IS NULL AND "f"."deleted_at" IS NULL AND "m"."key" IN ($6)) SELECT "e"."namespace", "e"."id", "e"."created_at", "e"."deleted_at", "e"."active_from", "e"."active_to" FROM "entitlements" AS "e" JOIN "customers" AS "cbs" ON "e"."customer_id" = "cbs"."id" JOIN "features" AS "fbm" ON "e"."feature_id" = "fbm"."id" WHERE "e"."namespace" = $7 AND "e"."deleted_at" IS NULL`,
+			expectedQuery: `WITH "customer_by_subject" AS (SELECT "c"."id" FROM "customers" AS "c" WHERE "c"."namespace" = $1 AND "c"."key" = $2 AND "c"."deleted_at" IS NULL UNION SELECT "cs"."customer_id" FROM "customer_subjects" AS "cs" JOIN "customers" AS "c" ON "c"."id" = "cs"."customer_id" WHERE "cs"."namespace" = $3 AND "cs"."subject_key" = $4 AND "c"."deleted_at" IS NULL AND "cs"."deleted_at" IS NULL), "feature_by_meter" AS (SELECT "f"."id" FROM "features" AS "f" JOIN "meters" AS "m" ON "m"."id" = "f"."meter_id" WHERE "f"."namespace" = $5 AND "f"."archived_at" IS NULL AND "f"."deleted_at" IS NULL AND "m"."deleted_at" IS NULL AND "m"."key" IN ($6)) SELECT "e"."namespace", "e"."id", "e"."created_at", "e"."deleted_at", "e"."active_from", "e"."active_to" FROM "entitlements" AS "e" JOIN "customer_by_subject" AS "cbs" ON "e"."customer_id" = "cbs"."id" JOIN "feature_by_meter" AS "fbm" ON "e"."feature_id" = "fbm"."id" WHERE "e"."namespace" = $7 AND "e"."deleted_at" IS NULL`,
 			expectedArgs: []any{
 				"namespace-1",
 				"subject-1",
@@ -810,7 +810,7 @@ func TestListEntitlementsByIngestedEvents(t *testing.T) {
 		return result
 	}
 
-	t.Run("Should return entitlements for Customer key and meters", func(t *testing.T) {
+	t.Run("Should return entitlements for customer key and meter", func(t *testing.T) {
 		entitlements, err := balanceWorkerRepo.ListEntitlementsAffectedByIngestEvents(t.Context(), balanceworker.IngestEventQueryFilter{
 			Namespace:    ns,
 			EventSubject: lo.FromPtr(c1.Key),
@@ -822,7 +822,7 @@ func TestListEntitlementsByIngestedEvents(t *testing.T) {
 		assert.ElementsMatchf(t, expectedEntitlementIDs, toEntitlementIDs(t, entitlements), "entitlement IDs should match expected entitlement IDs")
 	})
 
-	t.Run("Should return entitlements for Customer key and meters", func(t *testing.T) {
+	t.Run("Should return entitlements for subject key and meters", func(t *testing.T) {
 		entitlements, err := balanceWorkerRepo.ListEntitlementsAffectedByIngestEvents(t.Context(), balanceworker.IngestEventQueryFilter{
 			Namespace:    ns,
 			EventSubject: lo.FromPtr(c1.UsageAttribution).SubjectKeys[0],
@@ -832,5 +832,49 @@ func TestListEntitlementsByIngestedEvents(t *testing.T) {
 		assert.NotEmptyf(t, entitlements, "entitlements should not be empty")
 
 		assert.ElementsMatchf(t, expectedEntitlementIDs, toEntitlementIDs(t, entitlements), "entitlement IDs should match expected entitlement IDs")
+	})
+
+	t.Run("Should return no entitlements for non-existing features", func(t *testing.T) {
+		entitlements, err := balanceWorkerRepo.ListEntitlementsAffectedByIngestEvents(t.Context(), balanceworker.IngestEventQueryFilter{
+			Namespace:    ns,
+			EventSubject: lo.FromPtr(c1.UsageAttribution).SubjectKeys[0],
+			MeterSlugs:   []string{"non-existent-meter"},
+		})
+		require.NoErrorf(t, err, "entitlements should be fetched successfully")
+		assert.Emptyf(t, entitlements, "entitlements should be empty")
+	})
+
+	t.Run("Should return only non-deleted entitlements", func(t *testing.T) {
+		err = repo.entRepo.DeleteEntitlement(t.Context(), models.NamespacedID{
+			Namespace: e2.Namespace,
+			ID:        e2.ID,
+		}, clock.Now())
+		require.NoErrorf(t, err, "deleting entitlement should not fail")
+
+		entitlements, err := balanceWorkerRepo.ListEntitlementsAffectedByIngestEvents(t.Context(), balanceworker.IngestEventQueryFilter{
+			Namespace:    ns,
+			EventSubject: lo.FromPtr(c1.UsageAttribution).SubjectKeys[0],
+			MeterSlugs:   []string{m1.Key, m2.Key},
+		})
+		require.NoErrorf(t, err, "entitlements should be fetched successfully")
+		assert.NotEmptyf(t, entitlements, "entitlements should not be empty")
+
+		assert.ElementsMatchf(t, []string{e1.ID}, toEntitlementIDs(t, entitlements), "entitlement IDs should match expected entitlement IDs")
+	})
+
+	t.Run("Should return no entitlements for deleted customer", func(t *testing.T) {
+		err = repo.customerRepo.DeleteCustomer(t.Context(), customer.DeleteCustomerInput{
+			Namespace: c1.Namespace,
+			ID:        c1.ID,
+		})
+		require.NoErrorf(t, err, "deleting entitlement should not fail")
+
+		entitlements, err := balanceWorkerRepo.ListEntitlementsAffectedByIngestEvents(t.Context(), balanceworker.IngestEventQueryFilter{
+			Namespace:    ns,
+			EventSubject: lo.FromPtr(c1.UsageAttribution).SubjectKeys[0],
+			MeterSlugs:   []string{m1.Key, m2.Key},
+		})
+		require.NoErrorf(t, err, "entitlements should be fetched successfully")
+		assert.Emptyf(t, entitlements, "entitlements should be empty")
 	})
 }

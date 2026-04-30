@@ -244,11 +244,11 @@ func EntitlementsByIngestedEventsQuery(dialect, ns, subject string, meters ...st
 	ft := sql.Table(db_feature.Table).As("f")
 	mt := sql.Table(db_meter.Table).As("m")
 
-	withCustomers := "customers"
-	withFeatures := "features"
+	withCustomerBySubject := "customer_by_subject"
+	withFeatureByMeter := "feature_by_meter"
 
 	with := sql.Dialect(dialect).
-		With(withCustomers).
+		With(withCustomerBySubject).
 		As(
 			sql.Select(
 				ct.C(customerdb.FieldID),
@@ -258,7 +258,7 @@ func EntitlementsByIngestedEventsQuery(dialect, ns, subject string, meters ...st
 					sql.And(
 						sql.EQ(ct.C(customerdb.FieldNamespace), ns),
 						sql.EQ(ct.C(customerdb.FieldKey), subject),
-						sql.IsNull(ct.C(customerdb.FieldDeletedAt)),
+						sql.IsNull(ct.C(customersubjectsdb.FieldDeletedAt)),
 					),
 				).
 				Union(
@@ -272,11 +272,11 @@ func EntitlementsByIngestedEventsQuery(dialect, ns, subject string, meters ...st
 								sql.EQ(cst.C(customersubjectsdb.FieldNamespace), ns),
 								sql.EQ(cst.C(customersubjectsdb.FieldSubjectKey), subject),
 								sql.IsNull(ct.C(customerdb.FieldDeletedAt)),
-								sql.IsNull(cst.C(customerdb.FieldDeletedAt)),
+								sql.IsNull(cst.C(customersubjectsdb.FieldDeletedAt)),
 							),
 						)),
 		).
-		With(withFeatures).
+		With(withFeatureByMeter).
 		As(
 			sql.Select(
 				ft.C(db_feature.FieldID),
@@ -286,14 +286,14 @@ func EntitlementsByIngestedEventsQuery(dialect, ns, subject string, meters ...st
 					sql.EQ(ft.C(db_feature.FieldNamespace), ns),
 					sql.IsNull(ft.C(db_feature.FieldArchivedAt)),
 					sql.IsNull(ft.C(db_feature.FieldDeletedAt)),
+					sql.IsNull(mt.C(db_meter.FieldDeletedAt)),
 					sql.In(mt.C(db_meter.FieldKey), lo.ToAnySlice(meters)...),
 				)),
 		)
 
 	et := sql.Table(db_entitlement.Table).As("e")
-
-	cbs := sql.Table(withCustomers).As("cbs")
-	fbm := sql.Table(withFeatures).As("fbm")
+	cbs := sql.Table(withCustomerBySubject).As("cbs")
+	fbm := sql.Table(withFeatureByMeter).As("fbm")
 
 	q := sql.Dialect(dialect).
 		Select(
@@ -321,6 +321,10 @@ func (a *entitlementDBAdapter) ListEntitlementsAffectedByIngestEvents(ctx contex
 		ctx,
 		a,
 		func(ctx context.Context, repo *entitlementDBAdapter) ([]balanceworker.ListAffectedEntitlementsResponse, error) {
+			if err := eventFilter.Validate(); err != nil {
+				return nil, fmt.Errorf("invalid event filter: %w", err)
+			}
+
 			query, args := EntitlementsByIngestedEventsQuery(
 				repo.db.GetConfig().Driver.Dialect(),
 				eventFilter.Namespace,
@@ -330,7 +334,7 @@ func (a *entitlementDBAdapter) ListEntitlementsAffectedByIngestEvents(ctx contex
 
 			rows, err := repo.db.QueryContext(ctx, query, args...)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to query entitlements affected by ingest events: %w", err)
 			}
 
 			defer func() {
