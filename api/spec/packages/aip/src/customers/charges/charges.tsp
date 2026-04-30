@@ -154,6 +154,13 @@ model ChargeBase<T extends ChargeType> {
   @visibility(Lifecycle.Read)
   @summary("Settlement mode")
   settlement_mode: ProductCatalog.SettlementMode;
+
+  /**
+   * Tax configuration of the charge.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Tax configuration")
+  tax_config?: Billing.TaxConfig;
 }
 
 /**

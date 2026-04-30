@@ -4174,12 +4174,8 @@ components:
             - $ref: '#/components/schemas/BillingTaxBehavior'
           description: Tax behavior applied to the invoice line item.
         tax_code:
-          type: object
-          properties:
-            id:
-              $ref: '#/components/schemas/ULID'
-          required:
-            - id
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxCodeReference'
           description: Tax code applied to the invoice line item.
       description: |-
         Tax configuration for a credit grant.
@@ -4863,6 +4859,12 @@ components:
             - $ref: '#/components/schemas/BillingSettlementMode'
           description: Settlement mode of the charge.
           title: Settlement mode
+          readOnly: true
+        tax_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxConfig'
+          description: Tax configuration of the charge.
+          title: Tax configuration
           readOnly: true
         payment_term:
           allOf:
@@ -5928,6 +5930,17 @@ components:
           description: Tax code.
           title: Tax code
       description: Mapping of app types to tax codes.
+    BillingTaxCodeReference:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: ID of the tax code.
+      description: A reference to a tax code entity.
+      title: Tax code reference
     BillingTaxConfig:
       type: object
       properties:
@@ -5955,12 +5968,18 @@ components:
         tax_code_id:
           allOf:
             - $ref: '#/components/schemas/ULID'
+          description: Tax code ID.
+          title: Tax code ID
+          deprecated: true
+        tax_code:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxCodeReference'
           description: |-
             Tax code reference.
 
-            When both `tax_code_id` and `stripe.code` are provided, `tax_code_id` takes precedence:
-            the referenced tax code entity is used and `stripe.code` is ignored.
-          title: Tax code ID
+            When both `tax_code` and `tax_code_id` are provided, `tax_code` takes precedence.
+            When `stripe.code` is also provided, `tax_code` still wins and `stripe.code` is ignored.
+          title: Tax code
       description: Set of provider specific tax configs.
     BillingTaxConfigExternalInvoicing:
       type: object
@@ -6189,6 +6208,12 @@ components:
             - $ref: '#/components/schemas/BillingSettlementMode'
           description: Settlement mode of the charge.
           title: Settlement mode
+          readOnly: true
+        tax_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxConfig'
+          description: Tax configuration of the charge.
+          title: Tax configuration
           readOnly: true
         discounts:
           allOf:

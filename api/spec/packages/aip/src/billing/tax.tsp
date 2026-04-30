@@ -1,6 +1,18 @@
 namespace Billing;
 
 /**
+ * A reference to a tax code entity.
+ */
+@friendlyName("BillingTaxCodeReference")
+@summary("Tax code reference")
+model TaxCodeReference {
+  /**
+   * ID of the tax code.
+   */
+  id: Shared.ULID;
+}
+
+/**
  * Set of provider specific tax configs.
  */
 @friendlyName("BillingTaxConfig")
@@ -17,30 +29,39 @@ model TaxConfig {
   /**
    * Stripe tax config.
    *
-   * @deprecated Use `tax_code_id` instead. When both `stripe.code` and `tax_code_id` are provided,
-   * `tax_code_id` takes precedence and `stripe.code` is ignored.
+   * @deprecated Use `tax_code` instead. When both `stripe.code` and `tax_code` are provided,
+   * `tax_code` takes precedence and `stripe.code` is ignored.
    */
-  #deprecated "Use tax_code_id instead"
+  #deprecated "Use tax_code instead"
   @summary("Stripe tax config")
   stripe?: TaxConfigStripe;
 
   /**
    * External invoicing tax config.
    *
-   * @deprecated Use `tax_code_id` instead.
+   * @deprecated Use `tax_code` instead.
    */
-  #deprecated "Use tax_code_id instead"
+  #deprecated "Use tax_code instead"
   @summary("External invoicing tax config")
   external_invoicing?: TaxConfigExternalInvoicing;
 
   /**
-   * Tax code reference.
+   * Tax code ID.
    *
-   * When both `tax_code_id` and `stripe.code` are provided, `tax_code_id` takes precedence:
-   * the referenced tax code entity is used and `stripe.code` is ignored.
+   * @deprecated Use `tax_code` instead.
    */
+  #deprecated "Use tax_code instead"
   @summary("Tax code ID")
   tax_code_id?: Shared.ULID;
+
+  /**
+   * Tax code reference.
+   *
+   * When both `tax_code` and `tax_code_id` are provided, `tax_code` takes precedence.
+   * When `stripe.code` is also provided, `tax_code` still wins and `stripe.code` is ignored.
+   */
+  @summary("Tax code")
+  tax_code?: TaxCodeReference;
 }
 
 /**
