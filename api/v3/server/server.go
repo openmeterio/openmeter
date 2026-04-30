@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
+	"github.com/getkin/kin-openapi/routers"
 	"github.com/go-chi/chi/v5"
 	"github.com/samber/lo"
 
@@ -74,6 +76,7 @@ type Config struct {
 	Middlewares         []server.MiddlewareFunc
 	PostAuthMiddlewares []server.MiddlewareFunc
 	Credits             config.CreditsConfiguration
+	ResponseValidation  config.ResponseValidationConfig
 
 	// services
 	AddonService             addon.Service
@@ -394,6 +397,15 @@ func (s *Server) RegisterRoutes(r chi.Router) error {
 			validationMiddleware,
 		}
 
+		if s.ResponseValidation.Mode.Enabled() {
+			middlewares = append(middlewares, oasmiddleware.ValidateResponse(validationRouter, oasmiddleware.ValidateResponseOption{
+				RouteFilterHook: buildResponseValidationRouteFilter(s.ResponseValidation),
+				ResponseValidationErrorHook: func(err error, r *http.Request) {
+					slog.WarnContext(r.Context(), "response validation failed", slog.String("method", r.Method), slog.String("path", r.URL.Path), slog.Any("error", err))
+				},
+			}))
+		}
+
 		postAuthMiddlewares := lo.Map(s.PostAuthMiddlewares, func(mwf server.MiddlewareFunc, _ int) api.MiddlewareFunc {
 			return api.MiddlewareFunc(mwf)
 		})
@@ -408,4 +420,31 @@ func (s *Server) RegisterRoutes(r chi.Router) error {
 	})
 
 	return nil
+}
+
+// buildResponseValidationRouteFilter returns a route filter for response validation.
+// In "all" mode the filter is nil (every route is validated). In "unstable" mode only
+// operations marked x-unstable: true in the spec are validated.
+func buildResponseValidationRouteFilter(cfg config.ResponseValidationConfig) func(*routers.Route) bool {
+	if cfg.Mode != config.ResponseValidationModeUnstable {
+		return nil
+	}
+	return func(route *routers.Route) bool {
+		if route.Operation == nil {
+			return false
+		}
+		extVal, ok := route.Operation.Extensions["x-unstable"]
+		if !ok {
+			return false
+		}
+		switch v := extVal.(type) {
+		case json.RawMessage:
+			var b bool
+			return json.Unmarshal(v, &b) == nil && b
+		case bool:
+			return v
+		default:
+			return false
+		}
+	}
 }

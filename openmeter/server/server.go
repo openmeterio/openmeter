@@ -17,6 +17,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	v3server "github.com/openmeterio/openmeter/api/v3/server"
+	appconfig "github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/portal/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
@@ -67,6 +68,7 @@ type Config struct {
 	RouterConfig        router.Config
 	RouterHooks         RouterHooks
 	PostAuthMiddlewares PostAuthMiddlewares
+	ResponseValidation  appconfig.ResponseValidationConfig
 }
 
 func NewServer(config *Config) (*Server, error) {
@@ -137,6 +139,7 @@ func NewServer(config *Config) (*Server, error) {
 		FeatureConnector:         config.RouterConfig.FeatureConnector,
 		Middlewares:              v3Middlewares,
 		PostAuthMiddlewares:      config.PostAuthMiddlewares,
+		ResponseValidation:       config.ResponseValidation,
 	})
 	if err != nil {
 		slog.Error("failed to create v3 API", "error", err)
