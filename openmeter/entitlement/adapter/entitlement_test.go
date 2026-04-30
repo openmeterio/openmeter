@@ -7,16 +7,21 @@ import (
 	"testing"
 	"time"
 
+	"entgo.io/ent/dialect"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
+	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker"
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
+	"github.com/openmeterio/openmeter/openmeter/meter"
+	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
 	featureadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/subject"
@@ -36,6 +41,7 @@ type deps struct {
 	featureRepo  feature.FeatureRepo
 	subjectRepo  subject.Service
 	customerRepo customer.Adapter
+	meterRepo    *meteradapter.Adapter
 }
 
 func setup(t *testing.T) (deps deps, cleanup func()) {
@@ -56,6 +62,16 @@ func setup(t *testing.T) (deps deps, cleanup func()) {
 		entDriver.Close()
 		pgDriver.Close()
 	}
+
+	var err error
+
+	// Init meter service
+	deps.meterRepo, err = meteradapter.New(meteradapter.Config{
+		Client: dbClient,
+		Logger: logger,
+	})
+	require.NoErrorf(t, err, "initializing meter adapter must not fail")
+	require.NotNilf(t, deps.meterRepo, "meter adapter must not be nil")
 
 	deps.entRepo = adapter.NewPostgresEntitlementRepo(dbClient)
 	deps.featureRepo = featureadapter.NewPostgresFeatureRepo(dbClient, logger)
@@ -618,5 +634,203 @@ func TestListEntitlementsFiltersByCustomerKeysAndFeatureIDsOrKeys(t *testing.T) 
 		require.NoError(t, err)
 		require.Empty(t, res.Items)
 		require.Zero(t, res.TotalCount)
+	})
+}
+
+func TestListEntitlementsByIngestedEventsQuery(t *testing.T) {
+	tests := []struct {
+		name          string
+		namespace     string
+		subject       string
+		meters        []string
+		expectedQuery string
+		expectedArgs  []any
+	}{
+		{
+			name:          "Should return entitlements for a subject",
+			namespace:     "namespace-1",
+			subject:       "subject-1",
+			meters:        []string{"meter-1", "meter-2"},
+			expectedQuery: `WITH "customers" AS (SELECT "c"."id" FROM "customers" AS "c" WHERE "c"."namespace" = $1 AND "c"."key" = $2 AND "c"."deleted_at" IS NULL UNION SELECT "cs"."customer_id" FROM "customer_subjects" AS "cs" JOIN "customers" AS "c" ON "c"."id" = "cs"."customer_id" WHERE "cs"."namespace" = $3 AND "cs"."subject_key" = $4 AND "c"."deleted_at" IS NULL AND "cs"."deleted_at" IS NULL), "features" AS (SELECT "f"."id" FROM "features" AS "f" JOIN "meters" AS "m" ON "m"."id" = "f"."meter_id" WHERE "f"."namespace" = $5 AND "f"."archived_at" IS NULL AND "f"."deleted_at" IS NULL AND "m"."key" IN ($6, $7)) SELECT "e"."namespace", "e"."id", "e"."created_at", "e"."deleted_at", "e"."active_from", "e"."active_to" FROM "entitlements" AS "e" JOIN "customers" AS "cbs" ON "e"."customer_id" = "cbs"."id" JOIN "features" AS "fbm" ON "e"."feature_id" = "fbm"."id" WHERE "e"."namespace" = $8 AND "e"."deleted_at" IS NULL`,
+			expectedArgs: []any{
+				"namespace-1",
+				"subject-1",
+				"namespace-1",
+				"subject-1",
+				"namespace-1",
+				"meter-1",
+				"meter-2",
+				"namespace-1",
+			},
+		},
+		{
+			name:          "Should return entitlements for a subject and meter",
+			namespace:     "namespace-1",
+			subject:       "subject-1",
+			meters:        []string{"meter-1"},
+			expectedQuery: `WITH "customers" AS (SELECT "c"."id" FROM "customers" AS "c" WHERE "c"."namespace" = $1 AND "c"."key" = $2 AND "c"."deleted_at" IS NULL UNION SELECT "cs"."customer_id" FROM "customer_subjects" AS "cs" JOIN "customers" AS "c" ON "c"."id" = "cs"."customer_id" WHERE "cs"."namespace" = $3 AND "cs"."subject_key" = $4 AND "c"."deleted_at" IS NULL AND "cs"."deleted_at" IS NULL), "features" AS (SELECT "f"."id" FROM "features" AS "f" JOIN "meters" AS "m" ON "m"."id" = "f"."meter_id" WHERE "f"."namespace" = $5 AND "f"."archived_at" IS NULL AND "f"."deleted_at" IS NULL AND "m"."key" IN ($6)) SELECT "e"."namespace", "e"."id", "e"."created_at", "e"."deleted_at", "e"."active_from", "e"."active_to" FROM "entitlements" AS "e" JOIN "customers" AS "cbs" ON "e"."customer_id" = "cbs"."id" JOIN "features" AS "fbm" ON "e"."feature_id" = "fbm"."id" WHERE "e"."namespace" = $7 AND "e"."deleted_at" IS NULL`,
+			expectedArgs: []any{
+				"namespace-1",
+				"subject-1",
+				"namespace-1",
+				"subject-1",
+				"namespace-1",
+				"meter-1",
+				"namespace-1",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			q, args := adapter.EntitlementsByIngestedEventsQuery(dialect.Postgres, tt.namespace, tt.subject, tt.meters...)
+			assert.Equal(t, tt.expectedQuery, q)
+			assert.Equal(t, tt.expectedArgs, args)
+		})
+	}
+}
+
+func TestListEntitlementsByIngestedEvents(t *testing.T) {
+	repo, cleanup := setup(t)
+	defer cleanup()
+
+	ns := "namespace-1"
+
+	m1, err := repo.meterRepo.CreateMeter(t.Context(), meter.CreateMeterInput{
+		Namespace:   ns,
+		Name:        "API Requests",
+		Key:         "api_requests_total",
+		Aggregation: meter.MeterAggregationCount,
+		EventType:   "api-request",
+		GroupBy: map[string]string{
+			"method": "$.method",
+			"path":   "$.path",
+		},
+	})
+	require.NoErrorf(t, err, "meter creation should not fail")
+	assert.NotEmptyf(t, m1.ID, "meter ID should not be empty")
+
+	m2, err := repo.meterRepo.CreateMeter(t.Context(), meter.CreateMeterInput{
+		Namespace:     ns,
+		Name:          "Tokens",
+		Key:           "tokens_total",
+		Aggregation:   meter.MeterAggregationSum,
+		EventType:     "prompt",
+		ValueProperty: lo.ToPtr("$.tokens"),
+		GroupBy: map[string]string{
+			"model": "$.model",
+			"type":  "$.type",
+		},
+	})
+	require.NoErrorf(t, err, "meter creation should not fail")
+	assert.NotEmptyf(t, m2.ID, "meter ID should not be empty")
+
+	f1, err := repo.featureRepo.CreateFeature(t.Context(), feature.CreateFeatureInputs{
+		Name:                m1.Name,
+		Key:                 m1.Key,
+		Namespace:           m1.Namespace,
+		MeterID:             lo.ToPtr(m1.ID),
+		MeterGroupByFilters: feature.ConvertMapStringToMeterGroupByFilters(m1.GroupBy),
+	})
+	require.NoErrorf(t, err, "feature creation should not fail")
+	assert.NotEmptyf(t, f1.ID, "feature ID should not be empty")
+
+	f2, err := repo.featureRepo.CreateFeature(t.Context(), feature.CreateFeatureInputs{
+		Name:                m2.Name,
+		Key:                 m2.Key,
+		Namespace:           m2.Namespace,
+		MeterID:             lo.ToPtr(m2.ID),
+		MeterGroupByFilters: feature.ConvertMapStringToMeterGroupByFilters(m2.GroupBy),
+	})
+	require.NoErrorf(t, err, "feature creation should not fail")
+	assert.NotEmptyf(t, f2.ID, "feature ID should not be empty")
+
+	c1, err := repo.customerRepo.CreateCustomer(t.Context(), customer.CreateCustomerInput{
+		Namespace: ns,
+		CustomerMutate: customer.CustomerMutate{
+			Key:  lo.ToPtr("customer-1"),
+			Name: "Customer 1",
+			UsageAttribution: &customer.CustomerUsageAttribution{
+				SubjectKeys: []string{"subject-1"},
+			},
+		},
+	})
+	require.NoErrorf(t, err, "customer creation should not fail")
+	assert.NotEmptyf(t, c1.ID, "customer ID should not be empty")
+	require.NotEmptyf(t, c1.Key, "customer key should not be empty")
+	require.NotEmptyf(t, c1.UsageAttribution, "customer usage attribution should not be empty")
+
+	e1, err := repo.entRepo.CreateEntitlement(t.Context(), entitlement.CreateEntitlementRepoInputs{
+		Namespace:        ns,
+		FeatureID:        f1.ID,
+		FeatureKey:       f1.Key,
+		UsageAttribution: c1.GetUsageAttribution(),
+		EntitlementType:  entitlement.EntitlementTypeMetered,
+		MeasureUsageFrom: lo.ToPtr(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)),
+		UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+			Interval: timeutil.RecurrencePeriodMonth,
+			Anchor:   time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		})),
+		IsSoftLimit: lo.ToPtr(true),
+	})
+	require.NoErrorf(t, err, "entitlement creation should not fail")
+	assert.NotEmptyf(t, e1.ID, "entitlement ID should not be empty")
+
+	e2, err := repo.entRepo.CreateEntitlement(t.Context(), entitlement.CreateEntitlementRepoInputs{
+		Namespace:        ns,
+		FeatureID:        f2.ID,
+		FeatureKey:       f2.Key,
+		UsageAttribution: c1.GetUsageAttribution(),
+		EntitlementType:  entitlement.EntitlementTypeMetered,
+		MeasureUsageFrom: lo.ToPtr(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)),
+		UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+			Interval: timeutil.RecurrencePeriodMonth,
+			Anchor:   time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		})),
+		IsSoftLimit: lo.ToPtr(true),
+	})
+	require.NoErrorf(t, err, "entitlement creation should not fail")
+	assert.NotEmptyf(t, e2.ID, "entitlement ID should not be empty")
+
+	balanceWorkerRepo, ok := repo.entRepo.(balanceworker.BalanceWorkerRepository)
+	require.Truef(t, ok, "entitlement repository should implement BalanceWorkerRepository")
+	require.NotNilf(t, balanceWorkerRepo, "balanceWorkerRepo should not be nil")
+
+	expectedEntitlementIDs := []string{e1.ID, e2.ID}
+
+	toEntitlementIDs := func(t *testing.T, entitlements []balanceworker.ListAffectedEntitlementsResponse) []string {
+		t.Helper()
+
+		result := make([]string, 0, len(entitlements))
+
+		for _, e := range entitlements {
+			result = append(result, e.EntitlementID)
+		}
+
+		return result
+	}
+
+	t.Run("Should return entitlements for Customer key and meters", func(t *testing.T) {
+		entitlements, err := balanceWorkerRepo.ListEntitlementsAffectedByIngestEvents(t.Context(), balanceworker.IngestEventQueryFilter{
+			Namespace:    ns,
+			EventSubject: lo.FromPtr(c1.Key),
+			MeterSlugs:   []string{m1.Key, m2.Key},
+		})
+		require.NoErrorf(t, err, "entitlements should be fetched successfully")
+		assert.NotEmptyf(t, entitlements, "entitlements should not be empty")
+
+		assert.ElementsMatchf(t, expectedEntitlementIDs, toEntitlementIDs(t, entitlements), "entitlement IDs should match expected entitlement IDs")
+	})
+
+	t.Run("Should return entitlements for Customer key and meters", func(t *testing.T) {
+		entitlements, err := balanceWorkerRepo.ListEntitlementsAffectedByIngestEvents(t.Context(), balanceworker.IngestEventQueryFilter{
+			Namespace:    ns,
+			EventSubject: lo.FromPtr(c1.UsageAttribution).SubjectKeys[0],
+			MeterSlugs:   []string{m1.Key, m2.Key},
+		})
+		require.NoErrorf(t, err, "entitlements should be fetched successfully")
+		assert.NotEmptyf(t, entitlements, "entitlements should not be empty")
+
+		assert.ElementsMatchf(t, expectedEntitlementIDs, toEntitlementIDs(t, entitlements), "entitlement IDs should match expected entitlement IDs")
 	})
 }
