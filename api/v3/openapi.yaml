@@ -3830,6 +3830,25 @@ components:
         - `final`: The charge is fully finalized and no further changes are expected.
         - `deleted`: The charge has been deleted.
       title: Charge status
+    BillingChargeTaxConfig:
+      type: object
+      properties:
+        behavior:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxBehavior'
+          description: Tax behavior applied to the charge.
+          title: Tax behavior
+        tax_code:
+          type: object
+          properties:
+            id:
+              $ref: '#/components/schemas/ULID'
+          required:
+            - id
+          description: Tax code applied to the charge.
+          title: Tax code
+      description: Tax configuration of a charge.
+      title: Charge tax configuration
     BillingChargeTotals:
       type: object
       required:
@@ -4850,6 +4869,12 @@ components:
             - $ref: '#/components/schemas/BillingSettlementMode'
           description: Settlement mode of the charge.
           title: Settlement mode
+          readOnly: true
+        tax_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingChargeTaxConfig'
+          description: Tax configuration of the charge.
+          title: Tax configuration
           readOnly: true
         payment_term:
           allOf:
@@ -6176,6 +6201,12 @@ components:
             - $ref: '#/components/schemas/BillingSettlementMode'
           description: Settlement mode of the charge.
           title: Settlement mode
+          readOnly: true
+        tax_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingChargeTaxConfig'
+          description: Tax configuration of the charge.
+          title: Tax configuration
           readOnly: true
         discounts:
           allOf:

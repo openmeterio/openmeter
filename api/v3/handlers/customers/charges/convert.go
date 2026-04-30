@@ -57,6 +57,7 @@ func convertFlatFeeChargeToAPI(source flatfee.Charge) (api.BillingFlatFeeCharge,
 		SettlementMode:         ConvertSettlementModeToAPI(source.ChargeBase.Intent.SettlementMode),
 		Status:                 ConvertChargeStatusToAPI(meta.ChargeStatus(source.Status)),
 		Subscription:           subscriptionRefPtrToAPI(source.ChargeBase.Intent.Intent.Subscription),
+		TaxConfig:              convertTaxCodeConfigToAPI(source.ChargeBase.Intent.Intent.TaxConfig),
 		Type:                   api.BillingFlatFeeChargeTypeFlatFee,
 		UniqueReferenceId:      source.ChargeBase.Intent.Intent.UniqueReferenceID,
 		UpdatedAt:              lo.ToPtr(source.ChargeBase.ManagedResource.ManagedModel.UpdatedAt),
@@ -96,6 +97,7 @@ func convertUsageBasedChargeToAPI(source usagebased.Charge) (api.BillingUsageBas
 		SettlementMode:    ConvertSettlementModeToAPI(source.ChargeBase.Intent.SettlementMode),
 		Status:            lo.FromPtr(status),
 		Subscription:      subscriptionRefPtrToAPI(source.ChargeBase.Intent.Intent.Subscription),
+		TaxConfig:         convertTaxCodeConfigToAPI(source.ChargeBase.Intent.Intent.TaxConfig),
 		Totals:            convertUsageBasedChargeTotals(source),
 		Type:              api.BillingUsageBasedChargeTypeUsageBased,
 		UniqueReferenceId: source.ChargeBase.Intent.Intent.UniqueReferenceID,
@@ -357,6 +359,26 @@ func ConvertManagedByToAPI(mb billing.InvoiceLineManagedBy) api.ResourceManagedB
 // ConvertCurrencyCodeToAPI casts a currencyx.Code to an API CurrencyCode.
 func ConvertCurrencyCodeToAPI(c currencyx.Code) api.CurrencyCode {
 	return api.CurrencyCode(c)
+}
+
+// convertTaxCodeConfigToAPI maps a TaxCodeConfig (Behavior + TaxCodeID) to the API type.
+func convertTaxCodeConfigToAPI(cfg *productcatalog.TaxCodeConfig) *api.BillingChargeTaxConfig {
+	if cfg == nil {
+		return nil
+	}
+	out := &api.BillingChargeTaxConfig{}
+	if cfg.Behavior != nil {
+		out.Behavior = lo.ToPtr(api.BillingTaxBehavior(*cfg.Behavior))
+	}
+	if cfg.TaxCodeID != nil {
+		out.TaxCode = &struct {
+			Id api.ULID `json:"id"`
+		}{Id: *cfg.TaxCodeID}
+	}
+	if out.Behavior == nil && out.TaxCode == nil {
+		return nil
+	}
+	return out
 }
 
 // convertAPIChargeStatus maps an API status string to its domain equivalent.
