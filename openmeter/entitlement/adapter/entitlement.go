@@ -334,7 +334,7 @@ func (a *entitlementDBAdapter) ListEntitlementsAffectedByIngestEvents(ctx contex
 			}
 
 			defer func() {
-				// FIXME: it would be great to log this erro but the adapter has not logger.
+				// FIXME: it would be great to log this error but the adapter has no logger.
 				_ = rows.Close()
 			}()
 
@@ -355,6 +355,7 @@ func (a *entitlementDBAdapter) ListEntitlementsAffectedByIngestEvents(ctx contex
 					return nil, fmt.Errorf("failed to scan entitlement row: %w", err)
 				}
 
+				r.CreatedAt = r.CreatedAt.UTC()
 				r.DeletedAt = convert.SafeToUTC(r.DeletedAt)
 				r.ActiveFrom = convert.SafeToUTC(r.ActiveFrom)
 				r.ActiveTo = convert.SafeToUTC(r.ActiveTo)
