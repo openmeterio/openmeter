@@ -18,10 +18,10 @@ name?: string;`)
 
 ## Key Files
 
-| File | Role | Watch For |
-|------|------|-----------|
-| `party.tsp` | Defines BillingParty, BillingPartyAddresses, BillingPartyTaxIdentity — the supplier/customer party models used on invoices. | Many intentionally omitted GOBL fields are documented in comments (identities, people, inboxes, emails, websites, telephones, registration, logos, ext) — do not add them without design discussion. |
-| `invoice.tsp` | Defines the InvoiceNumber scalar type. Billing invoice body models live in the billing sub-folder, not here. | This file only defines the InvoiceNumber scalar — do not add full invoice models here; they belong in the billing/ namespace. |
+| File          | Role                                                                                                                        | Watch For                                                                                                                                                                                            |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `party.tsp`   | Defines BillingParty, BillingPartyAddresses, BillingPartyTaxIdentity — the supplier/customer party models used on invoices. | Many intentionally omitted GOBL fields are documented in comments (identities, people, inboxes, emails, websites, telephones, registration, logos, ext) — do not add them without design discussion. |
+| `invoice.tsp` | Defines the InvoiceNumber scalar type. Billing invoice body models live in the billing sub-folder, not here.                | This file only defines the InvoiceNumber scalar — do not add full invoice models here; they belong in the billing/ namespace.                                                                        |
 
 ## Anti-Patterns
 

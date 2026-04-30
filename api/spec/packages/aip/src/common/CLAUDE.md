@@ -14,12 +14,12 @@
 
 ## Key Files
 
-| File | Role | Watch For |
-|------|------|-----------|
-| `error.tsp` | Canonical error response models and the ErrorResponses alias. Import Common.ErrorResponses at the end of every operation's return union. | ErrorResponses only covers 400/401/403. Ops that can 404 must add '| Common.NotFound' explicitly; ops that can 409 must add '| Common.Conflict'. |
-| `parameters.tsp` | All AIP filter types and SortQuery. New filter types must follow the union-of-(scalar|object) pattern and carry both x-go-type extensions. | StringFieldFilterExact is a model (not union) because shorthand scalar doesn't make sense for exact-only filters — don't accidentally make new exact-only types a union. |
-| `pagination.tsp` | CursorPaginationQuery, PagePaginationQuery, and their associated meta models. CursorMeta and PageMeta delegate to YAML $refs. | Cursor pagination uses page.after/before; page pagination uses page.number. Using the wrong query model breaks SDK pagination helpers. |
-| `properties.tsp` | Labels and PublicLabels models delegating to konnect_properties.yaml via @useRef. | Labels are constrained to 1-63 char keys excluding reserved prefixes — constraints are in the YAML not in TypeSpec. |
+| File             | Role                                                                                                                                     | Watch For                                                                                                                              |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------- |
+| `error.tsp`      | Canonical error response models and the ErrorResponses alias. Import Common.ErrorResponses at the end of every operation's return union. | ErrorResponses only covers 400/401/403. Ops that can 404 must add '                                                                    | Common.NotFound' explicitly; ops that can 409 must add '                                                                                                                 | Common.Conflict'. |
+| `parameters.tsp` | All AIP filter types and SortQuery. New filter types must follow the union-of-(scalar                                                    | object) pattern and carry both x-go-type extensions.                                                                                   | StringFieldFilterExact is a model (not union) because shorthand scalar doesn't make sense for exact-only filters — don't accidentally make new exact-only types a union. |
+| `pagination.tsp` | CursorPaginationQuery, PagePaginationQuery, and their associated meta models. CursorMeta and PageMeta delegate to YAML $refs.            | Cursor pagination uses page.after/before; page pagination uses page.number. Using the wrong query model breaks SDK pagination helpers. |
+| `properties.tsp` | Labels and PublicLabels models delegating to konnect_properties.yaml via @useRef.                                                        | Labels are constrained to 1-63 char keys excluding reserved prefixes — constraints are in the YAML not in TypeSpec.                    |
 
 ## Anti-Patterns
 
@@ -27,7 +27,7 @@
 - Adding a new filter type without both x-go-type and x-go-type-import extensions — breaks Go codegen
 - Using Common.PagePaginationQuery on an operation that returns CursorPaginatedResponse (or vice versa)
 - Declaring non-empty bodies on Common error models — they are stubs that reference YAML
-- Mixing sort and filter logic inline in operations.tsp instead of referencing Common.SortQuery and Common.*FieldFilter
+- Mixing sort and filter logic inline in operations.tsp instead of referencing Common.SortQuery and Common.\*FieldFilter
 
 ## Decisions
 

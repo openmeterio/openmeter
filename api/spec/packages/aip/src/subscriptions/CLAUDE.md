@@ -15,11 +15,11 @@
 
 ## Key Files
 
-| File | Role | Watch For |
-|------|------|-----------|
-| `subscription.tsp` | Core domain model: Subscription read model, SubscriptionCreate, SubscriptionStatus enum, SubscriptionEditTiming union, SubscriptionEditTimingEnum enum. | Subscription spreads ...OmitProperties<Shared.Resource, "name" | "description"> — name/description are intentionally absent. Do not add them back. |
-| `operations.tsp` | SubscriptionsOperations interface with all HTTP operations including action routes. Declares SubscriptionCancel and SubscriptionChange request models inline. | The change operation returns raw SubscriptionChangeResponse (not wrapped in Shared.UpdateResponse) because it has a two-subscription payload — do not wrap it. |
-| `reference.tsp` | SubscriptionReference cross-domain reference type for use when other domains (billing lines) need to point to a subscription item. | Reference type is deeply nested (subscription → phase → item) — all inner structs are anonymous inline models, not named types. |
+| File               | Role                                                                                                                                                          | Watch For                                                                                                                                                      |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `subscription.tsp` | Core domain model: Subscription read model, SubscriptionCreate, SubscriptionStatus enum, SubscriptionEditTiming union, SubscriptionEditTimingEnum enum.       | Subscription spreads ...OmitProperties<Shared.Resource, "name"                                                                                                 | "description"> — name/description are intentionally absent. Do not add them back. |
+| `operations.tsp`   | SubscriptionsOperations interface with all HTTP operations including action routes. Declares SubscriptionCancel and SubscriptionChange request models inline. | The change operation returns raw SubscriptionChangeResponse (not wrapped in Shared.UpdateResponse) because it has a two-subscription payload — do not wrap it. |
+| `reference.tsp`    | SubscriptionReference cross-domain reference type for use when other domains (billing lines) need to point to a subscription item.                            | Reference type is deeply nested (subscription → phase → item) — all inner structs are anonymous inline models, not named types.                                |
 
 ## Anti-Patterns
 

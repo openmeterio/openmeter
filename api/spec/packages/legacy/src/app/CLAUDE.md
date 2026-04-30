@@ -17,21 +17,21 @@ import "./custominvoicing.tsp";`)
 
 ## Key Files
 
-| File | Role | Watch For |
-|------|------|-----------|
-| `app.tsp` | Defines AppsEndpoints interface, AppBase, App union, AppStatus enum, AppType enum, and AppReference. Core scaffolding for all app types. | App and AppReplaceUpdate unions must stay in sync — adding an app type to App without adding it to AppReplaceUpdate breaks PUT. |
-| `marketplace.tsp` | MarketplaceEndpoints interface covering listing discovery, OAuth2 install, API-key install, and plain install. Defines MarketplaceListing, AppInstallMethod, and install request/response models. | installMethods on MarketplaceListing is informational only — actual install routes live in MarketplaceEndpoints. |
-| `stripe.tsp` | AppStripeEndpoints (webhook, updateStripeAPIKey deprecated, createCheckoutSession) plus all Stripe-specific checkout session option models. | updateStripeAPIKey is deprecated; new stripe config changes go through PUT /api/v1/apps/{id}. |
-| `custominvoicing.tsp` | CustomInvoicingApp model and AppCustomInvoicingEndpoints for draft/issuing sync callbacks and payment status updates. | CustomInvoicing uses async hooks (enableDraftSyncHook, enableIssuingSyncHook); consumers must POST to draftSynchronized/issuingSynchronized to progress invoice state. |
-| `oauth.tsp` | OAuth2 namespace with AuthorizationCodeGrantParams combining success and error query params into a single model. | Uses `OAuth2` namespace, not `OpenMeter` — imports from this file must reference `OAuth2.ClientAppStartResponse` etc. |
-| `customer.tsp` | CustomerAppData union and per-provider customer app data models (StripeCustomerAppData, SandboxCustomerAppData, CustomInvoicingCustomerAppData). | customer.tsp here is under the `app/` sub-folder and is separate from the `customer/` folder's customer.tsp. |
+| File                  | Role                                                                                                                                                                                              | Watch For                                                                                                                                                              |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app.tsp`             | Defines AppsEndpoints interface, AppBase, App union, AppStatus enum, AppType enum, and AppReference. Core scaffolding for all app types.                                                          | App and AppReplaceUpdate unions must stay in sync — adding an app type to App without adding it to AppReplaceUpdate breaks PUT.                                        |
+| `marketplace.tsp`     | MarketplaceEndpoints interface covering listing discovery, OAuth2 install, API-key install, and plain install. Defines MarketplaceListing, AppInstallMethod, and install request/response models. | installMethods on MarketplaceListing is informational only — actual install routes live in MarketplaceEndpoints.                                                       |
+| `stripe.tsp`          | AppStripeEndpoints (webhook, updateStripeAPIKey deprecated, createCheckoutSession) plus all Stripe-specific checkout session option models.                                                       | updateStripeAPIKey is deprecated; new stripe config changes go through PUT /api/v1/apps/{id}.                                                                          |
+| `custominvoicing.tsp` | CustomInvoicingApp model and AppCustomInvoicingEndpoints for draft/issuing sync callbacks and payment status updates.                                                                             | CustomInvoicing uses async hooks (enableDraftSyncHook, enableIssuingSyncHook); consumers must POST to draftSynchronized/issuingSynchronized to progress invoice state. |
+| `oauth.tsp`           | OAuth2 namespace with AuthorizationCodeGrantParams combining success and error query params into a single model.                                                                                  | Uses `OAuth2` namespace, not `OpenMeter` — imports from this file must reference `OAuth2.ClientAppStartResponse` etc.                                                  |
+| `customer.tsp`        | CustomerAppData union and per-provider customer app data models (StripeCustomerAppData, SandboxCustomerAppData, CustomInvoicingCustomerAppData).                                                  | customer.tsp here is under the `app/` sub-folder and is separate from the `customer/` folder's customer.tsp.                                                           |
 
 ## Anti-Patterns
 
 - Adding app-type-specific fields directly to AppBase — each app type has its own concrete model.
 - Defining new endpoints outside a named interface with @route and @tag.
 - Adding a new AppType variant only to App union without updating AppReplaceUpdate and CustomerAppData.
-- Importing types from sibling app/*.tsp files without going through main.tsp at build time.
+- Importing types from sibling app/\*.tsp files without going through main.tsp at build time.
 - Using `@body` on list/GET operations — paginated params use spread models like `...QueryPagination`.
 
 ## Decisions

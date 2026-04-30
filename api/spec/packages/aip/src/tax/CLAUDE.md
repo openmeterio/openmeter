@@ -13,11 +13,11 @@
 
 ## Key Files
 
-| File | Role | Watch For |
-|------|------|-----------|
-| `codes.tsp` | TaxCode resource model and TaxCodeAppMapping value-object. TaxCode extends ResourceWithKey; app_mappings is a required array on all lifecycle operations. | app_mappings carries @visibility(Lifecycle.Read, Lifecycle.Update, Lifecycle.Create) — it is required on both create and update. Do not make it optional without considering backward compatibility. |
-| `operations.tsp` | TaxCodesOperations interface: create, get, list (with include_deleted query param), upsert, delete. | List includes @query include_deleted?: boolean — a soft-delete pattern. The upsert path can return Common.Gone (410) if the resource was hard-deleted; handle this in the Go handler. |
-| `index.tsp` | Barrel: imports codes.tsp then operations.tsp. | codes.tsp must be imported before operations.tsp since operations references TaxCode. |
+| File             | Role                                                                                                                                                      | Watch For                                                                                                                                                                                            |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `codes.tsp`      | TaxCode resource model and TaxCodeAppMapping value-object. TaxCode extends ResourceWithKey; app_mappings is a required array on all lifecycle operations. | app_mappings carries @visibility(Lifecycle.Read, Lifecycle.Update, Lifecycle.Create) — it is required on both create and update. Do not make it optional without considering backward compatibility. |
+| `operations.tsp` | TaxCodesOperations interface: create, get, list (with include_deleted query param), upsert, delete.                                                       | List includes @query include_deleted?: boolean — a soft-delete pattern. The upsert path can return Common.Gone (410) if the resource was hard-deleted; handle this in the Go handler.                |
+| `index.tsp`      | Barrel: imports codes.tsp then operations.tsp.                                                                                                            | codes.tsp must be imported before operations.tsp since operations references TaxCode.                                                                                                                |
 
 ## Anti-Patterns
 

@@ -24,11 +24,11 @@ model systemAccountAccessToken { ...Http.BearerAuth; }`)
 
 ## Key Files
 
-| File | Role | Watch For |
-|------|------|-----------|
-| `main.tsp` | Single entry point that imports both openmeter.tsp and konnect.tsp; the TypeSpec compiler starts here. | Never add route or model definitions here; it is a pure import aggregator. |
-| `openmeter.tsp` | Self-hosted OpenMeter namespace: declares @service, @server, @tagMetadata, @useAuth (implicit for v3), and all @route/@tag interface extensions. | Every new domain sub-folder must add both an import and a @route interface extension here; forgetting one silently drops the endpoints from the OpenMeter OpenAPI output. |
-| `konnect.tsp` | Kong Konnect variant: same pattern as openmeter.tsp but different @server URLs, multi-region servers, Konnect-specific security schemes, and namespace MeteringAndBilling. Does not include productcatalog routes. | When adding a new domain, decide whether it belongs in Konnect too; tax/ is present in konnect.tsp but productcatalog/ is not — mismatches are intentional feature-gating. |
+| File            | Role                                                                                                                                                                                                               | Watch For                                                                                                                                                                  |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `main.tsp`      | Single entry point that imports both openmeter.tsp and konnect.tsp; the TypeSpec compiler starts here.                                                                                                             | Never add route or model definitions here; it is a pure import aggregator.                                                                                                 |
+| `openmeter.tsp` | Self-hosted OpenMeter namespace: declares @service, @server, @tagMetadata, @useAuth (implicit for v3), and all @route/@tag interface extensions.                                                                   | Every new domain sub-folder must add both an import and a @route interface extension here; forgetting one silently drops the endpoints from the OpenMeter OpenAPI output.  |
+| `konnect.tsp`   | Kong Konnect variant: same pattern as openmeter.tsp but different @server URLs, multi-region servers, Konnect-specific security schemes, and namespace MeteringAndBilling. Does not include productcatalog routes. | When adding a new domain, decide whether it belongs in Konnect too; tax/ is present in konnect.tsp but productcatalog/ is not — mismatches are intentional feature-gating. |
 
 ## Anti-Patterns
 

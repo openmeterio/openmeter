@@ -16,12 +16,12 @@
 
 ## Key Files
 
-| File | Role | Watch For |
-|------|------|-----------|
-| `customer.tsp` | Defines Customer, Address, CustomerUsageAttribution, CustomerReference, CustomerKeyReference, UsageAttributionSubjectKey. No HTTP imports. | Missing @visibility on new fields will default to all lifecycles. Spreading Shared.Resource is mandatory for CRUD entities. |
-| `billing.tsp` | Defines CustomerBillingData model referencing Billing.BillingProfileReference and Apps.AppCustomerData. Bridges customer and billing/apps namespaces. | Imports apps and billing index.tsp; adding new billing-related customer fields here keeps billing concerns co-located. |
-| `operations.tsp` | Declares CustomersOperations (CRUD + list), CustomerBillingOperations (get/upsert billing, app-data, Stripe sessions), and related request models. | Each operation needs @operationId and @summary. Stripe operations use @route sub-paths. Error responses must include Common.ErrorResponses. |
-| `index.tsp` | Root import file for the customers folder; pulls in customer.tsp, operations.tsp, credits/index.tsp, charges/index.tsp. | New sub-domain folders must be imported here or they are excluded from compilation. |
+| File             | Role                                                                                                                                                  | Watch For                                                                                                                                   |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `customer.tsp`   | Defines Customer, Address, CustomerUsageAttribution, CustomerReference, CustomerKeyReference, UsageAttributionSubjectKey. No HTTP imports.            | Missing @visibility on new fields will default to all lifecycles. Spreading Shared.Resource is mandatory for CRUD entities.                 |
+| `billing.tsp`    | Defines CustomerBillingData model referencing Billing.BillingProfileReference and Apps.AppCustomerData. Bridges customer and billing/apps namespaces. | Imports apps and billing index.tsp; adding new billing-related customer fields here keeps billing concerns co-located.                      |
+| `operations.tsp` | Declares CustomersOperations (CRUD + list), CustomerBillingOperations (get/upsert billing, app-data, Stripe sessions), and related request models.    | Each operation needs @operationId and @summary. Stripe operations use @route sub-paths. Error responses must include Common.ErrorResponses. |
+| `index.tsp`      | Root import file for the customers folder; pulls in customer.tsp, operations.tsp, credits/index.tsp, charges/index.tsp.                               | New sub-domain folders must be imported here or they are excluded from compilation.                                                         |
 
 ## Anti-Patterns
 

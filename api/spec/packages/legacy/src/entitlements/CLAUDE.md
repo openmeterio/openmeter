@@ -14,36 +14,37 @@ union EntitlementCreateInputs {
   boolean: EntitlementBooleanCreateInputs,
 }`)
 **OmitProperties<T, "field1" | "field2"> for model composition** — Response models are built by spreading OmitProperties over a base create-input type and adding read-only fields, avoiding full redefinition and keeping create/read models in sync. (`model EntitlementMetered {
-  type: EntitlementType.metered;
-  ...OmitProperties<EntitlementMeteredCreateInputs,
-    "type" | "measureUsageFrom" | "metadata" | "usagePeriod" | "featureKey" | "featureId" | "currentUsagePeriod"
-  >;
-  ...EntitlementMeteredCalculatedFields;
-}`)
-**#deprecated + #suppress pair for V1 symbols kept for backward compatibility** — Every V1 model, union, and operation that has a V2 successor must carry both `#deprecated "Use V2 instead"` and `#suppress "deprecated" "reason"`. Missing either causes compiler warnings that fail `make gen-api`. (`#deprecated "Use EntitlementMeteredV2 instead"
-#suppress "deprecated" "V1 Entitlements APIs will be removed on December 1st, 2025"
-@friendlyName("EntitlementMetered")
-model EntitlementMetered { ... }`)
+type: EntitlementType.metered;
+...OmitProperties<EntitlementMeteredCreateInputs,
+"type" | "measureUsageFrom" | "metadata" | "usagePeriod" | "featureKey" | "featureId" | "currentUsagePeriod"
+
+> ;
+> ...EntitlementMeteredCalculatedFields;
+> }`)
+**#deprecated + #suppress pair for V1 symbols kept for backward compatibility** — Every V1 model, union, and operation that has a V2 successor must carry both `#deprecated "Use V2 instead"`and`#suppress "deprecated" "reason"`. Missing either causes compiler warnings that fail `make gen-api`. (`#deprecated "Use EntitlementMeteredV2 instead"
+> #suppress "deprecated" "V1 Entitlements APIs will be removed on December 1st, 2025"
+> @friendlyName("EntitlementMetered")
+> model EntitlementMetered { ... }`)
 **Explicit @operationId on every operation** — All operations carry @operationId to ensure stable generated Go function names. Omitting it causes name instability across TypeSpec compiler upgrades. (`@get
-@operationId("getEntitlementValue")
-@route("/{entitlementIdOrFeatureKey}/value")
-getEntitlementValue(...): EntitlementValue | CommonErrors | NotFoundError;`)
+> @operationId("getEntitlementValue")
+> @route("/{entitlementIdOrFeatureKey}/value")
+> getEntitlementValue(...): EntitlementValue | CommonErrors | NotFoundError;`)
 **main.tsp as the sole entry point importing all sibling files** — A new .tsp file in this folder must be imported in main.tsp or it produces no output in api/openapi.yaml. (`// main.tsp
-import "./entitlements.tsp";
-import "../productcatalog/features.tsp";
-import "./grant.tsp";
-import "./subjects.tsp";
-import "./customer.tsp";`)
+> import "./entitlements.tsp";
+> import "../productcatalog/features.tsp";
+> import "./grant.tsp";
+> import "./subjects.tsp";
+> import "./customer.tsp";`)
 
 ## Key Files
 
-| File | Role | Watch For |
-|------|------|-----------|
-| `main.tsp` | Package entry point: imports all sibling .tsp files including the cross-package features.tsp from productcatalog. No model or interface declarations live here. | Forgetting to import a new .tsp file — it compiles in isolation but is invisible to the package output. |
-| `entitlements.tsp` | Defines the Entitlement discriminated union, EntitlementCreateInputs union, EntitlementSharedFields, all three per-type create-input models (metered/boolean/static), and the admin list/get endpoints at /api/v1/entitlements. | Adding a new entitlement type variant requires updating BOTH the Entitlement read union AND the EntitlementCreateInputs create union, or the discriminator will be incomplete. |
-| `subjects.tsp` | Defines all V1 subject-scoped entitlement CRUD and grant endpoints at /api/v1/subjects/{subjectIdOrKey}/entitlements. All operations are deprecated and point to V2 equivalents. | Do not add new operations here — they belong in the v2 sub-folder. Any new @route here requires `import "@typespec/http"` and `using TypeSpec.Http` since this file already has them. |
-| `grant.tsp` | Defines Grant, GrantCreateInput, ExpirationPeriod, ExpirationDuration, and the global /api/v1/grants admin list/void endpoints. | grant.tsp already imports `@typespec/http` and uses TypeSpec.Http — adding a new HTTP decorator is safe; but missing this import in a new file referencing these models will fail compilation. |
-| `customer.tsp` | Defines CustomerAccess and the customer-scoped access-check endpoints (getCustomerAccess, getCustomerEntitlementValue) at /api/v1/customers/{customerIdOrKey}. | CustomerAccess.entitlements is typed as Record<EntitlementValue> — the key is a feature key string and the value is the shared EntitlementValue model; do not split this into a separate typed map without updating all SDK consumers. |
+| File               | Role                                                                                                                                                                                                                            | Watch For                                                                                                                                                                                                                              |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `main.tsp`         | Package entry point: imports all sibling .tsp files including the cross-package features.tsp from productcatalog. No model or interface declarations live here.                                                                 | Forgetting to import a new .tsp file — it compiles in isolation but is invisible to the package output.                                                                                                                                |
+| `entitlements.tsp` | Defines the Entitlement discriminated union, EntitlementCreateInputs union, EntitlementSharedFields, all three per-type create-input models (metered/boolean/static), and the admin list/get endpoints at /api/v1/entitlements. | Adding a new entitlement type variant requires updating BOTH the Entitlement read union AND the EntitlementCreateInputs create union, or the discriminator will be incomplete.                                                         |
+| `subjects.tsp`     | Defines all V1 subject-scoped entitlement CRUD and grant endpoints at /api/v1/subjects/{subjectIdOrKey}/entitlements. All operations are deprecated and point to V2 equivalents.                                                | Do not add new operations here — they belong in the v2 sub-folder. Any new @route here requires `import "@typespec/http"` and `using TypeSpec.Http` since this file already has them.                                                  |
+| `grant.tsp`        | Defines Grant, GrantCreateInput, ExpirationPeriod, ExpirationDuration, and the global /api/v1/grants admin list/void endpoints.                                                                                                 | grant.tsp already imports `@typespec/http` and uses TypeSpec.Http — adding a new HTTP decorator is safe; but missing this import in a new file referencing these models will fail compilation.                                         |
+| `customer.tsp`     | Defines CustomerAccess and the customer-scoped access-check endpoints (getCustomerAccess, getCustomerEntitlementValue) at /api/v1/customers/{customerIdOrKey}.                                                                  | CustomerAccess.entitlements is typed as Record<EntitlementValue> — the key is a feature key string and the value is the shared EntitlementValue model; do not split this into a separate typed map without updating all SDK consumers. |
 
 ## Anti-Patterns
 

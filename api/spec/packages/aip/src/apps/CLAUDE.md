@@ -11,18 +11,18 @@
 **Visibility-gated fields** — Secret/write-only fields (e.g. secret_api_key) carry @visibility(Lifecycle.Create, Lifecycle.Update) only; read-only computed fields carry @visibility(Lifecycle.Read) only. (`@secret secret_api_key?: string; // Create+Update only`)
 **operations.tsp imports all HTTP decorators** — Only operations.tsp imports @typespec/http, @typespec/rest, @typespec/openapi3 and declares 'using TypeSpec.Http'. Model files must not import HTTP decorators. (`import "@typespec/http"; using TypeSpec.Http; namespace Apps; interface AppsOperations { @get list(...): ... }`)
 **index.tsp as barrel re-export** — index.tsp imports all sibling .tsp files and nothing else; it is the entry point consumed by parent packages. (`import "./app.tsp"; import "./catalog.tsp"; import "./operations.tsp";`)
-**@friendlyName on every model/enum** — Every exported model and enum carries @friendlyName with a BillingApp* prefix to control the generated SDK type name. (`@friendlyName("BillingAppStripe") model AppStripe { ... }`)
+**@friendlyName on every model/enum** — Every exported model and enum carries @friendlyName with a BillingApp\* prefix to control the generated SDK type name. (`@friendlyName("BillingAppStripe") model AppStripe { ... }`)
 **Shared.Resource spread for domain entities** — Entities with identity (AppBase, not value types) spread Shared.Resource to inherit id, created_at, updated_at. (`model AppBase<T> { ...Shared.Resource; type: T; ... }`)
 
 ## Key Files
 
-| File | Role | Watch For |
-|------|------|-----------|
-| `app.tsp` | Defines AppType enum, AppStatus enum, AppBase generic, App discriminated union, and AppReference. Core types consumed by all other files. | Adding a new app type here requires: new AppType member, new model that spreads AppBase, new union member in App, and a new file (e.g. newapp.tsp) imported in index.tsp. |
-| `stripe.tsp` | Full Stripe app model plus all Checkout Session and Customer Portal session types (~250 lines). Only secret fields use @secret. | @secret must be on create/update-only fields; do not add it to read-only fields. Use @maxLength on free-text fields. |
-| `external_invoicing.tsp` | ExternalInvoicing app model with enable_draft_sync_hook and enable_issuing_sync_hook boolean flags controlling bi-directional sync pausing. | Sync hooks are plain booleans, not enums; adding a new hook state would require a discriminated union change. |
-| `operations.tsp` | Declares AppsOperations interface with list and get operations only. All HTTP decoration lives here. | Stripe-specific operations (createCheckoutSession, createCustomerPortalSession) are NOT in this file — they live elsewhere in the aip spec. Do not add customer-scoped ops here. |
-| `customer.tsp` | AppCustomerData aggregate model grouping per-app customer linkage data (Stripe customer ID, external invoicing labels). | Adding a new app requires adding an optional field here with matching @visibility(Read, Create, Update). |
+| File                     | Role                                                                                                                                        | Watch For                                                                                                                                                                        |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app.tsp`                | Defines AppType enum, AppStatus enum, AppBase generic, App discriminated union, and AppReference. Core types consumed by all other files.   | Adding a new app type here requires: new AppType member, new model that spreads AppBase, new union member in App, and a new file (e.g. newapp.tsp) imported in index.tsp.        |
+| `stripe.tsp`             | Full Stripe app model plus all Checkout Session and Customer Portal session types (~250 lines). Only secret fields use @secret.             | @secret must be on create/update-only fields; do not add it to read-only fields. Use @maxLength on free-text fields.                                                             |
+| `external_invoicing.tsp` | ExternalInvoicing app model with enable_draft_sync_hook and enable_issuing_sync_hook boolean flags controlling bi-directional sync pausing. | Sync hooks are plain booleans, not enums; adding a new hook state would require a discriminated union change.                                                                    |
+| `operations.tsp`         | Declares AppsOperations interface with list and get operations only. All HTTP decoration lives here.                                        | Stripe-specific operations (createCheckoutSession, createCustomerPortalSession) are NOT in this file — they live elsewhere in the aip spec. Do not add customer-scoped ops here. |
+| `customer.tsp`           | AppCustomerData aggregate model grouping per-app customer linkage data (Stripe customer ID, external invoicing labels).                     | Adding a new app requires adding an optional field here with matching @visibility(Read, Create, Update).                                                                         |
 
 ## Anti-Patterns
 
@@ -30,7 +30,7 @@
 - Defining a new app model without spreading AppBase<AppType.X> — breaks discriminated union typing
 - Omitting @friendlyName on a new model — generates an uncontrolled SDK type name
 - Using @visibility(Lifecycle.Read) on secret_api_key-style fields — secrets must be write-only
-- Importing from outside the aip/src tree without using Shared.* or Common.* namespaces
+- Importing from outside the aip/src tree without using Shared._ or Common._ namespaces
 
 ## Decisions
 

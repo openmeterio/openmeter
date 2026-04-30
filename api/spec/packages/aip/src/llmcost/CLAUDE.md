@@ -16,10 +16,10 @@ source: PriceSource;`)
 
 ## Key Files
 
-| File | Role | Watch For |
-|------|------|-----------|
+| File             | Role                                                                                                | Watch For                                                                                                                                                  |
+| ---------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `operations.tsp` | Declares LLMCostPricesOperations and LLMCostOverridesOperations interfaces with all HTTP endpoints. | Must import @typespec/http and use `using TypeSpec.Http;`. Sort parameter documented in list_prices but not list_overrides — keep consistent if extending. |
-| `prices.tsp` | Defines Price, ModelPricing, Provider, Model, OverrideCreate models and PriceSource enum. | OverrideCreate uses model_id (string) not a ULID — override creation is upsert semantics (unique per provider+model+currency), not idempotent by ID. |
+| `prices.tsp`     | Defines Price, ModelPricing, Provider, Model, OverrideCreate models and PriceSource enum.           | OverrideCreate uses model_id (string) not a ULID — override creation is upsert semantics (unique per provider+model+currency), not idempotent by ID.       |
 
 ## Anti-Patterns
 

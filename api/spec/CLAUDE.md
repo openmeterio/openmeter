@@ -14,21 +14,21 @@
 
 ## Key Files
 
-| File | Role | Watch For |
-|------|------|-----------|
-| `api/spec/packages/aip/src/openmeter.tsp` | Root namespace file for v3 OpenMeter spec; all @route/@tag bindings live here. | Adding @route inside sub-domain files breaks the routing contract. |
-| `api/spec/packages/aip/src/konnect.tsp` | Konnect variant of v3 spec with different auth/server decorators. | Must stay in sync with openmeter.tsp model imports. |
-| `api/spec/packages/aip/scripts/flatten-allof.mjs` | Post-processing step that flattens allOf in the AIP output YAML; runs after tsp compile. | If upstream TypeSpec fixes allOf generation this script may become a no-op but must not be deleted without verification. |
-| `api/spec/packages/legacy/src/main.tsp` | Entry point for v1/v2 OpenMeter compilation. | New sub-domain files must be imported here AND in cloud/main.tsp. |
-| `api/spec/packages/legacy/src/types.tsp` | Shared primitive types (ULID, DateTime, Resource) for v1 spec. | Never re-declare these in sub-domain files. |
-| `api/spec/Makefile` | Canonical generate/lint/format targets; called by root `make gen-api`. | The yq filter-schema loop replaces inline filter definitions with $ref after compile — filter schemas must match expected names. |
-| `api/spec/package.json` | Workspace root; declares TypeSpec version pins and patchedDependencies. | Bumping a patched package version requires updating the corresponding patch file hash. |
+| File                                              | Role                                                                                     | Watch For                                                                                                                        |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `api/spec/packages/aip/src/openmeter.tsp`         | Root namespace file for v3 OpenMeter spec; all @route/@tag bindings live here.           | Adding @route inside sub-domain files breaks the routing contract.                                                               |
+| `api/spec/packages/aip/src/konnect.tsp`           | Konnect variant of v3 spec with different auth/server decorators.                        | Must stay in sync with openmeter.tsp model imports.                                                                              |
+| `api/spec/packages/aip/scripts/flatten-allof.mjs` | Post-processing step that flattens allOf in the AIP output YAML; runs after tsp compile. | If upstream TypeSpec fixes allOf generation this script may become a no-op but must not be deleted without verification.         |
+| `api/spec/packages/legacy/src/main.tsp`           | Entry point for v1/v2 OpenMeter compilation.                                             | New sub-domain files must be imported here AND in cloud/main.tsp.                                                                |
+| `api/spec/packages/legacy/src/types.tsp`          | Shared primitive types (ULID, DateTime, Resource) for v1 spec.                           | Never re-declare these in sub-domain files.                                                                                      |
+| `api/spec/Makefile`                               | Canonical generate/lint/format targets; called by root `make gen-api`.                   | The yq filter-schema loop replaces inline filter definitions with $ref after compile — filter schemas must match expected names. |
+| `api/spec/package.json`                           | Workspace root; declares TypeSpec version pins and patchedDependencies.                  | Bumping a patched package version requires updating the corresponding patch file hash.                                           |
 
 ## Anti-Patterns
 
 - Hand-editing api/openapi.yaml, api/openapi.cloud.yaml, or api/v3/openapi.yaml — always regenerate via make gen-api
 - Declaring @route or @tag inside domain sub-folder operation files — routing belongs in root namespace files only
-- Patching TypeScript source files (src/**/*.ts) in patches/ — node_modules ships dist/ only
+- Patching TypeScript source files (src/\*_/_.ts) in patches/ — node_modules ships dist/ only
 - Adding v3 domain content into packages/legacy/ or v1 content into packages/aip/
 - Adding a new legacy sub-domain file without registering it in both main.tsp and cloud/main.tsp
 

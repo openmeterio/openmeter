@@ -15,11 +15,11 @@
 
 ## Key Files
 
-| File | Role | Watch For |
-|------|------|-----------|
-| `charges.tsp` | Defines all charge models and enums (`ChargeType`, `ChargeStatus`, `ChargeBase<T>`, `FlatFeeCharge`, `UsageBasedCharge`, `Charge` union, `ChargesExpand`). | Do not add HTTP decorators here; those belong in operations.tsp. Concrete models must spread `ChargeBase<T>` — do not duplicate shared fields. |
-| `operations.tsp` | Declares `CustomerChargesOperations` interface with `list` operation, filter/sort/expand query params, and pagination response type. | Must import `@typespec/http` and declare `using TypeSpec.Http;` — otherwise `@get`, `@path`, `@query` decorators are unknown. Response type must use `Shared.PagePaginatedResponse<Charge>` not a raw array. |
-| `index.tsp` | Re-exports charges.tsp and operations.tsp in order; consumed by the parent package index. | New .tsp files added to this folder must be imported here or they are invisible to the compiler. |
+| File             | Role                                                                                                                                                       | Watch For                                                                                                                                                                                                    |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `charges.tsp`    | Defines all charge models and enums (`ChargeType`, `ChargeStatus`, `ChargeBase<T>`, `FlatFeeCharge`, `UsageBasedCharge`, `Charge` union, `ChargesExpand`). | Do not add HTTP decorators here; those belong in operations.tsp. Concrete models must spread `ChargeBase<T>` — do not duplicate shared fields.                                                               |
+| `operations.tsp` | Declares `CustomerChargesOperations` interface with `list` operation, filter/sort/expand query params, and pagination response type.                       | Must import `@typespec/http` and declare `using TypeSpec.Http;` — otherwise `@get`, `@path`, `@query` decorators are unknown. Response type must use `Shared.PagePaginatedResponse<Charge>` not a raw array. |
+| `index.tsp`      | Re-exports charges.tsp and operations.tsp in order; consumed by the parent package index.                                                                  | New .tsp files added to this folder must be imported here or they are invisible to the compiler.                                                                                                             |
 
 ## Anti-Patterns
 

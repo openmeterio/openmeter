@@ -17,11 +17,11 @@ import "../meters/query.tsp";
 
 ## Key Files
 
-| File | Role | Watch For |
-|------|------|-----------|
-| `operations.tsp` | Declares MetersOperations (CRUD) and MetersQueryOperations (query+queryCsv). query and queryCsv share the same operationId via @sharedRoute. | queryCsv intentionally omits @body on the request to avoid anyOf in generated OpenAPI — do not add request body back. |
-| `meter.tsp` | Core Meter model. dimensions field is `@visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)` — it is updatable unlike most meter fields. | aggregation and event_type are Create+Read only (immutable after creation). value_property is optional for count aggregation. |
-| `query.tsp` | All meter query I/O types. MeterQueryFilters.dimensions uses Record<Shared.QueryFilterStringMapItem> for dimension filtering. | group_by_dimensions has @maxItems(100). dimensions in MeterQueryRow is Record<string> (output), while MeterQueryFilters.dimensions uses filter map items (input). |
+| File             | Role                                                                                                                                                | Watch For                                                                                                                                                         |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `operations.tsp` | Declares MetersOperations (CRUD) and MetersQueryOperations (query+queryCsv). query and queryCsv share the same operationId via @sharedRoute.        | queryCsv intentionally omits @body on the request to avoid anyOf in generated OpenAPI — do not add request body back.                                             |
+| `meter.tsp`      | Core Meter model. dimensions field is `@visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)` — it is updatable unlike most meter fields. | aggregation and event_type are Create+Read only (immutable after creation). value_property is optional for count aggregation.                                     |
+| `query.tsp`      | All meter query I/O types. MeterQueryFilters.dimensions uses Record<Shared.QueryFilterStringMapItem> for dimension filtering.                       | group_by_dimensions has @maxItems(100). dimensions in MeterQueryRow is Record<string> (output), while MeterQueryFilters.dimensions uses filter map items (input). |
 
 ## Anti-Patterns
 

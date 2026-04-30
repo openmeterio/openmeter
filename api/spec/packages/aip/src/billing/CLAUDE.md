@@ -2,7 +2,7 @@
 
 <!-- archie:ai-start -->
 
-> TypeSpec definitions for the billing profile subsystem: BillingProfile, BillingWorkflow (collection, invoicing, payment, tax settings), tax config, and totals. Compiled to the BillingProfiles* section of api/v3/openapi.yaml.
+> TypeSpec definitions for the billing profile subsystem: BillingProfile, BillingWorkflow (collection, invoicing, payment, tax settings), tax config, and totals. Compiled to the BillingProfiles\* section of api/v3/openapi.yaml.
 
 ## Patterns
 
@@ -14,12 +14,12 @@
 
 ## Key Files
 
-| File | Role | Watch For |
-|------|------|-----------|
-| `profile.tsp` | Core BillingProfile and BillingWorkflow models. Largest file — defines all workflow sub-settings including alignment union and payment union. | DefaultBillingWorkflowCollectionAlignment is a const used as a default value; changing alignment types requires updating both the union and the const. |
-| `tax.tsp` | TaxConfig, TaxBehavior, TaxConfigStripe, TaxConfigExternalInvoicing. Provider-specific tax config is additive — new providers add an optional field to TaxConfig. | Stripe tax code must match pattern ^txcd_\d{8}$; enforce @pattern on new tax code fields. |
-| `totals.tsp` | BillingTotals read-only model with amount, taxes, charges, discounts, credits, total fields all using Shared.Numeric. | All fields are @visibility(Lifecycle.Read) — this is a computed output model, never a create/update input. |
-| `operations.tsp` | BillingProfilesOperations CRUD interface using Shared.CreateRequest, Shared.UpsertRequest, Shared.CreateResponse, Shared.GetResponse, Shared.DeleteResponse. | Update uses @put + Shared.UpsertRequest (full replacement), not @patch. Diverging from this breaks SDK generated clients. |
+| File             | Role                                                                                                                                                              | Watch For                                                                                                                                              |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `profile.tsp`    | Core BillingProfile and BillingWorkflow models. Largest file — defines all workflow sub-settings including alignment union and payment union.                     | DefaultBillingWorkflowCollectionAlignment is a const used as a default value; changing alignment types requires updating both the union and the const. |
+| `tax.tsp`        | TaxConfig, TaxBehavior, TaxConfigStripe, TaxConfigExternalInvoicing. Provider-specific tax config is additive — new providers add an optional field to TaxConfig. | Stripe tax code must match pattern ^txcd\_\d{8}$; enforce @pattern on new tax code fields.                                                             |
+| `totals.tsp`     | BillingTotals read-only model with amount, taxes, charges, discounts, credits, total fields all using Shared.Numeric.                                             | All fields are @visibility(Lifecycle.Read) — this is a computed output model, never a create/update input.                                             |
+| `operations.tsp` | BillingProfilesOperations CRUD interface using Shared.CreateRequest, Shared.UpsertRequest, Shared.CreateResponse, Shared.GetResponse, Shared.DeleteResponse.      | Update uses @put + Shared.UpsertRequest (full replacement), not @patch. Diverging from this breaks SDK generated clients.                              |
 
 ## Anti-Patterns
 

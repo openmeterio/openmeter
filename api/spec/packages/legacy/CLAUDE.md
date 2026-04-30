@@ -16,15 +16,15 @@
 
 ## Key Files
 
-| File | Role | Watch For |
-|------|------|-----------|
-| `src/cloud/main.tsp` | Cloud-variant compilation entry point; imports all sub-domain files | New sub-domain file not imported here is silently excluded from api/openapi.cloud.yaml |
-| `src/main.tsp` | Client-emit entry point for Python SDK generation | Separate from cloud/main.tsp; both must be kept in sync for new domains |
-| `src/types.tsp` | Shared primitive types: ULID, DateTime, Key, Resource, pagination models | Never re-declare these in sub-domain files; import from this file instead |
-| `src/errors.tsp` | OpenMeterError and error union types; @error decorator required | Extending Error without @error breaks OpenAPI error schema generation |
-| `src/filter.tsp` | Generic filter operator models; all fields must have @extension("x-omitempty", true) | Missing x-omitempty causes empty filter fields to be serialised as null in query strings |
-| `lib/index.js` | Registers all v1 linter rules via defineLinter | New rule file has zero effect without registration here |
-| `tspconfig.yaml / tspconfig.client.yaml` | Two configs: OpenAPI emit and Python SDK emit respectively | Both extend @openmeter/api-spec-legacy/all linter; changing emitter-output-dir breaks `make gen-api` path expectations |
+| File                                     | Role                                                                                 | Watch For                                                                                                              |
+| ---------------------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `src/cloud/main.tsp`                     | Cloud-variant compilation entry point; imports all sub-domain files                  | New sub-domain file not imported here is silently excluded from api/openapi.cloud.yaml                                 |
+| `src/main.tsp`                           | Client-emit entry point for Python SDK generation                                    | Separate from cloud/main.tsp; both must be kept in sync for new domains                                                |
+| `src/types.tsp`                          | Shared primitive types: ULID, DateTime, Key, Resource, pagination models             | Never re-declare these in sub-domain files; import from this file instead                                              |
+| `src/errors.tsp`                         | OpenMeterError and error union types; @error decorator required                      | Extending Error without @error breaks OpenAPI error schema generation                                                  |
+| `src/filter.tsp`                         | Generic filter operator models; all fields must have @extension("x-omitempty", true) | Missing x-omitempty causes empty filter fields to be serialised as null in query strings                               |
+| `lib/index.js`                           | Registers all v1 linter rules via defineLinter                                       | New rule file has zero effect without registration here                                                                |
+| `tspconfig.yaml / tspconfig.client.yaml` | Two configs: OpenAPI emit and Python SDK emit respectively                           | Both extend @openmeter/api-spec-legacy/all linter; changing emitter-output-dir breaks `make gen-api` path expectations |
 
 ## Anti-Patterns
 

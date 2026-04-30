@@ -12,9 +12,9 @@
 
 ## Key Files
 
-| File | Role | Watch For |
-|------|------|-----------|
-| `auth.tsp` | Defines the three cloud auth schemes as models. No routes or operations here. | CloudPortalTokenAuth is a BearerAuth; the portal meters endpoint separately applies `@useAuth(CloudPortalTokenAuth)` to scope portal-only access. |
+| File       | Role                                                                                                                                                                                                        | Watch For                                                                                                                                                 |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `auth.tsp` | Defines the three cloud auth schemes as models. No routes or operations here.                                                                                                                               | CloudPortalTokenAuth is a BearerAuth; the portal meters endpoint separately applies `@useAuth(CloudPortalTokenAuth)` to scope portal-only access.         |
 | `main.tsp` | The cloud OpenAPI spec entry point. Imports `..` (the main legacy spec), then auth.tsp, then declares OpenMeterCloud namespace with all interface extensions. All cloud-facing endpoint routing lives here. | When adding a new endpoint group to the base OpenMeter namespace, add a corresponding `extends` interface here so it appears in the cloud OpenAPI output. |
 
 ## Anti-Patterns

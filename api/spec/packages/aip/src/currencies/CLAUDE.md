@@ -8,7 +8,7 @@
 
 **Discriminated union with envelope:none** — Currency is a @discriminated union with envelope:'none' and discriminatorPropertyName:'type'. New currency variants must follow this pattern. (`@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" }) union Currency { fiat: CurrencyFiat, custom: CurrencyCustom }`)
 **Generic base model with CurrencyType parameter** — CurrencyBase<T extends CurrencyType> holds common fields. Type-specific models spread CurrencyBase with the concrete type and add their own fields. (`model CurrencyFiat { ...CurrencyBase<CurrencyType.Fiat>; @visibility(Lifecycle.Read) code: Shared.CurrencyCode; }`)
-**@visibility on every field** — All fields must carry explicit @visibility(Lifecycle.*) annotations. Read-only system fields use Lifecycle.Read only; create+read fields use both. (`@visibility(Lifecycle.Read) id: Shared.ULID; @visibility(Lifecycle.Create, Lifecycle.Read) name: string;`)
+**@visibility on every field** — All fields must carry explicit @visibility(Lifecycle.\*) annotations. Read-only system fields use Lifecycle.Read only; create+read fields use both. (`@visibility(Lifecycle.Read) id: Shared.ULID; @visibility(Lifecycle.Create, Lifecycle.Read) name: string;`)
 **@friendlyName on every model, enum, scalar** — Every exported model, enum, and scalar must have @friendlyName("Billing<Name>") to stabilize generated SDK type names. (`@friendlyName("BillingCurrencyCustom") model CurrencyCustom { ... }`)
 **Three stability @extension decorators on every operation** — Every operation must carry @extension(Shared.InternalExtension, true), @extension(Shared.PrivateExtension, true), @extension(Shared.UnstableExtension, true) for API maturity tracking. (`@extension(Shared.PrivateExtension, true) @extension(Shared.UnstableExtension, true) @extension(Shared.InternalExtension, true) @get list(...)`)
 **PagePaginationQuery spread + deepObject filter** — List operations spread ...Common.PagePaginationQuery and pass filter via @query(#{ style: "deepObject", explode: true }). (`list(...Common.PagePaginationQuery, @query(#{ style: "deepObject", explode: true }) filter?: ListCurrenciesParamsFilter)`)
@@ -16,11 +16,11 @@
 
 ## Key Files
 
-| File | Role | Watch For |
-|------|------|-----------|
-| `currency.tsp` | Defines CurrencyType enum, Currency union, CurrencyBase generic, CurrencyFiat, CurrencyCustom, and CurrencyCodeCustom scalar. No HTTP imports. | Adding @get/@post or importing @typespec/http here breaks separation of concerns. Missing @friendlyName causes unstable SDK names. |
+| File             | Role                                                                                                                                                  | Watch For                                                                                                                                                             |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `currency.tsp`   | Defines CurrencyType enum, Currency union, CurrencyBase generic, CurrencyFiat, CurrencyCustom, and CurrencyCodeCustom scalar. No HTTP imports.        | Adding @get/@post or importing @typespec/http here breaks separation of concerns. Missing @friendlyName causes unstable SDK names.                                    |
 | `operations.tsp` | Declares CurrenciesOperations (list) and CurrenciesCustomOperations (create) interfaces with HTTP decorators, stability extensions, and filter model. | Omitting stability @extension decorators breaks internal API maturity tracking. Using inline pagination params instead of ...Common.PagePaginationQuery causes drift. |
-| `index.tsp` | Entry point that imports currency.tsp, operations.tsp, and cost-bases/operations.tsp in order. | New .tsp files in this folder must be imported here; otherwise they are silently excluded from compilation. |
+| `index.tsp`      | Entry point that imports currency.tsp, operations.tsp, and cost-bases/operations.tsp in order.                                                        | New .tsp files in this folder must be imported here; otherwise they are silently excluded from compilation.                                                           |
 
 ## Anti-Patterns
 

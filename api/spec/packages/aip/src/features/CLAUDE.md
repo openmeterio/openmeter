@@ -27,12 +27,12 @@ cost: Shared.Numeric | null;`)
 
 ## Key Files
 
-| File | Role | Watch For |
-|------|------|-----------|
-| `operations.tsp` | Declares the FeatureOperations and FeatureCostOperations interfaces with all HTTP verbs, route params, and response types. | Must import @typespec/http and use `using TypeSpec.Http;` — omitting this breaks @query/@get/@post decorators. deepObject+explode style required for filter params. |
-| `unitcost.tsp` | Defines FeatureUnitCost discriminated union (manual/llm), enums, and resolved pricing model. | Mutually exclusive fields (e.g. provider vs provider_property) are enforced by docs only — no TypeSpec constraint; add #suppress if linter flags repeated-prefix naming. |
-| `feature.tsp` | Core Feature model using Shared.ResourceWithKey spread and optional meter + unit_cost fields. | FeatureUpdateRequest only includes updatable fields (unit_cost); do not add read-only fields to it. |
-| `cost.tsp` | FeatureCostQueryRow and FeatureCostQueryResult models for the cost query endpoint; reuses Meters.MeterQueryRequest as request body. | cost field is nullable (Shared.Numeric | null) — requires #suppress on no-nullable rule. |
+| File             | Role                                                                                                                                | Watch For                                                                                                                                                                |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- |
+| `operations.tsp` | Declares the FeatureOperations and FeatureCostOperations interfaces with all HTTP verbs, route params, and response types.          | Must import @typespec/http and use `using TypeSpec.Http;` — omitting this breaks @query/@get/@post decorators. deepObject+explode style required for filter params.      |
+| `unitcost.tsp`   | Defines FeatureUnitCost discriminated union (manual/llm), enums, and resolved pricing model.                                        | Mutually exclusive fields (e.g. provider vs provider_property) are enforced by docs only — no TypeSpec constraint; add #suppress if linter flags repeated-prefix naming. |
+| `feature.tsp`    | Core Feature model using Shared.ResourceWithKey spread and optional meter + unit_cost fields.                                       | FeatureUpdateRequest only includes updatable fields (unit_cost); do not add read-only fields to it.                                                                      |
+| `cost.tsp`       | FeatureCostQueryRow and FeatureCostQueryResult models for the cost query endpoint; reuses Meters.MeterQueryRequest as request body. | cost field is nullable (Shared.Numeric                                                                                                                                   | null) — requires #suppress on no-nullable rule. |
 
 ## Anti-Patterns
 

@@ -12,9 +12,9 @@
 
 ## Key Files
 
-| File | Role | Watch For |
-|------|------|-----------|
-| `flatten-allof.mjs` | CLI post-processor invoked by make gen-api after TypeSpec compilation to fix allOf schema shape for downstream SDK generators. | Only processes nodes where allOf contains at least one $ref — pure allOf without a $ref is left untouched. Extension keys (x-*) are never moved, preventing accidental stripping of TypeSpec-emitted vendor extensions. |
+| File                | Role                                                                                                                           | Watch For                                                                                                                                                                                                                |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `flatten-allof.mjs` | CLI post-processor invoked by make gen-api after TypeSpec compilation to fix allOf schema shape for downstream SDK generators. | Only processes nodes where allOf contains at least one $ref — pure allOf without a $ref is left untouched. Extension keys (x-\*) are never moved, preventing accidental stripping of TypeSpec-emitted vendor extensions. |
 
 ## Anti-Patterns
 

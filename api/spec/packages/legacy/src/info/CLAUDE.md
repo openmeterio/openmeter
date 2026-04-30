@@ -12,11 +12,11 @@
 
 ## Key Files
 
-| File | Role | Watch For |
-|------|------|-----------|
-| `routes.tsp` | CurrenciesEndpoints interface at /api/v1/info/currencies. Single list endpoint returning Currency[]. | Returns a plain array, not PaginatedResponse — do not add pagination here without a spec change. |
-| `progress.tsp` | ProgressEndpoints interface and Progress model. GET by string id, not ULID. | Progress id is a plain `string`, not `ULID` — matches the progressmanager domain. |
-| `currencies.tsp` | Currency model with code, name, symbol, subunits. No routes here. | subunits is uint32; zero-subunit currencies (JPY) are valid. |
+| File             | Role                                                                                                 | Watch For                                                                                        |
+| ---------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `routes.tsp`     | CurrenciesEndpoints interface at /api/v1/info/currencies. Single list endpoint returning Currency[]. | Returns a plain array, not PaginatedResponse — do not add pagination here without a spec change. |
+| `progress.tsp`   | ProgressEndpoints interface and Progress model. GET by string id, not ULID.                          | Progress id is a plain `string`, not `ULID` — matches the progressmanager domain.                |
+| `currencies.tsp` | Currency model with code, name, symbol, subunits. No routes here.                                    | subunits is uint32; zero-subunit currencies (JPY) are valid.                                     |
 
 ## Anti-Patterns
 

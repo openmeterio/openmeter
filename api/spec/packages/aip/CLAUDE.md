@@ -16,15 +16,15 @@
 
 ## Key Files
 
-| File | Role | Watch For |
-|------|------|-----------|
-| `src/main.tsp` | Compilation entry point; imports openmeter.tsp and konnect.tsp | Missing import here silently drops a namespace from output |
-| `src/openmeter.tsp` | Binds all domain interfaces to routes and tags for the OpenMeter variant | Adding @tagMetadata for a new domain import is mandatory or the tag description is absent from generated OpenAPI |
-| `src/konnect.tsp` | Konnect variant root; overrides security and some sub-routes | Inline security scheme bodies here duplicate config; use @useRef instead |
-| `scripts/flatten-allof.mjs` | Post-processes emitted YAML to move sibling properties into allOf branches | Removing x-flatten-allOf marker check causes infinite re-run loops; changing YAML_OPTIONS.lineWidth from 0 creates spurious diffs |
-| `lib/index.js` | Registers all linter rules via defineLinter/$linter export | A new rule file has zero effect until its export is added to the rules array here |
-| `lib/rules/utils.js` | Centralised casing helpers and acronym exception list | Duplicating regex or exceptions in individual rule files causes divergence |
-| `tspconfig.yaml` | Compiler config: emitter output dir, omit-unreachable-types, linter extends | omit-unreachable-types must stay true; linter extends must reference @openmeter/api-spec-aip/all |
+| File                        | Role                                                                        | Watch For                                                                                                                         |
+| --------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `src/main.tsp`              | Compilation entry point; imports openmeter.tsp and konnect.tsp              | Missing import here silently drops a namespace from output                                                                        |
+| `src/openmeter.tsp`         | Binds all domain interfaces to routes and tags for the OpenMeter variant    | Adding @tagMetadata for a new domain import is mandatory or the tag description is absent from generated OpenAPI                  |
+| `src/konnect.tsp`           | Konnect variant root; overrides security and some sub-routes                | Inline security scheme bodies here duplicate config; use @useRef instead                                                          |
+| `scripts/flatten-allof.mjs` | Post-processes emitted YAML to move sibling properties into allOf branches  | Removing x-flatten-allOf marker check causes infinite re-run loops; changing YAML_OPTIONS.lineWidth from 0 creates spurious diffs |
+| `lib/index.js`              | Registers all linter rules via defineLinter/$linter export                  | A new rule file has zero effect until its export is added to the rules array here                                                 |
+| `lib/rules/utils.js`        | Centralised casing helpers and acronym exception list                       | Duplicating regex or exceptions in individual rule files causes divergence                                                        |
+| `tspconfig.yaml`            | Compiler config: emitter output dir, omit-unreachable-types, linter extends | omit-unreachable-types must stay true; linter extends must reference @openmeter/api-spec-aip/all                                  |
 
 ## Anti-Patterns
 

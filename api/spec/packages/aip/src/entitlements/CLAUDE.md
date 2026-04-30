@@ -12,11 +12,11 @@
 
 ## Key Files
 
-| File | Role | Watch For |
-|------|------|-----------|
-| `entitlements.tsp` | Defines EntitlementType enum (Metered, Static, Boolean). Minimal — only add here if a new entitlement type is introduced. | The @friendlyName uses 'BillingEntitlementType' prefix — keep consistent with the Billing* prefix convention for this spec. |
-| `operations.tsp` | CustomerEntitlementsOperations interface with a single list operation scoped to a customerId path param. | This operation is customer-scoped (@path customerId) — it does NOT use namespace or pagination params. Do not add Common.PagePaginationQuery here. |
-| `access.tsp` | EntitlementAccessResult model. The config field is optional and only populated for static entitlements. | has_access is always true for boolean/static types — ensure any new type documents this invariant in its JSDoc. |
+| File               | Role                                                                                                                      | Watch For                                                                                                                                          |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `entitlements.tsp` | Defines EntitlementType enum (Metered, Static, Boolean). Minimal — only add here if a new entitlement type is introduced. | The @friendlyName uses 'BillingEntitlementType' prefix — keep consistent with the Billing\* prefix convention for this spec.                       |
+| `operations.tsp`   | CustomerEntitlementsOperations interface with a single list operation scoped to a customerId path param.                  | This operation is customer-scoped (@path customerId) — it does NOT use namespace or pagination params. Do not add Common.PagePaginationQuery here. |
+| `access.tsp`       | EntitlementAccessResult model. The config field is optional and only populated for static entitlements.                   | has_access is always true for boolean/static types — ensure any new type documents this invariant in its JSDoc.                                    |
 
 ## Anti-Patterns
 

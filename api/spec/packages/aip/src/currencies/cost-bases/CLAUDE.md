@@ -16,9 +16,9 @@
 
 ## Key Files
 
-| File | Role | Watch For |
-|------|------|-----------|
-| `cost-basis.tsp` | Defines the CostBasis model. Single source of truth for field names, types, and visibility. @friendlyName sets the generated Go/JS type name. | Omitting @visibility causes fields to appear in both create and read payloads unintentionally; @friendlyName must be globally unique across the spec. |
+| File             | Role                                                                                                                                                     | Watch For                                                                                                                                                                                         |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cost-basis.tsp` | Defines the CostBasis model. Single source of truth for field names, types, and visibility. @friendlyName sets the generated Go/JS type name.            | Omitting @visibility causes fields to appear in both create and read payloads unintentionally; @friendlyName must be globally unique across the spec.                                             |
 | `operations.tsp` | Declares the CurrenciesCustomCostBasesOperations interface with list and create endpoints. All imports, HTTP decorators, and using statements live here. | Missing 'using TypeSpec.Http;' causes @get/@post/@query to be unknown decorators. Error union must include both domain-specific errors (Common.NotFound) and the catch-all Common.ErrorResponses. |
 
 ## Anti-Patterns
