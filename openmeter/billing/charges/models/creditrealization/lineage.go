@@ -63,6 +63,10 @@ const (
 	// LineageSegmentStateAdvanceBackfilled marks value that was originally advance-backed
 	// usage but was later covered by a credit purchase.
 	LineageSegmentStateAdvanceBackfilled LineageSegmentState = "advance_backfilled"
+	// LineageSegmentStateEarningsRecognized marks value that has been recognized as earnings
+	// on the ledger (moved from accrued to earnings). BackingTransactionGroupID points to
+	// the recognition ledger transaction group.
+	LineageSegmentStateEarningsRecognized LineageSegmentState = "earnings_recognized"
 )
 
 func (s LineageSegmentState) Values() []string {
@@ -70,6 +74,7 @@ func (s LineageSegmentState) Values() []string {
 		string(LineageSegmentStateRealCredit),
 		string(LineageSegmentStateAdvanceUncovered),
 		string(LineageSegmentStateAdvanceBackfilled),
+		string(LineageSegmentStateEarningsRecognized),
 	}
 }
 

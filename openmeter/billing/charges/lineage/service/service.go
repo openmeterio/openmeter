@@ -77,6 +77,14 @@ func (s *service) LoadActiveSegmentsByRealizationID(ctx context.Context, namespa
 	return segmentsByRealizationID, nil
 }
 
+func (s *service) LoadLineagesByCustomer(ctx context.Context, input lineage.LoadLineagesByCustomerInput) ([]lineage.Lineage, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	return s.adapter.LoadLineagesByCustomer(ctx, input)
+}
+
 func (s *service) PersistCorrectionLineageSegments(ctx context.Context, input lineage.PersistCorrectionLineageSegmentsInput) error {
 	if err := input.Validate(); err != nil {
 		return err
@@ -139,10 +147,12 @@ func (s *service) PersistCorrectionLineageSegments(ctx context.Context, input li
 				remainder := segment.Amount.Sub(consumedAmount)
 				if remainder.IsPositive() {
 					if err := s.adapter.CreateSegment(ctx, lineage.CreateSegmentInput{
-						LineageID:                 segment.LineageID,
-						Amount:                    remainder,
-						State:                     segment.State,
-						BackingTransactionGroupID: segment.BackingTransactionGroupID,
+						LineageID:                       segment.LineageID,
+						Amount:                          remainder,
+						State:                           segment.State,
+						BackingTransactionGroupID:       segment.BackingTransactionGroupID,
+						SourceState:                     segment.SourceState,
+						SourceBackingTransactionGroupID: segment.SourceBackingTransactionGroupID,
 					}); err != nil {
 						return fmt.Errorf("create lineage segment remainder for %s: %w", segment.ID, err)
 					}
@@ -226,4 +236,12 @@ func (s *service) BackfillAdvanceLineageSegments(ctx context.Context, input line
 
 		return nil
 	})
+}
+
+func (s *service) CloseSegment(ctx context.Context, segmentID string, closedAt time.Time) error {
+	return s.adapter.CloseSegment(ctx, segmentID, closedAt)
+}
+
+func (s *service) CreateSegment(ctx context.Context, input lineage.CreateSegmentInput) error {
+	return s.adapter.CreateSegment(ctx, input)
 }

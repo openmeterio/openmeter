@@ -4,12 +4,15 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
@@ -22,7 +25,7 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 		return nil, err
 	}
 
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (charges.Charges, error) {
+	advancedCharges, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (charges.Charges, error) {
 		inScopeCharges, err := s.ListCharges(ctx, charges.ListChargesInput{
 			Namespace:   input.Customer.Namespace,
 			StatusNotIn: []meta.ChargeStatus{meta.ChargeStatusFinal},
@@ -99,6 +102,35 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 			}
 		}
 
+		currencies, err := collectCurrencies(advancedCharges)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := s.recognizeCustomerEarnings(ctx, input.Customer, currencies...); err != nil {
+			return nil, err
+		}
+
 		return advancedCharges, nil
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	return advancedCharges, nil
+}
+
+func collectCurrencies(chargeList charges.Charges) ([]currencyx.Code, error) {
+	out := make([]currencyx.Code, 0, len(chargeList))
+
+	for _, c := range chargeList {
+		currency, err := c.GetCurrency()
+		if err != nil {
+			return nil, fmt.Errorf("get charge currency: %w", err)
+		}
+
+		out = append(out, currency)
+	}
+
+	return lo.Uniq(out), nil
 }

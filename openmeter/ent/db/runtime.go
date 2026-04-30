@@ -1515,8 +1515,12 @@ func init() {
 	creditrealizationlineagesegmentDescBackingTransactionGroupID := creditrealizationlineagesegmentFields[3].Descriptor()
 	// creditrealizationlineagesegment.BackingTransactionGroupIDValidator is a validator for the "backing_transaction_group_id" field. It is called by the builders before save.
 	creditrealizationlineagesegment.BackingTransactionGroupIDValidator = creditrealizationlineagesegmentDescBackingTransactionGroupID.Validators[0].(func(string) error)
+	// creditrealizationlineagesegmentDescSourceBackingTransactionGroupID is the schema descriptor for source_backing_transaction_group_id field.
+	creditrealizationlineagesegmentDescSourceBackingTransactionGroupID := creditrealizationlineagesegmentFields[5].Descriptor()
+	// creditrealizationlineagesegment.SourceBackingTransactionGroupIDValidator is a validator for the "source_backing_transaction_group_id" field. It is called by the builders before save.
+	creditrealizationlineagesegment.SourceBackingTransactionGroupIDValidator = creditrealizationlineagesegmentDescSourceBackingTransactionGroupID.Validators[0].(func(string) error)
 	// creditrealizationlineagesegmentDescCreatedAt is the schema descriptor for created_at field.
-	creditrealizationlineagesegmentDescCreatedAt := creditrealizationlineagesegmentFields[5].Descriptor()
+	creditrealizationlineagesegmentDescCreatedAt := creditrealizationlineagesegmentFields[7].Descriptor()
 	// creditrealizationlineagesegment.DefaultCreatedAt holds the default value on creation for the created_at field.
 	creditrealizationlineagesegment.DefaultCreatedAt = creditrealizationlineagesegmentDescCreatedAt.Default.(func() time.Time)
 	// creditrealizationlineagesegmentDescID is the schema descriptor for id field.

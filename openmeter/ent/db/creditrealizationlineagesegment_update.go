@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineagesegment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
@@ -60,6 +61,46 @@ func (_u *CreditRealizationLineageSegmentUpdate) SetNillableBackingTransactionGr
 // ClearBackingTransactionGroupID clears the value of the "backing_transaction_group_id" field.
 func (_u *CreditRealizationLineageSegmentUpdate) ClearBackingTransactionGroupID() *CreditRealizationLineageSegmentUpdate {
 	_u.mutation.ClearBackingTransactionGroupID()
+	return _u
+}
+
+// SetSourceState sets the "source_state" field.
+func (_u *CreditRealizationLineageSegmentUpdate) SetSourceState(v creditrealization.LineageSegmentState) *CreditRealizationLineageSegmentUpdate {
+	_u.mutation.SetSourceState(v)
+	return _u
+}
+
+// SetNillableSourceState sets the "source_state" field if the given value is not nil.
+func (_u *CreditRealizationLineageSegmentUpdate) SetNillableSourceState(v *creditrealization.LineageSegmentState) *CreditRealizationLineageSegmentUpdate {
+	if v != nil {
+		_u.SetSourceState(*v)
+	}
+	return _u
+}
+
+// ClearSourceState clears the value of the "source_state" field.
+func (_u *CreditRealizationLineageSegmentUpdate) ClearSourceState() *CreditRealizationLineageSegmentUpdate {
+	_u.mutation.ClearSourceState()
+	return _u
+}
+
+// SetSourceBackingTransactionGroupID sets the "source_backing_transaction_group_id" field.
+func (_u *CreditRealizationLineageSegmentUpdate) SetSourceBackingTransactionGroupID(v string) *CreditRealizationLineageSegmentUpdate {
+	_u.mutation.SetSourceBackingTransactionGroupID(v)
+	return _u
+}
+
+// SetNillableSourceBackingTransactionGroupID sets the "source_backing_transaction_group_id" field if the given value is not nil.
+func (_u *CreditRealizationLineageSegmentUpdate) SetNillableSourceBackingTransactionGroupID(v *string) *CreditRealizationLineageSegmentUpdate {
+	if v != nil {
+		_u.SetSourceBackingTransactionGroupID(*v)
+	}
+	return _u
+}
+
+// ClearSourceBackingTransactionGroupID clears the value of the "source_backing_transaction_group_id" field.
+func (_u *CreditRealizationLineageSegmentUpdate) ClearSourceBackingTransactionGroupID() *CreditRealizationLineageSegmentUpdate {
+	_u.mutation.ClearSourceBackingTransactionGroupID()
 	return _u
 }
 
@@ -122,6 +163,16 @@ func (_u *CreditRealizationLineageSegmentUpdate) check() error {
 			return &ValidationError{Name: "backing_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "CreditRealizationLineageSegment.backing_transaction_group_id": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.SourceState(); ok {
+		if err := creditrealizationlineagesegment.SourceStateValidator(v); err != nil {
+			return &ValidationError{Name: "source_state", err: fmt.Errorf(`db: validator failed for field "CreditRealizationLineageSegment.source_state": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.SourceBackingTransactionGroupID(); ok {
+		if err := creditrealizationlineagesegment.SourceBackingTransactionGroupIDValidator(v); err != nil {
+			return &ValidationError{Name: "source_backing_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "CreditRealizationLineageSegment.source_backing_transaction_group_id": %w`, err)}
+		}
+	}
 	if _u.mutation.LineageCleared() && len(_u.mutation.LineageIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "CreditRealizationLineageSegment.lineage"`)
 	}
@@ -148,6 +199,18 @@ func (_u *CreditRealizationLineageSegmentUpdate) sqlSave(ctx context.Context) (_
 	}
 	if _u.mutation.BackingTransactionGroupIDCleared() {
 		_spec.ClearField(creditrealizationlineagesegment.FieldBackingTransactionGroupID, field.TypeString)
+	}
+	if value, ok := _u.mutation.SourceState(); ok {
+		_spec.SetField(creditrealizationlineagesegment.FieldSourceState, field.TypeEnum, value)
+	}
+	if _u.mutation.SourceStateCleared() {
+		_spec.ClearField(creditrealizationlineagesegment.FieldSourceState, field.TypeEnum)
+	}
+	if value, ok := _u.mutation.SourceBackingTransactionGroupID(); ok {
+		_spec.SetField(creditrealizationlineagesegment.FieldSourceBackingTransactionGroupID, field.TypeString, value)
+	}
+	if _u.mutation.SourceBackingTransactionGroupIDCleared() {
+		_spec.ClearField(creditrealizationlineagesegment.FieldSourceBackingTransactionGroupID, field.TypeString)
 	}
 	if value, ok := _u.mutation.ClosedAt(); ok {
 		_spec.SetField(creditrealizationlineagesegment.FieldClosedAt, field.TypeTime, value)
@@ -206,6 +269,46 @@ func (_u *CreditRealizationLineageSegmentUpdateOne) SetNillableBackingTransactio
 // ClearBackingTransactionGroupID clears the value of the "backing_transaction_group_id" field.
 func (_u *CreditRealizationLineageSegmentUpdateOne) ClearBackingTransactionGroupID() *CreditRealizationLineageSegmentUpdateOne {
 	_u.mutation.ClearBackingTransactionGroupID()
+	return _u
+}
+
+// SetSourceState sets the "source_state" field.
+func (_u *CreditRealizationLineageSegmentUpdateOne) SetSourceState(v creditrealization.LineageSegmentState) *CreditRealizationLineageSegmentUpdateOne {
+	_u.mutation.SetSourceState(v)
+	return _u
+}
+
+// SetNillableSourceState sets the "source_state" field if the given value is not nil.
+func (_u *CreditRealizationLineageSegmentUpdateOne) SetNillableSourceState(v *creditrealization.LineageSegmentState) *CreditRealizationLineageSegmentUpdateOne {
+	if v != nil {
+		_u.SetSourceState(*v)
+	}
+	return _u
+}
+
+// ClearSourceState clears the value of the "source_state" field.
+func (_u *CreditRealizationLineageSegmentUpdateOne) ClearSourceState() *CreditRealizationLineageSegmentUpdateOne {
+	_u.mutation.ClearSourceState()
+	return _u
+}
+
+// SetSourceBackingTransactionGroupID sets the "source_backing_transaction_group_id" field.
+func (_u *CreditRealizationLineageSegmentUpdateOne) SetSourceBackingTransactionGroupID(v string) *CreditRealizationLineageSegmentUpdateOne {
+	_u.mutation.SetSourceBackingTransactionGroupID(v)
+	return _u
+}
+
+// SetNillableSourceBackingTransactionGroupID sets the "source_backing_transaction_group_id" field if the given value is not nil.
+func (_u *CreditRealizationLineageSegmentUpdateOne) SetNillableSourceBackingTransactionGroupID(v *string) *CreditRealizationLineageSegmentUpdateOne {
+	if v != nil {
+		_u.SetSourceBackingTransactionGroupID(*v)
+	}
+	return _u
+}
+
+// ClearSourceBackingTransactionGroupID clears the value of the "source_backing_transaction_group_id" field.
+func (_u *CreditRealizationLineageSegmentUpdateOne) ClearSourceBackingTransactionGroupID() *CreditRealizationLineageSegmentUpdateOne {
+	_u.mutation.ClearSourceBackingTransactionGroupID()
 	return _u
 }
 
@@ -281,6 +384,16 @@ func (_u *CreditRealizationLineageSegmentUpdateOne) check() error {
 			return &ValidationError{Name: "backing_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "CreditRealizationLineageSegment.backing_transaction_group_id": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.SourceState(); ok {
+		if err := creditrealizationlineagesegment.SourceStateValidator(v); err != nil {
+			return &ValidationError{Name: "source_state", err: fmt.Errorf(`db: validator failed for field "CreditRealizationLineageSegment.source_state": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.SourceBackingTransactionGroupID(); ok {
+		if err := creditrealizationlineagesegment.SourceBackingTransactionGroupIDValidator(v); err != nil {
+			return &ValidationError{Name: "source_backing_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "CreditRealizationLineageSegment.source_backing_transaction_group_id": %w`, err)}
+		}
+	}
 	if _u.mutation.LineageCleared() && len(_u.mutation.LineageIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "CreditRealizationLineageSegment.lineage"`)
 	}
@@ -324,6 +437,18 @@ func (_u *CreditRealizationLineageSegmentUpdateOne) sqlSave(ctx context.Context)
 	}
 	if _u.mutation.BackingTransactionGroupIDCleared() {
 		_spec.ClearField(creditrealizationlineagesegment.FieldBackingTransactionGroupID, field.TypeString)
+	}
+	if value, ok := _u.mutation.SourceState(); ok {
+		_spec.SetField(creditrealizationlineagesegment.FieldSourceState, field.TypeEnum, value)
+	}
+	if _u.mutation.SourceStateCleared() {
+		_spec.ClearField(creditrealizationlineagesegment.FieldSourceState, field.TypeEnum)
+	}
+	if value, ok := _u.mutation.SourceBackingTransactionGroupID(); ok {
+		_spec.SetField(creditrealizationlineagesegment.FieldSourceBackingTransactionGroupID, field.TypeString, value)
+	}
+	if _u.mutation.SourceBackingTransactionGroupIDCleared() {
+		_spec.ClearField(creditrealizationlineagesegment.FieldSourceBackingTransactionGroupID, field.TypeString)
 	}
 	if value, ok := _u.mutation.ClosedAt(); ok {
 		_spec.SetField(creditrealizationlineagesegment.FieldClosedAt, field.TypeTime, value)

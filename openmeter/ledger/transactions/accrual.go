@@ -1,8 +1,10 @@
 package transactions
 
 import (
+	"cmp"
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -43,84 +45,66 @@ func (t TransferCustomerFBOToAccruedTemplate) typeGuard() guard {
 var _ CustomerTransactionTemplate = (TransferCustomerFBOToAccruedTemplate{})
 
 func (t TransferCustomerFBOToAccruedTemplate) correct(scope CorrectionInput) ([]ledger.TransactionInput, error) {
-	type selectedDebit struct {
-		fboAddress     ledger.PostingAddress
-		accruedAddress ledger.PostingAddress
-		amount         alpacadecimal.Decimal
-	}
-
 	negativeFBOEntries := make([]ledger.Entry, 0)
-	accruedAddressByCostBasis := make(map[string]ledger.PostingAddress)
-	totalAvailable := alpacadecimal.Zero
+	positiveAccruedEntries := make([]ledger.Entry, 0)
 
 	for _, entry := range scope.OriginalTransaction.Entries() {
 		switch {
 		case entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO && entry.Amount().IsNegative():
 			negativeFBOEntries = append(negativeFBOEntries, entry)
-			totalAvailable = totalAvailable.Add(entry.Amount().Abs())
 		case entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerAccrued && entry.Amount().IsPositive():
-			accruedAddressByCostBasis[costBasisKey(entry.PostingAddress().Route().Route().CostBasis)] = entry.PostingAddress()
+			positiveAccruedEntries = append(positiveAccruedEntries, entry)
 		}
 	}
 
-	if scope.Amount.GreaterThan(totalAvailable) {
-		return nil, fmt.Errorf("accrual correction amount %s exceeds original collected amount %s", scope.Amount.String(), totalAvailable.String())
-	}
-
-	selected := make([]selectedDebit, 0, len(negativeFBOEntries))
-	remaining := scope.Amount
-	for idx := len(negativeFBOEntries) - 1; idx >= 0 && remaining.IsPositive(); idx-- {
-		entry := negativeFBOEntries[idx]
-		amount := entry.Amount().Abs()
-		if amount.GreaterThan(remaining) {
-			amount = remaining
-		}
-
-		accruedAddress, ok := accruedAddressByCostBasis[costBasisKey(entry.PostingAddress().Route().Route().CostBasis)]
-		if !ok {
-			return nil, fmt.Errorf("missing accrued entry for FBO cost basis %s", costBasisKey(entry.PostingAddress().Route().Route().CostBasis))
-		}
-
-		selected = append(selected, selectedDebit{
-			fboAddress:     entry.PostingAddress(),
-			accruedAddress: accruedAddress,
-			amount:         amount,
-		})
-		remaining = remaining.Sub(amount)
-	}
-
-	if remaining.IsPositive() {
-		return nil, fmt.Errorf("accrual correction amount %s could not be fully allocated", scope.Amount.String())
-	}
-
-	accruedAmountsByAddress := make(map[string]selectedDebit)
-	entryInputs := make([]*EntryInput, 0, len(selected)*2)
-	for _, item := range selected {
-		entryInputs = append(entryInputs, &EntryInput{
-			address: item.fboAddress,
-			amount:  item.amount,
-		})
-
-		key := item.accruedAddress.SubAccountID()
-		current := accruedAmountsByAddress[key]
-		current.accruedAddress = item.accruedAddress
-		current.amount = current.amount.Add(item.amount)
-		accruedAmountsByAddress[key] = current
-	}
-
-	for _, item := range accruedAmountsByAddress {
-		entryInputs = append(entryInputs, &EntryInput{
-			address: item.accruedAddress,
-			amount:  item.amount.Neg(),
-		})
+	slices.SortStableFunc(negativeFBOEntries, compareFBOAccrualCorrectionSourceEntries)
+	postings, err := allocateCorrectionLegs(
+		negativeFBOEntries,
+		positiveAccruedEntries,
+		t.routePairingKey,
+		func(entry ledger.Entry) alpacadecimal.Decimal {
+			return entry.Amount().Abs()
+		},
+		scope.Amount,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("allocate accrual correction legs: %w", err)
 	}
 
 	return []ledger.TransactionInput{
 		&TransactionInput{
 			bookedAt:    scope.At,
-			entryInputs: entryInputs,
+			entryInputs: mapCorrectionPostingsToEntryInputs(postings),
 		},
 	}, nil
+}
+
+func (t TransferCustomerFBOToAccruedTemplate) routePairingKey(address ledger.PostingAddress) routePairingKey {
+	route := address.Route().Route()
+
+	return routePairingKey{
+		currency:  route.Currency,
+		costBasis: costBasisKey(route.CostBasis),
+	}
+}
+
+func compareFBOAccrualCorrectionSourceEntries(left ledger.Entry, right ledger.Entry) int {
+	leftPriority := fboCorrectionPriority(left.PostingAddress())
+	rightPriority := fboCorrectionPriority(right.PostingAddress())
+	if leftPriority != rightPriority {
+		return cmp.Compare(leftPriority, rightPriority)
+	}
+
+	return cmp.Compare(left.PostingAddress().SubAccountID(), right.PostingAddress().SubAccountID())
+}
+
+func fboCorrectionPriority(address ledger.PostingAddress) int {
+	priority := address.Route().Route().CreditPriority
+	if priority == nil {
+		return ledger.DefaultCustomerFBOPriority
+	}
+
+	return *priority
 }
 
 func (t TransferCustomerFBOToAccruedTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
@@ -137,31 +121,30 @@ func (t TransferCustomerFBOToAccruedTemplate) resolve(ctx context.Context, custo
 		return nil, fmt.Errorf("failed to get customer accounts: %w", err)
 	}
 
-	accruedSubAccByCostBasis, err := resolveAccruedSubAccByCostBasis(ctx, customerAccounts.AccruedAccount, t.Currency, collections)
+	accruedSubAccByKey, err := t.resolveAccruedSubAccByRoutePairingKey(ctx, customerAccounts.AccruedAccount, collections)
 	if err != nil {
 		return nil, err
 	}
 
 	return &TransactionInput{
 		bookedAt:    t.At,
-		entryInputs: buildRoutePreservingAccrualEntries(collections, accruedSubAccByCostBasis),
+		entryInputs: t.buildRoutePreservingAccrualEntries(collections, accruedSubAccByKey),
 	}, nil
 }
 
-func resolveAccruedSubAccByCostBasis(
+func (t TransferCustomerFBOToAccruedTemplate) resolveAccruedSubAccByRoutePairingKey(
 	ctx context.Context,
 	accruedAccount ledger.CustomerAccruedAccount,
-	currency currencyx.Code,
 	collections []subAccountAmount,
-) (map[string]subAccountAmount, error) {
-	accruedSubAccByCostBasis := make(map[string]subAccountAmount, len(collections))
+) (map[routePairingKey]subAccountAmount, error) {
+	accruedSubAccByKey := make(map[routePairingKey]subAccountAmount, len(collections))
 
 	for _, collection := range collections {
-		key := costBasisKey(collection.subAccount.Route().CostBasis)
-		current := accruedSubAccByCostBasis[key]
+		key := t.routePairingKey(collection.subAccount.Address())
+		current := accruedSubAccByKey[key]
 		if current.subAccount == nil {
 			accruedSubAccount, err := accruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
-				Currency:  currency,
+				Currency:  t.Currency,
 				CostBasis: collection.subAccount.Route().CostBasis,
 			})
 			if err != nil {
@@ -171,15 +154,15 @@ func resolveAccruedSubAccByCostBasis(
 		}
 
 		current.amount = current.amount.Add(collection.amount)
-		accruedSubAccByCostBasis[key] = current
+		accruedSubAccByKey[key] = current
 	}
 
-	return accruedSubAccByCostBasis, nil
+	return accruedSubAccByKey, nil
 }
 
-func buildRoutePreservingAccrualEntries(
+func (t TransferCustomerFBOToAccruedTemplate) buildRoutePreservingAccrualEntries(
 	collections []subAccountAmount,
-	accruedSubAccByCostBasis map[string]subAccountAmount,
+	accruedSubAccByKey map[routePairingKey]subAccountAmount,
 ) []*EntryInput {
 	entryInputs := make([]*EntryInput, 0, len(collections)*2)
 
@@ -190,19 +173,19 @@ func buildRoutePreservingAccrualEntries(
 		})
 	}
 
-	creditedCostBasis := make(map[string]struct{}, len(accruedSubAccByCostBasis))
+	creditedKeys := make(map[routePairingKey]struct{}, len(accruedSubAccByKey))
 	for _, collection := range collections {
-		key := costBasisKey(collection.subAccount.Route().CostBasis)
-		if _, ok := creditedCostBasis[key]; ok {
+		key := t.routePairingKey(collection.subAccount.Address())
+		if _, ok := creditedKeys[key]; ok {
 			continue
 		}
 
-		accrued := accruedSubAccByCostBasis[key]
+		accrued := accruedSubAccByKey[key]
 		entryInputs = append(entryInputs, &EntryInput{
 			address: accrued.subAccount.Address(),
 			amount:  accrued.amount,
 		})
-		creditedCostBasis[key] = struct{}{}
+		creditedKeys[key] = struct{}{}
 	}
 
 	return entryInputs

@@ -63848,20 +63848,22 @@ func (m *CreditRealizationLineageMutation) ResetEdge(name string) error {
 // CreditRealizationLineageSegmentMutation represents an operation that mutates the CreditRealizationLineageSegment nodes in the graph.
 type CreditRealizationLineageSegmentMutation struct {
 	config
-	op                           Op
-	typ                          string
-	id                           *string
-	amount                       *alpacadecimal.Decimal
-	state                        *creditrealization.LineageSegmentState
-	backing_transaction_group_id *string
-	closed_at                    *time.Time
-	created_at                   *time.Time
-	clearedFields                map[string]struct{}
-	lineage                      *string
-	clearedlineage               bool
-	done                         bool
-	oldValue                     func(context.Context) (*CreditRealizationLineageSegment, error)
-	predicates                   []predicate.CreditRealizationLineageSegment
+	op                                  Op
+	typ                                 string
+	id                                  *string
+	amount                              *alpacadecimal.Decimal
+	state                               *creditrealization.LineageSegmentState
+	backing_transaction_group_id        *string
+	source_state                        *creditrealization.LineageSegmentState
+	source_backing_transaction_group_id *string
+	closed_at                           *time.Time
+	created_at                          *time.Time
+	clearedFields                       map[string]struct{}
+	lineage                             *string
+	clearedlineage                      bool
+	done                                bool
+	oldValue                            func(context.Context) (*CreditRealizationLineageSegment, error)
+	predicates                          []predicate.CreditRealizationLineageSegment
 }
 
 var _ ent.Mutation = (*CreditRealizationLineageSegmentMutation)(nil)
@@ -64125,6 +64127,104 @@ func (m *CreditRealizationLineageSegmentMutation) ResetBackingTransactionGroupID
 	delete(m.clearedFields, creditrealizationlineagesegment.FieldBackingTransactionGroupID)
 }
 
+// SetSourceState sets the "source_state" field.
+func (m *CreditRealizationLineageSegmentMutation) SetSourceState(css creditrealization.LineageSegmentState) {
+	m.source_state = &css
+}
+
+// SourceState returns the value of the "source_state" field in the mutation.
+func (m *CreditRealizationLineageSegmentMutation) SourceState() (r creditrealization.LineageSegmentState, exists bool) {
+	v := m.source_state
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSourceState returns the old "source_state" field's value of the CreditRealizationLineageSegment entity.
+// If the CreditRealizationLineageSegment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditRealizationLineageSegmentMutation) OldSourceState(ctx context.Context) (v *creditrealization.LineageSegmentState, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSourceState is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSourceState requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSourceState: %w", err)
+	}
+	return oldValue.SourceState, nil
+}
+
+// ClearSourceState clears the value of the "source_state" field.
+func (m *CreditRealizationLineageSegmentMutation) ClearSourceState() {
+	m.source_state = nil
+	m.clearedFields[creditrealizationlineagesegment.FieldSourceState] = struct{}{}
+}
+
+// SourceStateCleared returns if the "source_state" field was cleared in this mutation.
+func (m *CreditRealizationLineageSegmentMutation) SourceStateCleared() bool {
+	_, ok := m.clearedFields[creditrealizationlineagesegment.FieldSourceState]
+	return ok
+}
+
+// ResetSourceState resets all changes to the "source_state" field.
+func (m *CreditRealizationLineageSegmentMutation) ResetSourceState() {
+	m.source_state = nil
+	delete(m.clearedFields, creditrealizationlineagesegment.FieldSourceState)
+}
+
+// SetSourceBackingTransactionGroupID sets the "source_backing_transaction_group_id" field.
+func (m *CreditRealizationLineageSegmentMutation) SetSourceBackingTransactionGroupID(s string) {
+	m.source_backing_transaction_group_id = &s
+}
+
+// SourceBackingTransactionGroupID returns the value of the "source_backing_transaction_group_id" field in the mutation.
+func (m *CreditRealizationLineageSegmentMutation) SourceBackingTransactionGroupID() (r string, exists bool) {
+	v := m.source_backing_transaction_group_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSourceBackingTransactionGroupID returns the old "source_backing_transaction_group_id" field's value of the CreditRealizationLineageSegment entity.
+// If the CreditRealizationLineageSegment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditRealizationLineageSegmentMutation) OldSourceBackingTransactionGroupID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSourceBackingTransactionGroupID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSourceBackingTransactionGroupID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSourceBackingTransactionGroupID: %w", err)
+	}
+	return oldValue.SourceBackingTransactionGroupID, nil
+}
+
+// ClearSourceBackingTransactionGroupID clears the value of the "source_backing_transaction_group_id" field.
+func (m *CreditRealizationLineageSegmentMutation) ClearSourceBackingTransactionGroupID() {
+	m.source_backing_transaction_group_id = nil
+	m.clearedFields[creditrealizationlineagesegment.FieldSourceBackingTransactionGroupID] = struct{}{}
+}
+
+// SourceBackingTransactionGroupIDCleared returns if the "source_backing_transaction_group_id" field was cleared in this mutation.
+func (m *CreditRealizationLineageSegmentMutation) SourceBackingTransactionGroupIDCleared() bool {
+	_, ok := m.clearedFields[creditrealizationlineagesegment.FieldSourceBackingTransactionGroupID]
+	return ok
+}
+
+// ResetSourceBackingTransactionGroupID resets all changes to the "source_backing_transaction_group_id" field.
+func (m *CreditRealizationLineageSegmentMutation) ResetSourceBackingTransactionGroupID() {
+	m.source_backing_transaction_group_id = nil
+	delete(m.clearedFields, creditrealizationlineagesegment.FieldSourceBackingTransactionGroupID)
+}
+
 // SetClosedAt sets the "closed_at" field.
 func (m *CreditRealizationLineageSegmentMutation) SetClosedAt(t time.Time) {
 	m.closed_at = &t
@@ -64271,7 +64371,7 @@ func (m *CreditRealizationLineageSegmentMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CreditRealizationLineageSegmentMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 8)
 	if m.lineage != nil {
 		fields = append(fields, creditrealizationlineagesegment.FieldLineageID)
 	}
@@ -64283,6 +64383,12 @@ func (m *CreditRealizationLineageSegmentMutation) Fields() []string {
 	}
 	if m.backing_transaction_group_id != nil {
 		fields = append(fields, creditrealizationlineagesegment.FieldBackingTransactionGroupID)
+	}
+	if m.source_state != nil {
+		fields = append(fields, creditrealizationlineagesegment.FieldSourceState)
+	}
+	if m.source_backing_transaction_group_id != nil {
+		fields = append(fields, creditrealizationlineagesegment.FieldSourceBackingTransactionGroupID)
 	}
 	if m.closed_at != nil {
 		fields = append(fields, creditrealizationlineagesegment.FieldClosedAt)
@@ -64306,6 +64412,10 @@ func (m *CreditRealizationLineageSegmentMutation) Field(name string) (ent.Value,
 		return m.State()
 	case creditrealizationlineagesegment.FieldBackingTransactionGroupID:
 		return m.BackingTransactionGroupID()
+	case creditrealizationlineagesegment.FieldSourceState:
+		return m.SourceState()
+	case creditrealizationlineagesegment.FieldSourceBackingTransactionGroupID:
+		return m.SourceBackingTransactionGroupID()
 	case creditrealizationlineagesegment.FieldClosedAt:
 		return m.ClosedAt()
 	case creditrealizationlineagesegment.FieldCreatedAt:
@@ -64327,6 +64437,10 @@ func (m *CreditRealizationLineageSegmentMutation) OldField(ctx context.Context, 
 		return m.OldState(ctx)
 	case creditrealizationlineagesegment.FieldBackingTransactionGroupID:
 		return m.OldBackingTransactionGroupID(ctx)
+	case creditrealizationlineagesegment.FieldSourceState:
+		return m.OldSourceState(ctx)
+	case creditrealizationlineagesegment.FieldSourceBackingTransactionGroupID:
+		return m.OldSourceBackingTransactionGroupID(ctx)
 	case creditrealizationlineagesegment.FieldClosedAt:
 		return m.OldClosedAt(ctx)
 	case creditrealizationlineagesegment.FieldCreatedAt:
@@ -64367,6 +64481,20 @@ func (m *CreditRealizationLineageSegmentMutation) SetField(name string, value en
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetBackingTransactionGroupID(v)
+		return nil
+	case creditrealizationlineagesegment.FieldSourceState:
+		v, ok := value.(creditrealization.LineageSegmentState)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSourceState(v)
+		return nil
+	case creditrealizationlineagesegment.FieldSourceBackingTransactionGroupID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSourceBackingTransactionGroupID(v)
 		return nil
 	case creditrealizationlineagesegment.FieldClosedAt:
 		v, ok := value.(time.Time)
@@ -64415,6 +64543,12 @@ func (m *CreditRealizationLineageSegmentMutation) ClearedFields() []string {
 	if m.FieldCleared(creditrealizationlineagesegment.FieldBackingTransactionGroupID) {
 		fields = append(fields, creditrealizationlineagesegment.FieldBackingTransactionGroupID)
 	}
+	if m.FieldCleared(creditrealizationlineagesegment.FieldSourceState) {
+		fields = append(fields, creditrealizationlineagesegment.FieldSourceState)
+	}
+	if m.FieldCleared(creditrealizationlineagesegment.FieldSourceBackingTransactionGroupID) {
+		fields = append(fields, creditrealizationlineagesegment.FieldSourceBackingTransactionGroupID)
+	}
 	if m.FieldCleared(creditrealizationlineagesegment.FieldClosedAt) {
 		fields = append(fields, creditrealizationlineagesegment.FieldClosedAt)
 	}
@@ -64434,6 +64568,12 @@ func (m *CreditRealizationLineageSegmentMutation) ClearField(name string) error 
 	switch name {
 	case creditrealizationlineagesegment.FieldBackingTransactionGroupID:
 		m.ClearBackingTransactionGroupID()
+		return nil
+	case creditrealizationlineagesegment.FieldSourceState:
+		m.ClearSourceState()
+		return nil
+	case creditrealizationlineagesegment.FieldSourceBackingTransactionGroupID:
+		m.ClearSourceBackingTransactionGroupID()
 		return nil
 	case creditrealizationlineagesegment.FieldClosedAt:
 		m.ClearClosedAt()
@@ -64457,6 +64597,12 @@ func (m *CreditRealizationLineageSegmentMutation) ResetField(name string) error 
 		return nil
 	case creditrealizationlineagesegment.FieldBackingTransactionGroupID:
 		m.ResetBackingTransactionGroupID()
+		return nil
+	case creditrealizationlineagesegment.FieldSourceState:
+		m.ResetSourceState()
+		return nil
+	case creditrealizationlineagesegment.FieldSourceBackingTransactionGroupID:
+		m.ResetSourceBackingTransactionGroupID()
 		return nil
 	case creditrealizationlineagesegment.FieldClosedAt:
 		m.ResetClosedAt()

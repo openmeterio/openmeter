@@ -25,6 +25,7 @@ import (
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
@@ -37,6 +38,7 @@ type Config struct {
 	BillingService     billing.Service
 	FeatureService     feature.FeatureConnector
 	StreamingConnector streaming.Connector
+	RecognizerService  recognizer.Service
 
 	FlatFeeHandler        flatfee.Handler
 	CreditPurchaseHandler creditpurchase.Handler
@@ -87,6 +89,10 @@ type Services struct {
 // NewServices constructs the charges stack from external dependencies and handlers.
 func NewServices(t testing.TB, config Config) (*Services, error) {
 	t.Helper()
+
+	if config.RecognizerService == nil {
+		config.RecognizerService = recognizer.NoopService{}
+	}
 
 	if err := config.Validate(); err != nil {
 		return nil, err
@@ -224,6 +230,7 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		FlatFeeService:        flatFeeService,
 		CreditPurchaseService: creditPurchaseService,
 		UsageBasedService:     usageBasedService,
+		RecognizerService:     config.RecognizerService,
 		BillingService:        config.BillingService,
 	})
 	if err != nil {

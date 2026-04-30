@@ -2829,8 +2829,10 @@ var (
 	CreditRealizationLineageSegmentsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
-		{Name: "state", Type: field.TypeEnum, Enums: []string{"real_credit", "advance_uncovered", "advance_backfilled"}},
+		{Name: "state", Type: field.TypeEnum, Enums: []string{"real_credit", "advance_uncovered", "advance_backfilled", "earnings_recognized"}},
 		{Name: "backing_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "source_state", Type: field.TypeEnum, Nullable: true, Enums: []string{"real_credit", "advance_uncovered", "advance_backfilled", "earnings_recognized"}},
+		{Name: "source_backing_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "closed_at", Type: field.TypeTime, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "lineage_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -2843,7 +2845,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "credit_realization_lineage_segments_credit_realization_lineages_segments",
-				Columns:    []*schema.Column{CreditRealizationLineageSegmentsColumns[6]},
+				Columns:    []*schema.Column{CreditRealizationLineageSegmentsColumns[8]},
 				RefColumns: []*schema.Column{CreditRealizationLineagesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -2857,12 +2859,12 @@ var (
 			{
 				Name:    "creditrealizationlineagesegment_lineage_id",
 				Unique:  false,
-				Columns: []*schema.Column{CreditRealizationLineageSegmentsColumns[6]},
+				Columns: []*schema.Column{CreditRealizationLineageSegmentsColumns[8]},
 			},
 			{
 				Name:    "creditrealizationlineagesegment_lineage_id_closed_at",
 				Unique:  false,
-				Columns: []*schema.Column{CreditRealizationLineageSegmentsColumns[6], CreditRealizationLineageSegmentsColumns[4]},
+				Columns: []*schema.Column{CreditRealizationLineageSegmentsColumns[8], CreditRealizationLineageSegmentsColumns[6]},
 			},
 		},
 	}

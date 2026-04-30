@@ -11,7 +11,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -51,6 +53,17 @@ func (c ChargeBase) GetChargeID() meta.ChargeID {
 		Namespace: c.Namespace,
 		ID:        c.ID,
 	}
+}
+
+func (c ChargeBase) GetCustomerID() customer.CustomerID {
+	return customer.CustomerID{
+		Namespace: c.Namespace,
+		ID:        c.Intent.CustomerID,
+	}
+}
+
+func (c ChargeBase) GetCurrency() currencyx.Code {
+	return c.Intent.Currency
 }
 
 func (c ChargeBase) ErrorAttributes() models.Attributes {

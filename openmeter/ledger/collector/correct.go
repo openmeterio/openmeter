@@ -186,9 +186,58 @@ func (c *accrualCorrector) planSegmentCorrection(ctx context.Context, input Corr
 		return plannedSourceCorrectionActions(source, amount, true), nil
 	case creditrealization.LineageSegmentStateAdvanceBackfilled:
 		return c.planBackfilledAdvanceSegment(ctx, input, source, segment, amount)
+	case creditrealization.LineageSegmentStateEarningsRecognized:
+		return c.planRecognizedEarningsSegment(ctx, input, source, segment, amount)
 	default:
 		return nil, fmt.Errorf("unsupported active lineage segment state %s", segment.State)
 	}
+}
+
+func (c *accrualCorrector) planRecognizedEarningsSegment(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment lineage.Segment, amount alpacadecimal.Decimal) ([]plannedAction, error) {
+	if segment.BackingTransactionGroupID == nil || *segment.BackingTransactionGroupID == "" {
+		return nil, fmt.Errorf("earnings_recognized segment missing backing transaction group id")
+	}
+	if segment.SourceState == nil {
+		return nil, fmt.Errorf("earnings_recognized segment missing source state")
+	}
+	if *segment.SourceState == creditrealization.LineageSegmentStateEarningsRecognized {
+		return nil, fmt.Errorf("earnings_recognized segment source state cannot be earnings_recognized")
+	}
+
+	recognitionGroup, err := c.ledger.GetTransactionGroup(ctx, models.NamespacedID{
+		Namespace: input.Namespace,
+		ID:        *segment.BackingTransactionGroupID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("get recognition transaction group %s: %w", *segment.BackingTransactionGroupID, err)
+	}
+
+	recognitionTx, err := c.forwardTransactionByTemplate(recognitionGroup, transactions.TemplateName(transactions.RecognizeEarningsFromAttributableAccruedTemplate{}))
+	if err != nil {
+		return nil, fmt.Errorf("find recognition transaction in group %s: %w", recognitionGroup.ID().ID, err)
+	}
+
+	sourceSegment := segment
+	sourceSegment.State = *segment.SourceState
+	sourceSegment.BackingTransactionGroupID = segment.SourceBackingTransactionGroupID
+	sourceSegment.SourceState = nil
+	sourceSegment.SourceBackingTransactionGroupID = nil
+
+	sourceActions, err := c.planSegmentCorrection(ctx, input, source, sourceSegment, amount)
+	if err != nil {
+		return nil, err
+	}
+
+	actions := []plannedAction{
+		plannedTransactionCorrection{
+			transaction: recognitionTx,
+			group:       recognitionGroup,
+			amount:      amount,
+		},
+	}
+	actions = append(actions, sourceActions...)
+
+	return actions, nil
 }
 
 func (c *accrualCorrector) planBackfilledAdvanceSegment(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment lineage.Segment, amount alpacadecimal.Decimal) ([]plannedAction, error) {
@@ -439,14 +488,16 @@ func sortCorrectionSegments(segments []lineage.Segment) []lineage.Segment {
 		// Go from most downstream representation back outward.
 		precedence := func(state creditrealization.LineageSegmentState) int {
 			switch state {
-			case creditrealization.LineageSegmentStateAdvanceBackfilled:
+			case creditrealization.LineageSegmentStateEarningsRecognized:
 				return 0
-			case creditrealization.LineageSegmentStateAdvanceUncovered:
+			case creditrealization.LineageSegmentStateAdvanceBackfilled:
 				return 1
-			case creditrealization.LineageSegmentStateRealCredit:
+			case creditrealization.LineageSegmentStateAdvanceUncovered:
 				return 2
-			default:
+			case creditrealization.LineageSegmentStateRealCredit:
 				return 3
+			default:
+				return 4
 			}
 		}
 

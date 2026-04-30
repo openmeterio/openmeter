@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/ref"
 )
@@ -54,6 +55,17 @@ func (c ChargeBase) GetChargeID() meta.ChargeID {
 		Namespace: c.Namespace,
 		ID:        c.ID,
 	}
+}
+
+func (c ChargeBase) GetCustomerID() customer.CustomerID {
+	return customer.CustomerID{
+		Namespace: c.Namespace,
+		ID:        c.Intent.CustomerID,
+	}
+}
+
+func (c ChargeBase) GetCurrency() currencyx.Code {
+	return c.Intent.Currency
 }
 
 func (c ChargeBase) ErrorAttributes() models.Attributes {

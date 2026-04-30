@@ -56,6 +56,38 @@ func TestTransferCustomerFBOToAccruedTemplate_PreservesCostBasisAcrossBuckets(t 
 	require.True(t, env.SumBalance(t, env.AccruedSubAccount(t)).Equal(alpacadecimal.Zero))
 }
 
+func TestTransferCustomerFBOToAccruedCorrection_UsesReverseCollectionPriority(t *testing.T) {
+	env := newTransactionsTestEnv(t)
+	costBasis := alpacadecimal.NewFromInt(1)
+
+	fboPriorityOne := env.fundPriorityWithCostBasis(t, 1, 10, &costBasis)
+	fboPriorityTwo := env.fundPriorityWithCostBasis(t, 2, 20, &costBasis)
+
+	originalInputs := env.resolve(t, TransferCustomerFBOToAccruedTemplate{
+		At:       env.Now(),
+		Amount:   alpacadecimal.NewFromInt(30),
+		Currency: env.Currency,
+	})
+	require.Len(t, originalInputs, 1)
+
+	group, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), GroupInputs(env.Namespace, nil, originalInputs...))
+	require.NoError(t, err)
+
+	correctionInputs, err := CorrectTransaction(t.Context(), env.resolverDeps(), CorrectionInput{
+		At:                  env.Now(),
+		Amount:              alpacadecimal.NewFromInt(25),
+		OriginalTransaction: group.Transactions()[0],
+		OriginalGroup:       group,
+	})
+	require.NoError(t, err)
+
+	env.commit(t, correctionInputs...)
+
+	require.True(t, env.SumBalance(t, fboPriorityOne).Equal(alpacadecimal.NewFromInt(5)))
+	require.True(t, env.SumBalance(t, fboPriorityTwo).Equal(alpacadecimal.NewFromInt(20)))
+	require.True(t, env.SumBalance(t, env.AccruedSubAccountWithCostBasis(t, &costBasis)).Equal(alpacadecimal.NewFromInt(5)))
+}
+
 func TestTransferCustomerReceivableToAccruedTemplate(t *testing.T) {
 	env := newTransactionsTestEnv(t)
 	costBasis := alpacadecimal.NewFromInt(1)

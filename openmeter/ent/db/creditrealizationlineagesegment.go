@@ -28,6 +28,10 @@ type CreditRealizationLineageSegment struct {
 	State creditrealization.LineageSegmentState `json:"state,omitempty"`
 	// BackingTransactionGroupID holds the value of the "backing_transaction_group_id" field.
 	BackingTransactionGroupID *string `json:"backing_transaction_group_id,omitempty"`
+	// SourceState holds the value of the "source_state" field.
+	SourceState *creditrealization.LineageSegmentState `json:"source_state,omitempty"`
+	// SourceBackingTransactionGroupID holds the value of the "source_backing_transaction_group_id" field.
+	SourceBackingTransactionGroupID *string `json:"source_backing_transaction_group_id,omitempty"`
 	// ClosedAt holds the value of the "closed_at" field.
 	ClosedAt *time.Time `json:"closed_at,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -65,7 +69,7 @@ func (*CreditRealizationLineageSegment) scanValues(columns []string) ([]any, err
 		switch columns[i] {
 		case creditrealizationlineagesegment.FieldAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case creditrealizationlineagesegment.FieldID, creditrealizationlineagesegment.FieldLineageID, creditrealizationlineagesegment.FieldState, creditrealizationlineagesegment.FieldBackingTransactionGroupID:
+		case creditrealizationlineagesegment.FieldID, creditrealizationlineagesegment.FieldLineageID, creditrealizationlineagesegment.FieldState, creditrealizationlineagesegment.FieldBackingTransactionGroupID, creditrealizationlineagesegment.FieldSourceState, creditrealizationlineagesegment.FieldSourceBackingTransactionGroupID:
 			values[i] = new(sql.NullString)
 		case creditrealizationlineagesegment.FieldClosedAt, creditrealizationlineagesegment.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
@@ -114,6 +118,20 @@ func (_m *CreditRealizationLineageSegment) assignValues(columns []string, values
 			} else if value.Valid {
 				_m.BackingTransactionGroupID = new(string)
 				*_m.BackingTransactionGroupID = value.String
+			}
+		case creditrealizationlineagesegment.FieldSourceState:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field source_state", values[i])
+			} else if value.Valid {
+				_m.SourceState = new(creditrealization.LineageSegmentState)
+				*_m.SourceState = creditrealization.LineageSegmentState(value.String)
+			}
+		case creditrealizationlineagesegment.FieldSourceBackingTransactionGroupID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field source_backing_transaction_group_id", values[i])
+			} else if value.Valid {
+				_m.SourceBackingTransactionGroupID = new(string)
+				*_m.SourceBackingTransactionGroupID = value.String
 			}
 		case creditrealizationlineagesegment.FieldClosedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -180,6 +198,16 @@ func (_m *CreditRealizationLineageSegment) String() string {
 	builder.WriteString(", ")
 	if v := _m.BackingTransactionGroupID; v != nil {
 		builder.WriteString("backing_transaction_group_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.SourceState; v != nil {
+		builder.WriteString("source_state=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.SourceBackingTransactionGroupID; v != nil {
+		builder.WriteString("source_backing_transaction_group_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

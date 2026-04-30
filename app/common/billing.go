@@ -30,6 +30,7 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
+	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -59,6 +60,7 @@ type ChargesRegistry struct {
 	FlatFeeService        flatfee.Service
 	UsageBasedService     usagebased.Service
 	CreditPurchaseService creditpurchase.Service
+	RecognizerService     recognizer.Service
 }
 
 // Billing is the Wire provider set for the billing and charges stack.

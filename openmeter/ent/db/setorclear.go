@@ -7,6 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/notification"
@@ -3474,6 +3475,34 @@ func (u *CreditRealizationLineageSegmentUpdateOne) SetOrClearBackingTransactionG
 		return u.ClearBackingTransactionGroupID()
 	}
 	return u.SetBackingTransactionGroupID(*value)
+}
+
+func (u *CreditRealizationLineageSegmentUpdate) SetOrClearSourceState(value *creditrealization.LineageSegmentState) *CreditRealizationLineageSegmentUpdate {
+	if value == nil {
+		return u.ClearSourceState()
+	}
+	return u.SetSourceState(*value)
+}
+
+func (u *CreditRealizationLineageSegmentUpdateOne) SetOrClearSourceState(value *creditrealization.LineageSegmentState) *CreditRealizationLineageSegmentUpdateOne {
+	if value == nil {
+		return u.ClearSourceState()
+	}
+	return u.SetSourceState(*value)
+}
+
+func (u *CreditRealizationLineageSegmentUpdate) SetOrClearSourceBackingTransactionGroupID(value *string) *CreditRealizationLineageSegmentUpdate {
+	if value == nil {
+		return u.ClearSourceBackingTransactionGroupID()
+	}
+	return u.SetSourceBackingTransactionGroupID(*value)
+}
+
+func (u *CreditRealizationLineageSegmentUpdateOne) SetOrClearSourceBackingTransactionGroupID(value *string) *CreditRealizationLineageSegmentUpdateOne {
+	if value == nil {
+		return u.ClearSourceBackingTransactionGroupID()
+	}
+	return u.SetSourceBackingTransactionGroupID(*value)
 }
 
 func (u *CreditRealizationLineageSegmentUpdate) SetOrClearClosedAt(value *time.Time) *CreditRealizationLineageSegmentUpdate {
