@@ -74,7 +74,6 @@ type RecognizeEarningsInput struct {
 	CustomerID customer.CustomerID
 	At         time.Time
 	Currency   currencyx.Code
-	Reason     string
 }
 
 func (i RecognizeEarningsInput) Validate() error {

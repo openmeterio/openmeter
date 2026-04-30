@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -13,7 +15,7 @@ import (
 )
 
 func (s *service) recognizeCustomerEarnings(ctx context.Context, customerID customer.CustomerID, currencies ...currencyx.Code) error {
-	for _, currency := range uniqueCurrencies(currencies) {
+	for _, currency := range lo.Uniq(currencies) {
 		if _, err := s.recognizerService.RecognizeEarnings(ctx, recognizer.RecognizeEarningsInput{
 			CustomerID: customerID,
 			At:         clock.Now(),
@@ -27,48 +29,36 @@ func (s *service) recognizeCustomerEarnings(ctx context.Context, customerID cust
 }
 
 func (s *service) recognizeCreatedCreditPurchaseEarnings(ctx context.Context, created charges.Charges) error {
-	scopes := make(map[currencyAndCustomerID]struct{})
+	// Credit purchases can make existing accrued usage attributable by assigning
+	// cost basis. Recognition is customer+currency scoped, so dedupe that scope.
+	scopes := make([]currencyAndCustomerID, 0, len(created))
 
 	for _, c := range created {
 		if c.Type() != meta.ChargeTypeCreditPurchase {
 			continue
 		}
 
-		cp, err := c.AsCreditPurchaseCharge()
+		customerID, err := c.GetCustomerID()
 		if err != nil {
 			return err
 		}
 
-		scopes[currencyAndCustomerID{
-			currency: cp.Intent.Currency,
-			customerID: customer.CustomerID{
-				Namespace: cp.Namespace,
-				ID:        cp.Intent.CustomerID,
-			},
-		}] = struct{}{}
+		currency, err := c.GetCurrency()
+		if err != nil {
+			return err
+		}
+
+		scopes = append(scopes, currencyAndCustomerID{
+			currency:   currency,
+			customerID: customerID,
+		})
 	}
 
-	for scope := range scopes {
+	for _, scope := range lo.Uniq(scopes) {
 		if err := s.recognizeCustomerEarnings(ctx, scope.customerID, scope.currency); err != nil {
 			return err
 		}
 	}
 
 	return nil
-}
-
-func uniqueCurrencies(currencies []currencyx.Code) []currencyx.Code {
-	seen := make(map[currencyx.Code]bool, len(currencies))
-	out := make([]currencyx.Code, 0, len(currencies))
-
-	for _, currency := range currencies {
-		if seen[currency] {
-			continue
-		}
-
-		seen[currency] = true
-		out = append(out, currency)
-	}
-
-	return out
 }

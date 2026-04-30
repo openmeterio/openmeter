@@ -28,6 +28,7 @@ import (
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -157,6 +158,7 @@ func (s *BaseSuite) SetupSuite() {
 		FlatFeeService:        flatFeeService,
 		CreditPurchaseService: creditPurchaseService,
 		UsageBasedService:     usageBasedService,
+		RecognizerService:     recognizer.NoopService{},
 
 		BillingService: s.BillingService,
 	})

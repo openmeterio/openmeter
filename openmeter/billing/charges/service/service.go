@@ -76,16 +76,16 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("meta adapter cannot be null"))
 	}
 
+	if c.RecognizerService == nil {
+		errs = append(errs, errors.New("recognizer service cannot be null"))
+	}
+
 	return errors.Join(errs...)
 }
 
 func New(config Config) (*service, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
-	}
-
-	if config.RecognizerService == nil {
-		config.RecognizerService = recognizer.NoopService{}
 	}
 
 	svc := &service{

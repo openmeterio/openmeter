@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
@@ -100,7 +102,12 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 			}
 		}
 
-		if err := s.recognizeCustomerEarnings(ctx, input.Customer, collectCurrencies(advancedCharges)...); err != nil {
+		currencies, err := collectCurrencies(advancedCharges)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := s.recognizeCustomerEarnings(ctx, input.Customer, currencies...); err != nil {
 			return nil, err
 		}
 
@@ -113,41 +120,17 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 	return advancedCharges, nil
 }
 
-func collectCurrencies(chargeList charges.Charges) []currencyx.Code {
-	seen := make(map[currencyx.Code]bool)
-	out := make([]currencyx.Code, 0)
+func collectCurrencies(chargeList charges.Charges) ([]currencyx.Code, error) {
+	out := make([]currencyx.Code, 0, len(chargeList))
 
 	for _, c := range chargeList {
-		var currency currencyx.Code
-
-		switch c.Type() {
-		case meta.ChargeTypeFlatFee:
-			ff, err := c.AsFlatFeeCharge()
-			if err != nil {
-				continue
-			}
-			currency = ff.Intent.Currency
-		case meta.ChargeTypeUsageBased:
-			ub, err := c.AsUsageBasedCharge()
-			if err != nil {
-				continue
-			}
-			currency = ub.Intent.Currency
-		case meta.ChargeTypeCreditPurchase:
-			cp, err := c.AsCreditPurchaseCharge()
-			if err != nil {
-				continue
-			}
-			currency = cp.Intent.Currency
-		default:
-			continue
+		currency, err := c.GetCurrency()
+		if err != nil {
+			return nil, fmt.Errorf("get charge currency: %w", err)
 		}
 
-		if !seen[currency] {
-			seen[currency] = true
-			out = append(out, currency)
-		}
+		out = append(out, currency)
 	}
 
-	return out
+	return lo.Uniq(out), nil
 }

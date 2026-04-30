@@ -48,6 +48,8 @@ func allocateCorrectionLegs(
 		counterpartAddressesByKey[key] = entry.PostingAddress()
 	}
 
+	// Pair each source entry to exactly one counterpart route. The caller owns
+	// source ordering because different templates need different reversal order.
 	legs := make([]correctionLeg, 0, len(sourceEntries))
 	available := alpacadecimal.Zero
 	for _, entry := range sourceEntries {
@@ -76,6 +78,8 @@ func allocateCorrectionLegs(
 
 	postings := make([]correctionPosting, 0, len(legs)*2)
 	postingsBySubAccountID := make(map[string]int, len(legs)*2)
+	// Coalesce here so correction mapping cannot emit duplicate sub-account
+	// postings, which routing rules reject.
 	addPosting := func(address ledger.PostingAddress, amount alpacadecimal.Decimal) {
 		subAccountID := address.SubAccountID()
 		if idx, ok := postingsBySubAccountID[subAccountID]; ok {

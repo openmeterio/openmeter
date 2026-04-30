@@ -87,7 +87,7 @@ func (s *service) handleStandardInvoiceUpdate(ctx context.Context, invoice billi
 		return err
 	}
 
-	return s.recognizeEarningsForInvoice(ctx, invoice)
+	return s.recognizeCustomerEarnings(ctx, invoice.CustomerID(), invoice.Currency)
 }
 
 func (s *service) handleChargeEvent(ctx context.Context, invoice billing.StandardInvoice, processorByType processorByType) error {
@@ -225,10 +225,6 @@ func (s *service) getLinesWithChargesForStandardInvoice(ctx context.Context, ns 
 			StandardLineWithInvoiceHeader: lineWithHeader,
 		}, nil
 	})
-}
-
-func (s *service) recognizeEarningsForInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
-	return s.recognizeCustomerEarnings(ctx, invoice.CustomerID(), invoice.Currency)
 }
 
 func withBillingTransactionForInvoiceManipulation[T any](ctx context.Context, s *service, customerID customer.CustomerID, fn func(ctx context.Context) (T, error)) (T, error) {

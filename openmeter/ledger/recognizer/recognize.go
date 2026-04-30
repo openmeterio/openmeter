@@ -12,7 +12,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
@@ -98,7 +97,7 @@ func (s *service) RecognizeEarnings(ctx context.Context, in RecognizeEarningsInp
 
 		// Allocate actual recognized amount back to lineages in deterministic order
 		// and transition their segments to earnings_recognized.
-		if err := s.allocateRecognition(ctx, eligible, actualAmount, groupID); err != nil {
+		if err := s.allocateRecognition(ctx, eligible, actualAmount, groupID, in.At); err != nil {
 			return RecognizeEarningsResult{}, fmt.Errorf("allocate recognition: %w", err)
 		}
 
@@ -143,9 +142,9 @@ func collectEligibleLineages(lineages []lineage.Lineage) []lineageEligible {
 
 // allocateRecognition distributes the actual recognized amount across eligible
 // lineages and transitions their segments to earnings_recognized.
-func (s *service) allocateRecognition(ctx context.Context, eligible []lineageEligible, actualAmount alpacadecimal.Decimal, groupID string) error {
+func (s *service) allocateRecognition(ctx context.Context, eligible []lineageEligible, actualAmount alpacadecimal.Decimal, groupID string, at time.Time) error {
 	remaining := actualAmount
-	now := clock.Now().Truncate(time.Microsecond)
+	now := at.Truncate(time.Microsecond)
 
 	for _, e := range eligible {
 		if !remaining.IsPositive() {
@@ -162,6 +161,8 @@ func (s *service) allocateRecognition(ctx context.Context, eligible []lineageEli
 
 			consumed := minDecimal(seg.Amount, segRemaining)
 
+			// Close the source segment before recreating its remainder and
+			// recognized portion. This keeps the active segment set non-overlapping.
 			if err := s.lnge.CloseSegment(ctx, seg.ID, now); err != nil {
 				return fmt.Errorf("close segment %s: %w", seg.ID, err)
 			}
@@ -180,6 +181,7 @@ func (s *service) allocateRecognition(ctx context.Context, eligible []lineageEli
 			}
 
 			// Create earnings_recognized segment for the consumed portion.
+			// Source fields let correction unwind recognition back to the prior state.
 			sourceState := seg.State
 			if err := s.lnge.CreateSegment(ctx, lineage.CreateSegmentInput{
 				LineageID:                       seg.LineageID,

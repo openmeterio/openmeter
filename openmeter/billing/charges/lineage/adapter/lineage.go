@@ -223,17 +223,10 @@ func (a *adapter) CreateSegment(ctx context.Context, input lineage.CreateSegment
 			SetID(ulid.Make().String()).
 			SetLineageID(input.LineageID).
 			SetAmount(input.Amount).
-			SetState(input.State)
-
-		if input.BackingTransactionGroupID != nil {
-			create = create.SetBackingTransactionGroupID(*input.BackingTransactionGroupID)
-		}
-		if input.SourceState != nil {
-			create = create.SetSourceState(*input.SourceState)
-		}
-		if input.SourceBackingTransactionGroupID != nil {
-			create = create.SetSourceBackingTransactionGroupID(*input.SourceBackingTransactionGroupID)
-		}
+			SetState(input.State).
+			SetNillableBackingTransactionGroupID(input.BackingTransactionGroupID).
+			SetNillableSourceState(input.SourceState).
+			SetNillableSourceBackingTransactionGroupID(input.SourceBackingTransactionGroupID)
 
 		_, err := create.Save(ctx)
 		return err

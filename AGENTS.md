@@ -124,8 +124,6 @@ Tests require PostgreSQL running locally. Start it with `docker compose up -d po
 
 Keep domain test helpers under `openmeter/.../testutils` independent from `app/common`. Build test dependencies from the underlying package constructors (repos, adapters, services, `lockr`) instead of importing the application wiring layer, or unrelated wiring additions can create test-only import cycles.
 
-When extending `openmeter/billing/charges/service.Config` with a new collaborator, keep test setup compatibility in mind: either provide a safe default in `service.New(...)` (for optional/runtime-pluggable dependencies) or update `openmeter/billing/charges/service/base_test.go` at the same time. Most charge service suites construct the service directly through that base setup.
-
 For usage-based billing lifecycle tests, prefer driving behavior through `charges.Service.Create`, `AdvanceCharges`, and `ApplyPatches` rather than calling lower-level charge adapters directly. To model late-arriving or newly visible usage, use `MockStreamingConnector` events with explicit `StoredAt` values (or `SetSimpleEvents`) so the test exercises the real stored-at cutoff logic in finalization.
 
 For OpenMeter Go tests that touch the database, explicitly set `POSTGRES_HOST=127.0.0.1`. Without it, many suites will skip during setup even if PostgreSQL is running and the repo environment is otherwise loaded correctly.

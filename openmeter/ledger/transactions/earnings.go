@@ -59,6 +59,8 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) correct(scope Correcti
 		}
 	}
 
+	// Correction owns reversal ordering. Keep it stable so partial corrections
+	// are repeatable and independent from the original transaction entry order.
 	slices.SortStableFunc(negativeAccruedEntries, compareSubAccountID)
 	postings, err := allocateCorrectionLegs(
 		negativeAccruedEntries,
@@ -126,6 +128,8 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) resolveEarningsSubAccB
 		key := t.routePairingKey(collection.subAccount.Address())
 		current := earningsSubAccByKey[key]
 		if current.subAccount == nil {
+			// Accrued collection can touch multiple source sub-accounts for the
+			// same route. Recognition only needs one earnings destination per route.
 			earnings, err := earningsAccount.GetSubAccountForRoute(ctx, ledger.BusinessRouteParams{
 				Currency:  t.Currency,
 				CostBasis: collection.subAccount.Route().CostBasis,
@@ -148,6 +152,7 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) buildRoutePreservingEa
 	earningsSubAccByKey map[routePairingKey]subAccountAmount,
 ) []*EntryInput {
 	entryInputs := make([]*EntryInput, 0, len(collections)*2)
+
 	for _, collection := range collections {
 		entryInputs = append(entryInputs, &EntryInput{
 			address: collection.subAccount.Address(),
@@ -155,6 +160,7 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) buildRoutePreservingEa
 		})
 	}
 
+	// We keep ordering of collections so result is deterministic. It is not needed for correctness.
 	creditedKeys := make(map[routePairingKey]struct{}, len(earningsSubAccByKey))
 	for _, collection := range collections {
 		key := t.routePairingKey(collection.subAccount.Address())
