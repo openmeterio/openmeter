@@ -5348,6 +5348,18 @@ type ListMetersParams struct {
 	// Page Determines which page of the collection to retrieve.
 	Page *PagePaginationQuery `json:"page,omitempty"`
 
+	// Sort Sort meters returned in the response.
+	// Supported sort attributes are:
+	// - `key`
+	// - `name`
+	// - `aggregation`
+	// - `createdAt` (default)
+	// - `updatedAt`
+	//
+	// The `asc` suffix is optional as the default sort order is ascending.
+	// The `desc` suffix is used to specify a descending order.
+	Sort *SortQuery `form:"sort,omitempty" json:"sort,omitempty"`
+
 	// Filter Filter meters returned in the response.
 	//
 	// To filter meters by key add the following query param: filter[key]=my-meter-key
@@ -8485,6 +8497,14 @@ func (siw *ServerInterfaceWrapper) ListMeters(w http.ResponseWriter, r *http.Req
 	err = runtime.BindQueryParameterWithOptions("deepObject", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "object", Format: ""})
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", false, false, "sort", r.URL.Query(), &params.Sort, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
 		return
 	}
 

@@ -81,6 +81,45 @@ func Test_Adapter(t *testing.T) {
 					assert.Equalf(t, m.EventType, "om.meter", "expected meter event type om.meter, got %s", m.EventType)
 				}
 			})
+
+			t.Run("SortByKeyAsc", func(t *testing.T) {
+				out, err := env.Meter.ListMeters(t.Context(), meter.ListMetersParams{
+					Page:      pagination.Page{PageSize: 100, PageNumber: 1},
+					Namespace: namespace,
+					OrderBy:   meter.OrderByKey,
+					Order:     "ASC",
+				})
+				require.NoErrorf(t, err, "listing meters must not fail")
+				require.Lenf(t, out.Items, 2, "expected 2 meters")
+				assert.Equal(t, "test-meter-1", out.Items[0].Key)
+				assert.Equal(t, "test-meter-2", out.Items[1].Key)
+			})
+
+			t.Run("SortByKeyDesc", func(t *testing.T) {
+				out, err := env.Meter.ListMeters(t.Context(), meter.ListMetersParams{
+					Page:      pagination.Page{PageSize: 100, PageNumber: 1},
+					Namespace: namespace,
+					OrderBy:   meter.OrderByKey,
+					Order:     "DESC",
+				})
+				require.NoErrorf(t, err, "listing meters must not fail")
+				require.Lenf(t, out.Items, 2, "expected 2 meters")
+				assert.Equal(t, "test-meter-2", out.Items[0].Key)
+				assert.Equal(t, "test-meter-1", out.Items[1].Key)
+			})
+
+			t.Run("SortByNameAsc", func(t *testing.T) {
+				out, err := env.Meter.ListMeters(t.Context(), meter.ListMetersParams{
+					Page:      pagination.Page{PageSize: 100, PageNumber: 1},
+					Namespace: namespace,
+					OrderBy:   meter.OrderByName,
+					Order:     "ASC",
+				})
+				require.NoErrorf(t, err, "listing meters must not fail")
+				require.Lenf(t, out.Items, 2, "expected 2 meters")
+				assert.Equal(t, "Test meter 1", out.Items[0].Name)
+				assert.Equal(t, "Test meter 2", out.Items[1].Name)
+			})
 		})
 	})
 }
