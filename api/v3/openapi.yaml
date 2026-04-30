@@ -2483,6 +2483,20 @@ paths:
       summary: List subscriptions
       parameters:
         - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort subscriptions returned in the response.
+            Supported sort attributes are:
+            - `id`
+            - `name`
+            - `active_from` (default)
+            - `active_to`
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
         - name: filter
           in: query
           required: false
@@ -7942,7 +7956,15 @@ components:
     ListSubscriptionsParamsFilter:
       type: object
       properties:
+        id:
+          $ref: '#/components/schemas/ULIDFieldFilter'
         customer_id:
+          $ref: '#/components/schemas/ULIDFieldFilter'
+        name:
+          $ref: '#/components/schemas/StringFieldFilter'
+        status:
+          $ref: '#/components/schemas/StringFieldFilterExact'
+        plan_id:
           $ref: '#/components/schemas/ULIDFieldFilter'
         plan_key:
           $ref: '#/components/schemas/StringFieldFilter'

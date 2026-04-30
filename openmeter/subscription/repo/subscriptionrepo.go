@@ -163,15 +163,15 @@ func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscri
 			query = query.Where(dbsubscription.NamespaceIn(in.Namespaces...))
 		}
 
-		if in.CustomerID != nil {
-			query = filter.ApplyToQuery(query, in.CustomerID, dbsubscription.FieldCustomerID)
-		}
-
 		if in.PlanKey != nil {
 			if p := filter.SelectPredicate[predicate.Plan](filter.Filter(*in.PlanKey), dbplan.FieldKey); p != nil {
 				query = query.Where(dbsubscription.HasPlanWith(*p))
 			}
 		}
+		query = filter.ApplyToQuery(query, in.ID, dbsubscription.FieldID)
+		query = filter.ApplyToQuery(query, in.CustomerID, dbsubscription.FieldCustomerID)
+		query = filter.ApplyToQuery(query, in.Name, dbsubscription.FieldName)
+		query = filter.ApplyToQuery(query, in.PlanID, dbsubscription.FieldPlanID)
 
 		if in.ActiveAt != nil {
 			query = query.Where(
@@ -223,6 +223,10 @@ func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscri
 		}
 
 		switch in.OrderBy {
+		case subscription.OrderByID:
+			query = query.Order(dbsubscription.ByID(order...))
+		case subscription.OrderByName:
+			query = query.Order(dbsubscription.ByName(order...))
 		case subscription.OrderByActiveFrom:
 			query = query.Order(dbsubscription.ByActiveFrom(order...))
 		case subscription.OrderByActiveTo:

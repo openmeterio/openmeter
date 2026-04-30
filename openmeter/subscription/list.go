@@ -15,13 +15,15 @@ import (
 type OrderBy string
 
 const (
-	OrderByActiveFrom OrderBy = "activeFrom"
-	OrderByActiveTo   OrderBy = "activeTo"
+	OrderByID         OrderBy = "id"
+	OrderByName       OrderBy = "name"
+	OrderByActiveFrom OrderBy = "active_from"
+	OrderByActiveTo   OrderBy = "active_to"
 )
 
 func (o OrderBy) Validate() error {
 	switch o {
-	case OrderByActiveFrom, OrderByActiveTo:
+	case OrderByID, OrderByName, OrderByActiveFrom, OrderByActiveTo:
 		return nil
 	}
 	return fmt.Errorf("invalid order by: %s", o)
@@ -34,10 +36,14 @@ type ListSubscriptionsInput struct {
 
 	Namespaces     []string
 	CustomerID     *filter.FilterULID
-	PlanKey        *filter.FilterString
 	ActiveAt       *time.Time
 	ActiveInPeriod *timeutil.StartBoundedPeriod
 	Status         []SubscriptionStatus
+
+	ID      *filter.FilterULID
+	Name    *filter.FilterString
+	PlanID  *filter.FilterULID
+	PlanKey *filter.FilterString
 }
 
 func (i ListSubscriptionsInput) Validate() error {
@@ -61,11 +67,27 @@ func (i ListSubscriptionsInput) Validate() error {
 		}
 	}
 
-	if len(i.Status) > 0 {
-		for _, status := range i.Status {
-			if err := status.Validate(); err != nil {
-				errs = append(errs, fmt.Errorf("status: %w", err))
-			}
+	if i.ID != nil {
+		if err := i.ID.Validate(); err != nil {
+			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid id filter: %w", err)))
+		}
+	}
+
+	if i.CustomerID != nil {
+		if err := i.CustomerID.Validate(); err != nil {
+			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid customer_id filter: %w", err)))
+		}
+	}
+
+	if i.Name != nil {
+		if err := i.Name.Validate(); err != nil {
+			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid name filter: %w", err)))
+		}
+	}
+
+	if i.PlanID != nil {
+		if err := i.PlanID.Validate(); err != nil {
+			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid plan_id filter: %w", err)))
 		}
 	}
 

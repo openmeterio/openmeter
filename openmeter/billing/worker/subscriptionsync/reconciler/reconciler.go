@@ -101,10 +101,15 @@ func (r *Reconciler) ListSubscriptions(ctx context.Context, in ReconcilerListSub
 
 	var out []SubscriptionWithSyncState
 
+	var customerID *filter.FilterULID
+	if len(in.Customers) > 0 {
+		customerID = &filter.FilterULID{FilterString: filter.FilterString{In: &in.Customers}}
+	}
+
 	for {
 		subscriptions, err := r.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
 			Namespaces: in.Namespaces,
-			CustomerID: &filter.FilterULID{FilterString: filter.FilterString{In: &in.Customers}},
+			CustomerID: customerID,
 			ActiveInPeriod: &timeutil.StartBoundedPeriod{
 				From: clock.Now().Add(-in.Lookback),
 				To:   lo.ToPtr(clock.Now()),

@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -672,6 +673,154 @@ func TestList(t *testing.T) {
 			require.Equal(t, 1, len(list.Items))
 			require.Equal(t, sub4.ID, list.Items[0].ID)
 			require.Equal(t, subscription.SubscriptionStatusScheduled, list.Items[0].GetStatusAt(clock.Now()))
+		})
+	})
+
+	t.Run("Should filter and sort by new fields", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		currentTime := testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z")
+		clock.SetTime(currentTime)
+
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		defer dbDeps.Cleanup(t)
+
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		service := deps.SubscriptionService
+
+		cust1, err := deps.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+			Namespace: subscriptiontestutils.ExampleNamespace,
+			CustomerMutate: customer.CustomerMutate{
+				Name: "Filter Test Customer 1",
+				UsageAttribution: &customer.CustomerUsageAttribution{
+					SubjectKeys: []string{"filter-subject-1"},
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		cust2, err := deps.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+			Namespace: subscriptiontestutils.ExampleNamespace,
+			CustomerMutate: customer.CustomerMutate{
+				Name: "Filter Test Customer 2",
+				UsageAttribution: &customer.CustomerUsageAttribution{
+					SubjectKeys: []string{"filter-subject-2"},
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+
+		spec1, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
+			CustomerId:    cust1.ID,
+			Currency:      "USD",
+			ActiveFrom:    currentTime,
+			BillingAnchor: currentTime,
+			Name:          "Alpha Subscription",
+		})
+		require.Nil(t, err)
+		sub1, err := service.Create(ctx, subscriptiontestutils.ExampleNamespace, spec1)
+		require.Nil(t, err)
+
+		spec2, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
+			CustomerId:    cust2.ID,
+			Currency:      "USD",
+			ActiveFrom:    currentTime,
+			BillingAnchor: currentTime,
+			Name:          "Beta Subscription",
+		})
+		require.Nil(t, err)
+		sub2, err := service.Create(ctx, subscriptiontestutils.ExampleNamespace, spec2)
+		require.Nil(t, err)
+
+		ns := subscriptiontestutils.ExampleNamespace
+
+		t.Run("FilterByID", func(t *testing.T) {
+			list, err := service.List(ctx, subscription.ListSubscriptionsInput{
+				Namespaces: []string{ns},
+				ID:         &filter.FilterULID{FilterString: filter.FilterString{Eq: &sub1.ID}},
+			})
+			require.Nil(t, err)
+			require.Equal(t, 1, len(list.Items))
+			require.Equal(t, sub1.ID, list.Items[0].ID)
+		})
+
+		t.Run("FilterByIDOeq", func(t *testing.T) {
+			ids := []string{sub1.ID, sub2.ID}
+			list, err := service.List(ctx, subscription.ListSubscriptionsInput{
+				Namespaces: []string{ns},
+				ID:         &filter.FilterULID{FilterString: filter.FilterString{In: &ids}},
+			})
+			require.Nil(t, err)
+			require.Equal(t, 2, len(list.Items))
+		})
+
+		t.Run("FilterByName", func(t *testing.T) {
+			list, err := service.List(ctx, subscription.ListSubscriptionsInput{
+				Namespaces: []string{ns},
+				Name:       &filter.FilterString{Contains: lo.ToPtr("Alpha")},
+			})
+			require.Nil(t, err)
+			require.Equal(t, 1, len(list.Items))
+			require.Equal(t, sub1.ID, list.Items[0].ID)
+		})
+
+		t.Run("FilterByCustomerID", func(t *testing.T) {
+			list, err := service.List(ctx, subscription.ListSubscriptionsInput{
+				Namespaces: []string{ns},
+				CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &cust2.ID}},
+			})
+			require.Nil(t, err)
+			require.Equal(t, 1, len(list.Items))
+			require.Equal(t, sub2.ID, list.Items[0].ID)
+		})
+
+		t.Run("FilterByPlanID", func(t *testing.T) {
+			planID := sub1.PlanRef.Id
+			list, err := service.List(ctx, subscription.ListSubscriptionsInput{
+				Namespaces: []string{ns},
+				PlanID:     &filter.FilterULID{FilterString: filter.FilterString{Eq: &planID}},
+			})
+			require.Nil(t, err)
+			require.Equal(t, 2, len(list.Items))
+		})
+
+		t.Run("SortByNameAsc", func(t *testing.T) {
+			list, err := service.List(ctx, subscription.ListSubscriptionsInput{
+				Namespaces: []string{ns},
+				OrderBy:    subscription.OrderByName,
+				Order:      "ASC",
+			})
+			require.Nil(t, err)
+			require.Equal(t, 2, len(list.Items))
+			require.Equal(t, "Alpha Subscription", list.Items[0].Name)
+			require.Equal(t, "Beta Subscription", list.Items[1].Name)
+		})
+
+		t.Run("SortByNameDesc", func(t *testing.T) {
+			list, err := service.List(ctx, subscription.ListSubscriptionsInput{
+				Namespaces: []string{ns},
+				OrderBy:    subscription.OrderByName,
+				Order:      "DESC",
+			})
+			require.Nil(t, err)
+			require.Equal(t, 2, len(list.Items))
+			require.Equal(t, "Beta Subscription", list.Items[0].Name)
+			require.Equal(t, "Alpha Subscription", list.Items[1].Name)
+		})
+
+		t.Run("SortByID", func(t *testing.T) {
+			list, err := service.List(ctx, subscription.ListSubscriptionsInput{
+				Namespaces: []string{ns},
+				OrderBy:    subscription.OrderByID,
+				Order:      "ASC",
+			})
+			require.Nil(t, err)
+			require.Equal(t, 2, len(list.Items))
+			require.True(t, list.Items[0].ID < list.Items[1].ID)
 		})
 	})
 }

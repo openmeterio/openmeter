@@ -58,8 +58,16 @@ model SubscriptionChangeResponse {
  */
 @friendlyName("ListSubscriptionsParamsFilter")
 model ListSubscriptionsParamsFilter {
-  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  id?: Common.ULIDFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
   customer_id?: Common.ULIDFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  name?: Common.StringFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  status?: Common.StringFieldFilterExact;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  plan_id?: Common.ULIDFieldFilter;
   #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
   plan_key?: Common.StringFieldFilter;
 }
@@ -79,6 +87,17 @@ interface SubscriptionsOperations {
   @summary("List subscriptions")
   list(
     ...Common.PagePaginationQuery,
+
+    /**
+     * Sort subscriptions returned in the response.
+     * Supported sort attributes are:
+     * - `id`
+     * - `name`
+     * - `active_from` (default)
+     * - `active_to`
+     */
+    @query(#{ name: "sort" })
+    sort?: Common.SortQuery,
 
     /**
      * Filter subscriptions.
