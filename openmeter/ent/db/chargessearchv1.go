@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargessearchv1"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -52,6 +53,10 @@ type ChargesSearchV1 struct {
 	SubscriptionItemID *string `json:"subscription_item_id,omitempty"`
 	// AdvanceAfter holds the value of the "advance_after" field.
 	AdvanceAfter *time.Time `json:"advance_after,omitempty"`
+	// TaxCodeID holds the value of the "tax_code_id" field.
+	TaxCodeID *string `json:"tax_code_id,omitempty"`
+	// TaxBehavior holds the value of the "tax_behavior" field.
+	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// Annotations holds the value of the "annotations" field.
 	Annotations models.Annotations `json:"annotations,omitempty"`
 	// ID holds the value of the "id" field.
@@ -80,7 +85,7 @@ func (*ChargesSearchV1) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargessearchv1.FieldAnnotations, chargessearchv1.FieldMetadata:
 			values[i] = new([]byte)
-		case chargessearchv1.FieldType, chargessearchv1.FieldCustomerID, chargessearchv1.FieldStatus, chargessearchv1.FieldUniqueReferenceID, chargessearchv1.FieldCurrency, chargessearchv1.FieldManagedBy, chargessearchv1.FieldSubscriptionID, chargessearchv1.FieldSubscriptionPhaseID, chargessearchv1.FieldSubscriptionItemID, chargessearchv1.FieldID, chargessearchv1.FieldNamespace, chargessearchv1.FieldName, chargessearchv1.FieldDescription:
+		case chargessearchv1.FieldType, chargessearchv1.FieldCustomerID, chargessearchv1.FieldStatus, chargessearchv1.FieldUniqueReferenceID, chargessearchv1.FieldCurrency, chargessearchv1.FieldManagedBy, chargessearchv1.FieldSubscriptionID, chargessearchv1.FieldSubscriptionPhaseID, chargessearchv1.FieldSubscriptionItemID, chargessearchv1.FieldTaxCodeID, chargessearchv1.FieldTaxBehavior, chargessearchv1.FieldID, chargessearchv1.FieldNamespace, chargessearchv1.FieldName, chargessearchv1.FieldDescription:
 			values[i] = new(sql.NullString)
 		case chargessearchv1.FieldServicePeriodFrom, chargessearchv1.FieldServicePeriodTo, chargessearchv1.FieldBillingPeriodFrom, chargessearchv1.FieldBillingPeriodTo, chargessearchv1.FieldFullServicePeriodFrom, chargessearchv1.FieldFullServicePeriodTo, chargessearchv1.FieldAdvanceAfter, chargessearchv1.FieldCreatedAt, chargessearchv1.FieldUpdatedAt, chargessearchv1.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -199,6 +204,20 @@ func (_m *ChargesSearchV1) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.AdvanceAfter = new(time.Time)
 				*_m.AdvanceAfter = value.Time
+			}
+		case chargessearchv1.FieldTaxCodeID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_code_id", values[i])
+			} else if value.Valid {
+				_m.TaxCodeID = new(string)
+				*_m.TaxCodeID = value.String
+			}
+		case chargessearchv1.FieldTaxBehavior:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
+			} else if value.Valid {
+				_m.TaxBehavior = new(productcatalog.TaxBehavior)
+				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
 			}
 		case chargessearchv1.FieldAnnotations:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -344,6 +363,16 @@ func (_m *ChargesSearchV1) String() string {
 	if v := _m.AdvanceAfter; v != nil {
 		builder.WriteString("advance_after=")
 		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.TaxCodeID; v != nil {
+		builder.WriteString("tax_code_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.TaxBehavior; v != nil {
+		builder.WriteString("tax_behavior=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("annotations=")

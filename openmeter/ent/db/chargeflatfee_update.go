@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -168,6 +169,46 @@ func (_u *ChargeFlatFeeUpdate) SetNillableAdvanceAfter(v *time.Time) *ChargeFlat
 // ClearAdvanceAfter clears the value of the "advance_after" field.
 func (_u *ChargeFlatFeeUpdate) ClearAdvanceAfter() *ChargeFlatFeeUpdate {
 	_u.mutation.ClearAdvanceAfter()
+	return _u
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *ChargeFlatFeeUpdate) SetTaxCodeID(v string) *ChargeFlatFeeUpdate {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdate) SetNillableTaxCodeID(v *string) *ChargeFlatFeeUpdate {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *ChargeFlatFeeUpdate) ClearTaxCodeID() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *ChargeFlatFeeUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeFlatFeeUpdate {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *ChargeFlatFeeUpdate {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *ChargeFlatFeeUpdate) ClearTaxBehavior() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -464,6 +505,11 @@ func (_u *ChargeFlatFeeUpdate) SetFeature(v *Feature) *ChargeFlatFeeUpdate {
 	return _u.SetFeatureID(v.ID)
 }
 
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_u *ChargeFlatFeeUpdate) SetTaxCode(v *TaxCode) *ChargeFlatFeeUpdate {
+	return _u.SetTaxCodeID(v.ID)
+}
+
 // Mutation returns the ChargeFlatFeeMutation object of the builder.
 func (_u *ChargeFlatFeeUpdate) Mutation() *ChargeFlatFeeMutation {
 	return _u.mutation
@@ -529,6 +575,12 @@ func (_u *ChargeFlatFeeUpdate) ClearFeature() *ChargeFlatFeeUpdate {
 	return _u
 }
 
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (_u *ChargeFlatFeeUpdate) ClearTaxCode() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearTaxCode()
+	return _u
+}
+
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *ChargeFlatFeeUpdate) Save(ctx context.Context) (int, error) {
 	_u.defaults()
@@ -575,6 +627,11 @@ func (_u *ChargeFlatFeeUpdate) check() error {
 	if v, ok := _u.mutation.ManagedBy(); ok {
 		if err := chargeflatfee.ManagedByValidator(v); err != nil {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.managed_by": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := chargeflatfee.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.tax_behavior": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.PaymentTerm(); ok {
@@ -652,6 +709,12 @@ func (_u *ChargeFlatFeeUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	}
 	if _u.mutation.AdvanceAfterCleared() {
 		_spec.ClearField(chargeflatfee.FieldAdvanceAfter, field.TypeTime)
+	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(chargeflatfee.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(chargeflatfee.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.Annotations(); ok {
 		_spec.SetField(chargeflatfee.FieldAnnotations, field.TypeJSON, value)
@@ -894,6 +957,35 @@ func (_u *ChargeFlatFeeUpdate) sqlSave(ctx context.Context) (_node int, err erro
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.TaxCodeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeflatfee.TaxCodeTable,
+			Columns: []string{chargeflatfee.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeflatfee.TaxCodeTable,
+			Columns: []string{chargeflatfee.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{chargeflatfee.Label}
@@ -1043,6 +1135,46 @@ func (_u *ChargeFlatFeeUpdateOne) SetNillableAdvanceAfter(v *time.Time) *ChargeF
 // ClearAdvanceAfter clears the value of the "advance_after" field.
 func (_u *ChargeFlatFeeUpdateOne) ClearAdvanceAfter() *ChargeFlatFeeUpdateOne {
 	_u.mutation.ClearAdvanceAfter()
+	return _u
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *ChargeFlatFeeUpdateOne) SetTaxCodeID(v string) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdateOne) SetNillableTaxCodeID(v *string) *ChargeFlatFeeUpdateOne {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *ChargeFlatFeeUpdateOne) ClearTaxCodeID() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *ChargeFlatFeeUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *ChargeFlatFeeUpdateOne {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *ChargeFlatFeeUpdateOne) ClearTaxBehavior() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -1339,6 +1471,11 @@ func (_u *ChargeFlatFeeUpdateOne) SetFeature(v *Feature) *ChargeFlatFeeUpdateOne
 	return _u.SetFeatureID(v.ID)
 }
 
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_u *ChargeFlatFeeUpdateOne) SetTaxCode(v *TaxCode) *ChargeFlatFeeUpdateOne {
+	return _u.SetTaxCodeID(v.ID)
+}
+
 // Mutation returns the ChargeFlatFeeMutation object of the builder.
 func (_u *ChargeFlatFeeUpdateOne) Mutation() *ChargeFlatFeeMutation {
 	return _u.mutation
@@ -1404,6 +1541,12 @@ func (_u *ChargeFlatFeeUpdateOne) ClearFeature() *ChargeFlatFeeUpdateOne {
 	return _u
 }
 
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (_u *ChargeFlatFeeUpdateOne) ClearTaxCode() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearTaxCode()
+	return _u
+}
+
 // Where appends a list predicates to the ChargeFlatFeeUpdate builder.
 func (_u *ChargeFlatFeeUpdateOne) Where(ps ...predicate.ChargeFlatFee) *ChargeFlatFeeUpdateOne {
 	_u.mutation.Where(ps...)
@@ -1463,6 +1606,11 @@ func (_u *ChargeFlatFeeUpdateOne) check() error {
 	if v, ok := _u.mutation.ManagedBy(); ok {
 		if err := chargeflatfee.ManagedByValidator(v); err != nil {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.managed_by": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := chargeflatfee.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.tax_behavior": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.PaymentTerm(); ok {
@@ -1557,6 +1705,12 @@ func (_u *ChargeFlatFeeUpdateOne) sqlSave(ctx context.Context) (_node *ChargeFla
 	}
 	if _u.mutation.AdvanceAfterCleared() {
 		_spec.ClearField(chargeflatfee.FieldAdvanceAfter, field.TypeTime)
+	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(chargeflatfee.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(chargeflatfee.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.Annotations(); ok {
 		_spec.SetField(chargeflatfee.FieldAnnotations, field.TypeJSON, value)
@@ -1792,6 +1946,35 @@ func (_u *ChargeFlatFeeUpdateOne) sqlSave(ctx context.Context) (_node *ChargeFla
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.TaxCodeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeflatfee.TaxCodeTable,
+			Columns: []string{chargeflatfee.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeflatfee.TaxCodeTable,
+			Columns: []string{chargeflatfee.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

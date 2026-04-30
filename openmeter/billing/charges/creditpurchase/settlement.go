@@ -8,7 +8,6 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -37,9 +36,8 @@ func (s SettlementType) Values() []string {
 }
 
 type GenericSettlement struct {
-	Currency  currencyx.Code            `json:"currency"`
-	CostBasis alpacadecimal.Decimal     `json:"costBasis"`
-	TaxConfig *productcatalog.TaxConfig `json:"taxConfig"`
+	Currency  currencyx.Code        `json:"currency"`
+	CostBasis alpacadecimal.Decimal `json:"costBasis"`
 }
 
 func (s GenericSettlement) Validate() error {
@@ -51,12 +49,6 @@ func (s GenericSettlement) Validate() error {
 
 	if s.CostBasis.IsNegative() {
 		errs = append(errs, fmt.Errorf("cost basis must be zero or positive"))
-	}
-
-	if s.TaxConfig != nil {
-		if err := s.TaxConfig.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("tax config: %w", err))
-		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

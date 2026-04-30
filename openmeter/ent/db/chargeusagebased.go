@@ -21,6 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -61,6 +62,10 @@ type ChargeUsageBased struct {
 	SubscriptionItemID *string `json:"subscription_item_id,omitempty"`
 	// AdvanceAfter holds the value of the "advance_after" field.
 	AdvanceAfter *time.Time `json:"advance_after,omitempty"`
+	// TaxCodeID holds the value of the "tax_code_id" field.
+	TaxCodeID *string `json:"tax_code_id,omitempty"`
+	// TaxBehavior holds the value of the "tax_behavior" field.
+	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// Annotations holds the value of the "annotations" field.
 	Annotations models.Annotations `json:"annotations,omitempty"`
 	// Namespace holds the value of the "namespace" field.
@@ -119,9 +124,11 @@ type ChargeUsageBasedEdges struct {
 	Customer *Customer `json:"customer,omitempty"`
 	// Feature holds the value of the feature edge.
 	Feature *Feature `json:"feature,omitempty"`
+	// TaxCode holds the value of the tax_code edge.
+	TaxCode *TaxCode `json:"tax_code,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [9]bool
+	loadedTypes [10]bool
 }
 
 // RunsOrErr returns the Runs value or an error if the edge
@@ -219,6 +226,17 @@ func (e ChargeUsageBasedEdges) FeatureOrErr() (*Feature, error) {
 	return nil, &NotLoadedError{edge: "feature"}
 }
 
+// TaxCodeOrErr returns the TaxCode value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeUsageBasedEdges) TaxCodeOrErr() (*TaxCode, error) {
+	if e.TaxCode != nil {
+		return e.TaxCode, nil
+	} else if e.loadedTypes[9] {
+		return nil, &NotFoundError{label: dbtaxcode.Label}
+	}
+	return nil, &NotLoadedError{edge: "tax_code"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*ChargeUsageBased) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -226,7 +244,7 @@ func (*ChargeUsageBased) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargeusagebased.FieldAnnotations, chargeusagebased.FieldMetadata:
 			values[i] = new([]byte)
-		case chargeusagebased.FieldID, chargeusagebased.FieldCustomerID, chargeusagebased.FieldStatus, chargeusagebased.FieldUniqueReferenceID, chargeusagebased.FieldCurrency, chargeusagebased.FieldManagedBy, chargeusagebased.FieldSubscriptionID, chargeusagebased.FieldSubscriptionPhaseID, chargeusagebased.FieldSubscriptionItemID, chargeusagebased.FieldNamespace, chargeusagebased.FieldName, chargeusagebased.FieldDescription, chargeusagebased.FieldSettlementMode, chargeusagebased.FieldFeatureKey, chargeusagebased.FieldFeatureID, chargeusagebased.FieldCurrentRealizationRunID, chargeusagebased.FieldStatusDetailed:
+		case chargeusagebased.FieldID, chargeusagebased.FieldCustomerID, chargeusagebased.FieldStatus, chargeusagebased.FieldUniqueReferenceID, chargeusagebased.FieldCurrency, chargeusagebased.FieldManagedBy, chargeusagebased.FieldSubscriptionID, chargeusagebased.FieldSubscriptionPhaseID, chargeusagebased.FieldSubscriptionItemID, chargeusagebased.FieldTaxCodeID, chargeusagebased.FieldTaxBehavior, chargeusagebased.FieldNamespace, chargeusagebased.FieldName, chargeusagebased.FieldDescription, chargeusagebased.FieldSettlementMode, chargeusagebased.FieldFeatureKey, chargeusagebased.FieldFeatureID, chargeusagebased.FieldCurrentRealizationRunID, chargeusagebased.FieldStatusDetailed:
 			values[i] = new(sql.NullString)
 		case chargeusagebased.FieldServicePeriodFrom, chargeusagebased.FieldServicePeriodTo, chargeusagebased.FieldBillingPeriodFrom, chargeusagebased.FieldBillingPeriodTo, chargeusagebased.FieldFullServicePeriodFrom, chargeusagebased.FieldFullServicePeriodTo, chargeusagebased.FieldAdvanceAfter, chargeusagebased.FieldCreatedAt, chargeusagebased.FieldUpdatedAt, chargeusagebased.FieldDeletedAt, chargeusagebased.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
@@ -349,6 +367,20 @@ func (_m *ChargeUsageBased) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.AdvanceAfter = new(time.Time)
 				*_m.AdvanceAfter = value.Time
+			}
+		case chargeusagebased.FieldTaxCodeID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_code_id", values[i])
+			} else if value.Valid {
+				_m.TaxCodeID = new(string)
+				*_m.TaxCodeID = value.String
+			}
+		case chargeusagebased.FieldTaxBehavior:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
+			} else if value.Valid {
+				_m.TaxBehavior = new(productcatalog.TaxBehavior)
+				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
 			}
 		case chargeusagebased.FieldAnnotations:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -511,6 +543,11 @@ func (_m *ChargeUsageBased) QueryFeature() *FeatureQuery {
 	return NewChargeUsageBasedClient(_m.config).QueryFeature(_m)
 }
 
+// QueryTaxCode queries the "tax_code" edge of the ChargeUsageBased entity.
+func (_m *ChargeUsageBased) QueryTaxCode() *TaxCodeQuery {
+	return NewChargeUsageBasedClient(_m.config).QueryTaxCode(_m)
+}
+
 // Update returns a builder for updating this ChargeUsageBased.
 // Note that you need to call ChargeUsageBased.Unwrap() before calling this method if this ChargeUsageBased
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -587,6 +624,16 @@ func (_m *ChargeUsageBased) String() string {
 	if v := _m.AdvanceAfter; v != nil {
 		builder.WriteString("advance_after=")
 		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.TaxCodeID; v != nil {
+		builder.WriteString("tax_code_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.TaxBehavior; v != nil {
+		builder.WriteString("tax_behavior=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("annotations=")

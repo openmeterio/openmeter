@@ -21,6 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -1285,4 +1286,169 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) getExpectedPhaseIDForChildRefe
 	s.NoError(err)
 
 	return s.getPhaseByKey(s.T(), subscriptionView, parts[1]).SubscriptionPhase.ID
+}
+
+// TestCreditsOnlyFlatFeeTaxCodePropagation verifies that a flat-fee rate card with a TaxConfig set
+// in the subscription plan propagates TaxCodeID and TaxBehavior to the resulting charge intent
+// after the sync. Guards the patchcharge.go → meta.Intent.TaxConfig path.
+func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeTaxCodePropagation() {
+	ctx := s.testContext()
+	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
+	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
+	syncUntil := s.mustParseTime("2024-02-15T00:00:00Z")
+
+	clock.SetTime(setupAt)
+	defer clock.ResetTime()
+
+	tc, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: s.Namespace,
+		Key:       "txcd-sync-flatfee-01",
+		Name:      "Sync Flat Fee Tax Code",
+	})
+	s.Require().NoError(err)
+
+	subscriptionView := s.createSubscriptionFromPlanAt(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Credits Only Flat Fee Tax Code",
+				Key:            "credits-only-flat-fee-tax-code",
+				Version:        1,
+				Currency:       currency.USD,
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Name: "flat-fee",
+								Key:  "flat-fee",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromFloat(100),
+									PaymentTerm: productcatalog.InAdvancePaymentTerm,
+								}),
+								TaxConfig: &productcatalog.TaxConfig{
+									Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+									TaxCodeID: &tc.ID,
+								},
+							},
+							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+						},
+					},
+				},
+			},
+		},
+	}, startAt)
+
+	s.NoError(s.Service.SynchronizeSubscription(ctx, subscriptionView, syncUntil))
+
+	res, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:       s.Namespace,
+		SubscriptionIDs: []string{subscriptionView.Subscription.ID},
+		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
+	})
+	s.NoError(err)
+	s.Require().NotEmpty(res.Items)
+
+	ffCharge, err := res.Items[0].AsFlatFeeCharge()
+	s.NoError(err)
+
+	s.Require().NotNil(ffCharge.Intent.TaxConfig, "flat-fee charge must carry TaxConfig from rate card")
+	s.Require().NotNil(ffCharge.Intent.TaxConfig.Behavior)
+	s.Equal(productcatalog.InclusiveTaxBehavior, *ffCharge.Intent.TaxConfig.Behavior)
+	s.Require().NotNil(ffCharge.Intent.TaxConfig.TaxCodeID)
+	s.Equal(tc.ID, *ffCharge.Intent.TaxConfig.TaxCodeID)
+}
+
+// TestCreditsOnlyUsageBasedTaxCodePropagation verifies that a usage-based rate card with a TaxConfig
+// set in the subscription plan propagates TaxCodeID and TaxBehavior to the resulting charge intent
+// after the sync. Guards the patchcharge.go → meta.Intent.TaxConfig path.
+func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedTaxCodePropagation() {
+	ctx := s.testContext()
+	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
+	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
+	syncUntil := s.mustParseTime("2024-04-01T00:00:00Z")
+
+	clock.SetTime(setupAt)
+	defer clock.ResetTime()
+
+	tc, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: s.Namespace,
+		Key:       "txcd-sync-usagebased-01",
+		Name:      "Sync Usage Based Tax Code",
+	})
+	s.Require().NoError(err)
+
+	unitPrice := productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+		Amount: alpacadecimal.NewFromFloat(1),
+	})
+
+	subscriptionView := s.createSubscriptionFromPlanAt(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Credits Only Usage Based Tax Code",
+				Key:            "credits-only-usage-based-tax-code",
+				Version:        1,
+				Currency:       currency.USD,
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Name:       s.APIRequestsTotalFeature.Key,
+								Key:        s.APIRequestsTotalFeature.Key,
+								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
+								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+								Price:      unitPrice,
+								TaxConfig: &productcatalog.TaxConfig{
+									Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+									TaxCodeID: &tc.ID,
+								},
+							},
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+						},
+					},
+				},
+			},
+		},
+	}, startAt)
+
+	s.NoError(s.Service.SynchronizeSubscription(ctx, subscriptionView, syncUntil))
+
+	res, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:       s.Namespace,
+		SubscriptionIDs: []string{subscriptionView.Subscription.ID},
+		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
+	})
+	s.NoError(err)
+	s.Require().NotEmpty(res.Items)
+
+	ubCharge, err := res.Items[0].AsUsageBasedCharge()
+	s.NoError(err)
+
+	s.Require().NotNil(ubCharge.Intent.TaxConfig, "usage-based charge must carry TaxConfig from rate card")
+	s.Require().NotNil(ubCharge.Intent.TaxConfig.Behavior)
+	s.Equal(productcatalog.ExclusiveTaxBehavior, *ubCharge.Intent.TaxConfig.Behavior)
+	s.Require().NotNil(ubCharge.Intent.TaxConfig.TaxCodeID)
+	s.Equal(tc.ID, *ubCharge.Intent.TaxConfig.TaxCodeID)
 }

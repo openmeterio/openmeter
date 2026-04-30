@@ -91,6 +91,18 @@ func (ChargeCreditPurchase) Edges() []ent.Edge {
 			Unique().
 			Required().
 			Immutable(),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("charge_credit_purchases").
+			Field("tax_code_id").
+			Unique().
+			Annotations(entsql.OnDelete(entsql.SetNull)),
+	}
+}
+
+func (ChargeCreditPurchase) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("tax_code_id").
+			StorageKey("chargecreditpurchases_tax_code_id"),
 	}
 }
 

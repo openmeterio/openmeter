@@ -5900,6 +5900,22 @@ func (c *ChargeCreditPurchaseClient) QueryCustomer(_m *ChargeCreditPurchase) *Cu
 	return query
 }
 
+// QueryTaxCode queries the tax_code edge of a ChargeCreditPurchase.
+func (c *ChargeCreditPurchaseClient) QueryTaxCode(_m *ChargeCreditPurchase) *TaxCodeQuery {
+	query := (&TaxCodeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargecreditpurchase.Table, chargecreditpurchase.FieldID, id),
+			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargecreditpurchase.TaxCodeTable, chargecreditpurchase.TaxCodeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *ChargeCreditPurchaseClient) Hooks() []Hook {
 	return c.hooks.ChargeCreditPurchase
@@ -6649,6 +6665,22 @@ func (c *ChargeFlatFeeClient) QueryFeature(_m *ChargeFlatFee) *FeatureQuery {
 			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, id),
 			sqlgraph.To(dbfeature.Table, dbfeature.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, chargeflatfee.FeatureTable, chargeflatfee.FeatureColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTaxCode queries the tax_code edge of a ChargeFlatFee.
+func (c *ChargeFlatFeeClient) QueryTaxCode(_m *ChargeFlatFee) *TaxCodeQuery {
+	query := (&TaxCodeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, id),
+			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeflatfee.TaxCodeTable, chargeflatfee.TaxCodeColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -7618,6 +7650,22 @@ func (c *ChargeUsageBasedClient) QueryFeature(_m *ChargeUsageBased) *FeatureQuer
 			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, id),
 			sqlgraph.To(dbfeature.Table, dbfeature.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebased.FeatureTable, chargeusagebased.FeatureColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTaxCode queries the tax_code edge of a ChargeUsageBased.
+func (c *ChargeUsageBasedClient) QueryTaxCode(_m *ChargeUsageBased) *TaxCodeQuery {
+	query := (&TaxCodeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, id),
+			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebased.TaxCodeTable, chargeusagebased.TaxCodeColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -14643,6 +14691,54 @@ func (c *TaxCodeClient) QueryAddonRateCards(_m *TaxCode) *AddonRateCardQuery {
 			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, id),
 			sqlgraph.To(addonratecard.Table, addonratecard.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.AddonRateCardsTable, dbtaxcode.AddonRateCardsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChargeFlatFees queries the charge_flat_fees edge of a TaxCode.
+func (c *TaxCodeClient) QueryChargeFlatFees(_m *TaxCode) *ChargeFlatFeeQuery {
+	query := (&ChargeFlatFeeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, id),
+			sqlgraph.To(chargeflatfee.Table, chargeflatfee.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.ChargeFlatFeesTable, dbtaxcode.ChargeFlatFeesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChargeUsageBased queries the charge_usage_based edge of a TaxCode.
+func (c *TaxCodeClient) QueryChargeUsageBased(_m *TaxCode) *ChargeUsageBasedQuery {
+	query := (&ChargeUsageBasedClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, id),
+			sqlgraph.To(chargeusagebased.Table, chargeusagebased.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.ChargeUsageBasedTable, dbtaxcode.ChargeUsageBasedColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChargeCreditPurchases queries the charge_credit_purchases edge of a TaxCode.
+func (c *TaxCodeClient) QueryChargeCreditPurchases(_m *TaxCode) *ChargeCreditPurchaseQuery {
+	query := (&ChargeCreditPurchaseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, id),
+			sqlgraph.To(chargecreditpurchase.Table, chargecreditpurchase.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.ChargeCreditPurchasesTable, dbtaxcode.ChargeCreditPurchasesColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil

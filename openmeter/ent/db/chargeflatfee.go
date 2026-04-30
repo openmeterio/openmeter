@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -63,6 +64,10 @@ type ChargeFlatFee struct {
 	SubscriptionItemID *string `json:"subscription_item_id,omitempty"`
 	// AdvanceAfter holds the value of the "advance_after" field.
 	AdvanceAfter *time.Time `json:"advance_after,omitempty"`
+	// TaxCodeID holds the value of the "tax_code_id" field.
+	TaxCodeID *string `json:"tax_code_id,omitempty"`
+	// TaxBehavior holds the value of the "tax_behavior" field.
+	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// Annotations holds the value of the "annotations" field.
 	Annotations models.Annotations `json:"annotations,omitempty"`
 	// Namespace holds the value of the "namespace" field.
@@ -127,9 +132,11 @@ type ChargeFlatFeeEdges struct {
 	Customer *Customer `json:"customer,omitempty"`
 	// Feature holds the value of the feature edge.
 	Feature *Feature `json:"feature,omitempty"`
+	// TaxCode holds the value of the tax_code edge.
+	TaxCode *TaxCode `json:"tax_code,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [10]bool
+	loadedTypes [11]bool
 }
 
 // CreditAllocationsOrErr returns the CreditAllocations value or an error if the edge
@@ -238,6 +245,17 @@ func (e ChargeFlatFeeEdges) FeatureOrErr() (*Feature, error) {
 	return nil, &NotLoadedError{edge: "feature"}
 }
 
+// TaxCodeOrErr returns the TaxCode value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeFlatFeeEdges) TaxCodeOrErr() (*TaxCode, error) {
+	if e.TaxCode != nil {
+		return e.TaxCode, nil
+	} else if e.loadedTypes[10] {
+		return nil, &NotFoundError{label: dbtaxcode.Label}
+	}
+	return nil, &NotLoadedError{edge: "tax_code"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*ChargeFlatFee) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -247,7 +265,7 @@ func (*ChargeFlatFee) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case chargeflatfee.FieldAmountBeforeProration, chargeflatfee.FieldAmountAfterProration:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargeflatfee.FieldID, chargeflatfee.FieldCustomerID, chargeflatfee.FieldStatus, chargeflatfee.FieldUniqueReferenceID, chargeflatfee.FieldCurrency, chargeflatfee.FieldManagedBy, chargeflatfee.FieldSubscriptionID, chargeflatfee.FieldSubscriptionPhaseID, chargeflatfee.FieldSubscriptionItemID, chargeflatfee.FieldNamespace, chargeflatfee.FieldName, chargeflatfee.FieldDescription, chargeflatfee.FieldPaymentTerm, chargeflatfee.FieldSettlementMode, chargeflatfee.FieldProRating, chargeflatfee.FieldFeatureKey, chargeflatfee.FieldFeatureID, chargeflatfee.FieldStatusDetailed:
+		case chargeflatfee.FieldID, chargeflatfee.FieldCustomerID, chargeflatfee.FieldStatus, chargeflatfee.FieldUniqueReferenceID, chargeflatfee.FieldCurrency, chargeflatfee.FieldManagedBy, chargeflatfee.FieldSubscriptionID, chargeflatfee.FieldSubscriptionPhaseID, chargeflatfee.FieldSubscriptionItemID, chargeflatfee.FieldTaxCodeID, chargeflatfee.FieldTaxBehavior, chargeflatfee.FieldNamespace, chargeflatfee.FieldName, chargeflatfee.FieldDescription, chargeflatfee.FieldPaymentTerm, chargeflatfee.FieldSettlementMode, chargeflatfee.FieldProRating, chargeflatfee.FieldFeatureKey, chargeflatfee.FieldFeatureID, chargeflatfee.FieldStatusDetailed:
 			values[i] = new(sql.NullString)
 		case chargeflatfee.FieldServicePeriodFrom, chargeflatfee.FieldServicePeriodTo, chargeflatfee.FieldBillingPeriodFrom, chargeflatfee.FieldBillingPeriodTo, chargeflatfee.FieldFullServicePeriodFrom, chargeflatfee.FieldFullServicePeriodTo, chargeflatfee.FieldAdvanceAfter, chargeflatfee.FieldCreatedAt, chargeflatfee.FieldUpdatedAt, chargeflatfee.FieldDeletedAt, chargeflatfee.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
@@ -368,6 +386,20 @@ func (_m *ChargeFlatFee) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.AdvanceAfter = new(time.Time)
 				*_m.AdvanceAfter = value.Time
+			}
+		case chargeflatfee.FieldTaxCodeID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_code_id", values[i])
+			} else if value.Valid {
+				_m.TaxCodeID = new(string)
+				*_m.TaxCodeID = value.String
+			}
+		case chargeflatfee.FieldTaxBehavior:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
+			} else if value.Valid {
+				_m.TaxBehavior = new(productcatalog.TaxBehavior)
+				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
 			}
 		case chargeflatfee.FieldAnnotations:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -548,6 +580,11 @@ func (_m *ChargeFlatFee) QueryFeature() *FeatureQuery {
 	return NewChargeFlatFeeClient(_m.config).QueryFeature(_m)
 }
 
+// QueryTaxCode queries the "tax_code" edge of the ChargeFlatFee entity.
+func (_m *ChargeFlatFee) QueryTaxCode() *TaxCodeQuery {
+	return NewChargeFlatFeeClient(_m.config).QueryTaxCode(_m)
+}
+
 // Update returns a builder for updating this ChargeFlatFee.
 // Note that you need to call ChargeFlatFee.Unwrap() before calling this method if this ChargeFlatFee
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -624,6 +661,16 @@ func (_m *ChargeFlatFee) String() string {
 	if v := _m.AdvanceAfter; v != nil {
 		builder.WriteString("advance_after=")
 		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.TaxCodeID; v != nil {
+		builder.WriteString("tax_code_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.TaxBehavior; v != nil {
+		builder.WriteString("tax_behavior=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("annotations=")

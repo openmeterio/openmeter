@@ -977,6 +977,14 @@ func (e *ChargeCreditPurchase) GetAdvanceAfter() *time.Time {
 	return e.AdvanceAfter
 }
 
+func (e *ChargeCreditPurchase) GetTaxCodeID() *string {
+	return e.TaxCodeID
+}
+
+func (e *ChargeCreditPurchase) GetTaxBehavior() *productcatalog.TaxBehavior {
+	return e.TaxBehavior
+}
+
 func (e *ChargeCreditPurchase) GetAnnotations() models.Annotations {
 	return e.Annotations
 }
@@ -1211,6 +1219,14 @@ func (e *ChargeFlatFee) GetSubscriptionItemID() *string {
 
 func (e *ChargeFlatFee) GetAdvanceAfter() *time.Time {
 	return e.AdvanceAfter
+}
+
+func (e *ChargeFlatFee) GetTaxCodeID() *string {
+	return e.TaxCodeID
+}
+
+func (e *ChargeFlatFee) GetTaxBehavior() *productcatalog.TaxBehavior {
+	return e.TaxBehavior
 }
 
 func (e *ChargeFlatFee) GetAnnotations() models.Annotations {
@@ -1627,6 +1643,14 @@ func (e *ChargeUsageBased) GetSubscriptionItemID() *string {
 
 func (e *ChargeUsageBased) GetAdvanceAfter() *time.Time {
 	return e.AdvanceAfter
+}
+
+func (e *ChargeUsageBased) GetTaxCodeID() *string {
+	return e.TaxCodeID
+}
+
+func (e *ChargeUsageBased) GetTaxBehavior() *productcatalog.TaxBehavior {
+	return e.TaxBehavior
 }
 
 func (e *ChargeUsageBased) GetAnnotations() models.Annotations {

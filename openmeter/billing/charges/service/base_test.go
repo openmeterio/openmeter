@@ -185,6 +185,7 @@ type createMockChargeIntentInput struct {
 	settlementMode    productcatalog.SettlementMode
 	managedBy         billing.InvoiceLineManagedBy
 	uniqueReferenceID string
+	taxConfig         *productcatalog.TaxCodeConfig
 }
 
 func (i *createMockChargeIntentInput) Validate() error {
@@ -237,6 +238,7 @@ func (s *BaseSuite) createMockChargeIntent(input createMockChargeIntentInput) ch
 		UniqueReferenceID: lo.EmptyableToPtr(input.uniqueReferenceID),
 		CustomerID:        input.customer.ID,
 		Currency:          input.currency,
+		TaxConfig:         input.taxConfig,
 	}
 
 	if isFlatFee {

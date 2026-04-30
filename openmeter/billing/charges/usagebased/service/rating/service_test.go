@@ -93,7 +93,7 @@ func TestMapBillingRatingDetailedLinesToUsageBasedDetailedLines(t *testing.T) {
 		To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
 	}
 	intent := newDetailedRatingTestCharge(defaultServicePeriod, nil).Intent
-	intent.TaxConfig = &productcatalog.TaxConfig{
+	intent.TaxConfig = &productcatalog.TaxCodeConfig{
 		Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 	}
 

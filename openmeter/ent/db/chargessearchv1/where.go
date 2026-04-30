@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -82,6 +83,11 @@ func SubscriptionItemID(v string) predicate.ChargesSearchV1 {
 // AdvanceAfter applies equality check predicate on the "advance_after" field. It's identical to AdvanceAfterEQ.
 func AdvanceAfter(v time.Time) predicate.ChargesSearchV1 {
 	return predicate.ChargesSearchV1(sql.FieldEQ(FieldAdvanceAfter, v))
+}
+
+// TaxCodeID applies equality check predicate on the "tax_code_id" field. It's identical to TaxCodeIDEQ.
+func TaxCodeID(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldEQ(FieldTaxCodeID, v))
 }
 
 // ID applies equality check predicate on the "id" field. It's identical to IDEQ.
@@ -1000,6 +1006,121 @@ func AdvanceAfterIsNil() predicate.ChargesSearchV1 {
 // AdvanceAfterNotNil applies the NotNil predicate on the "advance_after" field.
 func AdvanceAfterNotNil() predicate.ChargesSearchV1 {
 	return predicate.ChargesSearchV1(sql.FieldNotNull(FieldAdvanceAfter))
+}
+
+// TaxCodeIDEQ applies the EQ predicate on the "tax_code_id" field.
+func TaxCodeIDEQ(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldEQ(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDNEQ applies the NEQ predicate on the "tax_code_id" field.
+func TaxCodeIDNEQ(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldNEQ(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDIn applies the In predicate on the "tax_code_id" field.
+func TaxCodeIDIn(vs ...string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldIn(FieldTaxCodeID, vs...))
+}
+
+// TaxCodeIDNotIn applies the NotIn predicate on the "tax_code_id" field.
+func TaxCodeIDNotIn(vs ...string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldNotIn(FieldTaxCodeID, vs...))
+}
+
+// TaxCodeIDGT applies the GT predicate on the "tax_code_id" field.
+func TaxCodeIDGT(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldGT(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDGTE applies the GTE predicate on the "tax_code_id" field.
+func TaxCodeIDGTE(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldGTE(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDLT applies the LT predicate on the "tax_code_id" field.
+func TaxCodeIDLT(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldLT(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDLTE applies the LTE predicate on the "tax_code_id" field.
+func TaxCodeIDLTE(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldLTE(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDContains applies the Contains predicate on the "tax_code_id" field.
+func TaxCodeIDContains(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldContains(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDHasPrefix applies the HasPrefix predicate on the "tax_code_id" field.
+func TaxCodeIDHasPrefix(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldHasPrefix(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDHasSuffix applies the HasSuffix predicate on the "tax_code_id" field.
+func TaxCodeIDHasSuffix(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldHasSuffix(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDIsNil applies the IsNil predicate on the "tax_code_id" field.
+func TaxCodeIDIsNil() predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldIsNull(FieldTaxCodeID))
+}
+
+// TaxCodeIDNotNil applies the NotNil predicate on the "tax_code_id" field.
+func TaxCodeIDNotNil() predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldNotNull(FieldTaxCodeID))
+}
+
+// TaxCodeIDEqualFold applies the EqualFold predicate on the "tax_code_id" field.
+func TaxCodeIDEqualFold(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldEqualFold(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDContainsFold applies the ContainsFold predicate on the "tax_code_id" field.
+func TaxCodeIDContainsFold(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldContainsFold(FieldTaxCodeID, v))
+}
+
+// TaxBehaviorEQ applies the EQ predicate on the "tax_behavior" field.
+func TaxBehaviorEQ(v productcatalog.TaxBehavior) predicate.ChargesSearchV1 {
+	vc := v
+	return predicate.ChargesSearchV1(sql.FieldEQ(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorNEQ applies the NEQ predicate on the "tax_behavior" field.
+func TaxBehaviorNEQ(v productcatalog.TaxBehavior) predicate.ChargesSearchV1 {
+	vc := v
+	return predicate.ChargesSearchV1(sql.FieldNEQ(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorIn applies the In predicate on the "tax_behavior" field.
+func TaxBehaviorIn(vs ...productcatalog.TaxBehavior) predicate.ChargesSearchV1 {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargesSearchV1(sql.FieldIn(FieldTaxBehavior, v...))
+}
+
+// TaxBehaviorNotIn applies the NotIn predicate on the "tax_behavior" field.
+func TaxBehaviorNotIn(vs ...productcatalog.TaxBehavior) predicate.ChargesSearchV1 {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargesSearchV1(sql.FieldNotIn(FieldTaxBehavior, v...))
+}
+
+// TaxBehaviorIsNil applies the IsNil predicate on the "tax_behavior" field.
+func TaxBehaviorIsNil() predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldIsNull(FieldTaxBehavior))
+}
+
+// TaxBehaviorNotNil applies the NotNil predicate on the "tax_behavior" field.
+func TaxBehaviorNotNil() predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldNotNull(FieldTaxBehavior))
 }
 
 // AnnotationsIsNil applies the IsNil predicate on the "annotations" field.

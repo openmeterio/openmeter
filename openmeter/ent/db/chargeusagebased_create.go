@@ -24,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -163,6 +164,34 @@ func (_c *ChargeUsageBasedCreate) SetAdvanceAfter(v time.Time) *ChargeUsageBased
 func (_c *ChargeUsageBasedCreate) SetNillableAdvanceAfter(v *time.Time) *ChargeUsageBasedCreate {
 	if v != nil {
 		_c.SetAdvanceAfter(*v)
+	}
+	return _c
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_c *ChargeUsageBasedCreate) SetTaxCodeID(v string) *ChargeUsageBasedCreate {
+	_c.mutation.SetTaxCodeID(v)
+	return _c
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableTaxCodeID(v *string) *ChargeUsageBasedCreate {
+	if v != nil {
+		_c.SetTaxCodeID(*v)
+	}
+	return _c
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_c *ChargeUsageBasedCreate) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeUsageBasedCreate {
+	_c.mutation.SetTaxBehavior(v)
+	return _c
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *ChargeUsageBasedCreate {
+	if v != nil {
+		_c.SetTaxBehavior(*v)
 	}
 	return _c
 }
@@ -410,6 +439,11 @@ func (_c *ChargeUsageBasedCreate) SetFeature(v *Feature) *ChargeUsageBasedCreate
 	return _c.SetFeatureID(v.ID)
 }
 
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_c *ChargeUsageBasedCreate) SetTaxCode(v *TaxCode) *ChargeUsageBasedCreate {
+	return _c.SetTaxCodeID(v.ID)
+}
+
 // Mutation returns the ChargeUsageBasedMutation object of the builder.
 func (_c *ChargeUsageBasedCreate) Mutation() *ChargeUsageBasedMutation {
 	return _c.mutation
@@ -509,6 +543,11 @@ func (_c *ChargeUsageBasedCreate) check() error {
 	if v, ok := _c.mutation.ManagedBy(); ok {
 		if err := chargeusagebased.ManagedByValidator(v); err != nil {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.managed_by": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.TaxBehavior(); ok {
+		if err := chargeusagebased.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.tax_behavior": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.Namespace(); !ok {
@@ -664,6 +703,10 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 	if value, ok := _c.mutation.AdvanceAfter(); ok {
 		_spec.SetField(chargeusagebased.FieldAdvanceAfter, field.TypeTime, value)
 		_node.AdvanceAfter = &value
+	}
+	if value, ok := _c.mutation.TaxBehavior(); ok {
+		_spec.SetField(chargeusagebased.FieldTaxBehavior, field.TypeEnum, value)
+		_node.TaxBehavior = &value
 	}
 	if value, ok := _c.mutation.Annotations(); ok {
 		_spec.SetField(chargeusagebased.FieldAnnotations, field.TypeJSON, value)
@@ -879,6 +922,23 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 		_node.FeatureID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := _c.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.TaxCodeTable,
+			Columns: []string{chargeusagebased.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.TaxCodeID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec, nil
 }
 
@@ -1042,6 +1102,42 @@ func (u *ChargeUsageBasedUpsert) UpdateAdvanceAfter() *ChargeUsageBasedUpsert {
 // ClearAdvanceAfter clears the value of the "advance_after" field.
 func (u *ChargeUsageBasedUpsert) ClearAdvanceAfter() *ChargeUsageBasedUpsert {
 	u.SetNull(chargeusagebased.FieldAdvanceAfter)
+	return u
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (u *ChargeUsageBasedUpsert) SetTaxCodeID(v string) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldTaxCodeID, v)
+	return u
+}
+
+// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateTaxCodeID() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldTaxCodeID)
+	return u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (u *ChargeUsageBasedUpsert) ClearTaxCodeID() *ChargeUsageBasedUpsert {
+	u.SetNull(chargeusagebased.FieldTaxCodeID)
+	return u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *ChargeUsageBasedUpsert) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldTaxBehavior, v)
+	return u
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateTaxBehavior() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldTaxBehavior)
+	return u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *ChargeUsageBasedUpsert) ClearTaxBehavior() *ChargeUsageBasedUpsert {
+	u.SetNull(chargeusagebased.FieldTaxBehavior)
 	return u
 }
 
@@ -1415,6 +1511,48 @@ func (u *ChargeUsageBasedUpsertOne) UpdateAdvanceAfter() *ChargeUsageBasedUpsert
 func (u *ChargeUsageBasedUpsertOne) ClearAdvanceAfter() *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.ClearAdvanceAfter()
+	})
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (u *ChargeUsageBasedUpsertOne) SetTaxCodeID(v string) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetTaxCodeID(v)
+	})
+}
+
+// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateTaxCodeID() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateTaxCodeID()
+	})
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (u *ChargeUsageBasedUpsertOne) ClearTaxCodeID() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearTaxCodeID()
+	})
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *ChargeUsageBasedUpsertOne) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetTaxBehavior(v)
+	})
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateTaxBehavior() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateTaxBehavior()
+	})
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *ChargeUsageBasedUpsertOne) ClearTaxBehavior() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearTaxBehavior()
 	})
 }
 
@@ -1984,6 +2122,48 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateAdvanceAfter() *ChargeUsageBasedUpser
 func (u *ChargeUsageBasedUpsertBulk) ClearAdvanceAfter() *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.ClearAdvanceAfter()
+	})
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (u *ChargeUsageBasedUpsertBulk) SetTaxCodeID(v string) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetTaxCodeID(v)
+	})
+}
+
+// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateTaxCodeID() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateTaxCodeID()
+	})
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (u *ChargeUsageBasedUpsertBulk) ClearTaxCodeID() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearTaxCodeID()
+	})
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *ChargeUsageBasedUpsertBulk) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetTaxBehavior(v)
+	})
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateTaxBehavior() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateTaxBehavior()
+	})
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *ChargeUsageBasedUpsertBulk) ClearTaxBehavior() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearTaxBehavior()
 	})
 }
 

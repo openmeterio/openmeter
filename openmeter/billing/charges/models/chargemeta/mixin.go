@@ -12,6 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -86,7 +87,16 @@ func (metaMixin) Fields() []ent.Field {
 		field.Time("advance_after").
 			Optional().
 			Nillable(),
-		// TODO: Tax config!
+		field.String("tax_code_id").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+		field.Enum("tax_behavior").
+			GoType(productcatalog.TaxBehavior("")).
+			Optional().
+			Nillable(),
 	}
 }
 
@@ -135,6 +145,8 @@ type Creator[T any] interface {
 	SetStatus(status meta.ChargeStatus) T
 	SetNillableAdvanceAfter(advanceAfter *time.Time) T
 	SetManagedBy(managedBy billing.InvoiceLineManagedBy) T
+	SetNillableTaxCodeID(taxCodeID *string) T
+	SetNillableTaxBehavior(taxBehavior *productcatalog.TaxBehavior) T
 }
 
 type Updater[T any] interface {
@@ -152,6 +164,8 @@ type Updater[T any] interface {
 	SetOrClearAdvanceAfter(advanceAfter *time.Time) T
 	SetOrClearDeletedAt(deletedAt *time.Time) T
 	SetManagedBy(managedBy billing.InvoiceLineManagedBy) T
+	SetOrClearTaxCodeID(taxCodeID *string) T
+	SetOrClearTaxBehavior(taxBehavior *productcatalog.TaxBehavior) T
 }
 
 func Create[T Creator[T]](creator Creator[T], in CreateInput) (T, error) {
@@ -176,6 +190,13 @@ func Create[T Creator[T]](creator Creator[T], in CreateInput) (T, error) {
 		subscriptionItemID = &in.Intent.Subscription.ItemID
 	}
 
+	var taxCodeID *string
+	var taxBehavior *productcatalog.TaxBehavior
+	if in.Intent.TaxConfig != nil {
+		taxCodeID = in.Intent.TaxConfig.TaxCodeID
+		taxBehavior = in.Intent.TaxConfig.Behavior
+	}
+
 	return creator.
 		SetNamespace(in.Namespace).
 		SetName(in.Intent.Name).
@@ -196,7 +217,9 @@ func Create[T Creator[T]](creator Creator[T], in CreateInput) (T, error) {
 		SetNillableAdvanceAfter(convert.SafeToUTC(in.AdvanceAfter)).
 		SetNillableSubscriptionID(subscriptionID).
 		SetNillableSubscriptionPhaseID(subscriptionPhaseID).
-		SetNillableSubscriptionItemID(subscriptionItemID), nil
+		SetNillableSubscriptionItemID(subscriptionItemID).
+		SetNillableTaxCodeID(taxCodeID).
+		SetNillableTaxBehavior(taxBehavior), nil
 }
 
 type UpdateInput struct {
@@ -210,6 +233,13 @@ type UpdateInput struct {
 func Update[T Updater[T]](updater Updater[T], in UpdateInput) (T, error) {
 	in.Intent = in.Intent.Normalized()
 	in.AdvanceAfter = meta.NormalizeOptionalTimestamp(in.AdvanceAfter)
+
+	var taxCodeID *string
+	var taxBehavior *productcatalog.TaxBehavior
+	if in.Intent.TaxConfig != nil {
+		taxCodeID = in.Intent.TaxConfig.TaxCodeID
+		taxBehavior = in.Intent.TaxConfig.Behavior
+	}
 
 	return updater.
 		SetName(in.Intent.Name).
@@ -225,7 +255,9 @@ func Update[T Updater[T]](updater Updater[T], in UpdateInput) (T, error) {
 		SetFullServicePeriodTo(in.Intent.FullServicePeriod.To.UTC()).
 		SetStatus(in.Status).
 		SetOrClearAdvanceAfter(in.AdvanceAfter).
-		SetManagedBy(in.Intent.ManagedBy), nil
+		SetManagedBy(in.Intent.ManagedBy).
+		SetOrClearTaxCodeID(taxCodeID).
+		SetOrClearTaxBehavior(taxBehavior), nil
 }
 
 type Getter[T any] interface {
@@ -253,6 +285,8 @@ type Getter[T any] interface {
 	GetSubscriptionID() *string
 	GetSubscriptionPhaseID() *string
 	GetSubscriptionItemID() *string
+	GetTaxCodeID() *string
+	GetTaxBehavior() *productcatalog.TaxBehavior
 }
 
 func MapFromDB[T Getter[T]](entity T) meta.Charge {
@@ -264,6 +298,17 @@ func MapFromDB[T Getter[T]](entity T) meta.Charge {
 			ItemID:         *entity.GetSubscriptionItemID(),
 		}
 	}
+
+	// Charge tables persist only TaxCodeID (FK) and Behavior; provider-specific fields
+	// (e.g. Stripe.Code) are resolved at invoice snapshot time and are not stored here.
+	var taxConfig *productcatalog.TaxCodeConfig
+	if entity.GetTaxCodeID() != nil || entity.GetTaxBehavior() != nil {
+		taxConfig = &productcatalog.TaxCodeConfig{
+			TaxCodeID: entity.GetTaxCodeID(),
+			Behavior:  entity.GetTaxBehavior(),
+		}
+	}
+
 	return meta.Charge{
 		ManagedResource: meta.ManagedResource{
 			NamespacedModel: models.NamespacedModel{
@@ -294,6 +339,7 @@ func MapFromDB[T Getter[T]](entity T) meta.Charge {
 			},
 			UniqueReferenceID: entity.GetUniqueReferenceID(),
 			Subscription:      subscriptionReference,
+			TaxConfig:         taxConfig,
 		},
 		Status:       entity.GetStatus(),
 		AdvanceAfter: entity.GetAdvanceAfter(),

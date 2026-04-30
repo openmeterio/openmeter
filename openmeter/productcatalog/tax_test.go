@@ -15,6 +15,101 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
+func TestTaxCodeConfigValidation(t *testing.T) {
+	tests := []struct {
+		name    string
+		cfg     *TaxCodeConfig
+		wantErr string
+	}{
+		{
+			name:    "nil",
+			cfg:     nil,
+			wantErr: "",
+		},
+		{
+			name:    "valid behavior",
+			cfg:     &TaxCodeConfig{Behavior: lo.ToPtr(InclusiveTaxBehavior)},
+			wantErr: "",
+		},
+		{
+			name:    "invalid behavior",
+			cfg:     &TaxCodeConfig{Behavior: (*TaxBehavior)(lo.ToPtr("bad"))},
+			wantErr: "validation error: invalid tax behavior: bad",
+		},
+		{
+			name:    "valid tax_code_id",
+			cfg:     &TaxCodeConfig{TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV3")},
+			wantErr: "",
+		},
+		{
+			name:    "empty tax_code_id",
+			cfg:     &TaxCodeConfig{TaxCodeID: lo.ToPtr("")},
+			wantErr: "validation error: tax_code_id must not be empty when set",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.cfg.Validate()
+			if tt.wantErr == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.EqualError(t, err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestTaxCodeConfigToTaxConfig(t *testing.T) {
+	t.Run("nil", func(t *testing.T) {
+		var c *TaxCodeConfig
+		assert.Nil(t, c.ToTaxConfig())
+	})
+
+	t.Run("deep copy", func(t *testing.T) {
+		behavior := InclusiveTaxBehavior
+		id := "01AN4Z07BY79KA1307SR9X4MV3"
+		c := &TaxCodeConfig{Behavior: &behavior, TaxCodeID: &id}
+		out := c.ToTaxConfig()
+
+		require.NotNil(t, out)
+		assert.Equal(t, behavior, *out.Behavior)
+		assert.Equal(t, id, *out.TaxCodeID)
+
+		// mutations to out must not alias back to c
+		newBehavior := ExclusiveTaxBehavior
+		out.Behavior = &newBehavior
+		assert.Equal(t, InclusiveTaxBehavior, *c.Behavior, "ToTaxConfig must not share pointer fields")
+	})
+}
+
+func TestTaxCodeConfigFrom(t *testing.T) {
+	t.Run("nil", func(t *testing.T) {
+		assert.Nil(t, TaxCodeConfigFrom(nil))
+	})
+
+	t.Run("stripe-only config returns nil", func(t *testing.T) {
+		cfg := &TaxConfig{Stripe: &StripeTaxConfig{Code: "txcd_10000000"}}
+		assert.Nil(t, TaxCodeConfigFrom(cfg), "Stripe-only TaxConfig must yield nil TaxCodeConfig")
+	})
+
+	t.Run("deep copy", func(t *testing.T) {
+		behavior := InclusiveTaxBehavior
+		id := "01AN4Z07BY79KA1307SR9X4MV3"
+		cfg := &TaxConfig{Behavior: &behavior, TaxCodeID: &id}
+		out := TaxCodeConfigFrom(cfg)
+
+		require.NotNil(t, out)
+		assert.Equal(t, behavior, *out.Behavior)
+		assert.Equal(t, id, *out.TaxCodeID)
+
+		// mutations to out must not alias back to cfg
+		newBehavior := ExclusiveTaxBehavior
+		out.Behavior = &newBehavior
+		assert.Equal(t, InclusiveTaxBehavior, *cfg.Behavior, "TaxCodeConfigFrom must not share pointer fields")
+	})
+}
+
 func TestTaxConfigValidation(t *testing.T) {
 	tests := []struct {
 		Name          string
@@ -354,12 +449,35 @@ func TestMergeTaxConfigs(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name: "TaxCode resolved entity is dropped — merge is intent-level only",
+			Left: &TaxConfig{
+				TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV3"),
+				TaxCode:   &taxcode.TaxCode{NamespacedID: models.NamespacedID{ID: "01AN4Z07BY79KA1307SR9X4MV3"}},
+			},
+			Right: &TaxConfig{
+				Behavior: lo.ToPtr(ExclusiveTaxBehavior),
+			},
+			Expected: &TaxConfig{
+				TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV3"),
+				Behavior:  lo.ToPtr(ExclusiveTaxBehavior),
+				// TaxCode intentionally omitted from merge result
+			},
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
 			merged := MergeTaxConfigs(test.Left, test.Right)
 			assert.Equal(t, test.Expected, merged)
+
+			// Single-non-nil inputs must return an independent copy, not the original pointer.
+			if test.Left == nil && test.Right != nil {
+				assert.NotSame(t, test.Right, merged, "MergeTaxConfigs with nil base must return independent copy")
+			}
+			if test.Right == nil && test.Left != nil {
+				assert.NotSame(t, test.Left, merged, "MergeTaxConfigs with nil overrides must return independent copy")
+			}
 		})
 	}
 }
@@ -555,6 +673,33 @@ func TestBackfillTaxConfig(t *testing.T) {
 	}
 }
 
+func TestBackfillTaxConfigPointerIsolation(t *testing.T) {
+	t.Run("filled Behavior is independent from taxBehavior arg", func(t *testing.T) {
+		behavior := ExclusiveTaxBehavior
+		got := BackfillTaxConfig(nil, &behavior, nil)
+		require.NotNil(t, got)
+		require.NotNil(t, got.Behavior)
+
+		// mutate source — must not affect result
+		behavior = InclusiveTaxBehavior
+		assert.Equal(t, ExclusiveTaxBehavior, *got.Behavior, "BackfillTaxConfig must deep-copy taxBehavior")
+	})
+
+	t.Run("filled TaxCodeID is independent from TaxCode entity ID field", func(t *testing.T) {
+		tc := &taxcode.TaxCode{
+			NamespacedID: models.NamespacedID{Namespace: "ns", ID: "original-id"},
+			AppMappings:  taxcode.TaxCodeAppMappings{{AppType: app.AppTypeStripe, TaxCode: "txcd_10000000"}},
+		}
+		got := BackfillTaxConfig(nil, nil, tc)
+		require.NotNil(t, got)
+		require.NotNil(t, got.TaxCodeID)
+
+		// mutate source — must not affect result
+		tc.ID = "mutated-id"
+		assert.Equal(t, "original-id", *got.TaxCodeID, "BackfillTaxConfig must deep-copy TaxCode ID")
+	})
+}
+
 // stubTaxCodeService is a minimal taxcode.Service implementation for unit tests.
 // Only GetTaxCode and GetOrCreateByAppMapping are wired; other methods panic.
 type stubTaxCodeService struct {
@@ -604,7 +749,7 @@ func TestResolveTaxConfig(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		svc     *stubTaxCodeService
+		svc     taxcode.Service
 		cfg     *TaxConfig
 		wantCfg *TaxConfig
 		wantErr string
@@ -613,6 +758,12 @@ func TestResolveTaxConfig(t *testing.T) {
 			name:    "nil cfg is no-op",
 			cfg:     nil,
 			wantCfg: nil,
+		},
+		{
+			name:    "nil svc with non-nil cfg returns error",
+			svc:     nil,
+			cfg:     &TaxConfig{TaxCodeID: lo.ToPtr("tc-stripe")},
+			wantErr: "taxcode service is required",
 		},
 		{
 			name: "TaxCodeID set, entity has Stripe mapping — Stripe backfilled",

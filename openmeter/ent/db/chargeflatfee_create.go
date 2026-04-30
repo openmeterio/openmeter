@@ -27,6 +27,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -166,6 +167,34 @@ func (_c *ChargeFlatFeeCreate) SetAdvanceAfter(v time.Time) *ChargeFlatFeeCreate
 func (_c *ChargeFlatFeeCreate) SetNillableAdvanceAfter(v *time.Time) *ChargeFlatFeeCreate {
 	if v != nil {
 		_c.SetAdvanceAfter(*v)
+	}
+	return _c
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_c *ChargeFlatFeeCreate) SetTaxCodeID(v string) *ChargeFlatFeeCreate {
+	_c.mutation.SetTaxCodeID(v)
+	return _c
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableTaxCodeID(v *string) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetTaxCodeID(*v)
+	}
+	return _c
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_c *ChargeFlatFeeCreate) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeFlatFeeCreate {
+	_c.mutation.SetTaxBehavior(v)
+	return _c
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetTaxBehavior(*v)
 	}
 	return _c
 }
@@ -452,6 +481,11 @@ func (_c *ChargeFlatFeeCreate) SetFeature(v *Feature) *ChargeFlatFeeCreate {
 	return _c.SetFeatureID(v.ID)
 }
 
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_c *ChargeFlatFeeCreate) SetTaxCode(v *TaxCode) *ChargeFlatFeeCreate {
+	return _c.SetTaxCodeID(v.ID)
+}
+
 // Mutation returns the ChargeFlatFeeMutation object of the builder.
 func (_c *ChargeFlatFeeCreate) Mutation() *ChargeFlatFeeMutation {
 	return _c.mutation
@@ -551,6 +585,11 @@ func (_c *ChargeFlatFeeCreate) check() error {
 	if v, ok := _c.mutation.ManagedBy(); ok {
 		if err := chargeflatfee.ManagedByValidator(v); err != nil {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.managed_by": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.TaxBehavior(); ok {
+		if err := chargeflatfee.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.tax_behavior": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.Namespace(); !ok {
@@ -706,6 +745,10 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.AdvanceAfter(); ok {
 		_spec.SetField(chargeflatfee.FieldAdvanceAfter, field.TypeTime, value)
 		_node.AdvanceAfter = &value
+	}
+	if value, ok := _c.mutation.TaxBehavior(); ok {
+		_spec.SetField(chargeflatfee.FieldTaxBehavior, field.TypeEnum, value)
+		_node.TaxBehavior = &value
 	}
 	if value, ok := _c.mutation.Annotations(); ok {
 		_spec.SetField(chargeflatfee.FieldAnnotations, field.TypeJSON, value)
@@ -944,6 +987,23 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 		_node.FeatureID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := _c.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeflatfee.TaxCodeTable,
+			Columns: []string{chargeflatfee.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.TaxCodeID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec, nil
 }
 
@@ -1107,6 +1167,42 @@ func (u *ChargeFlatFeeUpsert) UpdateAdvanceAfter() *ChargeFlatFeeUpsert {
 // ClearAdvanceAfter clears the value of the "advance_after" field.
 func (u *ChargeFlatFeeUpsert) ClearAdvanceAfter() *ChargeFlatFeeUpsert {
 	u.SetNull(chargeflatfee.FieldAdvanceAfter)
+	return u
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (u *ChargeFlatFeeUpsert) SetTaxCodeID(v string) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldTaxCodeID, v)
+	return u
+}
+
+// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateTaxCodeID() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldTaxCodeID)
+	return u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (u *ChargeFlatFeeUpsert) ClearTaxCodeID() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldTaxCodeID)
+	return u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *ChargeFlatFeeUpsert) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldTaxBehavior, v)
+	return u
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateTaxBehavior() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldTaxBehavior)
+	return u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *ChargeFlatFeeUpsert) ClearTaxBehavior() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldTaxBehavior)
 	return u
 }
 
@@ -1537,6 +1633,48 @@ func (u *ChargeFlatFeeUpsertOne) UpdateAdvanceAfter() *ChargeFlatFeeUpsertOne {
 func (u *ChargeFlatFeeUpsertOne) ClearAdvanceAfter() *ChargeFlatFeeUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.ClearAdvanceAfter()
+	})
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (u *ChargeFlatFeeUpsertOne) SetTaxCodeID(v string) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetTaxCodeID(v)
+	})
+}
+
+// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateTaxCodeID() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateTaxCodeID()
+	})
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (u *ChargeFlatFeeUpsertOne) ClearTaxCodeID() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearTaxCodeID()
+	})
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *ChargeFlatFeeUpsertOne) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetTaxBehavior(v)
+	})
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateTaxBehavior() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateTaxBehavior()
+	})
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *ChargeFlatFeeUpsertOne) ClearTaxBehavior() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearTaxBehavior()
 	})
 }
 
@@ -2174,6 +2312,48 @@ func (u *ChargeFlatFeeUpsertBulk) UpdateAdvanceAfter() *ChargeFlatFeeUpsertBulk 
 func (u *ChargeFlatFeeUpsertBulk) ClearAdvanceAfter() *ChargeFlatFeeUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.ClearAdvanceAfter()
+	})
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (u *ChargeFlatFeeUpsertBulk) SetTaxCodeID(v string) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetTaxCodeID(v)
+	})
+}
+
+// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateTaxCodeID() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateTaxCodeID()
+	})
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearTaxCodeID() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearTaxCodeID()
+	})
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *ChargeFlatFeeUpsertBulk) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetTaxBehavior(v)
+	})
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateTaxBehavior() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateTaxBehavior()
+	})
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearTaxBehavior() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearTaxBehavior()
 	})
 }
 

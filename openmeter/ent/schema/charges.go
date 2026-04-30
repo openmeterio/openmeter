@@ -41,6 +41,8 @@ var chargesSearchV1Columns = []string{
 	"subscription_phase_id",
 	"subscription_item_id",
 	"advance_after",
+	"tax_code_id",
+	"tax_behavior",
 }
 
 type ChargesSearchV1 struct {

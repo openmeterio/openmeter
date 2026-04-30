@@ -118,11 +118,19 @@ func (ChargeUsageBased) Edges() []ent.Edge {
 			Ref("usage_based_charges").
 			Unique().
 			Required(),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("charge_usage_based").
+			Field("tax_code_id").
+			Unique().
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 	}
 }
 
 func (ChargeUsageBased) Indexes() []ent.Index {
-	return nil
+	return []ent.Index{
+		index.Fields("tax_code_id").
+			StorageKey("chargeusagebased_tax_code_id"),
+	}
 }
 
 func (ChargeUsageBased) Annotations() []schema.Annotation {
@@ -264,7 +272,8 @@ func (ChargeUsageBasedRunDetailedLine) Edges() []ent.Edge {
 		edge.From("tax_code", TaxCode.Type).
 			Ref("charge_usage_based_run_detailed_lines").
 			Field("tax_code_id").
-			Unique(),
+			Unique().
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 	}
 }
 

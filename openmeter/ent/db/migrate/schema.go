@@ -1649,6 +1649,7 @@ var (
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
 		{Name: "managed_by", Type: field.TypeEnum, Enums: []string{"subscription", "system", "manual"}},
 		{Name: "advance_after", Type: field.TypeTime, Nullable: true},
+		{Name: "tax_behavior", Type: field.TypeEnum, Nullable: true, Enums: []string{"inclusive", "exclusive"}},
 		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
@@ -1666,6 +1667,7 @@ var (
 		{Name: "subscription_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_item_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_phase_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// ChargeCreditPurchasesTable holds the schema information for the "charge_credit_purchases" table.
 	ChargeCreditPurchasesTable = &schema.Table{
@@ -1675,26 +1677,32 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_credit_purchases_customers_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[25]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[26]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "charge_credit_purchases_subscriptions_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[26]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[27]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_credit_purchases_subscription_items_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[27]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[28]},
 				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_credit_purchases_subscription_phases_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[28]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[29]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "charge_credit_purchases_tax_codes_charge_credit_purchases",
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[30]},
+				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 		},
@@ -1702,7 +1710,7 @@ var (
 			{
 				Name:    "chargecreditpurchase_namespace_customer_id_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeCreditPurchasesColumns[13], ChargeCreditPurchasesColumns[25], ChargeCreditPurchasesColumns[8]},
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14], ChargeCreditPurchasesColumns[26], ChargeCreditPurchasesColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -1710,7 +1718,7 @@ var (
 			{
 				Name:    "chargecreditpurchase_annotations",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeCreditPurchasesColumns[12]},
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[13]},
 				Annotation: &entsql.IndexAnnotation{
 					Types: map[string]string{
 						"postgres": "GIN",
@@ -1725,12 +1733,17 @@ var (
 			{
 				Name:    "chargecreditpurchase_namespace",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeCreditPurchasesColumns[13]},
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14]},
 			},
 			{
 				Name:    "chargecreditpurchase_namespace_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeCreditPurchasesColumns[13], ChargeCreditPurchasesColumns[0]},
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14], ChargeCreditPurchasesColumns[0]},
+			},
+			{
+				Name:    "chargecreditpurchases_tax_code_id",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[30]},
 			},
 		},
 	}
@@ -1911,6 +1924,7 @@ var (
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
 		{Name: "managed_by", Type: field.TypeEnum, Enums: []string{"subscription", "system", "manual"}},
 		{Name: "advance_after", Type: field.TypeTime, Nullable: true},
+		{Name: "tax_behavior", Type: field.TypeEnum, Nullable: true, Enums: []string{"inclusive", "exclusive"}},
 		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
@@ -1933,6 +1947,7 @@ var (
 		{Name: "subscription_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_item_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_phase_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// ChargeFlatFeesTable holds the schema information for the "charge_flat_fees" table.
 	ChargeFlatFeesTable = &schema.Table{
@@ -1942,32 +1957,38 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_flat_fees_customers_charges_flat_fee",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[29]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[30]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "charge_flat_fees_features_flat_fee_charges",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[30]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[31]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_flat_fees_subscriptions_charges_flat_fee",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[31]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[32]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_flat_fees_subscription_items_charges_flat_fee",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[32]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[33]},
 				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_flat_fees_subscription_phases_charges_flat_fee",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[33]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[34]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "charge_flat_fees_tax_codes_charge_flat_fees",
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[35]},
+				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 		},
@@ -1975,7 +1996,7 @@ var (
 			{
 				Name:    "chargeflatfee_namespace_customer_id_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeFlatFeesColumns[13], ChargeFlatFeesColumns[29], ChargeFlatFeesColumns[8]},
+				Columns: []*schema.Column{ChargeFlatFeesColumns[14], ChargeFlatFeesColumns[30], ChargeFlatFeesColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -1983,7 +2004,7 @@ var (
 			{
 				Name:    "chargeflatfee_annotations",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeFlatFeesColumns[12]},
+				Columns: []*schema.Column{ChargeFlatFeesColumns[13]},
 				Annotation: &entsql.IndexAnnotation{
 					Types: map[string]string{
 						"postgres": "GIN",
@@ -1998,12 +2019,17 @@ var (
 			{
 				Name:    "chargeflatfee_namespace",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeFlatFeesColumns[13]},
+				Columns: []*schema.Column{ChargeFlatFeesColumns[14]},
 			},
 			{
 				Name:    "chargeflatfee_namespace_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeFlatFeesColumns[13], ChargeFlatFeesColumns[0]},
+				Columns: []*schema.Column{ChargeFlatFeesColumns[14], ChargeFlatFeesColumns[0]},
+			},
+			{
+				Name:    "chargeflatfees_tax_code_id",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeFlatFeesColumns[35]},
 			},
 		},
 	}
@@ -2319,6 +2345,7 @@ var (
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
 		{Name: "managed_by", Type: field.TypeEnum, Enums: []string{"subscription", "system", "manual"}},
 		{Name: "advance_after", Type: field.TypeTime, Nullable: true},
+		{Name: "tax_behavior", Type: field.TypeEnum, Nullable: true, Enums: []string{"inclusive", "exclusive"}},
 		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
@@ -2339,6 +2366,7 @@ var (
 		{Name: "subscription_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_item_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_phase_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// ChargeUsageBasedTable holds the schema information for the "charge_usage_based" table.
 	ChargeUsageBasedTable = &schema.Table{
@@ -2348,38 +2376,44 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_usage_based_charge_usage_based_runs_current_run",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[26]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[27]},
 				RefColumns: []*schema.Column{ChargeUsageBasedRunsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_usage_based_customers_charges_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[27]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[28]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "charge_usage_based_features_usage_based_charges",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[28]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[29]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "charge_usage_based_subscriptions_charges_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[29]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[30]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_usage_based_subscription_items_charges_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[30]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[31]},
 				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_usage_based_subscription_phases_charges_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[31]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[32]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "charge_usage_based_tax_codes_charge_usage_based",
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[33]},
+				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 		},
@@ -2387,7 +2421,7 @@ var (
 			{
 				Name:    "chargeusagebased_namespace_customer_id_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeUsageBasedColumns[13], ChargeUsageBasedColumns[27], ChargeUsageBasedColumns[8]},
+				Columns: []*schema.Column{ChargeUsageBasedColumns[14], ChargeUsageBasedColumns[28], ChargeUsageBasedColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -2395,7 +2429,7 @@ var (
 			{
 				Name:    "chargeusagebased_annotations",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedColumns[12]},
+				Columns: []*schema.Column{ChargeUsageBasedColumns[13]},
 				Annotation: &entsql.IndexAnnotation{
 					Types: map[string]string{
 						"postgres": "GIN",
@@ -2410,12 +2444,17 @@ var (
 			{
 				Name:    "chargeusagebased_namespace",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedColumns[13]},
+				Columns: []*schema.Column{ChargeUsageBasedColumns[14]},
 			},
 			{
 				Name:    "chargeusagebased_namespace_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeUsageBasedColumns[13], ChargeUsageBasedColumns[0]},
+				Columns: []*schema.Column{ChargeUsageBasedColumns[14], ChargeUsageBasedColumns[0]},
+			},
+			{
+				Name:    "chargeusagebased_tax_code_id",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedColumns[33]},
 			},
 		},
 	}
@@ -5052,6 +5091,7 @@ func init() {
 	ChargeCreditPurchasesTable.ForeignKeys[1].RefTable = SubscriptionsTable
 	ChargeCreditPurchasesTable.ForeignKeys[2].RefTable = SubscriptionItemsTable
 	ChargeCreditPurchasesTable.ForeignKeys[3].RefTable = SubscriptionPhasesTable
+	ChargeCreditPurchasesTable.ForeignKeys[4].RefTable = TaxCodesTable
 	ChargeCreditPurchaseCreditGrantsTable.ForeignKeys[0].RefTable = ChargeCreditPurchasesTable
 	ChargeCreditPurchaseExternalPaymentsTable.ForeignKeys[0].RefTable = ChargeCreditPurchasesTable
 	ChargeCreditPurchaseInvoicedPaymentsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
@@ -5061,6 +5101,7 @@ func init() {
 	ChargeFlatFeesTable.ForeignKeys[2].RefTable = SubscriptionsTable
 	ChargeFlatFeesTable.ForeignKeys[3].RefTable = SubscriptionItemsTable
 	ChargeFlatFeesTable.ForeignKeys[4].RefTable = SubscriptionPhasesTable
+	ChargeFlatFeesTable.ForeignKeys[5].RefTable = TaxCodesTable
 	ChargeFlatFeeCreditAllocationsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
 	ChargeFlatFeeCreditAllocationsTable.ForeignKeys[1].RefTable = ChargeFlatFeesTable
 	ChargeFlatFeeCreditAllocationsTable.ForeignKeys[2].RefTable = ChargeFlatFeeCreditAllocationsTable
@@ -5082,6 +5123,7 @@ func init() {
 	ChargeUsageBasedTable.ForeignKeys[3].RefTable = SubscriptionsTable
 	ChargeUsageBasedTable.ForeignKeys[4].RefTable = SubscriptionItemsTable
 	ChargeUsageBasedTable.ForeignKeys[5].RefTable = SubscriptionPhasesTable
+	ChargeUsageBasedTable.ForeignKeys[6].RefTable = TaxCodesTable
 	ChargeUsageBasedTable.Annotation = &entsql.Annotation{
 		Table: "charge_usage_based",
 	}
