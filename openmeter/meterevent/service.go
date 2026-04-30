@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -96,7 +97,7 @@ func (e Event) Cursor() pagination.Cursor {
 func (i ListEventsParams) Validate() error {
 	var errs []error
 
-	minimumFrom := time.Now().Add(-MaximumFromDuration)
+	minimumFrom := clock.Now().Add(-MaximumFromDuration)
 
 	if i.Namespace == "" {
 		errs = append(errs, errors.New("namespace is required"))
