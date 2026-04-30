@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -14,11 +15,16 @@ import (
 
 type Config struct {
 	Client *entdb.Client
+	Logger *slog.Logger
 }
 
 func (c Config) Validate() error {
 	if c.Client == nil {
 		return errors.New("ent client is required")
+	}
+
+	if c.Logger == nil {
+		return errors.New("logger is required")
 	}
 
 	return nil
@@ -31,6 +37,7 @@ func New(config Config) (app.Adapter, error) {
 
 	adapter := &adapter{
 		db:       config.Client,
+		logger:   config.Logger,
 		registry: map[app.AppType]app.RegistryItem{},
 	}
 
@@ -41,6 +48,7 @@ var _ app.Adapter = (*adapter)(nil)
 
 type adapter struct {
 	db       *entdb.Client
+	logger   *slog.Logger
 	registry map[app.AppType]app.RegistryItem
 }
 
@@ -59,6 +67,7 @@ func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter {
 	txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 	return &adapter{
 		db:       txClient.Client(),
+		logger:   a.logger,
 		registry: a.registry,
 	}
 }

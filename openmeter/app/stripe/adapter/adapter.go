@@ -111,6 +111,7 @@ func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter {
 	txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 	return &adapter{
 		db:                     txClient.Client(),
+		logger:                 a.logger,
 		appService:             a.appService,
 		customerService:        a.customerService,
 		secretService:          a.secretService,

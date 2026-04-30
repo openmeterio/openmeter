@@ -2,6 +2,7 @@ package appadapter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
@@ -12,8 +13,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
+var _ app.AppAdapter = (*adapter)(nil)
+
 // ListMarketplaceListings lists marketplace listings
-func (a adapter) ListMarketplaceListings(ctx context.Context, input app.MarketplaceListInput) (pagination.Result[app.RegistryItem], error) {
+func (a *adapter) ListMarketplaceListings(ctx context.Context, input app.MarketplaceListInput) (pagination.Result[app.RegistryItem], error) {
 	items := lo.Values(a.registry)
 	items = lo.Subset(items, (input.PageNumber-1)*input.PageSize, uint(input.PageSize))
 
@@ -27,7 +30,7 @@ func (a adapter) ListMarketplaceListings(ctx context.Context, input app.Marketpl
 }
 
 // GetMarketplaceListing gets a marketplace listing
-func (a adapter) GetMarketplaceListing(ctx context.Context, input app.MarketplaceGetInput) (app.RegistryItem, error) {
+func (a *adapter) GetMarketplaceListing(ctx context.Context, input app.MarketplaceGetInput) (app.RegistryItem, error) {
 	if _, ok := a.registry[input.Type]; !ok {
 		return app.RegistryItem{}, models.NewGenericNotFoundError(
 			fmt.Errorf("listing with type not found: %s", input.Type),
@@ -45,12 +48,12 @@ func (a *adapter) InstallMarketplaceListingWithAPIKey(ctx context.Context, input
 			Type: input.Type,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to get listing for app %s: %w", input.Type, err)
+			return nil, err
 		}
 
 		name, ok := lo.Coalesce(input.Name, registryItem.Listing.Name)
 		if !ok {
-			return nil, fmt.Errorf("name is required, listing doesn't have a name either")
+			return nil, models.NewGenericValidationError(fmt.Errorf("name is required, listing doesn't have a name either"))
 		}
 
 		installer, ok := registryItem.Factory.(app.AppFactoryInstallWithAPIKey)
@@ -80,12 +83,12 @@ func (a *adapter) InstallMarketplaceListing(ctx context.Context, input app.Insta
 			Type: input.Type,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to get listing for app %s: %w", input.Type, err)
+			return nil, err
 		}
 
 		name, ok := lo.Coalesce(input.Name, registryItem.Listing.Name)
 		if !ok {
-			return nil, fmt.Errorf("name is required, listing doesn't have a name either")
+			return nil, models.NewGenericValidationError(fmt.Errorf("name is required, listing doesn't have a name either"))
 		}
 
 		installer, ok := registryItem.Factory.(app.AppFactoryInstall)
@@ -107,23 +110,19 @@ func (a *adapter) InstallMarketplaceListing(ctx context.Context, input app.Insta
 }
 
 // GetMarketplaceListingOauth2InstallURL gets an OAuth2 install URL
-func (a adapter) GetMarketplaceListingOauth2InstallURL(ctx context.Context, input app.GetOauth2InstallURLInput) (app.GetOauth2InstallURLOutput, error) {
-	return app.GetOauth2InstallURLOutput{}, fmt.Errorf("not implemented")
+func (a *adapter) GetMarketplaceListingOauth2InstallURL(ctx context.Context, input app.GetOauth2InstallURLInput) (app.GetOauth2InstallURLOutput, error) {
+	return app.GetOauth2InstallURLOutput{}, models.NewGenericNotImplementedError(errors.New("oauth2 install url not implemented"))
 }
 
 // AuthorizeOauth2Install authorizes an OAuth2 install
-func (a adapter) AuthorizeMarketplaceListingOauth2Install(ctx context.Context, input app.AuthorizeOauth2InstallInput) error {
-	return fmt.Errorf("not implemented")
+func (a *adapter) AuthorizeMarketplaceListingOauth2Install(ctx context.Context, input app.AuthorizeOauth2InstallInput) error {
+	return models.NewGenericNotImplementedError(errors.New("oauth2 install not implemented"))
 }
 
 // RegisterMarketplaceListing registers an app type
-func (a adapter) RegisterMarketplaceListing(input app.RegisterMarketplaceListingInput) error {
+func (a *adapter) RegisterMarketplaceListing(_ context.Context, input app.RegisterMarketplaceListingInput) error {
 	if _, ok := a.registry[input.Listing.Type]; ok {
-		return fmt.Errorf("marketplace listing with key %s already exists", input.Listing.Type)
-	}
-
-	if err := input.Listing.Validate(); err != nil {
-		return fmt.Errorf("marketplace listing with key %s is invalid: %w", input.Listing.Type, err)
+		return models.NewGenericConflictError(fmt.Errorf("marketplace listing with key %s already exists", input.Listing.Type))
 	}
 
 	a.registry[input.Listing.Type] = input

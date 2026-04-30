@@ -92,7 +92,7 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 		s.Require().NoError(err, "failed to create webhook url generator")
 	}
 
-	appStripeService, err := appstripeservice.New(appstripeservice.Config{
+	appStripeService, err := appstripeservice.New(s.T().Context(), appstripeservice.Config{
 		Adapter:             appStripeAdapter,
 		AppService:          s.AppService,
 		SecretService:       secretService,

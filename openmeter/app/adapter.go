@@ -14,7 +14,7 @@ type Adapter interface {
 }
 type AppAdapter interface {
 	// Marketplace
-	RegisterMarketplaceListing(input RegisterMarketplaceListingInput) error
+	RegisterMarketplaceListing(ctx context.Context, input RegisterMarketplaceListingInput) error
 	GetMarketplaceListing(ctx context.Context, input MarketplaceGetInput) (RegistryItem, error)
 	ListMarketplaceListings(ctx context.Context, input MarketplaceListInput) (pagination.Result[RegistryItem], error)
 	InstallMarketplaceListingWithAPIKey(ctx context.Context, input InstallAppWithAPIKeyInput) (App, error)

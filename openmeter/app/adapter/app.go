@@ -3,7 +3,6 @@ package appadapter
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/samber/lo"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	appdb "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	appcustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -48,7 +48,7 @@ func (a *adapter) CreateApp(ctx context.Context, input app.CreateAppInput) (app.
 					Type: dbApp.Type,
 				})
 				if err != nil {
-					return app.AppBase{}, fmt.Errorf("failed to get listing for app %s: %w", dbApp.ID, err)
+					return app.AppBase{}, err
 				}
 
 				// Map app base from db
@@ -59,16 +59,18 @@ func (a *adapter) CreateApp(ctx context.Context, input app.CreateAppInput) (app.
 
 // UpdateAppStatus updates an app status
 func (a *adapter) UpdateAppStatus(ctx context.Context, input app.UpdateAppStatusInput) error {
-	_, err := a.db.App.Update().
-		Where(appdb.Namespace(input.ID.Namespace)).
-		Where(appdb.ID(input.ID.ID)).
-		SetStatus(input.Status).
-		Save(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to update app status: %w", err)
-	}
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, repo *adapter) error {
+		_, err := repo.db.App.Update().
+			Where(appdb.Namespace(input.ID.Namespace)).
+			Where(appdb.ID(input.ID.ID)).
+			SetStatus(input.Status).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to update app status: %w", err)
+		}
 
-	return nil
+		return nil
+	})
 }
 
 // ListApps lists apps
@@ -122,7 +124,7 @@ func (a *adapter) ListApps(ctx context.Context, params app.ListAppInput) (pagina
 					Type: dbApp.Type,
 				})
 				if err != nil {
-					return response, fmt.Errorf("failed to get listing for app %s: %w", dbApp.ID, err)
+					return response, err
 				}
 
 				app, err := mapAppFromDB(ctx, dbApp, registryItem)
@@ -164,7 +166,7 @@ func (a *adapter) GetApp(ctx context.Context, input app.GetAppInput) (app.App, e
 				Type: dbApp.Type,
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to get listing for app %s: %w", dbApp.ID, err)
+				return nil, err
 			}
 
 			// Map app from db
@@ -198,7 +200,7 @@ func (a *adapter) UpdateApp(ctx context.Context, input app.UpdateAppInput) (app.
 				}
 
 				// Get the updated app
-				app, err := a.GetApp(ctx, input.AppID)
+				app, err := repo.GetApp(ctx, input.AppID)
 				if err != nil {
 					return nil, fmt.Errorf("failed to get updated app: %s: %w", input.AppID.ID, err)
 				}
@@ -222,7 +224,7 @@ func (a *adapter) UninstallApp(ctx context.Context, input app.UninstallAppInput)
 				Type: installedApp.GetType(),
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to get listing for app: %w", err)
+				return nil, err
 			}
 
 			// Uninstall app through factory
@@ -231,13 +233,13 @@ func (a *adapter) UninstallApp(ctx context.Context, input app.UninstallAppInput)
 				return nil, fmt.Errorf("failed to uninstall app: %w", err)
 			}
 
-			deletedAt := time.Now()
+			deletedAt := clock.Now()
 
 			// Delete app from database
 			_, err = repo.db.App.Update().
 				Where(appdb.Namespace(input.Namespace)).
 				Where(appdb.ID(input.ID)).
-				SetDeletedAt(time.Now()).
+				SetDeletedAt(deletedAt).
 				Save(ctx)
 			if err != nil {
 				return nil, fmt.Errorf("failed to delete app from database: %w", err)

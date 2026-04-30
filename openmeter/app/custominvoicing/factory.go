@@ -73,7 +73,7 @@ func (c FactoryConfig) Validate() error {
 	return nil
 }
 
-func NewFactory(config FactoryConfig) (*Factory, error) {
+func NewFactory(ctx context.Context, config FactoryConfig) (*Factory, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("failed to validate config: %w", err)
 	}
@@ -84,7 +84,7 @@ func NewFactory(config FactoryConfig) (*Factory, error) {
 		billingService:         config.BillingService,
 	}
 
-	err := config.AppService.RegisterMarketplaceListing(app.RegistryItem{
+	err := config.AppService.RegisterMarketplaceListing(ctx, app.RegistryItem{
 		Listing: MarketplaceListing,
 		Factory: fact,
 	})

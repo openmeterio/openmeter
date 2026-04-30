@@ -10,6 +10,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
+// WebhookURLGenerator generates webhook URLs for apps
+type WebhookURLGenerator interface {
+	GetWebhookURL(ctx context.Context, appID AppID) (string, error)
+}
+
 // App represents an installed app
 type App interface {
 	GetAppBase() AppBase
@@ -39,11 +44,13 @@ type GetAppInstanceCustomerDataInput struct {
 }
 
 func (i GetAppInstanceCustomerDataInput) Validate() error {
+	var errs []error
+
 	if err := i.CustomerID.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type UpsertAppInstanceCustomerDataInput struct {
@@ -52,15 +59,17 @@ type UpsertAppInstanceCustomerDataInput struct {
 }
 
 func (i UpsertAppInstanceCustomerDataInput) Validate() error {
+	var errs []error
+
 	if err := i.CustomerID.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
 	if err := i.Data.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type DeleteAppInstanceCustomerDataInput struct {
@@ -68,11 +77,24 @@ type DeleteAppInstanceCustomerDataInput struct {
 }
 
 func (i DeleteAppInstanceCustomerDataInput) Validate() error {
+	var errs []error
+
 	if err := i.CustomerID.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// CustomerData is a type that holds customer data for an app
+type CustomerData interface {
+	Validate() error
+}
+
+// CustomerApp holds an app with its associated customer data
+type CustomerApp struct {
+	App          App
+	CustomerData CustomerData
 }
 
 // GetAppInput is the input for getting an installed app
@@ -93,34 +115,35 @@ type UpdateAppInput struct {
 }
 
 func (i UpdateAppInput) Validate() error {
+	var errs []error
+
 	if err := i.AppID.Validate(); err != nil {
-		return fmt.Errorf("error validating app ID: %w", err)
+		errs = append(errs, err)
 	}
 
-	// Required fields
 	if i.Name == "" {
-		return errors.New("name is required")
+		errs = append(errs, models.NewGenericValidationError(errors.New("name is required")))
 	}
 
 	if i.Metadata != nil {
 		for k, v := range *i.Metadata {
 			if k == "" {
-				return errors.New("metadata key is required")
+				errs = append(errs, models.NewGenericValidationError(errors.New("metadata key is required")))
 			}
 
 			if v == "" {
-				return errors.New("metadata value is required")
+				errs = append(errs, models.NewGenericValidationError(errors.New("metadata value is required")))
 			}
 		}
 	}
 
 	if i.AppConfigUpdate != nil {
 		if err := i.AppConfigUpdate.Validate(); err != nil {
-			return fmt.Errorf("error validating app entity update: %w", err)
+			errs = append(errs, err)
 		}
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // CreateAppInput is the input for creating an app
@@ -135,11 +158,11 @@ type CreateAppInput struct {
 
 func (i CreateAppInput) Validate() error {
 	if i.Namespace == "" {
-		return errors.New("namespace is required")
+		return models.NewGenericValidationError(errors.New("namespace is required"))
 	}
 
 	if i.Name == "" {
-		return errors.New("name is required")
+		return models.NewGenericValidationError(errors.New("name is required"))
 	}
 
 	return nil
@@ -168,9 +191,7 @@ func (i ListAppInput) Validate() error {
 
 	if i.CustomerID != nil {
 		if err := i.CustomerID.Validate(); err != nil {
-			errs = append(errs, models.NewGenericValidationError(
-				fmt.Errorf("error validating customer id: %w", err),
-			))
+			errs = append(errs, err)
 		}
 
 		if i.CustomerID.Namespace != i.Namespace {
@@ -189,14 +210,12 @@ func (i ListAppInput) Validate() error {
 			}
 
 			if err := appID.Validate(); err != nil {
-				errs = append(errs, models.NewGenericValidationError(
-					fmt.Errorf("error validating app id: %w", err),
-				))
+				errs = append(errs, err)
 			}
 		}
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // UpdateAppStatusInput is the input for updating an app status
@@ -206,13 +225,15 @@ type UpdateAppStatusInput struct {
 }
 
 func (i UpdateAppStatusInput) Validate() error {
+	var errs []error
+
 	if err := i.ID.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
 	if i.Status == "" {
-		return errors.New("status is required")
+		errs = append(errs, models.NewGenericValidationError(errors.New("status is required")))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
 const (
@@ -194,7 +195,7 @@ func (a App) createInvoice(ctx context.Context, invoice billing.StandardInvoice)
 		// With P1M the library will truncate the period to 0 days, which is not what we want.
 		// Defining due in days like P30D is preferred over P1M.
 		if daysUntilDue == 0 {
-			futureDueAt, _ := invoice.Workflow.Config.Invoicing.DueAfter.AddTo(time.Now())
+			futureDueAt, _ := invoice.Workflow.Config.Invoicing.DueAfter.AddTo(clock.Now())
 			daysUntilDue = int64(math.Round(time.Until(futureDueAt).Hours() / 24))
 		}
 

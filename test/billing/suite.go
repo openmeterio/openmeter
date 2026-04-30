@@ -205,6 +205,7 @@ func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 	// App
 	appAdapter, err := appadapter.New(appadapter.Config{
 		Client: dbClient,
+		Logger: slog.Default(),
 	})
 	require.NoError(t, err)
 
@@ -256,7 +257,7 @@ func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 	s.CustomInvoicingService = s.SetupCustomInvoicingApp()
 
 	// OpenMeter sandbox (registration as side-effect)
-	sandboxApp, err := appsandbox.NewMockableFactory(t, appsandbox.Config{
+	sandboxApp, err := appsandbox.NewMockableFactory(t.Context(), t, appsandbox.Config{
 		AppService:     appService,
 		BillingService: s.BillingService,
 	})
@@ -662,7 +663,7 @@ func (s *BaseSuite) SetupCustomInvoicingApp() appcustominvoicing.Service {
 
 	// Let's register the app
 
-	_, err = appcustominvoicing.NewFactory(appcustominvoicing.FactoryConfig{
+	_, err = appcustominvoicing.NewFactory(s.T().Context(), appcustominvoicing.FactoryConfig{
 		AppService:             s.AppService,
 		CustomInvoicingService: svc,
 		BillingService:         s.BillingService,

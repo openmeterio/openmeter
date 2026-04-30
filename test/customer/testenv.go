@@ -279,6 +279,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	// App
 	appAdapter, err := appadapter.New(appadapter.Config{
 		Client: dbDeps.DBClient,
+		Logger: logger,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create app adapter: %w", err)
@@ -414,7 +415,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	}
 
 	// Set up app sandbox listing
-	_, err = appsandbox.NewMockableFactory(t, appsandbox.Config{
+	_, err = appsandbox.NewMockableFactory(t.Context(), t, appsandbox.Config{
 		AppService:     appService,
 		BillingService: billingService,
 	})

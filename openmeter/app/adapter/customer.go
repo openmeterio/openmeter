@@ -3,11 +3,11 @@ package appadapter
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	appcustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -18,12 +18,6 @@ var _ app.AppAdapter = (*adapter)(nil)
 
 // ListCustomerData lists app customer data
 func (a *adapter) ListCustomerData(ctx context.Context, input app.ListCustomerInput) (pagination.Result[app.CustomerApp], error) {
-	if err := input.Validate(); err != nil {
-		return pagination.Result[app.CustomerApp]{}, models.NewGenericValidationError(
-			fmt.Errorf("error listing customer data: %w", err),
-		)
-	}
-
 	listInput := app.ListAppInput{
 		Page:       input.Page,
 		Namespace:  input.CustomerID.Namespace,
@@ -69,12 +63,6 @@ func (a *adapter) ListCustomerData(ctx context.Context, input app.ListCustomerIn
 // If the app customer relationship is deleted, it is restored
 func (a *adapter) EnsureCustomer(ctx context.Context, input app.EnsureCustomerInput) error {
 	return transaction.RunWithNoValue(ctx, a, func(ctx context.Context) error {
-		if err := input.Validate(); err != nil {
-			return models.NewGenericValidationError(
-				err,
-			)
-		}
-
 		_, err := entutils.TransactingRepo(
 			ctx,
 			a,
@@ -121,12 +109,6 @@ func (a *adapter) EnsureCustomer(ctx context.Context, input app.EnsureCustomerIn
 // DeleteCustomer deletes app customer
 func (a *adapter) DeleteCustomer(ctx context.Context, input app.DeleteCustomerInput) error {
 	return transaction.RunWithNoValue(ctx, a, func(ctx context.Context) error {
-		if err := input.Validate(); err != nil {
-			return models.NewGenericValidationError(
-				fmt.Errorf("error delete customer: %w", err),
-			)
-		}
-
 		// Determine namespace
 		var namespace string
 
@@ -148,7 +130,7 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input app.DeleteCustomerIn
 			// Delete app customer
 			query := repo.db.AppCustomer.
 				Update().
-				SetDeletedAt(time.Now()).
+				SetDeletedAt(clock.Now()).
 				Where(
 					appcustomerdb.Namespace(namespace),
 				)

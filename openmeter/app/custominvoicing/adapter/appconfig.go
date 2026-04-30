@@ -2,12 +2,12 @@ package adapter
 
 import (
 	"context"
-	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	custominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustominvoicing"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -57,7 +57,7 @@ func (a *adapter) DeleteAppConfiguration(ctx context.Context, input app.AppID) e
 				appcustominvoicing.Namespace(input.Namespace),
 				appcustominvoicing.DeletedAtIsNil(),
 			).
-			SetDeletedAt(time.Now()).
+			SetDeletedAt(clock.Now()).
 			Exec(ctx)
 	})
 }
