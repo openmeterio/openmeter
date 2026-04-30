@@ -1740,6 +1740,11 @@ var (
 				Unique:  true,
 				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14], ChargeCreditPurchasesColumns[0]},
 			},
+			{
+				Name:    "chargecreditpurchases_tax_code_id",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[30]},
+			},
 		},
 	}
 	// ChargeCreditPurchaseCreditGrantsColumns holds the columns for the "charge_credit_purchase_credit_grants" table.
@@ -2020,6 +2025,11 @@ var (
 				Name:    "chargeflatfee_namespace_id",
 				Unique:  true,
 				Columns: []*schema.Column{ChargeFlatFeesColumns[14], ChargeFlatFeesColumns[0]},
+			},
+			{
+				Name:    "chargeflatfees_tax_code_id",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeFlatFeesColumns[35]},
 			},
 		},
 	}
@@ -2440,6 +2450,11 @@ var (
 				Name:    "chargeusagebased_namespace_id",
 				Unique:  true,
 				Columns: []*schema.Column{ChargeUsageBasedColumns[14], ChargeUsageBasedColumns[0]},
+			},
+			{
+				Name:    "chargeusagebased_tax_code_id",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedColumns[33]},
 			},
 		},
 	}

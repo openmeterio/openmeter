@@ -127,7 +127,10 @@ func (ChargeUsageBased) Edges() []ent.Edge {
 }
 
 func (ChargeUsageBased) Indexes() []ent.Index {
-	return nil
+	return []ent.Index{
+		index.Fields("tax_code_id").
+			StorageKey("chargeusagebased_tax_code_id"),
+	}
 }
 
 func (ChargeUsageBased) Annotations() []schema.Annotation {

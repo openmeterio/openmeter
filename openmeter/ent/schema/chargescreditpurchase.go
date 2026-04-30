@@ -99,6 +99,13 @@ func (ChargeCreditPurchase) Edges() []ent.Edge {
 	}
 }
 
+func (ChargeCreditPurchase) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("tax_code_id").
+			StorageKey("chargecreditpurchases_tax_code_id"),
+	}
+}
+
 type ChargeCreditPurchaseCreditGrant struct {
 	ent.Schema
 }

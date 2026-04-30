@@ -130,6 +130,13 @@ func (ChargeFlatFee) Edges() []ent.Edge {
 	}
 }
 
+func (ChargeFlatFee) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("tax_code_id").
+			StorageKey("chargeflatfees_tax_code_id"),
+	}
+}
+
 type ChargeFlatFeeDetailedLine struct {
 	ent.Schema
 }
