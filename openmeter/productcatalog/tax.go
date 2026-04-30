@@ -119,6 +119,8 @@ func (c TaxConfig) Clone() TaxConfig {
 
 func MergeTaxConfigs(base, overrides *TaxConfig) *TaxConfig {
 	if base != nil && overrides != nil {
+		// TaxCode (resolved entity) is intentionally excluded: merge operates on
+		// intent-level configs, not snapshotted invoice lines.
 		return &TaxConfig{
 			Behavior:  lo.CoalesceOrEmpty(overrides.Behavior, base.Behavior),
 			Stripe:    lo.CoalesceOrEmpty(overrides.Stripe, base.Stripe),
@@ -127,10 +129,16 @@ func MergeTaxConfigs(base, overrides *TaxConfig) *TaxConfig {
 	}
 
 	if overrides != nil {
-		return overrides
+		c := overrides.Clone()
+		return &c
 	}
 
-	return base
+	if base != nil {
+		c := base.Clone()
+		return &c
+	}
+
+	return nil
 }
 
 type StripeTaxConfig struct {
@@ -185,6 +193,10 @@ func (c *TaxCodeConfig) Validate() error {
 		}
 	}
 
+	if c.TaxCodeID != nil && *c.TaxCodeID == "" {
+		errs = append(errs, fmt.Errorf("tax_code_id must not be empty when set"))
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -194,22 +206,40 @@ func (c *TaxCodeConfig) ToTaxConfig() *TaxConfig {
 		return nil
 	}
 
-	return &TaxConfig{
-		Behavior:  c.Behavior,
-		TaxCodeID: c.TaxCodeID,
+	out := &TaxConfig{}
+	if c.Behavior != nil {
+		b := *c.Behavior
+		out.Behavior = &b
 	}
+	if c.TaxCodeID != nil {
+		id := *c.TaxCodeID
+		out.TaxCodeID = &id
+	}
+	return out
 }
 
 // TaxCodeConfigFrom extracts the lean reference fields from a full TaxConfig.
+// Returns nil when cfg is nil or when neither Behavior nor TaxCodeID is set (e.g. Stripe-only config).
 func TaxCodeConfigFrom(cfg *TaxConfig) *TaxCodeConfig {
 	if cfg == nil {
 		return nil
 	}
 
-	return &TaxCodeConfig{
-		Behavior:  cfg.Behavior,
-		TaxCodeID: cfg.TaxCodeID,
+	out := &TaxCodeConfig{}
+	if cfg.Behavior != nil {
+		b := *cfg.Behavior
+		out.Behavior = &b
 	}
+	if cfg.TaxCodeID != nil {
+		id := *cfg.TaxCodeID
+		out.TaxCodeID = &id
+	}
+
+	if out.Behavior == nil && out.TaxCodeID == nil {
+		return nil
+	}
+
+	return out
 }
 
 // ResolveTaxConfig cross-populates TaxCodeID and provider-specific codes on the pointed-to
@@ -227,6 +257,9 @@ func TaxCodeConfigFrom(cfg *TaxConfig) *TaxCodeConfig {
 func ResolveTaxConfig(ctx context.Context, svc taxcode.Service, namespace string, cfg *TaxConfig) error {
 	if cfg == nil {
 		return nil
+	}
+	if svc == nil {
+		return fmt.Errorf("taxcode service is required")
 	}
 
 	switch {
@@ -280,7 +313,8 @@ func BackfillTaxConfig(cfg *TaxConfig, taxBehavior *TaxBehavior, tc *taxcode.Tax
 	}
 
 	if cfg.Behavior == nil && taxBehavior != nil {
-		cfg.Behavior = taxBehavior
+		b := *taxBehavior
+		cfg.Behavior = &b
 	}
 
 	if cfg.Stripe == nil && stripeCode != "" {
@@ -288,7 +322,8 @@ func BackfillTaxConfig(cfg *TaxConfig, taxBehavior *TaxBehavior, tc *taxcode.Tax
 	}
 
 	if cfg.TaxCodeID == nil && tc != nil && tc.ID != "" {
-		cfg.TaxCodeID = &tc.ID
+		id := tc.ID
+		cfg.TaxCodeID = &id
 	}
 
 	return cfg

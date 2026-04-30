@@ -331,11 +331,14 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementPropaga
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-creditpurchase-invoice")
 
-	sandboxApp := s.InstallSandboxApp(s.T(), ns)
-	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithManualApproval(),
+	)
 	cust := s.CreateTestCustomer(ns, "test-subject")
 
-	tc := s.createTestTaxCode(ctx, ns, "txcd-10000003")
+	const stripeCode = "txcd_10000003"
+	tc := s.createTestTaxCodeWithStripeMapping(ctx, ns, "txcd-10000003", stripeCode)
 
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -396,7 +399,57 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementPropaga
 	s.Equal(productcatalog.ExclusiveTaxBehavior, *gatheringLine.TaxConfig.Behavior)
 	s.Require().NotNil(gatheringLine.TaxConfig.TaxCodeID, "TaxCodeID must propagate to gathering line")
 	s.Equal(tc.ID, *gatheringLine.TaxConfig.TaxCodeID)
-	s.Nil(gatheringLine.TaxConfig.Stripe, "Stripe is resolved at invoice snapshot time, not on gathering lines")
+	// Stripe.Code is backfilled on read via BackfillTaxConfig + TaxCode edge (dual-write invariant).
+	s.Require().NotNil(gatheringLine.TaxConfig.Stripe, "Stripe.Code must be backfilled on gathering line via TaxCode edge")
+	s.Equal(stripeCode, gatheringLine.TaxConfig.Stripe.Code)
+
+	// Advance to service period start, invoice, approve, and settle — then verify that the
+	// standard invoice line carries Stripe.Code resolved from the TaxCode entity's app mapping.
+	initiatedCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
+	s.CreditPurchaseTestHandler.onCreditPurchaseInitiated = initiatedCallback.Handler(s.T())
+
+	clock.SetTime(servicePeriod.From)
+	now := clock.Now()
+	createdInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     &now,
+	})
+	s.NoError(err)
+	s.Require().Len(createdInvoices, 1)
+	invoiceID := createdInvoices[0].GetInvoiceID()
+	s.Equal(1, initiatedCallback.nrInvocations)
+
+	_, err = s.BillingService.ApproveInvoice(ctx, invoiceID)
+	s.NoError(err)
+
+	authorizedCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
+	s.CreditPurchaseTestHandler.onCreditPurchasePaymentAuthorized = authorizedCallback.Handler(s.T())
+	settledCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
+	s.CreditPurchaseTestHandler.onCreditPurchasePaymentSettled = settledCallback.Handler(s.T())
+
+	_, err = s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
+		InvoiceID: invoiceID,
+		Trigger:   billing.TriggerPaid,
+	})
+	s.NoError(err)
+	s.Equal(1, authorizedCallback.nrInvocations)
+	s.Equal(1, settledCallback.nrInvocations)
+
+	invoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: invoiceID,
+		Expand:  billing.StandardInvoiceExpandAll,
+	})
+	s.NoError(err)
+
+	stdLines := invoice.Lines.OrEmpty()
+	s.Require().Len(stdLines, 1)
+	line := stdLines[0]
+
+	s.Require().NotNil(line.TaxConfig, "standard invoice line must have TaxConfig")
+	s.Require().NotNil(line.TaxConfig.TaxCodeID, "TaxCodeID must be on standard invoice line")
+	s.Equal(tc.ID, *line.TaxConfig.TaxCodeID)
+	s.Require().NotNil(line.TaxConfig.Stripe, "Stripe.Code must be backfilled on standard invoice line via TaxCode edge")
+	s.Equal(stripeCode, line.TaxConfig.Stripe.Code)
 }
 
 // TestCreditPurchaseInvoiceSettlementNilTaxConfigDoesNotPropagateToGatheringLine verifies that
@@ -454,104 +507,6 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementNilTaxC
 	s.Require().Len(lines, 1)
 
 	s.Nil(lines[0].TaxConfig, "gathering line TaxConfig must be nil when Intent.TaxConfig is nil")
-}
-
-// TestCreditPurchasePaymentSettlementPopulatesStripeCodeOnStandardInvoice verifies the dual-write
-// invariant: when a TaxCode has a Stripe app mapping, both TaxCodeID and Stripe.Code are populated
-// on the resulting standard invoice line after the credit purchase payment is settled.
-func (s *TaxCodePersistenceTestSuite) TestCreditPurchasePaymentSettlementPopulatesStripeCodeOnStandardInvoice() {
-	ctx := s.T().Context()
-	ns := s.GetUniqueNamespace("charges-taxcode-cp-settled")
-
-	customInvoicing := s.SetupCustomInvoicing(ns)
-	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
-		billingtest.WithManualApproval(),
-	)
-	cust := s.CreateTestCustomer(ns, "test-subject")
-
-	const stripeCode = "txcd_10000004"
-	tc := s.createTestTaxCodeWithStripeMapping(ctx, ns, "txcd-10000004", stripeCode)
-
-	servicePeriod := timeutil.ClosedPeriod{
-		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
-		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
-	}
-	clock.SetTime(time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC))
-
-	initiatedCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
-	s.CreditPurchaseTestHandler.onCreditPurchaseInitiated = initiatedCallback.Handler(s.T())
-
-	_, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
-		Intents: charges.ChargeIntents{
-			charges.NewChargeIntent(creditpurchase.Intent{
-				Intent: meta.Intent{
-					Name:              "credit-purchase-settled-stripe",
-					ManagedBy:         billing.ManuallyManagedLine,
-					CustomerID:        cust.GetID().ID,
-					Currency:          USD,
-					ServicePeriod:     servicePeriod,
-					BillingPeriod:     servicePeriod,
-					FullServicePeriod: servicePeriod,
-					TaxConfig: &productcatalog.TaxCodeConfig{
-						Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-						TaxCodeID: &tc.ID,
-					},
-				},
-				CreditAmount: alpacadecimal.NewFromFloat(100),
-				Settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
-					GenericSettlement: creditpurchase.GenericSettlement{
-						Currency:  USD,
-						CostBasis: alpacadecimal.NewFromFloat(0.5),
-					},
-				}),
-			}),
-		},
-	})
-	s.NoError(err)
-
-	clock.SetTime(servicePeriod.From)
-	now := clock.Now()
-	createdInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: cust.GetID(),
-		AsOf:     &now,
-	})
-	s.NoError(err)
-	s.Require().Len(createdInvoices, 1)
-	invoiceID := createdInvoices[0].GetInvoiceID()
-	s.Equal(1, initiatedCallback.nrInvocations)
-
-	_, err = s.BillingService.ApproveInvoice(ctx, invoiceID)
-	s.NoError(err)
-
-	authorizedCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
-	s.CreditPurchaseTestHandler.onCreditPurchasePaymentAuthorized = authorizedCallback.Handler(s.T())
-	settledCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
-	s.CreditPurchaseTestHandler.onCreditPurchasePaymentSettled = settledCallback.Handler(s.T())
-
-	_, err = s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
-		InvoiceID: invoiceID,
-		Trigger:   billing.TriggerPaid,
-	})
-	s.NoError(err)
-	s.Equal(1, authorizedCallback.nrInvocations)
-	s.Equal(1, settledCallback.nrInvocations)
-
-	invoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
-		Invoice: invoiceID,
-		Expand:  billing.StandardInvoiceExpandAll,
-	})
-	s.NoError(err)
-
-	lines := invoice.Lines.OrEmpty()
-	s.Require().Len(lines, 1)
-	line := lines[0]
-
-	s.Require().NotNil(line.TaxConfig, "standard invoice line must have TaxConfig")
-	s.Require().NotNil(line.TaxConfig.TaxCodeID, "TaxCodeID must be on standard invoice line")
-	s.Equal(tc.ID, *line.TaxConfig.TaxCodeID)
-	s.Require().NotNil(line.TaxConfig.Stripe, "Stripe.Code must be backfilled on standard invoice line via TaxCode edge")
-	s.Equal(stripeCode, line.TaxConfig.Stripe.Code)
 }
 
 // TestFlatFeeCreditOnlyHandlerReceivesTaxConfig verifies that when a credit-only flat-fee charge
@@ -705,6 +660,103 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditOnlyHandlerReceivesTax
 	s.Equal(productcatalog.ExclusiveTaxBehavior, *capturedInput.Charge.Intent.TaxConfig.Behavior)
 	s.Require().NotNil(capturedInput.Charge.Intent.TaxConfig.TaxCodeID)
 	s.Equal(tc.ID, *capturedInput.Charge.Intent.TaxConfig.TaxCodeID)
+}
+
+// TestFlatFeeInvoiceSettlementPopulatesStripeCodeOnStandardInvoice verifies the dual-write
+// invariant for flat-fee credit_then_invoice charges: after payment is settled, the standard
+// invoice line carries both TaxCodeID (FK) and Stripe.Code resolved from the TaxCode entity.
+func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPopulatesStripeCodeOnStandardInvoice() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-taxcode-flatfee-invoice-settled")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithManualApproval(),
+	)
+	cust := s.CreateTestCustomer(ns, "test-subject")
+
+	const stripeCode = "txcd_20000005"
+	tc := s.createTestTaxCodeWithStripeMapping(ctx, ns, "txcd-20000005", stripeCode)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	clock.SetTime(time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC))
+
+	_, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromFloat(100),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				name:              "flat-fee-invoice-stripe-taxcode",
+				managedBy:         billing.ManuallyManagedLine,
+				uniqueReferenceID: "flat-fee-invoice-stripe-taxcode",
+				taxConfig: &productcatalog.TaxCodeConfig{
+					Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+					TaxCodeID: &tc.ID,
+				},
+			}),
+		},
+	})
+	s.NoError(err)
+
+	s.FlatFeeTestHandler.onAssignedToInvoice = func(_ context.Context, input flatfee.OnAssignedToInvoiceInput) (creditrealization.CreateAllocationInputs, error) {
+		return creditrealization.CreateAllocationInputs{}, nil
+	}
+
+	clock.SetTime(servicePeriod.From)
+	now := clock.Now()
+	createdInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     &now,
+	})
+	s.NoError(err)
+	s.Require().Len(createdInvoices, 1)
+	invoiceID := createdInvoices[0].GetInvoiceID()
+
+	s.FlatFeeTestHandler.onInvoiceUsageAccrued = func(_ context.Context, _ flatfee.OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error) {
+		return ledgertransaction.GroupReference{TransactionGroupID: ulid.Make().String()}, nil
+	}
+	s.FlatFeeTestHandler.onPaymentAuthorized = func(_ context.Context, _ flatfee.Charge) (ledgertransaction.GroupReference, error) {
+		return ledgertransaction.GroupReference{TransactionGroupID: ulid.Make().String()}, nil
+	}
+	s.FlatFeeTestHandler.onPaymentSettled = func(_ context.Context, _ flatfee.Charge) (ledgertransaction.GroupReference, error) {
+		return ledgertransaction.GroupReference{TransactionGroupID: ulid.Make().String()}, nil
+	}
+
+	_, err = s.BillingService.ApproveInvoice(ctx, invoiceID)
+	s.NoError(err)
+
+	_, err = s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
+		InvoiceID: invoiceID,
+		Trigger:   billing.TriggerPaid,
+	})
+	s.NoError(err)
+
+	invoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: invoiceID,
+		Expand:  billing.StandardInvoiceExpandAll,
+	})
+	s.NoError(err)
+
+	lines := invoice.Lines.OrEmpty()
+	s.Require().Len(lines, 1)
+	line := lines[0]
+
+	// Stripe.Code must be backfilled from the TaxCode entity's app mapping at invoice snapshot time.
+	s.Require().NotNil(line.TaxConfig, "standard invoice line must have TaxConfig")
+	s.Require().NotNil(line.TaxConfig.TaxCodeID, "TaxCodeID must be on standard invoice line")
+	s.Equal(tc.ID, *line.TaxConfig.TaxCodeID)
+	s.Require().NotNil(line.TaxConfig.Stripe, "Stripe.Code must be backfilled on standard invoice line via TaxCode edge")
+	s.Equal(stripeCode, line.TaxConfig.Stripe.Code)
 }
 
 func (s *TaxCodePersistenceTestSuite) createTestTaxCode(ctx context.Context, ns, key string) taxcode.TaxCode {
