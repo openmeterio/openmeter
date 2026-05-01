@@ -293,9 +293,9 @@ func TestV3AddonInstanceTypePriceCompatibility(t *testing.T) {
 		expectedStatus int
 	}{
 		{
-			name:         "multiple + flat rate card → 201",
-			instanceType: apiv3.AddonInstanceTypeMultiple,
-			rateCardFn:   func(t *testing.T) apiv3.BillingRateCard { return validFlatRateCard("multi_flat") },
+			name:           "multiple + flat rate card → 201",
+			instanceType:   apiv3.AddonInstanceTypeMultiple,
+			rateCardFn:     func(t *testing.T) apiv3.BillingRateCard { return validFlatRateCard("multi_flat") },
 			expectedStatus: http.StatusCreated,
 		},
 		{
