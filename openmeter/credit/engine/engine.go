@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
@@ -56,36 +55,19 @@ type RunResult struct {
 	RunParams RunParams
 }
 
-// TotalAvailableGrantAmount is the total amount of grants either currently active + the used amount of currently inactive grants.
+// TotalAvailableGrantAmount is the total capacity of grants in this period: the current snapshot balance
+// plus all grant-attributed usage across the history. This correctly accounts for rollover settings —
+// a grant with ResetMaxRollover=0 contributes 0 to capacity after a reset, not its original Amount.
 func (r RunResult) TotalAvailableGrantAmount() float64 {
-	// First, let's calculate the total amount of grants active at the end of the period.
-	activeAmount := lo.Reduce(r.RunParams.Grants, func(agg alpacadecimal.Decimal, grant grant.Grant, _ int) alpacadecimal.Decimal {
-		if !grant.ActiveAt(r.RunParams.Until) {
-			return agg
-		}
-
-		return agg.Add(alpacadecimal.NewFromFloat(grant.Amount))
-	}, alpacadecimal.NewFromFloat(0))
-
-	// Second, let's calculate the used-up amount of since inactive grants.
-	inactiveGrants := lo.Filter(r.RunParams.Grants, func(grant grant.Grant, _ int) bool {
-		return !grant.ActiveAt(r.RunParams.Until)
-	})
-
-	usedInactive := alpacadecimal.NewFromFloat(0)
-	if len(inactiveGrants) > 0 {
-		for _, seg := range r.History.Segments() {
-			for _, usage := range seg.GrantUsages {
-				if lo.SomeBy(inactiveGrants, func(grant grant.Grant) bool {
-					return grant.ID == usage.GrantID
-				}) {
-					usedInactive = usedInactive.Add(alpacadecimal.NewFromFloat(usage.Usage))
-				}
-			}
+	// Sum all grant-attributed usage across history segments (excludes overage/uncovered usage).
+	grantUsage := alpacadecimal.NewFromFloat(0)
+	for _, seg := range r.History.Segments() {
+		for _, usage := range seg.GrantUsages {
+			grantUsage = grantUsage.Add(alpacadecimal.NewFromFloat(usage.Usage))
 		}
 	}
 
-	return activeAmount.Add(usedInactive).InexactFloat64()
+	return alpacadecimal.NewFromFloat(r.Snapshot.Balance()).Add(grantUsage).InexactFloat64()
 }
 
 type Engine interface {

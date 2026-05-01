@@ -389,6 +389,139 @@ func Test_Fuzzing(t *testing.T) {
 	}
 }
 
+func TestTotalAvailableGrantAmount(t *testing.T) {
+	t1, err := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z")
+	assert.NoError(t, err)
+	meterSlug := "meter-1"
+
+	meter := meterpkg.Meter{
+		Key:         meterSlug,
+		Aggregation: meterpkg.MeterAggregationSum,
+	}
+
+	setup := func(t *testing.T) (engine.Engine, addUsageFunc) {
+		t.Helper()
+		streamingConnector := testutils.NewMockStreamingConnector(t)
+		queryFn := func(ctx context.Context, from, to time.Time) (float64, error) {
+			rows, err := streamingConnector.QueryMeter(ctx, "default", meter, streaming.QueryParams{From: &from, To: &to})
+			if err != nil {
+				return 0, err
+			}
+			if len(rows) == 0 {
+				return 0, nil
+			}
+			return rows[0].Value, nil
+		}
+		return engine.NewEngine(engine.EngineConfig{QueryUsage: queryFn}),
+			func(usage float64, at time.Time) { streamingConnector.AddSimpleEvent(meterSlug, usage, at) }
+	}
+
+	t.Run("no usage, full-rollover grant: total equals grant amount", func(t *testing.T) {
+		eng, _ := setup(t)
+		g := makeGrant(grant.Grant{
+			ID:               "grant-1",
+			Amount:           3000.0,
+			Priority:         1,
+			EffectiveAt:      t1,
+			ResetMaxRollover: 3000.0,
+			ResetMinRollover: 3000.0,
+		})
+
+		res, err := eng.Run(t.Context(), engine.RunParams{
+			Meter:  meter,
+			Grants: []grant.Grant{g},
+			StartingSnapshot: balance.Snapshot{
+				Balances: balance.Map{g.ID: 3000.0},
+				At:       t1,
+			},
+			Until: t1.Add(time.Hour),
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, 3000.0, res.TotalAvailableGrantAmount())
+	})
+
+	t.Run("no usage, zero-rollover grant: total equals zero", func(t *testing.T) {
+		// A grant created via V1 API without explicit MaxRolloverAmount has ResetMaxRollover=0.
+		// After a reset the balance is wiped to 0. TotalAvailableGrantAmount must reflect that,
+		// not report the original Amount.
+		eng, _ := setup(t)
+		g := makeGrant(grant.Grant{
+			ID:               "grant-1",
+			Amount:           3000.0,
+			Priority:         1,
+			EffectiveAt:      t1,
+			ResetMaxRollover: 0,
+			ResetMinRollover: 0,
+		})
+
+		// Snapshot already reflects the post-reset state: balance was rolled to 0.
+		res, err := eng.Run(t.Context(), engine.RunParams{
+			Meter:  meter,
+			Grants: []grant.Grant{g},
+			StartingSnapshot: balance.Snapshot{
+				Balances: balance.Map{g.ID: 0.0},
+				At:       t1,
+			},
+			Until: t1.Add(time.Hour),
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, 0.0, res.TotalAvailableGrantAmount())
+	})
+
+	t.Run("partial usage: total equals remaining balance plus consumed grant amount", func(t *testing.T) {
+		eng, use := setup(t)
+		use(500, t1.Add(time.Minute))
+		g := makeGrant(grant.Grant{
+			ID:               "grant-1",
+			Amount:           3000.0,
+			Priority:         1,
+			EffectiveAt:      t1,
+			ResetMaxRollover: 3000.0,
+			ResetMinRollover: 0,
+		})
+
+		res, err := eng.Run(t.Context(), engine.RunParams{
+			Meter:  meter,
+			Grants: []grant.Grant{g},
+			StartingSnapshot: balance.Snapshot{
+				Balances: balance.Map{g.ID: 3000.0},
+				At:       t1,
+			},
+			Until: t1.Add(time.Hour),
+		})
+		assert.NoError(t, err)
+		// remaining balance (2500) + used (500) = 3000
+		assert.Equal(t, 3000.0, res.TotalAvailableGrantAmount())
+	})
+
+	t.Run("overage usage is excluded from total", func(t *testing.T) {
+		eng, use := setup(t)
+		// Use more than the grant amount — 200 units of overage
+		use(1200, t1.Add(time.Minute))
+		g := makeGrant(grant.Grant{
+			ID:               "grant-1",
+			Amount:           1000.0,
+			Priority:         1,
+			EffectiveAt:      t1,
+			ResetMaxRollover: 1000.0,
+			ResetMinRollover: 0,
+		})
+
+		res, err := eng.Run(t.Context(), engine.RunParams{
+			Meter:  meter,
+			Grants: []grant.Grant{g},
+			StartingSnapshot: balance.Snapshot{
+				Balances: balance.Map{g.ID: 1000.0},
+				At:       t1,
+			},
+			Until: t1.Add(time.Hour),
+		})
+		assert.NoError(t, err)
+		// Only the grant-covered 1000 counts; the 200 overage does not inflate the total.
+		assert.Equal(t, 1000.0, res.TotalAvailableGrantAmount())
+	})
+}
+
 func makeGrant(grant grant.Grant) grant.Grant {
 	grant.ExpiresAt = grant.GetExpiration()
 	return grant
