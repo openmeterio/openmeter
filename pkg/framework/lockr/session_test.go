@@ -424,7 +424,6 @@ func Test_SessionLocker(t *testing.T) {
 		locker1 := newTestSessionLocker(t, testDB.URL)
 		err := locker1.Start(t.Context())
 		require.NoError(t, err)
-		defer locker1.Close()
 
 		k, err := NewKey("test", "reuse-lockr")
 		require.NoError(t, err)
@@ -436,7 +435,7 @@ func Test_SessionLocker(t *testing.T) {
 		// Release
 		require.NoError(t, releaser(t.Context()))
 
-		// Close Lockr
+		// Close Lockr and restart
 		locker1.Close()
 
 		err = locker1.Start(t.Context())

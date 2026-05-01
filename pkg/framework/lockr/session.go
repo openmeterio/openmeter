@@ -112,8 +112,9 @@ func (l *SessionLocker) Start(ctx context.Context) error {
 	if err = l.conn.PingContext(ctx); err != nil {
 		l.logger.WarnContext(ctx, "recreating connection", "error", err)
 
-		// Close the existing connection and create a new one
-		l.closer()
+		if cErr := l.conn.Close(); cErr != nil && !errors.Is(cErr, sql.ErrConnDone) {
+			l.logger.Error("failed to close stale postgres connection", "error", cErr)
+		}
 
 		l.conn, err = l.driver.DB().Conn(ctx)
 		if err != nil {
@@ -308,7 +309,7 @@ func (l *SessionLocker) Close() {
 		return
 	}
 
-	if l.closer == nil {
+	if l.closer != nil {
 		l.closer()
 	}
 	l.closed.Store(true)
