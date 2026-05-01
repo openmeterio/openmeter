@@ -364,10 +364,12 @@ func validFlatRateCard(keyPrefix string) apiv3.BillingRateCard {
 // It must exist in the e2e server config (e2e/config.yaml).
 const addonMeterSlug = "addon_meter"
 
-// createTestFeature creates a metered feature via the v1 API and returns its ID.
-// The feature references the pre-configured addon_meter so that non-flat rate cards
-// referencing it pass the "feature must be metered" validation.
-func createTestFeature(t *testing.T, keyPrefix string) string {
+// createTestFeature creates a metered feature via the v1 API and returns its
+// (id, key). The feature references the pre-configured addon_meter so that
+// non-flat rate cards referencing it pass the "feature must be metered"
+// validation. The rate card Key must equal the feature Key, so callers should
+// use the returned key as the rate card key.
+func createTestFeature(t *testing.T, keyPrefix string) (id, key string) {
 	t.Helper()
 
 	client := initClient(t)
@@ -375,7 +377,7 @@ func createTestFeature(t *testing.T, keyPrefix string) string {
 	ctx, cancel := context.WithTimeout(t.Context(), v3RequestTimeout)
 	defer cancel()
 
-	key := uniqueKey(keyPrefix + "_feature")
+	key = uniqueKey(keyPrefix + "_feature")
 	meterSlug := addonMeterSlug
 	resp, err := client.CreateFeatureWithResponse(ctx, api.CreateFeatureJSONRequestBody{
 		Key:       key,
@@ -386,14 +388,15 @@ func createTestFeature(t *testing.T, keyPrefix string) string {
 	require.Equal(t, http.StatusCreated, resp.StatusCode(), "create feature: %s", resp.Body)
 	require.NotNil(t, resp.JSON201)
 
-	return resp.JSON201.Id
+	return resp.JSON201.Id, key
 }
 
 // validUnitRateCard returns a usage-based unit-priced rate card. Unit prices
 // cannot use payment_term=in_advance (that's flat-only), so this uses
-// in_arrears. featureID must reference an existing feature (non-flat prices
-// require a feature).
-func validUnitRateCard(keyPrefix string, featureID string) apiv3.BillingRateCard {
+// in_arrears. featureID and featureKey must reference an existing metered
+// feature; the rate card Key is set to featureKey (Key == FeatureKey is
+// required by server validation).
+func validUnitRateCard(featureID, featureKey string) apiv3.BillingRateCard {
 	cadence := apiv3.ISO8601Duration("P1M")
 	term := apiv3.BillingPricePaymentTermInArrears
 
@@ -406,8 +409,8 @@ func validUnitRateCard(keyPrefix string, featureID string) apiv3.BillingRateCard
 	}
 
 	return apiv3.BillingRateCard{
-		Key:            uniqueKey(keyPrefix),
-		Name:           "Test Unit Rate Card " + keyPrefix,
+		Key:            featureKey,
+		Name:           "Test Unit Rate Card",
 		Price:          price,
 		BillingCadence: &cadence,
 		PaymentTerm:    &term,
@@ -416,9 +419,10 @@ func validUnitRateCard(keyPrefix string, featureID string) apiv3.BillingRateCard
 }
 
 // validGraduatedRateCard returns a graduated tiered rate card with two tiers:
-// 0–100 units at $0.10/unit and 100+ units at $0.05/unit. featureID must
-// reference an existing feature (non-flat prices require a feature).
-func validGraduatedRateCard(keyPrefix string, featureID string) apiv3.BillingRateCard {
+// 0–100 units at $0.10/unit and 100+ units at $0.05/unit. featureID and
+// featureKey must reference an existing metered feature; the rate card Key is
+// set to featureKey (Key == FeatureKey is required by server validation).
+func validGraduatedRateCard(featureID, featureKey string) apiv3.BillingRateCard {
 	cadence := apiv3.ISO8601Duration("P1M")
 	term := apiv3.BillingPricePaymentTermInArrears
 
@@ -446,8 +450,8 @@ func validGraduatedRateCard(keyPrefix string, featureID string) apiv3.BillingRat
 	}
 
 	return apiv3.BillingRateCard{
-		Key:            uniqueKey(keyPrefix),
-		Name:           "Test Graduated Rate Card " + keyPrefix,
+		Key:            featureKey,
+		Name:           "Test Graduated Rate Card",
 		Price:          price,
 		BillingCadence: &cadence,
 		PaymentTerm:    &term,

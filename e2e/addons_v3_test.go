@@ -132,14 +132,14 @@ func TestV3Addon(t *testing.T) {
 func TestV3AddonMixedRateCardRoundTrip(t *testing.T) {
 	c := newV3Client(t)
 
-	unitFeatureID := createTestFeature(t, "mix_unit")
-	graduatedFeatureID := createTestFeature(t, "mix_graduated")
+	unitFeatureID, unitFeatureKey := createTestFeature(t, "mix_unit")
+	graduatedFeatureID, graduatedFeatureKey := createTestFeature(t, "mix_graduated")
 
 	flat := validFlatRateCard("mix_flat")
-	unit := validUnitRateCard("mix_unit", unitFeatureID)
+	unit := validUnitRateCard(unitFeatureID, unitFeatureKey)
 	percent := float32(10)
 	unit.Discounts = &apiv3.BillingRateCardDiscounts{Percentage: &percent}
-	graduated := validGraduatedRateCard("mix_graduated", graduatedFeatureID)
+	graduated := validGraduatedRateCard(graduatedFeatureID, graduatedFeatureKey)
 
 	body := validAddonRequest("mixed_rc")
 	body.RateCards = []apiv3.BillingRateCard{flat, unit, graduated}
@@ -302,8 +302,8 @@ func TestV3AddonInstanceTypePriceCompatibility(t *testing.T) {
 			name:         "single + unit rate card → 201",
 			instanceType: apiv3.AddonInstanceTypeSingle,
 			rateCardFn: func(t *testing.T) apiv3.BillingRateCard {
-				featureID := createTestFeature(t, "single_unit")
-				return validUnitRateCard("single_unit", featureID)
+				featureID, featureKey := createTestFeature(t, "single_unit")
+				return validUnitRateCard(featureID, featureKey)
 			},
 			expectedStatus: http.StatusCreated,
 		},
