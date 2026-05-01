@@ -17,10 +17,11 @@ import (
 )
 
 var (
-	ErrNoLockAcquired    = errors.New("lock could not be acquired")
-	ErrNoLockReleased    = errors.New("lock could not be released")
-	ErrSessionLockerDone = errors.New("session locker is already closed")
-	ErrSessionLockerBusy = errors.New("session locker is blocked by another lock request")
+	ErrNoLockAcquired     = errors.New("lock could not be acquired")
+	ErrNoLockReleased     = errors.New("lock could not be released")
+	ErrSessionLockerDone  = errors.New("session locker is already closed")
+	ErrSessionLockerBusy  = errors.New("session locker is blocked by another lock request")
+	ErrDatabaseConnClosed = errors.New("database connection is closed")
 )
 
 type Releaser func(context.Context) error
@@ -42,7 +43,7 @@ func (r *releaser) release(ctx context.Context) error {
 
 	rErr := r.locker.release(ctx, r.key)
 	if rErr != nil {
-		if !errors.Is(rErr, ErrNoLockReleased) && !errors.Is(rErr, ErrSessionLockerDone) {
+		if !errors.Is(rErr, ErrNoLockReleased) && !errors.Is(rErr, ErrSessionLockerDone) && !errors.Is(rErr, ErrDatabaseConnClosed) {
 			return rErr
 		}
 	}
@@ -108,11 +109,31 @@ func (l *SessionLocker) Start(ctx context.Context) error {
 		}
 	}
 
+	if err = l.conn.PingContext(ctx); err != nil {
+		l.logger.WarnContext(ctx, "recreating connection", "error", err)
+
+		// Close the existing connection and create a new one
+		l.closer()
+
+		l.conn, err = l.driver.DB().Conn(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to get postgres connection: %w", err)
+		}
+	}
+
 	l.closer = sync.OnceFunc(func() {
-		if err := l.conn.Close(); err != nil {
-			l.logger.Error("failed to close postgres connection: some session-level advisory locks might be dangling", "error", err)
+		if l.conn == nil {
+			return
+		}
+
+		if cErr := l.conn.Close(); cErr != nil {
+			if !errors.Is(cErr, sql.ErrConnDone) {
+				l.logger.Error("failed to close postgres connection: some session-level advisory locks might be dangling", "error", cErr)
+			}
 		}
 	})
+
+	l.closed.Store(false)
 
 	return err
 }
@@ -120,6 +141,10 @@ func (l *SessionLocker) Start(ctx context.Context) error {
 func (l *SessionLocker) lock(ctx context.Context, key Key, nonblocking bool) (Releaser, error) {
 	if l.closed.Load() {
 		return nil, ErrSessionLockerDone
+	}
+
+	if err := l.conn.PingContext(ctx); err != nil {
+		return nil, ErrDatabaseConnClosed
 	}
 
 	lockFunc := "pg_advisory_lock"
@@ -229,6 +254,10 @@ func (l *SessionLocker) release(ctx context.Context, key Key) error {
 		return ErrSessionLockerDone
 	}
 
+	if err := l.conn.PingContext(ctx); err != nil {
+		return ErrDatabaseConnClosed
+	}
+
 	q, args := entsql.Dialect(dialect.Postgres).
 		SelectExpr(entsql.ExprFunc(func(b *entsql.Builder) {
 			b.WriteString("pg_advisory_unlock")
@@ -279,7 +308,9 @@ func (l *SessionLocker) Close() {
 		return
 	}
 
-	l.closer()
+	if l.closer == nil {
+		l.closer()
+	}
 	l.closed.Store(true)
 
 	// Release references to conn and closer so it can be GC'd

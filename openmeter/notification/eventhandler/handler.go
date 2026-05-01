@@ -92,12 +92,6 @@ func (h *Handler) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	err := h.lockr.Start(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to start session lockr: %w", err)
-	}
-	defer h.lockr.Close()
-
 	ticker := time.NewTicker(h.reconcileInterval)
 	defer ticker.Stop()
 

@@ -73,6 +73,12 @@ func (h *Handler) Reconcile(ctx context.Context) error {
 
 		span.AddEvent("acquiring lock")
 
+		err := h.lockr.Start(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to start session lockr: %w", err)
+		}
+		defer h.lockr.Close()
+
 		releaser, err := h.lockr.TryLockWithScopes(ctx, reconcileLockKey)
 		if err != nil {
 			if errors.Is(err, lockr.ErrNoLockAcquired) {

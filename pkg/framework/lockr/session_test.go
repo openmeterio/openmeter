@@ -419,4 +419,35 @@ func Test_SessionLocker(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, releaser2(t.Context()))
 	})
+
+	t.Run("Reuse lockr", func(t *testing.T) {
+		locker1 := newTestSessionLocker(t, testDB.URL)
+		err := locker1.Start(t.Context())
+		require.NoError(t, err)
+		defer locker1.Close()
+
+		k, err := NewKey("test", "reuse-lockr")
+		require.NoError(t, err)
+
+		// Session acquires with blocking Lock
+		releaser, err := locker1.Lock(t.Context(), k)
+		require.NoError(t, err)
+
+		// Release
+		require.NoError(t, releaser(t.Context()))
+
+		// Close Lockr
+		locker1.Close()
+
+		err = locker1.Start(t.Context())
+		require.NoError(t, err)
+		defer locker1.Close()
+
+		// Session acquires with blocking Lock
+		releaser, err = locker1.Lock(t.Context(), k)
+		require.NoError(t, err)
+
+		// Release
+		require.NoError(t, releaser(t.Context()))
+	})
 }
