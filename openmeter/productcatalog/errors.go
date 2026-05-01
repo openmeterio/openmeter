@@ -317,6 +317,16 @@ var ErrRateCardUsageBasedPriceRequiresFeatureKey = models.NewValidationIssue(
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
+const ErrCodeRateCardUsageBasedPriceRequiresMeteredFeature models.ErrorCode = "rate_card_usage_based_price_requires_metered_feature"
+
+var ErrRateCardUsageBasedPriceRequiresMeteredFeature = models.NewValidationIssue(
+	ErrCodeRateCardUsageBasedPriceRequiresMeteredFeature,
+	"non-flat prices require a metered feature (feature must have a meter)",
+	models.WithFieldString("featureKey"),
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
 const ErrCodePercentageDiscountInvalidValue models.ErrorCode = "percentage_discount_invalid_value"
 
 var ErrPercentageDiscountInvalidValue = models.NewValidationIssue(

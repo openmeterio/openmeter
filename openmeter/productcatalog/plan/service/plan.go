@@ -104,10 +104,20 @@ func (s service) resolveFeatures(ctx context.Context, namespace string, rateCard
 			if featureByID.Key != *fK {
 				return models.NewGenericNotFoundError(fmt.Errorf("feature with ID %s has key %s, but expected %s", *fID, featureByID.Key, *fK))
 			}
+
+			price := rateCard.AsMeta().Price
+			if price != nil && price.Type() != productcatalog.FlatPriceType && featureByID.MeterID == nil {
+				return models.NewGenericValidationError(productcatalog.ErrRateCardUsageBasedPriceRequiresMeteredFeature)
+			}
 		} else if fID != nil && fK == nil {
 			// We need to populate FeatureKey
 			if !featureByIDOk {
 				return models.NewGenericNotFoundError(fmt.Errorf("feature with ID %s not found", *fID))
+			}
+
+			price := rateCard.AsMeta().Price
+			if price != nil && price.Type() != productcatalog.FlatPriceType && featureByID.MeterID == nil {
+				return models.NewGenericValidationError(productcatalog.ErrRateCardUsageBasedPriceRequiresMeteredFeature)
 			}
 
 			// FIXME: merging like this is a pain, we should just use pointers...
@@ -142,6 +152,11 @@ func (s service) resolveFeatures(ctx context.Context, namespace string, rateCard
 			// We need to populate FeatureID
 			if !featureByKeyOk {
 				return models.NewGenericNotFoundError(fmt.Errorf("feature with key %s not found", *fK))
+			}
+
+			price := rateCard.AsMeta().Price
+			if price != nil && price.Type() != productcatalog.FlatPriceType && featureByKey.MeterID == nil {
+				return models.NewGenericValidationError(productcatalog.ErrRateCardUsageBasedPriceRequiresMeteredFeature)
 			}
 
 			// FIXME: merging like this is a pain, we should just use pointers...

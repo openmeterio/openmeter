@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
@@ -17,9 +18,12 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 var MonthPeriod = datetime.NewISODuration(0, 1, 0, 0, 0, 0, 0)
+
+const proRateCardFeatureKey = "api_requests_total"
 
 var planPhases = []productcatalog.Phase{
 	{
@@ -65,11 +69,11 @@ var planPhases = []productcatalog.Phase{
 		RateCards: []productcatalog.RateCard{
 			&productcatalog.UsageBasedRateCard{
 				RateCardMeta: productcatalog.RateCardMeta{
-					Key:                 "pro-ratecard-1",
+					Key:                 proRateCardFeatureKey,
 					Name:                "Pro RateCard 1",
 					Description:         lo.ToPtr("Pro RateCard 1"),
 					Metadata:            models.Metadata{"name": "pro-ratecard-1"},
-					FeatureKey:          nil,
+					FeatureKey:          lo.ToPtr(proRateCardFeatureKey),
 					FeatureID:           nil,
 					EntitlementTemplate: nil,
 					TaxConfig: &productcatalog.TaxConfig{
@@ -124,6 +128,31 @@ func TestPostgresAdapter(t *testing.T) {
 
 	// Get new namespace ID
 	namespace := pctestutils.NewTestNamespace(t)
+
+	err := env.Meter.ReplaceMeters(ctx, pctestutils.NewTestMeters(t, namespace))
+	require.NoErrorf(t, err, "replacing meters must not fail")
+
+	result, err := env.Meter.ListMeters(ctx, meter.ListMetersParams{
+		Page: pagination.Page{
+			PageSize:   1000,
+			PageNumber: 1,
+		},
+		Namespace: namespace,
+	})
+	require.NoErrorf(t, err, "listing meters must not fail")
+
+	var proMeter *meter.Meter
+	for _, m := range result.Items {
+		if m.Key == proRateCardFeatureKey {
+			mm := m
+			proMeter = &mm
+			break
+		}
+	}
+	require.NotNilf(t, proMeter, "meter with key %s must exist", proRateCardFeatureKey)
+
+	_, err = env.Feature.CreateFeature(ctx, pctestutils.NewTestFeatureFromMeter(t, proMeter))
+	require.NoErrorf(t, err, "creating pro rate card feature must not fail")
 
 	planV1Input := pctestutils.NewTestPlan(t, namespace, planPhases...)
 
