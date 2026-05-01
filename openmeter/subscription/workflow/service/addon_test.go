@@ -688,8 +688,9 @@ func TestAddonCombinations(t *testing.T) {
 				subscriptiontestutils.ExampleRateCard1.Clone(), // Flat price
 				&productcatalog.UsageBasedRateCard{ // Dynamic price
 					RateCardMeta: productcatalog.RateCardMeta{
-						Key:  "dynamic_rc_1",
-						Name: "Dynamic Rate Card 1",
+						Key:        subscriptiontestutils.ExampleFeatureKey3,
+						Name:       "Dynamic Rate Card 1",
+						FeatureKey: lo.ToPtr(subscriptiontestutils.ExampleFeatureKey3),
 						Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 							Mode: productcatalog.VolumeTieredPrice,
 							Tiers: []productcatalog.PriceTier{
@@ -724,8 +725,9 @@ func TestAddonCombinations(t *testing.T) {
 				productcatalog.AddonInstanceTypeSingle,
 				&productcatalog.UsageBasedRateCard{ // Dynamic price for addon
 					RateCardMeta: productcatalog.RateCardMeta{
-						Key:  "addon_dynamic_rc",
-						Name: "Addon Dynamic Rate Card",
+						Key:        subscriptiontestutils.ExampleFeatureKey2,
+						Name:       "Addon Dynamic Rate Card",
+						FeatureKey: lo.ToPtr(subscriptiontestutils.ExampleFeatureKey2),
 						Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 							Mode: productcatalog.VolumeTieredPrice,
 							Tiers: []productcatalog.PriceTier{

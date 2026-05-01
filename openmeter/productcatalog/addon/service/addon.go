@@ -30,6 +30,17 @@ func (s service) ListAddons(ctx context.Context, params addon.ListAddonsInput) (
 	return fn(ctx)
 }
 
+// validateMeteredFeatureForPrice returns an error if rc has a non-flat price and feat
+// has no meter (i.e. is not a metered feature).
+func validateMeteredFeatureForPrice(rc productcatalog.RateCard, feat feature.Feature) error {
+	price := rc.AsMeta().Price
+	if price != nil && price.Type() != productcatalog.FlatPriceType && feat.MeterID == nil {
+		return models.NewGenericValidationError(productcatalog.ErrRateCardUsageBasedPriceRequiresMeteredFeature)
+	}
+
+	return nil
+}
+
 // resolveFeatures resolves the FeatureKey and FeatureID references for each RateCard
 // - If FeatureID is provided (but not FeatureKey), it will populate FeatureKey
 // - If FeatureKey is provided (but not FeatureID), it will populate FeatureID
@@ -110,10 +121,18 @@ func (s service) resolveFeatures(ctx context.Context, namespace string, rateCard
 			if featureByID.Key != *fK {
 				return models.NewGenericNotFoundError(fmt.Errorf("feature with ID %s has key %s, but expected %s", *fID, featureByID.Key, *fK))
 			}
+
+			if err := validateMeteredFeatureForPrice(rateCard, featureByID); err != nil {
+				return err
+			}
 		} else if fID != nil && fK == nil {
 			// We need to populate FeatureKey
 			if !featureByIDOk {
 				return models.NewGenericNotFoundError(fmt.Errorf("feature with ID %s not found", *fID))
+			}
+
+			if err := validateMeteredFeatureForPrice(rateCard, featureByID); err != nil {
+				return err
 			}
 
 			// FIXME: merging like this is a pain, we should just use pointers...
@@ -148,6 +167,10 @@ func (s service) resolveFeatures(ctx context.Context, namespace string, rateCard
 			// We need to populate FeatureID
 			if !featureByKeyOk {
 				return models.NewGenericNotFoundError(fmt.Errorf("feature with key %s not found", *fK))
+			}
+
+			if err := validateMeteredFeatureForPrice(rateCard, featureByKey); err != nil {
+				return err
 			}
 
 			// FIXME: merging like this is a pain, we should just use pointers...

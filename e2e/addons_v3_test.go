@@ -132,11 +132,14 @@ func TestV3Addon(t *testing.T) {
 func TestV3AddonMixedRateCardRoundTrip(t *testing.T) {
 	c := newV3Client(t)
 
+	unitFeatureID, unitFeatureKey := createTestFeature(t, "mix_unit")
+	graduatedFeatureID, graduatedFeatureKey := createTestFeature(t, "mix_graduated")
+
 	flat := validFlatRateCard("mix_flat")
-	unit := validUnitRateCard("mix_unit")
+	unit := validUnitRateCard(unitFeatureID, unitFeatureKey)
 	percent := float32(10)
 	unit.Discounts = &apiv3.BillingRateCardDiscounts{Percentage: &percent}
-	graduated := validGraduatedRateCard("mix_graduated")
+	graduated := validGraduatedRateCard(graduatedFeatureID, graduatedFeatureKey)
 
 	body := validAddonRequest("mixed_rc")
 	body.RateCards = []apiv3.BillingRateCard{flat, unit, graduated}
@@ -286,19 +289,22 @@ func TestV3AddonInstanceTypePriceCompatibility(t *testing.T) {
 	cases := []struct {
 		name           string
 		instanceType   apiv3.AddonInstanceType
-		rateCard       apiv3.BillingRateCard
+		rateCardFn     func(t *testing.T) apiv3.BillingRateCard
 		expectedStatus int
 	}{
 		{
 			name:           "multiple + flat rate card → 201",
 			instanceType:   apiv3.AddonInstanceTypeMultiple,
-			rateCard:       validFlatRateCard("multi_flat"),
+			rateCardFn:     func(t *testing.T) apiv3.BillingRateCard { return validFlatRateCard("multi_flat") },
 			expectedStatus: http.StatusCreated,
 		},
 		{
-			name:           "single + unit rate card → 201",
-			instanceType:   apiv3.AddonInstanceTypeSingle,
-			rateCard:       validUnitRateCard("single_unit"),
+			name:         "single + unit rate card → 201",
+			instanceType: apiv3.AddonInstanceTypeSingle,
+			rateCardFn: func(t *testing.T) apiv3.BillingRateCard {
+				featureID, featureKey := createTestFeature(t, "single_unit")
+				return validUnitRateCard(featureID, featureKey)
+			},
 			expectedStatus: http.StatusCreated,
 		},
 	}
@@ -309,7 +315,7 @@ func TestV3AddonInstanceTypePriceCompatibility(t *testing.T) {
 
 			body := validAddonRequest("instance_type_price")
 			body.InstanceType = tc.instanceType
-			body.RateCards = []apiv3.BillingRateCard{tc.rateCard}
+			body.RateCards = []apiv3.BillingRateCard{tc.rateCardFn(t)}
 
 			status, addon, problem := c.CreateAddon(body)
 			assert.Equal(t, tc.expectedStatus, status, "problem: %+v", problem)
