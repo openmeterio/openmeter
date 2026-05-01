@@ -758,16 +758,6 @@ func TestList(t *testing.T) {
 			require.Equal(t, 2, len(list.Items))
 		})
 
-		t.Run("FilterByName", func(t *testing.T) {
-			list, err := service.List(ctx, subscription.ListSubscriptionsInput{
-				Namespaces: []string{ns},
-				Name:       &filter.FilterString{Contains: lo.ToPtr("Alpha")},
-			})
-			require.Nil(t, err)
-			require.Equal(t, 1, len(list.Items))
-			require.Equal(t, sub1.ID, list.Items[0].ID)
-		})
-
 		t.Run("FilterByCustomerID", func(t *testing.T) {
 			list, err := service.List(ctx, subscription.ListSubscriptionsInput{
 				Namespaces: []string{ns},
@@ -786,30 +776,6 @@ func TestList(t *testing.T) {
 			})
 			require.Nil(t, err)
 			require.Equal(t, 2, len(list.Items))
-		})
-
-		t.Run("SortByNameAsc", func(t *testing.T) {
-			list, err := service.List(ctx, subscription.ListSubscriptionsInput{
-				Namespaces: []string{ns},
-				OrderBy:    subscription.OrderByName,
-				Order:      "ASC",
-			})
-			require.Nil(t, err)
-			require.Equal(t, 2, len(list.Items))
-			require.Equal(t, "Alpha Subscription", list.Items[0].Name)
-			require.Equal(t, "Beta Subscription", list.Items[1].Name)
-		})
-
-		t.Run("SortByNameDesc", func(t *testing.T) {
-			list, err := service.List(ctx, subscription.ListSubscriptionsInput{
-				Namespaces: []string{ns},
-				OrderBy:    subscription.OrderByName,
-				Order:      "DESC",
-			})
-			require.Nil(t, err)
-			require.Equal(t, 2, len(list.Items))
-			require.Equal(t, "Beta Subscription", list.Items[0].Name)
-			require.Equal(t, "Alpha Subscription", list.Items[1].Name)
 		})
 
 		t.Run("SortByID", func(t *testing.T) {

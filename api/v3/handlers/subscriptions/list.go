@@ -76,14 +76,6 @@ func (h *handler) ListSubscriptions() ListSubscriptionsHandler {
 				}
 				req.ID = id
 
-				name, err := filters.FromAPIFilterString(params.Filter.Name)
-				if err != nil {
-					return ListSubscriptionsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-						{Field: "filter[name]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
-					})
-				}
-				req.Name = name
-
 				status, err := filters.FromAPIStatusFilter[subscription.SubscriptionStatus](ctx, params.Filter.Status)
 				if err != nil {
 					return ListSubscriptionsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{

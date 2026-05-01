@@ -16,14 +16,13 @@ type OrderBy string
 
 const (
 	OrderByID         OrderBy = "id"
-	OrderByName       OrderBy = "name"
 	OrderByActiveFrom OrderBy = "active_from"
 	OrderByActiveTo   OrderBy = "active_to"
 )
 
 func (o OrderBy) Validate() error {
 	switch o {
-	case OrderByID, OrderByName, OrderByActiveFrom, OrderByActiveTo:
+	case OrderByID, OrderByActiveFrom, OrderByActiveTo:
 		return nil
 	}
 	return fmt.Errorf("invalid order by: %s", o)
@@ -41,7 +40,6 @@ type ListSubscriptionsInput struct {
 	Status         []SubscriptionStatus
 
 	ID      *filter.FilterULID
-	Name    *filter.FilterString
 	PlanID  *filter.FilterULID
 	PlanKey *filter.FilterString
 }
@@ -76,12 +74,6 @@ func (i ListSubscriptionsInput) Validate() error {
 	if i.CustomerID != nil {
 		if err := i.CustomerID.Validate(); err != nil {
 			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid customer_id filter: %w", err)))
-		}
-	}
-
-	if i.Name != nil {
-		if err := i.Name.Validate(); err != nil {
-			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid name filter: %w", err)))
 		}
 	}
 

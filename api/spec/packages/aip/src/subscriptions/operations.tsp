@@ -63,8 +63,6 @@ model ListSubscriptionsParamsFilter {
   #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
   customer_id?: Common.ULIDFieldFilter;
   #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
-  name?: Common.StringFieldFilter;
-  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
   status?: Common.StringFieldFilterExact;
   #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
   plan_id?: Common.ULIDFieldFilter;
@@ -92,7 +90,6 @@ interface SubscriptionsOperations {
      * Sort subscriptions returned in the response.
      * Supported sort attributes are:
      * - `id`
-     * - `name`
      * - `active_from` (default)
      * - `active_to`
      */

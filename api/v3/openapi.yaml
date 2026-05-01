@@ -2490,7 +2490,6 @@ paths:
             Sort subscriptions returned in the response.
             Supported sort attributes are:
             - `id`
-            - `name`
             - `active_from` (default)
             - `active_to`
           schema:
@@ -7960,8 +7959,6 @@ components:
           $ref: '#/components/schemas/ULIDFieldFilter'
         customer_id:
           $ref: '#/components/schemas/ULIDFieldFilter'
-        name:
-          $ref: '#/components/schemas/StringFieldFilter'
         status:
           $ref: '#/components/schemas/StringFieldFilterExact'
         plan_id:
