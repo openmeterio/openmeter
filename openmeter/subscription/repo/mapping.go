@@ -128,16 +128,23 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 	}
 
 	var rc productcatalog.RateCard
+	featureKey := item.FeatureKey
+	// Backfill FeatureKey from Key when the column is NULL: subscription items
+	// predate the FeatureKey-required invariant, and Key == FeatureKey for all
+	// plan-derived items, so Key is a safe fallback.
+	if featureKey == nil && item.Price != nil && item.Price.Type() != productcatalog.FlatPriceType {
+		featureKey = &item.Key
+	}
 	rcMeta := productcatalog.RateCardMeta{
 		Name:                item.Name,
 		Description:         item.Description,
-		FeatureKey:          item.FeatureKey,
+		FeatureKey:          featureKey,
 		EntitlementTemplate: item.EntitlementTemplate,
 		TaxConfig:           item.TaxConfig,
 		Price:               item.Price,
 		Discounts:           lo.FromPtr(item.Discounts),
 		Key:                 item.Key,
-		FeatureID:           nil, // FIXME: is this an issue?
+		FeatureID:           nil,
 	}
 
 	// Map TaxCode if eagerly loaded.
