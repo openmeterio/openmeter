@@ -1560,7 +1560,7 @@ func TestCredit(t *testing.T) {
 		require.Len(t, *grantListResp.JSON200, 1)
 
 		// Get feature
-		featureListResp, err := client.ListFeaturesWithResponse(context.Background(), &api.ListFeaturesParams{
+		featureListResp, err := client.ListFeaturesWithResponse(t.Context(), &api.ListFeaturesParams{
 			MeterSlug: &[]string{meterSlug},
 		})
 		require.NoError(t, err)
