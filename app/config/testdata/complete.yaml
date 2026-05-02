@@ -153,6 +153,10 @@ notification:
   sendingTimeout: 1h
   pendingTimeout: 2h
   reconcilerWorkers: 10
+  lock:
+    owner: lock-owner
+    leaseTime: 7m
+    heartbeatInterval: 29s
 
 svix:
   apiKey: test-svix-token

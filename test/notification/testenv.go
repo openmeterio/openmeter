@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	mathrand "math/rand/v2"
 	"net/url"
 	"os"
 	"testing"
@@ -28,7 +29,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
-	"github.com/openmeterio/openmeter/pkg/framework/lockr"
+	"github.com/openmeterio/openmeter/pkg/pglockx"
 )
 
 const (
@@ -186,12 +187,21 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 		return nil, fmt.Errorf("failed to create webhook handler: %w", err)
 	}
 
-	sessionLockr, err := lockr.NewSessionLockr(lockr.SessionLockerConfig{
-		Logger:         logger,
-		PostgresDriver: driver.PGDriver,
+	var (
+		lockLease     = 3 * time.Second
+		lockHeartbeat = time.Second
+		lockOwner     = fmt.Sprintf("notification.event_handler-%v", mathrand.Int())
+	)
+
+	logger.Debug("initializing notification lock client", "lease", lockLease, "heartbeatInterval", lockHeartbeat)
+
+	lockClient, err := pglockx.New(driver.PGDriver.DB(), pglockx.Config{
+		LeaseTime:         lockLease,
+		HeartbeatInterval: lockHeartbeat,
+		Owner:             lockOwner,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize session lockr: %w", err)
+		return nil, fmt.Errorf("failed to initialize notification lock client: %w", err)
 	}
 
 	eventHandler, err := eventhandler.New(eventhandler.Config{
@@ -199,7 +209,7 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 		Webhook:    webhook,
 		Logger:     logger,
 		Tracer:     tracer,
-		Lockr:      sessionLockr,
+		LockClient: lockClient,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize notification event handler: %w", err)
@@ -225,8 +235,6 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 		if err = eventHandler.Close(); err != nil {
 			errs = errors.Join(errs, fmt.Errorf("failed to close notification event handler: %w", err))
 		}
-
-		sessionLockr.Close()
 
 		if err = entClient.Close(); err != nil {
 			errs = errors.Join(errs, fmt.Errorf("failed to close ent driver: %w", err))
