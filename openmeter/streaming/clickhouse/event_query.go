@@ -11,17 +11,105 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
+// EventsTableEngineType is the storage engine used when creating the events table.
+type EventsTableEngineType string
+
+const (
+	EventsTableEngineMergeTree           EventsTableEngineType = "MergeTree"
+	EventsTableEngineReplicatedMergeTree EventsTableEngineType = "ReplicatedMergeTree"
+)
+
+// EventsTableEngine describes how the events table CREATE statement should be
+// rendered. The zero value renders the legacy `ENGINE = MergeTree` form, which
+// is rewritten transparently to SharedMergeTree by ClickHouse Cloud.
+type EventsTableEngine struct {
+	Type          EventsTableEngineType
+	ZooKeeperPath string
+	ReplicaName   string
+	Cluster       string
+}
+
+func (e EventsTableEngine) resolvedType() EventsTableEngineType {
+	if e.Type == "" {
+		return EventsTableEngineMergeTree
+	}
+	return e.Type
+}
+
+// Validate ensures the engine configuration is internally consistent.
+func (e EventsTableEngine) Validate() error {
+	// We backtick-quote the cluster name in the emitted SQL, so any value
+	// ClickHouse accepts as an identifier is fine here. We only reject
+	// whitespace-only values (likely a config typo — explicit nothing should
+	// be expressed by leaving the field empty).
+	if e.Cluster != "" && strings.TrimSpace(e.Cluster) == "" {
+		return fmt.Errorf("cluster name must not be whitespace-only")
+	}
+
+	switch e.resolvedType() {
+	case EventsTableEngineMergeTree:
+		return nil
+	case EventsTableEngineReplicatedMergeTree:
+		if strings.TrimSpace(e.ZooKeeperPath) == "" {
+			return fmt.Errorf("zooKeeperPath is required for %s", EventsTableEngineReplicatedMergeTree)
+		}
+		if strings.TrimSpace(e.ReplicaName) == "" {
+			return fmt.Errorf("replicaName is required for %s", EventsTableEngineReplicatedMergeTree)
+		}
+		return nil
+	default:
+		return fmt.Errorf("unsupported events table engine type %q", e.Type)
+	}
+}
+
+// engineClause renders the ENGINE = ... fragment.
+func (e EventsTableEngine) engineClause() string {
+	switch e.resolvedType() {
+	case EventsTableEngineReplicatedMergeTree:
+		return fmt.Sprintf(
+			"ENGINE = ReplicatedMergeTree('%s', '%s')",
+			escapeSingleQuotes(e.ZooKeeperPath),
+			escapeSingleQuotes(e.ReplicaName),
+		)
+	default:
+		return "ENGINE = MergeTree"
+	}
+}
+
+// escapeSingleQuotes doubles single quotes so the value can be embedded in a
+// single-quoted SQL string literal without breaking out.
+func escapeSingleQuotes(s string) string {
+	return strings.ReplaceAll(s, "'", "''")
+}
+
+// quoteClusterIdentifier wraps a cluster name in backticks, doubling any
+// embedded backticks so the value is parsed by ClickHouse as a single
+// identifier. Backtick-quoting accepts any cluster name ClickHouse permits in
+// <remote_servers> (including hyphens, dots, etc.), without re-implementing
+// ClickHouse's identifier-validation rules in our code.
+func quoteClusterIdentifier(name string) string {
+	return "`" + strings.ReplaceAll(name, "`", "``") + "`"
+}
+
 // Create Events Table
 type createEventsTable struct {
 	Database        string
 	EventsTableName string
+	Engine          EventsTableEngine
 }
 
 func (d createEventsTable) toSQL() string {
-	tableName := getTableName(d.Database, d.EventsTableName)
+	// The sqlbuilder treats the table name as a raw token, so we splice
+	// "ON CLUSTER {cluster}" into it to position the clause between the
+	// table name and the column definitions, which is the only place
+	// ClickHouse accepts it.
+	tableToken := getTableName(d.Database, d.EventsTableName)
+	if d.Engine.Cluster != "" {
+		tableToken = fmt.Sprintf("%s ON CLUSTER %s", tableToken, quoteClusterIdentifier(d.Engine.Cluster))
+	}
 
 	sb := sqlbuilder.ClickHouse.NewCreateTableBuilder()
-	sb.CreateTable(tableName)
+	sb.CreateTable(tableToken)
 	sb.IfNotExists()
 	sb.Define("namespace", "String")
 	sb.Define("id", "String")
@@ -34,7 +122,7 @@ func (d createEventsTable) toSQL() string {
 	sb.Define("stored_at", "DateTime")
 	sb.Define(fmt.Sprintf("INDEX %s_stored_at stored_at TYPE minmax GRANULARITY 4", d.EventsTableName))
 	sb.Define("store_row_id", "String")
-	sb.SQL("ENGINE = MergeTree")
+	sb.SQL(d.Engine.engineClause())
 	sb.SQL("PARTITION BY toYYYYMM(time)")
 	// Lowest cardinality columns we always filter on goes to the most left.
 	// ClickHouse always picks partition first so we always filter time by month.
