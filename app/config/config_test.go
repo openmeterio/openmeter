@@ -154,6 +154,12 @@ func TestComplete(t *testing.T) {
 					Enabled:      true,
 					PollInterval: 5 * time.Second,
 				},
+				EventsTableEngine: ClickhouseEventsTableEngineConfig{
+					Type:          ClickhouseEventsTableEngineReplicatedMergeTree,
+					ZooKeeperPath: "/clickhouse/tables/{shard}/{database}/{table}",
+					ReplicaName:   "{replica}",
+					Cluster:       "openmeter_cluster",
+				},
 			},
 			EventsTableName: "om_events",
 			AsyncInsert:     false,

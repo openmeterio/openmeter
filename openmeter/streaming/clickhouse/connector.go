@@ -30,6 +30,7 @@ type Config struct {
 	ClickHouse             clickhouse.Conn
 	Database               string
 	EventsTableName        string
+	EventsTableEngine      EventsTableEngine
 	AsyncInsert            bool
 	AsyncInsertWait        bool
 	InsertQuerySettings    map[string]string
@@ -55,6 +56,10 @@ func (c Config) Validate() error {
 
 	if c.EventsTableName == "" {
 		return fmt.Errorf("events table is required")
+	}
+
+	if err := c.EventsTableEngine.Validate(); err != nil {
+		return fmt.Errorf("events table engine: %w", err)
 	}
 
 	if c.ProgressManager == nil {
@@ -291,6 +296,7 @@ func (c *Connector) createEventsTable(ctx context.Context) error {
 	table := createEventsTable{
 		Database:        c.config.Database,
 		EventsTableName: c.config.EventsTableName,
+		Engine:          c.config.EventsTableEngine,
 	}
 
 	err := c.config.ClickHouse.Exec(ctx, table.toSQL())

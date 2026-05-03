@@ -19,6 +19,16 @@ down: ## Stop the dependencies via docker compose
 	$(call print-target)
 	docker compose down --remove-orphans --volumes
 
+.PHONY: up-replicated
+up-replicated: ## Start a 2-node replicated ClickHouse cluster (docker-compose.replicated.yaml) for testing the ReplicatedMergeTree code path
+	$(call print-target)
+	docker compose -f docker-compose.replicated.yaml up -d
+
+.PHONY: down-replicated
+down-replicated: ## Stop the replicated ClickHouse cluster
+	$(call print-target)
+	docker compose -f docker-compose.replicated.yaml down --remove-orphans --volumes
+
 .PHONY: patch-oapi-templates
 patch-oapi-templates: ## Patch oapi-codegen chi-middleware template with custom filter parsing
 	$(call print-target)
