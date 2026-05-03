@@ -88,6 +88,11 @@ OpenMeter would emit).
    ```sql
    RENAME TABLE openmeter.om_events TO openmeter.om_events_legacy ON CLUSTER {cluster};
    ```
+   > `{cluster}` is the ClickHouse `<macros>` value for the cluster name. If
+   > you haven't defined a `{cluster}` macro, replace it with your literal
+   > cluster name (e.g. `openmeter_cluster`). The same applies to every
+   > `ON CLUSTER {cluster}` clause below.
+
    Verify the rename completed on every replica via
    `system.distributed_ddl_queue` (see the warning above) before continuing.
 3. Create the replicated table with the schema OpenMeter uses (copy the
