@@ -1202,6 +1202,9 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Defaults
+      x-internal: true
+      x-unstable: true
+      x-private: true
     put:
       operationId: update-organization-default-tax-codes
       summary: Update organization default tax codes
@@ -1228,6 +1231,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/OrganizationDefaultTaxCodes'
+      x-internal: true
+      x-unstable: true
+      x-private: true
   /openmeter/events:
     get:
       operationId: list-metering-events
