@@ -72,7 +72,7 @@ interface EventsOperations {
    * List ingested events.
    */
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
   @get
   @operationId("list-metering-events")
   @summary("List metering events")
