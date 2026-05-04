@@ -20,7 +20,7 @@ import (
 func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestevents.EventBatchedIngest) error {
 	if len(event.MeterSlugs) == 0 {
 		// This is possible as you can ingest events that don't match any meters
-		w.opts.Logger.InfoContext(ctx, "no meter slugs found in batched ingest event, skipping entitlement recalculation", "event", event)
+		w.opts.Logger.InfoContext(ctx, "no meter slugs found in batched ingest event, skipping entitlement recalculation", "event_id", event.EventMetadata().ID)
 
 		return nil
 	}
