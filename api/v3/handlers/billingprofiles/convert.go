@@ -66,6 +66,7 @@ var (
 	FromAPIBillingTaxBehavior func(behavior api.BillingTaxBehavior) (productcatalog.TaxBehavior, error)
 	// goverter:map Stripe ExternalInvoicing
 	// goverter:map Stripe Stripe
+	// goverter:ignore TaxCode
 	ToAPIBillingTaxConfig func(config *productcatalog.TaxConfig) (*api.BillingTaxConfig, error)
 	// goverter:map Stripe Stripe
 	// goverter:ignore TaxCode
@@ -89,6 +90,32 @@ func NamespaceFromContext(namespace string) string {
 // goverter:context id
 func IDFromContext(id string) string {
 	return id
+}
+
+// toAPIBillingTaxConfigFull wraps the goverter ToAPIBillingTaxConfig and also populates
+// TaxCode from TaxCodeId so the new and deprecated fields are both set on responses.
+func toAPIBillingTaxConfigFull(config *productcatalog.TaxConfig) (*api.BillingTaxConfig, error) {
+	result, err := ToAPIBillingTaxConfig(config)
+	if err != nil || result == nil {
+		return result, err
+	}
+	if result.TaxCodeId != nil {
+		result.TaxCode = &api.BillingTaxCodeReference{Id: *result.TaxCodeId}
+	}
+	return result, nil
+}
+
+// fromAPIBillingTaxConfigFull wraps the goverter FromAPIBillingTaxConfig and additionally reads
+// TaxCode.Id (new field) which takes precedence over the deprecated TaxCodeId.
+func fromAPIBillingTaxConfigFull(config *api.BillingTaxConfig) (*productcatalog.TaxConfig, error) {
+	result, err := FromAPIBillingTaxConfig(config)
+	if err != nil || result == nil {
+		return result, err
+	}
+	if config.TaxCode != nil {
+		result.TaxCodeID = &config.TaxCode.Id
+	}
+	return result, nil
 }
 
 // goverter:context namespacedID
@@ -194,7 +221,7 @@ func ToAPIBillingWorkflow(config billing.WorkflowConfig) (api.BillingWorkflow, e
 	}
 
 	// Tax settings
-	defaultTaxConfig, err := ToAPIBillingTaxConfig(config.Invoicing.DefaultTaxConfig)
+	defaultTaxConfig, err := toAPIBillingTaxConfigFull(config.Invoicing.DefaultTaxConfig)
 	if err != nil {
 		return api.BillingWorkflow{}, err
 	}
@@ -314,7 +341,7 @@ func FromAPIBillingWorkflow(workflow api.BillingWorkflow) (billing.WorkflowConfi
 	defaultTaxConfig := def.Invoicing.DefaultTaxConfig
 	if workflow.Tax.DefaultTaxConfig != nil {
 		var err error
-		defaultTaxConfig, err = FromAPIBillingTaxConfig(workflow.Tax.DefaultTaxConfig)
+		defaultTaxConfig, err = fromAPIBillingTaxConfigFull(workflow.Tax.DefaultTaxConfig)
 		if err != nil {
 			return billing.WorkflowConfig{}, err
 		}

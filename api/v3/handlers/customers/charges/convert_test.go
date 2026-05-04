@@ -14,7 +14,7 @@ func TestConvertTaxCodeConfigToAPI(t *testing.T) {
 	tests := []struct {
 		name  string
 		input *productcatalog.TaxCodeConfig
-		want  *api.BillingChargeTaxConfig
+		want  *api.BillingTaxConfig
 	}{
 		{
 			name:  "nil returns nil",
@@ -31,7 +31,7 @@ func TestConvertTaxCodeConfigToAPI(t *testing.T) {
 			input: &productcatalog.TaxCodeConfig{
 				Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 			},
-			want: &api.BillingChargeTaxConfig{
+			want: &api.BillingTaxConfig{
 				Behavior: lo.ToPtr(api.BillingTaxBehaviorInclusive),
 			},
 		},
@@ -40,7 +40,7 @@ func TestConvertTaxCodeConfigToAPI(t *testing.T) {
 			input: &productcatalog.TaxCodeConfig{
 				Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 			},
-			want: &api.BillingChargeTaxConfig{
+			want: &api.BillingTaxConfig{
 				Behavior: lo.ToPtr(api.BillingTaxBehaviorExclusive),
 			},
 		},
@@ -49,10 +49,8 @@ func TestConvertTaxCodeConfigToAPI(t *testing.T) {
 			input: &productcatalog.TaxCodeConfig{
 				TaxCodeID: lo.ToPtr("01JTEST00000000000000000001"),
 			},
-			want: &api.BillingChargeTaxConfig{
-				TaxCode: &struct {
-					Id api.ULID `json:"id"`
-				}{Id: "01JTEST00000000000000000001"},
+			want: &api.BillingTaxConfig{
+				TaxCode: &api.BillingTaxCodeReference{Id: "01JTEST00000000000000000001"},
 			},
 		},
 		{
@@ -61,11 +59,9 @@ func TestConvertTaxCodeConfigToAPI(t *testing.T) {
 				Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 				TaxCodeID: lo.ToPtr("01JTEST00000000000000000002"),
 			},
-			want: &api.BillingChargeTaxConfig{
+			want: &api.BillingTaxConfig{
 				Behavior: lo.ToPtr(api.BillingTaxBehaviorExclusive),
-				TaxCode: &struct {
-					Id api.ULID `json:"id"`
-				}{Id: "01JTEST00000000000000000002"},
+				TaxCode:  &api.BillingTaxCodeReference{Id: "01JTEST00000000000000000002"},
 			},
 		},
 	}

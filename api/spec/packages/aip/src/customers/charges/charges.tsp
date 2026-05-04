@@ -160,28 +160,7 @@ model ChargeBase<T extends ChargeType> {
    */
   @visibility(Lifecycle.Read)
   @summary("Tax configuration")
-  tax_config?: ChargeTaxConfig;
-}
-
-/**
- * Tax configuration of a charge.
- */
-@friendlyName("BillingChargeTaxConfig")
-@summary("Charge tax configuration")
-model ChargeTaxConfig {
-  /**
-   * Tax behavior applied to the charge.
-   */
-  @summary("Tax behavior")
-  behavior?: Billing.TaxBehavior;
-
-  /**
-   * Tax code applied to the charge.
-   */
-  @summary("Tax code")
-  tax_code?: {
-    id: Shared.ULID;
-  };
+  tax_config?: Billing.TaxConfig;
 }
 
 /**

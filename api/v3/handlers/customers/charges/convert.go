@@ -362,18 +362,16 @@ func ConvertCurrencyCodeToAPI(c currencyx.Code) api.CurrencyCode {
 }
 
 // convertTaxCodeConfigToAPI maps a TaxCodeConfig (Behavior + TaxCodeID) to the API type.
-func convertTaxCodeConfigToAPI(cfg *productcatalog.TaxCodeConfig) *api.BillingChargeTaxConfig {
+func convertTaxCodeConfigToAPI(cfg *productcatalog.TaxCodeConfig) *api.BillingTaxConfig {
 	if cfg == nil {
 		return nil
 	}
-	out := &api.BillingChargeTaxConfig{}
+	out := &api.BillingTaxConfig{}
 	if cfg.Behavior != nil {
 		out.Behavior = lo.ToPtr(api.BillingTaxBehavior(*cfg.Behavior))
 	}
 	if cfg.TaxCodeID != nil {
-		out.TaxCode = &struct {
-			Id api.ULID `json:"id"`
-		}{Id: *cfg.TaxCodeID}
+		out.TaxCode = &api.BillingTaxCodeReference{Id: *cfg.TaxCodeID}
 	}
 	if out.Behavior == nil && out.TaxCode == nil {
 		return nil
