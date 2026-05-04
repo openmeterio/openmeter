@@ -61,6 +61,21 @@ interface MetersOperations {
     ...Common.PagePaginationQuery,
 
     /**
+     * Sort meters returned in the response.
+     * Supported sort attributes are:
+     * - `key`
+     * - `name`
+     * - `aggregation`
+     * - `createdAt` (default)
+     * - `updatedAt`
+     *
+     * The `asc` suffix is optional as the default sort order is ascending.
+     * The `desc` suffix is used to specify a descending order.
+     */
+    @query(#{ name: "sort" })
+    sort?: Common.SortQuery,
+
+    /**
      * Filter meters returned in the response.
      *
      * To filter meters by key add the following query param: filter[key]=my-meter-key
