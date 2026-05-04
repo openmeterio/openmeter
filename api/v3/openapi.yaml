@@ -89,7 +89,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
+      x-private: true
       x-unstable: true
     post:
       operationId: create-addon
@@ -116,7 +116,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateAddonRequest'
-      x-internal: true
+      x-private: true
       x-unstable: true
   /openmeter/addons/{addonId}:
     put:
@@ -154,7 +154,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpsertAddonRequest'
-      x-internal: true
+      x-private: true
       x-unstable: true
     get:
       operationId: get-addon
@@ -185,7 +185,7 @@ paths:
           $ref: '#/components/responses/Gone'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
+      x-private: true
       x-unstable: true
     delete:
       operationId: delete-addon
@@ -210,7 +210,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
+      x-private: true
       x-unstable: true
   /openmeter/addons/{addonId}/archive:
     post:
@@ -240,7 +240,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
+      x-private: true
       x-unstable: true
   /openmeter/addons/{addonId}/publish:
     post:
@@ -270,7 +270,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
+      x-private: true
       x-unstable: true
   /openmeter/apps:
     get:
@@ -1228,7 +1228,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - Metering Events
-      x-internal: true
+      x-private: true
       x-unstable: true
     post:
       operationId: ingest-metering-events
@@ -1312,7 +1312,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Features
-      x-internal: true
+      x-private: true
       x-unstable: true
     post:
       operationId: create-feature
@@ -1339,7 +1339,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateFeatureRequest'
-      x-internal: true
+      x-private: true
       x-unstable: true
   /openmeter/features/{featureId}:
     get:
@@ -1371,7 +1371,7 @@ paths:
           $ref: '#/components/responses/Gone'
       tags:
         - OpenMeter Features
-      x-internal: true
+      x-private: true
       x-unstable: true
     patch:
       operationId: update-feature
@@ -1408,7 +1408,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateFeatureRequest'
-      x-internal: true
+      x-private: true
       x-unstable: true
     delete:
       operationId: delete-feature
@@ -1433,7 +1433,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Features
-      x-internal: true
+      x-private: true
       x-unstable: true
   /openmeter/features/{featureId}/cost/query:
     post:
@@ -1469,7 +1469,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MeterQueryRequest'
-      x-internal: true
+      x-private: true
       x-unstable: true
   /openmeter/llm-cost/overrides:
     get:
@@ -1778,7 +1778,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateMeterRequest'
-      x-internal: true
+      x-private: true
       x-unstable: true
     delete:
       operationId: delete-meter
@@ -1859,7 +1859,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-      x-internal: true
+      x-private: true
       x-unstable: true
       tags:
         - Meters
@@ -1913,7 +1913,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
+      x-private: true
       x-unstable: true
     post:
       operationId: create-plan
@@ -1940,7 +1940,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreatePlanRequest'
-      x-internal: true
+      x-private: true
       x-unstable: true
   /openmeter/plans/{planId}:
     put:
@@ -1978,7 +1978,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpsertPlanRequest'
-      x-internal: true
+      x-private: true
       x-unstable: true
     get:
       operationId: get-plan
@@ -2009,7 +2009,7 @@ paths:
           $ref: '#/components/responses/Gone'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
+      x-private: true
       x-unstable: true
     delete:
       operationId: delete-plan
@@ -2034,7 +2034,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
+      x-private: true
       x-unstable: true
   /openmeter/plans/{planId}/addons:
     get:
@@ -2065,7 +2065,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
+      x-private: true
       x-unstable: true
     post:
       operationId: create-plan-addon
@@ -2100,7 +2100,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreatePlanAddonRequest'
-      x-internal: true
+      x-private: true
       x-unstable: true
   /openmeter/plans/{planId}/addons/{planAddonId}:
     get:
@@ -2135,7 +2135,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
+      x-private: true
       x-unstable: true
     put:
       operationId: update-plan-addon
@@ -2175,7 +2175,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpsertPlanAddonRequest'
-      x-internal: true
+      x-private: true
       x-unstable: true
     delete:
       operationId: delete-plan-addon
@@ -2205,7 +2205,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
+      x-private: true
       x-unstable: true
   /openmeter/plans/{planId}/archive:
     post:
@@ -2235,7 +2235,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
+      x-private: true
       x-unstable: true
   /openmeter/plans/{planId}/publish:
     post:
@@ -2265,7 +2265,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
+      x-private: true
       x-unstable: true
   /openmeter/profiles:
     get:
@@ -2630,7 +2630,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateTaxCodeRequest'
-      x-internal: true
       x-unstable: true
       x-private: true
     get:
@@ -2661,7 +2660,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Tax
-      x-internal: true
       x-unstable: true
       x-private: true
   /openmeter/tax-codes/{taxCodeId}:
@@ -2691,7 +2689,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Tax
-      x-internal: true
       x-unstable: true
       x-private: true
     put:
@@ -2728,7 +2725,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpsertTaxCodeRequest'
-      x-internal: true
       x-unstable: true
       x-private: true
     delete:
@@ -2753,7 +2749,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Tax
-      x-internal: true
       x-unstable: true
       x-private: true
 components:
