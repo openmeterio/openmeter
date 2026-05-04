@@ -311,15 +311,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	creditsConfiguration := conf.Credits
 	repo := common.NewLedgerHistoricalRepo(client)
 	accountRepo := common.NewLedgerAccountRepo(client)
+	accountService := common.NewLedgerAccountService(creditsConfiguration, accountRepo, locker)
+	accountCatalog := common.NewLedgerAccountCatalog(accountService)
+	accountLocker := common.NewLedgerAccountLocker(accountService)
 	routingValidator := common.NewLedgerRoutingValidator()
-	ledgerReadWriter := common.NewLedgerHistoricalLedger(creditsConfiguration, repo, accountRepo, locker, routingValidator)
+	ledgerReadWriter := common.NewLedgerHistoricalLedger(creditsConfiguration, repo, accountCatalog, accountLocker, routingValidator)
 	ledger := common.NewLedgerService(ledgerReadWriter)
-	querier := common.NewLedgerQuerier(ledgerReadWriter)
-	accountService := common.NewLedgerAccountService(creditsConfiguration, accountRepo, locker, querier)
+	balanceQuerier := common.NewLedgerBalanceQuerier(ledgerReadWriter)
 	customerAccountRepo := common.NewLedgerResolversRepo(client)
 	customerLedgerProvisioner := common.NewLedgerResolversService(creditsConfiguration, accountService, customerAccountRepo, locker)
 	accountResolver := common.NewLedgerAccountResolver(customerLedgerProvisioner)
-	billingRegistry, err := common.NewBillingRegistry(logger, appService, billingAdapter, ratingService, customerService, featureConnector, service, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, accountResolver, accountService)
+	billingRegistry, err := common.NewBillingRegistry(logger, appService, billingAdapter, ratingService, customerService, featureConnector, service, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, balanceQuerier, accountResolver, accountService)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -487,7 +489,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	customerbalanceService, err := common.NewCustomerBalanceService(creditsConfiguration, ledger, accountResolver, accountService, billingRegistry)
+	customerbalanceService, err := common.NewCustomerBalanceService(creditsConfiguration, ledger, balanceQuerier, accountResolver, accountService, billingRegistry)
 	if err != nil {
 		cleanup7()
 		cleanup6()

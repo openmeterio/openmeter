@@ -200,6 +200,7 @@ func newCreditPurchaseHandlerTestEnv(t *testing.T) *creditPurchaseHandlerTestEnv
 		IntegrationEnv: base,
 		handler: chargeadapter.NewCreditPurchaseHandler(
 			base.Deps.HistoricalLedger,
+			base.Deps.HistoricalLedger,
 			base.Deps.ResolversService,
 			base.Deps.AccountService,
 		),
@@ -384,8 +385,9 @@ func (e *creditPurchaseHandlerTestEnv) createAdvanceExposure(t *testing.T, amoun
 	inputs, err := transactions.ResolveTransactions(
 		t.Context(),
 		transactions.ResolverDependencies{
-			AccountService:    e.Deps.ResolversService,
-			SubAccountService: e.Deps.AccountService,
+			AccountService: e.Deps.ResolversService,
+			AccountCatalog: e.Deps.AccountService,
+			BalanceQuerier: e.Deps.HistoricalLedger,
 		},
 		transactions.ResolutionScope{
 			CustomerID: e.CustomerID,

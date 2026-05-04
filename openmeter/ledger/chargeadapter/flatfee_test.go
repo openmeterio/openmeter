@@ -597,8 +597,9 @@ type flatFeeHandlerTestEnv struct {
 func newFlatFeeHandlerTestEnv(t *testing.T) *flatFeeHandlerTestEnv {
 	base := ledgertestutils.NewIntegrationEnv(t, "chargeadapter-flatfee")
 	deps := transactions.ResolverDependencies{
-		AccountService:    base.Deps.ResolversService,
-		SubAccountService: base.Deps.AccountService,
+		AccountService: base.Deps.ResolversService,
+		AccountCatalog: base.Deps.AccountService,
+		BalanceQuerier: base.Deps.HistoricalLedger,
 	}
 	collectorService := ledgercollector.NewService(ledgercollector.Config{
 		Ledger:       base.Deps.HistoricalLedger,
@@ -699,8 +700,9 @@ func (e *flatFeeHandlerTestEnv) fundPriority(t *testing.T, priority int, amount 
 	inputs, err := transactions.ResolveTransactions(
 		t.Context(),
 		transactions.ResolverDependencies{
-			AccountService:    e.Deps.ResolversService,
-			SubAccountService: e.Deps.AccountService,
+			AccountService: e.Deps.ResolversService,
+			AccountCatalog: e.Deps.AccountService,
+			BalanceQuerier: e.Deps.HistoricalLedger,
 		},
 		transactions.ResolutionScope{
 			CustomerID: e.CustomerID,

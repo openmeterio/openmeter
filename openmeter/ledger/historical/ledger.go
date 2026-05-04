@@ -5,27 +5,25 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/openmeter/ledger/account"
-	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // Ledger represents a historical ledger for settled balances.
 type Ledger struct {
-	accountService account.Service
+	accountCatalog ledger.AccountCatalog
+	accountLocker  ledger.AccountLocker
 	repo           Repo
 
-	locker           *lockr.Locker
 	routingValidator ledger.RoutingValidator
 }
 
-// NewLedger constructs a Ledger with the given repo, account service and locker.
-func NewLedger(repo Repo, accountService account.Service, locker *lockr.Locker, routingValidator ledger.RoutingValidator) *Ledger {
+// NewLedger constructs a Ledger with the given repo and account collaborators.
+func NewLedger(repo Repo, accountCatalog ledger.AccountCatalog, accountLocker ledger.AccountLocker, routingValidator ledger.RoutingValidator) *Ledger {
 	return &Ledger{
+		accountCatalog:   accountCatalog,
+		accountLocker:    accountLocker,
 		repo:             repo,
-		accountService:   accountService,
-		locker:           locker,
 		routingValidator: routingValidator,
 	}
 }
@@ -126,22 +124,22 @@ func (l *Ledger) lockAccountsForTransactionInputs(ctx context.Context, namespace
 		}
 	}
 
-	subAccounts := make([]*account.SubAccount, 0, len(subAccountIDs))
+	subAccounts := make([]ledger.SubAccount, 0, len(subAccountIDs))
 	for subAccountID := range subAccountIDs {
-		subAccount, err := l.accountService.GetSubAccountByID(ctx, models.NamespacedID{Namespace: namespace, ID: subAccountID})
+		subAccount, err := l.accountCatalog.GetSubAccountByID(ctx, models.NamespacedID{Namespace: namespace, ID: subAccountID})
 		if err != nil {
 			return fmt.Errorf("failed to get sub-account: %w", err)
 		}
 		subAccounts = append(subAccounts, subAccount)
 	}
 
-	accounts := make(map[string]*account.Account, len(subAccountIDs))
+	accounts := make(map[models.NamespacedID]ledger.Account, len(subAccountIDs))
 	for _, subAccount := range subAccounts {
 		accountID := subAccount.AccountID()
 
 		_, ok := accounts[accountID]
 		if !ok {
-			account, err := l.accountService.GetAccountByID(ctx, models.NamespacedID{Namespace: namespace, ID: accountID})
+			account, err := l.accountCatalog.GetAccountByID(ctx, accountID)
 			if err != nil {
 				return fmt.Errorf("failed to get account: %w", err)
 			}
@@ -150,48 +148,15 @@ func (l *Ledger) lockAccountsForTransactionInputs(ctx context.Context, namespace
 		}
 	}
 
-	// 2. Let's lock all customer accounts affected
+	affectedAccounts := make([]ledger.Account, 0, len(accounts))
 	for _, acc := range accounts {
-		switch acc.Type() {
-		case ledger.AccountTypeCustomerFBO, ledger.AccountTypeCustomerReceivable:
-			cSvc, err := acc.AsCustomerAccount()
-			if err != nil {
-				return fmt.Errorf("failed to convert account to customer account: %w", err)
-			}
-
-			if err := cSvc.Lock(ctx); err != nil {
-				return fmt.Errorf("failed to lock customer account: %w", err)
-			}
-		}
+		affectedAccounts = append(affectedAccounts, acc)
 	}
 
-	return nil
+	return l.accountLocker.LockAccountsForPosting(ctx, affectedAccounts)
 }
 
 func (l *Ledger) validateAccountBalancesForTransaction(_ context.Context, _ ledger.TransactionInput) error {
 	// TODO: implement this
 	return nil
-}
-
-// ----------------------------------------------------------------------------
-// Let's implement ledger.Querier interface
-// ----------------------------------------------------------------------------
-
-var _ ledger.Querier = (*Ledger)(nil)
-
-func (l *Ledger) SumEntries(ctx context.Context, query ledger.Query) (ledger.QuerySummedResult, error) {
-	if err := query.Validate(); err != nil {
-		return ledger.QuerySummedResult{}, fmt.Errorf("failed to validate query: %w", err)
-	}
-
-	total, err := l.repo.SumEntries(ctx, query)
-	if err != nil {
-		return ledger.QuerySummedResult{}, fmt.Errorf("failed to sum ledger entries: %w", err)
-	}
-
-	// Historical ledger currently has no settled/pending separation.
-	return ledger.QuerySummedResult{
-		SettledSum: total,
-		PendingSum: total,
-	}, nil
 }

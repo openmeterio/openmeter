@@ -99,8 +99,9 @@ func TestGetAccountBalance(t *testing.T) {
 	t.Skipf("This is just to assert the types, it would fail on unimplemented")
 
 	var acc ledger.Account
+	var querier ledger.BalanceQuerier
 
-	balance, err := acc.GetBalance(t.Context(), ledger.RouteFilter{
+	balance, err := querier.GetAccountBalance(t.Context(), acc, ledger.RouteFilter{
 		Currency: currencyx.Code("USD"),
 	}, nil)
 	require.NoError(t, err)

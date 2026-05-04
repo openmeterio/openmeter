@@ -17,6 +17,7 @@ var CustomerBalance = wire.NewSet(
 func NewCustomerBalanceService(
 	creditsConfig config.CreditsConfiguration,
 	historicalLedger ledger.Ledger,
+	balanceQuerier ledger.BalanceQuerier,
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
 	billingRegistry BillingRegistry,
@@ -32,6 +33,7 @@ func NewCustomerBalanceService(
 		CreditPurchaseSvc: billingRegistry.Charges.CreditPurchaseService,
 		UsageBasedService: billingRegistry.Charges.UsageBasedService,
 		Ledger:            historicalLedger,
+		BalanceQuerier:    balanceQuerier,
 	})
 }
 

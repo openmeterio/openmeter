@@ -22,8 +22,9 @@ func newTransactionsTestEnv(t *testing.T) *transactionsTestEnv {
 
 func (e *transactionsTestEnv) resolverDeps() ResolverDependencies {
 	return ResolverDependencies{
-		AccountService:    e.Deps.ResolversService,
-		SubAccountService: e.Deps.AccountService,
+		AccountService: e.Deps.ResolversService,
+		AccountCatalog: e.Deps.AccountService,
+		BalanceQuerier: e.Deps.HistoricalLedger,
 	}
 }
 

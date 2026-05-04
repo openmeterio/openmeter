@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -111,13 +110,10 @@ func TestFacadeGetBalanceAfterTransactionCursor(t *testing.T) {
 	env.bookFBOBalance(t, alpacadecimal.NewFromInt(100))
 	env.fundOpenReceivable(t, alpacadecimal.NewFromInt(100))
 
-	receivableAccount, ok := env.CustomerAccounts.ReceivableAccount.(*ledgeraccount.CustomerReceivableAccount)
-	require.True(t, ok)
-
 	pagedBeforeSecondIssue, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
 		Namespace:  env.Namespace,
 		Limit:      10,
-		AccountIDs: []string{receivableAccount.ID().ID},
+		AccountIDs: []string{env.CustomerAccounts.ReceivableAccount.ID().ID},
 		Currency:   &env.Currency,
 	})
 	require.NoError(t, err)

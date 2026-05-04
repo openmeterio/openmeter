@@ -204,7 +204,7 @@ func (e *IntegrationEnv) BrokerageSubAccount(t *testing.T) ledger.SubAccount {
 func (e *IntegrationEnv) SumBalance(t *testing.T, subAccount ledger.SubAccount) alpacadecimal.Decimal {
 	t.Helper()
 
-	sum, err := subAccount.GetBalance(t.Context())
+	sum, err := e.Deps.HistoricalLedger.GetSubAccountBalance(t.Context(), subAccount, nil)
 	require.NoError(t, err)
 
 	return sum.Settled()

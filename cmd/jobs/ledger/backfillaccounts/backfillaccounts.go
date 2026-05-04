@@ -9,10 +9,8 @@ import (
 
 	"github.com/openmeterio/openmeter/cmd/jobs/internal"
 	ledgerbackfillservice "github.com/openmeterio/openmeter/cmd/jobs/ledger/service"
-	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	accountadapter "github.com/openmeterio/openmeter/openmeter/ledger/account/adapter"
 	accountservice "github.com/openmeterio/openmeter/openmeter/ledger/account/service"
-	ledgernoop "github.com/openmeterio/openmeter/openmeter/ledger/noop"
 	"github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
 	resolversadapter "github.com/openmeterio/openmeter/openmeter/ledger/resolvers/adapter"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
@@ -88,10 +86,7 @@ func newService() (*ledgerbackfillservice.Service, error) {
 	// We intentionally build the concrete resolver stack here because the public
 	// wired account-resolver surface is narrowed and doesn't expose CreateCustomerAccounts.
 	accountRepo := accountadapter.NewRepo(internal.App.EntClient)
-	accountSvc := accountservice.New(accountRepo, ledgeraccount.AccountLiveServices{
-		Locker:  locker,
-		Querier: ledgernoop.Ledger{},
-	})
+	accountSvc := accountservice.New(accountRepo, locker)
 
 	resolverRepo := resolversadapter.NewRepo(internal.App.EntClient)
 	accountResolver := resolvers.NewAccountResolver(resolvers.AccountResolverConfig{
