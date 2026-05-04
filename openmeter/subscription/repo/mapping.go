@@ -132,6 +132,8 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 	// Backfill FeatureKey from Key when the column is NULL: subscription items
 	// predate the FeatureKey-required invariant, and Key == FeatureKey for all
 	// plan-derived items, so Key is a safe fallback.
+	// TODO: this fallback is unsafe when rate-card Key != feature Key (which is supported on plans).
+	// Once all legacy rows have been backfilled with the correct feature_key, remove this branch.
 	if featureKey == nil && item.Price != nil && item.Price.Type() != productcatalog.FlatPriceType {
 		featureKey = &item.Key
 	}

@@ -301,8 +301,8 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 		logger.Debug("creating Plan")
 
 		if len(params.Phases) > 0 {
-			for _, phase := range params.Phases {
-				if err = s.resolveFeatures(ctx, params.Namespace, &phase.RateCards); err != nil {
+			for i := range params.Phases {
+				if err = s.resolveFeatures(ctx, params.Namespace, &params.Phases[i].RateCards); err != nil {
 					if models.IsGenericNotFoundError(err) {
 						err = models.NewGenericValidationError(err)
 					}
@@ -314,6 +314,12 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 				if err = s.resolveTaxCodes(ctx, params.Namespace, &params.Phases[i].RateCards); err != nil {
 					return nil, fmt.Errorf("failed to resolve TaxCodes for RateCards in PlanPhase: %w", err)
 				}
+			}
+
+			// Re-validate after resolution so constraints like key-featureKey mismatch
+			// are caught before persisting (pre-resolve validation ran before FeatureKey was populated).
+			if err = params.Validate(); err != nil {
+				return nil, fmt.Errorf("invalid Plan after feature resolution: %w", err)
 			}
 		}
 
@@ -449,8 +455,8 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 		logger.Debug("updating Plan")
 
 		if params.Phases != nil && len(*params.Phases) > 0 {
-			for _, phase := range *params.Phases {
-				if err := s.resolveFeatures(ctx, params.Namespace, &phase.RateCards); err != nil {
+			for i := range *params.Phases {
+				if err := s.resolveFeatures(ctx, params.Namespace, &(*params.Phases)[i].RateCards); err != nil {
 					if models.IsGenericNotFoundError(err) {
 						err = models.NewGenericValidationError(err)
 					}
@@ -462,6 +468,12 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 				if err := s.resolveTaxCodes(ctx, params.Namespace, &(*params.Phases)[i].RateCards); err != nil {
 					return nil, fmt.Errorf("failed to resolve TaxCodes for RateCards in PlanPhase: %w", err)
 				}
+			}
+
+			// Re-validate after resolution so constraints like key-featureKey mismatch
+			// are caught before persisting (pre-resolve validation ran before FeatureKey was populated).
+			if err := params.Validate(); err != nil {
+				return nil, fmt.Errorf("invalid Plan after feature resolution: %w", err)
 			}
 		}
 
