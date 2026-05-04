@@ -13,7 +13,7 @@ import "./currencies/index.tsp";
 import "./features/index.tsp";
 import "./llmcost/index.tsp";
 import "./productcatalog/index.tsp";
-import "./organization/index.tsp";
+import "./defaults/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -59,10 +59,7 @@ using TypeSpec.OpenAPI;
   Shared.ProductCatalogTag,
   #{ description: Shared.ProductCatalogDescription }
 )
-@tagMetadata(
-  Shared.OrganizationTag,
-  #{ description: Shared.OrganizationDescription }
-)
+@tagMetadata(Shared.DefaultsTag, #{ description: Shared.DefaultsDescription })
 namespace OpenMeter;
 
 @route("/openmeter/events")
@@ -186,6 +183,7 @@ interface AddonsEndpoints extends ProductCatalog.AddonOperations {}
 @tag(Shared.ProductCatalogTag)
 interface PlanAddonEndpoints extends ProductCatalog.PlanAddonOperations {}
 
-@route("/openmeter/organization/tax-config")
-@tag(Shared.OrganizationTag)
-interface OrgTaxConfigEndpoints extends Organization.OrgTaxConfigOperations {}
+@route("/openmeter/defaults/tax-codes")
+@tag(Shared.DefaultsTag)
+interface OrgDefaultTaxCodesEndpoints
+  extends Defaults.OrganizationDefaultTaxCodesOperations {}

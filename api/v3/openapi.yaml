@@ -19,8 +19,8 @@ servers:
     description: Cloud
     variables: {}
 tags:
-  - name: OpenMeter Organization
-    description: Organization-level configuration settings.
+  - name: OpenMeter Defaults
+    description: Organization-level default configuration.
   - name: OpenMeter Product Catalog
     description: Product catalog manages plans, add-ons, and their associations for subscription-based billing.
   - name: OpenMeter LLM Cost
@@ -1181,6 +1181,53 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Entitlements
+  /openmeter/defaults/tax-codes:
+    get:
+      operationId: get-organization-default-tax-codes
+      summary: Get organization default tax codes
+      responses:
+        '200':
+          description: OrgDefaultTaxCodes response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationDefaultTaxCodes'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Defaults
+    put:
+      operationId: update-organization-default-tax-codes
+      summary: Update organization default tax codes
+      responses:
+        '200':
+          description: OrgDefaultTaxCodes upsert response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationDefaultTaxCodes'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Defaults
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationDefaultTaxCodes'
   /openmeter/events:
     get:
       operationId: list-metering-events
@@ -1871,53 +1918,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MeterQueryRequest'
-  /openmeter/organization/tax-config:
-    get:
-      operationId: get-org-tax-config
-      summary: Get organization tax config
-      responses:
-        '200':
-          description: OrgTaxConfig response.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OrganizationTaxConfig'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-      tags:
-        - OpenMeter Organization
-    put:
-      operationId: update-org-tax-config
-      summary: Update organization tax config
-      responses:
-        '200':
-          description: OrgTaxConfig upsert response.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OrganizationTaxConfig'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-      tags:
-        - OpenMeter Organization
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/OrganizationTaxConfigUpdate'
   /openmeter/plans:
     get:
       operationId: list-plans
@@ -8183,34 +8183,24 @@ components:
       type: string
       pattern: ^\-?[0-9]+(\.[0-9]+)?$
       description: Numeric represents an arbitrary precision number.
-    OrganizationTaxConfig:
+    OrganizationDefaultTaxCodes:
       type: object
       required:
-        - credit_purchase_tax_code
-        - invoice_tax_code
+        - invoicing_tax_code
+        - credit_grant_tax_code
         - created_at
         - updated_at
       properties:
-        credit_purchase_tax_code:
+        invoicing_tax_code:
           allOf:
-            - $ref: '#/components/schemas/BillingTaxCode'
-          description: |-
-            Default tax code for credit purchases.
-
-            Applied when creating credit-purchase charge lines if no line-level tax
-            code is set.
-          title: Credit purchase tax code
-          readOnly: true
-        invoice_tax_code:
+            - $ref: '#/components/schemas/TaxCodeReference'
+          description: Default tax code for invoicing.
+          title: Invoicing tax code
+        credit_grant_tax_code:
           allOf:
-            - $ref: '#/components/schemas/BillingTaxCode'
-          description: |-
-            Default tax code for invoices.
-
-            Applied as the default tax code for invoice lines if no line-level or
-            billing-profile-level tax code is set.
-          title: Invoice tax code
-          readOnly: true
+            - $ref: '#/components/schemas/TaxCodeReference'
+          description: Default tax code for credit grants.
+          title: Credit grant tax code
         created_at:
           allOf:
             - $ref: '#/components/schemas/DateTime'
@@ -8222,27 +8212,10 @@ components:
           description: Timestamp of last update.
           readOnly: true
       description: |-
-        Organization-level tax configuration.
+        Organization-level default tax code references.
 
-        Stores default tax codes for the organization applied to specific billing
-        contexts. Provisioned automatically when the organization is created.
-    OrganizationTaxConfigUpdate:
-      type: object
-      required:
-        - credit_purchase_tax_code_id
-        - invoice_tax_code_id
-      properties:
-        credit_purchase_tax_code_id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          description: Tax code ID for credit purchases.
-          title: Credit purchase tax code ID
-        invoice_tax_code_id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          description: Tax code ID for invoices.
-          title: Invoice tax code ID
-      description: Update request for organization tax configuration.
+        Stores the default tax codes applied to specific billing contexts for this
+        organization. Provisioned automatically when the organization is created.
     PlanAddon:
       type: object
       required:
