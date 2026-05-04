@@ -14,13 +14,6 @@ on:
 permissions:
   contents: read
 
-# Serialize releases by ref so two overlapping tag pushes or main pushes
-# can't race on the npm/GHCR registries. Tags never cancel each other;
-# main-push betas can safely supersede earlier in-flight runs.
-concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref_type != 'tag' }}
-
 jobs:
   artifacts:
     name: Artifacts
