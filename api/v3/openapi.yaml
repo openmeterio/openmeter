@@ -19,6 +19,8 @@ servers:
     description: Cloud
     variables: {}
 tags:
+  - name: OpenMeter Organization
+    description: Organization-level configuration settings.
   - name: OpenMeter Product Catalog
     description: Product catalog manages plans, add-ons, and their associations for subscription-based billing.
   - name: OpenMeter LLM Cost
@@ -1869,6 +1871,53 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MeterQueryRequest'
+  /openmeter/organization/tax-config:
+    get:
+      operationId: get-org-tax-config
+      summary: Get organization tax config
+      responses:
+        '200':
+          description: OrgTaxConfig response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationTaxConfig'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Organization
+    put:
+      operationId: update-org-tax-config
+      summary: Update organization tax config
+      responses:
+        '200':
+          description: OrgTaxConfig upsert response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationTaxConfig'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationTaxConfigUpdate'
   /openmeter/plans:
     get:
       operationId: list-plans
@@ -8134,6 +8183,66 @@ components:
       type: string
       pattern: ^\-?[0-9]+(\.[0-9]+)?$
       description: Numeric represents an arbitrary precision number.
+    OrganizationTaxConfig:
+      type: object
+      required:
+        - credit_purchase_tax_code
+        - invoice_tax_code
+        - created_at
+        - updated_at
+      properties:
+        credit_purchase_tax_code:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxCode'
+          description: |-
+            Default tax code for credit purchases.
+
+            Applied when creating credit-purchase charge lines if no line-level tax
+            code is set.
+          title: Credit purchase tax code
+          readOnly: true
+        invoice_tax_code:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxCode'
+          description: |-
+            Default tax code for invoices.
+
+            Applied as the default tax code for invoice lines if no line-level or
+            billing-profile-level tax code is set.
+          title: Invoice tax code
+          readOnly: true
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Timestamp of creation.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Timestamp of last update.
+          readOnly: true
+      description: |-
+        Organization-level tax configuration.
+
+        Stores default tax codes for the organization applied to specific billing
+        contexts. Provisioned automatically when the organization is created.
+    OrganizationTaxConfigUpdate:
+      type: object
+      required:
+        - credit_purchase_tax_code_id
+        - invoice_tax_code_id
+      properties:
+        credit_purchase_tax_code_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: Tax code ID for credit purchases.
+          title: Credit purchase tax code ID
+        invoice_tax_code_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: Tax code ID for invoices.
+          title: Invoice tax code ID
+      description: Update request for organization tax configuration.
     PlanAddon:
       type: object
       required:
