@@ -123,10 +123,11 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 	grants := make([]grant.Grant, len(params.Grants))
 	copy(grants, params.Grants)
 
-	phases, err := e.getPhases(grants, period)
+	phasePlan, err := e.getPhases(grants, period)
 	if err != nil {
 		return RunResult{}, fmt.Errorf("failed to get burn phases: %w", err)
 	}
+	phases := phasePlan.phases
 
 	err = PrioritizeGrants(grants)
 	if err != nil {
@@ -145,9 +146,26 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 		grantMap[grant.ID] = grant
 	}
 
+	applyRecurrences := func(grantIDs []string) error {
+		for _, grantID := range grantIDs {
+			grant, ok := grantMap[grantID]
+			if !ok {
+				return fmt.Errorf("failed to get grant with id %s", grantID)
+			}
+			balancesAtPhaseStart.Set(grant.ID, grant.RecurrenceBalance(balancesAtPhaseStart[grantID]))
+		}
+		return nil
+	}
+
 	segments := make([]GrantBurnDownHistorySegment, 0, len(phases))
 
 	overage := params.StartingSnapshot.Overage
+
+	if len(phasePlan.grantsRecurredAtStart) > 0 {
+		if err := applyRecurrences(phasePlan.grantsRecurredAtStart); err != nil {
+			return RunResult{}, err
+		}
+	}
 
 	for _, phase := range phases {
 		// reprioritize grants if needed
@@ -161,12 +179,8 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 
 		// reset recurring grant balances
 		if len(recurredGrants) > 0 {
-			for _, grantID := range recurredGrants {
-				grant, ok := grantMap[grantID]
-				if !ok {
-					return RunResult{}, fmt.Errorf("failed to get grant with id %s", grantID)
-				}
-				balancesAtPhaseStart.Set(grant.ID, grant.RecurrenceBalance(balancesAtPhaseStart[grantID]))
+			if err := applyRecurrences(recurredGrants); err != nil {
+				return RunResult{}, err
 			}
 			recurredGrants = nil
 		}
