@@ -12,6 +12,8 @@ import (
 
 	"github.com/samber/lo"
 	"github.com/zeebo/xxh3"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/exp/slices"
 
 	"github.com/openmeterio/openmeter/api"
@@ -23,6 +25,7 @@ import (
 	productcatalogdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/driver"
 	subjecthttphandler "github.com/openmeterio/openmeter/openmeter/subject/httphandler"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/framework/tracex"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -36,40 +39,51 @@ type EntitlementSnapshotHandlerState struct {
 var ErrNoBalanceAvailable = errors.New("no balance available")
 
 func (b *EntitlementSnapshotHandler) handleAsSnapshotEvent(ctx context.Context, event snapshot.SnapshotEvent) error {
-	// TODO[issue-1364]: this must be cached to prevent going to the DB for each balance.snapshot event
-	affectedRulesPaged, err := b.Notification.ListRules(ctx, notification.ListRulesInput{
-		Namespaces: []string{event.Namespace.ID},
-		Types:      []notification.EventType{notification.EventTypeBalanceThreshold},
+	return tracex.StartWithNoValue(ctx, b.Tracer, "notification.consumer.balance_threshold",
+		trace.WithAttributes(
+			attribute.String("namespace", event.Namespace.ID),
+			attribute.String("entitlement.id", event.Entitlement.ID),
+			attribute.String("feature.key", event.Entitlement.FeatureKey),
+			attribute.String("feature.id", event.Entitlement.FeatureID),
+		),
+	).Wrap(func(ctx context.Context) error {
+		// TODO[issue-1364]: this must be cached to prevent going to the DB for each balance.snapshot event
+		affectedRulesPaged, err := b.Notification.ListRules(ctx, notification.ListRulesInput{
+			Namespaces: []string{event.Namespace.ID},
+			Types:      []notification.EventType{notification.EventTypeBalanceThreshold},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to list notification rules: %w", err)
+		}
+
+		affectedRules := lo.Filter(affectedRulesPaged.Items, func(rule notification.Rule, _ int) bool {
+			if len(rule.Config.BalanceThreshold.Thresholds) == 0 {
+				return false
+			}
+
+			if len(rule.Config.BalanceThreshold.Features) == 0 {
+				return true
+			}
+
+			return slices.Contains(rule.Config.BalanceThreshold.Features, event.Entitlement.FeatureID) ||
+				slices.Contains(rule.Config.BalanceThreshold.Features, event.Entitlement.FeatureKey)
+		})
+
+		trace.SpanFromContext(ctx).SetAttributes(attribute.Int("rule.count", len(affectedRules)))
+
+		var errs []error
+
+		for _, rule := range affectedRules {
+			if err = b.handleRule(ctx, event, rule); err != nil {
+				errs = append(
+					errs,
+					fmt.Errorf("failed to handle event for rule [namespace=%s notification_rule.id=%s entitlement.id=%s]: %w", rule.Namespace, rule.ID, event.Entitlement.ID, err),
+				)
+			}
+		}
+
+		return errors.Join(errs...)
 	})
-	if err != nil {
-		return fmt.Errorf("failed to list notification rules: %w", err)
-	}
-
-	affectedRules := lo.Filter(affectedRulesPaged.Items, func(rule notification.Rule, _ int) bool {
-		if len(rule.Config.BalanceThreshold.Thresholds) == 0 {
-			return false
-		}
-
-		if len(rule.Config.BalanceThreshold.Features) == 0 {
-			return true
-		}
-
-		return slices.Contains(rule.Config.BalanceThreshold.Features, event.Entitlement.FeatureID) ||
-			slices.Contains(rule.Config.BalanceThreshold.Features, event.Entitlement.FeatureKey)
-	})
-
-	var errs []error
-
-	for _, rule := range affectedRules {
-		if err = b.handleRule(ctx, event, rule); err != nil {
-			errs = append(
-				errs,
-				fmt.Errorf("failed to handle event for rule [namespace=%s notification_rule.id=%s entitlement.id=%s]: %w", rule.Namespace, rule.ID, event.Entitlement.ID, err),
-			)
-		}
-	}
-
-	return errors.Join(errs...)
 }
 
 func (b *EntitlementSnapshotHandler) handleRule(ctx context.Context, balSnapshot snapshot.SnapshotEvent, rule notification.Rule) error {

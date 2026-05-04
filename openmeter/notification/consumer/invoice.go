@@ -5,9 +5,13 @@ import (
 	"fmt"
 	"log/slog"
 
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billinghttp "github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/pkg/framework/tracex"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
@@ -15,87 +19,100 @@ import (
 type InvoiceEventHandler struct {
 	Notification notification.Service
 	Logger       *slog.Logger
+	Tracer       trace.Tracer
 }
 
 func (h *InvoiceEventHandler) Handle(ctx context.Context, event billing.EventStandardInvoice, eventType notification.EventType) error {
-	h.Logger.InfoContext(ctx, "handling invoice event", "event.type", eventType)
+	return tracex.StartWithNoValue(ctx, h.Tracer, "notification.consumer.invoice",
+		trace.WithAttributes(
+			attribute.String("namespace", event.Invoice.Namespace),
+			attribute.String("event.type", string(eventType)),
+			attribute.String("invoice.id", event.Invoice.ID),
+			attribute.String("invoice.status", string(event.Invoice.Status)),
+		),
+	).Wrap(func(ctx context.Context) error {
+		h.Logger.InfoContext(ctx, "handling invoice event", "event.type", eventType)
 
-	// Skip events for gathering invoices
-	if event.Invoice.Status == billing.StandardInvoiceStatusGathering {
-		return nil
-	}
-
-	// List active rules available for this event type in namespace
-	rules, err := h.Notification.ListRules(ctx, notification.ListRulesInput{
-		Namespaces: []string{event.Invoice.Namespace},
-		Types:      []notification.EventType{eventType},
-		OrderBy:    notification.OrderByID,
-		Order:      sortx.OrderDefault,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to list rules for event type [namespace=%s event.type=%s]: %w",
-			event.Invoice.Namespace, eventType, err)
-	}
-
-	// TODO: it is planned to allow publishing events without active notification rule in order
-	// to store them but not sending them to any channel.
-	if len(rules.Items) == 0 {
-		h.Logger.WarnContext(ctx, "no rules found for event type: skip creating notification event",
-			"namespace", event.Invoice.Namespace,
-			"event.type", eventType,
-		)
-
-		return nil
-	}
-
-	apiInvoice, err := billinghttp.MapEventInvoiceToAPI(event)
-	if err != nil {
-		return fmt.Errorf("failed to map event invoice to API: %w", err)
-	}
-
-	payload := notification.EventPayload{
-		EventPayloadMeta: notification.EventPayloadMeta{
-			Type:    eventType,
-			Version: notification.EventPayloadVersionCurrent,
-		},
-		Invoice: &notification.InvoicePayload{Invoice: apiInvoice},
-	}
-
-	for _, rule := range rules.Items {
-		if rule.Disabled {
-			h.Logger.WarnContext(ctx, "rule is disabled: skip creating notification event",
-				"namespace", event.Invoice.Namespace,
-				"rule.type", eventType,
-				"rule.id", rule.ID,
-				"rule.name", rule.Name,
-			)
-
-			continue
+		// Skip events for gathering invoices
+		if event.Invoice.Status == billing.StandardInvoiceStatusGathering {
+			trace.SpanFromContext(ctx).SetAttributes(attribute.Bool("invoice.skipped_gathering", true))
+			return nil
 		}
 
-		notificationEvent, err := h.Notification.CreateEvent(ctx, notification.CreateEventInput{
-			NamespacedModel: models.NamespacedModel{
-				Namespace: event.Invoice.Namespace,
-			},
-			Annotations: map[string]interface{}{
-				notification.AnnotationEventInvoiceID:     event.Invoice.ID,
-				notification.AnnotationEventInvoiceNumber: event.Invoice.Number,
-			},
-			Type:    eventType,
-			Payload: payload,
-			RuleID:  rule.ID,
+		// List active rules available for this event type in namespace
+		rules, err := h.Notification.ListRules(ctx, notification.ListRulesInput{
+			Namespaces: []string{event.Invoice.Namespace},
+			Types:      []notification.EventType{eventType},
+			OrderBy:    notification.OrderByID,
+			Order:      sortx.OrderDefault,
 		})
 		if err != nil {
-			return fmt.Errorf("failed to create notification event for system event [namespace=%s event.type=%s]: %w",
+			return fmt.Errorf("failed to list rules for event type [namespace=%s event.type=%s]: %w",
 				event.Invoice.Namespace, eventType, err)
 		}
 
-		h.Logger.DebugContext(ctx, "created notification event for system event",
-			"namespace", event.Invoice.Namespace,
-			"event.type", eventType,
-			"notification.event.id", notificationEvent.ID,
-		)
-	}
+		trace.SpanFromContext(ctx).SetAttributes(attribute.Int("rule.count", len(rules.Items)))
 
-	return nil
+		// TODO: it is planned to allow publishing events without active notification rule in order
+		// to store them but not sending them to any channel.
+		if len(rules.Items) == 0 {
+			h.Logger.WarnContext(ctx, "no rules found for event type: skip creating notification event",
+				"namespace", event.Invoice.Namespace,
+				"event.type", eventType,
+			)
+
+			return nil
+		}
+
+		apiInvoice, err := billinghttp.MapEventInvoiceToAPI(event)
+		if err != nil {
+			return fmt.Errorf("failed to map event invoice to API: %w", err)
+		}
+
+		payload := notification.EventPayload{
+			EventPayloadMeta: notification.EventPayloadMeta{
+				Type:    eventType,
+				Version: notification.EventPayloadVersionCurrent,
+			},
+			Invoice: &notification.InvoicePayload{Invoice: apiInvoice},
+		}
+
+		for _, rule := range rules.Items {
+			if rule.Disabled {
+				h.Logger.WarnContext(ctx, "rule is disabled: skip creating notification event",
+					"namespace", event.Invoice.Namespace,
+					"rule.type", eventType,
+					"rule.id", rule.ID,
+					"rule.name", rule.Name,
+				)
+
+				continue
+			}
+
+			notificationEvent, err := h.Notification.CreateEvent(ctx, notification.CreateEventInput{
+				NamespacedModel: models.NamespacedModel{
+					Namespace: event.Invoice.Namespace,
+				},
+				Annotations: map[string]interface{}{
+					notification.AnnotationEventInvoiceID:     event.Invoice.ID,
+					notification.AnnotationEventInvoiceNumber: event.Invoice.Number,
+				},
+				Type:    eventType,
+				Payload: payload,
+				RuleID:  rule.ID,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to create notification event for system event [namespace=%s event.type=%s]: %w",
+					event.Invoice.Namespace, eventType, err)
+			}
+
+			h.Logger.DebugContext(ctx, "created notification event for system event",
+				"namespace", event.Invoice.Namespace,
+				"event.type", eventType,
+				"notification.event.id", notificationEvent.ID,
+			)
+		}
+
+		return nil
+	})
 }

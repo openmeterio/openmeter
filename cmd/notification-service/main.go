@@ -115,6 +115,7 @@ func main() {
 		Notification: app.Notification,
 
 		Logger: logger,
+		Tracer: app.Tracer,
 	}
 
 	notificationConsumer, err := consumer.New(consumerOptions)

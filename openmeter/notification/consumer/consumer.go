@@ -7,6 +7,7 @@ import (
 	"log/slog"
 
 	"github.com/ThreeDotsLabs/watermill/message"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
@@ -26,6 +27,8 @@ type Options struct {
 	Marshaler marshaler.Marshaler
 
 	Logger *slog.Logger
+
+	Tracer trace.Tracer
 }
 
 func (o Options) Validate() error {
@@ -43,6 +46,10 @@ func (o Options) Validate() error {
 		errs = append(errs, errors.New("logger is required"))
 	}
 
+	if o.Tracer == nil {
+		errs = append(errs, errors.New("tracer is required"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -58,11 +65,13 @@ func New(opts Options) (*Consumer, error) {
 	entitlementSnapshotHandler := &EntitlementSnapshotHandler{
 		Notification: opts.Notification,
 		Logger:       opts.Logger.WithGroup("entitlement_snapshot_handler"),
+		Tracer:       opts.Tracer,
 	}
 
 	invoiceEventHandler := &InvoiceEventHandler{
 		Notification: opts.Notification,
 		Logger:       opts.Logger.WithGroup("invoice_event_handler"),
+		Tracer:       opts.Tracer,
 	}
 
 	r, err := router.NewDefaultRouter(opts.Router)
