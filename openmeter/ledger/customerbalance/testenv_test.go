@@ -324,12 +324,12 @@ func (e *testEnv) fundOpenReceivableInCurrency(t *testing.T, amount alpacadecima
 			CustomerID: e.CustomerID,
 			Namespace:  e.Namespace,
 		},
-		transactions.FundCustomerReceivableTemplate{
+		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:       e.Now(),
 			Amount:   amount,
 			Currency: currency,
 		},
-		transactions.SettleCustomerReceivablePaymentTemplate{
+		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:       e.Now(),
 			Amount:   amount,
 			Currency: currency,

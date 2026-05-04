@@ -67,7 +67,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 			CustomerID: customerID,
 			Namespace:  charge.Namespace,
 		},
-		transactions.FundCustomerReceivableTemplate{
+		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:        charge.CreatedAt,
 			Amount:    charge.Intent.CreditAmount,
 			Currency:  charge.Intent.Currency,
@@ -121,7 +121,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 			CustomerID: customerID,
 			Namespace:  charge.Namespace,
 		},
-		transactions.SettleCustomerReceivablePaymentTemplate{
+		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:        charge.CreatedAt,
 			Amount:    charge.Intent.CreditAmount,
 			Currency:  charge.Intent.Currency,
@@ -236,13 +236,13 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, charge 
 		// Promotional grants settle immediately through wash so the credited FBO balance
 		// does not leave an unsettled receivable behind.
 		templates = append(templates,
-			transactions.FundCustomerReceivableTemplate{
+			transactions.AuthorizeCustomerReceivablePaymentTemplate{
 				At:        charge.CreatedAt,
 				Amount:    charge.Intent.CreditAmount,
 				Currency:  charge.Intent.Currency,
 				CostBasis: &costBasis,
 			},
-			transactions.SettleCustomerReceivablePaymentTemplate{
+			transactions.SettleCustomerReceivableFromPaymentTemplate{
 				At:        charge.CreatedAt,
 				Amount:    charge.Intent.CreditAmount,
 				Currency:  charge.Intent.Currency,

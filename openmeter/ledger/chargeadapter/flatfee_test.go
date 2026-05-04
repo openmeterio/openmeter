@@ -415,7 +415,7 @@ func TestOnFlatFeeStandardInvoiceUsageAccrued(t *testing.T) {
 }
 
 func TestOnFlatFeePaymentAuthorized(t *testing.T) {
-	t.Run("credit_then_invoice stages receivable funding from receivable-backed accrued", func(t *testing.T) {
+	t.Run("credit_then_invoice stages open receivable as authorized", func(t *testing.T) {
 		env := newFlatFeeHandlerTestEnv(t)
 
 		// First accrue usage: receivable → accrued
@@ -428,16 +428,16 @@ func TestOnFlatFeePaymentAuthorized(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, ref.TransactionGroupID)
 
-		// Receivable is only funded into the authorized staging bucket at authorization time.
-		require.True(t, env.sumBalance(t, env.receivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(-75)))
-		require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(75)))
-		require.True(t, env.sumBalance(t, env.washSubAccount(t)).Equal(alpacadecimal.NewFromInt(-75)))
+		// Authorization only moves the receivable between status buckets.
+		require.True(t, env.sumBalance(t, env.receivableSubAccount(t)).Equal(alpacadecimal.Zero))
+		require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(-75)))
+		require.True(t, env.sumBalance(t, env.washSubAccount(t)).Equal(alpacadecimal.Zero))
 		// No revenue recognition happens here anymore.
 		require.True(t, env.sumBalance(t, env.invoiceAccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(75)))
 		require.True(t, env.sumBalance(t, env.invoiceEarningsSubAccount(t)).Equal(alpacadecimal.Zero))
 	})
 
-	t.Run("credit_then_invoice mixed FBO and receivable only stages receivable funding", func(t *testing.T) {
+	t.Run("credit_then_invoice mixed FBO and receivable only authorizes receivable", func(t *testing.T) {
 		env := newFlatFeeHandlerTestEnv(t)
 
 		// Fund FBO with 40
@@ -464,9 +464,9 @@ func TestOnFlatFeePaymentAuthorized(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, ref.TransactionGroupID)
 
-		// Receivable funding stays staged until settlement.
-		require.True(t, env.sumBalance(t, env.receivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(-20)))
-		require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(20)))
+		// Cash movement stays deferred until settlement.
+		require.True(t, env.sumBalance(t, env.receivableSubAccount(t)).Equal(alpacadecimal.Zero))
+		require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(-20)))
 		// Existing accrued balances stay untouched until a later recognition flow.
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(40)))
 		require.True(t, env.sumBalance(t, env.invoiceAccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(20)))
@@ -485,9 +485,9 @@ func TestOnFlatFeePaymentAuthorized(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, ref.TransactionGroupID)
 
-		require.True(t, env.sumBalance(t, env.receivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(-30)))
-		require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(75)))
-		require.True(t, env.sumBalance(t, env.washSubAccount(t)).Equal(alpacadecimal.NewFromInt(-75)))
+		require.True(t, env.sumBalance(t, env.receivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(45)))
+		require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(-75)))
+		require.True(t, env.sumBalance(t, env.washSubAccount(t)).Equal(alpacadecimal.Zero))
 		require.True(t, env.sumBalance(t, env.invoiceAccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(30)))
 		require.True(t, env.sumBalance(t, env.invoiceEarningsSubAccount(t)).Equal(alpacadecimal.Zero))
 	})
@@ -521,7 +521,7 @@ func TestOnFlatFeePaymentAuthorized(t *testing.T) {
 }
 
 func TestOnFlatFeePaymentSettled(t *testing.T) {
-	t.Run("credit_then_invoice settles authorized receivable into open receivable", func(t *testing.T) {
+	t.Run("credit_then_invoice settles authorized receivable from wash", func(t *testing.T) {
 		env := newFlatFeeHandlerTestEnv(t)
 
 		total := alpacadecimal.NewFromInt(40)
@@ -713,13 +713,13 @@ func (e *flatFeeHandlerTestEnv) fundPriority(t *testing.T, priority int, amount 
 			CostBasis:      &costBasis,
 			CreditPriority: &priority,
 		},
-		transactions.FundCustomerReceivableTemplate{
+		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:        e.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
 			Currency:  e.Currency,
 			CostBasis: &costBasis,
 		},
-		transactions.SettleCustomerReceivablePaymentTemplate{
+		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:        e.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
 			Currency:  e.Currency,

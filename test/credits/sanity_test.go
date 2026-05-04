@@ -699,7 +699,8 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 
 		costBasis := alpacadecimal.NewFromFloat(0.5)
 		s.Equal(payment.StatusAuthorized, updatedCharge.Realizations.ExternalPaymentSettlement.Status)
-		s.Equal(float64(-50), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+		s.Equal(float64(0), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+		s.Equal(float64(-50), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized).InexactFloat64())
 	})
 
 	s.Run("the customer settles the credit purchase payment", func() {
@@ -892,10 +893,10 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 
 		assertDelta("promo receivable after payment authorization", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen))
 		assertDelta("external receivable after payment authorization", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen))
-		assertDelta("total open receivable after payment authorization", flatFeeStart.totalOpenReceivable, alpacadecimal.NewFromInt(-20), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
-		assertDelta("authorized receivable after payment authorization", flatFeeStart.authorizedReceivable, alpacadecimal.NewFromInt(20), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized))
+		assertDelta("total open receivable after payment authorization", flatFeeStart.totalOpenReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("authorized receivable after payment authorization", flatFeeStart.authorizedReceivable, alpacadecimal.NewFromInt(-20), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized))
 		assertDelta("accrued after payment authorization", flatFeeStart.accrued, alpacadecimal.NewFromInt(100), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()))
-		assertDelta("total wash after payment authorization", flatFeeStart.totalWash, alpacadecimal.NewFromInt(-20), s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()))
+		assertDelta("total wash after payment authorization", flatFeeStart.totalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()))
 		assertDelta("external wash after payment authorization", flatFeeStart.externalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
 		assertDelta("earnings after payment authorization", flatFeeStart.earnings, alpacadecimal.Zero, s.mustEarningsBalance(ns, USD))
 	})
@@ -1125,11 +1126,11 @@ func (s *CreditsTestSuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 		s.Nil(updatedCharge.Realizations[0].Payment.Settled)
 
 		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
-		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-7.5)))
-		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-7.5)))
-		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromFloat(7.5)))
-		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromFloat(7.5)))
-		s.True(s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(-12.5)))
+		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
+		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
+		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromFloat(-7.5)))
+		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromFloat(-7.5)))
+		s.True(s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(-5)))
 	})
 
 	s.Run("the payment is settled and the charge reaches final", func() {
@@ -1267,7 +1268,8 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 
 		costBasis := alpacadecimal.NewFromFloat(0.5)
 		s.Equal(payment.StatusAuthorized, updatedCharge.Realizations.ExternalPaymentSettlement.Status)
-		s.Equal(float64(-50), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+		s.Equal(float64(0), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+		s.Equal(float64(-50), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized).InexactFloat64())
 	})
 
 	s.Run("the customer settles the credit purchase payment", func() {
@@ -1507,9 +1509,10 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		s.NoError(err)
 		s.Equal(payment.StatusAuthorized, updatedCharge.Realizations.ExternalPaymentSettlement.Status)
 
-		// Authorization now only stages settlement funding; attribution already happened during purchase initiation.
+		// Authorization only moves the purchased receivable into the authorized bucket;
+		// attribution already happened during purchase initiation.
 		s.True(
-			s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromInt(50)),
+			s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromInt(-50)),
 			"the purchased amount should be visible in the exact authorized receivable route before settlement",
 		)
 		s.True(
@@ -1524,7 +1527,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		s.NoError(err)
 		s.Equal(payment.StatusSettled, updatedCharge.Realizations.ExternalPaymentSettlement.Status)
 
-		// Settlement is now just the normal authorized -> open move in the purchased cost-basis bucket.
+		// Settlement is the cash movement from wash that clears the authorized receivable.
 		// The earlier attribution stays intact, and the purchased receivable fully nets out here.
 		s.True(
 			s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero),

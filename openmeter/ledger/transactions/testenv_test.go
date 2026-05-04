@@ -84,13 +84,13 @@ func (e *transactionsTestEnv) fundPriorityWithCostBasis(t *testing.T, priority i
 			CostBasis:      costBasis,
 			CreditPriority: &priority,
 		},
-		FundCustomerReceivableTemplate{
+		AuthorizeCustomerReceivablePaymentTemplate{
 			At:        e.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
 			Currency:  e.Currency,
 			CostBasis: costBasis,
 		},
-		SettleCustomerReceivablePaymentTemplate{
+		SettleCustomerReceivableFromPaymentTemplate{
 			At:        e.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
 			Currency:  e.Currency,

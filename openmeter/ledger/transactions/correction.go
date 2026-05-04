@@ -85,6 +85,10 @@ func transactionTemplateByName(name string) (TransactionTemplate, error) {
 		return FundCustomerReceivableTemplate{}, nil
 	case templateName(SettleCustomerReceivablePaymentTemplate{}):
 		return SettleCustomerReceivablePaymentTemplate{}, nil
+	case templateName(AuthorizeCustomerReceivablePaymentTemplate{}):
+		return AuthorizeCustomerReceivablePaymentTemplate{}, nil
+	case templateName(SettleCustomerReceivableFromPaymentTemplate{}):
+		return SettleCustomerReceivableFromPaymentTemplate{}, nil
 	case templateName(AttributeCustomerAdvanceReceivableCostBasisTemplate{}):
 		return AttributeCustomerAdvanceReceivableCostBasisTemplate{}, nil
 	case templateName(CoverCustomerReceivableTemplate{}):
