@@ -224,6 +224,10 @@ func (r RateCardMeta) Validate() error {
 					err),
 			))
 		}
+
+		if r.Price.Type() != FlatPriceType && r.FeatureKey == nil && r.FeatureID == nil {
+			errs = append(errs, ErrRateCardUsageBasedPriceRequiresFeatureKey)
+		}
 	}
 
 	if r.FeatureKey != nil {
