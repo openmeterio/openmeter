@@ -92,7 +92,7 @@ func (h *handler) ListSubscriptions() ListSubscriptionsHandler {
 				}
 				req.PlanID = planID
 
-				planKey, err := filters.FromAPIFilterString(params.Filter.PlanKey)
+				planKey, err := filters.FromAPIFilterStringExact(params.Filter.PlanKey)
 				if err != nil {
 					return ListSubscriptionsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 						{Field: "filter[plan_key]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},

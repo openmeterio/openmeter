@@ -66,8 +66,8 @@ model ListSubscriptionsParamsFilter {
   status?: Common.StringFieldFilterExact;
   #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
   plan_id?: Common.ULIDFieldFilter;
-  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
-  plan_key?: Common.StringFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  plan_key?: Common.StringFieldFilterExact;
 }
 
 interface SubscriptionsOperations {

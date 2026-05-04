@@ -83,15 +83,9 @@ func (i ListSubscriptionsInput) Validate() error {
 		}
 	}
 
-	if i.CustomerID != nil {
-		if err := i.CustomerID.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("customer id filter: %w", err))
-		}
-	}
-
 	if i.PlanKey != nil {
 		if err := i.PlanKey.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("plan key filter: %w", err))
+			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid plan_key filter: %w", err)))
 		}
 	}
 

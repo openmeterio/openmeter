@@ -7964,7 +7964,7 @@ components:
         plan_id:
           $ref: '#/components/schemas/ULIDFieldFilter'
         plan_key:
-          $ref: '#/components/schemas/StringFieldFilter'
+          $ref: '#/components/schemas/StringFieldFilterExact'
       additionalProperties: false
       description: Filter options for listing subscriptions.
     Meter:
