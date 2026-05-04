@@ -1,6 +1,6 @@
 module github.com/openmeterio/openmeter
 
-go 1.25.5
+go 1.26
 
 // ee: https://github.com/oklog/run/pull/35
 replace github.com/oklog/run => github.com/openmeterio/run v0.0.0-20250217124527-c72029d4b634
@@ -22,7 +22,7 @@ require (
 	github.com/cloudevents/sdk-go/v2 v2.16.2
 	github.com/confluentinc/confluent-kafka-go/v2 v2.14.1
 	github.com/forscht/namegen v1.0.1
-	github.com/getkin/kin-openapi v0.135.0
+	github.com/getkin/kin-openapi v0.136.0
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-chi/cors v1.2.2
 	github.com/go-chi/render v1.0.3
@@ -161,7 +161,7 @@ require (
 	github.com/neo4j/neo4j-go-driver/v5 v5.28.1 // indirect
 	github.com/oapi-codegen/oapi-codegen/v2 v2.6.1-0.20260403235458-a76544bd16ff // indirect
 	github.com/oasdiff/yaml v0.0.9 // indirect
-	github.com/oasdiff/yaml3 v0.0.9 // indirect
+	github.com/oasdiff/yaml3 v0.0.12 // indirect
 	github.com/pgvector/pgvector-go v0.3.0 // indirect
 	github.com/pinecone-io/go-pinecone v1.1.1 // indirect
 	github.com/pjbgf/sha1cd v0.4.0 // indirect
@@ -172,6 +172,7 @@ require (
 	github.com/questdb/go-questdb-client/v3 v3.2.0 // indirect
 	github.com/redpanda-data/connect/v4 v4.61.0 // indirect
 	github.com/samber/slog-common v0.21.0 // indirect
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	github.com/skeema/knownhosts v1.3.1 // indirect
 	github.com/speakeasy-api/jsonpath v0.6.0 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.6.0 // indirect
