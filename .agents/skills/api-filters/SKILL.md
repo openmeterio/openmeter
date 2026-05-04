@@ -1,6 +1,6 @@
 ---
 name: api-filters
-description: Add, modify, or convert AIP-style query-parameter filters on v3 list endpoints. Use when adding filterable fields to a list API, wiring filter parsing into a handler, converting filters into pkg/filter or Ent predicates, or debugging filter parsing/validation behavior.
+description: Add, modify, or convert AIP-style query-parameter filters on v3 list endpoints. Use when adding filterable fields to a list API, wiring filter parsing into a handler, converting API filters into pkg/filter predicates, or debugging filter parsing/validation behavior.
 user-invocable: false
 argument-hint: "[resource or list endpoint to add filters to]"
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent
@@ -10,23 +10,50 @@ allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent
 
 You are helping the user add or modify AIP-style query-parameter filters on an OpenMeter v3 list endpoint.
 
-OpenMeter follows the **Kong AIP filter spec** (NOT Google AIP-160 expression syntax). Filters use the deepObject query-parameter encoding `?filter[field][op]=value`. The implementation lives in `api/v3/filters/` and converts into the lower-level `pkg/filter` predicate model that Ent query builders consume.
+OpenMeter follows the **Kong AIP filter spec** (NOT Google AIP-160 expression syntax). Filters use the deepObject query-parameter encoding `?filter[field][op]=value`. The implementation is split across three layers:
+
+- `api/v3/filters/` — API-layer filter types, `Parse` entry point, and `FromAPI*` converters
+- `pkg/filter/` — internal predicate model with `Validate()`, `Select(field)`, `ApplyToQuery(...)` helpers
+- domain service input structs — hold the already-converted `*filter.*` predicates
 
 ## Relationship to other skills
 
 Filtering straddles two layers that the repo skill set keeps separate:
 
 - **TypeSpec / OAS side** — `Common.*FieldFilter` types, `Shared.ResourceFilters`, `deepObject` exposure, label dot-notation. See `../api/rules/aip-160-filtering.md` (the canonical Kong AIP-160 rule for OpenMeter). Use the `/api` skill when you also need to scaffold or modify the TypeSpec operation itself.
-- **Go implementation side** — what this skill covers: `api/v3/filters.Parse`, the typed filter structs, `Convert*` helpers, Ent predicate wiring, validation rules, gotchas.
+- **Go implementation side** — what this skill covers: `api/v3/filters.Parse`, the API-layer filter structs, `FromAPI*` helpers, service input wiring, adapter `filter.ApplyToQuery`, gotchas.
 
-If you are adding a brand-new filterable endpoint, invoke `/api` first to wire up the TypeSpec + handler shell, then come back here (or run both in sequence) for the filter decoder and adapter code. If you are only adding/modifying filters on an existing endpoint, this skill is enough on its own.
+If you are adding a brand-new filterable endpoint, invoke `/api` first to wire up the TypeSpec + handler shell, then come back here for the conversion + adapter code. If you are only adding/modifying filters on an existing endpoint, this skill is enough on its own.
 
 ## Context
 
-- **Public package:** `api/v3/filters/` — typed filter structs, the `Parse` entry point, and converters
-- **Internal predicate model:** `pkg/filter/` — used by both v3 and v1 (via `openmeter/apiconverter/filter.go`) and applied directly to Ent queries via `.Select(fieldName)`
-- **Reference implementation in use:** `openmeter/customer/adapter/customer.go` (customer list filters)
-- **Kong AIP spec for filtering:** `../api/rules/aip-160-filtering.md` (the rule file this skill depends on for TypeSpec-side guidance)
+- **API-layer package:** `api/v3/filters/` — API-shaped filter structs and `FromAPI*` converters
+- **Internal predicate model:** `pkg/filter/` — implements the `Filter` interface (`Validate`, `Select`, `IsEmpty`, …); used by Ent query builders
+- **Reference implementation in use:** `api/v3/handlers/customers/list.go` (handler) + `openmeter/customer/adapter/customer.go` (adapter) + `openmeter/customer/customer.go` (service input struct)
+- **Kong AIP spec for filtering:** `../api/rules/aip-160-filtering.md`
+
+## Architecture: three-layer conversion
+
+```
+TypeSpec Common.*FieldFilter
+        │  (make gen-api)
+        ▼
+api.Filter* (generated OAS types)        ─┐
+        │                                  │ handler decode layer
+api/v3/filters.Filter*  (API-layer types)  │  calls filters.FromAPIFilter*(...)
+        │                                  │
+pkg/filter.Filter*      (predicate model) ─┘  stored on service input struct
+        │
+        ▼                                    adapter layer
+filter.ApplyToQuery(query, input.Field, dbField)
+```
+
+Rules:
+
+- The **handler** converts `params.Filter.X` (API-shaped) → `*filter.X` (predicate) using `filters.FromAPIFilter*`.
+- The **service input struct** holds `*filter.FilterString`, `*filter.FilterTime`, `*filter.FilterULID`, etc. — NOT the API-layer types.
+- The **adapter** calls `filter.ApplyToQuery(query, input.Field, dbField)` to attach the predicate to the Ent query.
+- `filters.Parse` is called by the **generated** deepObject binding layer in `api/v3/api.gen.go`, not by handlers. Handlers receive `params.Filter` already populated.
 
 ## Filter Grammar (Kong AIP)
 
@@ -49,67 +76,63 @@ filter[field][nexists]           # absence check (only for additionalProperties 
 filter[labels.key_1][eq]=val     # dot-notation: only the FIRST dot is a delimiter
 ```
 
-### Operator-by-type matrix
+Operator constants live in `api/v3/filters/parse.go` as `OpEq`, `OpNeq`, `OpGt`, `OpGte`, `OpLt`, `OpLte`, `OpContains`, `OpOeq`, `OpOcontains`, `OpExists`, `OpNexists`.
 
-The Go types accept a **superset** of what each matching OAS `Common.*FieldFilter` type advertises. Operators marked with † are Go-only extensions — the OAS does not document them, so **do not rely on them as public contract**. See `../api/rules/aip-160-filtering.md` for the canonical per-OAS-type operator set.
+### API-layer filter types (`api/v3/filters/filter.go`)
 
-| Go type             | Accepted operators                                                                 |
-| ------------------- | ---------------------------------------------------------------------------------- |
-| `FilterString`      | eq, neq, contains, oeq, ocontains, gt†, gte†, lt†, lte†, exists†, nexists†         |
-| `FilterStringExact` | eq, neq, oeq                                                                       |
-| `StringFilter`      | eq, neq, contains (internal convenience — not a Common type)                       |
-| `FilterNumeric`     | eq, gt, gte, lt, lte, neq†, oeq†                                                   |
-| `FilterDateTime`    | eq, gt, gte, lt, lte (RFC-3339 values, parsed at convert-time)                     |
-| `FilterBoolean`     | eq (`true`/`false` literals — wraps the bare OAS scalar)                           |
+| Go type             | Fields                                                                         |
+| ------------------- | ------------------------------------------------------------------------------ |
+| `FilterBoolean`     | `Eq`                                                                           |
+| `FilterNumeric`     | `Eq`, `Neq`, `Oeq`, `Gt`, `Gte`, `Lt`, `Lte`                                   |
+| `FilterDateTime`    | `Eq`, `Gt`, `Gte`, `Lt`, `Lte` (all `*time.Time`; no `Neq`/`Oeq`)              |
+| `FilterString`      | `Eq`, `Neq`, `Gt`, `Gte`, `Lt`, `Lte`, `Contains`, `Oeq`, `Ocontains`, `Exists` |
+| `FilterULID`        | `Eq`, `Neq`, `Contains`, `Oeq`, `Ocontains`, `Exists` (no range ops)           |
+| `FilterStringExact` | `Eq`, `Neq`, `Oeq` (no `Exists`, no `Contains`)                                |
+| `FilterLabel`       | `Eq`, `Neq`, `Contains`, `Oeq`, `Ocontains` (label map value predicates)       |
+| `FilterLabels`      | type alias: `map[string]FilterLabel`                                           |
+
+The `Exists` field is serialized under the JSON key `$exists` so it does not collide with a literal `exists` operator in flattened encodings.
+
+**Important:** the API-layer types do NOT have `Validate()` methods. Validation (mutual exclusivity, complexity bounds, format checks) happens on the internal `pkg/filter.*` predicates — typically from the service input struct's own `Validate()`, calling `f.Validate()` on each non-nil filter.
+
+### `pkg/filter` predicates
+
+| Predicate                | Produced by converter         | Notes                            |
+| ------------------------ | ----------------------------- | -------------------------------- |
+| `*filter.FilterString`   | `FromAPIFilterString`         | Also used by `FromAPIFilterLabel`, `FromAPIFilterStringExact` |
+| `*filter.FilterULID`     | `FromAPIFilterULID`           | Embeds `FilterString`            |
+| `*filter.FilterFloat`    | `FromAPIFilterNumeric`        | (note: not `FilterNumeric`)      |
+| `*filter.FilterTime`     | `FromAPIFilterDateTime`       | RFC-3339 already parsed to `time.Time` by `Parse` |
+| `*filter.FilterBoolean`  | `FromAPIFilterBoolean`        |                                  |
+| `map[string]filter.FilterString` | `FromAPIFilterLabels` | Label map flatten                |
+
+The `Filter` interface (`pkg/filter/filter.go:19`) exposes `Validate()`, `ValidateWithComplexity(maxDepth int)`, `Select(field string) func(*sql.Selector)`, `SelectWhereExpr(...)`, and `IsEmpty()`.
 
 ### Multi-filter semantics
 
 - Multiple `filter[...]` parameters with **different fields** combine with **AND**.
 - A single field with `oeq` / `ocontains` combines its values with **OR** (`IN (...)` or `OR ILIKE ...`).
-- A single field with both `gte` and `lte` is a **range** (combined as **AND** at convert-time).
+- A single field with multiple operators (e.g. both `gte` and `lte`) is wrapped by the converter into `And{...}` of single-operator `pkg/filter` nodes.
 - The bare-key existence shortcut maps to `IS NOT NULL`; `nexists` only works on schemaless maps (`labels`, `metadata`).
 
-### Mutual exclusivity rules (enforced by `Validate`)
+### Validation is done by `pkg/filter`
 
-- `eq` / `neq` are mutually exclusive
-- `eq` / `contains` are mutually exclusive
-- `gt` and `gte` are mutually exclusive (pick one lower bound)
-- `lt` and `lte` are mutually exclusive (pick one upper bound)
-- Only one of `eq` and any range operator may be set
-- Range queries: each bound is optional — an open-ended range with only a lower bound (`gt` or `gte`) or only an upper bound (`lt` or `lte`) is valid. When both bounds are present, the converter splits them into `And{lower, upper}` single-operator nodes. Within each direction you may set at most one: `gt` or `gte` (not both), `lt` or `lte` (not both).
-
-### Hard limits (security)
-
-- **256 bytes** per single value (`maxFilterValueLength`, `parse.go:23`)
-- **50 items** per comma-separated list (`maxCommaSeparatedItems`, `parse.go:18`)
-- **Repeated query params for the same key are rejected** (e.g., `?filter[f][eq]=a&filter[f][eq]=b`)
-- **Unknown filter fields are rejected** before any other validation
-
-## Filter Types in `api/v3/filters/filter.go`
-
-All filter types follow the same shape — fields are pointers/slices so absence vs presence is unambiguous:
+Mutual-exclusivity and format rules (e.g. "multiple operators on one node", ULID format, complexity depth) are enforced by `*filter.FilterX.Validate()` — not by the API-layer types. A typical service input `Validate()` looks like:
 
 ```go
-type FilterString struct {
-    Eq        *string
-    Neq       *string
-    Gt        *string
-    Gte       *string
-    Lt        *string
-    Lte       *string
-    Contains  *string
-    Oeq       []string
-    Ocontains []string
-    Exists    *bool
+if i.Key != nil {
+    if err := i.Key.Validate(); err != nil {
+        errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid key filter: %w", err)))
+    }
 }
-// Plus: FilterStringExact, StringFilter, FilterNumeric,
-//       FilterDateTime, FilterBoolean
 ```
 
-Every type implements:
+### Hard limits (security, `api/v3/filters/parse.go:16-19`)
 
-- `IsEmpty() bool` — true when no operators are set
-- `Validate(ctx context.Context, field string) error` — enforces mutual exclusivity, range rules, and value parsability
+- **1024 bytes** per single value (`maxFilterValueLength`)
+- **50 items** per comma-separated list (`maxCommaSeparatedItems`)
+- **Repeated query params for the same key are rejected** (e.g., `?filter[f][eq]=a&filter[f][eq]=b`)
+- **Unknown filter fields are rejected** before any other validation (`checkUnknownFilterKeys`)
 
 ## Workflow
 
@@ -119,111 +142,120 @@ Follow these steps in order. Use the `/api` skill alongside this one when you al
 
 In `api/spec/packages/aip/src/<domain>/operations.tsp`, define a named filter model for the list operation and expose it as `filter` with `style: "deepObject", explode: true`. Use the `Common.*FieldFilter` types from `common/parameters.tsp` — **do not hand-roll filter models**.
 
-The canonical rule for _which_ `Common.*FieldFilter` type to pick, the `Shared.ResourceFilters` spread, label dot-notation, and OAS documentation requirements is `../api/rules/aip-160-filtering.md`. That rule also includes the TypeSpec type ↔ Go `filters.Filter*` mapping used in Step 2 below. Read it once before picking types — this skill is not the source of truth for the TypeSpec side.
+The canonical rule for *which* `Common.*FieldFilter` type to pick, the `Shared.ResourceFilters` spread, label dot-notation, and OAS documentation requirements is `../api/rules/aip-160-filtering.md`. That rule also includes the TypeSpec type ↔ Go `filters.Filter*` mapping. Read it once before picking types — this skill is not the source of truth for the TypeSpec side.
 
-The customer list endpoint is the canonical worked example for how these types connect to a real list operation.
+The events list endpoint (`api/spec/packages/aip/src/events/operations.tsp`) and the customer list endpoint are the canonical worked examples.
 
-### Step 2: Define the input struct on the service
+After editing TypeSpec, run `make gen-api` so the generated `params.Filter` struct in `api/v3/api.gen.go` picks up the new fields.
 
-In your service input type (e.g., `openmeter/customer/customer.go`'s `ListCustomersInput`), add typed filter fields. Use json tags — `Parse` reflects on them to learn the allowed field names:
+### Step 2: Store `pkg/filter` predicates on the service input struct
+
+In your domain service input type, add fields typed as **pkg/filter predicates**, not API-layer types. Example from `openmeter/customer/customer.go:296`:
 
 ```go
 type ListCustomersInput struct {
     Namespace string
+    pagination.Page
 
-    Key          *filters.FilterString `json:"key"`
-    Name         *filters.FilterString `json:"name"`
-    PrimaryEmail *filters.FilterString `json:"primary_email"`
-    CreatedAt    *filters.FilterDateTime `json:"created_at"`
+    OrderBy string
+    Order   sortx.Order
+
+    Key          *filter.FilterString
+    Name         *filter.FilterString
+    PrimaryEmail *filter.FilterString
     // ...
 }
-```
 
-Pick the **narrowest filter type** that covers the field's documented operators. Prefer `FilterStringExact` or `StringFilter` over `FilterString` when range operators are not needed — narrower types fail loudly if a client sends an unsupported operator.
-
-### Step 3: Parse query params in the HTTP decoder
-
-In your handler's request decoder (the first argument to `httptransport.NewHandlerWithArgs`), call `filters.Parse` against the request URL values, passing a pointer to the filters sub-struct (or to your full input):
-
-```go
-import "github.com/openmeterio/openmeter/api/v3/filters"
-
-func (h *handler) ListCustomers() ListCustomersHandler {
-    return httptransport.NewHandlerWithArgs(
-        func(ctx context.Context, r *http.Request, params api.ListCustomersParams) (ListCustomersRequest, error) {
-            ns, err := h.resolveNamespace(ctx)
-            if err != nil {
-                return ListCustomersRequest{}, err
-            }
-
-            req := ListCustomersRequest{Namespace: ns}
-
-            // Parse filters from raw query string — required because deepObject
-            // params (filter[field][op]=...) are not represented in api.ListCustomersParams.
-            if err := filters.Parse(r.URL.Query(), &req); err != nil {
-                return req, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-                    {Field: "filter", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
-                })
-            }
-
-            // pagination, sort, etc.
-            return req, nil
-        },
-        // operation func, encoder, options...
-    )
+func (i ListCustomersInput) Validate() error {
+    var errs []error
+    // ...
+    if i.Key != nil {
+        if err := i.Key.Validate(); err != nil {
+            errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid key filter: %w", err)))
+        }
+    }
+    // ...
+    return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 ```
 
-`filters.Parse` will:
+Pick the narrowest predicate: `filter.FilterString` for strings, `filter.FilterULID` for ULID columns, `filter.FilterFloat` for numbers, `filter.FilterTime` for timestamps, `filter.FilterBoolean` for bools.
 
-1. Reflect over the target struct's `json` tags to build the known-field set
-2. Reject any `filter[unknown_field]...` query parameter as an error
-3. For each known field, dispatch to the type-specific parser (string / numeric / datetime / bool)
-4. Run `Validate()` on each parsed filter (mutual exclusivity, range rules, type coercion)
-5. Populate the target struct in place
+### Step 3: Convert API filters in the HTTP handler
 
-### Step 4: Convert to `pkg/filter` and apply to Ent
-
-Filter conversion lives in `api/v3/filters/convert.go`. Use the matching `Convert*` helper in your **adapter** (not the handler) to translate API-shaped filters into the internal `pkg/filter` predicate model, then call `.Select(fieldName)` to get an Ent predicate:
+In the handler decoder (the first argument to `httptransport.NewHandlerWithArgs`), call the matching `filters.FromAPIFilter*` helper against the generated `params.Filter.<field>` and assign to the request. The canonical pattern is in `api/v3/handlers/customers/list.go`:
 
 ```go
 import (
+    "github.com/openmeterio/openmeter/api/v3/apierrors"
     "github.com/openmeterio/openmeter/api/v3/filters"
-    customerdb "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 )
 
-func (a *adapter) ListCustomers(ctx context.Context, in customer.ListCustomersInput) (...) {
-    q := a.db.Customer.Query().Where(customerdb.Namespace(in.Namespace))
+if params.Filter != nil {
+    key, err := filters.FromAPIFilterString(params.Filter.Key)
+    if err != nil {
+        return ListCustomersRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+            {Field: "filter[key]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+        })
+    }
+    req.Key = key
 
-    if in.Key != nil {
-        if p := filters.ConvertFilterString(*in.Key).Select(customerdb.FieldKey); p != nil {
-            q = q.Where(p)
-        }
+    name, err := filters.FromAPIFilterString(params.Filter.Name)
+    if err != nil {
+        return ListCustomersRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+            {Field: "filter[name]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+        })
     }
-    if in.Name != nil {
-        if p := filters.ConvertFilterString(*in.Name).Select(customerdb.FieldName); p != nil {
-            q = q.Where(p)
-        }
-    }
-    // ...
+    req.Name = name
 }
 ```
 
-Important behaviors `Convert*` handles for you:
+Notes:
 
-- **Range splitting:** `gte`+`lte` on the same field becomes an `And` of two single-op `pkg/filter` nodes (the internal model only allows one operator per node).
-- **`Oeq` → `In`:** comma-separated equals becomes a SQL `IN (...)` clause.
-- **`Ocontains` → `Or` of `Contains`:** comma-separated contains becomes `OR ILIKE` chain.
-- **DateTime parsing:** `ConvertFilterDateTime` parses RFC-3339 strings into `time.Time` and returns an error if parsing fails — propagate it up as a 400.
-- **Empty collapse:** if `IsEmpty()` is true, the helper returns nil so you can skip the `.Where(...)` call entirely.
+- Handlers do **not** call `filters.Parse` directly — the generated OAS binding layer does that and surfaces any parse/validation errors as `InvalidParamFormatError` before the handler runs.
+- Every `FromAPIFilter*` returns `(*filter.X, error)`. The error channel is reserved for helpers that can fail (e.g. future format checks); today most helpers only return `(nil, nil)` on a nil input, but always handle the error for forward-compatibility.
+- On error, wrap with `apierrors.NewBadRequestError(...)` using `Source: apierrors.InvalidParamSourceQuery` and `Field: "filter[<field>]"`.
 
-### Step 5: Tests
+### Step 4: Apply to the query in the adapter
 
-Write tests at three layers:
+Adapters use `filter.ApplyToQuery(query, input.Field, dbField)` — a generic helper that:
 
-1. **Parser tests** (mirror `api/v3/filters/parse_test.go`): the parse layer is already covered for the generic operator surface; you only need to add cases when introducing a new filter type.
-2. **Converter tests** (mirror `api/v3/filters/convert_test.go`): again, only when adding a new converter.
-3. **Handler/adapter integration tests:** the important layer for new endpoints — assert that representative `?filter[...]=` query strings produce the expected SQL/Ent query results. Include at least:
+1. Returns the query unchanged when the predicate is nil.
+2. Builds an Ent predicate via `pkg/filter.SelectPredicate[P](...)`.
+3. Calls `q.Where(*p)` when the predicate is non-empty.
+
+From `openmeter/customer/adapter/customer.go:52`:
+
+```go
+query = filter.ApplyToQuery(query, input.Key, customerdb.FieldKey)
+query = filter.ApplyToQuery(query, input.Name, customerdb.FieldName)
+query = filter.ApplyToQuery(query, input.PrimaryEmail, customerdb.FieldPrimaryEmail)
+```
+
+Important behaviors baked into the converter + `ApplyToQuery` pipeline:
+
+- **Range splitting:** multiple operators on the same field (e.g. `gte`+`lte`) are packed into `FilterX{And: &parts}` by the `FromAPIFilter*` helper.
+- **`Oeq` → `In`:** comma-separated equals becomes a SQL `IN (...)` via `filter.FilterString{In: ...}`.
+- **`Ocontains` → `Or` of `Contains`:** becomes an `OR ILIKE` chain via `FilterString{Or: ...}`.
+- **`FilterLabels` is special:** convert with `FromAPIFilterLabels` and then apply each entry against the JSONB key in the adapter — `ApplyToQuery` does not handle map-shaped predicates on its own.
+- **DateTime:** values are already parsed to `time.Time` by `Parse`. `FromAPIFilterDateTime` cannot fail on format anymore, but still returns `error` for the interface.
+
+### Step 5: Service Level Tests
+
+ALWAYS add service level tests for the list function in the domain's `service_test.go`. These tests should:
+1.  Use a table-based test approach (`testCases := []struct{...}`).
+2.  Cover each new filter field (e.g., `FilterByID`, `FilterByKey`, `FilterByStatus`).
+3.  Cover the new sort options (e.g., `SortByNameDesc`).
+4.  Assert on the expected number of items and specific item properties in the result.
+
+### Step 6: Adapter & Integration Tests
+
+Write tests at three additional layers:
+
+1. **Parser tests** (`api/v3/filters/parse_test.go`): the parse layer is already covered for the generic operator surface; only add cases when introducing a new filter type or operator.
+2. **Converter tests** (`api/v3/filters/convert_test.go`): only when adding a new `FromAPIFilter*` helper.
+3. **Adapter tests** (`adapter_test.go`): If you made changes to the adapter (e.g., adding `filter.ApplyToQuery` for new fields) that are not already covered by existing tests, add specific test cases to verify the Ent query generation for these fields.
+4. **Handler/adapter integration tests:** the important layer for new endpoints — assert that representative `?filter[...]=` query strings produce the expected results. Cover at minimum:
    - shorthand `filter[name]=foo`
    - explicit `filter[name][eq]=foo`
    - `filter[name][contains]=...`
@@ -233,33 +265,32 @@ Write tests at three layers:
    - a mutually exclusive combo returns 400
    - dot-notation against `labels` if applicable
 
-Use `httptest.NewRequest` and assert on the response body or the captured service input — see existing customer list tests for the pattern.
+Use `httptest.NewRequest` and assert on the response body or the captured service input.
 
 ## Common Patterns and Gotchas
 
 ### Picking the right filter type
 
-| You want…                                              | Use                 |
-| ------------------------------------------------------ | ------------------- |
-| Equality + contains + ranges on a string column        | `FilterString`      |
-| Equality + neq + IN-list on an enum-like string column | `FilterStringExact` |
-| Tiny string filter (eq/neq/contains only)              | `StringFilter`      |
-| Numeric column with ranges                             | `FilterNumeric`     |
-| Timestamp column with ranges                           | `FilterDateTime`    |
-| Boolean flag column                                    | `FilterBoolean`     |
+| You want…                                              | API type            | Predicate                |
+| ------------------------------------------------------ | ------------------- | ------------------------ |
+| Equality + contains + ranges on a string column        | `FilterString`      | `*filter.FilterString`   |
+| ULID column (eq/neq/contains/oeq/ocontains/exists)     | `FilterULID`        | `*filter.FilterULID`     |
+| Equality + neq + IN-list on an enum-like string column | `FilterStringExact` | `*filter.FilterString`   |
+| Numeric column with ranges                             | `FilterNumeric`     | `*filter.FilterFloat`    |
+| Timestamp column with ranges                           | `FilterDateTime`    | `*filter.FilterTime`     |
+| Boolean flag column                                    | `FilterBoolean`     | `*filter.FilterBoolean`  |
+| Single label map key                                   | `FilterLabel`       | `*filter.FilterString`   |
+| Full labels map                                        | `FilterLabels`      | `map[string]filter.FilterString` |
 
 ### Dot notation and label maps
 
 - `filter[labels.env][eq]=prod` is supported by treating the **first** `.` as the delimiter; the remainder is the map key. `.` is itself a legal label-key character, so anything after the first dot is the key verbatim.
-- Allow-listing must explicitly opt the `labels` field into dot-filtering; otherwise dot-notation against a regular field is rejected.
+- Allow-listing must explicitly opt the `labels` field into dot-filtering (the struct field must be typed as `FilterLabels`); otherwise dot-notation against a regular field is rejected.
 - `nexists` is **only** valid on additionalProperties maps (`labels`, `metadata`) — do not document it for normal columns.
 
 ### Datetime values
 
-`FilterDateTime` keeps strings raw at parse time and only validates RFC-3339 in `ConvertFilterDateTime`. This means:
-
-- Malformed timestamps surface as **convert-time errors**, not parse-time errors.
-- Always handle the `ConvertFilterDateTime` error and return a 400.
+`FilterDateTime` holds `*time.Time` and `Parse` rejects malformed RFC-3339 strings at parse time (via `ErrInvalidDateTime`). The converter cannot produce format errors; its `error` return is a forward-compat hook.
 
 ### Repeated parameters
 
@@ -267,7 +298,7 @@ Use `httptest.NewRequest` and assert on the response body or the captured servic
 
 ### Range queries
 
-`gte`+`lte` together is the _only_ way to express a range. Do not document or support `gt`+`lte`, `gte`+`lt`, etc., until/unless the parser learns to allow those combinations — the current `Validate()` rejects mixed bound styles.
+Multiple range operators on the same field (e.g. `gte`+`lte`) are packed into `And{gte, lte}` by the converter. Validation of pathological combinations (e.g. both `gt` and `gte`) lives in `pkg/filter.FilterX.Validate()`; the service input's own `Validate()` surfaces those errors.
 
 ### Case sensitivity
 
@@ -283,38 +314,43 @@ The Kong AIP spec allows `?filter[tags][eq][any]=urgent` and `[all]` quantifiers
 - AIP-160 expression syntax (free-form `name = "x" AND age > 5`)
 - Logical NOT, parenthesized sub-expressions
 - Function calls (`startsWith(...)`, etc.)
-- Mixed AND/OR at the API layer beyond what `oeq`/`ocontains` provide
+- Mixed AND/OR at the API layer beyond what `oeq` / `ocontains` / converter-built `And` chains provide
 - Quantifiers on list fields (see above)
 
 If a customer asks for any of these, treat it as a feature request, not a bug fix.
 
 ## Error Handling
 
-`filters.Parse` returns plain `error` values with structured messages (no `ValidationIssue` yet). Wrap them in `apierrors.NewBadRequestError` with `apierrors.InvalidParamSourceQuery` so the field surfaces in `invalid_parameters` per AIP. Example error messages you may see:
+- **`filters.Parse` errors** (from the generated binding) surface as `InvalidParamFormatError{ParamName: "filter"}` and are translated to 400 by the API error encoder.
+- **`FromAPIFilter*` errors** (today mostly unreachable, but the surface exists) should be wrapped with `apierrors.NewBadRequestError` using `apierrors.InvalidParamSourceQuery` and `Field: "filter[<field>]"`.
+- **`pkg/filter.Validate()` errors** (from the service input's own `Validate()`) surface as `models.GenericValidationError` and are translated by the handler's error encoder. The caller does not need special casing.
+
+Representative error messages from `Parse`:
 
 - `unknown filter field(s): foo, bar` — client used a field not declared on the input struct
-- `unknown filter operator "like"` — client used an operator outside the supported set
-- `filter[count][eq]: invalid number "abc": ...` — type coercion failed
-- `filter[field]: only one filter can be set` / `gt and gte are mutually exclusive` — validation rejected the combination
-- `filter parameter "...": value too long (max 256 bytes)` / `too many comma-separated items (max 50)` — security caps tripped
+- `unsupported operator` — client used an operator outside the supported set
+- `filter[count][eq]: invalid number "abc"` — type coercion failed
+- `filter[field]: only one filter can be set` / `gt and gte are mutually exclusive` — validation rejected the combination (raised in `pkg/filter.Validate`)
+- `filter parameter "...": value too long (max 1024 bytes)` / `too many comma-separated items (max 50)` — security caps tripped
 - `filter parameter "...": repeated query parameter not allowed (got 2 values)` — duplicate keys
 
 ## Reference Files
 
-- `api/v3/filters/filter.go` — typed filter structs + `Validate` rules
-- `api/v3/filters/parse.go` — `Parse` entry point, type-specific parsers, security caps (constants at lines 18 and 23)
-- `api/v3/filters/convert.go` — `Convert*` helpers, range-splitting logic
+- `api/v3/filters/filter.go` — API-layer filter structs (no methods; plain data shapes)
+- `api/v3/filters/parse.go` — `Parse` entry point, operator constants, per-type parsers, security caps (lines 16–19)
+- `api/v3/filters/convert.go` — `FromAPIFilter*` helpers (String, ULID, Label, Labels, StringExact, Numeric, DateTime, Boolean)
 - `api/v3/filters/parse_test.go`, `api/v3/filters/convert_test.go` — canonical examples of supported syntax
-- `pkg/filter/filter.go` — internal predicate model used by Ent query builders
-- `openmeter/apiconverter/filter.go` — v1 API → `pkg/filter` (goverter-generated)
-- `openmeter/customer/adapter/customer.go` — current real-world consumer of v3 filters
+- `pkg/filter/filter.go` — `Filter` interface, predicate types, `Validate`, `Select`, `ApplyToQuery` (line 743)
+- `api/v3/handlers/customers/list.go` — reference handler using `FromAPIFilterString`
+- `openmeter/customer/customer.go:296` — reference service input struct typed with `*filter.FilterString` fields and a `Validate()` method
+- `openmeter/customer/adapter/customer.go:52` — reference adapter using `filter.ApplyToQuery`
 - `../api/rules/aip-160-filtering.md` — TypeSpec-side rule: `Common.*FieldFilter` ↔ Go `filters.Filter*` mapping, `Shared.ResourceFilters`, label dot-notation
 
 ## Important Reminders
 
-- All filterable fields **must** be declared on a Go struct with a `json` tag — `Parse` is reflection-driven; fields without json tags are invisible to it.
-- All filterable fields **must** be documented in the TypeSpec OAS for the endpoint, including the supported operators per field.
-- Use `Convert*` helpers in the **adapter**, not the handler — keep API-shape vs DB-predicate separation clean.
-- Always return 400 (via `apierrors.NewBadRequestError`) for `Parse` errors and convert errors so they surface in `invalid_parameters`.
-- Do not invent new operators or quantifiers without first updating `api/v3/filters/parse.go`, `Validate`, and the corresponding `Convert*` — the parser is the contract.
-- When in doubt about an operator's behavior, read `parse_test.go` — it is the executable spec.
+- Service input structs hold `*filter.*` predicates, not `*filters.*` API types. Conversion is the handler's job.
+- Use `filter.ApplyToQuery(query, input.Field, dbField)` in adapters, not `.Select(...)` by hand — the helper handles nil-skip and predicate construction.
+- Every API filter field **must** appear on the generated `params.Filter` struct (from TypeSpec) for handlers to see it. Run `make gen-api` after editing TypeSpec.
+- Validation belongs on the `pkg/filter.*` predicate (called from the service input's `Validate()`), not on the API-layer types.
+- Do not invent new operators or quantifiers without first updating `api/v3/filters/parse.go`, `pkg/filter.FilterX.Validate`, and the matching `FromAPIFilter*` — the parser is the contract.
+- When in doubt about an operator's behavior, read `parse_test.go` and `convert_test.go` — they are the executable spec.

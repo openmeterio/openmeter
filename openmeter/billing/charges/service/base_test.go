@@ -28,6 +28,7 @@ import (
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -157,6 +158,7 @@ func (s *BaseSuite) SetupSuite() {
 		FlatFeeService:        flatFeeService,
 		CreditPurchaseService: creditPurchaseService,
 		UsageBasedService:     usageBasedService,
+		RecognizerService:     recognizer.NoopService{},
 
 		BillingService: s.BillingService,
 	})
@@ -183,6 +185,7 @@ type createMockChargeIntentInput struct {
 	settlementMode    productcatalog.SettlementMode
 	managedBy         billing.InvoiceLineManagedBy
 	uniqueReferenceID string
+	taxConfig         *productcatalog.TaxCodeConfig
 }
 
 func (i *createMockChargeIntentInput) Validate() error {
@@ -235,6 +238,7 @@ func (s *BaseSuite) createMockChargeIntent(input createMockChargeIntentInput) ch
 		UniqueReferenceID: lo.EmptyableToPtr(input.uniqueReferenceID),
 		CustomerID:        input.customer.ID,
 		Currency:          input.currency,
+		TaxConfig:         input.taxConfig,
 	}
 
 	if isFlatFee {

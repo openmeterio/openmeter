@@ -38,6 +38,25 @@ func (f FuncRule) Validate(tx TxView) error {
 	return f(tx)
 }
 
+type RequireUniqueSubAccountsRule struct{}
+
+func (r RequireUniqueSubAccountsRule) Validate(tx TxView) error {
+	seen := make(map[string]struct{}, len(tx.Entries()))
+	for _, entry := range tx.Entries() {
+		subAccountID := entry.Entry().PostingAddress().SubAccountID()
+		if _, ok := seen[subAccountID]; ok {
+			return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
+				"reason":         "duplicate_sub_account_entry",
+				"sub_account_id": subAccountID,
+			})
+		}
+
+		seen[subAccountID] = struct{}{}
+	}
+
+	return nil
+}
+
 type AllowedAccountSetsRule struct {
 	Sets [][]ledger.AccountType
 }

@@ -146,15 +146,21 @@ func (_c *ChargeUsageBasedRunsCreate) SetType(v usagebased.RealizationRunType) *
 	return _c
 }
 
-// SetAsof sets the "asof" field.
-func (_c *ChargeUsageBasedRunsCreate) SetAsof(v time.Time) *ChargeUsageBasedRunsCreate {
-	_c.mutation.SetAsof(v)
+// SetStoredAtLt sets the "stored_at_lt" field.
+func (_c *ChargeUsageBasedRunsCreate) SetStoredAtLt(v time.Time) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetStoredAtLt(v)
 	return _c
 }
 
-// SetCollectionEnd sets the "collection_end" field.
-func (_c *ChargeUsageBasedRunsCreate) SetCollectionEnd(v time.Time) *ChargeUsageBasedRunsCreate {
-	_c.mutation.SetCollectionEnd(v)
+// SetServicePeriodTo sets the "service_period_to" field.
+func (_c *ChargeUsageBasedRunsCreate) SetServicePeriodTo(v time.Time) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetServicePeriodTo(v)
+	return _c
+}
+
+// SetDetailedLinesPresent sets the "detailed_lines_present" field.
+func (_c *ChargeUsageBasedRunsCreate) SetDetailedLinesPresent(v bool) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetDetailedLinesPresent(v)
 	return _c
 }
 
@@ -172,9 +178,9 @@ func (_c *ChargeUsageBasedRunsCreate) SetNillableLineID(v *string) *ChargeUsageB
 	return _c
 }
 
-// SetMeterValue sets the "meter_value" field.
-func (_c *ChargeUsageBasedRunsCreate) SetMeterValue(v alpacadecimal.Decimal) *ChargeUsageBasedRunsCreate {
-	_c.mutation.SetMeterValue(v)
+// SetMeteredQuantity sets the "metered_quantity" field.
+func (_c *ChargeUsageBasedRunsCreate) SetMeteredQuantity(v alpacadecimal.Decimal) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetMeteredQuantity(v)
 	return _c
 }
 
@@ -403,19 +409,22 @@ func (_c *ChargeUsageBasedRunsCreate) check() error {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRuns.type": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.Asof(); !ok {
-		return &ValidationError{Name: "asof", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.asof"`)}
+	if _, ok := _c.mutation.StoredAtLt(); !ok {
+		return &ValidationError{Name: "stored_at_lt", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.stored_at_lt"`)}
 	}
-	if _, ok := _c.mutation.CollectionEnd(); !ok {
-		return &ValidationError{Name: "collection_end", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.collection_end"`)}
+	if _, ok := _c.mutation.ServicePeriodTo(); !ok {
+		return &ValidationError{Name: "service_period_to", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.service_period_to"`)}
+	}
+	if _, ok := _c.mutation.DetailedLinesPresent(); !ok {
+		return &ValidationError{Name: "detailed_lines_present", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.detailed_lines_present"`)}
 	}
 	if v, ok := _c.mutation.LineID(); ok {
 		if err := chargeusagebasedruns.LineIDValidator(v); err != nil {
 			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRuns.line_id": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.MeterValue(); !ok {
-		return &ValidationError{Name: "meter_value", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.meter_value"`)}
+	if _, ok := _c.mutation.MeteredQuantity(); !ok {
+		return &ValidationError{Name: "metered_quantity", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.metered_quantity"`)}
 	}
 	if len(_c.mutation.UsageBasedIDs()) == 0 {
 		return &ValidationError{Name: "usage_based", err: errors.New(`db: missing required edge "ChargeUsageBasedRuns.usage_based"`)}
@@ -511,17 +520,21 @@ func (_c *ChargeUsageBasedRunsCreate) createSpec() (*ChargeUsageBasedRuns, *sqlg
 		_spec.SetField(chargeusagebasedruns.FieldType, field.TypeEnum, value)
 		_node.Type = value
 	}
-	if value, ok := _c.mutation.Asof(); ok {
-		_spec.SetField(chargeusagebasedruns.FieldAsof, field.TypeTime, value)
-		_node.Asof = value
+	if value, ok := _c.mutation.StoredAtLt(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldStoredAtLt, field.TypeTime, value)
+		_node.StoredAtLt = value
 	}
-	if value, ok := _c.mutation.CollectionEnd(); ok {
-		_spec.SetField(chargeusagebasedruns.FieldCollectionEnd, field.TypeTime, value)
-		_node.CollectionEnd = value
+	if value, ok := _c.mutation.ServicePeriodTo(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldServicePeriodTo, field.TypeTime, value)
+		_node.ServicePeriodTo = value
 	}
-	if value, ok := _c.mutation.MeterValue(); ok {
-		_spec.SetField(chargeusagebasedruns.FieldMeterValue, field.TypeOther, value)
-		_node.MeterValue = value
+	if value, ok := _c.mutation.DetailedLinesPresent(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldDetailedLinesPresent, field.TypeBool, value)
+		_node.DetailedLinesPresent = value
+	}
+	if value, ok := _c.mutation.MeteredQuantity(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldMeteredQuantity, field.TypeOther, value)
+		_node.MeteredQuantity = value
 	}
 	if nodes := _c.mutation.UsageBasedIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -816,15 +829,27 @@ func (u *ChargeUsageBasedRunsUpsert) UpdateTotal() *ChargeUsageBasedRunsUpsert {
 	return u
 }
 
-// SetAsof sets the "asof" field.
-func (u *ChargeUsageBasedRunsUpsert) SetAsof(v time.Time) *ChargeUsageBasedRunsUpsert {
-	u.Set(chargeusagebasedruns.FieldAsof, v)
+// SetStoredAtLt sets the "stored_at_lt" field.
+func (u *ChargeUsageBasedRunsUpsert) SetStoredAtLt(v time.Time) *ChargeUsageBasedRunsUpsert {
+	u.Set(chargeusagebasedruns.FieldStoredAtLt, v)
 	return u
 }
 
-// UpdateAsof sets the "asof" field to the value that was provided on create.
-func (u *ChargeUsageBasedRunsUpsert) UpdateAsof() *ChargeUsageBasedRunsUpsert {
-	u.SetExcluded(chargeusagebasedruns.FieldAsof)
+// UpdateStoredAtLt sets the "stored_at_lt" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsert) UpdateStoredAtLt() *ChargeUsageBasedRunsUpsert {
+	u.SetExcluded(chargeusagebasedruns.FieldStoredAtLt)
+	return u
+}
+
+// SetDetailedLinesPresent sets the "detailed_lines_present" field.
+func (u *ChargeUsageBasedRunsUpsert) SetDetailedLinesPresent(v bool) *ChargeUsageBasedRunsUpsert {
+	u.Set(chargeusagebasedruns.FieldDetailedLinesPresent, v)
+	return u
+}
+
+// UpdateDetailedLinesPresent sets the "detailed_lines_present" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsert) UpdateDetailedLinesPresent() *ChargeUsageBasedRunsUpsert {
+	u.SetExcluded(chargeusagebasedruns.FieldDetailedLinesPresent)
 	return u
 }
 
@@ -846,15 +871,15 @@ func (u *ChargeUsageBasedRunsUpsert) ClearLineID() *ChargeUsageBasedRunsUpsert {
 	return u
 }
 
-// SetMeterValue sets the "meter_value" field.
-func (u *ChargeUsageBasedRunsUpsert) SetMeterValue(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsert {
-	u.Set(chargeusagebasedruns.FieldMeterValue, v)
+// SetMeteredQuantity sets the "metered_quantity" field.
+func (u *ChargeUsageBasedRunsUpsert) SetMeteredQuantity(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsert {
+	u.Set(chargeusagebasedruns.FieldMeteredQuantity, v)
 	return u
 }
 
-// UpdateMeterValue sets the "meter_value" field to the value that was provided on create.
-func (u *ChargeUsageBasedRunsUpsert) UpdateMeterValue() *ChargeUsageBasedRunsUpsert {
-	u.SetExcluded(chargeusagebasedruns.FieldMeterValue)
+// UpdateMeteredQuantity sets the "metered_quantity" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsert) UpdateMeteredQuantity() *ChargeUsageBasedRunsUpsert {
+	u.SetExcluded(chargeusagebasedruns.FieldMeteredQuantity)
 	return u
 }
 
@@ -890,8 +915,8 @@ func (u *ChargeUsageBasedRunsUpsertOne) UpdateNewValues() *ChargeUsageBasedRunsU
 		if _, exists := u.create.mutation.GetType(); exists {
 			s.SetIgnore(chargeusagebasedruns.FieldType)
 		}
-		if _, exists := u.create.mutation.CollectionEnd(); exists {
-			s.SetIgnore(chargeusagebasedruns.FieldCollectionEnd)
+		if _, exists := u.create.mutation.ServicePeriodTo(); exists {
+			s.SetIgnore(chargeusagebasedruns.FieldServicePeriodTo)
 		}
 	}))
 	return u
@@ -1071,17 +1096,31 @@ func (u *ChargeUsageBasedRunsUpsertOne) UpdateTotal() *ChargeUsageBasedRunsUpser
 	})
 }
 
-// SetAsof sets the "asof" field.
-func (u *ChargeUsageBasedRunsUpsertOne) SetAsof(v time.Time) *ChargeUsageBasedRunsUpsertOne {
+// SetStoredAtLt sets the "stored_at_lt" field.
+func (u *ChargeUsageBasedRunsUpsertOne) SetStoredAtLt(v time.Time) *ChargeUsageBasedRunsUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
-		s.SetAsof(v)
+		s.SetStoredAtLt(v)
 	})
 }
 
-// UpdateAsof sets the "asof" field to the value that was provided on create.
-func (u *ChargeUsageBasedRunsUpsertOne) UpdateAsof() *ChargeUsageBasedRunsUpsertOne {
+// UpdateStoredAtLt sets the "stored_at_lt" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertOne) UpdateStoredAtLt() *ChargeUsageBasedRunsUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
-		s.UpdateAsof()
+		s.UpdateStoredAtLt()
+	})
+}
+
+// SetDetailedLinesPresent sets the "detailed_lines_present" field.
+func (u *ChargeUsageBasedRunsUpsertOne) SetDetailedLinesPresent(v bool) *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetDetailedLinesPresent(v)
+	})
+}
+
+// UpdateDetailedLinesPresent sets the "detailed_lines_present" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertOne) UpdateDetailedLinesPresent() *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateDetailedLinesPresent()
 	})
 }
 
@@ -1106,17 +1145,17 @@ func (u *ChargeUsageBasedRunsUpsertOne) ClearLineID() *ChargeUsageBasedRunsUpser
 	})
 }
 
-// SetMeterValue sets the "meter_value" field.
-func (u *ChargeUsageBasedRunsUpsertOne) SetMeterValue(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsertOne {
+// SetMeteredQuantity sets the "metered_quantity" field.
+func (u *ChargeUsageBasedRunsUpsertOne) SetMeteredQuantity(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
-		s.SetMeterValue(v)
+		s.SetMeteredQuantity(v)
 	})
 }
 
-// UpdateMeterValue sets the "meter_value" field to the value that was provided on create.
-func (u *ChargeUsageBasedRunsUpsertOne) UpdateMeterValue() *ChargeUsageBasedRunsUpsertOne {
+// UpdateMeteredQuantity sets the "metered_quantity" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertOne) UpdateMeteredQuantity() *ChargeUsageBasedRunsUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
-		s.UpdateMeterValue()
+		s.UpdateMeteredQuantity()
 	})
 }
 
@@ -1318,8 +1357,8 @@ func (u *ChargeUsageBasedRunsUpsertBulk) UpdateNewValues() *ChargeUsageBasedRuns
 			if _, exists := b.mutation.GetType(); exists {
 				s.SetIgnore(chargeusagebasedruns.FieldType)
 			}
-			if _, exists := b.mutation.CollectionEnd(); exists {
-				s.SetIgnore(chargeusagebasedruns.FieldCollectionEnd)
+			if _, exists := b.mutation.ServicePeriodTo(); exists {
+				s.SetIgnore(chargeusagebasedruns.FieldServicePeriodTo)
 			}
 		}
 	}))
@@ -1500,17 +1539,31 @@ func (u *ChargeUsageBasedRunsUpsertBulk) UpdateTotal() *ChargeUsageBasedRunsUpse
 	})
 }
 
-// SetAsof sets the "asof" field.
-func (u *ChargeUsageBasedRunsUpsertBulk) SetAsof(v time.Time) *ChargeUsageBasedRunsUpsertBulk {
+// SetStoredAtLt sets the "stored_at_lt" field.
+func (u *ChargeUsageBasedRunsUpsertBulk) SetStoredAtLt(v time.Time) *ChargeUsageBasedRunsUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
-		s.SetAsof(v)
+		s.SetStoredAtLt(v)
 	})
 }
 
-// UpdateAsof sets the "asof" field to the value that was provided on create.
-func (u *ChargeUsageBasedRunsUpsertBulk) UpdateAsof() *ChargeUsageBasedRunsUpsertBulk {
+// UpdateStoredAtLt sets the "stored_at_lt" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertBulk) UpdateStoredAtLt() *ChargeUsageBasedRunsUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
-		s.UpdateAsof()
+		s.UpdateStoredAtLt()
+	})
+}
+
+// SetDetailedLinesPresent sets the "detailed_lines_present" field.
+func (u *ChargeUsageBasedRunsUpsertBulk) SetDetailedLinesPresent(v bool) *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetDetailedLinesPresent(v)
+	})
+}
+
+// UpdateDetailedLinesPresent sets the "detailed_lines_present" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertBulk) UpdateDetailedLinesPresent() *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateDetailedLinesPresent()
 	})
 }
 
@@ -1535,17 +1588,17 @@ func (u *ChargeUsageBasedRunsUpsertBulk) ClearLineID() *ChargeUsageBasedRunsUpse
 	})
 }
 
-// SetMeterValue sets the "meter_value" field.
-func (u *ChargeUsageBasedRunsUpsertBulk) SetMeterValue(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsertBulk {
+// SetMeteredQuantity sets the "metered_quantity" field.
+func (u *ChargeUsageBasedRunsUpsertBulk) SetMeteredQuantity(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
-		s.SetMeterValue(v)
+		s.SetMeteredQuantity(v)
 	})
 }
 
-// UpdateMeterValue sets the "meter_value" field to the value that was provided on create.
-func (u *ChargeUsageBasedRunsUpsertBulk) UpdateMeterValue() *ChargeUsageBasedRunsUpsertBulk {
+// UpdateMeteredQuantity sets the "metered_quantity" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertBulk) UpdateMeteredQuantity() *ChargeUsageBasedRunsUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
-		s.UpdateMeterValue()
+		s.UpdateMeteredQuantity()
 	})
 }
 

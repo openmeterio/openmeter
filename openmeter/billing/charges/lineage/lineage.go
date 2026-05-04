@@ -12,17 +12,20 @@ import (
 
 func SortCorrectionPersistSegments(segments []Segment) []Segment {
 	sorted := append([]Segment(nil), segments...)
+
 	sort.SliceStable(sorted, func(i, j int) bool {
 		precedence := func(state creditrealization.LineageSegmentState) int {
 			switch state {
-			case creditrealization.LineageSegmentStateAdvanceBackfilled:
+			case creditrealization.LineageSegmentStateEarningsRecognized:
 				return 0
-			case creditrealization.LineageSegmentStateAdvanceUncovered:
+			case creditrealization.LineageSegmentStateAdvanceBackfilled:
 				return 1
-			case creditrealization.LineageSegmentStateRealCredit:
+			case creditrealization.LineageSegmentStateAdvanceUncovered:
 				return 2
-			default:
+			case creditrealization.LineageSegmentStateRealCredit:
 				return 3
+			default:
+				return 4
 			}
 		}
 
@@ -51,8 +54,25 @@ func (s Segment) Validate() error {
 		errs = append(errs, fmt.Errorf("state: %w", err))
 	}
 
-	if s.State == creditrealization.LineageSegmentStateAdvanceBackfilled && (s.BackingTransactionGroupID == nil || *s.BackingTransactionGroupID == "") {
-		errs = append(errs, errors.New("backing transaction group id is required for advance_backfilled"))
+	switch s.State {
+	case creditrealization.LineageSegmentStateAdvanceBackfilled:
+		if s.BackingTransactionGroupID == nil || *s.BackingTransactionGroupID == "" {
+			errs = append(errs, errors.New("backing transaction group id is required for advance_backfilled"))
+		}
+	case creditrealization.LineageSegmentStateEarningsRecognized:
+		if s.BackingTransactionGroupID == nil || *s.BackingTransactionGroupID == "" {
+			errs = append(errs, errors.New("backing transaction group id is required for earnings_recognized"))
+		}
+		switch {
+		case s.SourceState == nil:
+			errs = append(errs, errors.New("source state is required for earnings_recognized"))
+		case *s.SourceState == creditrealization.LineageSegmentStateEarningsRecognized:
+			errs = append(errs, errors.New("source state cannot be earnings_recognized"))
+		case *s.SourceState == creditrealization.LineageSegmentStateAdvanceBackfilled:
+			if s.SourceBackingTransactionGroupID == nil || *s.SourceBackingTransactionGroupID == "" {
+				errs = append(errs, errors.New("source backing transaction group id is required when source state is advance_backfilled"))
+			}
+		}
 	}
 
 	return errors.Join(errs...)

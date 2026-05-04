@@ -68,9 +68,15 @@ type TaxCodeEdges struct {
 	PlanRateCards []*PlanRateCard `json:"plan_rate_cards,omitempty"`
 	// AddonRateCards holds the value of the addon_rate_cards edge.
 	AddonRateCards []*AddonRateCard `json:"addon_rate_cards,omitempty"`
+	// ChargeFlatFees holds the value of the charge_flat_fees edge.
+	ChargeFlatFees []*ChargeFlatFee `json:"charge_flat_fees,omitempty"`
+	// ChargeUsageBased holds the value of the charge_usage_based edge.
+	ChargeUsageBased []*ChargeUsageBased `json:"charge_usage_based,omitempty"`
+	// ChargeCreditPurchases holds the value of the charge_credit_purchases edge.
+	ChargeCreditPurchases []*ChargeCreditPurchase `json:"charge_credit_purchases,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [10]bool
+	loadedTypes [13]bool
 }
 
 // BillingWorkflowConfigsOrErr returns the BillingWorkflowConfigs value or an error if the edge
@@ -161,6 +167,33 @@ func (e TaxCodeEdges) AddonRateCardsOrErr() ([]*AddonRateCard, error) {
 		return e.AddonRateCards, nil
 	}
 	return nil, &NotLoadedError{edge: "addon_rate_cards"}
+}
+
+// ChargeFlatFeesOrErr returns the ChargeFlatFees value or an error if the edge
+// was not loaded in eager-loading.
+func (e TaxCodeEdges) ChargeFlatFeesOrErr() ([]*ChargeFlatFee, error) {
+	if e.loadedTypes[10] {
+		return e.ChargeFlatFees, nil
+	}
+	return nil, &NotLoadedError{edge: "charge_flat_fees"}
+}
+
+// ChargeUsageBasedOrErr returns the ChargeUsageBased value or an error if the edge
+// was not loaded in eager-loading.
+func (e TaxCodeEdges) ChargeUsageBasedOrErr() ([]*ChargeUsageBased, error) {
+	if e.loadedTypes[11] {
+		return e.ChargeUsageBased, nil
+	}
+	return nil, &NotLoadedError{edge: "charge_usage_based"}
+}
+
+// ChargeCreditPurchasesOrErr returns the ChargeCreditPurchases value or an error if the edge
+// was not loaded in eager-loading.
+func (e TaxCodeEdges) ChargeCreditPurchasesOrErr() ([]*ChargeCreditPurchase, error) {
+	if e.loadedTypes[12] {
+		return e.ChargeCreditPurchases, nil
+	}
+	return nil, &NotLoadedError{edge: "charge_credit_purchases"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -324,6 +357,21 @@ func (_m *TaxCode) QueryPlanRateCards() *PlanRateCardQuery {
 // QueryAddonRateCards queries the "addon_rate_cards" edge of the TaxCode entity.
 func (_m *TaxCode) QueryAddonRateCards() *AddonRateCardQuery {
 	return NewTaxCodeClient(_m.config).QueryAddonRateCards(_m)
+}
+
+// QueryChargeFlatFees queries the "charge_flat_fees" edge of the TaxCode entity.
+func (_m *TaxCode) QueryChargeFlatFees() *ChargeFlatFeeQuery {
+	return NewTaxCodeClient(_m.config).QueryChargeFlatFees(_m)
+}
+
+// QueryChargeUsageBased queries the "charge_usage_based" edge of the TaxCode entity.
+func (_m *TaxCode) QueryChargeUsageBased() *ChargeUsageBasedQuery {
+	return NewTaxCodeClient(_m.config).QueryChargeUsageBased(_m)
+}
+
+// QueryChargeCreditPurchases queries the "charge_credit_purchases" edge of the TaxCode entity.
+func (_m *TaxCode) QueryChargeCreditPurchases() *ChargeCreditPurchaseQuery {
+	return NewTaxCodeClient(_m.config).QueryChargeCreditPurchases(_m)
 }
 
 // Update returns a builder for updating this TaxCode.

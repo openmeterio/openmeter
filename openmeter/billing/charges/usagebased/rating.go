@@ -16,6 +16,7 @@ var _ rating.StandardLineAccessor = (*RateableIntent)(nil)
 type RateableIntent struct {
 	Intent
 
+	ServicePeriod  timeutil.ClosedPeriod
 	MeterValue     alpacadecimal.Decimal
 	CreditsApplied billing.CreditsApplied
 }

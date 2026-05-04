@@ -14,7 +14,6 @@ import (
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
 	usagebasedrun "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/statelessx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -212,8 +211,8 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, _ meta
 }
 
 type invoiceCreatedInput struct {
-	LineID                      string
-	OverrideCollectionPeriodEnd *time.Time
+	LineID          string
+	ServicePeriodTo time.Time
 }
 
 func (i invoiceCreatedInput) Validate() error {
@@ -221,8 +220,8 @@ func (i invoiceCreatedInput) Validate() error {
 		return fmt.Errorf("line id is required")
 	}
 
-	if i.OverrideCollectionPeriodEnd != nil && i.OverrideCollectionPeriodEnd.IsZero() {
-		return fmt.Errorf("override collection period end must not be zero when set")
+	if i.ServicePeriodTo.IsZero() {
+		return fmt.Errorf("service period to is required")
 	}
 
 	return nil
@@ -237,27 +236,27 @@ func (s *CreditThenInvoiceStateMachine) startInvoiceCreatedRun(
 		return fmt.Errorf("validate invoice created input: %w", err)
 	}
 
-	storedAtOffset := meta.NormalizeTimestamp(clock.Now())
-	collectionEnd := lo.FromPtr(input.OverrideCollectionPeriodEnd)
-	if collectionEnd.IsZero() {
+	storedAtLT := meta.NormalizeTimestamp(input.ServicePeriodTo)
+	servicePeriodTo := storedAtLT
+	if runType == usagebased.RealizationRunTypeFinalRealization {
 		var err error
-		collectionEnd, err = s.GetCollectionPeriodEnd(ctx)
+		storedAtLT, err = s.getFinalRunStoredAtLT()
 		if err != nil {
-			return fmt.Errorf("get collection period end: %w", err)
+			return fmt.Errorf("get stored at lt: %w", err)
 		}
+		servicePeriodTo = meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.To)
 	}
 
 	result, err := s.Runs.CreateRatedRun(ctx, usagebasedrun.CreateRatedRunInput{
-		Charge:                  s.Charge,
-		CustomerOverride:        s.CustomerOverride,
-		FeatureMeter:            s.FeatureMeter,
-		Type:                    runType,
-		AsOf:                    storedAtOffset,
-		CollectionEnd:           collectionEnd,
-		LineID:                  lo.ToPtr(input.LineID),
-		IgnoreMinimumCommitment: ignoreMinimumCommitmentForRunType(runType),
-		CreditAllocation:        usagebasedrun.CreditAllocationAvailable,
-		CurrencyCalculator:      s.CurrencyCalculator,
+		Charge:             s.Charge,
+		CustomerOverride:   s.CustomerOverride,
+		FeatureMeter:       s.FeatureMeter,
+		Type:               runType,
+		StoredAtLT:         storedAtLT,
+		ServicePeriodTo:    servicePeriodTo,
+		LineID:             lo.ToPtr(input.LineID),
+		CreditAllocation:   usagebasedrun.CreditAllocationAvailable,
+		CurrencyCalculator: s.CurrencyCalculator,
 	})
 	if err != nil {
 		return err
@@ -273,12 +272,6 @@ func (s *CreditThenInvoiceStateMachine) StartPartialInvoiceRun(ctx context.Conte
 
 func (s *CreditThenInvoiceStateMachine) StartFinalInvoiceRun(ctx context.Context, input invoiceCreatedInput) error {
 	return s.startInvoiceCreatedRun(ctx, input, usagebased.RealizationRunTypeFinalRealization)
-}
-
-func ignoreMinimumCommitmentForRunType(runType usagebased.RealizationRunType) bool {
-	// Partial invoice runs are interim cumulative checkpoints. Minimum commitment is billed only on the
-	// final realization, so partial runs must suppress it during both creation and later snapshotting.
-	return runType == usagebased.RealizationRunTypePartialInvoice
 }
 
 func resolveInvoiceCreatedTrigger(charge usagebased.Charge, billedPeriod timeutil.ClosedPeriod) meta.Trigger {
@@ -298,27 +291,22 @@ func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context
 		return fmt.Errorf("no realization run in progress [charge_id=%s]", s.Charge.ID)
 	}
 
-	if err := s.ensureDetailedLinesLoadedForRating(ctx); err != nil {
-		return err
-	}
-
 	currentRun, err := s.Charge.Realizations.GetByID(*s.Charge.State.CurrentRealizationRunID)
 	if err != nil {
 		return fmt.Errorf("get current realization run: %w", err)
 	}
 
-	storedAtOffset := meta.NormalizeTimestamp(currentRun.CollectionEnd)
+	storedAtLT := meta.NormalizeTimestamp(currentRun.StoredAtLT)
 
-	ratingResult, err := s.Rater.GetDetailedLinesForUsage(ctx, usagebasedrating.GetDetailedLinesForUsageInput{
-		Charge:                  s.Charge,
-		PriorRuns:               s.Charge.Realizations.Without(currentRun.ID),
-		Customer:                s.CustomerOverride,
-		FeatureMeter:            s.FeatureMeter,
-		StoredAtOffset:          storedAtOffset,
-		IgnoreMinimumCommitment: ignoreMinimumCommitmentForRunType(currentRun.Type),
+	ratingResult, err := s.Rater.GetDetailedRatingForUsage(ctx, usagebasedrating.GetDetailedRatingForUsageInput{
+		Charge:          s.Charge,
+		StoredAtLT:      storedAtLT,
+		ServicePeriodTo: currentRun.ServicePeriodTo,
+		Customer:        s.CustomerOverride,
+		FeatureMeter:    s.FeatureMeter,
 	})
 	if err != nil {
-		return fmt.Errorf("get rating for usage: %w", err)
+		return fmt.Errorf("get detailed rating for usage: %w", err)
 	}
 
 	currentTotals := ratingResult.Totals.RoundToPrecision(s.CurrencyCalculator)
@@ -326,7 +314,7 @@ func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context
 	reconcileResult, err := s.Runs.ReconcileCredits(ctx, usagebasedrun.ReconcileCreditRealizationsInput{
 		Charge:             s.Charge,
 		Run:                currentRun,
-		AllocateAt:         storedAtOffset,
+		AllocateAt:         storedAtLT,
 		TargetAmount:       currentTotals.Total,
 		CurrencyCalculator: s.CurrencyCalculator,
 		ExactAllocation:    false,
@@ -339,17 +327,16 @@ func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context
 	currentTotals.CreditsTotal = s.CurrencyCalculator.RoundToPrecision(currentRun.CreditsAllocated.Sum())
 	currentTotals.Total = s.CurrencyCalculator.RoundToPrecision(currentTotals.Total.Sub(currentTotals.CreditsTotal))
 
-	runDetailedLines, err := s.Runs.PersistRunDetailedLines(ctx, s.Charge, currentRun, ratingResult)
-	if err != nil {
-		return err
+	if err := s.Adapter.UpsertRunDetailedLines(ctx, s.Charge.GetChargeID(), currentRun.ID, ratingResult.DetailedLines); err != nil {
+		return fmt.Errorf("upsert run detailed lines: %w", err)
 	}
-	currentRun.DetailedLines = mo.Some(runDetailedLines)
+	currentRun.DetailedLines = mo.Some(ratingResult.DetailedLines)
 
 	currentRunBase, err := s.Adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
-		ID:         currentRun.ID,
-		AsOf:       mo.Some(storedAtOffset),
-		MeterValue: mo.Some(ratingResult.Quantity),
-		Totals:     mo.Some(currentTotals),
+		ID:              currentRun.ID,
+		StoredAtLT:      mo.Some(storedAtLT),
+		MeteredQuantity: mo.Some(ratingResult.Quantity),
+		Totals:          mo.Some(currentTotals),
 	})
 	if err != nil {
 		return fmt.Errorf("update realization run: %w", err)

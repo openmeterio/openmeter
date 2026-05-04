@@ -1,6 +1,7 @@
 package productcatalog
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -118,6 +119,8 @@ func (c TaxConfig) Clone() TaxConfig {
 
 func MergeTaxConfigs(base, overrides *TaxConfig) *TaxConfig {
 	if base != nil && overrides != nil {
+		// TaxCode (resolved entity) is intentionally excluded: merge operates on
+		// intent-level configs, not snapshotted invoice lines.
 		return &TaxConfig{
 			Behavior:  lo.CoalesceOrEmpty(overrides.Behavior, base.Behavior),
 			Stripe:    lo.CoalesceOrEmpty(overrides.Stripe, base.Stripe),
@@ -126,10 +129,16 @@ func MergeTaxConfigs(base, overrides *TaxConfig) *TaxConfig {
 	}
 
 	if overrides != nil {
-		return overrides
+		c := overrides.Clone()
+		return &c
 	}
 
-	return base
+	if base != nil {
+		c := base.Clone()
+		return &c
+	}
+
+	return nil
 }
 
 type StripeTaxConfig struct {
@@ -163,6 +172,128 @@ func (s StripeTaxConfig) Clone() StripeTaxConfig {
 	return s
 }
 
+// TaxCodeConfig holds a lean reference to a tax code entry — only the FK and the behavior flag.
+// Used in charge intents where provider-specific fields (e.g. Stripe.Code) are not stored and
+// are resolved at invoice snapshot time via BackfillTaxConfig.
+type TaxCodeConfig struct {
+	Behavior  *TaxBehavior `json:"behavior,omitempty"`
+	TaxCodeID *string      `json:"tax_code_id,omitempty"`
+}
+
+func (c *TaxCodeConfig) Validate() error {
+	if c == nil {
+		return nil
+	}
+
+	var errs []error
+
+	if c.Behavior != nil {
+		if err := c.Behavior.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if c.TaxCodeID != nil && *c.TaxCodeID == "" {
+		errs = append(errs, fmt.Errorf("tax_code_id must not be empty when set"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// ToTaxConfig converts TaxCodeConfig to TaxConfig (without provider-specific fields).
+func (c *TaxCodeConfig) ToTaxConfig() *TaxConfig {
+	if c == nil {
+		return nil
+	}
+
+	out := &TaxConfig{}
+	if c.Behavior != nil {
+		b := *c.Behavior
+		out.Behavior = &b
+	}
+	if c.TaxCodeID != nil {
+		id := *c.TaxCodeID
+		out.TaxCodeID = &id
+	}
+	return out
+}
+
+// TaxCodeConfigFrom extracts the lean reference fields from a full TaxConfig.
+// Returns nil when cfg is nil or when neither Behavior nor TaxCodeID is set (e.g. Stripe-only config).
+func TaxCodeConfigFrom(cfg *TaxConfig) *TaxCodeConfig {
+	if cfg == nil {
+		return nil
+	}
+
+	out := &TaxCodeConfig{}
+	if cfg.Behavior != nil {
+		b := *cfg.Behavior
+		out.Behavior = &b
+	}
+	if cfg.TaxCodeID != nil {
+		id := *cfg.TaxCodeID
+		out.TaxCodeID = &id
+	}
+
+	if out.Behavior == nil && out.TaxCodeID == nil {
+		return nil
+	}
+
+	return out
+}
+
+// ResolveTaxConfig cross-populates TaxCodeID and provider-specific codes on the pointed-to
+// config so the persisted record is internally consistent. Four input cases:
+//   - Only TaxCodeID: looks up the entity, validates it exists (400 if not), and sets Stripe
+//     from the entity's Stripe app mapping (or clears Stripe if the entity has no mapping).
+//   - Only Stripe.Code: upserts the TaxCode entity via GetOrCreateByAppMapping and stamps
+//     TaxCodeID (idempotent; updating the code txcd_A → txcd_B updates the FK).
+//   - Both TaxCodeID and Stripe.Code: TaxCodeID wins. Stripe is overridden from the entity's
+//     Stripe app mapping (or cleared if the entity has no mapping); the caller-supplied
+//     Stripe.Code is discarded.
+//   - Neither: no-op.
+//
+// No-op when cfg is nil.
+func ResolveTaxConfig(ctx context.Context, svc taxcode.Service, namespace string, cfg *TaxConfig) error {
+	if cfg == nil {
+		return nil
+	}
+	if svc == nil {
+		return fmt.Errorf("taxcode service is required")
+	}
+
+	switch {
+	case cfg.TaxCodeID != nil:
+		tc, err := svc.GetTaxCode(ctx, taxcode.GetTaxCodeInput{
+			NamespacedID: models.NamespacedID{Namespace: namespace, ID: *cfg.TaxCodeID},
+		})
+		if err != nil {
+			if taxcode.IsTaxCodeNotFoundError(err) {
+				return models.NewGenericValidationError(fmt.Errorf("tax code %s not found", *cfg.TaxCodeID))
+			}
+			return fmt.Errorf("resolving tax code %s: %w", *cfg.TaxCodeID, err)
+		}
+		if m, ok := tc.GetAppMapping(app.AppTypeStripe); ok {
+			cfg.Stripe = &StripeTaxConfig{Code: m.TaxCode}
+		} else {
+			cfg.Stripe = nil
+		}
+
+	case cfg.Stripe != nil && cfg.Stripe.Code != "":
+		tc, err := svc.GetOrCreateByAppMapping(ctx, taxcode.GetOrCreateByAppMappingInput{
+			Namespace: namespace,
+			AppType:   app.AppTypeStripe,
+			TaxCode:   cfg.Stripe.Code,
+		})
+		if err != nil {
+			return fmt.Errorf("resolving tax code for stripe code %s: %w", cfg.Stripe.Code, err)
+		}
+		cfg.TaxCodeID = lo.ToPtr(tc.ID)
+	}
+
+	return nil
+}
+
 // BackfillTaxConfig fills in missing legacy TaxConfig fields from the new tax_behavior column
 // and the TaxCode entity's app mappings.
 func BackfillTaxConfig(cfg *TaxConfig, taxBehavior *TaxBehavior, tc *taxcode.TaxCode) *TaxConfig {
@@ -182,7 +313,8 @@ func BackfillTaxConfig(cfg *TaxConfig, taxBehavior *TaxBehavior, tc *taxcode.Tax
 	}
 
 	if cfg.Behavior == nil && taxBehavior != nil {
-		cfg.Behavior = taxBehavior
+		b := *taxBehavior
+		cfg.Behavior = &b
 	}
 
 	if cfg.Stripe == nil && stripeCode != "" {
@@ -190,7 +322,8 @@ func BackfillTaxConfig(cfg *TaxConfig, taxBehavior *TaxBehavior, tc *taxcode.Tax
 	}
 
 	if cfg.TaxCodeID == nil && tc != nil && tc.ID != "" {
-		cfg.TaxCodeID = &tc.ID
+		id := tc.ID
+		cfg.TaxCodeID = &id
 	}
 
 	return cfg

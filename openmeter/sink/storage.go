@@ -6,9 +6,11 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 
 	sinkmodels "github.com/openmeterio/openmeter/openmeter/sink/models"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
 type Storage interface {
@@ -45,24 +47,9 @@ type ClickHouseStorage struct {
 func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []sinkmodels.SinkMessage) error {
 	var rawEvents []streaming.RawEvent
 
+	fallbackNow := clock.Now()
+
 	for _, message := range messages {
-		storedAt := time.Now()
-		ingestedAt := storedAt
-
-		if message.KafkaMessage != nil {
-			for _, header := range message.KafkaMessage.Headers {
-				// Parse ingested_at header
-				if header.Key == "ingested_at" {
-					var err error
-
-					ingestedAt, err = time.Parse(time.RFC3339, string(header.Value))
-					if err != nil {
-						return fmt.Errorf("failed to parse ingested_at header: %s", err)
-					}
-				}
-			}
-		}
-
 		rawEvent := streaming.RawEvent{
 			Namespace:  message.Namespace,
 			ID:         message.Serialized.Id,
@@ -71,8 +58,8 @@ func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []sinkmode
 			Subject:    message.Serialized.Subject,
 			Time:       time.Unix(message.Serialized.Time, 0),
 			Data:       message.Serialized.Data,
-			IngestedAt: ingestedAt,
-			StoredAt:   storedAt,
+			IngestedAt: lo.CoalesceOrEmpty(lo.FromPtr(message.IngestedAt), fallbackNow),
+			StoredAt:   lo.CoalesceOrEmpty(lo.FromPtr(message.StoredAt), fallbackNow),
 			StoreRowID: ulid.Make().String(),
 		}
 

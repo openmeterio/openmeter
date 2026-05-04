@@ -172,16 +172,30 @@ func (_u *ChargeUsageBasedRunsUpdate) SetNillableTotal(v *alpacadecimal.Decimal)
 	return _u
 }
 
-// SetAsof sets the "asof" field.
-func (_u *ChargeUsageBasedRunsUpdate) SetAsof(v time.Time) *ChargeUsageBasedRunsUpdate {
-	_u.mutation.SetAsof(v)
+// SetStoredAtLt sets the "stored_at_lt" field.
+func (_u *ChargeUsageBasedRunsUpdate) SetStoredAtLt(v time.Time) *ChargeUsageBasedRunsUpdate {
+	_u.mutation.SetStoredAtLt(v)
 	return _u
 }
 
-// SetNillableAsof sets the "asof" field if the given value is not nil.
-func (_u *ChargeUsageBasedRunsUpdate) SetNillableAsof(v *time.Time) *ChargeUsageBasedRunsUpdate {
+// SetNillableStoredAtLt sets the "stored_at_lt" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdate) SetNillableStoredAtLt(v *time.Time) *ChargeUsageBasedRunsUpdate {
 	if v != nil {
-		_u.SetAsof(*v)
+		_u.SetStoredAtLt(*v)
+	}
+	return _u
+}
+
+// SetDetailedLinesPresent sets the "detailed_lines_present" field.
+func (_u *ChargeUsageBasedRunsUpdate) SetDetailedLinesPresent(v bool) *ChargeUsageBasedRunsUpdate {
+	_u.mutation.SetDetailedLinesPresent(v)
+	return _u
+}
+
+// SetNillableDetailedLinesPresent sets the "detailed_lines_present" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdate) SetNillableDetailedLinesPresent(v *bool) *ChargeUsageBasedRunsUpdate {
+	if v != nil {
+		_u.SetDetailedLinesPresent(*v)
 	}
 	return _u
 }
@@ -206,16 +220,16 @@ func (_u *ChargeUsageBasedRunsUpdate) ClearLineID() *ChargeUsageBasedRunsUpdate 
 	return _u
 }
 
-// SetMeterValue sets the "meter_value" field.
-func (_u *ChargeUsageBasedRunsUpdate) SetMeterValue(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdate {
-	_u.mutation.SetMeterValue(v)
+// SetMeteredQuantity sets the "metered_quantity" field.
+func (_u *ChargeUsageBasedRunsUpdate) SetMeteredQuantity(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdate {
+	_u.mutation.SetMeteredQuantity(v)
 	return _u
 }
 
-// SetNillableMeterValue sets the "meter_value" field if the given value is not nil.
-func (_u *ChargeUsageBasedRunsUpdate) SetNillableMeterValue(v *alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdate {
+// SetNillableMeteredQuantity sets the "metered_quantity" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdate) SetNillableMeteredQuantity(v *alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdate {
 	if v != nil {
-		_u.SetMeterValue(*v)
+		_u.SetMeteredQuantity(*v)
 	}
 	return _u
 }
@@ -469,11 +483,14 @@ func (_u *ChargeUsageBasedRunsUpdate) sqlSave(ctx context.Context) (_node int, e
 	if value, ok := _u.mutation.Total(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldTotal, field.TypeOther, value)
 	}
-	if value, ok := _u.mutation.Asof(); ok {
-		_spec.SetField(chargeusagebasedruns.FieldAsof, field.TypeTime, value)
+	if value, ok := _u.mutation.StoredAtLt(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldStoredAtLt, field.TypeTime, value)
 	}
-	if value, ok := _u.mutation.MeterValue(); ok {
-		_spec.SetField(chargeusagebasedruns.FieldMeterValue, field.TypeOther, value)
+	if value, ok := _u.mutation.DetailedLinesPresent(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldDetailedLinesPresent, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.MeteredQuantity(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldMeteredQuantity, field.TypeOther, value)
 	}
 	if _u.mutation.BillingInvoiceLineCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -810,16 +827,30 @@ func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableTotal(v *alpacadecimal.Decim
 	return _u
 }
 
-// SetAsof sets the "asof" field.
-func (_u *ChargeUsageBasedRunsUpdateOne) SetAsof(v time.Time) *ChargeUsageBasedRunsUpdateOne {
-	_u.mutation.SetAsof(v)
+// SetStoredAtLt sets the "stored_at_lt" field.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetStoredAtLt(v time.Time) *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.SetStoredAtLt(v)
 	return _u
 }
 
-// SetNillableAsof sets the "asof" field if the given value is not nil.
-func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableAsof(v *time.Time) *ChargeUsageBasedRunsUpdateOne {
+// SetNillableStoredAtLt sets the "stored_at_lt" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableStoredAtLt(v *time.Time) *ChargeUsageBasedRunsUpdateOne {
 	if v != nil {
-		_u.SetAsof(*v)
+		_u.SetStoredAtLt(*v)
+	}
+	return _u
+}
+
+// SetDetailedLinesPresent sets the "detailed_lines_present" field.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetDetailedLinesPresent(v bool) *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.SetDetailedLinesPresent(v)
+	return _u
+}
+
+// SetNillableDetailedLinesPresent sets the "detailed_lines_present" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableDetailedLinesPresent(v *bool) *ChargeUsageBasedRunsUpdateOne {
+	if v != nil {
+		_u.SetDetailedLinesPresent(*v)
 	}
 	return _u
 }
@@ -844,16 +875,16 @@ func (_u *ChargeUsageBasedRunsUpdateOne) ClearLineID() *ChargeUsageBasedRunsUpda
 	return _u
 }
 
-// SetMeterValue sets the "meter_value" field.
-func (_u *ChargeUsageBasedRunsUpdateOne) SetMeterValue(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdateOne {
-	_u.mutation.SetMeterValue(v)
+// SetMeteredQuantity sets the "metered_quantity" field.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetMeteredQuantity(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.SetMeteredQuantity(v)
 	return _u
 }
 
-// SetNillableMeterValue sets the "meter_value" field if the given value is not nil.
-func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableMeterValue(v *alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdateOne {
+// SetNillableMeteredQuantity sets the "metered_quantity" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableMeteredQuantity(v *alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdateOne {
 	if v != nil {
-		_u.SetMeterValue(*v)
+		_u.SetMeteredQuantity(*v)
 	}
 	return _u
 }
@@ -1137,11 +1168,14 @@ func (_u *ChargeUsageBasedRunsUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 	if value, ok := _u.mutation.Total(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldTotal, field.TypeOther, value)
 	}
-	if value, ok := _u.mutation.Asof(); ok {
-		_spec.SetField(chargeusagebasedruns.FieldAsof, field.TypeTime, value)
+	if value, ok := _u.mutation.StoredAtLt(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldStoredAtLt, field.TypeTime, value)
 	}
-	if value, ok := _u.mutation.MeterValue(); ok {
-		_spec.SetField(chargeusagebasedruns.FieldMeterValue, field.TypeOther, value)
+	if value, ok := _u.mutation.DetailedLinesPresent(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldDetailedLinesPresent, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.MeteredQuantity(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldMeteredQuantity, field.TypeOther, value)
 	}
 	if _u.mutation.BillingInvoiceLineCleared() {
 		edge := &sqlgraph.EdgeSpec{

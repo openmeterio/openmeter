@@ -101,6 +101,33 @@ func TestDefaultValidator_RejectsForbiddenAccountCombination(t *testing.T) {
 	require.ErrorContains(t, err, "ledger routing rule violated")
 }
 
+func TestDefaultValidator_RejectsDuplicateSubAccountEntries(t *testing.T) {
+	validator := routingrules.DefaultValidator
+	costBasis := alpacadecimal.NewFromInt(1)
+	accruedAddress := addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-dup", ledger.Route{
+		Currency:  currencyx.Code("USD"),
+		CostBasis: &costBasis,
+	})
+	earningsAddress := addressForRoute(t, ledger.AccountTypeEarnings, "sub-dup", ledger.Route{
+		Currency:  currencyx.Code("USD"),
+		CostBasis: &costBasis,
+	})
+
+	err := validator.ValidateEntries([]ledger.EntryInput{
+		&transactionstestutils.AnyEntryInput{
+			Address:     accruedAddress,
+			AmountValue: alpacadecimal.NewFromInt(-20),
+		},
+		&transactionstestutils.AnyEntryInput{
+			Address:     earningsAddress,
+			AmountValue: alpacadecimal.NewFromInt(20),
+		},
+	})
+
+	require.Error(t, err)
+	require.ErrorContains(t, err, "ledger routing rule violated")
+}
+
 func TestDefaultValidator_RejectsMismatchedReceivableAndFBORoute(t *testing.T) {
 	validator := routingrules.DefaultValidator
 

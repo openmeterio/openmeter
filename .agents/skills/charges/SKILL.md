@@ -83,9 +83,9 @@ Important types:
   - `AdvanceAfter`
 - `usagebased.RealizationRunBase` stores:
   - `Type`
-  - `AsOf`
-  - `CollectionEnd`
-  - `MeterValue`
+  - `StoredAtLT`
+  - `ServicePeriodTo`
+  - `MeteredQuantity`
   - `Totals`
 - `usagebased.RealizationRun` can expand:
   - `DetailedLines`
@@ -159,7 +159,7 @@ Rules:
 - `meta.NormalizeClosedPeriod(...)` and `Intent.Normalized()` helpers are the domain-level normalization entrypoints
 - normalize intent timestamps before validation and before any derived calculation that depends on durations or boundaries
 - flat-fee proration must use normalized periods, otherwise sub-second inputs can change `AmountAfterProration`
-- for usage-based lifecycle timestamps (`AdvanceAfter`, `AsOf`, `CollectionEnd`, `storedAtOffset`), normalize the computed timestamp before persisting it or handing it to downstream persistence callbacks
+- for usage-based lifecycle timestamps (`AdvanceAfter`, `StoredAtLT`, `ServicePeriodTo`), normalize the computed timestamp before persisting it or handing it to downstream persistence callbacks
 
 Important timestamp surfaces:
 
@@ -170,15 +170,15 @@ Important timestamp surfaces:
 - `usagebased.Intent.InvoiceAt`
 - `flatfee.State.AdvanceAfter`
 - `usagebased.State.AdvanceAfter`
-- `usagebased.CreateRealizationRunInput.AsOf`
-- `usagebased.CreateRealizationRunInput.CollectionEnd`
-- `usagebased.UpdateRealizationRunInput.AsOf`
+- `usagebased.CreateRealizationRunInput.StoredAtLT`
+- `usagebased.CreateRealizationRunInput.ServicePeriodTo`
+- `usagebased.UpdateRealizationRunInput.StoredAtLT`
 
 Placement guidance:
 
 - prefer domain-side normalization when constructing or mutating intents and state (`Intent.Normalized()`, state-machine transition logic, temporary patch remap)
 - keep a persistence backstop in shared write helpers such as `charges/models/chargemeta`
-- in adapters, normalize at the actual write setter (`SetInvoiceAt(...)`, `SetAsof(...)`, `SetCollectionEnd(...)`, `SetOrClearAdvanceAfter(...)`) rather than rewriting the whole input object at the top of the adapter method
+- in adapters, normalize at the actual write setter (`SetInvoiceAt(...)`, `SetStoredAtLt(...)`, `SetServicePeriodTo(...)`, `SetOrClearAdvanceAfter(...)`) rather than rewriting the whole input object at the top of the adapter method
 - do not add redundant `.UTC()` calls after `meta.NormalizeTimestamp(...)`; the helper already returns UTC
 
 ## Currency Normalization
@@ -431,13 +431,17 @@ The collection-period logic is central to this package.
 Rules:
 
 - `usagebased.InternalCollectionPeriod` is `1 minute`
-- `StartFinalRealizationRun(...)` computes `storedAtOffset = clock.Now() - InternalCollectionPeriod`
-- the realization run persists `CollectionEnd`
-- waiting logic must use the persisted run `CollectionEnd`, not a recomputed value
-- `AdvanceAfterCollectionPeriodEnd(...)` sets `AdvanceAfter = CollectionEnd + InternalCollectionPeriod`
-- `IsAfterCollectionPeriod(...)` checks `clock.Now() >= CollectionEnd + InternalCollectionPeriod`
+- `StoredAtLT` is the exclusive stored-at query cap for the run (`stored_at < StoredAtLT`)
+- `ServicePeriodTo` is the exclusive event-time upper bound for the run (`event_time < ServicePeriodTo`)
+- final usage-based runs use the charge intent's service-period end as `ServicePeriodTo`
+- final usage-based runs use the charge service-period end plus the billing profile collection interval as `StoredAtLT`
+- partial invoice runs use the standard line period end as both `ServicePeriodTo` and `StoredAtLT`
+- waiting logic must use the persisted run `StoredAtLT`, not a recomputed value
+- `AdvanceAfterCollectionPeriodEnd(...)` sets `AdvanceAfter = StoredAtLT + InternalCollectionPeriod`
+- `IsAfterCollectionPeriod(...)` checks `clock.Now() >= StoredAtLT + InternalCollectionPeriod`
+- usage-based standard invoice lines should set `OverrideCollectionPeriodEnd = StoredAtLT + InternalCollectionPeriod` so invoice collection waits for the same internal buffer as the charge state machine
 
-`GetCollectionPeriodEnd(...)` currently uses:
+Final-run `StoredAtLT` currently uses:
 
 - `CustomerOverride.MergedProfile.WorkflowConfig.Collection.Interval`
 - added to `Charge.Intent.ServicePeriod.To`
@@ -450,10 +454,14 @@ Usage-based quantity is derived through `snapshotQuantity(...)`.
 
 Important behavior:
 
-- query window uses the charge service period
+- query window starts at the charge intent's service-period start
+- query window ends at the run's `ServicePeriodTo`
 - stored-at filtering uses `stored_at < cutoff`
-- the cutoff is the current `storedAtOffset`
+- the cutoff is the run's `StoredAtLT`
 - the service-period end is expected to behave as exclusive in lifecycle tests
+- `GetDetailedRatingForUsage(...)` owns the current-run filtering rule: only realization runs with `ServicePeriodTo < input.ServicePeriodTo` are prior runs; a current run already present on the charge must be ignored rather than stripped by mutating the charge in the caller
+- minimum commitment is final-only for usage-based snapshots; detailed rating ignores it when the current service-period end is before the charge intent service-period end
+- realtime/current totals should ignore minimum commitment before the charge intent service-period end and include it at/after the service-period end
 
 This means late-arriving events can become eligible in later advances if their `stored_at` was previously too new but later falls before the next cutoff.
 
@@ -464,7 +472,7 @@ Realization runs are the persisted checkpoint for collection progress.
 Important rules:
 
 - the first final-realization advance creates a run
-- `CollectionEnd` must be persisted on the run and mapped back into the domain model
+- `StoredAtLT`, `ServicePeriodTo`, and `MeteredQuantity` must be persisted on the run and mapped back into the domain model
 - `CurrentRealizationRunID` points at the active run while waiting/finalizing
 - finalization must clear `CurrentRealizationRunID`
 
@@ -504,12 +512,16 @@ Use these conventions for lifecycle tests:
 - if a returned charge is non-`nil`, at minimum match its status to the DB-loaded charge
 - install usage-based handler callbacks only in the subtests that expect them (handler is reset in `TearDownTest`)
 - use `streaming/testutils.WithStoredAt(...)` to simulate late events
-- prefer `clock.FreezeTime(...)` for exact `AsOf` / `AllocateAt` assertions
+- when testing stored-at cutoffs, remember the predicate is exclusive: an event with `stored_at == StoredAtLT` is excluded, and an event with `stored_at` before `StoredAtLT` is included
+- when testing service-period cutoffs, remember the event-time window is half-open: an event with `event_time == ServicePeriodTo` is excluded
+- prefer `streamingtestutils.NewMockStreamingConnector(...)` plus the real billing rating service when a usage-based rating test should exercise production quantity lookup, pricing, discounts, or commitments end-to-end
+- prefer `clock.FreezeTime(...)` for exact `StoredAtLT` / `AllocateAt` assertions
 - rely on the default billing profile unless the test explicitly needs customer-specific override behavior
 - for credit-only charges (usage-based or flat fee), `Create(...)` itself may return an already-advanced charge — assert the returned charge's status, do not assume it will be `created`
 - for flat fee credit-only tests, use `mustAdvanceFlatFeeCharges(...)` helper — it filters the advance result to flat fee charges only
 - flat fee credit-only handler callbacks (`onCreditsOnlyUsageAccrued`) must return credit allocations that sum to the input `AmountToAllocate`
 - when testing timestamp truncation, use sub-second fixtures and assert the persisted charge/run fields are second-aligned after create/advance
+- `time.Time` fields on domain models are value typed; use `s.False(ts.IsZero())` instead of `s.NotNil(ts)` when asserting they are populated
 - cover the temporary shrink/extend remap path as well; it synthesizes new intents and must normalize the replacement period ends before re-create
 
 Test suite teardown:
@@ -549,7 +561,7 @@ When changing usage-based charges:
 - confirm whether the change belongs in the facade, usage-based service, state machine, or adapter
 - preserve the `nil means noop` contract for `AdvanceCharge(...)`
 - preserve merged-profile based collection-period resolution
-- keep `CollectionEnd` persisted on realization runs
+- keep `StoredAtLT`, `ServicePeriodTo`, and `MeteredQuantity` persisted on realization runs
 - keep the `stored_at < cutoff` behavior explicit in tests
 - update lifecycle tests if late-event visibility changes
 When changing flat-fee charges:

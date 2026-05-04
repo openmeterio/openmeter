@@ -169,6 +169,10 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 			result[createdCharge.Index] = createdCharge.Value
 		}
 
+		if err := s.recognizeCreatedCreditPurchaseEarnings(ctx, result); err != nil {
+			return nil, err
+		}
+
 		return &chargesWithInvoiceNowActions{
 			charges:                          result,
 			collectionAlignmentBypassedLines: collectionAlignmentBypassedLines,

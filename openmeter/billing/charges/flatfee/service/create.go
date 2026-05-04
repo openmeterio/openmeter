@@ -127,7 +127,7 @@ func gatheringLineFromFlatFeeCharge(flatFee flatfee.Charge) (flatfee.ChargeWithG
 			ServicePeriod: intent.ServicePeriod,
 			InvoiceAt:     intent.InvoiceAt,
 
-			TaxConfig: intent.TaxConfig,
+			TaxConfig: intent.TaxConfig.ToTaxConfig(),
 
 			Engine:                 billing.LineEngineTypeChargeFlatFee,
 			ChargeID:               lo.ToPtr(flatFee.ID),

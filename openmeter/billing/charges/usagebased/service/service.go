@@ -76,8 +76,9 @@ func New(config Config) (usagebased.Service, error) {
 	}
 
 	rater, err := usagebasedrating.New(usagebasedrating.Config{
-		StreamingConnector: config.StreamingConnector,
-		RatingService:      config.RatingService,
+		StreamingConnector:   config.StreamingConnector,
+		RatingService:        config.RatingService,
+		DetailedLinesFetcher: config.Adapter,
 	})
 	if err != nil {
 		return nil, err

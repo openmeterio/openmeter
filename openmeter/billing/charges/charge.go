@@ -10,7 +10,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -133,6 +135,56 @@ func (c Charge) GetChargeID() (meta.ChargeID, error) {
 	}
 
 	return meta.ChargeID{}, fmt.Errorf("invalid charge type: %s", c.t)
+}
+
+func (c Charge) GetCustomerID() (customer.CustomerID, error) {
+	switch c.t {
+	case meta.ChargeTypeFlatFee:
+		if c.flatFee == nil {
+			return customer.CustomerID{}, fmt.Errorf("flat fee charge is nil")
+		}
+
+		return c.flatFee.GetCustomerID(), nil
+	case meta.ChargeTypeCreditPurchase:
+		if c.creditPurchase == nil {
+			return customer.CustomerID{}, fmt.Errorf("credit purchase charge is nil")
+		}
+
+		return c.creditPurchase.GetCustomerID(), nil
+	case meta.ChargeTypeUsageBased:
+		if c.usageBased == nil {
+			return customer.CustomerID{}, fmt.Errorf("usage based charge is nil")
+		}
+
+		return c.usageBased.GetCustomerID(), nil
+	}
+
+	return customer.CustomerID{}, fmt.Errorf("invalid charge type: %s", c.t)
+}
+
+func (c Charge) GetCurrency() (currencyx.Code, error) {
+	switch c.t {
+	case meta.ChargeTypeFlatFee:
+		if c.flatFee == nil {
+			return "", fmt.Errorf("flat fee charge is nil")
+		}
+
+		return c.flatFee.GetCurrency(), nil
+	case meta.ChargeTypeCreditPurchase:
+		if c.creditPurchase == nil {
+			return "", fmt.Errorf("credit purchase charge is nil")
+		}
+
+		return c.creditPurchase.GetCurrency(), nil
+	case meta.ChargeTypeUsageBased:
+		if c.usageBased == nil {
+			return "", fmt.Errorf("usage based charge is nil")
+		}
+
+		return c.usageBased.GetCurrency(), nil
+	}
+
+	return "", fmt.Errorf("invalid charge type: %s", c.t)
 }
 
 func (c Charge) SettlementMode() (productcatalog.SettlementMode, error) {

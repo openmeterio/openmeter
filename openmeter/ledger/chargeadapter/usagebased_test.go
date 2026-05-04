@@ -1,14 +1,17 @@
 package chargeadapter_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
+	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
@@ -17,9 +20,11 @@ import (
 	chargeusagebased "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
+	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
+	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -210,6 +215,96 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		require.True(t, env.sumBalance(t, env.unknownFboSubAccount(t)).Equal(alpacadecimal.Zero))
 		require.True(t, env.sumBalance(t, env.unknownAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
 	})
+
+	t.Run("credit_then_invoice reverses recognized earnings in the same correction", func(t *testing.T) {
+		env := newUsageBasedHandlerTestEnv(t)
+		priorityOne := env.fundPriority(t, 1, 20)
+
+		charge := env.newCharge(productcatalog.CreditThenInvoiceSettlementMode)
+		run := env.newRun()
+		allocations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedInput{
+			Charge:           charge,
+			Run:              run,
+			AllocateAt:       env.Now(),
+			AmountToAllocate: alpacadecimal.NewFromInt(20),
+		})
+		require.NoError(t, err)
+		require.Len(t, allocations, 1)
+
+		run.CreditsAllocated = env.realizationsFromAllocations(allocations)
+
+		env.createInitialLineages(t, charge.ID, run.CreditsAllocated)
+		recognitionGroupID := env.recognizeCreditAccrued(t, alpacadecimal.NewFromInt(20))
+		zeroCostBasis := alpacadecimal.Zero
+		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
+		require.True(t, env.sumBalance(t, env.EarningsSubAccountWithCostBasis(t, &zeroCostBasis)).Equal(alpacadecimal.NewFromInt(20)))
+
+		currencyCalculator, err := env.Currency.Calculator()
+		require.NoError(t, err)
+
+		correctionsRequest, err := run.CreditsAllocated.CreateCorrectionRequest(alpacadecimal.NewFromInt(-20), currencyCalculator)
+		require.NoError(t, err)
+
+		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedCorrectionInput{
+			Charge:                       charge,
+			Run:                          run,
+			AllocateAt:                   env.Now(),
+			Corrections:                  correctionsRequest,
+			LineageSegmentsByRealization: env.assertRecognizedSegments(t, run.CreditsAllocated, recognitionGroupID),
+		})
+		require.NoError(t, err)
+		require.Len(t, corrections, 1)
+		require.True(t, corrections[0].Amount.Equal(alpacadecimal.NewFromInt(-20)))
+
+		require.True(t, env.sumBalance(t, priorityOne).Equal(alpacadecimal.NewFromInt(20)))
+		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
+		require.True(t, env.sumBalance(t, env.EarningsSubAccountWithCostBasis(t, &zeroCostBasis)).Equal(alpacadecimal.Zero))
+	})
+
+	t.Run("credit_only reverses recognized earnings in the same correction", func(t *testing.T) {
+		env := newUsageBasedHandlerTestEnv(t)
+		priorityOne := env.fundPriority(t, 1, 20)
+
+		charge := env.newCreditsOnlyCharge()
+		run := env.newRun()
+		allocations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedInput{
+			Charge:           charge,
+			Run:              run,
+			AllocateAt:       env.Now(),
+			AmountToAllocate: alpacadecimal.NewFromInt(20),
+		})
+		require.NoError(t, err)
+		require.Len(t, allocations, 1)
+
+		run.CreditsAllocated = env.realizationsFromAllocations(allocations)
+
+		env.createInitialLineages(t, charge.ID, run.CreditsAllocated)
+		recognitionGroupID := env.recognizeCreditAccrued(t, alpacadecimal.NewFromInt(20))
+		zeroCostBasis := alpacadecimal.Zero
+		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
+		require.True(t, env.sumBalance(t, env.EarningsSubAccountWithCostBasis(t, &zeroCostBasis)).Equal(alpacadecimal.NewFromInt(20)))
+
+		currencyCalculator, err := env.Currency.Calculator()
+		require.NoError(t, err)
+
+		correctionsRequest, err := run.CreditsAllocated.CreateCorrectionRequest(alpacadecimal.NewFromInt(-20), currencyCalculator)
+		require.NoError(t, err)
+
+		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedCorrectionInput{
+			Charge:                       charge,
+			Run:                          run,
+			AllocateAt:                   env.Now(),
+			Corrections:                  correctionsRequest,
+			LineageSegmentsByRealization: env.assertRecognizedSegments(t, run.CreditsAllocated, recognitionGroupID),
+		})
+		require.NoError(t, err)
+		require.Len(t, corrections, 1)
+		require.True(t, corrections[0].Amount.Equal(alpacadecimal.NewFromInt(-20)))
+
+		require.True(t, env.sumBalance(t, priorityOne).Equal(alpacadecimal.NewFromInt(20)))
+		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
+		require.True(t, env.sumBalance(t, env.EarningsSubAccountWithCostBasis(t, &zeroCostBasis)).Equal(alpacadecimal.Zero))
+	})
 }
 
 func TestOnUsageBasedInvoiceUsageAccrued(t *testing.T) {
@@ -337,7 +432,9 @@ func TestOnUsageBasedPaymentSettled(t *testing.T) {
 
 type usageBasedHandlerTestEnv struct {
 	*ledgertestutils.IntegrationEnv
-	handler chargeusagebased.Handler
+	handler    chargeusagebased.Handler
+	lineage    lineage.Service
+	recognizer recognizer.Service
 }
 
 func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
@@ -349,6 +446,27 @@ func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
 			SubAccountService: base.Deps.AccountService,
 		},
 	})
+	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
+		Client: base.DB,
+	})
+	require.NoError(t, err)
+
+	lineageService, err := lineageservice.New(lineageservice.Config{
+		Adapter: lineageAdapter,
+	})
+	require.NoError(t, err)
+
+	deps := transactions.ResolverDependencies{
+		AccountService:    base.Deps.ResolversService,
+		SubAccountService: base.Deps.AccountService,
+	}
+	recognizerService, err := recognizer.NewService(recognizer.Config{
+		Ledger:             base.Deps.HistoricalLedger,
+		Dependencies:       deps,
+		Lineage:            lineageService,
+		TransactionManager: enttx.NewCreator(base.DB),
+	})
+	require.NoError(t, err)
 
 	return &usageBasedHandlerTestEnv{
 		IntegrationEnv: base,
@@ -356,6 +474,8 @@ func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
 			AccountService:    base.Deps.ResolversService,
 			SubAccountService: base.Deps.AccountService,
 		}, collectorService),
+		lineage:    lineageService,
+		recognizer: recognizerService,
 	}
 }
 
@@ -419,11 +539,11 @@ func (e *usageBasedHandlerTestEnv) newRun() chargeusagebased.RealizationRun {
 				CreatedAt: now,
 				UpdatedAt: now,
 			},
-			Type:          chargeusagebased.RealizationRunTypeFinalRealization,
-			AsOf:          now,
-			CollectionEnd: now,
-			MeterValue:    alpacadecimal.NewFromInt(30),
-			FeatureID:     featureID,
+			Type:            chargeusagebased.RealizationRunTypeFinalRealization,
+			StoredAtLT:      now,
+			ServicePeriodTo: now,
+			MeteredQuantity: alpacadecimal.NewFromInt(30),
+			FeatureID:       featureID,
 			Totals: totals.Totals{
 				Amount:       alpacadecimal.NewFromInt(30),
 				CreditsTotal: alpacadecimal.NewFromInt(30),
@@ -635,12 +755,87 @@ func (e *usageBasedHandlerTestEnv) transactionBookedAtTimes(t *testing.T, groupI
 	return out
 }
 
+func (e *usageBasedHandlerTestEnv) recognizeCreditAccrued(t *testing.T, amount alpacadecimal.Decimal) string {
+	t.Helper()
+
+	result, err := e.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{
+		CustomerID: e.CustomerID,
+		At:         e.Now(),
+		Currency:   e.Currency,
+	})
+	require.NoError(t, err)
+	require.True(t, result.RecognizedAmount.Equal(amount), "recognized=%s expected=%s", result.RecognizedAmount, amount)
+
+	return result.LedgerGroupID
+}
+
+func (e *usageBasedHandlerTestEnv) createInitialLineages(t *testing.T, chargeID string, realizations creditrealization.Realizations) {
+	t.Helper()
+
+	e.ensureCharge(t, chargeID)
+
+	err := e.lineage.CreateInitialLineages(t.Context(), lineage.CreateInitialLineagesInput{
+		Namespace:    e.Namespace,
+		ChargeID:     chargeID,
+		CustomerID:   e.CustomerID.ID,
+		Currency:     e.Currency,
+		Realizations: realizations,
+	})
+	require.NoError(t, err)
+}
+
+func (e *usageBasedHandlerTestEnv) activeSegmentsByRealization(t *testing.T, realizations creditrealization.Realizations) lineage.ActiveSegmentsByRealizationID {
+	t.Helper()
+
+	ids := make([]string, 0, len(realizations))
+	for _, realization := range realizations {
+		ids = append(ids, realization.ID)
+	}
+
+	segments, err := e.lineage.LoadActiveSegmentsByRealizationID(t.Context(), e.Namespace, ids)
+	require.NoError(t, err)
+
+	return segments
+}
+
+func (e *usageBasedHandlerTestEnv) assertRecognizedSegments(t *testing.T, realizations creditrealization.Realizations, recognitionGroupID string) lineage.ActiveSegmentsByRealizationID {
+	t.Helper()
+
+	segmentsByRealization := e.activeSegmentsByRealization(t, realizations)
+	for _, realization := range realizations {
+		segments := segmentsByRealization[realization.ID]
+		require.Len(t, segments, 1)
+
+		segment := segments[0]
+		require.Equal(t, creditrealization.LineageSegmentStateEarningsRecognized, segment.State)
+		require.True(t, segment.Amount.Equal(realization.Amount), "segment=%s expected=%s", segment.Amount, realization.Amount)
+		require.NotNil(t, segment.BackingTransactionGroupID)
+		require.Equal(t, recognitionGroupID, *segment.BackingTransactionGroupID)
+		require.NotNil(t, segment.SourceState)
+		require.Equal(t, creditrealization.LineageSegmentStateRealCredit, *segment.SourceState)
+		require.Nil(t, segment.SourceBackingTransactionGroupID)
+	}
+
+	return segmentsByRealization
+}
+
+func (e *usageBasedHandlerTestEnv) ensureCharge(t *testing.T, chargeID string) {
+	t.Helper()
+
+	_, err := e.DB.Charge.Create().
+		SetID(chargeID).
+		SetNamespace(e.Namespace).
+		SetType(meta.ChargeTypeUsageBased).
+		Save(t.Context())
+	require.NoError(t, err)
+}
+
 func (e *usageBasedHandlerTestEnv) realizationsFromAllocations(allocations creditrealization.CreateAllocationInputs) creditrealization.Realizations {
 	now := time.Now().UTC()
 
 	out := make(creditrealization.Realizations, 0, len(allocations))
 	for i, allocation := range allocations.AsCreateInputs() {
-		allocation.ID = fmt.Sprintf("cr-%d", i)
+		allocation.ID = ulid.Make().String()
 		out = append(out, creditrealization.Realization{
 			NamespacedModel: models.NamespacedModel{
 				Namespace: e.Namespace,

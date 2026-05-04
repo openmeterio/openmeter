@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/samber/lo"
@@ -11,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -32,6 +34,24 @@ const (
 )
 
 type OrderBy string
+
+func (f OrderBy) Values() []OrderBy {
+	return []OrderBy{
+		OrderByID,
+		OrderByKey,
+		OrderByVersion,
+		OrderByCreatedAt,
+		OrderByUpdatedAt,
+	}
+}
+
+func (f OrderBy) Validate() error {
+	if !slices.Contains(f.Values(), f) {
+		return models.NewGenericValidationError(fmt.Errorf("invalid plan order by: %s", f))
+	}
+
+	return nil
+}
 
 type Service interface {
 	ListPlans(ctx context.Context, params ListPlansInput) (pagination.Result[Plan], error)
@@ -77,10 +97,40 @@ type ListPlansInput struct {
 
 	// Currencies is the list of currencies to filter by.
 	Currencies []string
+
+	// Key filters plans by their key field (AND semantics, supports eq/neq/contains/oeq).
+	Key *filter.FilterString
+
+	// Name filters plans by their name field (AND semantics, supports eq/neq/contains/oeq).
+	Name *filter.FilterString
+
+	// Currency filters plans by their currency field (AND semantics, supports eq/neq/contains/oeq).
+	Currency *filter.FilterString
 }
 
 func (i ListPlansInput) Validate() error {
-	return nil
+	var errs []error
+	if i.Key != nil {
+		if err := i.Key.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if i.Name != nil {
+		if err := i.Name.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if i.Currency != nil {
+		if err := i.Currency.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if i.OrderBy != "" {
+		if err := i.OrderBy.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type ListPlansStatusFilter struct {

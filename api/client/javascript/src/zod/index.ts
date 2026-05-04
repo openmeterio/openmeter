@@ -148,6 +148,8 @@ export const createAddonBodyRateCardsItemOneEntitlementTemplateOneOneIssueAfterR
 export const createAddonBodyRateCardsItemOneEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
 export const createAddonBodyRateCardsItemOneTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
+export const createAddonBodyRateCardsItemOneTaxConfigOneTaxCodeIdRegExp =
+  /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const createAddonBodyRateCardsItemOnePriceOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createAddonBodyRateCardsItemOnePriceOnePaymentTermDefault =
@@ -175,6 +177,8 @@ export const createAddonBodyRateCardsItemTwoEntitlementTemplateOneOneIssueAfterR
 export const createAddonBodyRateCardsItemTwoEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
 export const createAddonBodyRateCardsItemTwoTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
+export const createAddonBodyRateCardsItemTwoTaxConfigOneTaxCodeIdRegExp =
+  /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const createAddonBodyRateCardsItemTwoPriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createAddonBodyRateCardsItemTwoPriceOneOnePaymentTermDefault =
@@ -511,6 +515,15 @@ export const CreateAddonBody = zod
                       .describe('The tax config for Stripe.')
                       .optional()
                       .describe('Stripe tax config.'),
+                    taxCodeId: zod.coerce
+                      .string()
+                      .regex(
+                        createAddonBodyRateCardsItemOneTaxConfigOneTaxCodeIdRegExp,
+                      )
+                      .optional()
+                      .describe(
+                        'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                      ),
                   })
                   .describe('Set of provider specific tax configs.')
                   .optional()
@@ -1015,6 +1028,15 @@ export const CreateAddonBody = zod
                       .describe('The tax config for Stripe.')
                       .optional()
                       .describe('Stripe tax config.'),
+                    taxCodeId: zod.coerce
+                      .string()
+                      .regex(
+                        createAddonBodyRateCardsItemTwoTaxConfigOneTaxCodeIdRegExp,
+                      )
+                      .optional()
+                      .describe(
+                        'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                      ),
                   })
                   .describe('Set of provider specific tax configs.')
                   .optional()
@@ -1073,6 +1095,8 @@ export const updateAddonBodyRateCardsItemOneEntitlementTemplateOneOneIssueAfterR
 export const updateAddonBodyRateCardsItemOneEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
 export const updateAddonBodyRateCardsItemOneTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
+export const updateAddonBodyRateCardsItemOneTaxConfigOneTaxCodeIdRegExp =
+  /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const updateAddonBodyRateCardsItemOnePriceOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updateAddonBodyRateCardsItemOnePriceOnePaymentTermDefault =
@@ -1100,6 +1124,8 @@ export const updateAddonBodyRateCardsItemTwoEntitlementTemplateOneOneIssueAfterR
 export const updateAddonBodyRateCardsItemTwoEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
 export const updateAddonBodyRateCardsItemTwoTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
+export const updateAddonBodyRateCardsItemTwoTaxConfigOneTaxCodeIdRegExp =
+  /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const updateAddonBodyRateCardsItemTwoPriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updateAddonBodyRateCardsItemTwoPriceOneOnePaymentTermDefault =
@@ -1420,6 +1446,15 @@ export const UpdateAddonBody = zod
                       .describe('The tax config for Stripe.')
                       .optional()
                       .describe('Stripe tax config.'),
+                    taxCodeId: zod.coerce
+                      .string()
+                      .regex(
+                        updateAddonBodyRateCardsItemOneTaxConfigOneTaxCodeIdRegExp,
+                      )
+                      .optional()
+                      .describe(
+                        'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                      ),
                   })
                   .describe('Set of provider specific tax configs.')
                   .optional()
@@ -1924,6 +1959,15 @@ export const UpdateAddonBody = zod
                       .describe('The tax config for Stripe.')
                       .optional()
                       .describe('Stripe tax config.'),
+                    taxCodeId: zod.coerce
+                      .string()
+                      .regex(
+                        updateAddonBodyRateCardsItemTwoTaxConfigOneTaxCodeIdRegExp,
+                      )
+                      .optional()
+                      .describe(
+                        'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                      ),
                   })
                   .describe('Set of provider specific tax configs.')
                   .optional()
@@ -2617,6 +2661,8 @@ export const createPendingInvoiceLineBodyLinesItemDescriptionMax = 1024
 
 export const createPendingInvoiceLineBodyLinesItemTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
+export const createPendingInvoiceLineBodyLinesItemTaxConfigOneTaxCodeIdRegExp =
+  /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const createPendingInvoiceLineBodyLinesItemPriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createPendingInvoiceLineBodyLinesItemPriceOneOnePaymentTermDefault =
@@ -2664,6 +2710,8 @@ export const createPendingInvoiceLineBodyLinesItemRateCardOneFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
 export const createPendingInvoiceLineBodyLinesItemRateCardOneTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
+export const createPendingInvoiceLineBodyLinesItemRateCardOneTaxConfigOneTaxCodeIdRegExp =
+  /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const createPendingInvoiceLineBodyLinesItemRateCardOnePriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createPendingInvoiceLineBodyLinesItemRateCardOnePriceOneOnePaymentTermDefault =
@@ -3409,6 +3457,15 @@ export const CreatePendingInvoiceLineBody = zod
                       .describe('The tax config for Stripe.')
                       .optional()
                       .describe('Stripe tax config.'),
+                    taxCodeId: zod.coerce
+                      .string()
+                      .regex(
+                        createPendingInvoiceLineBodyLinesItemRateCardOneTaxConfigOneTaxCodeIdRegExp,
+                      )
+                      .optional()
+                      .describe(
+                        'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                      ),
                   })
                   .describe('Set of provider specific tax configs.')
                   .optional()
@@ -3459,6 +3516,15 @@ export const CreatePendingInvoiceLineBody = zod
                   .describe('The tax config for Stripe.')
                   .optional()
                   .describe('Stripe tax config.'),
+                taxCodeId: zod.coerce
+                  .string()
+                  .regex(
+                    createPendingInvoiceLineBodyLinesItemTaxConfigOneTaxCodeIdRegExp,
+                  )
+                  .optional()
+                  .describe(
+                    'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                  ),
               })
               .describe('Set of provider specific tax configs.')
               .optional()
@@ -3504,6 +3570,8 @@ export const simulateInvoiceBodyLinesItemDescriptionMax = 1024
 
 export const simulateInvoiceBodyLinesItemTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
+export const simulateInvoiceBodyLinesItemTaxConfigOneTaxCodeIdRegExp =
+  /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const simulateInvoiceBodyLinesItemPriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const simulateInvoiceBodyLinesItemPriceOneOnePaymentTermDefault =
@@ -3550,6 +3618,8 @@ export const simulateInvoiceBodyLinesItemRateCardOneFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
 export const simulateInvoiceBodyLinesItemRateCardOneTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
+export const simulateInvoiceBodyLinesItemRateCardOneTaxConfigOneTaxCodeIdRegExp =
+  /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const simulateInvoiceBodyLinesItemRateCardOnePriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const simulateInvoiceBodyLinesItemRateCardOnePriceOneOnePaymentTermDefault =
@@ -4321,6 +4391,15 @@ export const SimulateInvoiceBody = zod
                       .describe('The tax config for Stripe.')
                       .optional()
                       .describe('Stripe tax config.'),
+                    taxCodeId: zod.coerce
+                      .string()
+                      .regex(
+                        simulateInvoiceBodyLinesItemRateCardOneTaxConfigOneTaxCodeIdRegExp,
+                      )
+                      .optional()
+                      .describe(
+                        'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                      ),
                   })
                   .describe('Set of provider specific tax configs.')
                   .optional()
@@ -4371,6 +4450,15 @@ export const SimulateInvoiceBody = zod
                   .describe('The tax config for Stripe.')
                   .optional()
                   .describe('Stripe tax config.'),
+                taxCodeId: zod.coerce
+                  .string()
+                  .regex(
+                    simulateInvoiceBodyLinesItemTaxConfigOneTaxCodeIdRegExp,
+                  )
+                  .optional()
+                  .describe(
+                    'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                  ),
               })
               .describe('Set of provider specific tax configs.')
               .optional()
@@ -4663,6 +4751,8 @@ export const updateInvoiceBodyLinesItemDescriptionMax = 1024
 
 export const updateInvoiceBodyLinesItemTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
+export const updateInvoiceBodyLinesItemTaxConfigOneTaxCodeIdRegExp =
+  /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const updateInvoiceBodyLinesItemPriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updateInvoiceBodyLinesItemPriceOneOnePaymentTermDefault =
@@ -4709,6 +4799,8 @@ export const updateInvoiceBodyLinesItemRateCardOneFeatureKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
 export const updateInvoiceBodyLinesItemRateCardOneTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
+export const updateInvoiceBodyLinesItemRateCardOneTaxConfigOneTaxCodeIdRegExp =
+  /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const updateInvoiceBodyLinesItemRateCardOnePriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updateInvoiceBodyLinesItemRateCardOnePriceOneOnePaymentTermDefault =
@@ -4761,6 +4853,8 @@ export const updateInvoiceBodyWorkflowOneWorkflowOneInvoicingOneDueAfterDefault 
   'P30D'
 export const updateInvoiceBodyWorkflowOneWorkflowOneInvoicingOneDefaultTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
+export const updateInvoiceBodyWorkflowOneWorkflowOneInvoicingOneDefaultTaxConfigOneTaxCodeIdRegExp =
+  /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const updateInvoiceBodyWorkflowOneWorkflowOnePaymentOneCollectionMethodDefault =
   'charge_automatically'
 
@@ -5547,6 +5641,15 @@ export const UpdateInvoiceBody = zod
                       .describe('The tax config for Stripe.')
                       .optional()
                       .describe('Stripe tax config.'),
+                    taxCodeId: zod.coerce
+                      .string()
+                      .regex(
+                        updateInvoiceBodyLinesItemRateCardOneTaxConfigOneTaxCodeIdRegExp,
+                      )
+                      .optional()
+                      .describe(
+                        'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                      ),
                   })
                   .describe('Set of provider specific tax configs.')
                   .optional()
@@ -5597,6 +5700,13 @@ export const UpdateInvoiceBody = zod
                   .describe('The tax config for Stripe.')
                   .optional()
                   .describe('Stripe tax config.'),
+                taxCodeId: zod.coerce
+                  .string()
+                  .regex(updateInvoiceBodyLinesItemTaxConfigOneTaxCodeIdRegExp)
+                  .optional()
+                  .describe(
+                    'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                  ),
               })
               .describe('Set of provider specific tax configs.')
               .optional()
@@ -5749,6 +5859,15 @@ export const UpdateInvoiceBody = zod
                       .describe('The tax config for Stripe.')
                       .optional()
                       .describe('Stripe tax config.'),
+                    taxCodeId: zod.coerce
+                      .string()
+                      .regex(
+                        updateInvoiceBodyWorkflowOneWorkflowOneInvoicingOneDefaultTaxConfigOneTaxCodeIdRegExp,
+                      )
+                      .optional()
+                      .describe(
+                        'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                      ),
                   })
                   .describe('Set of provider specific tax configs.')
                   .optional()
@@ -6101,6 +6220,8 @@ export const createBillingProfileBodyWorkflowOneInvoicingOneDueAfterDefault =
 export const createBillingProfileBodyWorkflowOneInvoicingOneProgressiveBillingDefault = true
 export const createBillingProfileBodyWorkflowOneInvoicingOneDefaultTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
+export const createBillingProfileBodyWorkflowOneInvoicingOneDefaultTaxConfigOneTaxCodeIdRegExp =
+  /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const createBillingProfileBodyWorkflowOnePaymentOneCollectionMethodDefault =
   'charge_automatically'
 export const createBillingProfileBodyWorkflowOneTaxOneEnabledDefault = true
@@ -6371,6 +6492,15 @@ export const CreateBillingProfileBody = zod
                   .describe('The tax config for Stripe.')
                   .optional()
                   .describe('Stripe tax config.'),
+                taxCodeId: zod.coerce
+                  .string()
+                  .regex(
+                    createBillingProfileBodyWorkflowOneInvoicingOneDefaultTaxConfigOneTaxCodeIdRegExp,
+                  )
+                  .optional()
+                  .describe(
+                    'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                  ),
               })
               .describe('Set of provider specific tax configs.')
               .optional()
@@ -6534,6 +6664,8 @@ export const updateBillingProfileBodyWorkflowOneInvoicingOneDueAfterDefault =
 export const updateBillingProfileBodyWorkflowOneInvoicingOneProgressiveBillingDefault = true
 export const updateBillingProfileBodyWorkflowOneInvoicingOneDefaultTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
+export const updateBillingProfileBodyWorkflowOneInvoicingOneDefaultTaxConfigOneTaxCodeIdRegExp =
+  /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const updateBillingProfileBodyWorkflowOnePaymentOneCollectionMethodDefault =
   'charge_automatically'
 export const updateBillingProfileBodyWorkflowOneTaxOneEnabledDefault = true
@@ -6779,6 +6911,15 @@ export const UpdateBillingProfileBody = zod
                   .describe('The tax config for Stripe.')
                   .optional()
                   .describe('Stripe tax config.'),
+                taxCodeId: zod.coerce
+                  .string()
+                  .regex(
+                    updateBillingProfileBodyWorkflowOneInvoicingOneDefaultTaxConfigOneTaxCodeIdRegExp,
+                  )
+                  .optional()
+                  .describe(
+                    'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                  ),
               })
               .describe('Set of provider specific tax configs.')
               .optional()
@@ -10368,6 +10509,8 @@ export const createPlanBodyPhasesItemRateCardsItemOneEntitlementTemplateOneOneIs
 export const createPlanBodyPhasesItemRateCardsItemOneEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
 export const createPlanBodyPhasesItemRateCardsItemOneTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
+export const createPlanBodyPhasesItemRateCardsItemOneTaxConfigOneTaxCodeIdRegExp =
+  /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const createPlanBodyPhasesItemRateCardsItemOnePriceOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createPlanBodyPhasesItemRateCardsItemOnePriceOnePaymentTermDefault =
@@ -10395,6 +10538,8 @@ export const createPlanBodyPhasesItemRateCardsItemTwoEntitlementTemplateOneOneIs
 export const createPlanBodyPhasesItemRateCardsItemTwoEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
 export const createPlanBodyPhasesItemRateCardsItemTwoTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
+export const createPlanBodyPhasesItemRateCardsItemTwoTaxConfigOneTaxCodeIdRegExp =
+  /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const createPlanBodyPhasesItemRateCardsItemTwoPriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createPlanBodyPhasesItemRateCardsItemTwoPriceOneOnePaymentTermDefault =
@@ -10796,6 +10941,15 @@ export const CreatePlanBody = zod
                               .describe('The tax config for Stripe.')
                               .optional()
                               .describe('Stripe tax config.'),
+                            taxCodeId: zod.coerce
+                              .string()
+                              .regex(
+                                createPlanBodyPhasesItemRateCardsItemOneTaxConfigOneTaxCodeIdRegExp,
+                              )
+                              .optional()
+                              .describe(
+                                'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                              ),
                           })
                           .describe('Set of provider specific tax configs.')
                           .optional()
@@ -11326,6 +11480,15 @@ export const CreatePlanBody = zod
                               .describe('The tax config for Stripe.')
                               .optional()
                               .describe('Stripe tax config.'),
+                            taxCodeId: zod.coerce
+                              .string()
+                              .regex(
+                                createPlanBodyPhasesItemRateCardsItemTwoTaxConfigOneTaxCodeIdRegExp,
+                              )
+                              .optional()
+                              .describe(
+                                'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                              ),
                           })
                           .describe('Set of provider specific tax configs.')
                           .optional()
@@ -11454,6 +11617,8 @@ export const updatePlanBodyPhasesItemRateCardsItemOneEntitlementTemplateOneOneIs
 export const updatePlanBodyPhasesItemRateCardsItemOneEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
 export const updatePlanBodyPhasesItemRateCardsItemOneTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
+export const updatePlanBodyPhasesItemRateCardsItemOneTaxConfigOneTaxCodeIdRegExp =
+  /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const updatePlanBodyPhasesItemRateCardsItemOnePriceOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updatePlanBodyPhasesItemRateCardsItemOnePriceOnePaymentTermDefault =
@@ -11481,6 +11646,8 @@ export const updatePlanBodyPhasesItemRateCardsItemTwoEntitlementTemplateOneOneIs
 export const updatePlanBodyPhasesItemRateCardsItemTwoEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
 export const updatePlanBodyPhasesItemRateCardsItemTwoTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
+export const updatePlanBodyPhasesItemRateCardsItemTwoTaxConfigOneTaxCodeIdRegExp =
+  /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const updatePlanBodyPhasesItemRateCardsItemTwoPriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updatePlanBodyPhasesItemRateCardsItemTwoPriceOneOnePaymentTermDefault =
@@ -11866,6 +12033,15 @@ export const UpdatePlanBody = zod
                               .describe('The tax config for Stripe.')
                               .optional()
                               .describe('Stripe tax config.'),
+                            taxCodeId: zod.coerce
+                              .string()
+                              .regex(
+                                updatePlanBodyPhasesItemRateCardsItemOneTaxConfigOneTaxCodeIdRegExp,
+                              )
+                              .optional()
+                              .describe(
+                                'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                              ),
                           })
                           .describe('Set of provider specific tax configs.')
                           .optional()
@@ -12396,6 +12572,15 @@ export const UpdatePlanBody = zod
                               .describe('The tax config for Stripe.')
                               .optional()
                               .describe('Stripe tax config.'),
+                            taxCodeId: zod.coerce
+                              .string()
+                              .regex(
+                                updatePlanBodyPhasesItemRateCardsItemTwoTaxConfigOneTaxCodeIdRegExp,
+                              )
+                              .optional()
+                              .describe(
+                                'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                              ),
                           })
                           .describe('Set of provider specific tax configs.')
                           .optional()
@@ -14217,6 +14402,8 @@ export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOne
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneTaxConfigOneTaxCodeIdRegExp =
+  /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOnePriceOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOnePriceOnePaymentTermDefault =
@@ -14244,6 +14431,8 @@ export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwo
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoTaxConfigOneTaxCodeIdRegExp =
+  /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoPriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoPriceOneOnePaymentTermDefault =
@@ -14797,6 +14986,15 @@ export const CreateSubscriptionBody = zod
                                       .describe('The tax config for Stripe.')
                                       .optional()
                                       .describe('Stripe tax config.'),
+                                    taxCodeId: zod.coerce
+                                      .string()
+                                      .regex(
+                                        createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneTaxConfigOneTaxCodeIdRegExp,
+                                      )
+                                      .optional()
+                                      .describe(
+                                        'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                                      ),
                                   })
                                   .describe(
                                     'Set of provider specific tax configs.',
@@ -15366,6 +15564,15 @@ export const CreateSubscriptionBody = zod
                                       .describe('The tax config for Stripe.')
                                       .optional()
                                       .describe('Stripe tax config.'),
+                                    taxCodeId: zod.coerce
+                                      .string()
+                                      .regex(
+                                        createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoTaxConfigOneTaxCodeIdRegExp,
+                                      )
+                                      .optional()
+                                      .describe(
+                                        'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                                      ),
                                   })
                                   .describe(
                                     'Set of provider specific tax configs.',
@@ -15523,6 +15730,8 @@ export const editSubscriptionBodyCustomizationsItemOneRateCardOneEntitlementTemp
 export const editSubscriptionBodyCustomizationsItemOneRateCardOneEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
 export const editSubscriptionBodyCustomizationsItemOneRateCardOneTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
+export const editSubscriptionBodyCustomizationsItemOneRateCardOneTaxConfigOneTaxCodeIdRegExp =
+  /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const editSubscriptionBodyCustomizationsItemOneRateCardOnePriceOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const editSubscriptionBodyCustomizationsItemOneRateCardOnePriceOnePaymentTermDefault =
@@ -15550,6 +15759,8 @@ export const editSubscriptionBodyCustomizationsItemOneRateCardTwoEntitlementTemp
 export const editSubscriptionBodyCustomizationsItemOneRateCardTwoEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
 export const editSubscriptionBodyCustomizationsItemOneRateCardTwoTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
+export const editSubscriptionBodyCustomizationsItemOneRateCardTwoTaxConfigOneTaxCodeIdRegExp =
+  /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const editSubscriptionBodyCustomizationsItemOneRateCardTwoPriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const editSubscriptionBodyCustomizationsItemOneRateCardTwoPriceOneOnePaymentTermDefault =
@@ -15879,6 +16090,15 @@ export const EditSubscriptionBody = zod
                               .describe('The tax config for Stripe.')
                               .optional()
                               .describe('Stripe tax config.'),
+                            taxCodeId: zod.coerce
+                              .string()
+                              .regex(
+                                editSubscriptionBodyCustomizationsItemOneRateCardOneTaxConfigOneTaxCodeIdRegExp,
+                              )
+                              .optional()
+                              .describe(
+                                'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                              ),
                           })
                           .describe('Set of provider specific tax configs.')
                           .optional()
@@ -16413,6 +16633,15 @@ export const EditSubscriptionBody = zod
                               .describe('The tax config for Stripe.')
                               .optional()
                               .describe('Stripe tax config.'),
+                            taxCodeId: zod.coerce
+                              .string()
+                              .regex(
+                                editSubscriptionBodyCustomizationsItemOneRateCardTwoTaxConfigOneTaxCodeIdRegExp,
+                              )
+                              .optional()
+                              .describe(
+                                'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                              ),
                           })
                           .describe('Set of provider specific tax configs.')
                           .optional()
@@ -16872,6 +17101,8 @@ export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOne
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneTaxConfigOneTaxCodeIdRegExp =
+  /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOnePriceOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOnePriceOnePaymentTermDefault =
@@ -16899,6 +17130,8 @@ export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwo
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoEntitlementTemplateOneOnePreserveOverageAtResetDefault = false
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoTaxConfigOneTaxCodeIdRegExp =
+  /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoPriceOneOneAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoPriceOneOnePaymentTermDefault =
@@ -17413,6 +17646,15 @@ export const ChangeSubscriptionBody = zod
                                       .describe('The tax config for Stripe.')
                                       .optional()
                                       .describe('Stripe tax config.'),
+                                    taxCodeId: zod.coerce
+                                      .string()
+                                      .regex(
+                                        changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneTaxConfigOneTaxCodeIdRegExp,
+                                      )
+                                      .optional()
+                                      .describe(
+                                        'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                                      ),
                                   })
                                   .describe(
                                     'Set of provider specific tax configs.',
@@ -17982,6 +18224,15 @@ export const ChangeSubscriptionBody = zod
                                       .describe('The tax config for Stripe.')
                                       .optional()
                                       .describe('Stripe tax config.'),
+                                    taxCodeId: zod.coerce
+                                      .string()
+                                      .regex(
+                                        changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoTaxConfigOneTaxCodeIdRegExp,
+                                      )
+                                      .optional()
+                                      .describe(
+                                        'Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:\nthe referenced tax code entity is used and `stripe.code` is ignored.',
+                                      ),
                                   })
                                   .describe(
                                     'Set of provider specific tax configs.',

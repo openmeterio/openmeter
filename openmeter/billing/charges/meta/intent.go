@@ -27,8 +27,8 @@ type Intent struct {
 	FullServicePeriod timeutil.ClosedPeriod `json:"fullServicePeriod"`
 	BillingPeriod     timeutil.ClosedPeriod `json:"billingPeriod"`
 
-	TaxConfig         *productcatalog.TaxConfig `json:"taxConfig"`
-	UniqueReferenceID *string                   `json:"childUniqueReferenceID"`
+	TaxConfig         *productcatalog.TaxCodeConfig `json:"taxConfig"`
+	UniqueReferenceID *string                       `json:"childUniqueReferenceID"`
 
 	Subscription *SubscriptionReference `json:"subscription"`
 }
@@ -64,10 +64,8 @@ func (i Intent) Validate() error {
 		errs = append(errs, fmt.Errorf("billing period: %w", err))
 	}
 
-	if i.TaxConfig != nil {
-		if err := i.TaxConfig.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("tax config: %w", err))
-		}
+	if err := i.TaxConfig.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("tax config: %w", err))
 	}
 
 	if i.Subscription != nil {

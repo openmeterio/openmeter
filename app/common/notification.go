@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 	"log/slog"
+	"math/rand/v2"
 
 	"github.com/google/wire"
 	svix "github.com/svix/svix-webhooks/go"
@@ -18,6 +19,8 @@ import (
 	webhooknoop "github.com/openmeterio/openmeter/openmeter/notification/webhook/noop"
 	webhooksvix "github.com/openmeterio/openmeter/openmeter/notification/webhook/svix"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
+	"github.com/openmeterio/openmeter/pkg/pglockx"
 )
 
 var Notification = wire.NewSet(
@@ -56,7 +59,20 @@ func NewNotificationEventHandler(
 	tracer trace.Tracer,
 	adapter notification.Repository,
 	webhook notificationwebhook.Handler,
+	driver *pgdriver.Driver,
 ) (notification.EventHandler, error) {
+	config.Lock.Owner = fmt.Sprintf("notification.event_handler-%v", rand.Int())
+	config.Lock.HeartbeatInterval = max(pglockx.DefaultHeartbeatInterval, config.Lock.HeartbeatInterval)
+	config.Lock.LeaseTime = max(config.Lock.HeartbeatInterval*2, config.Lock.LeaseTime)
+
+	logger.Debug("initializing notification lock client",
+		"lock.leaseTime", config.Lock.LeaseTime, "lock.heartbeatInterval", config.Lock.HeartbeatInterval, "lock.owner", config.Lock.Owner)
+
+	lockClient, err := pglockx.New(driver.DB(), config.Lock)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize notification lock client: %w", err)
+	}
+
 	eventHandler, err := eventhandler.New(eventhandler.Config{
 		Repository:        adapter,
 		Webhook:           webhook,
@@ -65,6 +81,8 @@ func NewNotificationEventHandler(
 		ReconcileInterval: config.ReconcileInterval,
 		SendingTimeout:    config.SendingTimeout,
 		PendingTimeout:    config.PendingTimeout,
+		ReconcilerWorkers: config.ReconcilerWorkers,
+		LockClient:        lockClient,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize notification event handler: %w", err)

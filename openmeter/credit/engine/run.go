@@ -168,6 +168,7 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 				}
 				balancesAtPhaseStart.Set(grant.ID, grant.RecurrenceBalance(balancesAtPhaseStart[grantID]))
 			}
+			recurredGrants = nil
 		}
 
 		// get active and inactive grants in the phase

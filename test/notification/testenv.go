@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	mathrand "math/rand/v2"
 	"net/url"
 	"os"
 	"testing"
@@ -28,6 +29,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
+	"github.com/openmeterio/openmeter/pkg/pglockx"
 )
 
 const (
@@ -185,11 +187,29 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 		return nil, fmt.Errorf("failed to create webhook handler: %w", err)
 	}
 
+	var (
+		lockLease     = 3 * time.Second
+		lockHeartbeat = time.Second
+		lockOwner     = fmt.Sprintf("notification.event_handler-%v", mathrand.Int())
+	)
+
+	logger.Debug("initializing notification lock client", "lease", lockLease, "heartbeatInterval", lockHeartbeat)
+
+	lockClient, err := pglockx.New(driver.PGDriver.DB(), pglockx.Config{
+		LeaseTime:         lockLease,
+		HeartbeatInterval: lockHeartbeat,
+		Owner:             lockOwner,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize notification lock client: %w", err)
+	}
+
 	eventHandler, err := eventhandler.New(eventhandler.Config{
 		Repository: adapter,
 		Webhook:    webhook,
 		Logger:     logger,
 		Tracer:     tracer,
+		LockClient: lockClient,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize notification event handler: %w", err)

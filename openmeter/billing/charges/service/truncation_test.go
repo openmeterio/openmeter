@@ -165,10 +165,10 @@ func (s *ChargeTimestampTruncationTestSuite) TestUsageBasedAdvanceTruncatesPersi
 
 	finalRun := finalCharge.Realizations[0]
 	expectedCollectionEnd := datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:01:00Z", time.UTC).AsTime()
-	expectedAsOf := datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:01:00Z", time.UTC).AsTime()
+	expectedStoredAtLT := datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:01:00Z", time.UTC).AsTime()
 
-	s.True(expectedCollectionEnd.Equal(finalRun.CollectionEnd))
-	s.True(expectedAsOf.Equal(finalRun.AsOf))
+	s.True(expectedCollectionEnd.Equal(finalRun.StoredAtLT))
+	s.True(expectedStoredAtLT.Equal(finalRun.StoredAtLT))
 }
 
 func (s *ChargeTimestampTruncationTestSuite) TestTmpApplyPatchToCreateIntentTruncatesReplacementPeriods() {

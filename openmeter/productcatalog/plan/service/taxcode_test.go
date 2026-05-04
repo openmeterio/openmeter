@@ -330,6 +330,49 @@ func TestPlanTaxCodeDualWrite(t *testing.T) {
 			assertPlanRCDBCols(t, ctx, env, phaseID, "rc-b", lo.ToPtr(tcEntityB.ID), nil)
 		})
 
+		t.Run("TaxCodeIdOnly", func(t *testing.T) {
+			// Pre-create a TaxCode entity with a Stripe mapping.
+			tcEntity, err := env.TaxCode.GetOrCreateByAppMapping(ctx, taxcode.GetOrCreateByAppMappingInput{
+				Namespace: namespace,
+				AppType:   app.AppTypeStripe,
+				TaxCode:   "txcd_60000001",
+			})
+			require.NoError(t, err)
+
+			input := newTestPlanInput(t, namespace, newTestFlatRateCard(features[0], &productcatalog.TaxConfig{
+				TaxCodeID: lo.ToPtr(tcEntity.ID),
+			}, &MonthPeriod))
+			input.Key = "taxcodeid-only"
+			input.Name = "TaxCodeId Only"
+
+			p, err := env.Plan.CreatePlan(ctx, input)
+			require.NoError(t, err)
+
+			tc := getFirstRCTaxConfig(t, p)
+			require.NotNil(t, tc)
+			require.NotNil(t, tc.TaxCodeID)
+			assert.Equal(t, tcEntity.ID, *tc.TaxCodeID)
+
+			// Stripe code should be backfilled from the TaxCode entity's app mapping.
+			require.NotNil(t, tc.Stripe, "Stripe must be backfilled from TaxCode app mapping")
+			assert.Equal(t, "txcd_60000001", tc.Stripe.Code)
+
+			phaseID := p.Phases[0].PhaseManagedFields.NamespacedID.ID
+			assertPlanRCDBCols(t, ctx, env, phaseID, features[0].Key, lo.ToPtr(tcEntity.ID), nil)
+		})
+
+		t.Run("TaxCodeIdNotFound", func(t *testing.T) {
+			input := newTestPlanInput(t, namespace, newTestFlatRateCard(features[0], &productcatalog.TaxConfig{
+				TaxCodeID: lo.ToPtr("01JNON_EXISTENT_TAX_CODE_ID"),
+			}, &MonthPeriod))
+			input.Key = "taxcodeid-not-found"
+			input.Name = "TaxCodeId Not Found"
+
+			_, err := env.Plan.CreatePlan(ctx, input)
+			require.Error(t, err)
+			assert.True(t, models.IsGenericValidationError(err), "expected validation error for unknown taxCodeId, got: %v", err)
+		})
+
 		t.Run("MultiplePhasesSameStripeCode", func(t *testing.T) {
 			TwoMonthPeriod := datetime.MustParseDuration(t, "P2M")
 
@@ -483,6 +526,50 @@ func TestPlanTaxCodeDualWrite(t *testing.T) {
 			newTCEntity, err := findTaxCodeByStripeCode(t, ctx, env.TaxCode, namespace, "txcd_90000000")
 			require.NoError(t, err)
 			assertPlanRCDBCols(t, ctx, env, updated.Phases[0].PhaseManagedFields.NamespacedID.ID, features[0].Key, lo.ToPtr(newTCEntity.ID), nil)
+		})
+
+		t.Run("UpdateWithTaxCodeId", func(t *testing.T) {
+			// Pre-create a plan without TaxConfig.
+			input := newTestPlanInput(t, namespace, newTestFlatRateCard(features[0], nil, &MonthPeriod))
+			input.Key = "update-taxcodeid"
+			input.Name = "Update TaxCodeId"
+
+			p, err := env.Plan.CreatePlan(ctx, input)
+			require.NoError(t, err)
+
+			tcEntity, err := env.TaxCode.GetOrCreateByAppMapping(ctx, taxcode.GetOrCreateByAppMappingInput{
+				Namespace: namespace,
+				AppType:   app.AppTypeStripe,
+				TaxCode:   "txcd_60000002",
+			})
+			require.NoError(t, err)
+
+			updatedPhases := []productcatalog.Phase{
+				{
+					PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
+					RateCards: productcatalog.RateCards{
+						newTestFlatRateCard(features[0], &productcatalog.TaxConfig{
+							TaxCodeID: lo.ToPtr(tcEntity.ID),
+						}, &MonthPeriod),
+					},
+				},
+			}
+
+			updated, err := env.Plan.UpdatePlan(ctx, plan.UpdatePlanInput{
+				NamespacedID: p.NamespacedID,
+				Phases:       &updatedPhases,
+			})
+			require.NoError(t, err)
+
+			tc := getFirstRCTaxConfig(t, updated)
+			require.NotNil(t, tc)
+			require.NotNil(t, tc.TaxCodeID)
+			assert.Equal(t, tcEntity.ID, *tc.TaxCodeID)
+			require.NotNil(t, tc.Stripe, "Stripe must be backfilled from TaxCode app mapping")
+			assert.Equal(t, "txcd_60000002", tc.Stripe.Code)
+
+			phaseID := updated.Phases[0].PhaseManagedFields.NamespacedID.ID
+			assertPlanRCDBCols(t, ctx, env, phaseID, features[0].Key, lo.ToPtr(tcEntity.ID), nil)
 		})
 
 		t.Run("RemoveTaxConfig", func(t *testing.T) {

@@ -36,48 +36,58 @@ type processorByType struct {
 }
 
 func (s *service) handleStandardInvoiceUpdate(ctx context.Context, invoice billing.StandardInvoice) error {
+	var processors *processorByType
+
 	switch invoice.Status {
 	case billing.StandardInvoiceStatusDraftCreated:
-		return s.handleChargeEvent(ctx, invoice, processorByType{
+		processors = &processorByType{
 			flatFee:        noop[flatfee.Charge],
 			usageBased:     noop[usagebased.Charge],
 			creditPurchase: s.creditPurchaseService.PostInvoiceDraftCreated,
-		})
+		}
 
 	case billing.StandardInvoiceStatusIssued:
-		return s.handleChargeEvent(ctx, invoice, processorByType{
+		processors = &processorByType{
 			flatFee:    s.flatFeeService.PostInvoiceIssued,
 			usageBased: noop[usagebased.Charge],
 			// Invoice credit purchase settlements are not requiring any special handling at this point
 			creditPurchase: noop[creditpurchase.Charge],
-		})
+		}
 
 	case billing.StandardInvoiceStatusPaymentProcessingAuthorized:
-		return s.handleChargeEvent(ctx, invoice, processorByType{
+		processors = &processorByType{
 			flatFee:        s.flatFeeService.PostInvoicePaymentAuthorized,
 			usageBased:     noop[usagebased.Charge],
 			creditPurchase: s.creditPurchaseService.PostInvoicePaymentAuthorized,
-		})
+		}
 
 	// Temporary hack to handle the case where the invoice is authorized and settled in one go
 	// This should be removed once we transition to the line-engine based invocation of hooks in all
 	// charge types.
 	case billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettled:
-		return s.handleChargeEvent(ctx, invoice, processorByType{
+		processors = &processorByType{
 			flatFee:        s.flatFeeService.PostInvoicePaymentAuthorized,
 			usageBased:     noop[usagebased.Charge],
 			creditPurchase: s.creditPurchaseService.PostInvoicePaymentAuthorized,
-		})
+		}
 
 	case billing.StandardInvoiceStatusPaid:
-		return s.handleChargeEvent(ctx, invoice, processorByType{
+		processors = &processorByType{
 			flatFee:        s.flatFeeService.PostInvoicePaymentSettled,
 			usageBased:     noop[usagebased.Charge],
 			creditPurchase: s.creditPurchaseService.PostInvoicePaymentSettled,
-		})
+		}
 	}
 
-	return nil
+	if processors == nil {
+		return nil
+	}
+
+	if err := s.handleChargeEvent(ctx, invoice, *processors); err != nil {
+		return err
+	}
+
+	return s.recognizeCustomerEarnings(ctx, invoice.CustomerID(), invoice.Currency)
 }
 
 func (s *service) handleChargeEvent(ctx context.Context, invoice billing.StandardInvoice, processorByType processorByType) error {

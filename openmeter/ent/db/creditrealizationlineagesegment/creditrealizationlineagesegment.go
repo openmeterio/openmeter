@@ -24,6 +24,10 @@ const (
 	FieldState = "state"
 	// FieldBackingTransactionGroupID holds the string denoting the backing_transaction_group_id field in the database.
 	FieldBackingTransactionGroupID = "backing_transaction_group_id"
+	// FieldSourceState holds the string denoting the source_state field in the database.
+	FieldSourceState = "source_state"
+	// FieldSourceBackingTransactionGroupID holds the string denoting the source_backing_transaction_group_id field in the database.
+	FieldSourceBackingTransactionGroupID = "source_backing_transaction_group_id"
 	// FieldClosedAt holds the string denoting the closed_at field in the database.
 	FieldClosedAt = "closed_at"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -48,6 +52,8 @@ var Columns = []string{
 	FieldAmount,
 	FieldState,
 	FieldBackingTransactionGroupID,
+	FieldSourceState,
+	FieldSourceBackingTransactionGroupID,
 	FieldClosedAt,
 	FieldCreatedAt,
 }
@@ -67,6 +73,8 @@ var (
 	LineageIDValidator func(string) error
 	// BackingTransactionGroupIDValidator is a validator for the "backing_transaction_group_id" field. It is called by the builders before save.
 	BackingTransactionGroupIDValidator func(string) error
+	// SourceBackingTransactionGroupIDValidator is a validator for the "source_backing_transaction_group_id" field. It is called by the builders before save.
+	SourceBackingTransactionGroupIDValidator func(string) error
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultID holds the default value on creation for the "id" field.
@@ -76,10 +84,20 @@ var (
 // StateValidator is a validator for the "state" field enum values. It is called by the builders before save.
 func StateValidator(s creditrealization.LineageSegmentState) error {
 	switch s {
-	case "real_credit", "advance_uncovered", "advance_backfilled":
+	case "real_credit", "advance_uncovered", "advance_backfilled", "earnings_recognized":
 		return nil
 	default:
 		return fmt.Errorf("creditrealizationlineagesegment: invalid enum value for state field: %q", s)
+	}
+}
+
+// SourceStateValidator is a validator for the "source_state" field enum values. It is called by the builders before save.
+func SourceStateValidator(ss creditrealization.LineageSegmentState) error {
+	switch ss {
+	case "real_credit", "advance_uncovered", "advance_backfilled", "earnings_recognized":
+		return nil
+	default:
+		return fmt.Errorf("creditrealizationlineagesegment: invalid enum value for source_state field: %q", ss)
 	}
 }
 
@@ -109,6 +127,16 @@ func ByState(opts ...sql.OrderTermOption) OrderOption {
 // ByBackingTransactionGroupID orders the results by the backing_transaction_group_id field.
 func ByBackingTransactionGroupID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldBackingTransactionGroupID, opts...).ToFunc()
+}
+
+// BySourceState orders the results by the source_state field.
+func BySourceState(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSourceState, opts...).ToFunc()
+}
+
+// BySourceBackingTransactionGroupID orders the results by the source_backing_transaction_group_id field.
+func BySourceBackingTransactionGroupID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSourceBackingTransactionGroupID, opts...).ToFunc()
 }
 
 // ByClosedAt orders the results by the closed_at field.

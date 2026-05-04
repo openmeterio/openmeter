@@ -134,7 +134,7 @@ func TestCreateFromPlan(t *testing.T) {
 		deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 
 		p := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).
-			AddPhase(nil, &subscriptiontestutils.ExampleRateCard3ForAddons, &subscriptiontestutils.ExampleRateCard4ForAddons).
+			AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone(), subscriptiontestutils.ExampleRateCard4ForAddons.Clone()).
 			Build())
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
@@ -817,103 +817,6 @@ func TestEditingWithTiming(t *testing.T) {
 }
 
 func TestChangeToPlan(t *testing.T) {
-	// Let's define two plans. One is the example plan, and the second is a slightly modified version of that
-	examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
-
-	rc1 := productcatalog.UsageBasedRateCard{
-		RateCardMeta: productcatalog.RateCardMeta{
-			Key:         subscriptiontestutils.ExampleFeatureKey,
-			Name:        "Rate Card 1",
-			Description: lo.ToPtr("Rate Card 1 Description"),
-			FeatureKey:  lo.ToPtr(subscriptiontestutils.ExampleFeatureKey),
-			FeatureID:   nil,
-			EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
-				IssueAfterReset: lo.ToPtr(111.0),
-				UsagePeriod:     subscriptiontestutils.ISOMonth,
-			}),
-			TaxConfig: &productcatalog.TaxConfig{
-				Stripe: &productcatalog.StripeTaxConfig{
-					Code: "txcd_10000001",
-				},
-			},
-			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-				Amount: alpacadecimal.NewFromInt(int64(1)),
-			}),
-		},
-		BillingCadence: subscriptiontestutils.ISOMonth,
-	}
-
-	rc2 := productcatalog.FlatFeeRateCard{
-		RateCardMeta: productcatalog.RateCardMeta{
-			Key:         "new-rc-2",
-			Name:        "Rate Card 2",
-			Description: lo.ToPtr("Rate Card 2 Description"),
-			TaxConfig: &productcatalog.TaxConfig{
-				Stripe: &productcatalog.StripeTaxConfig{
-					Code: "txcd_10000001",
-				},
-			},
-			Price: nil,
-		},
-		BillingCadence: nil,
-	}
-
-	examplePlanInput2 := plan.CreatePlanInput{
-		NamespacedModel: models.NamespacedModel{
-			Namespace: subscriptiontestutils.ExampleNamespace,
-		},
-		Plan: productcatalog.Plan{
-			PlanMeta: productcatalog.PlanMeta{
-				Name:           "Test Plan 2",
-				Key:            "test_plan_2",
-				Version:        1,
-				Currency:       currency.USD,
-				BillingCadence: datetime.MustParseDuration(t, "P1M"),
-				ProRatingConfig: productcatalog.ProRatingConfig{
-					Enabled: true,
-					Mode:    productcatalog.ProRatingModeProratePrices,
-				},
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			},
-			Phases: []productcatalog.Phase{
-				{
-					PhaseMeta: productcatalog.PhaseMeta{
-						Key:         "test_phase_1_new",
-						Name:        "Test Phase 1 New",
-						Description: lo.ToPtr("Test Phase 1 Description"),
-						Duration:    lo.ToPtr(datetime.MustParseDuration(t, "P2M")),
-					},
-					RateCards: productcatalog.RateCards{
-						&rc1,
-					},
-				},
-				{
-					PhaseMeta: productcatalog.PhaseMeta{
-						Key:         "test_phase_2",
-						Name:        "Test Phase 2",
-						Description: lo.ToPtr("Test Phase 2 Description"),
-						Duration:    lo.ToPtr(datetime.MustParseDuration(t, "P1M")),
-					},
-					RateCards: productcatalog.RateCards{
-						&subscriptiontestutils.ExampleRateCard1,
-						&rc2,
-					},
-				},
-				{
-					PhaseMeta: productcatalog.PhaseMeta{
-						Key:         "test_phase_3",
-						Name:        "Test Phase 3",
-						Description: lo.ToPtr("Test Phase 3 Description"),
-						Duration:    nil,
-					},
-					RateCards: productcatalog.RateCards{
-						&rc1,
-					},
-				},
-			},
-		},
-	}
-
 	// Let's define what deps a test case needs
 	type testCaseDeps struct {
 		CurrentTime     time.Time
@@ -927,6 +830,104 @@ func TestChangeToPlan(t *testing.T) {
 
 	withDeps := func(t *testing.T) func(fn func(t *testing.T, deps testCaseDeps)) {
 		return func(fn func(t *testing.T, deps testCaseDeps)) {
+			// Let's define two plans. One is the example plan, and the second is a slightly modified version of that.
+			// Build them per invocation so plan service mutations (e.g. resolving TaxCodeIDs) don't leak across subtests.
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
+
+			rc1 := productcatalog.UsageBasedRateCard{
+				RateCardMeta: productcatalog.RateCardMeta{
+					Key:         subscriptiontestutils.ExampleFeatureKey,
+					Name:        "Rate Card 1",
+					Description: lo.ToPtr("Rate Card 1 Description"),
+					FeatureKey:  lo.ToPtr(subscriptiontestutils.ExampleFeatureKey),
+					FeatureID:   nil,
+					EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
+						IssueAfterReset: lo.ToPtr(111.0),
+						UsagePeriod:     subscriptiontestutils.ISOMonth,
+					}),
+					TaxConfig: &productcatalog.TaxConfig{
+						Stripe: &productcatalog.StripeTaxConfig{
+							Code: "txcd_10000001",
+						},
+					},
+					Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromInt(int64(1)),
+					}),
+				},
+				BillingCadence: subscriptiontestutils.ISOMonth,
+			}
+
+			rc2 := productcatalog.FlatFeeRateCard{
+				RateCardMeta: productcatalog.RateCardMeta{
+					Key:         "new-rc-2",
+					Name:        "Rate Card 2",
+					Description: lo.ToPtr("Rate Card 2 Description"),
+					TaxConfig: &productcatalog.TaxConfig{
+						Stripe: &productcatalog.StripeTaxConfig{
+							Code: "txcd_10000001",
+						},
+					},
+					Price: nil,
+				},
+				BillingCadence: nil,
+			}
+
+			examplePlanInput2 := plan.CreatePlanInput{
+				NamespacedModel: models.NamespacedModel{
+					Namespace: subscriptiontestutils.ExampleNamespace,
+				},
+				Plan: productcatalog.Plan{
+					PlanMeta: productcatalog.PlanMeta{
+						Name:           "Test Plan 2",
+						Key:            "test_plan_2",
+						Version:        1,
+						Currency:       currency.USD,
+						BillingCadence: datetime.MustParseDuration(t, "P1M"),
+						ProRatingConfig: productcatalog.ProRatingConfig{
+							Enabled: true,
+							Mode:    productcatalog.ProRatingModeProratePrices,
+						},
+						SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					},
+					Phases: []productcatalog.Phase{
+						{
+							PhaseMeta: productcatalog.PhaseMeta{
+								Key:         "test_phase_1_new",
+								Name:        "Test Phase 1 New",
+								Description: lo.ToPtr("Test Phase 1 Description"),
+								Duration:    lo.ToPtr(datetime.MustParseDuration(t, "P2M")),
+							},
+							RateCards: productcatalog.RateCards{
+								&rc1,
+							},
+						},
+						{
+							PhaseMeta: productcatalog.PhaseMeta{
+								Key:         "test_phase_2",
+								Name:        "Test Phase 2",
+								Description: lo.ToPtr("Test Phase 2 Description"),
+								Duration:    lo.ToPtr(datetime.MustParseDuration(t, "P1M")),
+							},
+							RateCards: productcatalog.RateCards{
+								subscriptiontestutils.ExampleRateCard1.Clone(),
+								&rc2,
+							},
+						},
+						{
+							PhaseMeta: productcatalog.PhaseMeta{
+								Key:         "test_phase_3",
+								Name:        "Test Phase 3",
+								Description: lo.ToPtr("Test Phase 3 Description"),
+								Duration:    nil,
+							},
+							RateCards: productcatalog.RateCards{
+								&rc1,
+							},
+						},
+					},
+				},
+			}
+
 			tcDeps := testCaseDeps{
 				CurrentTime: testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z"),
 			}
@@ -993,7 +994,7 @@ func TestChangeToPlan(t *testing.T) {
 			require.NotNil(t, curr.ActiveTo)
 
 			require.NotNil(t, new.Subscription.PlanRef)
-			require.Equal(t, examplePlanInput2.Key, new.Subscription.PlanRef.Key)
+			require.Equal(t, deps.Plan2.ToCreateSubscriptionPlanInput().Plan.Key, new.Subscription.PlanRef.Key)
 
 			// Let's check that the new plan looks as we expect
 			targetSpec, err := subscription.NewSpecFromPlan(deps.Plan2, subscription.CreateSubscriptionCustomerInput{
@@ -1120,7 +1121,7 @@ func TestEditCombinations(t *testing.T) {
 	t.Run("Should add boolean entitlement count annotations", func(t *testing.T) {
 		withDeps(t)(func(t *testing.T, deps testCaseDeps) {
 			plan := deps.SubsDeps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).
-				AddPhase(nil, &subscriptiontestutils.ExampleRateCard3ForAddons).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
 				Build())
 
 			timingNow := subscription.Timing{
@@ -1146,7 +1147,7 @@ func TestEditCombinations(t *testing.T) {
 							CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
 								PhaseKey: "test_phase_1",
 								ItemKey:  subscriptiontestutils.ExampleRateCard4ForAddons.Key(),
-								RateCard: &subscriptiontestutils.ExampleRateCard4ForAddons,
+								RateCard: subscriptiontestutils.ExampleRateCard4ForAddons.Clone(),
 							},
 						},
 					},

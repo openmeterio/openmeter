@@ -2,10 +2,12 @@ package balanceworker
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -17,6 +19,24 @@ type IngestEventQueryFilter struct {
 	Namespace    string
 	EventSubject string
 	MeterSlugs   []string
+}
+
+func (f IngestEventQueryFilter) Validate() error {
+	var errs []error
+
+	if f.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if f.EventSubject == "" {
+		errs = append(errs, errors.New("subject is required"))
+	}
+
+	if len(f.MeterSlugs) == 0 {
+		errs = append(errs, errors.New("at least one meter key is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type ListAffectedEntitlementsResponse struct {

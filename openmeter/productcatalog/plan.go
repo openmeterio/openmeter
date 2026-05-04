@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/invopop/gobl/currency"
@@ -24,13 +25,20 @@ const (
 
 type PlanStatus string
 
-func (s PlanStatus) Values() []string {
-	return []string{
-		string(PlanStatusDraft),
-		string(PlanStatusActive),
-		string(PlanStatusArchived),
-		string(PlanStatusScheduled),
+func (s PlanStatus) Values() []PlanStatus {
+	return []PlanStatus{
+		PlanStatusDraft,
+		PlanStatusActive,
+		PlanStatusArchived,
+		PlanStatusScheduled,
 	}
+}
+
+func (s PlanStatus) Validate() error {
+	if !slices.Contains(s.Values(), s) {
+		return fmt.Errorf("invalid plan status: %s", s)
+	}
+	return nil
 }
 
 var (

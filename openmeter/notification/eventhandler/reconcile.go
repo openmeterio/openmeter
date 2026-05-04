@@ -4,17 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime/debug"
+	"sync"
 	"time"
 
 	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/sync/semaphore"
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
-	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -56,78 +57,90 @@ func (h *Handler) reconcileEvent(ctx context.Context, event *notification.Event)
 	return tracex.StartWithNoValue(ctx, h.tracer, "event_handler.reconcile_event").Wrap(fn)
 }
 
-const (
-	reconcileLockKey = "notification.event_handler.reconcile_lock"
-
-	// nextAttemptDelay is a jitter to delay reconciliation of events to give time for downstream service providers to
-	// update their states with the result of the latest attempts which usually happen asynchronously.
-	// This way we can limit the number of missing state updates which could happen if we try to reconcile/synchronize
-	// states right around the *nextAttempt* time provided the downstream service in the previous reconciliation attempt.
-	nextAttemptDelay = 10 * time.Second
-)
+// nextAttemptDelay is a jitter to delay reconciliation of events to give time for downstream service providers to
+// update their states with the result of the latest attempts which usually happen asynchronously.
+// This way we can limit the number of missing state updates which could happen if we try to reconcile/synchronize
+// states right around the *nextAttempt* time provided the downstream service in the previous reconciliation attempt.
+const nextAttemptDelay = 10 * time.Second
 
 func (h *Handler) Reconcile(ctx context.Context) error {
 	fn := func(ctx context.Context) error {
-		return transaction.RunWithNoValue(ctx, h.repo, func(ctx context.Context) error {
-			span := trace.SpanFromContext(ctx)
+		span := trace.SpanFromContext(ctx)
 
-			span.AddEvent("acquiring lock")
+		span.AddEvent("acquiring lock")
 
-			if err := h.lockr.LockForTXWithScopes(ctx, reconcileLockKey); err != nil {
-				if errors.Is(err, lockr.ErrLockTimeout) {
-					h.logger.WarnContext(ctx, "reconciliation lock is not available, skipping reconciliation")
+		span.AddEvent("lock acquired")
 
-					return nil
-				}
+		workerPool := semaphore.NewWeighted(h.workerPoolSize)
 
-				return fmt.Errorf("failed to acquire reconciliation lock: %w", err)
+		wg := sync.WaitGroup{}
+		defer func() {
+			// Wait for all workers to finish
+			wg.Wait()
+
+			h.logger.DebugContext(ctx, "all workers finished")
+		}()
+
+		page := pagination.Page{
+			PageSize:   50,
+			PageNumber: 1,
+		}
+
+		nextAttemptBefore := clock.Now().Add(-1 * nextAttemptDelay)
+
+		for {
+			out, err := h.repo.ListEvents(ctx, notification.ListEventsInput{
+				Page: page,
+				DeliveryStatusStates: []notification.EventDeliveryStatusState{
+					notification.EventDeliveryStatusStatePending,
+					notification.EventDeliveryStatusStateSending,
+					notification.EventDeliveryStatusStateResending,
+				},
+				NextAttemptBefore: nextAttemptBefore,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to fetch notification delivery statuses for reconciliation: %w", err)
 			}
 
-			span.AddEvent("lock acquired")
+			span.AddEvent("reconciling events", trace.WithAttributes(
+				attribute.Int("event_handler.reconcile.count", len(out.Items)),
+			))
 
-			page := pagination.Page{
-				PageSize:   50,
-				PageNumber: 1,
-			}
-
-			for {
-				out, err := h.repo.ListEvents(ctx, notification.ListEventsInput{
-					Page: page,
-					DeliveryStatusStates: []notification.EventDeliveryStatusState{
-						notification.EventDeliveryStatusStatePending,
-						notification.EventDeliveryStatusStateSending,
-						notification.EventDeliveryStatusStateResending,
-					},
-					NextAttemptBefore: clock.Now().Add(-1 * nextAttemptDelay),
-				})
+			for _, event := range out.Items {
+				err = workerPool.Acquire(ctx, 1)
 				if err != nil {
-					return fmt.Errorf("failed to fetch notification delivery statuses for reconciliation: %w", err)
+					return fmt.Errorf("failed to acquire worker from pool: %w", err)
 				}
 
-				span.AddEvent("reconciling events", trace.WithAttributes(
-					attribute.Int("event_handler.reconcile.count", len(out.Items)),
-				))
+				wg.Go(func() {
+					defer workerPool.Release(1)
 
-				for _, event := range out.Items {
-					// TODO: run reconciliation in parallel (goroutines)
-					if err = h.reconcileEvent(ctx, &event); err != nil {
+					defer func() {
+						if err := recover(); err != nil {
+							h.logger.ErrorContext(ctx, "notification event handler worker panicked",
+								"error", err,
+								"code.stacktrace", string(debug.Stack()))
+						}
+					}()
+
+					if rErr := h.reconcileEvent(ctx, &event); rErr != nil {
 						h.logger.ErrorContext(ctx, "failed to reconcile notification event",
 							"namespace", event.Namespace,
 							"notification.event.id", event.ID,
-							"error", err.Error(),
+							"error", rErr.Error(),
 						)
 					}
-				}
-
-				if out.TotalCount <= page.PageSize*page.PageNumber || len(out.Items) == 0 {
-					break
-				}
-
-				page.PageNumber++
+				})
 			}
 
-			return nil
-		})
+			if out.TotalCount <= page.PageSize*page.PageNumber || len(out.Items) == 0 {
+				break
+			}
+
+			page.PageNumber++
+		}
+
+		return nil
 	}
 
 	return tracex.StartWithNoValue(ctx, h.tracer, "event_handler.reconcile").Wrap(fn)

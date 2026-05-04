@@ -13,6 +13,7 @@ import (
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -157,7 +158,7 @@ func newChargeIntentBaseFromTargetState(target targetstate.StateItem) (chargesme
 			From: target.BillingPeriod.From,
 			To:   target.BillingPeriod.To,
 		},
-		TaxConfig:         rateCardMeta.TaxConfig,
+		TaxConfig:         productcatalog.TaxCodeConfigFrom(rateCardMeta.TaxConfig),
 		UniqueReferenceID: &target.UniqueID,
 		Subscription: &chargesmeta.SubscriptionReference{
 			SubscriptionID: target.Subscription.ID,

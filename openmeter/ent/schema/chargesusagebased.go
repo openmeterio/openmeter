@@ -118,11 +118,19 @@ func (ChargeUsageBased) Edges() []ent.Edge {
 			Ref("usage_based_charges").
 			Unique().
 			Required(),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("charge_usage_based").
+			Field("tax_code_id").
+			Unique().
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 	}
 }
 
 func (ChargeUsageBased) Indexes() []ent.Index {
-	return nil
+	return []ent.Index{
+		index.Fields("tax_code_id").
+			StorageKey("chargeusagebased_tax_code_id"),
+	}
 }
 
 func (ChargeUsageBased) Annotations() []schema.Annotation {
@@ -164,10 +172,12 @@ func (ChargeUsageBasedRuns) Fields() []ent.Field {
 			GoType(usagebased.RealizationRunType("")).
 			Immutable(),
 
-		field.Time("asof"),
+		field.Time("stored_at_lt"),
 
-		field.Time("collection_end").
+		field.Time("service_period_to").
 			Immutable(),
+
+		field.Bool("detailed_lines_present"),
 
 		field.String("line_id").
 			SchemaType(map[string]string{
@@ -177,7 +187,7 @@ func (ChargeUsageBasedRuns) Fields() []ent.Field {
 			NotEmpty().
 			Nillable(),
 
-		field.Other("meter_value", alpacadecimal.Decimal{}).
+		field.Other("metered_quantity", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
 				dialect.Postgres: "numeric",
 			}),
@@ -262,7 +272,8 @@ func (ChargeUsageBasedRunDetailedLine) Edges() []ent.Edge {
 		edge.From("tax_code", TaxCode.Type).
 			Ref("charge_usage_based_run_detailed_lines").
 			Field("tax_code_id").
-			Unique(),
+			Unique().
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 	}
 }
 

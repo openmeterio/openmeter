@@ -1,10 +1,15 @@
 package filters
 
 import (
+	"context"
+	"errors"
+
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/expand"
 	"github.com/openmeterio/openmeter/pkg/filter"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // FromAPIFilterString converts an API FilterString to filter.FilterString.
@@ -74,21 +79,8 @@ func FromAPIFilterULID(f *FilterULID) (*filter.FilterULID, error) {
 	if f.Neq != nil {
 		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{Ne: f.Neq}})
 	}
-	if f.Exists != nil {
-		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{Exists: f.Exists}})
-	}
-	if f.Contains != nil {
-		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{Contains: f.Contains}})
-	}
 	if len(f.Oeq) > 0 {
 		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{In: convert.SliceToPointer(f.Oeq)}})
-	}
-	if len(f.Ocontains) > 0 {
-		parts = append(parts, filter.FilterULID{FilterString: filter.FilterString{
-			Or: convert.SliceToPointer(lo.Map(f.Ocontains, func(v string, _ int) filter.FilterString {
-				return filter.FilterString{Contains: &v}
-			})),
-		}})
 	}
 
 	switch len(parts) {
@@ -263,4 +255,43 @@ func FromAPIFilterBoolean(f *FilterBoolean) (*filter.FilterBoolean, error) {
 	return &filter.FilterBoolean{
 		Eq: f.Eq,
 	}, nil
+}
+
+type validator[T ~string] interface {
+	~string
+	expand.Expandable[T]
+	Validate() error
+}
+
+func FromAPIStatusFilter[T validator[T]](ctx context.Context, f *FilterStringExact) ([]T, error) {
+	if f == nil {
+		return nil, nil
+	}
+	if f.Neq != nil {
+		return nil, errors.New("only eq and oeq operators are supported for status")
+	}
+
+	var statuses []T
+	if f.Eq != nil {
+		statuses = append(statuses, T(*f.Eq))
+	}
+	for _, v := range f.Oeq {
+		statuses = append(statuses, T(v))
+	}
+
+	if len(statuses) == 0 {
+		return nil, nil
+	}
+
+	var errs []error
+	for _, status := range statuses {
+		if err := status.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if len(errs) > 0 {
+		return nil, models.NewNillableGenericValidationError(errors.Join(errs...))
+	}
+
+	return statuses, nil
 }

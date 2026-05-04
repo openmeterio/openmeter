@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
+	"github.com/openmeterio/openmeter/pkg/pglockx"
 )
 
 type WebhookConfiguration struct {
@@ -23,9 +24,14 @@ type NotificationConfiguration struct {
 
 	Webhook WebhookConfiguration
 
+	// EventHandler configuration
 	ReconcileInterval time.Duration
 	SendingTimeout    time.Duration
 	PendingTimeout    time.Duration
+
+	ReconcilerWorkers int
+
+	Lock pglockx.Config
 }
 
 func (c NotificationConfiguration) Validate() error {
@@ -47,4 +53,8 @@ func ConfigureNotification(v *viper.Viper) {
 	v.SetDefault("notification.reconcileInterval", notification.DefaultReconcileInterval)
 	v.SetDefault("notification.sendingTimeout", notification.DefaultDeliveryStateSendingTimeout)
 	v.SetDefault("notification.pendingTimeout", notification.DefaultDeliveryStatePendingTimeout)
+	v.SetDefault("notification.reconcilerWorkers", notification.DefaultReconcilerWorkers)
+	v.SetDefault("notification.lock.leaseTime", pglockx.DefaultLeaseTime)
+	v.SetDefault("notification.lock.heartbeat", pglockx.DefaultHeartbeatInterval)
+	v.SetDefault("notification.lock.owner", "")
 }

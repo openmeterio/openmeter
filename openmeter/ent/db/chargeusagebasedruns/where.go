@@ -137,14 +137,19 @@ func FeatureID(v string) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldFeatureID, v))
 }
 
-// Asof applies equality check predicate on the "asof" field. It's identical to AsofEQ.
-func Asof(v time.Time) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldAsof, v))
+// StoredAtLt applies equality check predicate on the "stored_at_lt" field. It's identical to StoredAtLtEQ.
+func StoredAtLt(v time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldStoredAtLt, v))
 }
 
-// CollectionEnd applies equality check predicate on the "collection_end" field. It's identical to CollectionEndEQ.
-func CollectionEnd(v time.Time) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldCollectionEnd, v))
+// ServicePeriodTo applies equality check predicate on the "service_period_to" field. It's identical to ServicePeriodToEQ.
+func ServicePeriodTo(v time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldServicePeriodTo, v))
+}
+
+// DetailedLinesPresent applies equality check predicate on the "detailed_lines_present" field. It's identical to DetailedLinesPresentEQ.
+func DetailedLinesPresent(v bool) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldDetailedLinesPresent, v))
 }
 
 // LineID applies equality check predicate on the "line_id" field. It's identical to LineIDEQ.
@@ -152,9 +157,9 @@ func LineID(v string) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldLineID, v))
 }
 
-// MeterValue applies equality check predicate on the "meter_value" field. It's identical to MeterValueEQ.
-func MeterValue(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldMeterValue, v))
+// MeteredQuantity applies equality check predicate on the "metered_quantity" field. It's identical to MeteredQuantityEQ.
+func MeteredQuantity(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldMeteredQuantity, v))
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -832,84 +837,94 @@ func TypeNotIn(vs ...usagebased.RealizationRunType) predicate.ChargeUsageBasedRu
 	return predicate.ChargeUsageBasedRuns(sql.FieldNotIn(FieldType, v...))
 }
 
-// AsofEQ applies the EQ predicate on the "asof" field.
-func AsofEQ(v time.Time) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldAsof, v))
+// StoredAtLtEQ applies the EQ predicate on the "stored_at_lt" field.
+func StoredAtLtEQ(v time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldStoredAtLt, v))
 }
 
-// AsofNEQ applies the NEQ predicate on the "asof" field.
-func AsofNEQ(v time.Time) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldAsof, v))
+// StoredAtLtNEQ applies the NEQ predicate on the "stored_at_lt" field.
+func StoredAtLtNEQ(v time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldStoredAtLt, v))
 }
 
-// AsofIn applies the In predicate on the "asof" field.
-func AsofIn(vs ...time.Time) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldIn(FieldAsof, vs...))
+// StoredAtLtIn applies the In predicate on the "stored_at_lt" field.
+func StoredAtLtIn(vs ...time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldIn(FieldStoredAtLt, vs...))
 }
 
-// AsofNotIn applies the NotIn predicate on the "asof" field.
-func AsofNotIn(vs ...time.Time) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldNotIn(FieldAsof, vs...))
+// StoredAtLtNotIn applies the NotIn predicate on the "stored_at_lt" field.
+func StoredAtLtNotIn(vs ...time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNotIn(FieldStoredAtLt, vs...))
 }
 
-// AsofGT applies the GT predicate on the "asof" field.
-func AsofGT(v time.Time) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldGT(FieldAsof, v))
+// StoredAtLtGT applies the GT predicate on the "stored_at_lt" field.
+func StoredAtLtGT(v time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGT(FieldStoredAtLt, v))
 }
 
-// AsofGTE applies the GTE predicate on the "asof" field.
-func AsofGTE(v time.Time) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldGTE(FieldAsof, v))
+// StoredAtLtGTE applies the GTE predicate on the "stored_at_lt" field.
+func StoredAtLtGTE(v time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGTE(FieldStoredAtLt, v))
 }
 
-// AsofLT applies the LT predicate on the "asof" field.
-func AsofLT(v time.Time) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldLT(FieldAsof, v))
+// StoredAtLtLT applies the LT predicate on the "stored_at_lt" field.
+func StoredAtLtLT(v time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLT(FieldStoredAtLt, v))
 }
 
-// AsofLTE applies the LTE predicate on the "asof" field.
-func AsofLTE(v time.Time) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldAsof, v))
+// StoredAtLtLTE applies the LTE predicate on the "stored_at_lt" field.
+func StoredAtLtLTE(v time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldStoredAtLt, v))
 }
 
-// CollectionEndEQ applies the EQ predicate on the "collection_end" field.
-func CollectionEndEQ(v time.Time) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldCollectionEnd, v))
+// ServicePeriodToEQ applies the EQ predicate on the "service_period_to" field.
+func ServicePeriodToEQ(v time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldServicePeriodTo, v))
 }
 
-// CollectionEndNEQ applies the NEQ predicate on the "collection_end" field.
-func CollectionEndNEQ(v time.Time) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldCollectionEnd, v))
+// ServicePeriodToNEQ applies the NEQ predicate on the "service_period_to" field.
+func ServicePeriodToNEQ(v time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldServicePeriodTo, v))
 }
 
-// CollectionEndIn applies the In predicate on the "collection_end" field.
-func CollectionEndIn(vs ...time.Time) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldIn(FieldCollectionEnd, vs...))
+// ServicePeriodToIn applies the In predicate on the "service_period_to" field.
+func ServicePeriodToIn(vs ...time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldIn(FieldServicePeriodTo, vs...))
 }
 
-// CollectionEndNotIn applies the NotIn predicate on the "collection_end" field.
-func CollectionEndNotIn(vs ...time.Time) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldNotIn(FieldCollectionEnd, vs...))
+// ServicePeriodToNotIn applies the NotIn predicate on the "service_period_to" field.
+func ServicePeriodToNotIn(vs ...time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNotIn(FieldServicePeriodTo, vs...))
 }
 
-// CollectionEndGT applies the GT predicate on the "collection_end" field.
-func CollectionEndGT(v time.Time) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldGT(FieldCollectionEnd, v))
+// ServicePeriodToGT applies the GT predicate on the "service_period_to" field.
+func ServicePeriodToGT(v time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGT(FieldServicePeriodTo, v))
 }
 
-// CollectionEndGTE applies the GTE predicate on the "collection_end" field.
-func CollectionEndGTE(v time.Time) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldGTE(FieldCollectionEnd, v))
+// ServicePeriodToGTE applies the GTE predicate on the "service_period_to" field.
+func ServicePeriodToGTE(v time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGTE(FieldServicePeriodTo, v))
 }
 
-// CollectionEndLT applies the LT predicate on the "collection_end" field.
-func CollectionEndLT(v time.Time) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldLT(FieldCollectionEnd, v))
+// ServicePeriodToLT applies the LT predicate on the "service_period_to" field.
+func ServicePeriodToLT(v time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLT(FieldServicePeriodTo, v))
 }
 
-// CollectionEndLTE applies the LTE predicate on the "collection_end" field.
-func CollectionEndLTE(v time.Time) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldCollectionEnd, v))
+// ServicePeriodToLTE applies the LTE predicate on the "service_period_to" field.
+func ServicePeriodToLTE(v time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldServicePeriodTo, v))
+}
+
+// DetailedLinesPresentEQ applies the EQ predicate on the "detailed_lines_present" field.
+func DetailedLinesPresentEQ(v bool) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldDetailedLinesPresent, v))
+}
+
+// DetailedLinesPresentNEQ applies the NEQ predicate on the "detailed_lines_present" field.
+func DetailedLinesPresentNEQ(v bool) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldDetailedLinesPresent, v))
 }
 
 // LineIDEQ applies the EQ predicate on the "line_id" field.
@@ -987,44 +1002,44 @@ func LineIDContainsFold(v string) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldContainsFold(FieldLineID, v))
 }
 
-// MeterValueEQ applies the EQ predicate on the "meter_value" field.
-func MeterValueEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldMeterValue, v))
+// MeteredQuantityEQ applies the EQ predicate on the "metered_quantity" field.
+func MeteredQuantityEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldMeteredQuantity, v))
 }
 
-// MeterValueNEQ applies the NEQ predicate on the "meter_value" field.
-func MeterValueNEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldMeterValue, v))
+// MeteredQuantityNEQ applies the NEQ predicate on the "metered_quantity" field.
+func MeteredQuantityNEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldMeteredQuantity, v))
 }
 
-// MeterValueIn applies the In predicate on the "meter_value" field.
-func MeterValueIn(vs ...alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldIn(FieldMeterValue, vs...))
+// MeteredQuantityIn applies the In predicate on the "metered_quantity" field.
+func MeteredQuantityIn(vs ...alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldIn(FieldMeteredQuantity, vs...))
 }
 
-// MeterValueNotIn applies the NotIn predicate on the "meter_value" field.
-func MeterValueNotIn(vs ...alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldNotIn(FieldMeterValue, vs...))
+// MeteredQuantityNotIn applies the NotIn predicate on the "metered_quantity" field.
+func MeteredQuantityNotIn(vs ...alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNotIn(FieldMeteredQuantity, vs...))
 }
 
-// MeterValueGT applies the GT predicate on the "meter_value" field.
-func MeterValueGT(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldGT(FieldMeterValue, v))
+// MeteredQuantityGT applies the GT predicate on the "metered_quantity" field.
+func MeteredQuantityGT(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGT(FieldMeteredQuantity, v))
 }
 
-// MeterValueGTE applies the GTE predicate on the "meter_value" field.
-func MeterValueGTE(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldGTE(FieldMeterValue, v))
+// MeteredQuantityGTE applies the GTE predicate on the "metered_quantity" field.
+func MeteredQuantityGTE(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGTE(FieldMeteredQuantity, v))
 }
 
-// MeterValueLT applies the LT predicate on the "meter_value" field.
-func MeterValueLT(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldLT(FieldMeterValue, v))
+// MeteredQuantityLT applies the LT predicate on the "metered_quantity" field.
+func MeteredQuantityLT(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLT(FieldMeteredQuantity, v))
 }
 
-// MeterValueLTE applies the LTE predicate on the "meter_value" field.
-func MeterValueLTE(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldMeterValue, v))
+// MeteredQuantityLTE applies the LTE predicate on the "metered_quantity" field.
+func MeteredQuantityLTE(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldMeteredQuantity, v))
 }
 
 // HasUsageBased applies the HasEdge predicate on the "usage_based" edge.

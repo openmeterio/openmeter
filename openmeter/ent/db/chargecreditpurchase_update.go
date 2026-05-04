@@ -20,6 +20,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -165,6 +167,46 @@ func (_u *ChargeCreditPurchaseUpdate) SetNillableAdvanceAfter(v *time.Time) *Cha
 // ClearAdvanceAfter clears the value of the "advance_after" field.
 func (_u *ChargeCreditPurchaseUpdate) ClearAdvanceAfter() *ChargeCreditPurchaseUpdate {
 	_u.mutation.ClearAdvanceAfter()
+	return _u
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *ChargeCreditPurchaseUpdate) SetTaxCodeID(v string) *ChargeCreditPurchaseUpdate {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdate) SetNillableTaxCodeID(v *string) *ChargeCreditPurchaseUpdate {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *ChargeCreditPurchaseUpdate) ClearTaxCodeID() *ChargeCreditPurchaseUpdate {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *ChargeCreditPurchaseUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeCreditPurchaseUpdate {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *ChargeCreditPurchaseUpdate {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *ChargeCreditPurchaseUpdate) ClearTaxBehavior() *ChargeCreditPurchaseUpdate {
+	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -351,6 +393,11 @@ func (_u *ChargeCreditPurchaseUpdate) SetCreditGrant(v *ChargeCreditPurchaseCred
 	return _u.SetCreditGrantID(v.ID)
 }
 
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_u *ChargeCreditPurchaseUpdate) SetTaxCode(v *TaxCode) *ChargeCreditPurchaseUpdate {
+	return _u.SetTaxCodeID(v.ID)
+}
+
 // Mutation returns the ChargeCreditPurchaseMutation object of the builder.
 func (_u *ChargeCreditPurchaseUpdate) Mutation() *ChargeCreditPurchaseMutation {
 	return _u.mutation
@@ -371,6 +418,12 @@ func (_u *ChargeCreditPurchaseUpdate) ClearInvoicedPayment() *ChargeCreditPurcha
 // ClearCreditGrant clears the "credit_grant" edge to the ChargeCreditPurchaseCreditGrant entity.
 func (_u *ChargeCreditPurchaseUpdate) ClearCreditGrant() *ChargeCreditPurchaseUpdate {
 	_u.mutation.ClearCreditGrant()
+	return _u
+}
+
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (_u *ChargeCreditPurchaseUpdate) ClearTaxCode() *ChargeCreditPurchaseUpdate {
+	_u.mutation.ClearTaxCode()
 	return _u
 }
 
@@ -420,6 +473,11 @@ func (_u *ChargeCreditPurchaseUpdate) check() error {
 	if v, ok := _u.mutation.ManagedBy(); ok {
 		if err := chargecreditpurchase.ManagedByValidator(v); err != nil {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.managed_by": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := chargecreditpurchase.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.tax_behavior": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Settlement(); ok {
@@ -482,6 +540,12 @@ func (_u *ChargeCreditPurchaseUpdate) sqlSave(ctx context.Context) (_node int, e
 	}
 	if _u.mutation.AdvanceAfterCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldAdvanceAfter, field.TypeTime)
+	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(chargecreditpurchase.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.Annotations(); ok {
 		_spec.SetField(chargecreditpurchase.FieldAnnotations, field.TypeJSON, value)
@@ -612,6 +676,35 @@ func (_u *ChargeCreditPurchaseUpdate) sqlSave(ctx context.Context) (_node int, e
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchasecreditgrant.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.TaxCodeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargecreditpurchase.TaxCodeTable,
+			Columns: []string{chargecreditpurchase.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargecreditpurchase.TaxCodeTable,
+			Columns: []string{chargecreditpurchase.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -768,6 +861,46 @@ func (_u *ChargeCreditPurchaseUpdateOne) SetNillableAdvanceAfter(v *time.Time) *
 // ClearAdvanceAfter clears the value of the "advance_after" field.
 func (_u *ChargeCreditPurchaseUpdateOne) ClearAdvanceAfter() *ChargeCreditPurchaseUpdateOne {
 	_u.mutation.ClearAdvanceAfter()
+	return _u
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *ChargeCreditPurchaseUpdateOne) SetTaxCodeID(v string) *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdateOne) SetNillableTaxCodeID(v *string) *ChargeCreditPurchaseUpdateOne {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *ChargeCreditPurchaseUpdateOne) ClearTaxCodeID() *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *ChargeCreditPurchaseUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *ChargeCreditPurchaseUpdateOne {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *ChargeCreditPurchaseUpdateOne) ClearTaxBehavior() *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -954,6 +1087,11 @@ func (_u *ChargeCreditPurchaseUpdateOne) SetCreditGrant(v *ChargeCreditPurchaseC
 	return _u.SetCreditGrantID(v.ID)
 }
 
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_u *ChargeCreditPurchaseUpdateOne) SetTaxCode(v *TaxCode) *ChargeCreditPurchaseUpdateOne {
+	return _u.SetTaxCodeID(v.ID)
+}
+
 // Mutation returns the ChargeCreditPurchaseMutation object of the builder.
 func (_u *ChargeCreditPurchaseUpdateOne) Mutation() *ChargeCreditPurchaseMutation {
 	return _u.mutation
@@ -974,6 +1112,12 @@ func (_u *ChargeCreditPurchaseUpdateOne) ClearInvoicedPayment() *ChargeCreditPur
 // ClearCreditGrant clears the "credit_grant" edge to the ChargeCreditPurchaseCreditGrant entity.
 func (_u *ChargeCreditPurchaseUpdateOne) ClearCreditGrant() *ChargeCreditPurchaseUpdateOne {
 	_u.mutation.ClearCreditGrant()
+	return _u
+}
+
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (_u *ChargeCreditPurchaseUpdateOne) ClearTaxCode() *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.ClearTaxCode()
 	return _u
 }
 
@@ -1036,6 +1180,11 @@ func (_u *ChargeCreditPurchaseUpdateOne) check() error {
 	if v, ok := _u.mutation.ManagedBy(); ok {
 		if err := chargecreditpurchase.ManagedByValidator(v); err != nil {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.managed_by": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := chargecreditpurchase.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.tax_behavior": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Settlement(); ok {
@@ -1115,6 +1264,12 @@ func (_u *ChargeCreditPurchaseUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 	}
 	if _u.mutation.AdvanceAfterCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldAdvanceAfter, field.TypeTime)
+	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(chargecreditpurchase.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.Annotations(); ok {
 		_spec.SetField(chargecreditpurchase.FieldAnnotations, field.TypeJSON, value)
@@ -1245,6 +1400,35 @@ func (_u *ChargeCreditPurchaseUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchasecreditgrant.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.TaxCodeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargecreditpurchase.TaxCodeTable,
+			Columns: []string{chargecreditpurchase.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargecreditpurchase.TaxCodeTable,
+			Columns: []string{chargecreditpurchase.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

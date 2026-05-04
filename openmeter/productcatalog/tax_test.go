@@ -1,16 +1,114 @@
 package productcatalog
 
 import (
+	"context"
 	"errors"
 	"testing"
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
+
+func TestTaxCodeConfigValidation(t *testing.T) {
+	tests := []struct {
+		name    string
+		cfg     *TaxCodeConfig
+		wantErr string
+	}{
+		{
+			name:    "nil",
+			cfg:     nil,
+			wantErr: "",
+		},
+		{
+			name:    "valid behavior",
+			cfg:     &TaxCodeConfig{Behavior: lo.ToPtr(InclusiveTaxBehavior)},
+			wantErr: "",
+		},
+		{
+			name:    "invalid behavior",
+			cfg:     &TaxCodeConfig{Behavior: (*TaxBehavior)(lo.ToPtr("bad"))},
+			wantErr: "validation error: invalid tax behavior: bad",
+		},
+		{
+			name:    "valid tax_code_id",
+			cfg:     &TaxCodeConfig{TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV3")},
+			wantErr: "",
+		},
+		{
+			name:    "empty tax_code_id",
+			cfg:     &TaxCodeConfig{TaxCodeID: lo.ToPtr("")},
+			wantErr: "validation error: tax_code_id must not be empty when set",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.cfg.Validate()
+			if tt.wantErr == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.EqualError(t, err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestTaxCodeConfigToTaxConfig(t *testing.T) {
+	t.Run("nil", func(t *testing.T) {
+		var c *TaxCodeConfig
+		assert.Nil(t, c.ToTaxConfig())
+	})
+
+	t.Run("deep copy", func(t *testing.T) {
+		behavior := InclusiveTaxBehavior
+		id := "01AN4Z07BY79KA1307SR9X4MV3"
+		c := &TaxCodeConfig{Behavior: &behavior, TaxCodeID: &id}
+		out := c.ToTaxConfig()
+
+		require.NotNil(t, out)
+		assert.Equal(t, behavior, *out.Behavior)
+		assert.Equal(t, id, *out.TaxCodeID)
+
+		// mutations to out must not alias back to c
+		newBehavior := ExclusiveTaxBehavior
+		out.Behavior = &newBehavior
+		assert.Equal(t, InclusiveTaxBehavior, *c.Behavior, "ToTaxConfig must not share pointer fields")
+	})
+}
+
+func TestTaxCodeConfigFrom(t *testing.T) {
+	t.Run("nil", func(t *testing.T) {
+		assert.Nil(t, TaxCodeConfigFrom(nil))
+	})
+
+	t.Run("stripe-only config returns nil", func(t *testing.T) {
+		cfg := &TaxConfig{Stripe: &StripeTaxConfig{Code: "txcd_10000000"}}
+		assert.Nil(t, TaxCodeConfigFrom(cfg), "Stripe-only TaxConfig must yield nil TaxCodeConfig")
+	})
+
+	t.Run("deep copy", func(t *testing.T) {
+		behavior := InclusiveTaxBehavior
+		id := "01AN4Z07BY79KA1307SR9X4MV3"
+		cfg := &TaxConfig{Behavior: &behavior, TaxCodeID: &id}
+		out := TaxCodeConfigFrom(cfg)
+
+		require.NotNil(t, out)
+		assert.Equal(t, behavior, *out.Behavior)
+		assert.Equal(t, id, *out.TaxCodeID)
+
+		// mutations to out must not alias back to cfg
+		newBehavior := ExclusiveTaxBehavior
+		out.Behavior = &newBehavior
+		assert.Equal(t, InclusiveTaxBehavior, *cfg.Behavior, "TaxCodeConfigFrom must not share pointer fields")
+	})
+}
 
 func TestTaxConfigValidation(t *testing.T) {
 	tests := []struct {
@@ -351,12 +449,35 @@ func TestMergeTaxConfigs(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name: "TaxCode resolved entity is dropped — merge is intent-level only",
+			Left: &TaxConfig{
+				TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV3"),
+				TaxCode:   &taxcode.TaxCode{NamespacedID: models.NamespacedID{ID: "01AN4Z07BY79KA1307SR9X4MV3"}},
+			},
+			Right: &TaxConfig{
+				Behavior: lo.ToPtr(ExclusiveTaxBehavior),
+			},
+			Expected: &TaxConfig{
+				TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV3"),
+				Behavior:  lo.ToPtr(ExclusiveTaxBehavior),
+				// TaxCode intentionally omitted from merge result
+			},
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
 			merged := MergeTaxConfigs(test.Left, test.Right)
 			assert.Equal(t, test.Expected, merged)
+
+			// Single-non-nil inputs must return an independent copy, not the original pointer.
+			if test.Left == nil && test.Right != nil {
+				assert.NotSame(t, test.Right, merged, "MergeTaxConfigs with nil base must return independent copy")
+			}
+			if test.Right == nil && test.Left != nil {
+				assert.NotSame(t, test.Left, merged, "MergeTaxConfigs with nil overrides must return independent copy")
+			}
 		})
 	}
 }
@@ -548,6 +669,179 @@ func TestBackfillTaxConfig(t *testing.T) {
 			t.Parallel()
 			got := BackfillTaxConfig(tt.cfg, tt.taxBehavior, tt.tc)
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestBackfillTaxConfigPointerIsolation(t *testing.T) {
+	t.Run("filled Behavior is independent from taxBehavior arg", func(t *testing.T) {
+		behavior := ExclusiveTaxBehavior
+		got := BackfillTaxConfig(nil, &behavior, nil)
+		require.NotNil(t, got)
+		require.NotNil(t, got.Behavior)
+
+		// mutate source — must not affect result
+		behavior = InclusiveTaxBehavior
+		assert.Equal(t, ExclusiveTaxBehavior, *got.Behavior, "BackfillTaxConfig must deep-copy taxBehavior")
+	})
+
+	t.Run("filled TaxCodeID is independent from TaxCode entity ID field", func(t *testing.T) {
+		tc := &taxcode.TaxCode{
+			NamespacedID: models.NamespacedID{Namespace: "ns", ID: "original-id"},
+			AppMappings:  taxcode.TaxCodeAppMappings{{AppType: app.AppTypeStripe, TaxCode: "txcd_10000000"}},
+		}
+		got := BackfillTaxConfig(nil, nil, tc)
+		require.NotNil(t, got)
+		require.NotNil(t, got.TaxCodeID)
+
+		// mutate source — must not affect result
+		tc.ID = "mutated-id"
+		assert.Equal(t, "original-id", *got.TaxCodeID, "BackfillTaxConfig must deep-copy TaxCode ID")
+	})
+}
+
+// stubTaxCodeService is a minimal taxcode.Service implementation for unit tests.
+// Only GetTaxCode and GetOrCreateByAppMapping are wired; other methods panic.
+type stubTaxCodeService struct {
+	getTaxCode              func(ctx context.Context, input taxcode.GetTaxCodeInput) (taxcode.TaxCode, error)
+	getOrCreateByAppMapping func(ctx context.Context, input taxcode.GetOrCreateByAppMappingInput) (taxcode.TaxCode, error)
+}
+
+func (s *stubTaxCodeService) GetTaxCode(ctx context.Context, input taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {
+	return s.getTaxCode(ctx, input)
+}
+
+func (s *stubTaxCodeService) GetOrCreateByAppMapping(ctx context.Context, input taxcode.GetOrCreateByAppMappingInput) (taxcode.TaxCode, error) {
+	return s.getOrCreateByAppMapping(ctx, input)
+}
+
+func (s *stubTaxCodeService) CreateTaxCode(_ context.Context, _ taxcode.CreateTaxCodeInput) (taxcode.TaxCode, error) {
+	panic("not implemented")
+}
+
+func (s *stubTaxCodeService) UpdateTaxCode(_ context.Context, _ taxcode.UpdateTaxCodeInput) (taxcode.TaxCode, error) {
+	panic("not implemented")
+}
+
+func (s *stubTaxCodeService) ListTaxCodes(_ context.Context, _ taxcode.ListTaxCodesInput) (pagination.Result[taxcode.TaxCode], error) {
+	panic("not implemented")
+}
+
+func (s *stubTaxCodeService) GetTaxCodeByAppMapping(_ context.Context, _ taxcode.GetTaxCodeByAppMappingInput) (taxcode.TaxCode, error) {
+	panic("not implemented")
+}
+
+func (s *stubTaxCodeService) DeleteTaxCode(_ context.Context, _ taxcode.DeleteTaxCodeInput) error {
+	panic("not implemented")
+}
+
+func TestResolveTaxConfig(t *testing.T) {
+	const ns = "test-ns"
+
+	tcWithStripe := taxcode.TaxCode{
+		NamespacedID: models.NamespacedID{Namespace: ns, ID: "tc-stripe"},
+		AppMappings:  taxcode.TaxCodeAppMappings{{AppType: app.AppTypeStripe, TaxCode: "txcd_10000000"}},
+	}
+	tcWithoutStripe := taxcode.TaxCode{
+		NamespacedID: models.NamespacedID{Namespace: ns, ID: "tc-no-stripe"},
+		AppMappings:  taxcode.TaxCodeAppMappings{},
+	}
+
+	tests := []struct {
+		name    string
+		svc     taxcode.Service
+		cfg     *TaxConfig
+		wantCfg *TaxConfig
+		wantErr string
+	}{
+		{
+			name:    "nil cfg is no-op",
+			cfg:     nil,
+			wantCfg: nil,
+		},
+		{
+			name:    "nil svc with non-nil cfg returns error",
+			svc:     nil,
+			cfg:     &TaxConfig{TaxCodeID: lo.ToPtr("tc-stripe")},
+			wantErr: "taxcode service is required",
+		},
+		{
+			name: "TaxCodeID set, entity has Stripe mapping — Stripe backfilled",
+			svc: &stubTaxCodeService{
+				getTaxCode: func(_ context.Context, _ taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {
+					return tcWithStripe, nil
+				},
+			},
+			cfg:     &TaxConfig{TaxCodeID: lo.ToPtr("tc-stripe")},
+			wantCfg: &TaxConfig{TaxCodeID: lo.ToPtr("tc-stripe"), Stripe: &StripeTaxConfig{Code: "txcd_10000000"}},
+		},
+		{
+			name: "TaxCodeID set, entity has no Stripe mapping — Stripe cleared",
+			svc: &stubTaxCodeService{
+				getTaxCode: func(_ context.Context, _ taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {
+					return tcWithoutStripe, nil
+				},
+			},
+			cfg:     &TaxConfig{TaxCodeID: lo.ToPtr("tc-no-stripe"), Stripe: &StripeTaxConfig{Code: "txcd_10000000"}},
+			wantCfg: &TaxConfig{TaxCodeID: lo.ToPtr("tc-no-stripe"), Stripe: nil},
+		},
+		{
+			name: "both TaxCodeID and Stripe code set — TaxCodeID wins, Stripe overwritten from entity",
+			svc: &stubTaxCodeService{
+				getTaxCode: func(_ context.Context, _ taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {
+					return tcWithStripe, nil
+				},
+			},
+			cfg:     &TaxConfig{TaxCodeID: lo.ToPtr("tc-stripe"), Stripe: &StripeTaxConfig{Code: "txcd_99999999"}},
+			wantCfg: &TaxConfig{TaxCodeID: lo.ToPtr("tc-stripe"), Stripe: &StripeTaxConfig{Code: "txcd_10000000"}},
+		},
+		{
+			name: "TaxCodeID set, entity not found — validation error",
+			svc: &stubTaxCodeService{
+				getTaxCode: func(_ context.Context, input taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {
+					return taxcode.TaxCode{}, taxcode.NewTaxCodeNotFoundError(input.ID)
+				},
+			},
+			cfg:     &TaxConfig{TaxCodeID: lo.ToPtr("missing-id")},
+			wantErr: "validation error: tax code missing-id not found",
+		},
+		{
+			name: "Stripe code set — TaxCodeID stamped",
+			svc: &stubTaxCodeService{
+				getOrCreateByAppMapping: func(_ context.Context, _ taxcode.GetOrCreateByAppMappingInput) (taxcode.TaxCode, error) {
+					return tcWithStripe, nil
+				},
+			},
+			cfg:     &TaxConfig{Stripe: &StripeTaxConfig{Code: "txcd_10000000"}},
+			wantCfg: &TaxConfig{Stripe: &StripeTaxConfig{Code: "txcd_10000000"}, TaxCodeID: lo.ToPtr("tc-stripe")},
+		},
+		{
+			name:    "neither TaxCodeID nor Stripe code — no-op",
+			svc:     &stubTaxCodeService{},
+			cfg:     &TaxConfig{Behavior: lo.ToPtr(InclusiveTaxBehavior)},
+			wantCfg: &TaxConfig{Behavior: lo.ToPtr(InclusiveTaxBehavior)},
+		},
+		{
+			name:    "empty Stripe code — no-op",
+			svc:     &stubTaxCodeService{},
+			cfg:     &TaxConfig{Stripe: &StripeTaxConfig{Code: ""}},
+			wantCfg: &TaxConfig{Stripe: &StripeTaxConfig{Code: ""}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := ResolveTaxConfig(t.Context(), tt.svc, ns, tt.cfg)
+
+			if tt.wantErr != "" {
+				require.EqualError(t, err, tt.wantErr)
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantCfg, tt.cfg)
 		})
 	}
 }

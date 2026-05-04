@@ -33,7 +33,6 @@ interface FeatureOperations {
   @get
   @operationId("list-features")
   @summary("List features")
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   list(
@@ -67,8 +66,7 @@ interface FeatureOperations {
    */
   @post
   @operationId("create-feature")
-  @summary("Create a feature.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Create feature")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   create(
@@ -82,8 +80,7 @@ interface FeatureOperations {
   @get
   @route("/{featureId}")
   @operationId("get-feature")
-  @summary("Get a feature by id.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Get feature")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   get(@path featureId: Shared.ULID):
@@ -99,8 +96,7 @@ interface FeatureOperations {
   @patch
   @route("/{featureId}")
   @operationId("update-feature")
-  @summary("Update a feature by id.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Update feature")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   update(
@@ -114,8 +110,7 @@ interface FeatureOperations {
   @delete
   @route("/{featureId}")
   @operationId("delete-feature")
-  @summary("Delete a feature by id.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Delete feature")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   delete(
@@ -127,7 +122,6 @@ interface FeatureCostOperations {
   /**
    * Query the cost of a feature.
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @post

@@ -15,6 +15,21 @@ using TypeSpec.OpenAPI;
 
 namespace ProductCatalog;
 
+/**
+ * Filter options for listing plans.
+ */
+@friendlyName("ListPlansParamsFilter")
+model ListPlansParamsFilter {
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  key?: Common.StringFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  name?: Common.StringFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  status?: Common.StringFieldFilterExact;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  currency?: Common.StringFieldFilterExact;
+}
+
 interface PlanOperations {
   /**
    * List all plans.
@@ -22,11 +37,28 @@ interface PlanOperations {
   @get
   @operationId("list-plans")
   @summary("List plans")
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   listPlans(
     ...Common.PagePaginationQuery,
+
+    /**
+     * Sort plans returned in the response.
+     * Supported sort attributes are:
+     * - `id`
+     * - `key`
+     * - `version`
+     * - `created_at` (default)
+     * - `updated_at`
+     */
+    @query(#{ name: "sort" })
+    sort?: Common.SortQuery,
+
+    /**
+     * Filter plans returned in the response.
+     */
+    @query(#{ style: "deepObject", explode: true })
+    filter?: ListPlansParamsFilter,
   ): Shared.PagePaginatedResponse<Plan> | Common.ErrorResponses;
 
   /**
@@ -34,8 +66,7 @@ interface PlanOperations {
    */
   @post
   @operationId("create-plan")
-  @summary("Create a new plan.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Create plan")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   createPlan(
@@ -48,8 +79,7 @@ interface PlanOperations {
   @put
   @route("/{planId}")
   @operationId("update-plan")
-  @summary("Update a plan by id.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Update plan")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   updatePlan(
@@ -67,8 +97,7 @@ interface PlanOperations {
   @get
   @route("/{planId}")
   @operationId("get-plan")
-  @summary("Get a plan by id.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Get plan")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   getPlan(@path planId: Shared.ULID):
@@ -83,8 +112,7 @@ interface PlanOperations {
   @delete
   @route("/{planId}")
   @operationId("delete-plan")
-  @summary("Delete a plan by id.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Delete plan")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   deletePlan(
@@ -97,8 +125,7 @@ interface PlanOperations {
   @post
   @route("/{planId}/archive")
   @operationId("archive-plan")
-  @summary("Archive a plan version.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Archive plan version")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   archivePlan(
@@ -111,13 +138,29 @@ interface PlanOperations {
   @post
   @route("/{planId}/publish")
   @operationId("publish-plan")
-  @summary("Publish a plan version.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Publish plan version")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   publishPlan(
     @path planId: Shared.ULID,
   ): Shared.UpdateResponse<Plan> | Common.ErrorResponses | Common.NotFound;
+}
+
+/**
+ * Filter options for listing add-ons.
+ */
+@friendlyName("ListAddonsParamsFilter")
+model ListAddonsParamsFilter {
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  id?: Common.ULIDFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  key?: Common.StringFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  name?: Common.StringFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  status?: Common.StringFieldFilterExact;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  currency?: Common.StringFieldFilterExact;
 }
 
 interface AddonOperations {
@@ -126,12 +169,32 @@ interface AddonOperations {
    */
   @get
   @operationId("list-addons")
-  @summary("List all add-ons.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("List add-ons")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   listAddons(
     ...Common.PagePaginationQuery,
+
+    /**
+     * Sort add-ons returned in the response.
+     * Supported sort attributes are:
+     * - `id`
+     * - `key`
+     * - `name`
+     * - `created_at` (default)
+     * - `updated_at`
+     *
+     * The `asc` suffix is optional as the default sort order is ascending.
+     * The `desc` suffix is used to specify a descending order.
+     */
+    @query(#{ name: "sort" })
+    sort?: Common.SortQuery,
+
+    /**
+     * Filter add-ons returned in the response.
+     */
+    @query(#{ style: "deepObject", explode: true })
+    filter?: ListAddonsParamsFilter,
   ): Shared.PagePaginatedResponse<Addon> | Common.ErrorResponses;
 
   /**
@@ -139,8 +202,7 @@ interface AddonOperations {
    */
   @post
   @operationId("create-addon")
-  @summary("Create a new add-on.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Create add-on")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   createAddon(
@@ -153,8 +215,7 @@ interface AddonOperations {
   @put
   @route("/{addonId}")
   @operationId("update-addon")
-  @summary("Update an add-on by id.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Update add-on")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   updateAddon(
@@ -172,8 +233,7 @@ interface AddonOperations {
   @get
   @route("/{addonId}")
   @operationId("get-addon")
-  @summary("Get add-on by id.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Get add-on")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   getAddon(@path addonId: Shared.ULID):
@@ -188,8 +248,7 @@ interface AddonOperations {
   @delete
   @route("/{addonId}")
   @operationId("delete-addon")
-  @summary("Soft delete add-on by id.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Soft delete add-on")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   deleteAddon(
@@ -202,8 +261,7 @@ interface AddonOperations {
   @post
   @route("/{addonId}/archive")
   @operationId("archive-addon")
-  @summary("Archive an add-on version.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Archive add-on version")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   archiveAddon(
@@ -216,8 +274,7 @@ interface AddonOperations {
   @post
   @route("/{addonId}/publish")
   @operationId("publish-addon")
-  @summary("Publish an add-on version.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Publish add-on version")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   publishAddon(
@@ -231,8 +288,7 @@ interface PlanAddonOperations {
    */
   @get
   @operationId("list-plan-addons")
-  @summary("List add-ons for a plan.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("List add-ons for plan")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   listPlanAddons(
@@ -245,8 +301,7 @@ interface PlanAddonOperations {
    */
   @post
   @operationId("create-plan-addon")
-  @summary("Add an add-on to a plan.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Add add-on to plan")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   createPlanAddon(
@@ -260,8 +315,7 @@ interface PlanAddonOperations {
   @get
   @route("/{planAddonId}")
   @operationId("get-plan-addon")
-  @summary("Get an add-on association for a plan.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Get add-on association for plan")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   getPlanAddon(
@@ -275,8 +329,7 @@ interface PlanAddonOperations {
   @put
   @route("/{planAddonId}")
   @operationId("update-plan-addon")
-  @summary("Update an add-on association for a plan.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Update add-on association for plan")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   updatePlanAddon(
@@ -291,8 +344,7 @@ interface PlanAddonOperations {
   @delete
   @route("/{planAddonId}")
   @operationId("delete-plan-addon")
-  @summary("Remove an add-on from a plan.")
-  @extension(Shared.PrivateExtension, true)
+  @summary("Remove add-on from plan")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   deletePlanAddon(

@@ -25939,11 +25939,23 @@ components:
             - $ref: '#/components/schemas/StripeTaxConfig'
           description: Stripe tax config.
           title: Stripe tax config
+          deprecated: true
         customInvoicing:
           allOf:
             - $ref: '#/components/schemas/CustomInvoicingTaxConfig'
           description: Custom invoicing tax config.
           title: Custom invoicing tax config
+          deprecated: true
+        taxCodeId:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: |-
+            Tax code reference.
+
+            When both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes precedence:
+            the referenced tax code entity is used and `stripe.code` is ignored.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          title: Tax code ID
       description: Set of provider specific tax configs.
     TieredPrice:
       type: object

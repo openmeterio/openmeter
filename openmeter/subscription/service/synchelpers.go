@@ -4,14 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/samber/lo"
-
-	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -191,21 +187,14 @@ func (s *service) resolveTaxCode(ctx context.Context, namespace string, rc produ
 	}
 
 	meta := rc.AsMeta()
-	if meta.TaxConfig == nil || meta.TaxConfig.Stripe == nil || meta.TaxConfig.Stripe.Code == "" {
+	if meta.TaxConfig == nil {
 		return nil
 	}
 
-	tc, err := s.TaxCode.GetOrCreateByAppMapping(ctx, taxcode.GetOrCreateByAppMappingInput{
-		Namespace: namespace,
-		AppType:   app.AppTypeStripe,
-		TaxCode:   meta.TaxConfig.Stripe.Code,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to resolve tax code for stripe code %s: %w", meta.TaxConfig.Stripe.Code, err)
-	}
-
 	return rc.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
-		m.TaxConfig.TaxCodeID = lo.ToPtr(tc.ID)
+		if err := productcatalog.ResolveTaxConfig(ctx, s.TaxCode, namespace, m.TaxConfig); err != nil {
+			return m, err
+		}
 		return m, nil
 	})
 }

@@ -65,14 +65,18 @@ type SessionLockerConfig struct {
 // It requires a dedicated connection to acquire locks.
 type SessionLocker struct {
 	logger *slog.Logger
-	conn   *sql.Conn
+	driver *pgdriver.Driver
+
+	conn *sql.Conn
 
 	closed atomic.Bool
 	closer func()
-	mu     sync.Mutex
+
+	mu   sync.Mutex
+	once sync.Once
 }
 
-func NewSessionLockr(ctx context.Context, config SessionLockerConfig) (*SessionLocker, error) {
+func NewSessionLockr(config SessionLockerConfig) (*SessionLocker, error) {
 	if config.Logger == nil {
 		return nil, errors.New("logger is required")
 	}
@@ -81,26 +85,36 @@ func NewSessionLockr(ctx context.Context, config SessionLockerConfig) (*SessionL
 		return nil, errors.New("postgres driver is required")
 	}
 
-	conn, err := config.PostgresDriver.DB().Conn(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get postgres connection: %w", err)
-	}
-
 	id := clock.Now().UTC().UnixNano()
 
 	logger := config.Logger.With("component", "session-lockr", "id", id)
 
-	closer := sync.OnceFunc(func() {
-		if err := conn.Close(); err != nil {
-			logger.Error("failed to close postgres connection", "error", err)
+	return &SessionLocker{
+		logger: logger,
+		driver: config.PostgresDriver,
+	}, nil
+}
+
+func (l *SessionLocker) Start(ctx context.Context) error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	var err error
+
+	if l.conn == nil {
+		l.conn, err = l.driver.DB().Conn(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to get postgres connection: %w", err)
+		}
+	}
+
+	l.closer = sync.OnceFunc(func() {
+		if err := l.conn.Close(); err != nil {
+			l.logger.Error("failed to close postgres connection: some session-level advisory locks might be dangling", "error", err)
 		}
 	})
 
-	return &SessionLocker{
-		logger: logger,
-		conn:   conn,
-		closer: closer,
-	}, nil
+	return err
 }
 
 func (l *SessionLocker) lock(ctx context.Context, key Key, nonblocking bool) (Releaser, error) {
@@ -182,6 +196,15 @@ func (l *SessionLocker) TryLock(ctx context.Context, key Key) (Releaser, error) 
 	return l.lock(ctx, key, true)
 }
 
+func (l *SessionLocker) TryLockWithScopes(ctx context.Context, scopes ...string) (Releaser, error) {
+	k, err := NewKey(scopes...)
+	if err != nil {
+		return nil, err
+	}
+
+	return l.TryLock(ctx, k)
+}
+
 // Lock blocks until a lock is acquired and returns a Releaser that can be used to release the lock if it is successfully acquired.
 // The ErrNoLockAcquired is acquiring the lock is denied by the database server.
 // The ErrSessionLockerDone is returned if SessionLocker is closed, meaning it cannot be used for acquiring locks.
@@ -190,6 +213,15 @@ func (l *SessionLocker) Lock(ctx context.Context, key Key) (Releaser, error) {
 	defer l.mu.Unlock()
 
 	return l.lock(ctx, key, false)
+}
+
+func (l *SessionLocker) LockWithScopes(ctx context.Context, scopes ...string) (Releaser, error) {
+	k, err := NewKey(scopes...)
+	if err != nil {
+		return nil, err
+	}
+
+	return l.Lock(ctx, k)
 }
 
 func (l *SessionLocker) release(ctx context.Context, key Key) error {
@@ -250,6 +282,7 @@ func (l *SessionLocker) Close() {
 	l.closer()
 	l.closed.Store(true)
 
-	// Release references to conn so it can be GC'd
+	// Release references to conn and closer so it can be GC'd
 	l.conn = nil
+	l.closer = nil
 }

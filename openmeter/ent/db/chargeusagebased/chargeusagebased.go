@@ -50,6 +50,10 @@ const (
 	FieldSubscriptionItemID = "subscription_item_id"
 	// FieldAdvanceAfter holds the string denoting the advance_after field in the database.
 	FieldAdvanceAfter = "advance_after"
+	// FieldTaxCodeID holds the string denoting the tax_code_id field in the database.
+	FieldTaxCodeID = "tax_code_id"
+	// FieldTaxBehavior holds the string denoting the tax_behavior field in the database.
+	FieldTaxBehavior = "tax_behavior"
 	// FieldAnnotations holds the string denoting the annotations field in the database.
 	FieldAnnotations = "annotations"
 	// FieldNamespace holds the string denoting the namespace field in the database.
@@ -100,6 +104,8 @@ const (
 	EdgeCustomer = "customer"
 	// EdgeFeature holds the string denoting the feature edge name in mutations.
 	EdgeFeature = "feature"
+	// EdgeTaxCode holds the string denoting the tax_code edge name in mutations.
+	EdgeTaxCode = "tax_code"
 	// Table holds the table name of the chargeusagebased in the database.
 	Table = "charge_usage_based"
 	// RunsTable is the table that holds the runs relation/edge.
@@ -165,6 +171,13 @@ const (
 	FeatureInverseTable = "features"
 	// FeatureColumn is the table column denoting the feature relation/edge.
 	FeatureColumn = "feature_id"
+	// TaxCodeTable is the table that holds the tax_code relation/edge.
+	TaxCodeTable = "charge_usage_based"
+	// TaxCodeInverseTable is the table name for the TaxCode entity.
+	// It exists in this package in order to avoid circular dependency with the "dbtaxcode" package.
+	TaxCodeInverseTable = "tax_codes"
+	// TaxCodeColumn is the table column denoting the tax_code relation/edge.
+	TaxCodeColumn = "tax_code_id"
 )
 
 // Columns holds all SQL columns for chargeusagebased fields.
@@ -185,6 +198,8 @@ var Columns = []string{
 	FieldSubscriptionPhaseID,
 	FieldSubscriptionItemID,
 	FieldAdvanceAfter,
+	FieldTaxCodeID,
+	FieldTaxBehavior,
 	FieldAnnotations,
 	FieldNamespace,
 	FieldMetadata,
@@ -256,6 +271,16 @@ func ManagedByValidator(mb billing.InvoiceLineManagedBy) error {
 		return nil
 	default:
 		return fmt.Errorf("chargeusagebased: invalid enum value for managed_by field: %q", mb)
+	}
+}
+
+// TaxBehaviorValidator is a validator for the "tax_behavior" field enum values. It is called by the builders before save.
+func TaxBehaviorValidator(tb productcatalog.TaxBehavior) error {
+	switch tb {
+	case "inclusive", "exclusive":
+		return nil
+	default:
+		return fmt.Errorf("chargeusagebased: invalid enum value for tax_behavior field: %q", tb)
 	}
 }
 
@@ -360,6 +385,16 @@ func BySubscriptionItemID(opts ...sql.OrderTermOption) OrderOption {
 // ByAdvanceAfter orders the results by the advance_after field.
 func ByAdvanceAfter(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAdvanceAfter, opts...).ToFunc()
+}
+
+// ByTaxCodeID orders the results by the tax_code_id field.
+func ByTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxCodeID, opts...).ToFunc()
+}
+
+// ByTaxBehavior orders the results by the tax_behavior field.
+func ByTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxBehavior, opts...).ToFunc()
 }
 
 // ByNamespace orders the results by the namespace field.
@@ -508,6 +543,13 @@ func ByFeatureField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newFeatureStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByTaxCodeField orders the results by tax_code field.
+func ByTaxCodeField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTaxCodeStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newRunsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -569,5 +611,12 @@ func newFeatureStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(FeatureInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, FeatureTable, FeatureColumn),
+	)
+}
+func newTaxCodeStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TaxCodeInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, TaxCodeTable, TaxCodeColumn),
 	)
 }

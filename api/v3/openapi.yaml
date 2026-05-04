@@ -45,10 +45,35 @@ paths:
   /openmeter/addons:
     get:
       operationId: list-addons
-      summary: List all add-ons.
+      summary: List add-ons
       description: List all add-ons.
       parameters:
         - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort add-ons returned in the response.
+            Supported sort attributes are:
+            - `id`
+            - `key`
+            - `name`
+            - `created_at` (default)
+            - `updated_at`
+
+            The `asc` suffix is optional as the default sort order is ascending.
+            The `desc` suffix is used to specify a descending order.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+        - name: filter
+          in: query
+          required: false
+          description: Filter add-ons returned in the response.
+          schema:
+            $ref: '#/components/schemas/ListAddonsParamsFilter'
+          style: deepObject
       responses:
         '200':
           description: Page paginated response.
@@ -66,10 +91,9 @@ paths:
         - OpenMeter Product Catalog
       x-internal: true
       x-unstable: true
-      x-private: true
     post:
       operationId: create-addon
-      summary: Create a new add-on.
+      summary: Create add-on
       description: Create a new add-on.
       responses:
         '201':
@@ -94,11 +118,10 @@ paths:
               $ref: '#/components/schemas/CreateAddonRequest'
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/addons/{addonId}:
     put:
       operationId: update-addon
-      summary: Update an add-on by id.
+      summary: Update add-on
       description: Update an add-on by id.
       parameters:
         - name: addonId
@@ -133,10 +156,9 @@ paths:
               $ref: '#/components/schemas/UpsertAddonRequest'
       x-internal: true
       x-unstable: true
-      x-private: true
     get:
       operationId: get-addon
-      summary: Get add-on by id.
+      summary: Get add-on
       description: Get add-on by id.
       parameters:
         - name: addonId
@@ -165,10 +187,9 @@ paths:
         - OpenMeter Product Catalog
       x-internal: true
       x-unstable: true
-      x-private: true
     delete:
       operationId: delete-addon
-      summary: Soft delete add-on by id.
+      summary: Soft delete add-on
       description: Soft delete add-on by id.
       parameters:
         - name: addonId
@@ -191,11 +212,10 @@ paths:
         - OpenMeter Product Catalog
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/addons/{addonId}/archive:
     post:
       operationId: archive-addon
-      summary: Archive an add-on version.
+      summary: Archive add-on version
       description: Archive an add-on version.
       parameters:
         - name: addonId
@@ -222,11 +242,10 @@ paths:
         - OpenMeter Product Catalog
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/addons/{addonId}/publish:
     post:
       operationId: publish-addon
-      summary: Publish an add-on version.
+      summary: Publish add-on version
       description: Publish an add-on version.
       parameters:
         - name: addonId
@@ -253,7 +272,6 @@ paths:
         - OpenMeter Product Catalog
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/apps:
     get:
       operationId: list-apps
@@ -850,6 +868,9 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Billing
+      x-internal: true
+      x-unstable: true
+      x-private: true
   /openmeter/customers/{customerId}/credits/adjustments:
     post:
       operationId: create-credit-adjustment
@@ -888,6 +909,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateCreditAdjustmentRequest'
+      x-internal: true
+      x-unstable: true
+      x-private: true
   /openmeter/customers/{customerId}/credits/balance:
     get:
       operationId: get-customer-credit-balance
@@ -922,6 +946,9 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Customers
+      x-internal: true
+      x-unstable: true
+      x-private: true
   /openmeter/customers/{customerId}/credits/grants:
     post:
       operationId: create-credit-grant
@@ -958,6 +985,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateCreditGrantRequest'
+      x-internal: true
+      x-unstable: true
+      x-private: true
     get:
       operationId: list-credit-grants
       summary: List credit grants
@@ -993,6 +1023,9 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Customers
+      x-internal: true
+      x-unstable: true
+      x-private: true
   /openmeter/customers/{customerId}/credits/grants/{creditGrantId}:
     get:
       operationId: get-credit-grant
@@ -1026,6 +1059,9 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Customers
+      x-internal: true
+      x-unstable: true
+      x-private: true
   /openmeter/customers/{customerId}/credits/grants/{creditGrantId}/settlement/external:
     post:
       operationId: update-credit-grant-external-settlement
@@ -1069,6 +1105,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateCreditGrantExternalSettlementRequest'
+      x-internal: true
+      x-unstable: true
+      x-private: true
   /openmeter/customers/{customerId}/credits/transactions:
     get:
       operationId: list-credit-transactions
@@ -1110,6 +1149,9 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Customers
+      x-internal: true
+      x-unstable: true
+      x-private: true
   /openmeter/customers/{customerId}/entitlement-access:
     get:
       operationId: list-customer-entitlement-access
@@ -1186,6 +1228,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - Metering Events
+      x-internal: true
+      x-unstable: true
     post:
       operationId: ingest-metering-events
       description: Ingests an event or batch of events following the CloudEvents specification.
@@ -1270,10 +1314,9 @@ paths:
         - OpenMeter Features
       x-internal: true
       x-unstable: true
-      x-private: true
     post:
       operationId: create-feature
-      summary: Create a feature.
+      summary: Create feature
       description: Create a feature.
       responses:
         '201':
@@ -1298,11 +1341,10 @@ paths:
               $ref: '#/components/schemas/CreateFeatureRequest'
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/features/{featureId}:
     get:
       operationId: get-feature
-      summary: Get a feature by id.
+      summary: Get feature
       description: Get a feature by id.
       parameters:
         - name: featureId
@@ -1331,10 +1373,9 @@ paths:
         - OpenMeter Features
       x-internal: true
       x-unstable: true
-      x-private: true
     patch:
       operationId: update-feature
-      summary: Update a feature by id.
+      summary: Update feature
       description: |-
         Update a feature by id.
         Currently only the unit_cost field can be updated.
@@ -1369,10 +1410,9 @@ paths:
               $ref: '#/components/schemas/UpdateFeatureRequest'
       x-internal: true
       x-unstable: true
-      x-private: true
     delete:
       operationId: delete-feature
-      summary: Delete a feature by id.
+      summary: Delete feature
       description: Delete a feature by id.
       parameters:
         - name: featureId
@@ -1395,7 +1435,6 @@ paths:
         - OpenMeter Features
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/features/{featureId}/cost/query:
     post:
       operationId: query-feature-cost
@@ -1432,7 +1471,6 @@ paths:
               $ref: '#/components/schemas/MeterQueryRequest'
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/llm-cost/overrides:
     get:
       operationId: list-llm-cost-overrides
@@ -1724,7 +1762,6 @@ paths:
               $ref: '#/components/schemas/UpdateMeterRequest'
       x-internal: true
       x-unstable: true
-      x-private: true
     delete:
       operationId: delete-meter
       summary: Delete meter
@@ -1806,7 +1843,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       x-internal: true
       x-unstable: true
-      x-private: true
       tags:
         - Meters
       requestBody:
@@ -1822,6 +1858,28 @@ paths:
       description: List all plans.
       parameters:
         - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort plans returned in the response.
+            Supported sort attributes are:
+            - `id`
+            - `key`
+            - `version`
+            - `created_at` (default)
+            - `updated_at`
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+        - name: filter
+          in: query
+          required: false
+          description: Filter plans returned in the response.
+          schema:
+            $ref: '#/components/schemas/ListPlansParamsFilter'
+          style: deepObject
       responses:
         '200':
           description: Page paginated response.
@@ -1839,10 +1897,9 @@ paths:
         - OpenMeter Product Catalog
       x-internal: true
       x-unstable: true
-      x-private: true
     post:
       operationId: create-plan
-      summary: Create a new plan.
+      summary: Create plan
       description: Create a new plan.
       responses:
         '201':
@@ -1867,11 +1924,10 @@ paths:
               $ref: '#/components/schemas/CreatePlanRequest'
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/plans/{planId}:
     put:
       operationId: update-plan
-      summary: Update a plan by id.
+      summary: Update plan
       description: Update a plan by id.
       parameters:
         - name: planId
@@ -1906,10 +1962,9 @@ paths:
               $ref: '#/components/schemas/UpsertPlanRequest'
       x-internal: true
       x-unstable: true
-      x-private: true
     get:
       operationId: get-plan
-      summary: Get a plan by id.
+      summary: Get plan
       description: Get a plan by id.
       parameters:
         - name: planId
@@ -1938,10 +1993,9 @@ paths:
         - OpenMeter Product Catalog
       x-internal: true
       x-unstable: true
-      x-private: true
     delete:
       operationId: delete-plan
-      summary: Delete a plan by id.
+      summary: Delete plan
       description: Delete a plan by id.
       parameters:
         - name: planId
@@ -1964,11 +2018,10 @@ paths:
         - OpenMeter Product Catalog
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/plans/{planId}/addons:
     get:
       operationId: list-plan-addons
-      summary: List add-ons for a plan.
+      summary: List add-ons for plan
       description: List add-ons associated with a plan.
       parameters:
         - name: planId
@@ -1996,10 +2049,9 @@ paths:
         - OpenMeter Product Catalog
       x-internal: true
       x-unstable: true
-      x-private: true
     post:
       operationId: create-plan-addon
-      summary: Add an add-on to a plan.
+      summary: Add add-on to plan
       description: Add an add-on to a plan.
       parameters:
         - name: planId
@@ -2032,11 +2084,10 @@ paths:
               $ref: '#/components/schemas/CreatePlanAddonRequest'
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/plans/{planId}/addons/{planAddonId}:
     get:
       operationId: get-plan-addon
-      summary: Get an add-on association for a plan.
+      summary: Get add-on association for plan
       description: Get an add-on association for a plan.
       parameters:
         - name: planId
@@ -2068,10 +2119,9 @@ paths:
         - OpenMeter Product Catalog
       x-internal: true
       x-unstable: true
-      x-private: true
     put:
       operationId: update-plan-addon
-      summary: Update an add-on association for a plan.
+      summary: Update add-on association for plan
       description: Update an add-on association for a plan.
       parameters:
         - name: planId
@@ -2109,10 +2159,9 @@ paths:
               $ref: '#/components/schemas/UpsertPlanAddonRequest'
       x-internal: true
       x-unstable: true
-      x-private: true
     delete:
       operationId: delete-plan-addon
-      summary: Remove an add-on from a plan.
+      summary: Remove add-on from plan
       description: Remove an add-on from a plan.
       parameters:
         - name: planId
@@ -2140,11 +2189,10 @@ paths:
         - OpenMeter Product Catalog
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/plans/{planId}/archive:
     post:
       operationId: archive-plan
-      summary: Archive a plan version.
+      summary: Archive plan version
       description: Archive a plan version.
       parameters:
         - name: planId
@@ -2171,11 +2219,10 @@ paths:
         - OpenMeter Product Catalog
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/plans/{planId}/publish:
     post:
       operationId: publish-plan
-      summary: Publish a plan version.
+      summary: Publish plan version
       description: Publish a plan version.
       parameters:
         - name: planId
@@ -2202,7 +2249,6 @@ paths:
         - OpenMeter Product Catalog
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/profiles:
     get:
       operationId: list-billing-profiles
@@ -4031,8 +4077,7 @@ components:
             Tax configuration for the grant.
 
             For `invoice` and `external` funding methods, tax configuration should be provided to ensure correct revenue recognition.
-
-            Defaults to the billing profile's tax configuration when not provided.
+            When not provided, the default credit grant tax code is applied, if that's not set the global default taxcode is used.
         invoice:
           type: object
           properties:
@@ -5887,11 +5932,22 @@ components:
             - $ref: '#/components/schemas/BillingTaxConfigStripe'
           description: Stripe tax config.
           title: Stripe tax config
+          deprecated: true
         external_invoicing:
           allOf:
             - $ref: '#/components/schemas/BillingTaxConfigExternalInvoicing'
           description: External invoicing tax config.
           title: External invoicing tax config
+          deprecated: true
+        tax_code_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: |-
+            Tax code reference.
+
+            When both `tax_code_id` and `stripe.code` are provided, `tax_code_id` takes precedence:
+            the referenced tax code entity is used and `stripe.code` is ignored.
+          title: Tax code ID
       description: Set of provider specific tax configs.
     BillingTaxConfigExternalInvoicing:
       type: object
@@ -6594,8 +6650,7 @@ components:
             Tax configuration for the grant.
 
             For `invoice` and `external` funding methods, tax configuration should be provided to ensure correct revenue recognition.
-
-            Defaults to the billing profile's tax configuration when not provided.
+            When not provided, the default credit grant tax code is applied, if that's not set the global default taxcode is used.
         filters:
           type: object
           properties:
@@ -7454,6 +7509,20 @@ components:
           type: string
           description: Name of the provider, e.g., "OpenAI", "Anthropic".
       description: LLM Provider
+    ListAddonsParamsFilter:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/ULIDFieldFilter'
+        key:
+          $ref: '#/components/schemas/StringFieldFilter'
+        name:
+          $ref: '#/components/schemas/StringFieldFilter'
+        status:
+          $ref: '#/components/schemas/StringFieldFilterExact'
+        currency:
+          $ref: '#/components/schemas/StringFieldFilterExact'
+      description: Filter options for listing add-ons.
     ListChargesParamsFilter:
       type: object
       properties:
@@ -7621,6 +7690,18 @@ components:
             - $ref: '#/components/schemas/StringFieldFilter'
           description: Filter meters by name.
       description: Filter options for listing meters.
+    ListPlansParamsFilter:
+      type: object
+      properties:
+        key:
+          $ref: '#/components/schemas/StringFieldFilter'
+        name:
+          $ref: '#/components/schemas/StringFieldFilter'
+        status:
+          $ref: '#/components/schemas/StringFieldFilterExact'
+        currency:
+          $ref: '#/components/schemas/StringFieldFilterExact'
+      description: Filter options for listing plans.
     Meter:
       type: object
       required:
@@ -8423,26 +8504,14 @@ components:
               allOf:
                 - $ref: '#/components/schemas/ULID'
               description: Value does not equal the given ULID value.
-            contains:
-              type: string
-              description: Value contains the given string value (fuzzy match).
-            ocontains:
-              type: string
-              items:
-                type: string
-              format: ArrayEncoding.commaDelimited
-              description: Returns entities that fuzzy-match any of the comma-delimited strings in the filter string.
             oeq:
               type: string
               items:
                 $ref: '#/components/schemas/ULID'
               format: ArrayEncoding.commaDelimited
               description: Returns entities that exact match any of the comma-delimited ULIDs in the filter string.
-            exists:
-              type: boolean
-              description: When true, the field must be present (non-null); when false, the field must be absent (null).
       description: |-
-        Filters on the given ULID field value by either exact or fuzzy match.
+        Filters on the given ULID field value by exact match.
         All properties are optional; provide exactly one to specify the comparison.
       x-go-type-import:
         path: github.com/openmeterio/openmeter/api/v3/filters
@@ -8766,6 +8835,15 @@ components:
       type: string
       minLength: 1
       description: Subject key.
+    SortQuery:
+      title: SortQuery
+      type: string
+      example: created_at desc
+      description: |
+        The `asc` suffix is optional as the default sort order is ascending.
+        The `desc` suffix is used to specify a descending order.
+        Multiple sort attributes may be provided via a comma separated list.
+        JSONPath notation may be used to specify a sub-attribute (eg: 'foo.bar desc').
     Labels:
       title: Labels
       type: object
@@ -9118,15 +9196,6 @@ components:
               example: kong:trace:1234567890
             detail:
               example: Gone
-    SortQuery:
-      title: SortQuery
-      type: string
-      example: created_at desc
-      description: |
-        The `asc` suffix is optional as the default sort order is ascending.
-        The `desc` suffix is used to specify a descending order.
-        Multiple sort attributes may be provided via a comma separated list.
-        JSONPath notation may be used to specify a sub-attribute (eg: 'foo.bar desc').
     CursorMetaPage:
       type: object
       required:

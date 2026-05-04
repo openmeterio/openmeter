@@ -5,12 +5,14 @@ import (
 	"testing"
 	"time"
 
+	alpacadecimal "github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
@@ -1096,5 +1098,148 @@ func TestTaxCodeResolution(t *testing.T) {
 		}
 
 		require.Greater(t, itemsChecked, 0, "expected at least one item with a Stripe tax code to verify the read path")
+	})
+
+	t.Run("Should validate and backfill when subscription item has only taxCodeId", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		currentTime := testutils.GetRFC3339Time(t, "2021-01-01T00:00:11Z")
+		clock.SetTime(currentTime)
+
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		defer dbDeps.Cleanup(t)
+
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		service := deps.SubscriptionService
+
+		// Pre-create a TaxCode with a Stripe mapping.
+		tcEntity, err := deps.TaxCodeService.GetOrCreateByAppMapping(ctx, taxcode.GetOrCreateByAppMappingInput{
+			Namespace: subscriptiontestutils.ExampleNamespace,
+			AppType:   app.AppTypeStripe,
+			TaxCode:   "txcd_60000010",
+		})
+		require.NoError(t, err)
+
+		rc := &productcatalog.FlatFeeRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:  "taxcodeid-only-rc",
+				Name: "TaxCodeId Only RC",
+				TaxConfig: &productcatalog.TaxConfig{
+					TaxCodeID: lo.ToPtr(tcEntity.ID),
+				},
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromInt(100),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+			},
+		}
+
+		planInput := subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, rc).Build()
+		planInput.Key = "taxcodeid-only-plan"
+		planInput.Name = "TaxCodeId Only Plan"
+
+		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+		plan := deps.PlanHelper.CreatePlan(t, planInput)
+
+		spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
+			CustomerId:    cust.ID,
+			Currency:      "USD",
+			ActiveFrom:    currentTime,
+			BillingAnchor: currentTime,
+			Name:          "Test Subscription",
+			Annotations:   models.Annotations{},
+		})
+		require.NoError(t, err)
+
+		sub, err := service.Create(ctx, subscriptiontestutils.ExampleNamespace, spec)
+		require.NoError(t, err)
+
+		view, err := service.GetView(ctx, models.NamespacedID{ID: sub.ID, Namespace: sub.Namespace})
+		require.NoError(t, err)
+
+		var found bool
+		for _, phaseView := range view.Phases {
+			for _, items := range phaseView.ItemsByKey {
+				for _, item := range items {
+					meta := item.SubscriptionItem.RateCard.AsMeta()
+					if meta.Key != "taxcodeid-only-rc" {
+						continue
+					}
+					found = true
+					require.NotNil(t, meta.TaxConfig)
+					require.NotNil(t, meta.TaxConfig.TaxCodeID)
+					assert.Equal(t, tcEntity.ID, *meta.TaxConfig.TaxCodeID)
+					require.NotNil(t, meta.TaxConfig.Stripe, "Stripe must be backfilled from TaxCode app mapping")
+					assert.Equal(t, "txcd_60000010", meta.TaxConfig.Stripe.Code)
+				}
+			}
+		}
+		require.True(t, found, "item taxcodeid-only-rc must be present in the subscription view")
+	})
+
+	t.Run("Should return validation error when subscription item has unknown taxCodeId", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		currentTime := testutils.GetRFC3339Time(t, "2021-01-01T00:00:11Z")
+		clock.SetTime(currentTime)
+
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		defer dbDeps.Cleanup(t)
+
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		service := deps.SubscriptionService
+
+		// Create a plan with NO TaxConfig so plan-level validation passes.
+		rc := &productcatalog.FlatFeeRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:  "bad-taxcodeid-rc",
+				Name: "Bad TaxCodeId RC",
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromInt(100),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+			},
+		}
+
+		planInput := subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, rc).Build()
+		planInput.Key = "bad-taxcodeid-plan"
+		planInput.Name = "Bad TaxCodeId Plan"
+
+		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+		plan := deps.PlanHelper.CreatePlan(t, planInput)
+
+		spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
+			CustomerId:    cust.ID,
+			Currency:      "USD",
+			ActiveFrom:    currentTime,
+			BillingAnchor: currentTime,
+			Name:          "Test Subscription",
+			Annotations:   models.Annotations{},
+		})
+		require.NoError(t, err)
+
+		// Inject a bad TaxCodeID into every rate card in the spec — simulates a race
+		// where the TaxCode was valid at plan-creation time but was deleted before the
+		// subscription was created. Only the subscription service's resolveTaxCode
+		// catches this at subscription-creation time.
+		for _, phase := range spec.Phases {
+			for _, items := range phase.ItemsByKey {
+				for _, item := range items {
+					err := item.RateCard.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+						m.TaxConfig = &productcatalog.TaxConfig{
+							TaxCodeID: lo.ToPtr("01JNON_EXISTENT_TAX_CODE_ID"),
+						}
+						return m, nil
+					})
+					require.NoError(t, err)
+				}
+			}
+		}
+
+		_, err = service.Create(ctx, subscriptiontestutils.ExampleNamespace, spec)
+		require.Error(t, err)
+		assert.True(t, models.IsGenericValidationError(err), "expected validation error for unknown taxCodeId, got: %v", err)
 	})
 }

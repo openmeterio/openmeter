@@ -23,8 +23,6 @@ import (
 func TestMigrate(t *testing.T) {
 	logger := testutils.NewLogger(t)
 
-	examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
-
 	type tDeps struct {
 		subDeps subscriptiontestutils.SubscriptionDependencies
 		subSvc  subscription.Service
@@ -47,6 +45,8 @@ func TestMigrate(t *testing.T) {
 
 	t.Run("Should migrate to latest version of plan when none is specified", func(t *testing.T) {
 		withDeps(t, func(t *testing.T, deps tDeps) {
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
+
 			now := testutils.GetRFC3339Time(t, "2021-01-01T00:01:10Z")
 			clock.SetTime(now)
 			defer clock.ResetTime()
@@ -127,6 +127,8 @@ func TestMigrate(t *testing.T) {
 
 	t.Run("Should migrate to specific version of plan when provided", func(t *testing.T) {
 		withDeps(t, func(t *testing.T, deps tDeps) {
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
+
 			now := testutils.GetRFC3339Time(t, "2021-01-01T00:01:10Z")
 			clock.SetTime(now)
 			defer clock.ResetTime()
@@ -205,6 +207,8 @@ func TestMigrate(t *testing.T) {
 
 	t.Run("Should not allow migrating to same or smaller version", func(t *testing.T) {
 		withDeps(t, func(t *testing.T, deps tDeps) {
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
+
 			now := testutils.GetRFC3339Time(t, "2021-01-01T00:01:10Z")
 			clock.SetTime(now)
 			defer clock.ResetTime()
@@ -288,6 +292,8 @@ func TestMigrate(t *testing.T) {
 
 	t.Run("Should migrate to new version of plan starting from specific phase", func(t *testing.T) {
 		withDeps(t, func(t *testing.T, deps tDeps) {
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
+
 			now := testutils.GetRFC3339Time(t, "2021-01-01T00:01:10Z")
 			clock.SetTime(now)
 			defer clock.ResetTime()

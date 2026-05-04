@@ -20,35 +20,41 @@ import (
 
 func (r *repo) EnsureSubAccount(ctx context.Context, input ledgeraccount.CreateSubAccountInput) (*ledgeraccount.SubAccountData, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (*ledgeraccount.SubAccountData, error) {
-		route, err := r.resolveOrCreateRoute(ctx, input)
+		route, err := tx.resolveOrCreateRoute(ctx, input)
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve route: %w", err)
 		}
 
-		entity, err := r.db.LedgerSubAccount.Create().
+		err = tx.db.LedgerSubAccount.Create().
 			SetNamespace(input.Namespace).
 			SetAnnotations(input.Annotations).
 			SetAccountID(input.AccountID).
 			SetRouteID(route.ID).
-			Save(ctx)
+			OnConflict(
+				sql.ConflictColumns(
+					dbledgersubaccount.FieldNamespace,
+					dbledgersubaccount.FieldAccountID,
+					dbledgersubaccount.FieldRouteID,
+				),
+				sql.ResolveWithIgnore(),
+			).
+			Exec(ctx)
 		if err != nil {
-			if db.IsConstraintError(err) {
-				entity, err = r.db.LedgerSubAccount.Query().
-					Where(
-						dbledgersubaccount.Namespace(input.Namespace),
-						dbledgersubaccount.AccountID(input.AccountID),
-						dbledgersubaccount.RouteID(route.ID),
-					).
-					Only(ctx)
-				if err != nil {
-					return nil, fmt.Errorf("failed to resolve existing ledger sub-account after conflict: %w", err)
-				}
-			} else {
-				return nil, fmt.Errorf("failed to create ledger sub-account: %w", err)
-			}
+			return nil, fmt.Errorf("failed to ensure ledger sub-account: %w", err)
 		}
 
-		res, err := r.GetSubAccountByID(ctx, models.NamespacedID{
+		entity, err := tx.db.LedgerSubAccount.Query().
+			Where(
+				dbledgersubaccount.Namespace(input.Namespace),
+				dbledgersubaccount.AccountID(input.AccountID),
+				dbledgersubaccount.RouteID(route.ID),
+			).
+			Only(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve ledger sub-account: %w", err)
+		}
+
+		res, err := tx.GetSubAccountByID(ctx, models.NamespacedID{
 			Namespace: input.Namespace,
 			ID:        entity.ID,
 		})
@@ -85,16 +91,22 @@ func (r *repo) resolveOrCreateRoute(ctx context.Context, input ledgeraccount.Cre
 		SetNillableCreditPriority(normalizedRoute.CreditPriority).
 		SetNillableTransactionAuthorizationStatus(normalizedRoute.TransactionAuthorizationStatus)
 
-	routeEntity, err := create.Save(ctx)
-	if err == nil {
-		return routeEntity, nil
+	err = create.
+		OnConflict(
+			sql.ConflictColumns(
+				dbledgersubaccountroute.FieldNamespace,
+				dbledgersubaccountroute.FieldAccountID,
+				dbledgersubaccountroute.FieldRoutingKeyVersion,
+				dbledgersubaccountroute.FieldRoutingKey,
+			),
+			sql.ResolveWithIgnore(),
+		).
+		Exec(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to ensure sub-account route: %w", err)
 	}
 
-	if !db.IsConstraintError(err) {
-		return nil, fmt.Errorf("failed to create sub-account route: %w", err)
-	}
-
-	routeEntity, err = r.db.LedgerSubAccountRoute.Query().
+	routeEntity, err := r.db.LedgerSubAccountRoute.Query().
 		Where(
 			dbledgersubaccountroute.Namespace(input.Namespace),
 			dbledgersubaccountroute.AccountID(input.AccountID),
@@ -103,7 +115,7 @@ func (r *repo) resolveOrCreateRoute(ctx context.Context, input ledgeraccount.Cre
 		).
 		Only(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve existing route after conflict: %w", err)
+		return nil, fmt.Errorf("failed to resolve sub-account route: %w", err)
 	}
 
 	return routeEntity, nil
@@ -111,7 +123,7 @@ func (r *repo) resolveOrCreateRoute(ctx context.Context, input ledgeraccount.Cre
 
 func (r *repo) GetSubAccountByID(ctx context.Context, id models.NamespacedID) (*ledgeraccount.SubAccountData, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (*ledgeraccount.SubAccountData, error) {
-		entity, err := r.db.LedgerSubAccount.Query().
+		entity, err := tx.db.LedgerSubAccount.Query().
 			Where(dbledgersubaccount.ID(id.ID)).
 			Where(dbledgersubaccount.Namespace(id.Namespace)).
 			WithRoute().
@@ -176,7 +188,7 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 			predicates = append(predicates, dbledgersubaccount.HasRouteWith(routePredicates...))
 		}
 
-		entities, err := r.db.LedgerSubAccount.Query().
+		entities, err := tx.db.LedgerSubAccount.Query().
 			Where(predicates...).
 			WithRoute().
 			WithAccount().

@@ -89,7 +89,7 @@ func fromAPICustomerIDFilter(ctx context.Context, f *api.ULIDFieldFilter) (*filt
 		return nil, nil
 	}
 
-	if f.Neq != nil || f.Contains != nil || len(f.Ocontains) > 0 || f.Exists != nil {
+	if f.Neq != nil {
 		err := errors.New("only eq and oeq operators are supported")
 		return nil, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 			{

@@ -48,11 +48,14 @@ func (s *service) GetCurrentTotals(ctx context.Context, input usagebased.GetCurr
 		return usagebased.GetCurrentTotalsResult{}, err
 	}
 
+	now := clock.Now()
+
 	dueTotals, err := s.rater.GetTotalsForUsage(ctx, usagebasedrating.GetTotalsForUsageInput{
-		Charge:         charge,
-		Customer:       customerOverride,
-		FeatureMeter:   featureMeter,
-		StoredAtOffset: clock.Now(),
+		Charge:                  charge,
+		Customer:                customerOverride,
+		FeatureMeter:            featureMeter,
+		StoredAtLT:              now,
+		IgnoreMinimumCommitment: now.Before(charge.Intent.ServicePeriod.To),
 	})
 	if err != nil {
 		return usagebased.GetCurrentTotalsResult{}, fmt.Errorf("get totals for usage: %w", err)

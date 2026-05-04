@@ -46,14 +46,16 @@ const (
 	FieldFeatureID = "feature_id"
 	// FieldType holds the string denoting the type field in the database.
 	FieldType = "type"
-	// FieldAsof holds the string denoting the asof field in the database.
-	FieldAsof = "asof"
-	// FieldCollectionEnd holds the string denoting the collection_end field in the database.
-	FieldCollectionEnd = "collection_end"
+	// FieldStoredAtLt holds the string denoting the stored_at_lt field in the database.
+	FieldStoredAtLt = "stored_at_lt"
+	// FieldServicePeriodTo holds the string denoting the service_period_to field in the database.
+	FieldServicePeriodTo = "service_period_to"
+	// FieldDetailedLinesPresent holds the string denoting the detailed_lines_present field in the database.
+	FieldDetailedLinesPresent = "detailed_lines_present"
 	// FieldLineID holds the string denoting the line_id field in the database.
 	FieldLineID = "line_id"
-	// FieldMeterValue holds the string denoting the meter_value field in the database.
-	FieldMeterValue = "meter_value"
+	// FieldMeteredQuantity holds the string denoting the metered_quantity field in the database.
+	FieldMeteredQuantity = "metered_quantity"
 	// EdgeUsageBased holds the string denoting the usage_based edge name in mutations.
 	EdgeUsageBased = "usage_based"
 	// EdgeFeature holds the string denoting the feature edge name in mutations.
@@ -139,10 +141,11 @@ var Columns = []string{
 	FieldChargeID,
 	FieldFeatureID,
 	FieldType,
-	FieldAsof,
-	FieldCollectionEnd,
+	FieldStoredAtLt,
+	FieldServicePeriodTo,
+	FieldDetailedLinesPresent,
 	FieldLineID,
-	FieldMeterValue,
+	FieldMeteredQuantity,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -265,14 +268,19 @@ func ByType(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldType, opts...).ToFunc()
 }
 
-// ByAsof orders the results by the asof field.
-func ByAsof(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldAsof, opts...).ToFunc()
+// ByStoredAtLt orders the results by the stored_at_lt field.
+func ByStoredAtLt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldStoredAtLt, opts...).ToFunc()
 }
 
-// ByCollectionEnd orders the results by the collection_end field.
-func ByCollectionEnd(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCollectionEnd, opts...).ToFunc()
+// ByServicePeriodTo orders the results by the service_period_to field.
+func ByServicePeriodTo(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldServicePeriodTo, opts...).ToFunc()
+}
+
+// ByDetailedLinesPresent orders the results by the detailed_lines_present field.
+func ByDetailedLinesPresent(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDetailedLinesPresent, opts...).ToFunc()
 }
 
 // ByLineID orders the results by the line_id field.
@@ -280,9 +288,9 @@ func ByLineID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLineID, opts...).ToFunc()
 }
 
-// ByMeterValue orders the results by the meter_value field.
-func ByMeterValue(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldMeterValue, opts...).ToFunc()
+// ByMeteredQuantity orders the results by the metered_quantity field.
+func ByMeteredQuantity(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMeteredQuantity, opts...).ToFunc()
 }
 
 // ByUsageBasedField orders the results by usage_based field.

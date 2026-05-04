@@ -245,8 +245,9 @@ func FromTaxConfig(c productcatalog.TaxConfig) api.TaxConfig {
 	}
 
 	return api.TaxConfig{
-		Stripe:   stripe,
-		Behavior: (*api.TaxBehavior)(c.Behavior),
+		Stripe:    stripe,
+		Behavior:  (*api.TaxBehavior)(c.Behavior),
+		TaxCodeId: c.TaxCodeID,
 	}
 }
 
@@ -875,7 +876,8 @@ func AsEntitlementTemplate(e api.RateCardEntitlement, billingCadence *datetime.I
 
 func AsTaxConfig(c api.TaxConfig) productcatalog.TaxConfig {
 	tc := productcatalog.TaxConfig{
-		Behavior: (*productcatalog.TaxBehavior)(c.Behavior),
+		Behavior:  (*productcatalog.TaxBehavior)(c.Behavior),
+		TaxCodeID: c.TaxCodeId,
 	}
 
 	if c.Stripe != nil {

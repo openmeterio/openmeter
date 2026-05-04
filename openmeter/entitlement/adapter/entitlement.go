@@ -238,6 +238,82 @@ func (a *entitlementDBAdapter) DeactivateEntitlement(ctx context.Context, entitl
 	return err
 }
 
+func EntitlementsByIngestedEventsQuery(dialect, ns, subject string, meters ...string) (string, []any) {
+	ct := sql.Table(customerdb.Table).As("c")
+	cst := sql.Table(customersubjectsdb.Table).As("cs")
+	ft := sql.Table(db_feature.Table).As("f")
+	mt := sql.Table(db_meter.Table).As("m")
+
+	withCustomerBySubject := "customer_by_subject"
+	withFeatureByMeter := "feature_by_meter"
+
+	with := sql.Dialect(dialect).
+		With(withCustomerBySubject).
+		As(
+			sql.Select(
+				ct.C(customerdb.FieldID),
+			).
+				From(ct).
+				Where(
+					sql.And(
+						sql.EQ(ct.C(customerdb.FieldNamespace), ns),
+						sql.EQ(ct.C(customerdb.FieldKey), subject),
+						sql.IsNull(ct.C(customersubjectsdb.FieldDeletedAt)),
+					),
+				).
+				Union(
+					sql.Select(
+						cst.C(customersubjectsdb.FieldCustomerID),
+					).
+						From(cst).
+						Join(ct).On(ct.C(customerdb.FieldID), cst.C(customersubjectsdb.FieldCustomerID)).
+						Where(
+							sql.And(
+								sql.EQ(cst.C(customersubjectsdb.FieldNamespace), ns),
+								sql.EQ(cst.C(customersubjectsdb.FieldSubjectKey), subject),
+								sql.IsNull(ct.C(customerdb.FieldDeletedAt)),
+								sql.IsNull(cst.C(customersubjectsdb.FieldDeletedAt)),
+							),
+						)),
+		).
+		With(withFeatureByMeter).
+		As(
+			sql.Select(
+				ft.C(db_feature.FieldID),
+			).From(ft).
+				Join(mt).On(mt.C(db_meter.FieldID), ft.C(db_feature.FieldMeterID)).
+				Where(sql.And(
+					sql.EQ(ft.C(db_feature.FieldNamespace), ns),
+					sql.IsNull(ft.C(db_feature.FieldArchivedAt)),
+					sql.IsNull(ft.C(db_feature.FieldDeletedAt)),
+					sql.IsNull(mt.C(db_meter.FieldDeletedAt)),
+					sql.In(mt.C(db_meter.FieldKey), lo.ToAnySlice(meters)...),
+				)),
+		)
+
+	et := sql.Table(db_entitlement.Table).As("e")
+	cbs := sql.Table(withCustomerBySubject).As("cbs")
+	fbm := sql.Table(withFeatureByMeter).As("fbm")
+
+	q := sql.Dialect(dialect).
+		Select(
+			et.C(db_entitlement.FieldNamespace),
+			et.C(db_entitlement.FieldID),
+			et.C(db_entitlement.FieldCreatedAt),
+			et.C(db_entitlement.FieldDeletedAt),
+			et.C(db_entitlement.FieldActiveFrom),
+			et.C(db_entitlement.FieldActiveTo),
+		).From(et).
+		Join(cbs).On(et.C(db_entitlement.FieldCustomerID), cbs.C("id")).
+		Join(fbm).On(et.C(db_entitlement.FieldFeatureID), fbm.C("id")).
+		Where(sql.And(
+			sql.EQ(et.C(db_entitlement.FieldNamespace), ns),
+			sql.IsNull(et.C(db_entitlement.FieldDeletedAt)))).
+		Prefix(with)
+
+	return q.Query()
+}
+
 // TODO[OM-1009]: This returns all the entitlements even the expired ones, for billing we would need to have a range for
 // the batch ingested events. Let's narrow down the list of entitlements active during that period.
 func (a *entitlementDBAdapter) ListEntitlementsAffectedByIngestEvents(ctx context.Context, eventFilter balanceworker.IngestEventQueryFilter) ([]balanceworker.ListAffectedEntitlementsResponse, error) {
@@ -245,62 +321,54 @@ func (a *entitlementDBAdapter) ListEntitlementsAffectedByIngestEvents(ctx contex
 		ctx,
 		a,
 		func(ctx context.Context, repo *entitlementDBAdapter) ([]balanceworker.ListAffectedEntitlementsResponse, error) {
+			if err := eventFilter.Validate(); err != nil {
+				return nil, fmt.Errorf("invalid event filter: %w", err)
+			}
+
+			query, args := EntitlementsByIngestedEventsQuery(
+				repo.db.GetConfig().Driver.Dialect(),
+				eventFilter.Namespace,
+				eventFilter.EventSubject,
+				eventFilter.MeterSlugs...,
+			)
+
+			rows, err := repo.db.QueryContext(ctx, query, args...)
+			if err != nil {
+				return nil, fmt.Errorf("failed to query entitlements affected by ingest events: %w", err)
+			}
+
+			defer func() {
+				// FIXME: it would be great to log this error but the adapter has no logger.
+				_ = rows.Close()
+			}()
+
 			result := make([]balanceworker.ListAffectedEntitlementsResponse, 0)
 
-			// Resolve event subject to customer IDs
-			customers, err := repo.db.Customer.Query().Where(
-				customerdb.Namespace(eventFilter.Namespace),
-				customerNotDeletedAt(clock.Now()),
-				customerdb.Or(
-					customerdb.Key(eventFilter.EventSubject),
-					customerdb.HasSubjectsWith(
-						customersubjectsdb.SubjectKey(eventFilter.EventSubject),
-						customersubjectsdb.DeletedAtIsNil(),
-					),
-				),
-			).All(ctx)
-			if err != nil {
-				return nil, fmt.Errorf("failed to query customers: %w", err)
+			for rows.Next() {
+				r := balanceworker.ListAffectedEntitlementsResponse{}
+
+				err = rows.Scan(
+					&r.Namespace,
+					&r.EntitlementID,
+					&r.CreatedAt,
+					&r.DeletedAt,
+					&r.ActiveFrom,
+					&r.ActiveTo,
+				)
+				if err != nil {
+					return nil, fmt.Errorf("failed to scan entitlement row: %w", err)
+				}
+
+				r.CreatedAt = r.CreatedAt.UTC()
+				r.DeletedAt = convert.SafeToUTC(r.DeletedAt)
+				r.ActiveFrom = convert.SafeToUTC(r.ActiveFrom)
+				r.ActiveTo = convert.SafeToUTC(r.ActiveTo)
+
+				result = append(result, r)
 			}
 
-			// resolve feature IDs via meter edge (ingest pipeline provides meter keys)
-			features, err := repo.db.Feature.Query().Where(
-				db_feature.Namespace(eventFilter.Namespace),
-				db_feature.HasMeterWith(db_meter.KeyIn(eventFilter.MeterSlugs...)),
-				db_feature.ArchivedAtIsNil(),
-			).All(ctx)
-			if err != nil {
-				return nil, fmt.Errorf("failed to query features by meters: %w", err)
-			}
-
-			if len(customers) == 0 || len(features) == 0 {
-				return result, nil
-			}
-
-			entitlements, err := repo.db.Entitlement.Query().
-				Where(
-					db_entitlement.Namespace(eventFilter.Namespace),
-					db_entitlement.CustomerIDIn(lo.Uniq(lo.Map(customers, func(item *db.Customer, _ int) string {
-						return item.ID
-					}))...),
-					db_entitlement.FeatureIDIn(lo.Map(features, func(item *db.Feature, _ int) string {
-						return item.ID
-					})...),
-				).
-				All(ctx)
-			if err != nil {
-				return nil, fmt.Errorf("failed to query entitlements: %w", err)
-			}
-
-			for _, e := range entitlements {
-				result = append(result, balanceworker.ListAffectedEntitlementsResponse{
-					Namespace:     e.Namespace,
-					EntitlementID: e.ID,
-					CreatedAt:     e.CreatedAt.UTC(),
-					DeletedAt:     convert.SafeToUTC(e.DeletedAt),
-					ActiveFrom:    convert.SafeToUTC(e.ActiveFrom),
-					ActiveTo:      convert.SafeToUTC(e.ActiveTo),
-				})
+			if err = rows.Err(); err != nil {
+				return nil, fmt.Errorf("failed to iterate over entitlement rows: %w", err)
 			}
 
 			return result, nil
