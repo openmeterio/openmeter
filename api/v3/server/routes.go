@@ -440,3 +440,13 @@ func (s *Server) ListCustomerCharges(w http.ResponseWriter, r *http.Request, cus
 		Params:     params,
 	}).ServeHTTP(w, r)
 }
+
+// Organization Tax Config
+
+func (s *Server) GetOrgTaxConfig(w http.ResponseWriter, r *http.Request) {
+	unimplemented.GetOrgTaxConfig(w, r)
+}
+
+func (s *Server) UpdateOrgTaxConfig(w http.ResponseWriter, r *http.Request) {
+	unimplemented.UpdateOrgTaxConfig(w, r)
+}
