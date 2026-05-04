@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "generate": "tsp compile --config tspconfig.yaml ./src && node ./scripts/flatten-allof.mjs ./output/definitions/metering-and-billing/v3/openapi.MeteringAndBilling.yaml && node ./scripts/seal-object-schemas.mjs ./output/definitions/metering-and-billing/v3/*.yaml",
+    "generate": "tsp compile --config tspconfig.yaml ./src && node ./scripts/flatten-allof.mjs ./output/definitions/metering-and-billing/v3/openapi.MeteringAndBilling.yaml && node ./scripts/seal-object-schemas.mjs ./output/definitions/metering-and-billing/v3/*.yaml && prettier --ignore-path ../../.prettierignore --write ../aip-client-javascript/models.ts && node ./scripts/clean-zod-blank-lines.mjs ../aip-client-javascript/models.ts",
     "bundle": "openapi bundle output/definitions/metering-and-billing/v3/openapi.OpenMeter.yaml",
     "watch": "tsp compile --watch --config tspconfig.yaml ./src",
     "format": "node ./scripts/apply-doc-fixes.mjs && prettier --ignore-path ../../.prettierignore --list-different --find-config-path --write .",
@@ -17,10 +17,13 @@
     }
   },
   "devDependencies": {
+    "@openmeter/typespec-go": "workspace:*",
+    "@openmeter/typespec-zod": "workspace:*",
     "@redocly/cli": "2.29.0",
     "@types/node": "25.6.0",
     "@typespec/compiler": "1.11.0",
     "@typespec/http": "1.11.0",
+    "@typespec/http-client-js": "0.14.1",
     "@typespec/json-schema": "1.11.0",
     "@typespec/openapi": "1.11.0",
     "@typespec/openapi3": "1.11.0",

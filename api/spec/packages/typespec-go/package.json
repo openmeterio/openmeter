@@ -1,0 +1,41 @@
+{
+  "name": "@openmeter/typespec-go",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "alloy build",
+    "watch": "alloy build --watch",
+    "typecheck": "tsc --noEmit",
+    "check": "pnpm run typecheck",
+    "test": "vitest run --pass-with-no-tests"
+  },
+  "files": [
+    "dist/**",
+    "src/templates/**"
+  ],
+  "dependencies": {
+    "@alloy-js/core": "0.23.1",
+    "@typespec/compiler": "1.11.0",
+    "@typespec/emitter-framework": "0.17.0",
+    "@typespec/http": "1.11.0",
+    "@typespec/openapi": "1.11.0",
+    "typescript": "6.0.3"
+  },
+  "devDependencies": {
+    "@alloy-js/cli": "0.23.0",
+    "@types/node": "25.6.0",
+    "vitest": "4.1.5"
+  },
+  "peerDependencies": {
+    "@typespec/compiler": "^1.11.0",
+    "@typespec/http": "^1.11.0"
+  }
+}
