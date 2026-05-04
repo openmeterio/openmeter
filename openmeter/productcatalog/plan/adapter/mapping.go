@@ -185,14 +185,6 @@ func FromAddonRateCardRow(r entdb.AddonRateCard) (productcatalog.RateCard, error
 		Discounts:           lo.FromPtr(r.Discounts),
 	}
 
-	// Backfill FeatureKey from eagerly loaded feature edge when the column is NULL.
-	// This handles rate cards created before FeatureKey was made required for non-flat prices.
-	if meta.FeatureKey == nil {
-		if feat, err := r.Edges.FeaturesOrErr(); err == nil && feat != nil {
-			meta.FeatureKey = &feat.Key
-		}
-	}
-
 	// Map TaxCode if eagerly loaded.
 	taxCodeRow, err := r.Edges.TaxCodeOrErr()
 	if err == nil {
@@ -300,14 +292,6 @@ func fromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 		TaxConfig:           r.TaxConfig,
 		Price:               r.Price,
 		Discounts:           lo.FromPtr(r.Discounts),
-	}
-
-	// Backfill FeatureKey from eagerly loaded feature edge when the column is NULL.
-	// This handles rate cards created before FeatureKey was made required for non-flat prices.
-	if meta.FeatureKey == nil {
-		if feat, err := r.Edges.FeaturesOrErr(); err == nil && feat != nil {
-			meta.FeatureKey = &feat.Key
-		}
 	}
 
 	// Map TaxCode if eagerly loaded.
