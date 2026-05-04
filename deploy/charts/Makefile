@@ -1,3 +1,8 @@
+# Compatibility shim. Canonical task definitions live in ../../justfile.
+
+JUST ?= just
+
 .PHONY: docs
+
 docs:
-	helm-docs --log-level trace -s file -c . -t $$PWD/template.md -t README.tmpl.md
+	@$(JUST) charts-docs
