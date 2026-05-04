@@ -134,7 +134,7 @@ func (h *handler) ListCustomerSubscriptions() ListCustomerSubscriptionsHandler {
 						return subscription.OrderByActiveFrom
 					}
 				}(),
-				Order:      sortx.Order(lo.FromPtrOr(params.Params.Order, api.SortOrderDESC)),
+				Order: sortx.Order(lo.FromPtrOr(params.Params.Order, api.SortOrderDESC)),
 				Status: func() []subscription.SubscriptionStatus {
 					apiStatusFilter := lo.FromPtrOr(params.Params.Status, []api.SubscriptionStatus{})
 					statusFilter := lo.Map(apiStatusFilter, func(status api.SubscriptionStatus, _ int) subscription.SubscriptionStatus {
