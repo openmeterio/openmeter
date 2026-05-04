@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pglockx"
 	"github.com/openmeterio/openmeter/pkg/redis"
 )
 
@@ -396,6 +397,11 @@ func TestComplete(t *testing.T) {
 			SendingTimeout:    time.Hour,
 			PendingTimeout:    2 * time.Hour,
 			ReconcilerWorkers: 10,
+			Lock: pglockx.Config{
+				LeaseTime:         7 * time.Minute,
+				HeartbeatInterval: 29 * time.Second,
+				Owner:             "lock-owner",
+			},
 		},
 		Svix: svix.SvixConfig{
 			APIKey:    "test-svix-token",

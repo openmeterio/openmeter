@@ -39,6 +39,7 @@ sink:
 
 postgres:
   url: postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable
+  autoMigrate: migration
 
 # Credits configuration - disabled for e2e tests.
 # Test cases in productcatalog_test.go (TestSettlementMode) depend on this setting
@@ -46,6 +47,12 @@ postgres:
 credits:
   enabled: false
   enable_credit_then_invoice: false
+
+notification:
+  lock:
+    owner: lock-owner
+    leaseTime: 7m
+    heartbeatInterval: 29s
 
 meters:
   - slug: ingest
