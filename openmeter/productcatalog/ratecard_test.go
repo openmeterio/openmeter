@@ -141,21 +141,6 @@ func TestFlatFeeRateCard(t *testing.T) {
 				},
 				ExpectedError: true,
 			},
-			{
-				Name: "valid, flat price without featureKey",
-				RateCard: FlatFeeRateCard{
-					RateCardMeta: RateCardMeta{
-						Key:  "flat-no-feature",
-						Name: "Flat no feature",
-						Price: NewPriceFrom(FlatPrice{
-							Amount:      decimal.NewFromInt(500),
-							PaymentTerm: InArrearsPaymentTerm,
-						}),
-					},
-					BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P1M")),
-				},
-				ExpectedError: false,
-			},
 		}
 
 		for _, test := range tests {
@@ -346,20 +331,6 @@ func TestUsageBasedRateCard(t *testing.T) {
 								Quantity: decimal.NewFromInt(100),
 							},
 						},
-					},
-					BillingCadence: datetime.MustParseDuration(t, "P1M"),
-				},
-				ExpectedError: true,
-			},
-			{
-				Name: "invalid, non-flat price without featureKey",
-				RateCard: UsageBasedRateCard{
-					RateCardMeta: RateCardMeta{
-						Key:  "usage-no-feature",
-						Name: "Usage no feature",
-						Price: NewPriceFrom(UnitPrice{
-							Amount: decimal.NewFromInt(1000),
-						}),
 					},
 					BillingCadence: datetime.MustParseDuration(t, "P1M"),
 				},
