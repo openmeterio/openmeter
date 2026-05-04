@@ -1,10 +1,195 @@
-## Enforcement Rules (101 total)
+## Enforcement Rules (134 total)
 
 Every rule the pre-edit hook (`PRE_VALIDATE_HOOK`) and the plan/commit classifier (`align_check.py`) consults. Grouped by severity.
 
-_12 decision_violation, 5 pitfall_triggered, 42 mechanical_violation, 30 tradeoff_undermined, 12 pattern_divergence_
+_17 decision_violation, 7 pitfall_triggered, 58 mechanical_violation, 32 tradeoff_undermined, 20 pattern_divergence_
 
 ## Decision Violations (block)
+
+### `wire-002-provider-no-business-logic` — Wire provider functions in app/common must only construct and wire dependencies. They must not contain validation, computation, or state mutation beyond side-effect hook/validator registration.
+
+*source: `deep_scan`*
+
+**Why:** The Google Wire DI pattern explicitly states do_not_apply_when: 'Provider functions containing business logic (validation, computation, state mutation) — providers must only construct and wire, as documented in app/common/CLAUDE.md.' Business logic in Wire providers is untestable in isolation and creates hidden dependencies on construction order.
+
+**Example:**
+
+```
+// Correct provider — construction only:
+func NewCustomerService(adapter customer.Adapter, hooks CustomerHooks) customer.Service {
+    svc := customer.New(adapter)
+    svc.RegisterHooks(hooks.Ledger) // side-effect registration is the ONLY exception
+    return svc
+}
+// Wrong — validation logic in provider:
+func NewCustomerService(adapter customer.Adapter, cfg config.Configuration) customer.Service {
+    if cfg.SomeFlag && !cfg.OtherFlag { panic("invalid config") } // wrong
+    return customer.New(adapter)
+}
+```
+
+**Path glob:** `app/common/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "panic\\(|log\\.Fatal|os\\.Exit"
+    ]
+  }
+]
+```
+
+</details>
+
+### `layer-007-adapter-triad` — Every new domain adapter must implement the TxCreator + TxUser triad: Tx(ctx) using HijackTx + NewTxDriver, WithTx(ctx, tx) using NewTxClientFromRawConfig, and Self(). Omitting any method prevents TransactingRepo from rebinding to caller-supplied transactions.
+
+*source: `deep_scan`*
+
+**Why:** The persistence implementation guideline states: 'Adapters under openmeter/<domain>/adapter/ implement TxCreator (Tx via *entdb.Client.HijackTx + entutils.NewTxDriver) and TxUser[T] (WithTx via entdb.NewTxClientFromRawConfig, Self) triad. Every method body wraps with entutils.TransactingRepo or TransactingRepoWithNoValue so it rebinds to the ctx-bound transaction.' A new adapter missing Self() panics when TransactingRepo falls back to it; missing WithTx() prevents participation in caller transactions.
+
+**Example:**
+
+```
+type adapter struct{ db *entdb.Client }
+
+// All three methods are required:
+func (a *adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
+    txCtx, cfg, drv, err := a.db.HijackTx(ctx, &sql.TxOptions{})
+    return txCtx, entutils.NewTxDriver(drv, cfg), err
+}
+func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter {
+    return &adapter{db: entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()).Client()}
+}
+func (a *adapter) Self() *adapter { return a }
+```
+
+**Path glob:** `openmeter/**/adapter/**/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "entutils\\.TransactingRepo"
+    ],
+    "must_not_match": [
+      "func.*Self\\(\\)"
+    ]
+  }
+]
+```
+
+</details>
+
+### `wm-005-fourth-kafka-topic` — Never add a fourth Kafka topic without updating the TopicMapping in openmeter/watermill/eventbus and ensuring all consumer binaries provision and subscribe to it. The three-topic topology (ingest, system, balance-worker) is a load-isolation design decision.
+
+*source: `deep_scan`*
+
+**Why:** The decision chain for three named Kafka topics lists 'fourth Kafka topic added without updating TopicMapping' as a documented violation keyword. The three-topic isolation is the basis of the multi-binary scaling decision: ingest events must not starve billing system event consumers. Adding a topic without updating GeneratePublishTopic in eventbus.go causes silent misrouting.
+
+**Example:**
+
+```
+// If a fourth topic is genuinely needed:
+// 1. Add a new TopicName constant in openmeter/watermill/eventbus
+// 2. Update GeneratePublishTopic() switch case
+// 3. Update all WorkerOptions structs to include the new topic field
+// 4. Provision the topic in all binaries that need it via KafkaTopicProvisioner
+// 5. Update relevant Wire sets in app/common
+```
+
+**Path glob:** `openmeter/watermill/eventbus/**/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "Topic.*=.*\""
+    ]
+  }
+]
+```
+
+</details>
+
+### `ent-004-no-direct-db-mutations-in-service` — Domain service implementations (openmeter/<domain>/service/*.go) must never import openmeter/ent/db or call Ent query builders directly. All Ent access must go through the Adapter interface. Services that bypass the adapter create untestable persistence coupling.
+
+*source: `deep_scan`*
+
+**Why:** The Layered Domain Service/Adapter/HTTP pattern states: 'A concrete service struct in <domain>/service/ holds business logic and calls an Adapter interface for all DB access.' The Adapter interface is defined alongside the Service interface and implemented by Ent-backed structs in <domain>/adapter/ sub-packages. Direct Ent imports in service layers prevent adapter mocking in unit tests.
+
+**Example:**
+
+```
+// Correct: service calls adapter interface
+func (s *service) GetCustomer(ctx context.Context, id string) (*Customer, error) {
+    return s.adapter.GetByID(ctx, id) // adapter interface
+}
+
+// Wrong: service calls Ent directly
+func (s *service) GetCustomer(ctx context.Context, id string) (*Customer, error) {
+    return s.db.Customer.Get(ctx, id) // bypasses adapter interface
+}
+```
+
+**Path glob:** `openmeter/**/service/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "\"github\\.com/openmeterio/openmeter/openmeter/ent/db\""
+    ]
+  }
+]
+```
+
+</details>
+
+### `wm-006-balance-worker-topic-isolation` — Only the balance-worker binary (openmeter/entitlement/balanceworker) may produce events whose EventName starts with balanceworkerevents.EventVersionSubsystem. No other binary may produce balance-worker topic events directly.
+
+*source: `deep_scan`*
+
+**Why:** The decision chain for three named Kafka topics lists 'producer importing balanceworkerevents from a non-balance-worker' as a documented violation keyword. The BalanceWorkerEventsTopic is a dedicated recalculation queue consumed exclusively by the balance-worker. Producing to it from billing-worker or server would introduce ordering conflicts and bypass the balance-worker's high-watermark filter.
+
+**Example:**
+
+```
+// Only allowed in cmd/balance-worker and openmeter/entitlement/balanceworker:
+publisher.Publish(ctx, &balanceworkerevents.RecalculateEvent{...})
+
+// Wrong in billing-worker or server:
+publisher.Publish(ctx, &balanceworkerevents.RecalculateEvent{...}) // wrong binary
+```
+
+**Path glob:** `openmeter/billing/**/*.go`, `cmd/server/**/*.go`, `cmd/billing-worker/**/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "balanceworkerevents\\."
+    ]
+  }
+]
+```
+
+</details>
 
 ### `dep-001` — Domain packages under openmeter/ must not import app/common. Wire wiring flows outward (app/common imports domain packages); reversing the direction creates import cycles and defeats the Wire compile-time graph.
 
@@ -266,6 +451,80 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 
 ## Pitfalls (block)
 
+### `pf-006-wire-hook-audit` — Wire provider side-effects (hook/validator registration) are invisible to Wire's compile-time graph; omitting the provider from a binary's wire.Build silently drops all hooks it registers with no compile error.
+
+*source: `deep_scan`*
+
+**Why:** Pitfall pf_0006: app/common/customer.go NewCustomerLedgerServiceHook, NewCustomerSubjectServiceHook, and NewCustomerEntitlementValidatorServiceHook each call customerService.RegisterHooks(h) inside the provider as side-effects. Wire sees only types, not side-effects; a binary that does not pull these providers into its wire.Build still builds successfully but loses the hooks. cmd/billing-worker uses common.BillingWorker as a composite set; the actual hook list each binary registers depends on which composite set is included.
+
+**Example:**
+
+```
+// When adding a new provider to app/common that registers a hook:
+// 1. Audit every cmd/<binary>/wire.go to decide which binaries need this hook
+// 2. Add the provider to the appropriate composite set in app/common/openmeter_<binary>.go
+// Failing to add it means the hook silently does not run in that binary
+```
+
+**Path glob:** `app/common/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "RegisterHooks|RegisterRequestValidator"
+    ],
+    "must_not_match": [
+      "// side-effect",
+      "openmeter_"
+    ]
+  }
+]
+```
+
+</details>
+
+### `pf-007-event-subsystem-prefix` — New Watermill event types whose EventName() does not start with a recognized EventVersionSubsystem prefix silently misroute to SystemEventsTopic instead of failing fast.
+
+*source: `deep_scan`*
+
+**Why:** Pitfall pf_0007: openmeter/watermill/eventbus/eventbus.go GeneratePublishTopic has a switch matching ingestVersionSubsystemPrefix and balanceWorkerVersionSubsystemPrefix; the default falls through to SystemEventsTopic with no error. An ingest event miscategorized as a system event can starve ingest consumers and bypass DLQ semantics. Topic isolation is the basis of the multi-binary scaling decision.
+
+**Example:**
+
+```
+// All event types must begin with a recognized EventVersionSubsystem constant:
+// ingestevents.EventVersionSubsystem + "." -> IngestEventsTopic
+// balanceworkerevents.EventVersionSubsystem + "." -> BalanceWorkerEventsTopic
+// Any other prefix -> SystemEventsTopic (by default, not error)
+// Wrong: EventName returns "my.custom.event" without declaring a subsystem constant
+```
+
+**Path glob:** `openmeter/**/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "func.*EventName.*string"
+    ],
+    "must_not_match": [
+      "EventVersionSubsystem",
+      "ingestevents\\.",
+      "balanceworkerevents\\."
+    ]
+  }
+]
+```
+
+</details>
+
 ### `ctx-001` — Never pass a raw *entdb.Tx as a struct field or function parameter in adapters. Always rebind to the context-carried transaction via entutils.TransactingRepo / TransactingRepoWithNoValue.
 
 *source: `deep_scan`*
@@ -438,6 +697,564 @@ return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (
 </details>
 
 ## Mechanical Violations (block)
+
+### `lock-003-key-construction` — Per-charge advisory lock keys must be constructed via charges.NewLockKeyForCharge(chargeID). Never hand-construct lockr.Key strings inline in adapter or service code.
+
+*source: `deep_scan`*
+
+**Why:** The implementation guideline for lockr explicitly warns: 'Use charges.NewLockKeyForCharge / billing.WithLock helpers — do not construct lockr.Key strings inline.' Hand-constructing key strings from charge IDs can produce mismatched hash inputs and cause lock bypasses or spurious lock conflicts. The typed helper encapsulates the correct hash input format and validates the key.
+
+**Example:**
+
+```
+// Correct:
+key, err := charges.NewLockKeyForCharge(chargeID)
+if err != nil { return err }
+
+// Wrong — never inline the key construction:
+lockr.Key(fmt.Sprintf("charge-%s", chargeID))
+```
+
+**Path glob:** `openmeter/billing/**/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "lockr\\.Key\\("
+    ],
+    "must_not_match": [
+      "NewLockKeyForCharge"
+    ]
+  }
+]
+```
+
+</details>
+
+### `lock-004-context-timeout` — Never use context.WithTimeout to time-bound a pg_advisory_xact_lock acquisition. Use pgdriver.WithLockTimeout instead — context cancellation destroys the underlying pgx connection rather than just cancelling the lock wait.
+
+*source: `deep_scan`*
+
+**Why:** The implementation guideline for lockr states: 'Don't mix context.WithTimeout with advisory locks — use pgdriver.WithLockTimeout instead.' When the context is cancelled mid-lock, pgx cancels the connection at the network level, which can leave the Postgres advisory lock in an undefined state for the transaction and produce confusing connection errors in the pool.
+
+**Example:**
+
+```
+// Wrong:
+ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+defer cancel()
+locker.LockForTX(ctx, key)
+
+// Correct: use pgdriver.WithLockTimeout
+ctx = pgdriver.WithLockTimeout(ctx, 5*time.Second)
+locker.LockForTX(ctx, key)
+```
+
+**Path glob:** `openmeter/**/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "context\\.WithTimeout"
+    ],
+    "must_not_match": [
+      "pgdriver\\.WithLockTimeout"
+    ]
+  }
+]
+```
+
+</details>
+
+### `sink-002-flush-handler-async` — FlushEventHandler.OnFlushSuccess must never be called synchronously inside the flush() loop. It must run in a goroutine with a FlushSuccessTimeout-bounded context to avoid blocking the main Kafka consumer loop.
+
+*source: `deep_scan`*
+
+**Why:** The communication pattern for the Sink Worker explicitly states the do_not_apply_when: 'Calling FlushEventHandler.OnFlushSuccess synchronously inside flush() — this blocks the main sink loop and causes Kafka partition backpressure.' The sink loop must return to Kafka polling immediately after the ClickHouse insert and offset commit; handler side-effects must be decoupled from the hot path.
+
+**Example:**
+
+```
+// Correct — fire in goroutine with timeout:
+go func() {
+    ctx, cancel := context.WithTimeout(context.Background(), s.config.FlushSuccessTimeout)
+    defer cancel()
+    s.flushHandler.OnFlushSuccess(ctx, messages)
+}()
+// Wrong — synchronous call blocks consumer loop:
+s.flushHandler.OnFlushSuccess(ctx, messages)
+```
+
+**Path glob:** `openmeter/sink/**/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "OnFlushSuccess"
+    ],
+    "must_not_match": [
+      "go func"
+    ]
+  }
+]
+```
+
+</details>
+
+### `ledger-001-resolve-transactions` — All ledger transaction inputs must be constructed exclusively via ledger/transactions.ResolveTransactions with typed template structs. Never hand-construct transaction entries outside this function.
+
+*source: `deep_scan`*
+
+**Why:** The openmeter/ledger component description states: 'Transaction inputs are constructed exclusively via transactions.ResolveTransactions with typed template structs.' This ensures double-entry balance invariants (debits equal credits), correct account type mappings, and currency validation are enforced in one place. Hand-constructed transactions can violate balance invariants silently.
+
+**Example:**
+
+```
+// Correct:
+entries, err := transactions.ResolveTransactions(ctx, transactions.FBODepositTemplate{
+    Amount: amount, Currency: currency,
+})
+if err != nil { return err }
+return ledger.CommitGroup(ctx, entries)
+
+// Wrong: hand-constructing ledger entries bypasses invariant checks
+entries := []ledger.Entry{{AccountID: fboID, Amount: amount, Type: ledger.Debit}}
+```
+
+**Path glob:** `openmeter/ledger/**/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "ledger\\.Entry\\{|ledger\\.CommitGroup"
+    ],
+    "must_not_match": [
+      "transactions\\.ResolveTransactions"
+    ]
+  }
+]
+```
+
+</details>
+
+### `billing-006-billing-worker-startup-order` — In cmd/billing-worker/main.go, EnsureBusinessAccounts must be called after Migrate() and before app.Run(). Skipping EnsureBusinessAccounts leaves the ledger without wash/earnings/brokerage business accounts, causing all subsequent charge postings to fail.
+
+*source: `deep_scan`*
+
+**Why:** The cmd/billing-worker component description states: 'After migration, provisions ledger business accounts (EnsureBusinessAccounts) and sandbox app before calling app.Run() to start the Watermill consumer loop.' The billing worker processes charges that post to business accounts; missing accounts cause runtime errors on the first billing event. This is analogous to the namespace-001 boot-order rule for cmd/server.
+
+**Example:**
+
+```
+// Correct billing-worker startup sequence:
+if err := app.Migrate(ctx); err != nil { return err }
+if err := app.EnsureBusinessAccounts(ctx); err != nil { return err }
+if err := app.SandboxProvisioner(ctx); err != nil { return err }
+return app.Run()
+```
+
+**Path glob:** `cmd/billing-worker/main.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "app\\.Run\\("
+    ],
+    "must_not_match": [
+      "EnsureBusinessAccounts"
+    ]
+  }
+]
+```
+
+</details>
+
+### `charge-001-chargelike-value-semantics` — ChargeLike implementations (flatfee.Charge, usagebased.Charge, creditpurchase.Charge) must implement WithStatus and WithBase as value receivers returning new copies. Pointer-mutating implementations break the external storage pattern in generic Machine[CHARGE,BASE,STATUS].
+
+*source: `deep_scan`*
+
+**Why:** The Generic Charge State Machine pattern states: 'All three methods (GetStatus, WithStatus returning a copy, GetBase, WithBase returning a copy) must be pure value-returning functions; pointer-mutating implementations break the external storage pattern at statemachine/machine.go:58.' The Machine updates its Charge field by assignment; if WithStatus/WithBase mutate in place instead of returning copies, the assignment creates aliasing bugs.
+
+**Example:**
+
+```
+// Correct — return a new copy:
+func (c FlatFeeCharge) WithStatus(s FlatFeeStatus) FlatFeeCharge {
+    c.Status = s
+    return c // value copy
+}
+// Wrong — pointer mutation breaks state machine:
+func (c *FlatFeeCharge) WithStatus(s FlatFeeStatus) *FlatFeeCharge {
+    c.Status = s
+    return c // aliasing
+}
+```
+
+**Path glob:** `openmeter/billing/charges/**/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "func\\s+\\(c\\s+\\*\\w+Charge\\)\\s+WithStatus|func\\s+\\(c\\s+\\*\\w+Charge\\)\\s+WithBase"
+    ]
+  }
+]
+```
+
+</details>
+
+### `validationissue-001-immutability` — ValidationIssue values must be modified only via their With* copy-on-write methods (WithPathString, WithComponent, WithSeverity, etc.). Never assign to ValidationIssue struct fields directly — the type is designed as immutable.
+
+*source: `deep_scan`*
+
+**Why:** The ValidationIssue Structured Error Propagation pattern states do_not_apply_when: 'Mutating a ValidationIssue in place — all With* methods at pkg/models/validationissue.go return new copies; direct struct field assignment bypasses the immutability contract.' Direct field mutation can corrupt shared ValidationIssue values when the same instance is passed through multiple service layers.
+
+**Example:**
+
+```
+// Correct: copy-on-write
+err := models.NewValidationIssue("invalid_amount", "must be positive").
+    WithPathString("amount").
+    WithComponent("charges").
+    WithSeverity(models.SeverityCritical)
+
+// Wrong: direct field mutation
+err.Path = "amount" // mutates shared state
+```
+
+**Path glob:** `openmeter/**/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "ValidationIssue\\{"
+    ],
+    "must_not_match": [
+      "NewValidationIssue|NewValidationError|NewValidationWarning"
+    ]
+  }
+]
+```
+
+</details>
+
+### `wm-004-maxretries-zero` — In Watermill router.Options, MaxRetries=0 means zero retries (one attempt total with no retry), which is semantically off-by-one from the name. Use MaxRetries=1 for a single-attempt with one retry on failure.
+
+*source: `deep_scan`*
+
+**Why:** The decision chain for Kafka + Watermill lists 'MaxRetries=0 misuse' as a documented violation keyword under the Silent-drop decision. MaxRetries=0 configured in NewDefaultRouter Options means no retries — the message goes to DLQ on first failure. Developers expecting 'zero-retry' to mean 'no DLQ, just drop' will be surprised to see DLQ entries.
+
+**Example:**
+
+```
+// MaxRetries semantics:
+// MaxRetries=0 -> one attempt, then DLQ (zero retries)
+// MaxRetries=1 -> one attempt + one retry before DLQ
+// To allow a single attempt with no retry:
+Options{MaxRetries: 0} // correct label: zero retries
+// Do NOT assume MaxRetries=0 means the handler is never retried
+```
+
+**Path glob:** `openmeter/**/*.go`, `cmd/**/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "MaxRetries:\\s*0"
+    ]
+  }
+]
+```
+
+</details>
+
+### `ci-001-dirty-tree-check` — CI must run all generators (make generate-all) and fail if the working tree is dirty after generation. PRs that add TypeSpec, Ent schema, Wire provider, or Goverter interface changes without committing the regenerated artifacts must be blocked.
+
+*source: `deep_scan`*
+
+**Why:** Pitfall pf_0003 and the infrastructure rules state: 'Always run all generators and fail if the working tree is dirty in CI — catches TypeSpec, Ent, Wire, or Goverter regen not committed alongside source changes.' Without this check, agent and human PRs can ship partial regeneration that compiles but behaves incorrectly at runtime.
+
+**Example:**
+
+```
+# In .github/workflows/ci.yaml after generation step:
+- name: Check generated files
+  run: |
+    make generate-all
+    git diff --exit-code || (echo 'Generated files out of sync; run make generate-all' && exit 1)
+```
+
+**Path glob:** `.github/workflows/ci.yaml`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "generate"
+    ],
+    "must_not_match": [
+      "git diff --exit-code"
+    ]
+  }
+]
+```
+
+</details>
+
+### `infra-003-pnpm-node-workspaces` — All Node.js workspace operations (TypeSpec compilation, JavaScript SDK builds) must use pnpm as the package manager. Never use npm or yarn — the packageManager field is pinned in api/spec/package.json and api/client/javascript/package.json.
+
+*source: `deep_scan`*
+
+**Why:** The infrastructure rule states: 'Always use pnpm (v10.33.0+) as the package manager for all Node.js workspaces — the packageManager field is pinned in api/spec/package.json and api/client/javascript/package.json.' Using npm or yarn produces different lockfiles and can resolve different transitive dependency versions, breaking reproducible builds.
+
+**Example:**
+
+```
+# Correct:
+pnpm install
+pnpm run build
+# Wrong:
+npm install
+yarn install
+```
+
+### `infra-004-ci-nix-shell` — CI jobs must use `nix develop --impure .#ci -c <command>` to run all build, lint, test, and generator commands. Never invoke Go, Atlas, golangci-lint, or Node toolchain binaries directly in CI without the Nix CI shell.
+
+*source: `deep_scan`*
+
+**Why:** The infrastructure rule states: 'Always use Nix .#ci shell on Depot runners for CI — all jobs in ci.yaml use nix develop --impure .#ci -c <command> to pin the Go/Node/Atlas/golangci-lint toolchain.' Running outside the Nix shell risks tool version drift between CI and local development, breaking deterministic builds and causing Atlas version mismatches during migration validation.
+
+**Example:**
+
+```
+# Correct in ci.yaml:
+- run: nix develop --impure .#ci -c make test
+
+# Wrong:
+- run: go test ./...   # ambient toolchain may differ
+```
+
+**Path glob:** `.github/workflows/ci.yaml`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "run:.*go test|run:.*golangci-lint|run:.*atlas"
+    ],
+    "must_not_match": [
+      "nix develop"
+    ]
+  }
+]
+```
+
+</details>
+
+### `api-003-typespec-route-binding` — Route and tag bindings in TypeSpec must be declared only in the root openmeter.tsp files (api/spec/packages/aip/src/openmeter.tsp for v3, api/spec/packages/legacy/src/main.tsp for v1), not in domain sub-folder operation files.
+
+*source: `deep_scan`*
+
+**Why:** The api/spec component description states: 'Route and tag bindings are declared only in root openmeter.tsp files, not in domain sub-folder operation files.' Domain operation files define the operation signatures; the root tsp file applies @route and @tag decorators. Scattering route bindings into sub-files makes route conflicts invisible and complicates the path namespacing guarantees.
+
+**Example:**
+
+```
+// In api/spec/packages/aip/src/openmeter.tsp (root file — correct):
+@route("/api/v1/customers")
+interface CustomerRoutes extends CustomerOps {}
+
+// In api/spec/packages/aip/src/customers/operations.tsp (domain file — wrong):
+@route("/api/v1/customers")  // route should be in root, not here
+op listCustomers(): Customer[];
+```
+
+**Path glob:** `api/spec/packages/aip/src/**/*.tsp`, `api/spec/packages/legacy/src/**/*.tsp`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "@route\\("
+    ]
+  }
+]
+```
+
+</details>
+
+### `ent-003-mixin-required` — Every new Ent entity schema in openmeter/ent/schema/ must include the standard mixins: entutils.IDMixin (ULID char(26) primary key), entutils.NamespaceMixin (namespace field for multi-tenancy), and entutils.TimeMixin (created_at/updated_at/deleted_at). Omitting any of these breaks multi-tenancy queries and soft-delete semantics.
+
+*source: `deep_scan`*
+
+**Why:** The code template for Ent entity schemas shows: 'func (Entity) Mixin() []ent.Mixin { return []ent.Mixin{entutils.IDMixin{}, entutils.NamespaceMixin{}, entutils.TimeMixin{}} }'. All ~30 existing entity files include these mixins. Omitting NamespaceMixin makes the entity invisible to namespace-scoped queries; omitting TimeMixin prevents soft-delete via DeletedAt.
+
+**Example:**
+
+```
+// Correct: all three standard mixins
+func (Entity) Mixin() []ent.Mixin {
+    return []ent.Mixin{
+        entutils.IDMixin{},
+        entutils.NamespaceMixin{},
+        entutils.TimeMixin{},
+    }
+}
+// Wrong: missing NamespaceMixin breaks multi-tenancy
+func (Entity) Mixin() []ent.Mixin {
+    return []ent.Mixin{entutils.IDMixin{}}
+}
+```
+
+**Path glob:** `openmeter/ent/schema/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "ent\\.Schema"
+    ],
+    "must_not_match": [
+      "NamespaceMixin"
+    ]
+  }
+]
+```
+
+</details>
+
+### `billing-008-charge-intent-constructor` — Charge intents must be constructed via charges.NewChargeIntent(flatfee.Intent{...}) or the type-specific NewCharge[T]/NewChargeIntent[T] generics. Never use charges.ChargeIntent{} struct literals — the discriminator is private and stays zero-valued.
+
+*source: `deep_scan`*
+
+**Why:** The implementation guideline for billing/charges explicitly states: 'Use NewCharge[T] / NewChargeIntent[T] — struct-literal Charge{} leaves the discriminator empty and accessors error.' This applies equally to ChargeIntent. The discriminator field is private (in the meta sub-package) and can only be set through the generic constructors.
+
+**Example:**
+
+```
+// Correct:
+intent := charges.NewChargeIntent(flatfee.Intent{Amount: amount})
+
+// Wrong — discriminator stays empty, ChargeType returns error:
+intent := charges.ChargeIntent{} // discriminator is zero-valued
+```
+
+**Path glob:** `openmeter/billing/**/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "charges\\.ChargeIntent\\{"
+    ]
+  }
+]
+```
+
+</details>
+
+### `infra-005-helm-appversion` — deploy/charts/openmeter/Chart.yaml appVersion must be kept aligned with the container image tag on every release. Never publish a Helm chart whose appVersion differs from the Docker image tag it deploys.
+
+*source: `deep_scan`*
+
+**Why:** The infrastructure distribution rule states: 'Always publish Helm charts to GHCR OCI registry on release tags, with Chart.yaml appVersion aligned to the container image tag.' Misaligned appVersion causes Helm's default image tag override to deploy the wrong image version when users use the chart's built-in image spec.
+
+**Example:**
+
+```
+# In deploy/charts/openmeter/Chart.yaml:
+apiVersion: v2
+name: openmeter
+version: 1.2.3
+appVersion: "1.2.3"  # must match the released Docker image tag
+```
+
+**Path glob:** `deploy/charts/openmeter/Chart.yaml`, `deploy/charts/benthos-collector/Chart.yaml`
+
+### `api-004-request-validator-enabled` — The v1 server must mount kin-openapi OapiRequestValidatorWithOptions middleware. The v3 server must mount oasmiddleware.ValidateRequest. Never register routes without request validation middleware — the OAS spec is the contract.
+
+*source: `deep_scan`*
+
+**Why:** The cmd/server component description states both v1 (OapiRequestValidatorWithOptions with NoopAuthenticationFunc) and v3 (oasmiddleware.ValidateRequest) request validation must be active. Without validation middleware, invalid requests that would fail JSON Schema checks in the OpenAPI spec silently pass through to domain services, producing confusing adapter-level errors.
+
+**Example:**
+
+```
+// v1: kin-openapi validation
+chi.Use(oapimiddleware.OapiRequestValidatorWithOptions(spec, &oapimiddleware.Options{
+    Options: openapi3filter.Options{AuthenticationFunc: openapi3filter.NoopAuthenticationFunc},
+}))
+
+// v3: oasmiddleware validation
+chi.Use(oasmiddleware.ValidateRequest(spec))
+```
+
+**Path glob:** `openmeter/server/**/*.go`, `api/v3/server/**/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "chi\\.NewRouter|api\\.HandlerWithOptions"
+    ],
+    "must_not_match": [
+      "OapiRequestValidator|ValidateRequest"
+    ]
+  }
+]
+```
+
+</details>
 
 ### `api-002` — Never hand-edit api/openapi.yaml, api/openapi.cloud.yaml, or api/v3/openapi.yaml. These are generated from TypeSpec source via `make gen-api`.
 
@@ -681,6 +1498,81 @@ return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (
 
 ## Tradeoff Signals (warn)
 
+### `lock-005-session-locker-goroutine` — SessionLocker (pkg/framework/lockr/session.go) must not be shared across goroutines under high contention; always call Close() to release its dedicated connection after use.
+
+*source: `deep_scan`*
+
+**Why:** The implementation guideline for lockr warns: 'SessionLocker is not goroutine-safe under high contention; always Close() to release the dedicated connection.' Unlike LockForTX which scopes to a transaction, SessionLocker holds a dedicated Postgres connection for the advisory lock lifetime. Failing to Close() leaks the connection; concurrent use from multiple goroutines produces undefined lock ordering.
+
+**Example:**
+
+```
+// Correct: acquire, use, and release in the same goroutine
+sl, err := lockr.NewSessionLocker(ctx, pool, key)
+if err != nil { return err }
+defer sl.Close()
+// ... perform admin operations ...
+```
+
+**Path glob:** `openmeter/**/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "SessionLocker"
+    ],
+    "must_not_match": [
+      "\\.Close\\("
+    ]
+  }
+]
+```
+
+</details>
+
+### `test-005-mock-streaming-connector` — Tests that verify billing metered usage must use openmeter/streaming/testutils.MockStreamingConnector with explicit StoredAt values. Never use real ClickHouse or mocked connectors without StoredAt — the stored-at cutoff logic in charge finalization will not be exercised.
+
+*source: `deep_scan`*
+
+**Why:** The billing lifecycle implementation guideline tip states: 'Use MockStreamingConnector with explicit StoredAt to model late-arriving usage and exercise stored-at cutoff logic.' The billing charges test-004 rule captures this for adapter tests; this rule targets the broader pattern of any test that exercises metered charge finalization.
+
+**Example:**
+
+```
+// Correct: explicit StoredAt exercises cutoff logic
+mock := testutils.NewMockStreamingConnector()
+mock.AddSimpleEvent("api.calls", 100, time.Now().Add(-1*time.Hour), time.Now())
+mock.SetStoredAt(namespace, meter, time.Now())
+
+// Wrong: no StoredAt means cutoff not exercised
+mock := testutils.NewMockStreamingConnector()
+mock.AddSimpleEvent("api.calls", 100, time.Now(), time.Now())
+```
+
+**Path glob:** `openmeter/billing/**/*_test.go`, `openmeter/billing/charges/**/*_test.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "MockStreamingConnector"
+    ],
+    "must_not_match": [
+      "StoredAt|SetStoredAt"
+    ]
+  }
+]
+```
+
+</details>
+
 ### `dep-004` — Never spawn goroutines outside the oklog/run.Group in worker and server binaries. Goroutines spawned outside run.Group bypass graceful shutdown and can leak resources.
 
 *source: `deep_scan`*
@@ -874,6 +1766,285 @@ return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (
 *check: `forbidden_content`*
 
 ## Pattern Divergence (inform)
+
+### `otel-002-tracex-preferred` — Use pkg/framework/tracex.Start/Wrap instead of calling tracer.Start directly. tracex records errors automatically, sets span status, and recovers panics; raw tracer.Start requires all three of these manually.
+
+*source: `deep_scan`*
+
+**Why:** The implementation guideline for observability states: 'Prefer tracex.Start/Wrap over tracer.Start to centralise error recording and panic recovery.' The do_not_apply_when explicitly lists 'Calling tracer.Start directly instead of tracex.Start/Wrap (loses error recording and panic recovery).' Inconsistent span status recording produces misleading traces in production.
+
+**Example:**
+
+```
+// Correct:
+func (s *svc) DoWork(ctx context.Context, id string) error {
+    return tracex.Start(ctx, s.tracer, "svc.DoWork", func(span *tracex.Span[any]) (any, error) {
+        return nil, span.Wrap(s.adapter.Write(span.Ctx(), id))
+    }).Err()
+}
+// Wrong:
+ctx, span := s.tracer.Start(ctx, "svc.DoWork")
+defer span.End()
+// (must manually record error, set status, recover panics)
+```
+
+**Path glob:** `openmeter/**/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "s\\.tracer\\.Start\\(|a\\.tracer\\.Start\\("
+    ],
+    "must_not_match": [
+      "tracex\\.Start|tracex\\.Wrap"
+    ]
+  }
+]
+```
+
+</details>
+
+### `customer-001-requestvalidator-pre-mutation-only` — Customer RequestValidator implementations must only guard pre-mutation blocking validation (ValidateDeleteCustomer, ValidateCreateCustomer, ValidateUpdateCustomer). Post-mutation reactions belong in ServiceHooks (PostCreate, PostUpdate, PostDelete), not in the RequestValidatorRegistry.
+
+*source: `deep_scan`*
+
+**Why:** The Customer RequestValidator Registry pattern explicitly states do_not_apply_when: 'Post-mutation reactions — these belong in ServiceHooks (PostCreate, PostUpdate, PostDelete), not in RequestValidatorRegistry which is exclusively for pre-mutation blocking validation.' Mixing post-mutation side-effects into validators creates ordering dependencies and makes validators non-idempotent.
+
+**Example:**
+
+```
+// Pre-mutation guard (correct use of RequestValidator):
+func (v *validator) ValidateDeleteCustomer(ctx context.Context, id string) error {
+    if _, err := billingService.HasUnpaidInvoices(ctx, id); err != nil {
+        return models.NewGenericValidationError("customer has unpaid invoices")
+    }
+    return nil
+}
+
+// Post-mutation side-effect (wrong place — use ServiceHook instead):
+func (v *validator) ValidateDeleteCustomer(ctx context.Context, id string) error {
+    return ledger.CloseCustomerAccounts(ctx, id) // wrong: this is a side-effect, not a guard
+}
+```
+
+**Path glob:** `openmeter/billing/validators/**/*.go`, `app/common/customer.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "ValidateDeleteCustomer|ValidateCreateCustomer|ValidateUpdateCustomer"
+    ]
+  }
+]
+```
+
+</details>
+
+### `subscription-001-spec-patch` — SubscriptionSpec mutations must go through the AppliesToSpec patch interface (ApplyTo). Never modify SubscriptionSpec fields directly — only patch operations applied via ApplyTo maintain invariants.
+
+*source: `deep_scan`*
+
+**Why:** The subscription component description states: 'Uses SubscriptionSpec (in-memory mutable spec) manipulated exclusively via the AppliesToSpec patch interface (ApplyTo).' Direct field mutation bypasses patch validation, ordering constraints, and the invariants maintained by the patch application pipeline in openmeter/subscription/workflow/.
+
+**Example:**
+
+```
+// Correct: apply a patch via the ApplyTo interface
+patch := &subscription.AddPhasePatch{ /* ... */ }
+if err := patch.ApplyTo(spec, now); err != nil {
+    return err
+}
+// Wrong: direct field mutation bypasses patch invariants
+spec.Phases = append(spec.Phases, newPhase)
+```
+
+**Path glob:** `openmeter/subscription/**/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "spec\\.Phases\\s*=|spec\\.CurrentPhase\\s*="
+    ]
+  }
+]
+```
+
+</details>
+
+### `goverter-001-convert-file-naming` — Goverter converter interface files must be named convert.go (source) producing convert.gen.go (generated). Never define converter interfaces in files named differently — oapi-codegen expects the standard naming when chaining generators.
+
+*source: `deep_scan`*
+
+**Why:** The technology stack lists Goverter v1.9.3 for 'Type-safe struct-to-struct conversion generation (api/v3/handlers/*/convert.gen.go)'. The project-wide regen cadence (make generate runs go generate ./... which invokes Goverter on convert.go files) relies on the standard naming. Deviation requires manual go:generate annotations and breaks the uniform regen pipeline.
+
+**Example:**
+
+```
+// Correct naming:
+// api/v3/handlers/customers/convert.go     — Goverter interface source
+// api/v3/handlers/customers/convert.gen.go — Goverter generated output
+
+// Wrong:
+// api/v3/handlers/customers/converter.go   — not picked up by standard generate target
+```
+
+**Path glob:** `api/v3/handlers/**/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "goverter:converter"
+    ]
+  }
+]
+```
+
+</details>
+
+### `notification-002-null-channel-sentinel` — The NullChannel sentinel in notification must be used to prevent unfiltered delivery when no channel is configured. Never bypass the channel check by dispatching directly to the Svix client when the channel field may be empty.
+
+*source: `deep_scan`*
+
+**Why:** The notification delivery implementation uses a NullChannel sentinel that prevents unfiltered delivery in the absence of a configured channel. The component description for openmeter/notification mentions 'NullChannel sentinel prevents unfiltered delivery' as a key mechanism. Dispatching without checking for NullChannel can spam unconfigured Svix applications with events.
+
+**Example:**
+
+```
+// Correct: the notification.Service.Dispatch checks for NullChannel and short-circuits
+// Never call svix client directly bypassing the channel validation:
+return c.dispatcher.Dispatch(ctx, event) // correct — goes through NullChannel check
+// Wrong:
+return c.svixClient.MessageCreate(ctx, appID, payload) // bypasses channel guard
+```
+
+**Path glob:** `openmeter/notification/**/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "MessageCreate|MessageCreate"
+    ],
+    "must_not_match": [
+      "NullChannel|Dispatch|notification\\.Event"
+    ]
+  }
+]
+```
+
+</details>
+
+### `billing-007-advancement-strategy-inline-vs-queued` — The billing AdvancementStrategy determines whether invoice advancement runs inline in the API request or is queued via Kafka to billing-worker. Never directly call billingService.AdvanceInvoice from billing-worker code that is already processing an AdvanceStandardInvoiceEvent — this produces an event loop.
+
+*source: `deep_scan`*
+
+**Why:** The billing charges lifecycle guideline states: 'AdvancementStrategy switches between inline and queued (publishes AdvanceStandardInvoiceEvent for billing-worker).' The billing-worker's advance/ sub-package consumes AdvanceStandardInvoiceEvent and calls AdvanceInvoice. If billing-worker itself publishes AdvanceStandardInvoiceEvent during processing (instead of calling AdvanceInvoice directly) it creates an infinite consumption loop on the system topic.
+
+**Example:**
+
+```
+// Correct in billing-worker advance handler: call directly
+return billingService.AdvanceInvoice(ctx, invoice.ID)
+
+// Wrong in billing-worker: publishing the event causes a loop
+return publisher.Publish(ctx, &billingevents.AdvanceStandardInvoiceEvent{InvoiceID: id})
+```
+
+**Path glob:** `openmeter/billing/worker/advance/**/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "AdvanceStandardInvoiceEvent"
+    ],
+    "must_not_match": [
+      "AdvanceInvoice"
+    ]
+  }
+]
+```
+
+</details>
+
+### `ctx-003-background-main-exception` — The two legitimate uses of context.Background() in application code are: (1) the root context at program start in main(), and (2) post-cancel graceful shutdown after the parent ctx is already cancelled (e.g., apiServer.Shutdown). All other uses of context.Background() in application code (openmeter/, cmd/*) must be replaced with the caller's context.
+
+*source: `deep_scan`*
+
+**Why:** The observability implementation guideline states: 'Two legitimate exceptions for context.Background(): root context at program start in main(), and post-cancel graceful shutdown (e.g. apiServer.Shutdown(context.Background()) in cmd/server/main.go after parent ctx is cancelled).' This complements the existing tx-002 rule by clarifying the only valid exceptions so agents do not assume there are no valid uses.
+
+**Example:**
+
+```
+// Correct use 1 — root context in main():
+ctx := context.Background()
+root.ExecuteContext(ctx)
+
+// Correct use 2 — post-cancel graceful shutdown:
+func stop() error { return srv.Shutdown(context.Background()) }
+
+// Wrong — in service/adapter code:
+func (s *svc) Foo(ctx context.Context) error {
+    sub, _ := s.bar.Baz(context.Background()) // wrong: drops trace+tx
+}
+```
+
+**Path glob:** `openmeter/**/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "context\\.Background\\(\\)"
+    ],
+    "must_not_match": [
+      "Shutdown|ExecuteContext|func main"
+    ]
+  }
+]
+```
+
+</details>
+
+### `billing-009-reconciler-idempotency` — SynchronizeSubscriptionAndInvoiceCustomer must be implemented and called idempotently. The Subscription Sync Reconciler calls it in a periodic scan; implementations that are not safe to call twice for the same subscription and time window will produce duplicate invoice lines.
+
+*source: `deep_scan`*
+
+**Why:** The Subscription Sync Reconciler pattern states: 'SynchronizeSubscriptionAndInvoiceCustomer is idempotent so duplicate calls from both the event-driven path and the periodic reconciler are safe.' The reconciler periodically re-syncs all active subscriptions; any non-idempotent sync implementation produces duplicate billing entries during crash recovery.
+
+**Example:**
+
+```
+// SynchronizeSubscriptionAndInvoiceCustomer must be idempotent:
+// - Use UPSERT semantics when creating invoice lines
+// - Check for existing lines with the same period before inserting
+// - If called twice for the same subscription+period, no new lines should be created
+```
 
 ### `dep-006` — New charge type engines must be registered with billing.Service.RegisterLineEngine() in app/common/charges.go. Do not call RegisterLineEngine from domain packages or cmd/* binaries.
 

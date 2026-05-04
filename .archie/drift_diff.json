@@ -1,5 +1,7 @@
 {
-  "new": [
+  "new": [],
+  "resolved": [],
+  "persisting": [
     {
       "type": "pattern_divergence",
       "folder": "api/client/python/examples/async",
@@ -1927,6 +1929,18 @@
     },
     {
       "type": "structural_outlier",
+      "folder": "api/client/go",
+      "message": "Uses [.go, .yaml] while siblings mostly use [.md]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "api/client/javascript",
+      "message": "Uses [.json, .ts, .yaml] while siblings mostly use [.md]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
       "folder": "api/client/python/examples",
       "message": "Uses [.json, .toml] while siblings mostly use [.md]",
       "severity": "info"
@@ -1935,6 +1949,12 @@
       "type": "structural_outlier",
       "folder": "api/client/python/openmeter",
       "message": "Uses [.py, .typed] while siblings mostly use [.md]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "api/client/python",
+      "message": "Uses [.in, .toml] while siblings mostly use [.md]",
       "severity": "info"
     },
     {
@@ -1986,59 +2006,13 @@
       "severity": "info"
     }
   ],
-  "resolved": [
-    {
-      "type": "structural_outlier",
-      "folder": ".github",
-      "message": "Uses [.md, .yml] while siblings mostly use [.yaml]",
-      "severity": "info"
-    },
-    {
-      "type": "structural_outlier",
-      "folder": "openmeter/billing",
-      "message": "Has 38 files \u2014 significantly more than sibling average (7). May be a god-folder that should be split.",
-      "severity": "info"
-    },
-    {
-      "type": "structural_outlier",
-      "folder": "pkg/models",
-      "message": "Has 28 files \u2014 significantly more than sibling average (4). May be a god-folder that should be split.",
-      "severity": "info"
-    },
-    {
-      "type": "structural_outlier",
-      "folder": "quickstart",
-      "message": "Uses [.go, .md] while siblings mostly use [.yaml]",
-      "severity": "info"
-    }
-  ],
-  "persisting": [
-    {
-      "type": "structural_outlier",
-      "folder": "api/client/go",
-      "message": "Uses [.go, .yaml] while siblings mostly use [.md]",
-      "severity": "info"
-    },
-    {
-      "type": "structural_outlier",
-      "folder": "api/client/javascript",
-      "message": "Uses [.json, .ts, .yaml] while siblings mostly use [.md]",
-      "severity": "info"
-    },
-    {
-      "type": "structural_outlier",
-      "folder": "api/client/python",
-      "message": "Uses [.in, .toml] while siblings mostly use [.md]",
-      "severity": "info"
-    }
-  ],
   "summary": {
-    "previous_timestamp": "2026-04-24T10:14:15.425712+00:00",
-    "current_timestamp": "2026-04-28T18:42:14.487957+00:00",
-    "previous_total": 7,
+    "previous_timestamp": "2026-04-28T18:42:14.487957+00:00",
+    "current_timestamp": "2026-05-04T10:09:36.813721+00:00",
+    "previous_total": 94,
     "current_total": 94,
-    "new_findings": 91,
-    "resolved_findings": 4,
-    "persisting_findings": 3
+    "new_findings": 0,
+    "resolved_findings": 0,
+    "persisting_findings": 94
   }
 }

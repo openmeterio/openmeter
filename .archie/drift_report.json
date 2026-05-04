@@ -2010,8 +2010,8 @@
   ],
   "antipattern_clusters": [],
   "summary": {
-    "total_findings": 100,
-    "warnings": 87,
+    "total_findings": 102,
+    "warnings": 89,
     "informational": 13,
     "checks_run": [
       "pattern_divergences",
@@ -2020,83 +2020,114 @@
       "structural_outliers",
       "antipattern_clusters"
     ],
-    "timestamp": "2026-04-28T18:42:14.487957+00:00",
-    "deep_findings": 6
+    "timestamp": "2026-05-04T10:09:36.813721+00:00",
+    "deep_findings": 8
   },
   "deep_findings": [
     {
       "id": "deep-001",
-      "type": "semantic_duplication",
+      "category": "trade_off_undermined",
       "severity": "warn",
-      "title": "ensureDetailedLinesLoadedForRating duplicated across state machine and run service",
-      "description": "The method `ensureDetailedLinesLoadedForRating` exists in two places with different signatures and ownership models: as a method on `*stateMachine` in `openmeter/billing/charges/usagebased/service/statemachine.go` (mutates `s.Charge` in place, no return value) and as a method on `*Service` in `openmeter/billing/charges/usagebased/service/run/create.go` (returns an updated charge). Both lazy-fetch detailed lines from the adapter when the charge's realizations are missing them. The state machine version calls `s.Adapter.FetchDetailedLines` directly, duplicating logic that should be owned by the run.Service version. This is a classic AI copy-paste pattern: the same lazy-load logic was replicated with a slightly different signature to fit a different receiver context.",
-      "files": [
-        "openmeter/billing/charges/usagebased/service/statemachine.go",
-        "openmeter/billing/charges/usagebased/service/run/create.go"
+      "title": "time.Now() in billing advance worker breaks clock-frozen test determinism",
+      "description": "openmeter/billing/worker/advance/advance.go uses raw time.Now() at lines 82 and 97 for DraftUntilLTE and CollectionAtLTE cutoff queries. The project mandates pkg/clock.Now() for all production code so tests can freeze time (clock.FreezeTime) and produce deterministic billing cutoff behaviour. Using time.Now() means the advance-worker filter window is always wall-clock-anchored and cannot be controlled in integration tests.",
+      "file": "openmeter/billing/worker/advance/advance.go",
+      "lines": [
+        82,
+        97
       ],
-      "pattern_reference": "AGENTS.md: 'Keep domain test helpers under openmeter/.../testutils independent from app/common \u2014 build test dependencies from underlying package constructors'; the run service owns run mechanics and should be the single place for detailed-lines lazy-loading logic.",
-      "recommendation": "Extract the lazy-load logic into a single function in the `run` package (or a shared helper visible to both). The `stateMachine` should delegate to `run.Service.EnsureDetailedLinesLoadedForRating` rather than calling the adapter directly."
+      "decision_ref": "Ent ORM + Atlas migrations as the schema pipeline; deterministic billing correctness",
+      "fix_direction": "Replace time.Now() with clock.Now() and add \"github.com/openmeterio/openmeter/pkg/clock\" import. Ensure the clock package is injected or used as a package-level import consistent with stdinvoicestate.go which already uses clock.Now() correctly."
     },
     {
       "id": "deep-002",
-      "type": "semantic_duplication",
+      "category": "trade_off_undermined",
       "severity": "warn",
-      "title": "FinalizeRealizationRun (creditsonly) and SnapshotInvoiceUsage (creditheninvoice) share near-identical bodies",
-      "description": "In `openmeter/billing/charges/usagebased/service/creditsonly.go`, `FinalizeRealizationRun` and in `openmeter/billing/charges/usagebased/service/creditheninvoice.go`, `SnapshotInvoiceUsage` execute structurally identical sequences: (1) nil-check `CurrentRealizationRunID`, (2) call `ensureDetailedLinesLoadedForRating`, (3) `GetByID` to fetch latest state, (4) compute storedAtOffset, (5) call rater for `GetDetailedLinesForUsage`, (6) round totals with `CurrencyCalculator`, (7) call `run.ReconcileCredits`, (8) call `run.PersistRunDetailedLines`, (9) call `run.UpdateRealizationRun`, (10) clear run state, (11) `UpdateCharge`, (12) `RefetchCharge`. The only behavioral differences are the `storedAtOffset` computation (credits-only uses `0`, credit-then-invoice uses a non-zero offset) and the `CreditAllocationMode` flag (`CreditAllocationExact` vs `CreditAllocationAvailable`). This is a textbook case of the semantic duplication pitfall documented in the project: two methods in parallel state machines that should share a common `realizeRun(ctx, opts realizationOpts)` private helper.",
-      "files": [
-        "openmeter/billing/charges/usagebased/service/creditsonly.go",
-        "openmeter/billing/charges/usagebased/service/creditheninvoice.go"
+      "title": "time.Now() in billing worker event handlers breaks clock-frozen test determinism",
+      "description": "openmeter/billing/worker/worker.go passes time.Now() as the asOf argument to subscriptionSync.SynchronizeSubscriptionAndInvoiceCustomer (lines 158, 172, 179). The subscription sync service uses this timestamp to anchor billing period calculations; using wall-clock time makes these calls non-deterministic in tests and misaligned with clock.FreezeTime-based integration scenarios that exercise the rest of the billing pipeline.",
+      "file": "openmeter/billing/worker/worker.go",
+      "lines": [
+        158,
+        172,
+        179
       ],
-      "pattern_reference": "AGENTS.md pitfalls section: AI copy-paste pattern. run/CLAUDE.md: 'Service owns run mechanics but not state-machine decisions' \u2014 the realization sequence is a run mechanic and should not be duplicated across two state machine files.",
-      "recommendation": "Extract the shared realization sequence into a private helper on the base `stateMachine` struct (e.g., `func (s *stateMachine) executeRealizationRun(ctx, opts realizationRunOpts) error`) parameterized by storedAtOffset and CreditAllocationMode. Both `FinalizeRealizationRun` and `SnapshotInvoiceUsage` become thin wrappers that supply the correct opts and delegate."
+      "decision_ref": "Deterministic billing correctness; pkg/clock.Now() mandated for all production code",
+      "fix_direction": "Import pkg/clock and replace time.Now() with clock.Now() in all three event handler closures. The Clock dependency can be injected into the Worker struct to allow test overrides."
     },
     {
       "id": "deep-003",
-      "type": "semantic_duplication",
+      "category": "trade_off_undermined",
       "severity": "warn",
-      "title": "upsertDetailedLines/upsertDetailedLinesV2 and upsertDetailedLineAmountDiscounts/upsertDetailedLineAmountDiscountsV2 are near-identical function pairs",
-      "description": "In `openmeter/billing/adapter/stdinvoicelines.go`, `upsertDetailedLines` and `upsertDetailedLinesV2` have near-identical bodies: both iterate over input detailed lines, build an Ent create/update chain, handle ON CONFLICT, and return mapped results. The only difference is the target Ent builder type (`*db.BillingInvoiceLineCreate` for v1 vs `*db.BillingStandardInvoiceDetailedLineCreate` for v2). The same duplication exists between `upsertDetailedLineAmountDiscounts` and `upsertDetailedLineAmountDiscountsV2`. The SchemaLevel branching in `UpsertInvoiceLines` calls one pair or the other, but the logic bodies are structurally identical. This violates the AGENTS.md principle against semantic duplication and inflates the maintenance surface: a bug fix or field addition must be applied to both versions.",
-      "files": [
-        "openmeter/billing/adapter/stdinvoicelines.go"
+      "title": "time.Now() in billing collect worker breaks clock-frozen test determinism",
+      "description": "openmeter/billing/worker/collect/collect.go uses time.Now() at lines 146 and 192 for payment collection cutoff windows. Like the advance worker, this anchors the collection pass to wall-clock time, preventing tests from exercising past-due collection scenarios by freezing the clock.",
+      "file": "openmeter/billing/worker/collect/collect.go",
+      "lines": [
+        146,
+        192
       ],
-      "pattern_reference": "AGENTS.md pitfalls: semantic duplication (AI copy-paste pattern). adapter/CLAUDE.md: 'Mapper functions in mapper.go, not inline in methods' \u2014 the table-specific dispatch should be a type parameter or a strategy argument, not duplicated function bodies.",
-      "recommendation": "Introduce a generic or strategy-based helper (e.g., a `detailedLineUpsertStrategy` interface or a Go generics function parameterized on the Ent builder type) so both schema levels share a single upsert body. If generics are not practical, at minimum extract the shared loop logic into a helper that accepts a builder factory function."
+      "decision_ref": "Deterministic billing correctness; pkg/clock.Now() mandated for all production code",
+      "fix_direction": "Import pkg/clock and replace time.Now() with clock.Now(). If collect.go currently has no Clock field, add one to its config struct and wire it in app/common/billing.go consistent with other billing service constructors."
     },
     {
       "id": "deep-004",
-      "type": "semantic_duplication",
+      "category": "trade_off_undermined",
       "severity": "warn",
-      "title": "OnCreditPurchasePaymentAuthorized and OnCreditPurchasePaymentSettled share near-identical bodies in chargeadapter",
-      "description": "In `openmeter/ledger/chargeadapter/creditpurchase.go`, `OnCreditPurchasePaymentAuthorized` and `OnCreditPurchasePaymentSettled` execute the same sequence: (1) `charge.Validate()`, (2) zero-amount early return, (3) `charge.Intent.Settlement.GetCostBasis()`, (4) build `customerID`, (5) `chargeAnnotationsForCreditPurchaseCharge(charge)`, (6) `transactions.ResolveTransactions` with a different template type, (7) annotate each input with `transactions.WithAnnotations`, (8) `h.ledger.CommitGroup`. The documented pattern in `chargeadapter/CLAUDE.md` is 'Resolve-then-annotate-then-commit' applied identically in both methods; only the template differs. This is the same AI copy-paste anti-pattern identified in the pitfalls documentation.",
-      "files": [
-        "openmeter/ledger/chargeadapter/creditpurchase.go"
+      "title": "time.Now() in subscription sync reconciler \u2014 explicitly documented as anti-pattern in reconciler's own CLAUDE.md",
+      "description": "openmeter/billing/worker/subscriptionsync/reconciler/reconciler.go line 184 passes time.Now() as the asOf argument to SynchronizeSubscription. The reconciler's own CLAUDE.md lists 'Using time.Now() instead of clock.Now() \u2014 breaks time-based tests' as an explicit anti-pattern, making this a self-acknowledged violation. The reconciler is the crash-recovery idempotent re-sync path; its time anchor must match what the main event handler uses to avoid gaps or double-billing.",
+      "file": "openmeter/billing/worker/subscriptionsync/reconciler/reconciler.go",
+      "lines": [
+        184
       ],
-      "pattern_reference": "chargeadapter/CLAUDE.md: 'Resolve-then-annotate-then-commit \u2014 Every ledger write follows: transactions.ResolveTransactions \u2192 annotate each input with transactions.WithAnnotations \u2192 h.ledger.CommitGroup'. The pattern itself is correct; the violation is implementing it twice instead of once in a shared private helper.",
-      "recommendation": "Extract a private `commitCreditPurchaseTemplate(ctx, charge, template)` helper that performs the resolve\u2192annotate\u2192commit sequence. `OnCreditPurchasePaymentAuthorized` and `OnCreditPurchasePaymentSettled` each call it with the appropriate template type."
+      "decision_ref": "Subscription sync reconciler idempotency; pkg/clock.Now() mandated; reconciler CLAUDE.md anti-pattern list",
+      "fix_direction": "Import pkg/clock and replace time.Now() with clock.Now(). The reconciler config already has other injected dependencies \u2014 add a clock.Clock field and wire it in app/common alongside the subscriptionsync service wiring."
     },
     {
       "id": "deep-005",
-      "type": "pattern_erosion",
+      "category": "trade_off_undermined",
       "severity": "warn",
-      "title": "createNewRealizationRun in run/create.go calls two adapter operations without an explicit transaction.Run wrapper",
-      "description": "In `openmeter/billing/charges/usagebased/service/run/create.go`, the private helper `createNewRealizationRun` calls `s.adapter.CreateRealizationRun` and then immediately calls `s.adapter.UpdateCharge` \u2014 two separate adapter mutations. These two writes are not wrapped in an explicit `transaction.Run` (or `entutils.TransactingRepo`) call within the run service itself. The outer `withLockedCharge` in the charges service does hold a transaction in ctx via `transaction.RunWithResult`, so the adapter calls land in the same Postgres transaction. However, the `run.Service` CLAUDE.md documents that the run service layer 'deliberately excludes state-machine decisions \u2014 it executes run operations' and should be self-contained with respect to atomicity. The flatfee service CLAUDE.md explicitly documents 'transaction.Run wraps all multi-step adapter calls'. The usagebased run service relying on an outer caller's transaction for atomicity is an implicit coupling that could break if `createNewRealizationRun` is ever called from a context where no transaction is already in ctx (e.g., in a test that drives run.Service directly).",
-      "files": [
-        "openmeter/billing/charges/usagebased/service/run/create.go"
+      "title": "time.Now() in subscription sync service sync.go breaks billing period anchor",
+      "description": "openmeter/billing/worker/subscriptionsync/service/sync.go line 63 passes time.Now() as asOf when resolving which billing period to sync. This is the innermost synchronisation logic \u2014 the billing period anchor must be deterministically controllable for tests. When the billing worker event handler (deep-002) is fixed to pass clock.Now(), this internal call also needs to be corrected or the anchor inconsistency reappears one level deeper.",
+      "file": "openmeter/billing/worker/subscriptionsync/service/sync.go",
+      "lines": [
+        63
       ],
-      "pattern_reference": "run/CLAUDE.md: 'Config-struct constructor with Validate() \u2014 Service intentionally has no state-machine logic'. AGENTS.md: 'In openmeter/billing/charges/.../adapter, always wrap Ent access with entutils.TransactingRepo even in shared helpers so the helper rebinds to the transaction already carried in ctx'. The adapter methods each use TransactingRepo individually, but the service layer should not rely on the outer caller to supply the transaction scope for a multi-step operation.",
-      "recommendation": "Wrap the body of `createNewRealizationRun` (the two adapter calls) in a `transaction.RunWithResult` so the operation is self-contained and testable in isolation. The outer `withLockedCharge` transaction will be reused via ctx propagation (TransactingRepo will rebind to it), so there is no nesting risk."
+      "decision_ref": "Deterministic billing correctness; pkg/clock.Now() mandated for all production code",
+      "fix_direction": "Thread the clock through the sync service config struct and replace time.Now() with the injected clock's Now() call. Align with how stdinvoicestate.go uses clock.Now() as the canonical reference."
     },
     {
       "id": "deep-006",
-      "type": "responsibility_leak",
+      "category": "trade_off_undermined",
       "severity": "warn",
-      "title": "lineengine.go newStateMachineForStandardLine fetches charge from adapter \u2014 billing engine layer reaching into charge persistence",
-      "description": "In `openmeter/billing/charges/usagebased/service/lineengine.go`, `newStateMachineForStandardLine` directly calls `svc.GetByID` (the usagebased charges service) to fetch the charge entity when building a state machine for a standard billing line. The `LineEngine` is supposed to be a billing plugin that receives an already-resolved `billing.Line` and produces output \u2014 it is registered via `billing.Service.RegisterLineEngine` and invoked during invoice line processing. Fetching the charge inside the line engine couples the billing line processing layer to charge persistence reads. The CLAUDE.md for the run service notes that 'Service owns run mechanics but not state-machine decisions'; similarly, the line engine should receive the charge or have it resolved by the charges service before being passed in, rather than performing its own adapter reads inside the billing plugin callback.",
-      "files": [
-        "openmeter/billing/charges/usagebased/service/lineengine.go"
+      "title": "time.Now() in invoicecalc/gatheringrealtime.go stamps synthetic DetailedLine timestamps with wall time",
+      "description": "openmeter/billing/service/invoicecalc/gatheringrealtime.go lines 23 and 27 use time.Now() to backfill CreatedAt and UpdatedAt on in-memory DetailedLines that were never persisted. This is inside the core invoice calculation pipeline. The gathering-invoice CLAUDE.md states the step is safe to call multiple times without stomping existing values, but the initial stamp is non-deterministic, causing flaky assertions in tests that compare invoice line timestamps after clock.FreezeTime.",
+      "file": "openmeter/billing/service/invoicecalc/gatheringrealtime.go",
+      "lines": [
+        23,
+        27
       ],
-      "pattern_reference": "architecture.md billing_domain: 'billing.LineEngine interface declares GetLineEngineType() + OnCollectionCompleted + OnStandardInvoiceCreated + OnInvoiceIssued + OnPaymentAuthorized + OnPaymentSettled'. The engine is a callback plugin; adapter reads inside it violate the layering contract between the billing domain and the charges domain.",
-      "recommendation": "The charge ID is already embedded in the billing line's metadata/reference. Consider passing the pre-fetched charge into the line engine trigger input, or having the charges service build a pre-loaded context before invoking the engine. This removes the adapter read from the billing plugin layer."
+      "decision_ref": "invoicecalc pipeline is stateless and pure; pkg/clock.Now() mandated for all production code",
+      "fix_direction": "Pass a clock.Clock (or time.Time snapshot) through GatheringInvoiceCalculatorDependencies, consistent with how other deps are injected, and replace time.Now() with that value. Alternatively, accept a Now func() time.Time parameter following the pkg/clock pattern."
+    },
+    {
+      "id": "deep-007",
+      "category": "pattern_erosion",
+      "severity": "warn",
+      "title": "Structural hack in NewLedgerHistoricalLedger: second accountservice instance with nil Querier to break circular dependency",
+      "description": "app/common/ledger.go's NewLedgerHistoricalLedger constructs a second accountservice.New with a nil Querier field (acknowledged with a // TODO: this is a hack comment) solely to avoid a package boundary circular dependency between the account and historical-ledger sub-packages. This means the historical ledger has an accountService dependency whose Querier is deliberately nil, silently restricting which accountService methods can be called from within the historical ledger. Any future code that calls a Querier-dependent method on that injected service will panic at runtime with no compile-time warning. The hack also means two accountservice instances exist for the same ledger, with different capabilities, which undermines the single-service-instance-per-domain pattern.",
+      "file": "app/common/ledger.go",
+      "lines": [],
+      "decision_ref": "Layered Domain Service/Adapter/Repository pattern; no nil fields in injected dependencies; credits.enabled guarded at four independent wiring layers",
+      "fix_direction": "Resolve the package boundary issue structurally: extract the interface that historical.Ledger needs from accountservice into a narrow interface (e.g. ledgeraccount.AccountQuerier) defined in the ledger domain package, and satisfy it from the single real accountservice instance. Remove the second accountservice.New call and the // TODO hack comment."
+    },
+    {
+      "id": "deep-008",
+      "category": "pitfall_triggered",
+      "severity": "warn",
+      "title": "Silent hook registration side-effects in app/common/customer.go: three separate Wire providers each register hooks, omitting any one drops that hook with no compile error",
+      "description": "app/common/customer.go registers customer lifecycle hooks across three independent Wire provider functions: NewCustomerLedgerServiceHook (registers ledger hook), NewCustomerSubjectServiceHook (registers subject hook), and NewCustomerEntitlementValidatorServiceHook (registers entitlement validator hook). Each calls customerService.RegisterHooks(h) or customerService.RegisterRequestValidator(v) as a constructor side-effect. Wire only tracks return types, not side-effects. If any of these three provider functions is omitted from a binary's wire.Build (e.g. a new worker binary in app/common/openmeter_<worker>.go), that hook silently drops with no compile error and no runtime warning \u2014 exactly the pitfall documented in the architecture blueprint (pf_0003). The billing worker and balance worker binaries are each at risk if their Wire sets do not pull all three hook providers.",
+      "file": "app/common/customer.go",
+      "lines": [],
+      "decision_ref": "Cross-domain hooks and request validators must be registered inside app/common provider functions; hook side-effect registration pitfall (pf_0003)",
+      "fix_direction": "Bundle all three hook provider results into a named CustomerHookBundle struct that is returned as a single Wire output. Add a compile-time assertion (e.g. a customerHooksBundleRegistered marker) that each binary's Wire set must include. Alternatively, register all hooks inside a single NewCustomerHooks provider that is explicitly required in every binary's wire.Build, making an omission a Wire graph error rather than a silent runtime gap."
     }
   ]
 }

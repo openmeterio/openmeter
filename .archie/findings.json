@@ -4,18 +4,19 @@
       "id": "f_0001",
       "problem_statement": "Charges adapter helpers that accept a raw *entdb.Client can silently bypass the transaction already carried in ctx, producing partial writes during charge advancement.",
       "evidence": [
-        "AGENTS.md mandates: 'In openmeter/billing/charges/.../adapter, keep Ent access transaction-aware even in shared helper functions. If a helper accepts a raw *entdb.Client, still wrap its body with entutils.TransactingRepo(...) / TransactingRepoWithNoValue(...).'",
-        "openmeter/billing/charges/adapter/adapter.go implements the TxCreator (Tx via HijackTx + NewTxDriver) and TxUser (WithTx via NewTxClientFromRawConfig, Self) triad \u2014 this only works if every method body wraps with TransactingRepo.",
+        "AGENTS.md mandates: 'In openmeter/billing/charges/.../adapter, keep Ent access transaction-aware even in shared helper functions.'",
+        "openmeter/billing/charges/adapter/adapter.go implements the TxCreator + TxUser triad - works only if every method body wraps with TransactingRepo.",
         "openmeter/billing/charges/service.go exposes Create / AdvanceCharges / ApplyPatches that drive multi-step writes mixed with reads and lockr advisory locks.",
         "pkg/framework/entutils/transaction.go: TransactingRepo reads *TxDriver from ctx via GetDriverFromContext; absence yields repo.Self() (non-tx client).",
-        "openmeter/billing/charges/adapter/CLAUDE.md: 'Never pass a.db directly to a helper \u2014 always go through a tx *adapter inside TransactingRepo so the Ent client is bound to the current transaction.'"
+        "openmeter/billing/charges/adapter/CLAUDE.md: 'Never pass a.db directly to a helper - always go through a tx *adapter inside TransactingRepo.'"
       ],
-      "root_cause": "Ent transactions are propagated implicitly through ctx; a helper that uses *entdb.Client without entutils.TransactingRepo will use the non-tx Self() client and fall off the outer transaction. Charges advancement orchestrates many writes across helpers, so even one missing wrapper produces silently partial writes under concurrency.",
+      "root_cause": "Ent transactions are propagated implicitly through ctx; a helper that uses *entdb.Client without entutils.TransactingRepo silently uses the non-tx Self() client and falls off the outer transaction. This is undetectable at compile time because TransactingRepo gracefully degrades to Self() when no tx is in ctx. Charges advancement orchestrates many helpers across multi-step writes, so even one missing wrapper produces partially-applied state under concurrency, with no error surface.",
       "fix_direction": [
         "Audit every helper under openmeter/billing/charges/**/adapter that accepts *entdb.Client or that touches a.db directly without going through tx *adapter inside a TransactingRepo callback.",
         "Wrap each helper body with entutils.TransactingRepo or TransactingRepoWithNoValue so it rebinds to any ctx-bound tx.",
-        "Add a golangci-lint custom analyzer (or PR review checklist) requiring tx-aware wrapping for any new adapter method in openmeter/billing/charges/.",
-        "Add an integration test that opens a transaction, calls each public Service method, and asserts all writes either commit or roll back together."
+        "Add a custom golangci-lint analyzer or grep CI check that flags adapter methods using a.db. without TransactingRepo on the call stack.",
+        "Add an integration test that opens a transaction, calls each public charges.Service method, and asserts atomic commit/rollback.",
+        "Codify the rule as a checklist item in the /charges skill and PR review template."
       ],
       "severity": "error",
       "confidence": 0.9,
@@ -30,7 +31,7 @@
       "depth": "canonical",
       "pitfall_id": "pf_0001",
       "first_seen": "2026-04-24",
-      "confirmed_in_scan": 2,
+      "confirmed_in_scan": 3,
       "status": "active"
     },
     {
@@ -38,17 +39,18 @@
       "problem_statement": "Credits-disabled deployments can still perform real ledger writes if any of the four independent wiring layers forgets to guard on credits.enabled.",
       "evidence": [
         "AGENTS.md: 'credits.enabled needs explicit guarding at multiple layers: ledger-backed customer credit handlers in api/v3/server, customer ledger hooks, and namespace/default-account provisioning are wired separately.'",
-        "app/common/ledger.go shows four guards: NewLedgerAccountService returns ledgernoop.AccountService{}; NewLedgerHistoricalLedger returns ledgernoop.Ledger{}; NewLedgerResolversService returns ledgernoop.AccountResolver{}; NewLedgerNamespaceHandler type-asserts against ledgernoop.AccountResolver to skip handler registration.",
-        "app/common/customer.go NewCustomerLedgerServiceHook returns ledgerresolvers.NoopCustomerLedgerHook{} when credits.enabled=false \u2014 separate guard from app/common/ledger.go.",
-        "app/common/billing.go NewBillingRegistry skips newChargesRegistry entirely when !creditsConfig.Enabled, so BillingRegistry.Charges is nil and ChargesServiceOrNil() returns nil \u2014 yet another independent guard.",
+        "app/common/ledger.go shows four guards: NewLedgerAccountService, NewLedgerHistoricalLedger, NewLedgerResolversService, NewLedgerNamespaceHandler each independently check creditsConfig.Enabled.",
+        "app/common/customer.go NewCustomerLedgerServiceHook returns ledgerresolvers.NoopCustomerLedgerHook{} - separate guard.",
+        "app/common/billing.go NewBillingRegistry skips newChargesRegistry entirely when !creditsConfig.Enabled.",
         "openmeter/ledger/customerbalance and openmeter/ledger/account expose write paths that any unguarded provider could invoke."
       ],
-      "root_cause": "The credits feature is cross-cutting across unrelated call graphs (HTTP handlers, customer hooks, namespace provisioning, charge creation). No single injection point dominates all paths reaching ledger writes \u2014 the architecture chooses fan-out noop guards rather than a single runtime check.",
+      "root_cause": "The credits feature is cross-cutting across unrelated call graphs (HTTP handlers, customer hooks, namespace provisioning, charge creation). No single injection point dominates all paths reaching ledger writes. The architecture chooses fan-out noop guards rather than a single runtime check, so any new ledger-touching provider added without an explicit creditsConfig.Enabled branch silently re-enables ledger writes for credits-disabled tenants.",
       "fix_direction": [
-        "Enumerate every Wire provider that injects ledger.Ledger, ledger.AccountResolver, ledgeraccount.Service, or any historical ledger writer; verify each has a creditsConfig.Enabled branch returning a noop type from openmeter/ledger/noop or openmeter/ledger/resolvers.",
-        "Map every call site that writes to ledger_accounts or ledger_customer_accounts (grep schema names); verify the call path traces back to a guarded provider.",
+        "Enumerate every Wire provider that injects ledger.Ledger, ledger.AccountResolver, ledgeraccount.Service, or any historical ledger writer; verify each has a creditsConfig.Enabled branch returning a noop type.",
+        "Map every call site that writes to ledger_accounts or ledger_customer_accounts; verify the call path traces back to a guarded provider.",
         "Add an integration test that boots with credits.enabled=false, drives representative customer/subscription/invoice/charge flows, and asserts SELECT count(*) FROM ledger_accounts and ledger_customer_accounts both equal zero.",
-        "Add a Wire provider unit test that constructs all noop layers when credits.enabled=false and asserts each interface satisfies the corresponding noop type."
+        "Add a Wire provider unit test that constructs all noop layers when credits.enabled=false and asserts each interface satisfies the corresponding noop type.",
+        "Treat the credits guard as a P0 review item for any new provider that writes to ledger; codify in PR template."
       ],
       "severity": "error",
       "confidence": 0.9,
@@ -65,24 +67,25 @@
       "depth": "canonical",
       "pitfall_id": "pf_0002",
       "first_seen": "2026-04-24",
-      "confirmed_in_scan": 2,
+      "confirmed_in_scan": 3,
       "status": "active"
     },
     {
       "id": "f_0003",
-      "problem_statement": "Notification event payload versioning is implicit; payload version constants live alongside the producing event packages while the consumer dispatches by ce_type prefix only, creating silent compatibility risk between billing-worker, balance-worker, ingest producers and the Svix-backed consumer.",
+      "problem_statement": "Notification event payload versioning is implicit; payload version constants live alongside producing event packages while the consumer dispatches by ce_type prefix only, creating silent compatibility risk.",
       "evidence": [
-        "openmeter/watermill/eventbus/eventbus.go GeneratePublishTopic routes only by EventVersionSubsystem prefix (ingestVersionSubsystemPrefix, balanceWorkerVersionSubsystemPrefix); version is not surfaced for the consumer to enforce.",
-        "openmeter/watermill/grouphandler silently drops unknown ce_type \u2014 a producer that bumps an event version but the consumer is not yet updated will look like 'no events received' rather than a contract mismatch.",
+        "openmeter/watermill/eventbus/eventbus.go GeneratePublishTopic routes only by EventVersionSubsystem prefix.",
+        "openmeter/watermill/grouphandler silently drops unknown ce_type - a producer that bumps an event version but the consumer is not yet updated will look like 'no events received'.",
         "AGENTS.md references a /notification skill that explicitly covers 'payload versioning' as a concern.",
         "openmeter/notification/consumer subscribes to system events and dispatches to Svix; producers in openmeter/billing/worker and openmeter/entitlement/balanceworker emit independently."
       ],
-      "root_cause": "Payload schema version is encoded as constants inside emitter packages rather than being derived from the TypeSpec/OpenAPI contract, and the consumer's silent-drop policy hides version mismatches behind the same code path used for forward-compatible ignoring.",
+      "root_cause": "Payload schema version is encoded as constants inside emitter packages rather than being derived from the TypeSpec/OpenAPI contract, and the consumer's silent-drop policy hides version mismatches behind the same code path used for forward-compatible ignoring. The architectural choice to drop unknown ce_types collides with the absence of versioned-payload negotiation.",
       "fix_direction": [
         "Catalog every payload version constant in openmeter/notification and its producer packages.",
         "Pin webhook payload versions to TypeSpec models where possible so SDK consumers receive a stable shape.",
         "Add a contract test per event family that round-trips through the marshaler and asserts the Svix payload schema matches the TypeSpec-generated webhook model.",
-        "Distinguish 'unknown event type' (silent drop) from 'known event type, unknown version' (DLQ) inside grouphandler so a version mismatch is observable."
+        "Distinguish 'unknown event type' (silent drop) from 'known event type, unknown version' (DLQ) inside grouphandler so a version mismatch is observable.",
+        "Document the recognised EventVersionSubsystem prefixes and payload version pinning policy in openmeter/watermill/eventbus/CLAUDE.md."
       ],
       "severity": "warn",
       "confidence": 0.75,
@@ -94,9 +97,9 @@
       ],
       "source": "deep:synthesis",
       "depth": "canonical",
-      "pitfall_id": null,
+      "pitfall_id": "pf_0007",
       "first_seen": "2026-04-24",
-      "confirmed_in_scan": 2,
+      "confirmed_in_scan": 3,
       "status": "active"
     },
     {
@@ -108,12 +111,13 @@
         "atlas.hcl pins schema source to ent://openmeter/ent/schema and migrations dir to file://tools/migrate/migrations.",
         "The atlas.sum file is a linear hash chain over migration files; two branches both appending migrations cannot merge cleanly by construction."
       ],
-      "root_cause": "Atlas chain hash in atlas.sum enforces a linear migration history; any two branches that both add a migration will collide deterministically. The trade-off is intentional (deterministic order) but creates merge friction.",
+      "root_cause": "atlas.sum chain hashing enforces deterministic linear migration order; concurrent branch development that adds migrations cannot avoid collisions by design. The trade-off is intentional (deterministic order) but creates merge friction proportional to branch lifetime.",
       "fix_direction": [
         "On rebase, delete the branch's migration files and its atlas.sum lines.",
         "Re-run `make generate` (Ent) then `atlas migrate --env local diff <name>` to regenerate the migration against the rebased schema.",
         "Follow the /rebase skill checklist documented in AGENTS.md to keep atlas.sum integrity.",
-        "Consider documenting a 'merge later, regenerate first' policy for any branch with schema changes that takes more than one day to land."
+        "Document a 'merge later, regenerate first' policy for any branch with schema changes that takes more than one day to land.",
+        "For long-lived branches with schema changes, rebase daily to minimise the cost of regeneration."
       ],
       "severity": "warn",
       "confidence": 0.95,
@@ -125,24 +129,25 @@
       "depth": "canonical",
       "pitfall_id": "pf_0004",
       "first_seen": "2026-04-24",
-      "confirmed_in_scan": 2,
+      "confirmed_in_scan": 3,
       "status": "active"
     },
     {
       "id": "f_0005",
       "problem_statement": "context.Background() / context.TODO() introductions in application code silently drop cancellation, deadlines, and request-scoped values, violating the project rule.",
       "evidence": [
-        "AGENTS.md: 'Do not introduce context.Background() or context.TODO() to sidestep missing context propagation in application code. Either propagate the caller's context through the full call path, or remove the unused context.Context parameter.'",
+        "AGENTS.md: 'Do not introduce context.Background() or context.TODO() to sidestep missing context propagation in application code.'",
         "AGENTS.md: 'In tests, prefer t.Context() when a testing.T or testing.TB is available instead of introducing context.Background().'",
-        "cmd/server/main.go correctly uses ctx for application init but still uses context.Background() inside TelemetryServer.Shutdown / apiServer.Shutdown \u2014 those are intentional (post-cancel shutdown) but illustrate how context.Background() can creep in.",
-        "openmeter/billing/charges/adapter/search_test.go uses context.Background() per its own CLAUDE.md note: 'Tests use context.Background() directly... for new tests prefer t.Context()'."
+        "cmd/server/main.go uses context.Background() inside TelemetryServer.Shutdown / apiServer.Shutdown - intentional but illustrates how it can creep in.",
+        "openmeter/billing/charges/adapter/search_test.go uses context.Background() per its own CLAUDE.md note: 'for new tests prefer t.Context()'."
       ],
-      "root_cause": "When a helper does not receive a ctx, engineers frequently reach for context.Background() rather than plumbing the caller's ctx through, breaking tracing and cancellation across Kafka consumers and HTTP handlers.",
+      "root_cause": "When a helper does not receive a ctx, engineers frequently reach for context.Background() rather than plumbing the caller's ctx through, breaking tracing, cancellation, and the implicit Ent transaction driver carried by ctx. The Watermill router's RestoreContext middleware specifically depends on the consumer using msg.Context() rather than substituting a background context.",
       "fix_direction": [
         "Grep for context.Background() and context.TODO() in openmeter/, app/common/, and api/v3/handlers/.",
         "Plumb the caller's ctx through every call site; if ctx is truly unused, remove the parameter.",
         "In tests, replace context.Background() with t.Context() where a *testing.T is available.",
-        "Document the two legitimate exceptions (post-cancel graceful shutdown timeout, true root context at program start in main()) in AGENTS.md."
+        "Document the two legitimate exceptions (post-cancel graceful shutdown timeout, true root context at program start in main()) in AGENTS.md.",
+        "Add a golangci-lint rule that flags new context.Background()/context.TODO() outside main() and Shutdown handlers."
       ],
       "severity": "warn",
       "confidence": 0.9,
@@ -155,7 +160,7 @@
       "depth": "canonical",
       "pitfall_id": null,
       "first_seen": "2026-04-24",
-      "confirmed_in_scan": 2,
+      "confirmed_in_scan": 3,
       "status": "active"
     },
     {
@@ -165,13 +170,14 @@
         "cmd/server/main.go registers app.LedgerNamespaceHandler then app.KafkaIngestNamespaceHandler before initNamespace; this order is documented as load-bearing in cmd/server/CLAUDE.md.",
         "cmd/server/CLAUDE.md: 'cmd/server is the only binary that registers namespace handlers; other workers don't register Kafka ingest or ledger namespace handlers.'",
         "cmd/billing-worker/main.go calls app.LedgerAccountResolver.EnsureBusinessAccounts(ctx, app.NamespaceManager.GetDefaultNamespace()) but assumes the namespace itself already exists.",
-        "openmeter/namespace/namespace.go documents 'Register namespace Handlers BEFORE CreateDefaultNamespace is called at startup' \u2014 this constraint is implicit, not enforced."
+        "openmeter/namespace/namespace.go documents 'Register namespace Handlers BEFORE CreateDefaultNamespace is called at startup' - this constraint is implicit, not enforced."
       ],
-      "root_cause": "Multi-binary deployment intentionally lets each binary self-provision only what it needs; namespace creation is owned by cmd/server alone. There is no cross-binary contract preventing billing-worker or balance-worker from being deployed before cmd/server, which would race the namespace bootstrap.",
+      "root_cause": "Multi-binary deployment intentionally lets each binary self-provision only what it needs; namespace creation is owned by cmd/server alone. There is no cross-binary contract preventing billing-worker or balance-worker from being deployed before cmd/server, which would race the namespace bootstrap. The fan-out via errors.Join means partial provisioning failures in cmd/server do not necessarily block startup.",
       "fix_direction": [
         "Document the deploy ordering invariant explicitly in deploy/charts/openmeter helm chart (init container or hook-weight ordering ensuring cmd/server runs first).",
         "Add a startup check in cmd/billing-worker / cmd/balance-worker that verifies the default namespace exists; if not, fail fast with an actionable error.",
-        "Consider hoisting namespace.Handler registration into a shared post-Migrate provisioning function that all binaries with the matching role can call (with idempotent semantics)."
+        "Consider hoisting namespace.Handler registration into a shared post-Migrate provisioning function that all binaries with the matching role can call (with idempotent semantics).",
+        "Add a smoke integration test that boots all four worker binaries against an empty database and asserts the default namespace materialises before any worker accepts events."
       ],
       "severity": "warn",
       "confidence": 0.7,
@@ -186,7 +192,7 @@
       "depth": "canonical",
       "pitfall_id": null,
       "first_seen": "2026-04-28",
-      "confirmed_in_scan": 1,
+      "confirmed_in_scan": 2,
       "status": "active"
     },
     {
@@ -195,14 +201,16 @@
       "evidence": [
         "app/common/billing.go NewBillingRegistry registers customerService.RegisterRequestValidator(validator) and subscriptionServices.Service.RegisterHook(subscriptionValidator) as side-effects of construction.",
         "app/common/customer.go NewCustomerLedgerServiceHook calls customerService.RegisterHooks(h) inside the provider; same pattern in NewCustomerSubjectServiceHook and NewCustomerEntitlementValidatorServiceHook.",
-        "If Wire orders construction such that customer.Service is built without these hook providers also being included in the binary's provider set, the side-effect registration silently never runs \u2014 there is no compile error.",
+        "If Wire orders construction such that customer.Service is built without these hook providers also being included in the binary's provider set, the side-effect registration silently never runs.",
         "cmd/billing-worker uses common.BillingWorker as a composite set; the actual hook list each binary registers depends on which set is included."
       ],
-      "root_cause": "Wire is compile-time-checked for type satisfaction but does not model side-effects. Hook/validator registration relies on the developer including the hook-provider in each binary's wire.Build call. The current pattern intentionally trades visibility for circular-import avoidance.",
+      "root_cause": "Wire is compile-time-checked for type satisfaction but does not model side-effects. Hook/validator registration relies on the developer including the hook-provider in each binary's wire.Build call. The current pattern intentionally trades visibility for circular-import avoidance, but a binary that omits a hook provider builds without error and ships with a missing hook.",
       "fix_direction": [
         "Audit each binary's wire.go to confirm every relevant Customer hook (subject, ledger, entitlement) and Subscription hook (billing validator) is included.",
-        "Add an integration smoke test per binary that asserts the registered hook count matches the expected set (e.g. cmd/server should have N customer hooks).",
-        "Consider promoting the hook bundles into named registries (CustomerHookRegistry) so omitting a registry is a compile error rather than a silent omission."
+        "Add an integration smoke test per binary that asserts the registered hook count matches the expected set.",
+        "Promote hook bundles into named registries (CustomerHookRegistry) so a missing registry is a compile error rather than a silent omission.",
+        "Document the expected hook list per binary in cmd/<binary>/CLAUDE.md.",
+        "Consider migrating to an explicit-registration pattern where main.go calls customerService.RegisterHooks(app.CustomerHooks...)."
       ],
       "severity": "warn",
       "confidence": 0.7,
@@ -217,21 +225,22 @@
       "depth": "canonical",
       "pitfall_id": "pf_0006",
       "first_seen": "2026-04-28",
-      "confirmed_in_scan": 1,
+      "confirmed_in_scan": 2,
       "status": "active"
     },
     {
       "id": "f_0008",
       "problem_statement": "openmeter/watermill/eventbus uses a string-prefix switch on EventName() to route events to one of three Kafka topics; new event families that forget to declare a unique EventVersionSubsystem prefix will silently route to SystemEventsTopic instead of failing fast.",
       "evidence": [
-        "openmeter/watermill/eventbus/eventbus.go GeneratePublishTopic switch defaults to SystemEventsTopic for any event whose EventName does not start with ingestevents.EventVersionSubsystem+'.' or balanceworkerevents.EventVersionSubsystem+'.'.",
-        "openmeter/watermill/eventbus/CLAUDE.md: 'Defining event names without an EventVersionSubsystem constant \u2014 the prefix match in GeneratePublishTopic will default to SystemEventsTopic silently.'",
+        "openmeter/watermill/eventbus/eventbus.go GeneratePublishTopic switch defaults to SystemEventsTopic for any event whose EventName does not start with a recognised prefix.",
+        "openmeter/watermill/eventbus/CLAUDE.md: 'Defining event names without an EventVersionSubsystem constant - the prefix match in GeneratePublishTopic will default to SystemEventsTopic silently.'",
         "openmeter/watermill/CLAUDE.md: 'EventVersionSubsystem prefix determines topic routing... New events must have EventName() starting with a recognised subsystem prefix; otherwise they silently route to SystemEventsTopic.'"
       ],
-      "root_cause": "Default-case routing was chosen so SystemEventsTopic is the catch-all for genuine system events, but this means a misnamed event family does not surface as a routing error; misrouted events bypass topic isolation that ingest and balance-worker depend on.",
+      "root_cause": "Default-case routing was chosen so SystemEventsTopic is the catch-all for genuine system events, but this means a misnamed event family does not surface as a routing error; misrouted events bypass topic isolation that ingest and balance-worker depend on. The prefix match is structurally fragile against typos and missing constants.",
       "fix_direction": [
-        "Replace the default-case fallback with an explicit registry of recognised EventVersionSubsystem prefixes; an unknown prefix should return an error from GeneratePublishTopic so misnamed events surface at publish time.",
-        "Add a lint rule (or unit test) that scans for marshaler.Event implementations and asserts each EventName starts with a known EventVersionSubsystem constant.",
+        "Replace the default-case fallback with an explicit registry of recognised EventVersionSubsystem prefixes; an unknown prefix should return an error from GeneratePublishTopic.",
+        "Add a unit test that scans all marshaler.Event implementations in the codebase and asserts each EventName starts with a registered prefix.",
+        "Promote the SystemEvents subsystem to an explicit constant so the default-case is only hit when the event explicitly declares 'system' subsystem.",
         "Document the recognised subsystem prefixes in openmeter/watermill/eventbus as public constants."
       ],
       "severity": "warn",
@@ -242,11 +251,11 @@
       ],
       "source": "deep:synthesis",
       "depth": "canonical",
-      "pitfall_id": "pf_0007",
+      "pitfall_id": "pf_0005",
       "first_seen": "2026-04-28",
-      "confirmed_in_scan": 1,
+      "confirmed_in_scan": 2,
       "status": "active"
     }
   ],
-  "scanned_at": "2026-04-28T1834"
+  "scanned_at": "2026-05-04T0959"
 }

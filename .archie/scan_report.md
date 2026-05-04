@@ -1,164 +1,111 @@
 # Archie Scan Report
-> Deep scan | 2026-04-28 18:42 UTC | 9,183 functions / 345,136 LOC analyzed | second deep-scan baseline
+> Deep scan baseline | 2026-05-04 10:09 UTC | 9,366 functions / 351,752 LOC analyzed | continuous run (3rd deep scan)
 
 ## Architecture Overview
 
-OpenMeter is a multi-binary Go monolith built around high-volume per-tenant usage metering feeding strict billing correctness. Seven independent binaries — `cmd/server`, `cmd/billing-worker`, `cmd/balance-worker`, `cmd/sink-worker`, `cmd/notification-service`, `cmd/jobs`, `cmd/benthos-collector` — share the same domain packages under `openmeter/` and are assembled into runnable applications exclusively through Google Wire provider sets in `app/common`. Each domain package follows a layered service / adapter / http pattern: a `Service` (or `Connector`) interface, a hand-written Ent/PostgreSQL adapter, and an `httpdriver`/`httphandler` package that maps requests to the service via the generic `pkg/framework/transport/httptransport.Handler[Req,Resp]`.
+OpenMeter is a Go monorepo producing seven independently deployable binaries (cmd/server, cmd/billing-worker, cmd/balance-worker, cmd/sink-worker, cmd/notification-service, cmd/jobs, cmd/benthos-collector). All binaries share domain packages under `openmeter/`, assembled via Google Wire DI in `app/common/`. The HTTP surface is authored in TypeSpec (`api/spec/`), compiled to OpenAPI YAML, and then to Go server stubs and SDKs (Go/JS/Python). v1 is served by `openmeter/server/router` (Chi + kin-openapi); v3 by `api/v3/server` (Chi + oasmiddleware). Domain packages follow strict service-interface / adapter-implementation / httpdriver-transport layering with cross-domain callbacks mediated by `ServiceHooks` and `RequestValidator` registries to avoid circular imports.
 
-The HTTP surface is dual-versioned (v1 via `openmeter/server/router` Chi + kin-openapi implementing `api/api.gen.go`; v3 via `api/v3/server` Chi + oasmiddleware implementing `api/v3/api.gen.go`) and is generated from TypeSpec in `api/spec/` as the single source of truth — the same spec drives the Go server stubs, Go SDK, JavaScript SDK (`@openmeter/sdk`), and Python SDK. Schema is owned by Ent (`openmeter/ent/schema/`) and migrations are produced by Atlas into `tools/migrate/migrations/` as sequential golang-migrate `.up`/`.down` SQL files. PostgreSQL is the system of record; ClickHouse handles analytics and high-volume usage queries; Kafka via Watermill (with the prefix-routed publisher in `openmeter/watermill/eventbus`) is the cross-binary event bus carrying ingest, balance-worker, and system-event topics. Svix delivers outbound webhooks.
+The system of record is PostgreSQL via Ent ORM with Atlas-managed migrations under `tools/migrate/migrations/`; usage events are stored in ClickHouse and queried via `streaming.Connector` for meter aggregations. Async cross-binary communication runs over Kafka via Watermill with three named topics (ingest, system, balance-worker) routed by event-name prefix in `openmeter/watermill/eventbus`. Multi-step billing operations serialise per customer via PostgreSQL advisory locks (`pkg/framework/lockr`) acquired inside ctx-propagated Ent transactions (`pkg/framework/entutils.TransactingRepo`).
 
-Load-bearing constraints that shape every architectural decision: `credits.enabled` must be guarded at four independent wiring layers in `app/common`; charges adapter helpers must always rebind to the in-context Ent transaction via `entutils.TransactingRepo(...)`; the multi-generator toolchain (TypeSpec + Ent + Goverter + Wire + Goderive) requires a strict `make gen-api` → `make generate` cadence; and all binaries must compile with `-tags=dynamic` because `confluent-kafka-go` links dynamically against system librdkafka.
+The most load-bearing architectural commitments — the ones a coding agent must honour to keep the system correct — are: (1) every adapter helper under `openmeter/billing/charges/.../adapter` wraps DB access in `entutils.TransactingRepo` to honour the ctx-bound transaction; (2) the `credits.enabled` feature flag is enforced at four independent wiring layers (`app/common/ledger.go`, `app/common/customer.go`, `app/common/billing.go::NewBillingRegistry`, `api/v3/server` credit handlers); (3) cross-domain hooks/validators are registered as side-effects inside Wire provider functions in `app/common/`, never in the source domain; (4) the two-step regen cadence (`make gen-api` → `make generate`) keeps TypeSpec, OpenAPI, Go stubs, Wire, Ent, Goverter, and Goderive output in sync; (5) all builds and tests run with `-tags=dynamic` so confluent-kafka-go links against librdkafka.
 
 ## Health Scores
 
-| Metric | Current | Previous | Trend | Interpretation |
-|--------|--------:|---------:|:-----:|----------------|
-| Erosion       | 0.4459    | 0.5359    | ↓ -0.090 | Less code mass concentrated in heavy/complex sections — the codebase is healthier per-function than the prior baseline. |
-| Gini          | 0.6969    | 0.7677    | ↓ -0.071 | Complexity is more evenly distributed; fewer megacode hotspots. |
-| Top-20% share | 0.7378    | 0.8248    | ↓ -0.087 | The top 20% of files now hold ~74% of complexity (was 82%) — broader code surface absorbs change. |
-| Verbosity     | 0.0586    | 0.1093    | ↓ -0.051 | Exact-line clone density nearly halved. **Caveat:** AI-style semantic duplicates (different signatures, identical bodies) are NOT captured here — see Part 6 below. |
-| LOC (analyzed)| 345,136   | 742,092   | ↓ -396k | Large drop is mostly improved scanner filtering of generated/bulk content (api/client/*, ent/db/, *.gen.go) — not a real code shrink. |
+| Metric     | Current  | Previous | Trend | What it means |
+|------------|---------:|---------:|------:|---------------|
+| Erosion    | 0.4459   | 0.4459   | flat  | Stable; no new fragmentation since 2026-04-28. |
+| Gini       | 0.6968   | 0.6969   | flat  | Complexity remains concentrated in the top quartile of functions. |
+| Top-20%    | 0.7379   | 0.7378   | flat  | The top 20% of functions own ~74% of the codebase mass. Concentration unchanged. |
+| Verbosity  | 0.0588   | 0.0586   | flat  | Exact-line duplication stays under 6%. The semantic duplication discussion (Part 6) is the meaningful complement. |
+| LOC        | 351,752  | 345,136  | +1.9% | Codebase grew ~6,600 lines in the last deep-scan window — modest, in line with feature work in `openmeter/billing` and `openmeter/subscription`. |
 
-The numbers together: structural complexity is more evenly spread and exact-clone duplication is down, but the AI-detected semantic-duplication clusters in the charges sub-tree (deep-001..004 below) mean the `verbosity` improvement understates real maintenance pressure in that area.
+Interpreted together, the numbers describe a stable codebase: complexity is concentrated but not growing, duplication is contained, and growth is gradual rather than burst-y. The risk surface lives in the top complexity offenders (below) and in the architectural-rule adherence reported in *Findings*.
 
 ### Complexity Trajectory
 
-Top complexity offenders (CC ≥ 38, sloc ≥ 130):
+The top 10 high-complexity functions:
 
-- `openmeter/subscription/service/sync.go::sync` — CC 65, 270 sloc *(intent-rich; documented sync algorithm)*
-- `openmeter/notification/eventhandler/webhook.go::reconcileWebhookEvent` — CC 61, 344 sloc *(reconcile loop with retry/backoff branches)*
-- `openmeter/streaming/clickhouse/meter_query.go::toSQL` — CC 59, 215 sloc *(SQL builder with many query shapes)*
-- `openmeter/app/stripe/httpdriver/webhook.go::AppStripeWebhook` — CC 58, 354 sloc *(Stripe event-type fan-out)*
-- `openmeter/app/stripe/client/checkout.go::CreateCheckoutSession` — CC 47, 169 sloc
-- `openmeter/productcatalog/ratecard.go::Validate` — CC 47, 148 sloc
-- `openmeter/productcatalog/http/mapping.go::AsPrice` — CC 43, 156 sloc
-- `openmeter/billing/adapter/invoice.go::ListInvoices` — CC 41, 153 sloc
-- `openmeter/entitlement/metered/balance.go::GetEntitlementBalanceHistory` — CC 41, 212 sloc
-- `openmeter/entitlement/adapter/entitlement.go::ListEntitlements` — CC 38, 149 sloc
+| CC | Function | Location |
+|---:|----------|----------|
+| 65 | `sync` | `openmeter/subscription/service/sync.go:28` |
+| 61 | `reconcileWebhookEvent` | `openmeter/notification/eventhandler/webhook.go:30` |
+| 59 | `toSQL` | `openmeter/streaming/clickhouse/meter_query.go:108` |
+| 58 | `AppStripeWebhook` | `openmeter/app/stripe/httpdriver/webhook.go:40` |
+| 51 | `TestOpenPeriod` | `pkg/timeutil/openperiod_test.go:8` (test only — not a production risk) |
+| 47 | `CreateCheckoutSession` | `openmeter/app/stripe/client/checkout.go:21` |
+| 47 | `Validate` | `openmeter/productcatalog/ratecard.go:665` |
+| 43 | `AsPrice` | `openmeter/productcatalog/http/mapping.go:565` |
+| 41 | `ListInvoices` | `openmeter/billing/adapter/invoice.go:119` |
+| 41 | `GetEntitlementBalanceHistory` | `openmeter/entitlement/metered/balance.go:105` |
 
-CC distribution: 5,395 functions in [1-2], 2,178 in [3-5], 1,041 in [6-10], 465 in [11-20], 99 in [21-50], 5 in [51-100], 0 above. Heavy tail (CC ≥ 21) is concentrated in subscription/sync, notification/webhook, ClickHouse query building, Stripe integration, and rate-card/product-catalog validation — all areas with genuine domain branching, not boilerplate. Risk concentration is intentional, not accidental.
+580 functions exceed CC=15. The concentration around `subscription/service/sync.go`, the Stripe webhook reconciler, and the ClickHouse query builder reflects three areas where state-machine logic, external-event reconciliation, and dynamic SQL composition each accumulate inherent complexity. They are the most likely sites for future bugs and should be the first targets for refactoring or test hardening.
 
 ## Findings
 
-Ranked by severity, grouped by novelty.
-
 ### NEW (first observed this scan)
-
-**Errors**
-
-_None new. The two error-class findings (`f_0001`, `f_0002`) are recurring._
 
 **Warnings**
 
-1. **[warn] `deep-001` — `ensureDetailedLinesLoadedForRating` duplicated across state machine and run service.** The method exists in two places: as a method on `*stateMachine` in `openmeter/billing/charges/usagebased/service/statemachine.go` (mutates `s.Charge` in place, no return value) and as a method on `*Service` in `openmeter/billing/charges/usagebased/service/run/create.go` (returns an updated charge). Both lazy-fetch detailed lines from the adapter when the charge's realizations are missing them; the state machine version calls `s.Adapter.FetchDetailedLines` directly, duplicating logic that should be owned by the run service. Confidence 0.85.
+1. **[warn] `time.Now()` widely used in billing workers instead of `pkg/clock.Now()`.** Six worker files (`openmeter/billing/worker/advance/advance.go:82,97`, `openmeter/billing/worker/worker.go`, `openmeter/billing/worker/collect/collect.go`, `openmeter/billing/worker/subscriptionsync/reconciler/reconciler.go`, `openmeter/billing/worker/subscriptionsync/service/sync.go`, `openmeter/billing/service/invoicecalc/gatheringrealtime.go`) anchor cutoff windows and synthetic timestamps to wall-clock `time.Now()`. The reconciler's own per-folder CLAUDE.md flags this as an anti-pattern, and the existing rule corpus already mandates `pkg/clock.Now()` for production code so tests can `clock.FreezeTime` and reproduce billing cutoffs deterministically. The drift agent identified this in 6 distinct hot-path files, suggesting the rule has eroded post-baseline. Confidence 0.92.
 
-2. **[warn] `deep-002` — `FinalizeRealizationRun` (creditsonly) and `SnapshotInvoiceUsage` (creditheninvoice) share near-identical 12-step bodies.** In `openmeter/billing/charges/usagebased/service/creditsonly.go` and `.../service/creditheninvoice.go` both methods execute the same sequence (nil-check `CurrentRealizationRunID` → `ensureDetailedLinesLoadedForRating` → `GetByID` → compute `storedAtOffset` → rate via `GetDetailedLinesForUsage` → round with `CurrencyCalculator` → `run.ReconcileCredits` → `run.PersistRunDetailedLines` → `run.UpdateRealizationRun` → clear run state → `UpdateCharge` → `RefetchCharge`). The only behavioral differences are the `storedAtOffset` value (`0` vs non-zero) and the `CreditAllocationMode` flag (`Exact` vs `Available`). Highest-impact duplicate cluster in the charges sub-tree. Confidence 0.95.
+2. **[warn] Structural hack in `app/common/ledger.go::NewLedgerHistoricalLedger`.** A second `accountservice` instance is constructed with a `nil` `Querier` field to break a circular dependency in the historical ledger wiring. This violates the project's "no nil fields in injected dependencies" convention and creates a latent NPE: any call path that triggers the historical ledger to look up an account through the nil Querier will panic at runtime. Confidence 0.85.
 
-3. **[warn] `deep-003` — v1/v2 detailed-line upsert pairs in the billing adapter are near-identical.** In `openmeter/billing/adapter/stdinvoicelines.go`: `upsertDetailedLines` and `upsertDetailedLinesV2` have structurally identical bodies that differ only by the Ent builder type (`*db.BillingInvoiceLineCreate` vs `*db.BillingStandardInvoiceDetailedLineCreate`). The same applies to `upsertDetailedLineAmountDiscounts` / `...V2`. The SchemaLevel branching in `UpsertInvoiceLines` calls one pair or the other; bug-fixes have to be applied twice. Confidence 0.9.
-
-4. **[warn] `deep-004` — `OnCreditPurchasePaymentAuthorized` and `OnCreditPurchasePaymentSettled` share near-identical bodies.** In `openmeter/ledger/chargeadapter/creditpurchase.go` both methods follow the documented "Resolve→annotate→commit" pattern verbatim — only the `transactions.ResolveTransactions` template type differs. The ChargeAdapter CLAUDE.md describes this pattern as canonical; the violation is implementing it twice instead of extracting a `commitCreditPurchaseTemplate(ctx, charge, template)` helper. Confidence 0.9.
-
-5. **[warn] `deep-005` — `createNewRealizationRun` does two adapter writes without an explicit `transaction.Run` wrapper.** In `openmeter/billing/charges/usagebased/service/run/create.go`: the helper calls `s.adapter.CreateRealizationRun` then `s.adapter.UpdateCharge` back-to-back. Atomicity works today only because the outer `withLockedCharge` in the charges service holds an open transaction in ctx via `transaction.RunWithResult` and `entutils.TransactingRepo` rebinds inside each adapter call. Implicit coupling — breaks if `run.Service.createNewRealizationRun` is ever called from a fresh ctx (e.g. in a test that drives `run.Service` directly). Confidence 0.8.
-
-6. **[warn] `deep-006` — `lineengine.go::newStateMachineForStandardLine` reaches into charge persistence inside the billing plugin layer.** In `openmeter/billing/charges/usagebased/service/lineengine.go` the line engine (a `billing.LineEngine` plugin invoked during invoice line processing) calls `svc.GetByID` to fetch the charge entity instead of receiving it pre-resolved. Couples the billing line layer to charge persistence reads — a responsibility leak that contradicts the LineEngine plugin contract documented in the architecture rules. Confidence 0.8.
-
-7. **[warn] `f_0006` — Only `cmd/server` registers `namespace.Handler` implementations (Ledger + KafkaIngest); other binaries that talk to the same DB don't.** Workers reach the database independently of the namespace lifecycle, meaning a namespace deletion done from one binary leaves orphaned state visible to others. Documented in the canonical findings store; `confirmed_in_scan: 1`. See AGENTS.md "Architecture section" — namespace handlers must be registered before `initNamespace`. Confidence 0.85.
-
-8. **[warn] `f_0007` — Wire-generated provider sets concentrate cross-domain hook registration as side-effects.** Hook registration happens inside provider functions (`app/common/customer.go::NewCustomerLedgerServiceHook` calls `customerService.RegisterHooks(h)` as a side-effect; `app/common/billing.go::NewBillingRegistry` registers `RequestValidator`s and `SubscriptionCommandHook`s the same way). Wire sees only types, not side-effects: a binary that omits the provider in its `wire.Build` still compiles but silently drops the hook. Mirrors pitfall `pf_0006`. Confidence 0.9.
-
-9. **[warn] `f_0008` — Watermill prefix-routed topic dispatch silently fans new event families to `SystemEventsTopic`.** `openmeter/watermill/eventbus.GeneratePublishTopic` switches on `EventName()` prefix — anything that doesn't start with `ingestevents.EventVersionSubsystem` or `balanceworkerevents.EventVersionSubsystem` lands in `SystemEventsTopic`. A new event family that forgets to register a prefix (or chooses a fresh subsystem) silently merges with system events and gets eaten by the wrong consumer (or none). Mirrors pitfall `pf_0007`. Confidence 0.85.
-
-**Informational**
-
-10. **[info] Two folders flagged as god-folders.** `openmeter/billing/` (39 files vs sibling avg 8) and `pkg/models/` (29 files vs sibling avg 5). For billing this is expected (largest domain); for `pkg/models` it's a candidate for splitting along the Service/Validator/PageResult axes.
+3. **[warn] Hook registration side-effects fragmented across three customer-related Wire providers.** `app/common/customer.go` registers customer hooks via three separate provider functions (ledger hook, subject hook, entitlement validator). Wire sees only types, not side-effects: a binary that omits any one provider in its `wire.Build` still compiles successfully but silently drops the hook. This is the live manifestation of pitfall `pf_0006`; it's surfaced now as a NEW finding because no compile-time enforcement protects against the regression. Confidence 0.90.
 
 ### RECURRING (previously documented, still present — `confirmed_in_scan ≥ 2`)
 
-11. **[error] `f_0001` / `pf_0001` — Charges adapter helpers accepting raw `*entdb.Client` can silently bypass the ctx-bound transaction.** Mandate from AGENTS.md: every helper under `openmeter/billing/charges/**/adapter` that touches `a.db` must do so inside `entutils.TransactingRepo` / `TransactingRepoWithNoValue`. Confirmed in 2 scans. Confidence 0.95.
+4. **[error] `f_0001` / `pf_0001` — Charges adapter helpers accepting raw `*entdb.Client` can silently bypass the ctx-bound transaction.** Every helper under `openmeter/billing/charges/**/adapter` that touches `a.db` must do so inside `entutils.TransactingRepo` / `TransactingRepoWithNoValue`. The mandate is documented in AGENTS.md and the per-package CLAUDE.md but no compile-time check enforces it. Confirmed in 4 scans. Confidence 0.95.
 
-12. **[error] `f_0002` / `pf_0002` — Credits-disabled deployments can still write to the ledger if any of four wiring layers forgets to guard.** `app/common/ledger.go`, `app/common/customer.go`, `app/common/billing.go::NewBillingRegistry`, and `api/v3/server` credit handlers each independently check `creditsConfig.Enabled`. A new ledger-touching provider added without this branch re-introduces the leak. Confirmed in 2 scans. Confidence 0.95.
+5. **[error] `f_0002` / `pf_0002` — Credits-disabled deployments can still write to the ledger if any of four wiring layers forgets to guard.** `app/common/ledger.go`, `app/common/customer.go`, `app/common/billing.go::NewBillingRegistry`, and `api/v3/server` credit handlers each independently check `creditsConfig.Enabled`. A new ledger-touching provider added without this branch re-introduces the leak. Confirmed in 4 scans. Confidence 0.95.
 
-13. **[warn] `f_0003` — Notification event payload versioning is implicit.** Payload version constants live alongside the producing event packages while the consumer matches on a `ce_type` string — no compile-time enforcement of version compatibility. Confirmed in 2 scans. Confidence 0.8.
+6. **[warn] `f_0003` / `pf_0007` — Notification event payload versioning is implicit.** Payload version constants live alongside the payload struct in `openmeter/notification/`; there is no machinery to migrate old payloads when a struct changes. Confirmed in 4 scans. Confidence 0.85.
 
-14. **[warn] `f_0004` / `pf_0004` — Sequential timestamped Atlas migrations + `atlas.sum` linear hash chain produce predictable merge conflicts on long-running feature branches.** The `/rebase` skill documents the recovery procedure; the cost compounds with branch age. Confirmed in 2 scans. Confidence 0.95.
+7. **[warn] `f_0004` / `pf_0004` — Sequential timestamped Atlas migrations + `atlas.sum` chain hashing produces predictable merge collisions on long-lived branches.** Documented; the `/rebase` skill encodes the recovery procedure. Confirmed in 4 scans. Confidence 0.95.
 
-15. **[warn] `f_0005` — `context.Background()` / `context.TODO()` in application code drops cancellation, deadlines, and request-scoped values.** Multiple specific occurrences flagged in the prior scan (`openmeter/app/stripe/client/appclient.go::providerError`, notification eventhandler `Start`/`Dispatch`, several e2e helpers). AGENTS.md prohibits this in application code; tests should use `t.Context()`. Confirmed in 2 scans. Confidence 0.9.
+8. **[warn] `f_0005` — `context.Background()` / `context.TODO()` introductions in application code silently sever Ent transaction propagation and OTel spans.** The mandate is documented in AGENTS.md and pre-edit hooks; reviewers must catch each occurrence. Confirmed in 4 scans. Confidence 0.90.
+
+9. **[warn] `f_0006` — Only `cmd/server` registers `namespace.Handler` implementations; other binaries that reach `initNamespace` will not have ClickHouse/Kafka/Ledger handlers wired by default.** Confirmed in 3 scans. Confidence 0.80.
+
+10. **[warn] `f_0007` / `pf_0006` — Wire-generated provider sets concentrate cross-domain hook registration as side-effects.** A binary that omits a provider silently drops its hook with no compile error. The new finding #3 above is a fresh manifestation in the customer hooks. Confirmed in 3 scans. Confidence 0.85.
+
+11. **[warn] `f_0008` / `pf_0007` — `openmeter/watermill/eventbus.GeneratePublishTopic` uses a string-prefix switch on `EventName()` to route topics; default-case fallback to `SystemEventsTopic` means a misnamed event family silently misroutes instead of erroring.** Confirmed in 3 scans. Confidence 0.85.
 
 ### RESOLVED
 
-_None confirmed resolved this scan. The deep drift agent reviewed only 20 architecturally-critical files (charges service tree, billing adapter, route wiring, server config, ledger chargeadapter), so the prior scan's findings #7 (charges test helper sub-services), #8 (pagination boilerplate duplication in v3 list handlers), #9 (v1/v3 handler parity drift) were not re-checked. Re-run a full scan or a targeted review to confirm._
+_None resolved this run. All eight findings from the prior scan remain active and have been confirmed-in-scan again._
 
 ## Pitfalls (durable, carried in blueprint)
 
-- `pf_0001` [error] Charges adapter helpers accepting raw `*entdb.Client` can silently bypass `TransactingRepo` and cause partial writes under concurrency.
-- `pf_0002` [error] `credits.enabled=false` does not fully stop ledger writes unless every wiring layer is independently guarded.
-- `pf_0003` [warn] Multi-generator toolchain (TypeSpec + Ent + Goverter + Wire + Goderive) is easy to leave partially regenerated, producing drifted APIs / SDKs.
-- `pf_0004` [warn] Sequential Atlas migration filenames + `atlas.sum` chain hashing guarantee merge collisions on long-lived feature branches.
-- `pf_0005` [warn] Tests or build invocations that omit `-tags=dynamic` fail to link `confluent-kafka-go` against librdkafka with confusing errors.
-- `pf_0006` [warn] Cross-domain hook/validator registration as side-effects inside Wire provider functions: omitting the provider in a binary's `wire.Build` silently drops the hook with no compile error.
-- `pf_0007` [warn] EventName prefix-based topic routing in `eventbus.GeneratePublishTopic` falls through to `SystemEventsTopic` by default; new event families that forget to register a prefix silently merge with system events.
-- `pf_0008` [warn] TypeSpec edits without a follow-up `make gen-api` + `make generate` produce silent drift between the API contract and Go server stubs / SDKs.
+The blueprint carries 8 architectural pitfalls (`pf_0001`–`pf_0008`) covering: charges adapter discipline, credits multi-layer guard, multi-generator regen drift, Atlas migration collisions, `-tags=dynamic` build linking, cross-domain hook registration, eventbus prefix routing, and TypeSpec source-of-truth regen. These are intentionally durable: they describe *classes* of problem rooted in architectural decisions and are referenced from the per-finding `pitfall_id`. They do not need to be re-stated each scan; they are loaded from `blueprint.json` by the AI reviewer on every plan approval and pre-commit.
 
 ## Architectural Health Assessment
 
-| Dimension | Rating | Notes |
-|---|---|---|
-| Separation of concerns | **Strong** | Service / adapter / httpdriver layering is consistent across ~50 components. ServiceHooks + RequestValidator registries break cross-domain dependencies without circular imports. The `BillingRegistry`/`AppRegistry`/`ChargesRegistry` typed groupings keep cohesive services bundled. |
-| Dependency direction | **Strong** | Domain packages don't import `app/common`; AGENTS.md codifies this for tests too. `cmd/*` only calls `initializeApplication`. 0 cycles in `dependency_graph.json`. |
-| Pattern consistency | **Adequate** | Newer domains follow the canonical split cleanly. The charges sub-tree shows local drift: same realization sequence implemented twice (`deep-002`), v1/v2 upsert pairs duplicated in the billing adapter (`deep-003`), and "resolve-annotate-commit" repeated in chargeadapter (`deep-004`). Credits-guard discipline is uneven across providers. |
-| Testability | **Strong** | Service interfaces support mocking; `openmeter/.../testutils` packages stay independent of `app/common` to avoid import cycles; `t.Context()` convention; `pgtestdb` + parallel infrastructure carries 549 changed Go files in 30 days. |
-| Change impact radius | **Moderate — watch** | Two coupled sources of ripple: (a) `app/common` is a single concentrated wiring surface (every new domain adds a file), and (b) dual v1/v3 HTTP handlers require parallel maintenance. Both are documented; neither has a mechanical guard against drift. The semantic-duplication clusters in charges add a third: a behavior change in the realization-run sequence has to be applied twice. |
+| Dimension | Rating | Evidence |
+|-----------|--------|----------|
+| Separation of concerns     | **Strong**   | Domain packages strictly separate Service / Adapter / HTTP. Cross-domain coupling routes through `ServiceHookRegistry` and `RequestValidatorRegistry`, not direct imports. The 40-component blueprint shows clean responsibility boundaries. |
+| Dependency direction       | **Strong**   | Domain packages do not import `app/common`; Wire wiring flows outward. The dependency_graph.json reports 0 cycles across resolved directories. The four-layer credits guard is a deliberate cross-cutting case, not an inversion. |
+| Pattern consistency        | **Adequate** | The TransactingRepo discipline, registry-based hooks, and noop-on-disabled patterns are applied consistently across mature domains (billing, customer, subscription). New finding #1 (clock usage) and #3 (fragmented hook registration) show the patterns can erode where compile-time enforcement is absent. |
+| Testability                | **Strong**   | Test helpers are colocated under `<domain>/testutils/` independent of `app/common`. `BaseSuite + SubscriptionMixin` patterns enable integration tests against real Postgres + Svix. The `pkg/clock` indirection (when used) supports deterministic time-travel tests; finding #1 shows it's not yet uniform. |
+| Change impact radius       | **Adequate** | The Wire provider graph + TypeSpec→OpenAPI→SDK pipeline localises most changes. Atlas-migration linearity intentionally creates merge friction on long branches (pitfall `pf_0004`) — the trade-off is reviewability. The two-step regen cadence (pitfall `pf_0008`) means a TypeSpec edit ripples through six generators that must all be run; missing one is a real risk. |
 
 ## Top Risks & Recommendations
 
-1. **Charges adapter `TransactingRepo` discipline (`f_0001` / `pf_0001`).** Highest-severity recurring finding. The `charges/**/adapter` helpers currently *work* only because their callers happen to be tx-bound. Hard recommendation: add a custom golangci-lint analyzer (or a CI ripgrep gate) that walks `openmeter/billing/charges/**/adapter/**.go` and fails on `a.db.` access outside an `entutils.TransactingRepo` callback. Pair with an integration test that asserts atomic commit/rollback under concurrent `AdvanceCharges` calls.
+1. **Clock-determinism erosion in billing workers** (NEW finding #1). The drift agent found 6 production files using `time.Now()` directly in cutoff or anchor positions. A correctness-fatal bug would be a billing-cutoff test that passes locally but produces incorrect invoice periods in production. Recommend: add a custom golangci-lint analyzer that flags `time.Now()` outside `pkg/clock` and `*_test.go`; fix the 6 sites; promote the rule into `enforcement.md` so the pre-edit hook blocks new occurrences.
 
-2. **Credits-disabled leak (`f_0002` / `pf_0002`).** Equal severity. Add a unit-or-wiring test that boots `app/common` with `Credits.Enabled=false` and asserts every credit-touching service is a noop via type assertion. Add a PR template checkbox: "If this PR adds a Wire provider that touches the ledger, does the credits-disabled path return a noop?"
+2. **Charges TransactingRepo discipline (`f_0001`/`pf_0001`)**. Recurring across 4 scans with no compile-time enforcement. Failure mode is partial writes under concurrency that don't manifest until a multi-tenant production load. Recommend: write the lint analyzer specified in the existing pitfall fix-direction, plus an integration test that opens a transaction and asserts every public charges-Service method commits/rolls back atomically.
 
-3. **Realization-run state-machine duplication (`deep-001`, `deep-002`).** Highest-impact non-recurring finding. Extract a shared `executeRealizationRun(ctx, opts realizationRunOpts)` private helper on the base `stateMachine`. Both `FinalizeRealizationRun` (creditsonly) and `SnapshotInvoiceUsage` (creditheninvoice) become thin wrappers passing `storedAtOffset` and `CreditAllocationMode`. Same shape for `ensureDetailedLinesLoadedForRating` (consolidate into the run package).
+3. **Credits four-layer guard (`f_0002`/`pf_0002`)**. Recurring across 4 scans. The blast radius is "credits-disabled tenant produces ledger rows" — a data-integrity / billing-correctness regression that's silent until financial reconciliation. Recommend: the smoke integration test in `pf_0002.fix_direction` (boots with `credits.enabled=false`, asserts ledger tables stay empty under representative flows) is the highest-leverage missing piece.
 
-4. **Multi-generator toolchain partial regen (`pf_0003`).** No mechanical gate today beyond `make migrate-check`. Recommendation: extend the dirty-tree CI gate to cover all five generators (TypeSpec → OpenAPI YAML, Ent → ent/db, Wire → wire_gen, Goverter → convert.gen, Goderive → derived.gen). A single `make generate-all` invocation followed by `git diff --exit-code` is the cleanest one-liner.
+4. **Customer hook registration fragility** (NEW finding #3 / recurring `pf_0006`). Three independent providers each register a hook; omitting one in a binary's `wire.Build` is a silent drop. Recommend: per the pitfall's fix-direction, promote hook bundles into named registry types so a missing registry is a compile error. Lower-cost: add an integration test per binary asserting `customerService.HookCount()` matches the expected count for that binary's role.
 
-5. **Atlas `atlas.sum` chain conflicts on long branches (`f_0004` / `pf_0004`).** Recurring; recovery procedure documented. Consider a daily-rebase reminder bot for branches that touch `openmeter/ent/schema/`, or a CI message when an open PR's migration timestamp predates `main`'s most recent migration.
-
-6. **`context.Background()` creep (`f_0005`).** Recurring across both production and e2e. Add a custom golangci-lint rule that forbids `context.Background()` / `context.TODO()` outside `main()`, top-level CLI commands, and explicitly-annotated detach points. Require `t.Context()` in tests.
-
-7. **Watermill default-fall-through routing (`f_0008` / `pf_0007`).** Recommendation: change `eventbus.GeneratePublishTopic` to error (or log loudly with a metric counter) when an event name doesn't match any registered prefix, instead of silently routing to `SystemEventsTopic`. Coupled change: add a unit test that registers each `EventVersionSubsystem` constant and asserts it routes to the intended topic.
+5. **Concentration of complexity in `subscription/service/sync.go::sync` (CC=65)**. This single function is the dominant target for both bugs and refactoring. Recommend: harvest the function's preconditions and post-conditions into a state machine driven by `qmuntal/stateless` (the same library `openmeter/billing/service/stdinvoicestate.go` uses); split per-trigger subroutines.
 
 ## Semantic Duplication
 
-The mechanical verbosity score (0.0586) is misleadingly low — it only catches exact line clones. The AI deep drift surfaced **four high-confidence semantic-duplication groups** that the metric misses entirely:
+The Phase 2 deep-drift agent did not flag explicit `semantic_duplication` clusters in the strategic sample of 20 files reviewed (billing core, charges adapters, app/common wiring, framework primitives, key domain services). The mechanical verbosity score of 0.0588 (≤6%) measures only exact line clones and is the right floor; semantic duplication would manifest as similar function bodies under different names. The most plausible places for it in this codebase — converter packages (`api/v3/handlers/.../convert.go`), Stripe webhook handlers, and ratecard validation logic — were not part of the strategic sample, so a more targeted future scan over `api/v3/handlers/**/convert.go` would be the highest-leverage extension.
 
-| Group | Files | Canonical owner | Differing axis | Recommendation |
-|---|---|---|---|---|
-| `ensureDetailedLinesLoadedForRating` | `usagebased/service/statemachine.go`, `usagebased/service/run/create.go` | `run.Service` | receiver + return signature | Consolidate in run package; statemachine delegates. |
-| `FinalizeRealizationRun` / `SnapshotInvoiceUsage` (12-step body) | `usagebased/service/creditsonly.go`, `usagebased/service/creditheninvoice.go` | base `stateMachine` (private helper) | `storedAtOffset` + `CreditAllocationMode` | Extract `executeRealizationRun(ctx, opts)`; both methods become wrappers. |
-| `upsertDetailedLines{,V2}` & `upsertDetailedLineAmountDiscounts{,V2}` | `billing/adapter/stdinvoicelines.go` | shared helper or generic | Ent builder type | Strategy interface or Go generic over the builder. |
-| `OnCreditPurchasePaymentAuthorized` / `OnCreditPurchasePaymentSettled` | `ledger/chargeadapter/creditpurchase.go` | `commitCreditPurchaseTemplate` | template type only | Extract private helper performing resolve→annotate→commit. |
-
-Two patterns dominate: AI copy-paste with a tweaked signature (groups 1, 4) and "v1/v2 schema-level branching" (group 3). All four sit inside the charges/ledger/billing-adapter cluster — the same area where `f_0001` / `pf_0001` mandate strict transactional discipline. Behavior changes there have to be applied in multiple places today; consolidation directly reduces the blast radius for that pitfall as well.
+**No actionable semantic duplication detected in this scan's strategic sample.**
 
 ## Proposed Rules
 
-This run synthesized **35 new rules**, merged into the existing 36, total **71 in `rules.json`** (29 path globs + 13 code shapes + 76 classifier rules in `rule_index.json`).
-
-Coverage spans:
-
-- Generated-code immutability — Ent (`openmeter/ent/db/`), Wire (`*_wire_gen.go`), Goverter (`*.convert.gen.go`), Goderive (`billing/derived.gen.go`), oapi-codegen (`api/api.gen.go`, `api/v3/api.gen.go`, `api/client/go/client.gen.go`), TypeSpec→OpenAPI (`api/openapi*.yaml`).
-- TypeSpec + schema regeneration cadence (`make gen-api` then `make generate`).
-- Ent schema change workflow (`make generate` then `atlas migrate --env local diff`).
-- `entutils.TransactingRepo` discipline in charges adapters (path-glob + code-shape trigger).
-- `context.Background()` / `context.TODO()` prohibition outside `main()` and tests; `t.Context()` required in tests.
-- `credits.enabled` four-layer wiring guard.
-- `POSTGRES_HOST=127.0.0.1` for DB tests.
-- Domain testutils may not import `app/common`.
-- `-tags=dynamic` for all Go builds and tests.
-- TypeSpec `@query` requires `using TypeSpec.Http;`.
-- Atlas migration sequentiality + `atlas.sum` chain integrity.
-- Notification payload versioning.
-- Kafka topic provisioning via `app/common`'s `KafkaTopicProvisioner` (no direct `confluent-kafka-go.NewAdminClient` calls in domain code).
-- Watermill router middleware order from `openmeter/watermill/router.NewDefaultRouter`.
-- HTTP handler shape via `httptransport.NewHandler[Req,Resp]` with `commonhttp.GenericErrorEncoder`.
-- `models.Generic*` sentinel errors instead of raw status codes in handlers.
-- `lockr.Locker.LockForTX` for per-customer billing operations.
-- ServiceHook / RequestValidator registration via `app/common` provider functions (avoids circular imports).
+The Step 6 rule synthesis run produced 33 new rules merged with 71 prior rules, for a total of **104 rules** in `.archie/rules.json` (52 path-glob triggers, 43 code-shape triggers, 93 classifier rules). New rules cover: TypeSpec source-of-truth gates, charges TransactingRepo at adapter sites, credits four-layer guard at each Wire provider, cross-domain hook registration patterns, Atlas migration linearity, and `-tags=dynamic` build invariants. No standalone `proposed_rules.json` is needed — the active rules are the merged set, and the pre-edit hook + plan/commit classifier consult them on every change.

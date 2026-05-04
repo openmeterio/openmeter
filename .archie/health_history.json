@@ -16,5 +16,14 @@
     "verbosity": 0.0586,
     "total_loc": 345136,
     "scan_type": "deep"
+  },
+  {
+    "timestamp": "2026-05-04T10:09:30.489821+00:00",
+    "erosion": 0.4459,
+    "gini": 0.6968,
+    "top20_share": 0.7379,
+    "verbosity": 0.0588,
+    "total_loc": 351752,
+    "scan_type": "deep"
   }
 ]
