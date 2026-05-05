@@ -6,6 +6,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -18,12 +19,17 @@ func newFundedCreditTransactionLoader(s *service) creditTransactionLoader {
 }
 
 func (l *fundedCreditTransactionLoader) Load(ctx context.Context, input creditTransactionLoaderInput) (creditTransactionLoaderResult, error) {
+	var currency *currencyx.Code
+	if len(input.Currencies) == 1 {
+		currency = &input.Currencies[0]
+	}
+
 	result, err := l.service.CreditPurchaseSvc.ListFundedCreditActivities(ctx, creditpurchase.ListFundedCreditActivitiesInput{
 		Customer: input.CustomerID,
 		Limit:    input.Limit,
 		After:    toFundedCreditActivityCursor(input.After),
 		Before:   toFundedCreditActivityCursor(input.Before),
-		Currency: input.Currency,
+		Currency: currency,
 	})
 	if err != nil {
 		return creditTransactionLoaderResult{}, err

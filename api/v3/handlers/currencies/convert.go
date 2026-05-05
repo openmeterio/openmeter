@@ -41,7 +41,7 @@ func ToAPIBillingCurrency(c currencies.Currency) (v3.BillingCurrency, error) {
 			Name:      c.Name,
 			Symbol:    &c.Symbol,
 			Type:      v3.BillingCurrencyCustomTypeCustom,
-			CreatedAt: &c.CreatedAt,
+			CreatedAt: c.CreatedAt,
 		})
 	}
 	return NewBillingCurrencyFrom(v3.BillingCurrencyFiat{
@@ -58,6 +58,6 @@ func ToAPIBillingCostBasis(cb currencies.CostBasis) v3.BillingCostBasis {
 		FiatCode:      cb.FiatCode,
 		Rate:          cb.Rate.String(),
 		EffectiveFrom: &cb.EffectiveFrom,
-		CreatedAt:     &cb.CreatedAt,
+		CreatedAt:     cb.CreatedAt,
 	}
 }

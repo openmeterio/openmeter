@@ -1,8 +1,10 @@
 package customerscredits
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -10,6 +12,7 @@ import (
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/filters"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -31,8 +34,8 @@ func toAPIBillingCreditGrant(charge creditpurchase.Charge) (api.BillingCreditGra
 		Currency:      api.BillingCurrencyCode(charge.Intent.Currency),
 		FundingMethod: toAPIBillingCreditFundingMethod(charge.Intent.Settlement),
 		Status:        toAPIBillingCreditGrantStatus(charge),
-		CreatedAt:     lo.ToPtr(charge.CreatedAt),
-		UpdatedAt:     lo.ToPtr(charge.UpdatedAt),
+		CreatedAt:     charge.CreatedAt,
+		UpdatedAt:     charge.UpdatedAt,
 		DeletedAt:     charge.DeletedAt,
 		Labels:        labels.FromMetadata(charge.Intent.Metadata),
 	}
@@ -420,7 +423,7 @@ func toAPIBillingCreditTransactions(items []customerbalance.CreditTransaction) [
 func toAPIBillingCreditTransaction(tx customerbalance.CreditTransaction) api.BillingCreditTransaction {
 	apiTx := api.BillingCreditTransaction{
 		Id:          tx.ID.ID,
-		CreatedAt:   &tx.CreatedAt,
+		CreatedAt:   tx.CreatedAt,
 		BookedAt:    tx.BookedAt,
 		Type:        toAPIBillingCreditTransactionType(tx.Type),
 		Currency:    api.BillingCurrencyCode(tx.Currency),
@@ -485,4 +488,102 @@ func stringAnnotation(annotations models.Annotations, key string) string {
 	}
 
 	return value
+}
+
+// filterStringExactToTransactionTypes converts a StringFieldFilterExact to a slice of CreditTransactionType values.
+// Uses FromAPIFilterStringExact for mapping; validates that only allowed values are provided.
+func filterStringExactToTransactionTypes(_ context.Context, f *filters.FilterStringExact) ([]customerbalance.CreditTransactionType, error) {
+	fs, err := filters.FromAPIFilterStringExact(f)
+	if err != nil {
+		return nil, err
+	}
+	if fs == nil {
+		return nil, nil
+	}
+	if fs.Ne != nil {
+		return nil, errors.New("only eq and oeq operators are supported for type")
+	}
+
+	var values []string
+	if fs.Eq != nil {
+		values = append(values, *fs.Eq)
+	}
+	if fs.In != nil {
+		values = append(values, *fs.In...)
+	}
+
+	result := make([]customerbalance.CreditTransactionType, 0, len(values))
+	for _, v := range values {
+		switch api.BillingCreditTransactionType(v) {
+		case api.BillingCreditTransactionTypeFunded:
+			result = append(result, customerbalance.CreditTransactionTypeFunded)
+		case api.BillingCreditTransactionTypeConsumed:
+			result = append(result, customerbalance.CreditTransactionTypeConsumed)
+		default:
+			return nil, fmt.Errorf("unsupported credit transaction type: %s", v)
+		}
+	}
+
+	return result, nil
+}
+
+// filterStringExactToStatuses converts a StringFieldFilterExact to a slice of meta.ChargeStatus values.
+// Uses FromAPIFilterStringExact for mapping; validates that only allowed values are provided.
+func filterStringExactToStatuses(_ context.Context, f *filters.FilterStringExact, convert func(api.BillingCreditGrantStatus) (meta.ChargeStatus, error)) ([]meta.ChargeStatus, error) {
+	fs, err := filters.FromAPIFilterStringExact(f)
+	if err != nil {
+		return nil, err
+	}
+	if fs == nil {
+		return nil, nil
+	}
+	if fs.Ne != nil {
+		return nil, errors.New("only eq and oeq operators are supported for status")
+	}
+
+	var values []string
+	if fs.Eq != nil {
+		values = append(values, *fs.Eq)
+	}
+	if fs.In != nil {
+		values = append(values, *fs.In...)
+	}
+
+	result := make([]meta.ChargeStatus, 0, len(values))
+	for _, v := range values {
+		converted, err := convert(api.BillingCreditGrantStatus(v))
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, converted)
+	}
+
+	return result, nil
+}
+
+// filterStringExactToCurrencies converts a StringFieldFilterExact to a slice of currencyx.Code values.
+// Uses FromAPIFilterStringExact for mapping; validates that only allowed values are provided.
+func filterStringExactToCurrencies(_ context.Context, f *filters.FilterStringExact) ([]currencyx.Code, error) {
+	fs, err := filters.FromAPIFilterStringExact(f)
+	if err != nil {
+		return nil, err
+	}
+	if fs == nil {
+		return nil, nil
+	}
+	if fs.Ne != nil {
+		return nil, errors.New("only eq and oeq operators are supported for currency")
+	}
+
+	var codes []currencyx.Code
+	if fs.Eq != nil {
+		codes = append(codes, currencyx.Code(*fs.Eq))
+	}
+	if fs.In != nil {
+		for _, v := range *fs.In {
+			codes = append(codes, currencyx.Code(v))
+		}
+	}
+
+	return codes, nil
 }

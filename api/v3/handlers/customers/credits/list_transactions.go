@@ -12,7 +12,6 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
@@ -92,12 +91,29 @@ func (h *handler) ListCreditTransactions() ListCreditTransactionsHandler {
 			}
 
 			if args.Params.Filter != nil {
-				req.Type = fromAPIBillingCreditTransactionType(args.Params.Filter.Type)
-
-				if args.Params.Filter.Currency != nil {
-					currency := currencyx.Code(*args.Params.Filter.Currency)
-					req.Currency = &currency
+				txTypes, err := filterStringExactToTransactionTypes(ctx, args.Params.Filter.Type)
+				if err != nil {
+					return ListCreditTransactionsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{
+							Field:  "filter[type]",
+							Reason: err.Error(),
+							Source: apierrors.InvalidParamSourceQuery,
+						},
+					})
 				}
+				req.Types = txTypes
+
+				currencies, err := filterStringExactToCurrencies(ctx, args.Params.Filter.Currency)
+				if err != nil {
+					return ListCreditTransactionsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{
+							Field:  "filter[currency]",
+							Reason: err.Error(),
+							Source: apierrors.InvalidParamSourceQuery,
+						},
+					})
+				}
+				req.Currencies = currencies
 			}
 
 			return req, nil

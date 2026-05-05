@@ -12,7 +12,6 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -62,24 +61,29 @@ func (h *handler) ListCreditGrants() ListCreditGrantsHandler {
 			}
 
 			if args.Params.Filter != nil {
-				if args.Params.Filter.Status != nil {
-					status, err := fromAPIBillingCreditGrantStatus(*args.Params.Filter.Status)
-					if err != nil {
-						return ListCreditGrantsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-							{
-								Field:  "filter[status]",
-								Reason: err.Error(),
-								Source: apierrors.InvalidParamSourceQuery,
-							},
-						})
-					}
-					req.Status = &status
+				statuses, err := filterStringExactToStatuses(ctx, args.Params.Filter.Status, fromAPIBillingCreditGrantStatus)
+				if err != nil {
+					return ListCreditGrantsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{
+							Field:  "filter[status]",
+							Reason: err.Error(),
+							Source: apierrors.InvalidParamSourceQuery,
+						},
+					})
 				}
+				req.Statuses = statuses
 
-				if args.Params.Filter.Currency != nil {
-					currency := currencyx.Code(*args.Params.Filter.Currency)
-					req.Currency = &currency
+				currencies, err := filterStringExactToCurrencies(ctx, args.Params.Filter.Currency)
+				if err != nil {
+					return ListCreditGrantsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{
+							Field:  "filter[currency]",
+							Reason: err.Error(),
+							Source: apierrors.InvalidParamSourceQuery,
+						},
+					})
 				}
+				req.Currencies = currencies
 			}
 
 			return req, nil

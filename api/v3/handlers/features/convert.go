@@ -23,8 +23,8 @@ func convertFeatureToAPI(f feature.Feature) (api.Feature, error) {
 		Name:        f.Name,
 		Description: f.Description,
 		Labels:      labels.FromMetadata(f.Metadata),
-		CreatedAt:   &f.CreatedAt,
-		UpdatedAt:   &f.UpdatedAt,
+		CreatedAt:   f.CreatedAt,
+		UpdatedAt:   f.UpdatedAt,
 		DeletedAt:   f.ArchivedAt,
 	}
 

@@ -23,7 +23,7 @@ func TestCreditTransactionLoaders_InvalidType(t *testing.T) {
 	s := &service{}
 	invalid := CreditTransactionType("invalid")
 
-	_, err := s.creditTransactionLoaders(&invalid)
+	_, err := s.creditTransactionLoaders([]CreditTransactionType{invalid})
 	require.Error(t, err)
 }
 

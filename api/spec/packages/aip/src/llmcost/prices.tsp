@@ -77,11 +77,11 @@ model Price {
 
   /** Creation timestamp. */
   @visibility(Lifecycle.Read)
-  created_at?: Shared.DateTime;
+  created_at: Shared.DateTime;
 
   /** Last update timestamp. */
   @visibility(Lifecycle.Read)
-  updated_at?: Shared.DateTime;
+  updated_at: Shared.DateTime;
 }
 
 /**

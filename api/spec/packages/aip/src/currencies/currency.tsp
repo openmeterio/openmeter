@@ -114,5 +114,5 @@ model CurrencyCustom {
    * An ISO-8601 timestamp representation of the custom currency creation date.
    */
   @visibility(Lifecycle.Read)
-  created_at?: Shared.DateTime;
+  created_at: Shared.DateTime;
 }

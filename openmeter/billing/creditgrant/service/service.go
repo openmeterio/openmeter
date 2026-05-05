@@ -17,7 +17,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -159,14 +158,8 @@ func (s *service) List(ctx context.Context, input creditgrant.ListInput) (pagina
 		Namespace:   input.Namespace,
 		CustomerIDs: []string{input.CustomerID},
 		Expands:     meta.Expands{meta.ExpandRealizations},
-	}
-
-	if input.Status != nil {
-		listInput.Statuses = []meta.ChargeStatus{*input.Status}
-	}
-
-	if input.Currency != nil {
-		listInput.Currencies = []currencyx.Code{*input.Currency}
+		Statuses:    input.Statuses,
+		Currencies:  input.Currencies,
 	}
 
 	return s.creditPurchaseService.List(ctx, listInput)

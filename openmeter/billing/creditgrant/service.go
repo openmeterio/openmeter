@@ -150,8 +150,8 @@ type ListInput struct {
 	CustomerID string
 
 	// Optional filters
-	Status   *meta.ChargeStatus
-	Currency *currencyx.Code
+	Statuses   []meta.ChargeStatus
+	Currencies []currencyx.Code
 }
 
 func (i ListInput) Validate() error {
@@ -165,14 +165,14 @@ func (i ListInput) Validate() error {
 		errs = append(errs, errors.New("customer ID is required"))
 	}
 
-	if i.Status != nil {
-		if err := i.Status.Validate(); err != nil {
+	for _, s := range i.Statuses {
+		if err := s.Validate(); err != nil {
 			errs = append(errs, err)
 		}
 	}
 
-	if i.Currency != nil {
-		if err := i.Currency.Validate(); err != nil {
+	for _, c := range i.Currencies {
+		if err := c.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("currency: %w", err))
 		}
 	}

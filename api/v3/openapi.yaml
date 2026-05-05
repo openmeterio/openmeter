@@ -845,7 +845,11 @@ paths:
         - name: expand
           in: query
           required: false
-          description: Expands
+          description: |-
+            Expand full objects for referenced entities.
+
+            Supported values are:
+            - `real_time_usage`: Expand the charge's real-time usage.
           schema:
             type: array
             items:
@@ -2792,6 +2796,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - key
         - version
         - instance_type
@@ -3111,6 +3117,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - type
         - definition
         - status
@@ -3221,6 +3229,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - type
         - definition
         - status
@@ -3289,6 +3299,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - type
         - definition
         - status
@@ -3883,6 +3895,7 @@ components:
         - id
         - fiat_code
         - rate
+        - created_at
       properties:
         id:
           allOf:
@@ -3984,6 +3997,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - funding_method
         - currency
         - amount
@@ -4201,6 +4216,7 @@ components:
       required:
         - id
         - name
+        - created_at
         - booked_at
         - type
         - currency
@@ -4313,6 +4329,7 @@ components:
         - type
         - name
         - code
+        - created_at
       properties:
         id:
           allOf:
@@ -4396,6 +4413,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - key
       properties:
         id:
@@ -4725,6 +4744,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - type
         - customer
         - managed_by
@@ -4954,6 +4975,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - key
         - version
         - currency
@@ -5297,6 +5320,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - supplier
         - workflow
         - apps
@@ -5546,6 +5571,8 @@ components:
       type: object
       required:
         - id
+        - created_at
+        - updated_at
         - customer_id
         - billing_anchor
         - status
@@ -5866,6 +5893,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - key
         - app_mappings
       properties:
@@ -6069,6 +6098,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - type
         - customer
         - managed_by
@@ -7193,6 +7224,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - key
       properties:
         id:
@@ -7354,10 +7387,6 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingCurrencyCode'
           description: Filter credit balance by currency.
-        feature:
-          allOf:
-            - $ref: '#/components/schemas/ResourceKey'
-          description: Filter by specific feature.
       description: Filter options for getting a credit balance.
     ISO8601Duration:
       type: string
@@ -7468,6 +7497,8 @@ components:
         - currency
         - source
         - effective_from
+        - created_at
+        - updated_at
       properties:
         id:
           allOf:
@@ -7584,25 +7615,17 @@ components:
       type: object
       properties:
         status:
-          allOf:
-            - $ref: '#/components/schemas/BillingCreditGrantStatus'
-          description: Filter credit grants by status.
+          $ref: '#/components/schemas/StringFieldFilterExact'
         currency:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
-          description: Filter credit grants by currency.
+          $ref: '#/components/schemas/StringFieldFilterExact'
       description: Filter options for listing credit grants.
     ListCreditTransactionsParamsFilter:
       type: object
       properties:
         type:
-          allOf:
-            - $ref: '#/components/schemas/BillingCreditTransactionType'
-          description: Filter credit transactions by type.
+          $ref: '#/components/schemas/StringFieldFilterExact'
         currency:
-          allOf:
-            - $ref: '#/components/schemas/BillingCurrencyCode'
-          description: Filter credit transactions by currency.
+          $ref: '#/components/schemas/StringFieldFilterExact'
       description: Filter options for listing credit transactions.
     ListCurrenciesParamsFilter:
       type: object
@@ -7739,6 +7762,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - key
         - aggregation
         - event_type
@@ -8139,6 +8164,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - addon
         - from_plan_phase
       properties:

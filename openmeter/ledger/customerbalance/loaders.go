@@ -14,7 +14,7 @@ type creditTransactionLoaderInput struct {
 	Before     *ledger.TransactionCursor
 	CustomerID customer.CustomerID
 	AccountID  string
-	Currency   *currencyx.Code
+	Currencies []currencyx.Code
 }
 
 type creditTransactionLoaderResult struct {
@@ -40,8 +40,8 @@ var creditTransactionLoaderFactories = map[CreditTransactionType]creditTransacti
 	},
 }
 
-func (s *service) creditTransactionLoaders(txType *CreditTransactionType) ([]creditTransactionLoader, error) {
-	if txType == nil {
+func (s *service) creditTransactionLoaders(txTypes []CreditTransactionType) ([]creditTransactionLoader, error) {
+	if len(txTypes) == 0 {
 		loaders := make([]creditTransactionLoader, 0, len(creditTransactionLoaderOrder))
 		for _, transactionType := range creditTransactionLoaderOrder {
 			loaders = append(loaders, creditTransactionLoaderFactories[transactionType](s))
@@ -50,14 +50,15 @@ func (s *service) creditTransactionLoaders(txType *CreditTransactionType) ([]cre
 		return loaders, nil
 	}
 
-	if err := txType.Validate(); err != nil {
-		return nil, err
+	loaders := make([]creditTransactionLoader, 0, len(txTypes))
+	for _, txType := range txTypes {
+		factory, ok := creditTransactionLoaderFactories[txType]
+		if !ok {
+			return nil, txType.Validate()
+		}
+
+		loaders = append(loaders, factory(s))
 	}
 
-	factory, ok := creditTransactionLoaderFactories[*txType]
-	if !ok {
-		return nil, txType.Validate()
-	}
-
-	return []creditTransactionLoader{factory(s)}, nil
+	return loaders, nil
 }

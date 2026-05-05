@@ -20,15 +20,10 @@ namespace Customers;
  */
 @friendlyName("ListCreditGrantsParamsFilter")
 model ListCreditGrantsParamsFilter {
-  /**
-   * Filter credit grants by status.
-   */
-  status?: CreditGrantStatus;
-
-  /**
-   * Filter credit grants by currency.
-   */
-  currency?: Shared.CurrencyCode;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  status?: Common.StringFieldFilterExact;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  currency?: Common.StringFieldFilterExact;
 }
 
 interface CustomerCreditGrantsOperations {
@@ -141,11 +136,6 @@ model GetCreditBalanceParamsFilter {
    * Filter credit balance by currency.
    */
   currency?: Currencies.CurrencyCode;
-
-  /**
-   * Filter by specific feature.
-   */
-  feature?: Shared.ResourceKey;
 }
 
 interface CustomerCreditBalancesOperations {
@@ -171,15 +161,10 @@ interface CustomerCreditBalancesOperations {
  */
 @friendlyName("ListCreditTransactionsParamsFilter")
 model ListCreditTransactionsParamsFilter {
-  /**
-   * Filter credit transactions by type.
-   */
-  type?: CreditTransactionType;
-
-  /**
-   * Filter credit transactions by currency.
-   */
-  currency?: Currencies.CurrencyCode;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  type?: Common.StringFieldFilterExact;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  currency?: Common.StringFieldFilterExact;
 
   // TODO: add date filters for created_at and booked_at
 }

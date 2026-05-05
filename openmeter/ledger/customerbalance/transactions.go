@@ -39,8 +39,8 @@ type ListCreditTransactionsInput struct {
 	After      *ledger.TransactionCursor
 	Before     *ledger.TransactionCursor
 
-	Type     *CreditTransactionType
-	Currency *currencyx.Code
+	Types      []CreditTransactionType
+	Currencies []currencyx.Code
 }
 
 func (i ListCreditTransactionsInput) Validate() error {
@@ -70,14 +70,14 @@ func (i ListCreditTransactionsInput) Validate() error {
 		errs = append(errs, fmt.Errorf("after and before cannot be set together"))
 	}
 
-	if i.Type != nil {
-		if err := i.Type.Validate(); err != nil {
+	for _, t := range i.Types {
+		if err := t.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("type: %w", err))
 		}
 	}
 
-	if i.Currency != nil {
-		if err := i.Currency.Validate(); err != nil {
+	for _, c := range i.Currencies {
+		if err := c.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("currency: %w", err))
 		}
 	}
@@ -122,7 +122,7 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 		return emptyCreditTransactions(), nil
 	}
 
-	loaders, err := s.creditTransactionLoaders(input.Type)
+	loaders, err := s.creditTransactionLoaders(input.Types)
 	if err != nil {
 		return ListCreditTransactionsResult{}, err
 	}
@@ -133,7 +133,7 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 		Before:     input.Before,
 		CustomerID: input.CustomerID,
 		AccountID:  accountID,
-		Currency:   input.Currency,
+		Currencies: input.Currencies,
 	}
 
 	loadedLists := make([][]CreditTransaction, 0, len(loaders))
