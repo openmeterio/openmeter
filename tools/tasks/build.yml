@@ -1,0 +1,142 @@
+version: '3'
+
+tasks:
+  build-dir:
+    cmds:
+      - mkdir -p build
+
+  build:
+    desc: Build all binaries
+    summary: |
+      Builds every local binary under build/.
+      Runs the individual build tasks in parallel with prefixed output so logs stay attributable.
+    cmds:
+      - task: _print
+        vars: { TARGET: build }
+      - task --output prefixed --parallel build-server build-sink-worker build-benthos-collector build-balance-worker build-billing-worker build-notification-service build-jobs
+
+  build-server:
+    desc: Build server binary
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: go }
+      - task: _print
+        vars: { TARGET: build-server }
+      - mkdir -p build
+      - go build -o build/server ${GO_BUILD_FLAGS:--tags=dynamic} ./cmd/server
+
+  build-sink-worker:
+    desc: Build sink-worker binary
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: go }
+      - task: _print
+        vars: { TARGET: build-sink-worker }
+      - mkdir -p build
+      - go build -o build/sink-worker ${GO_BUILD_FLAGS:--tags=dynamic} ./cmd/sink-worker
+
+  build-benthos-collector:
+    desc: Build benthos collector binary
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: go }
+      - task: _print
+        vars: { TARGET: build-benthos-collector }
+      - mkdir -p build
+      - go build -o build/benthos-collector ${GO_BUILD_FLAGS:--tags=dynamic} ./cmd/benthos-collector
+
+  build-balance-worker:
+    desc: Build balance-worker binary
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: go }
+      - task: _print
+        vars: { TARGET: build-balance-worker }
+      - mkdir -p build
+      - go build -o build/balance-worker ${GO_BUILD_FLAGS:--tags=dynamic} ./cmd/balance-worker
+
+  build-billing-worker:
+    desc: Build billing-worker binary
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: go }
+      - task: _print
+        vars: { TARGET: build-billing-worker }
+      - mkdir -p build
+      - go build -o build/billing-worker ${GO_BUILD_FLAGS:--tags=dynamic} ./cmd/billing-worker
+
+  build-notification-service:
+    desc: Build notification-service binary
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: go }
+      - task: _print
+        vars: { TARGET: build-notification-service }
+      - mkdir -p build
+      - go build -o build/notification-service ${GO_BUILD_FLAGS:--tags=dynamic} ./cmd/notification-service
+
+  build-jobs:
+    desc: Build jobs binary
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: go }
+      - task: _print
+        vars: { TARGET: build-jobs }
+      - mkdir -p build
+      - go build -o build/jobs ${GO_BUILD_FLAGS:--tags=dynamic} ./cmd/jobs
+
+  build-benthos-collector-release:
+    desc: Cross-compile benthos-collector for release. Use GOOS/GOARCH/VERSION env vars or positional args
+    preconditions:
+      - sh: |
+          set -- {{.CLI_ARGS}}
+          [ -n "${GOOS:-${1:-}}" ]
+        msg: "GOOS is required. Use GOOS=linux GOARCH=amd64 task build-benthos-collector-release or task build-benthos-collector-release -- linux amd64."
+      - sh: |
+          set -- {{.CLI_ARGS}}
+          [ -n "${GOARCH:-${2:-}}" ]
+        msg: "GOARCH is required. Use GOOS=linux GOARCH=amd64 task build-benthos-collector-release or task build-benthos-collector-release -- linux amd64."
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: go }
+      - |
+        set -- {{.CLI_ARGS}}
+        goos="${GOOS:-${1:-}}"
+        goarch="${GOARCH:-${2:-}}"
+        version="${VERSION:-${3:-unknown}}"
+
+        printf 'Executing target: \033[36m%s\033[0m\n' build-benthos-collector-release
+
+        outdir="build/release/benthos-collector_${goos}_${goarch}"
+        rm -rf "$outdir"
+        mkdir -p "$outdir"
+
+        CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" \
+          go build -trimpath \
+            -ldflags "-s -w -X main.version=${version}" \
+            -o "$outdir/benthos" ./cmd/benthos-collector
+
+        cp README.md LICENSE "$outdir/"
+
+  archive-benthos-collector-release:
+    desc: Archive the cross-compiled benthos-collector release. Use GOOS/GOARCH env vars or positional args
+    preconditions:
+      - sh: |
+          set -- {{.CLI_ARGS}}
+          [ -n "${GOOS:-${1:-}}" ]
+        msg: "GOOS is required. Use GOOS=linux GOARCH=amd64 task archive-benthos-collector-release or task archive-benthos-collector-release -- linux amd64."
+      - sh: |
+          set -- {{.CLI_ARGS}}
+          [ -n "${GOARCH:-${2:-}}" ]
+        msg: "GOARCH is required. Use GOOS=linux GOARCH=amd64 task archive-benthos-collector-release or task archive-benthos-collector-release -- linux amd64."
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: tar }
+      - |
+        set -- {{.CLI_ARGS}}
+        goos="${GOOS:-${1:-}}"
+        goarch="${GOARCH:-${2:-}}"
+        printf 'Executing target: \033[36m%s\033[0m\n' archive-benthos-collector-release
+
+        name="benthos-collector_${goos}_${goarch}"
+        tar -C build/release -czf "build/release/${name}.tar.gz" "$name"

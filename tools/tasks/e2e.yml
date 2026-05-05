@@ -1,0 +1,98 @@
+version: '3'
+
+tasks:
+  e2e-test-local:
+    desc: Run e2e tests against local OpenMeter
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: docker }
+      - task: _require-tool
+        vars: { TOOL: curl }
+      - task: _require-tool
+        vars: { TOOL: go }
+      - task: _print
+        vars: { TARGET: e2e-test-local }
+      - task: e2e-env-local-down
+      - defer:
+          task: e2e-env-local-down
+      - task: e2e-env-local-up
+      - curl --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:30000/healthz
+      - cd e2e && TZ=UTC OPENMETER_ADDRESS=http://localhost:38888 go test -count=1 -v ./...
+
+  e2e-env-local-down:
+    desc: Stop local e2e docker compose stack
+    dir: e2e
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: docker }
+      - task: _print
+        vars: { TARGET: e2e-env-local-down }
+      - docker compose -f docker-compose.infra.yaml -f docker-compose.debug-ports.yaml -f docker-compose.openmeter.yaml -f docker-compose.openmeter-local.yaml down
+
+  e2e-env-local-up:
+    desc: Start local e2e docker compose stack
+    dir: e2e
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: docker }
+      - task: _print
+        vars: { TARGET: e2e-env-local-up }
+      - docker compose -f docker-compose.infra.yaml -f docker-compose.debug-ports.yaml -f docker-compose.openmeter.yaml -f docker-compose.openmeter-local.yaml up -d --build --force-recreate
+
+  e2e:
+    desc: Run e2e tests
+    aliases: [etoe]
+    cmds:
+      - task: e2e-test-local
+
+  e2e-slow:
+    desc: Run e2e tests with slow tests enabled
+    aliases: [etoe-slow]
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: docker }
+      - task: _require-tool
+        vars: { TOOL: curl }
+      - task: _require-tool
+        vars: { TOOL: go }
+      - task: _print
+        vars: { TARGET: e2e-slow }
+      - RUN_SLOW_TESTS=1 task e2e-test-local
+
+  quickstart-test-local:
+    desc: Run quickstart tests against local stack with debug ports exposed
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: docker }
+      - task: _require-tool
+        vars: { TOOL: curl }
+      - task: _require-tool
+        vars: { TOOL: go }
+      - task: _print
+        vars: { TARGET: quickstart-test-local }
+      - task: quickstart-env-local-down
+      - defer:
+          task: quickstart-env-local-down
+      - task: quickstart-env-local-up
+      - curl --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:40000/healthz
+      - cd quickstart && OPENMETER_ADDRESS=http://localhost:48888 go test -count=1 -v ./...
+
+  quickstart-env-local-down:
+    desc: Stop local quickstart docker compose stack
+    dir: quickstart
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: docker }
+      - task: _print
+        vars: { TARGET: quickstart-env-local-down }
+      - docker compose -f docker-compose.yaml -f docker-compose.debug-ports.yaml down
+
+  quickstart-env-local-up:
+    desc: Start local quickstart docker compose stack
+    dir: quickstart
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: docker }
+      - task: _print
+        vars: { TARGET: quickstart-env-local-up }
+      - docker compose -f docker-compose.yaml -f docker-compose.debug-ports.yaml up -d --force-recreate

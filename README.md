@@ -141,13 +141,15 @@ We'd love to have you involved:
 Prerequisites: [Nix](https://nixos.org/download.html) and
 [direnv](https://direnv.net/docs/installation.html) are
 recommended. See [CONTRIBUTING.md](CONTRIBUTING.md) for
-detailed setup instructions.
+detailed setup instructions. The Nix shell provides `task`;
+install [Task](https://taskfile.dev/docs/installation) separately
+if you do not use Nix.
 
 ```sh
-make up       # Start dependencies (Postgres, Kafka, ClickHouse)
-make server   # Run the API server with hot reload
-make test     # Run tests
-make lint     # Run linters
+task up       # Start dependencies (Postgres, Kafka, ClickHouse)
+task server   # Run the API server with hot reload
+task test     # Run tests
+task lint     # Run linters
 ```
 
 ## License

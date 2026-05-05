@@ -7,19 +7,19 @@ We use [Benthos](https://www.benthos.dev) as a seeder (even though it's not buil
 To run the seeder continuously ingesting data, run the following command:
 
 ```sh
-make seed
+task seed
 ```
 
 If you would like to see the generated events, enable logging:
 
 ```sh
-make SEEDER_LOG=true seed
+SEEDER_LOG=true task seed
 ```
 
 In some cases, you might want to fine tune the total number of events and at what rate they are ingested:
 
 ```sh
-make SEEDER_COUNT=100 SEEDER_INTERVAL=1s seed
+SEEDER_COUNT=100 SEEDER_INTERVAL=1s task seed
 ```
 
 This tells Benthos to ingest 100 events at 1 event/s rate.
@@ -28,7 +28,7 @@ This tells Benthos to ingest 100 events at 1 event/s rate.
 Finally, you can configure the maximum number of subjects you would like to see:
 
 ```sh
-make SEEDER_MAX_SUBJECTS=100 seed
+SEEDER_MAX_SUBJECTS=100 task seed
 ```
 
 (The default is 100)

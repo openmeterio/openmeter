@@ -1,0 +1,115 @@
+version: '3'
+
+tasks:
+  up:
+    desc: Start dependencies via docker compose. Set COMPOSE_PROFILES=dev,redis,... as needed
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: docker }
+      - task: _print
+        vars: { TARGET: up }
+      - docker compose up -d
+
+  down:
+    desc: Stop dependencies via docker compose
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: docker }
+      - task: _print
+        vars: { TARGET: down }
+      - docker compose down --remove-orphans --volumes
+
+  config:
+    desc: Copy config.example.yaml to config.yaml
+    cmds:
+      - task: _print
+        vars: { TARGET: config }
+      - cp config.example.yaml config.yaml
+
+  config.yaml:
+    desc: Copy config.example.yaml to config.yaml
+    cmds:
+      - task: config
+
+  check-config-fresh:
+    internal: true
+    cmds:
+      - |
+        if [ ! -f config.yaml ]; then
+          cp config.example.yaml config.yaml
+        fi
+
+        if [ config.yaml -ot config.example.yaml ]; then
+          diff -u config.yaml config.example.yaml || {
+            echo "!!! The configuration example changed. Please update your config.yaml file accordingly (or at least touch it). !!!"
+            exit 1
+          }
+        fi
+
+  server:
+    desc: Run API server with hot reload
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: air }
+      - task: _print
+        vars: { TARGET: server }
+      - task: check-config-fresh
+      - air -c ./cmd/server/.air.toml
+
+  sink-worker:
+    desc: Run sink-worker with hot reload
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: air }
+      - task: _print
+        vars: { TARGET: sink-worker }
+      - task: check-config-fresh
+      - air -c ./cmd/sink-worker/.air.toml
+
+  balance-worker:
+    desc: Run balance-worker with hot reload
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: air }
+      - task: _print
+        vars: { TARGET: balance-worker }
+      - task: check-config-fresh
+      - air -c ./cmd/balance-worker/.air.toml
+
+  billing-worker:
+    desc: Run billing-worker with hot reload
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: air }
+      - task: _print
+        vars: { TARGET: billing-worker }
+      - task: check-config-fresh
+      - air -c ./cmd/billing-worker/.air.toml
+
+  notification-service:
+    desc: Run notification-service with hot reload
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: air }
+      - task: _print
+        vars: { TARGET: notification-service }
+      - task: check-config-fresh
+      - air -c ./cmd/notification-service/.air.toml
+
+  llm-cost-sync:
+    desc: Sync LLM cost prices from external sources
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: go }
+      - task: _print
+        vars: { TARGET: llm-cost-sync }
+      - go run ./cmd/jobs llm-cost sync
+
+  seed:
+    desc: Seed OpenMeter with test data
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: benthos }
+      - task: _print
+        vars: { TARGET: seed }
+      - benthos -c etc/seed/seed.yaml

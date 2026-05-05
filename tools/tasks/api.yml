@@ -1,0 +1,222 @@
+version: '3'
+
+tasks:
+  patch-oapi-templates:
+    desc: Patch oapi-codegen chi-middleware template with custom filter parsing
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: go }
+      - task: _require-tool
+        vars: { TOOL: patch }
+      - task: _print
+        vars: { TARGET: patch-oapi-templates }
+      - |
+        go mod download github.com/oapi-codegen/oapi-codegen/v2
+
+        OAPI_MOD_DIR="$(go list -m -f '{{"{{"}}.Dir{{"}}"}}' github.com/oapi-codegen/oapi-codegen/v2)"
+        if [ -z "$OAPI_MOD_DIR" ]; then
+          echo "error: could not locate oapi-codegen/v2 module dir" >&2
+          exit 1
+        fi
+
+        cp "$OAPI_MOD_DIR/pkg/codegen/templates/chi/chi-middleware.tmpl" api/v3/templates/chi-middleware.tmpl
+        chmod u+w api/v3/templates/chi-middleware.tmpl
+        patch -p1 -d api/v3/templates < api/v3/templates/chi-middleware.tmpl.patch
+
+  update-openapi:
+    desc: Generate OpenAPI specs from TypeSpec and Go API code from OpenAPI
+    cmds:
+      - task: patch-oapi-templates
+      - task: _print
+        vars: { TARGET: update-openapi }
+      - task: api-spec-generate
+      - go generate ./api/...
+
+  api-spec-generate:
+    desc: Generate OpenAPI specs only
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: pnpm }
+      - task: _require-tool
+        vars: { TOOL: yq }
+      - task: _print
+        vars: { TARGET: api-spec-generate }
+      - |
+        cd api/spec
+
+        pnpm --frozen-lockfile install
+        pnpm format
+        pnpm generate
+
+        # Replace inline filter definitions with $ref to common/definitions/aip_filters.yaml.
+        AIP_REF="../../../../common/definitions/aip_filters.yaml#/components/schemas"
+        FILE="packages/aip/output/definitions/metering-and-billing/v3/openapi.MeteringAndBilling.yaml"
+
+        for schema in SortQuery BooleanFieldFilter NumericFieldFilter StringFieldFilter StringFieldFilterExact DateTimeFieldFilter LabelsFieldFilter; do
+          if yq -e ".components.schemas | has(\"$schema\")" "$FILE" > /dev/null 2>&1; then
+            REF_VAL="$AIP_REF/$schema" SCHEMA="$schema" \
+              yq -i '.components.schemas[strenv(SCHEMA)] = {"$ref": strenv(REF_VAL)}' "$FILE"
+          fi
+        done
+
+        pnpm --filter @openmeter/api-spec-aip exec openapi bundle output/definitions/metering-and-billing/v3/openapi.OpenMeter.yaml -o ../../../v3/openapi.yaml
+        cp packages/legacy/output/openapi.OpenMeter.yaml ../openapi.yaml
+        cp packages/legacy/output/openapi.OpenMeterCloud.yaml ../openapi.cloud.yaml
+
+  api-spec-format:
+    desc: Format TypeSpec API specs
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: pnpm }
+      - task: _print
+        vars: { TARGET: api-spec-format }
+      - cd api/spec && pnpm --frozen-lockfile install
+      - cd api/spec && pnpm format
+
+  api-spec-lint:
+    desc: Lint TypeSpec API specs
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: pnpm }
+      - task: _print
+        vars: { TARGET: api-spec-lint }
+      - cd api/spec && pnpm --frozen-lockfile install
+      - cd api/spec && pnpm lint
+
+  generate-javascript-sdk:
+    desc: Generate JavaScript SDK
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: pnpm }
+      - task: _print
+        vars: { TARGET: generate-javascript-sdk }
+      - cd api/client/javascript && pnpm --frozen-lockfile install
+      - cd api/client/javascript && pnpm run generate
+      - cd api/client/javascript && pnpm build
+      - cd api/client/javascript && pnpm test
+
+  gen-api:
+    desc: Generate API and SDKs
+    aliases: [api]
+    cmds:
+      - task: update-openapi
+      - task: generate-javascript-sdk
+      - task: _print
+        vars: { TARGET: gen-api }
+
+  generate-all:
+    desc: Execute all code generators
+    summary: |
+      Regenerates the full generated surface:
+      - OpenAPI specs from TypeSpec
+      - JavaScript SDK
+      - Go generated files via go generate ./...
+    cmds:
+      - task: update-openapi
+      - task: generate-javascript-sdk
+      - task: _print
+        vars: { TARGET: generate-all }
+      - go generate ./...
+
+  generate:
+    desc: Generate Go code
+    aliases: [gen]
+    cmds:
+      - task: patch-oapi-templates
+      - task: _print
+        vars: { TARGET: generate }
+      - go generate ./...
+
+  generate-view-sql:
+    desc: Generate SQL for ent.View schemas
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: go }
+      - task: _print
+        vars: { TARGET: generate-view-sql }
+      - go run ./tools/migrate/cmd/viewgen
+
+  generate-sqlc-testdata:
+    desc: Generate SQLC testdata for a migration version
+    preconditions:
+      - sh: |
+          set -- {{.CLI_ARGS}}
+          [ -n "${VERSION:-${1:-}}" ]
+        msg: "VERSION is required. Use VERSION=<migration_version> task generate-sqlc-testdata or task generate-sqlc-testdata -- <migration_version>."
+    cmds:
+      - |
+        set -- {{.CLI_ARGS}}
+        version="${VERSION:-${1:-}}"
+        printf 'Executing target: \033[36m%s\033[0m\n' generate-sqlc-testdata
+        VERSION="$version" ./tools/migrate/generate-sqlc-testdata.sh
+
+  migrate-check:
+    desc: Validate migrations
+    summary: |
+      Validates database migration hygiene:
+      - Ent schema is in sync with generated code
+      - Atlas diff does not create uncommitted migration changes
+      - Last 10 migrations lint cleanly
+      - Migration checksums validate
+    cmds:
+      - task: migrate-check-schema
+      - task: migrate-check-diff
+      - task: migrate-check-lint
+      - task: migrate-check-validate
+      - task: _print
+        vars: { TARGET: migrate-check }
+
+  migrate-check-schema:
+    desc: Ensure ent schema is in sync with generated code
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: go }
+      - task: _print
+        vars: { TARGET: migrate-check-schema }
+      - go generate -x ./openmeter/ent/...
+      - task: check-clean-paths
+        vars:
+          MESSAGE: "!!! schema is not in sync with generated code - run 'go generate ./openmeter/ent/...' and commit the changes !!!"
+          PATHS: openmeter/ent
+
+  migrate-check-diff:
+    desc: Ensure migrations are in sync with schema
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: atlas }
+      - task: _print
+        vars: { TARGET: migrate-check-diff }
+      - atlas migrate --env local diff migrate-check >/dev/null
+      - task: check-clean-paths
+        vars:
+          MESSAGE: "!!! migrations are not in sync with schema - run 'atlas migrate --env local diff <name>' and commit the generated files !!!"
+          PATHS: tools/migrate/migrations
+
+  migrate-check-lint:
+    desc: Lint the last 10 migrations
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: atlas }
+      - task: _print
+        vars: { TARGET: migrate-check-lint }
+      - atlas migrate --env local lint --latest 10
+
+  migrate-check-validate:
+    desc: Validate migration checksums
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: atlas }
+      - task: _print
+        vars: { TARGET: migrate-check-validate }
+      - atlas migrate --env local validate
+
+  check-clean-paths:
+    internal: true
+    cmds:
+      - |
+        if ! git diff --quiet -- {{.PATHS}} || [ -n "$(git ls-files --others --exclude-standard -- {{.PATHS}})" ]; then
+          git --no-pager diff -- {{.PATHS}}
+          git ls-files --others --exclude-standard -- {{.PATHS}}
+          echo "{{.MESSAGE}}"
+          exit 1
+        fi

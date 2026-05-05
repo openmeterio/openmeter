@@ -122,7 +122,7 @@
 
               atlasx
 
-              just
+              go-task
               semver-tool
 
               go-migrate

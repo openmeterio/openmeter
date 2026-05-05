@@ -121,7 +121,7 @@ jobs:
           env \
             GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
             TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
-            nix develop --impure .#ci -c make -j 4 build
+            nix develop --impure .#ci -c task build
 
       - name: Validate commit messages
         run: |
@@ -171,13 +171,13 @@ jobs:
 
       - name: Ensure code generators are run
         run: |
-          nix develop --impure .#ci -c make update-openapi
+          nix develop --impure .#ci -c task update-openapi
 
           # does not detect new files
           if [ -n "$(git diff --exit-code)" ]; then
             git diff
 
-            echo "Code generators have not been run, please run 'make generate-all' and commit the changes"
+            echo "Code generators have not been run, please run 'task generate-all' and commit the changes"
             exit 1
           fi
 
@@ -185,7 +185,7 @@ jobs:
           if [ -n "$(git status --porcelain)" ]; then
             git status --porcelain
 
-            echo "Code generators have not been run, please run 'make generate-all' and commit the changes"
+            echo "Code generators have not been run, please run 'task generate-all' and commit the changes"
             exit 1
           fi
 
@@ -199,27 +199,34 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@903f9c1a6ebcba6cf41d87230be49611ac97822e # v6
+      - name: Set up Nix
+        uses: nixbuild/nix-quick-install-action@2c9db80fb984ceb1bcaa77cdda3fdf8cfba92035 # v34
         with:
-          package_json_file: api/client/javascript/package.json
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          nix_conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            keep-env-derivations = true
+            keep-outputs = true
 
-      - name: Set up Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+      - name: Restore Nix store
+        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          node-version-file: .nvmrc
-          cache: pnpm
-          cache-dependency-path: api/client/javascript/pnpm-lock.yaml
+          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          restore-prefixes-first-match: |
+            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
+            ${{ runner.os }}-openmeter-nix-build-main-
+            ${{ runner.os }}-openmeter-nix-build-
 
       - name: Ensure code generators are run
         run: |
-          make generate-javascript-sdk
+          nix develop --impure .#ci -c task generate-javascript-sdk
 
           # does not detect new files
           if [ -n "$(git diff --exit-code)" ]; then
             git diff
 
-            echo "Code generators have not been run, please run 'make generate-all' and commit the changes"
+            echo "Code generators have not been run, please run 'task generate-all' and commit the changes"
             exit 1
           fi
 
@@ -227,7 +234,7 @@ jobs:
           if [ -n "$(git status --porcelain)" ]; then
             git status --porcelain
 
-            echo "Code generators have not been run, please run 'make generate-all' and commit the changes"
+            echo "Code generators have not been run, please run 'task generate-all' and commit the changes"
             exit 1
           fi
 
@@ -274,14 +281,14 @@ jobs:
 
       - name: Ensure code generators are run
         run: |
-          nix develop --impure .#ci -c make patch-oapi-templates
+          nix develop --impure .#ci -c task patch-oapi-templates
           nix develop --impure .#ci -c go generate ./...
 
           # does not detect new files
           if [ -n "$(git diff --exit-code)" ]; then
             git diff
 
-            echo "Code generators have not been run, please run 'make generate-all' and commit the changes"
+            echo "Code generators have not been run, please run 'task generate-all' and commit the changes"
             exit 1
           fi
 
@@ -289,7 +296,7 @@ jobs:
           if [ -n "$(git status --porcelain)" ]; then
             git status --porcelain
 
-            echo "Code generators have not been run, please run 'make generate-all' and commit the changes"
+            echo "Code generators have not been run, please run 'task generate-all' and commit the changes"
             exit 1
           fi
 
@@ -365,7 +372,7 @@ jobs:
           env \
             GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
             TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
-            nix develop --impure .#ci -c make test-nocache
+            nix develop --impure .#ci -c task test-nocache
 
       - name: Stop docker-compose dependencies
         if: always()
@@ -415,7 +422,7 @@ jobs:
             ${{ runner.os }}-openmeter-go-modules-main
 
       - name: Run migration checks
-        run: nix develop --impure .#ci -c make migrate-check
+        run: nix develop --impure .#ci -c task migrate-check
 
   lint:
     name: Lint
@@ -501,19 +508,19 @@ jobs:
           env \
             GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
             TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
-            nix develop --impure .#ci -c make lint-go
+            nix develop --impure .#ci -c task lint-go
 
       - name: Run linters - api spec
         run: |
-          nix develop --impure .#ci -c make lint-api-spec
+          nix develop --impure .#ci -c task lint-api-spec
 
       - name: Run linters - openapi
         run: |
-          nix develop --impure .#ci -c make lint-openapi
+          nix develop --impure .#ci -c task lint-openapi
 
       - name: Run linters - helm
         run: |
-          nix develop --impure .#ci -c make lint-helm
+          nix develop --impure .#ci -c task lint-helm
 
   trusted-artifacts:
     name: Artifacts

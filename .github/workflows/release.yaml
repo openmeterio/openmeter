@@ -73,8 +73,7 @@ jobs:
       - name: Package chart
         # Untrusted values (github.ref_name, matrix.chart) passed via env to
         # avoid shell injection through ${{ ... }} interpolation in run:.
-        run: nix develop --impure .#ci -c make package-helm-chart CHART="$CHART"
-          VERSION="$VERSION"
+        run: nix develop --impure .#ci -c env CHART="$CHART" VERSION="$VERSION" task package-helm-chart
         env:
           CHART: ${{ matrix.chart }}
           VERSION: ${{ github.ref_name }}
@@ -156,8 +155,8 @@ jobs:
         # Untrusted github.ref_name passed via env; matrix values are
         # workflow-controlled but routed via env for consistency.
         run: |
-          nix develop --impure .#ci -c make build-benthos-collector-release \
-            GOOS="$GOOS" GOARCH="$GOARCH" VERSION="$VERSION"
+          nix develop --impure .#ci -c env GOOS="$GOOS" GOARCH="$GOARCH" VERSION="$VERSION" \
+            task build-benthos-collector-release
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
@@ -165,8 +164,8 @@ jobs:
 
       - name: Archive benthos-collector binary
         run: |
-          nix develop --impure .#ci -c make archive-benthos-collector-release \
-            GOOS="$GOOS" GOARCH="$GOARCH"
+          nix develop --impure .#ci -c env GOOS="$GOOS" GOARCH="$GOARCH" \
+            task archive-benthos-collector-release
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
@@ -299,9 +298,9 @@ jobs:
             ${{ runner.os }}-openmeter-nix-build-main-
             ${{ runner.os }}-openmeter-nix-build-
 
-      - name: Publish Python package via Nix make target
+      - name: Publish Python package via Nix task target
         run: |
-          nix develop --impure .#ci -c make -C api/client/python publish-python-sdk
+          nix develop --impure .#ci -c task publish-python-sdk
         env:
           PY_SDK_RELEASE_VERSION: ${{ github.ref_name }}
           COMMIT_SHORT_SHA: ${{ steps.get-short-sha.outputs.id }}

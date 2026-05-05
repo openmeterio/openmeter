@@ -1,0 +1,112 @@
+version: '3'
+
+tasks:
+  package-helm-chart:
+    desc: Package a helm chart for release. Use CHART/VERSION env vars or positional args
+    preconditions:
+      - sh: |
+          set -- {{.CLI_ARGS}}
+          [ -n "${CHART:-${1:-}}" ]
+        msg: "CHART is required. Use CHART=openmeter VERSION=v1.2.3 task package-helm-chart or task package-helm-chart -- openmeter v1.2.3."
+      - sh: |
+          set -- {{.CLI_ARGS}}
+          [ -n "${VERSION:-${2:-}}" ]
+        msg: "VERSION is required. Use CHART=openmeter VERSION=v1.2.3 task package-helm-chart or task package-helm-chart -- openmeter v1.2.3."
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: helm }
+      - task: _require-tool
+        vars: { TOOL: helm-docs }
+      - |
+        set -- {{.CLI_ARGS}}
+        chart="${CHART:-${1:-}}"
+        version="${VERSION:-${2:-}}"
+        printf 'Executing target: \033[36m%s\033[0m\n' package-helm-chart
+
+        chart_dir="deploy/charts/${chart}"
+        version_no_v="${version#v}"
+
+        mkdir -p build/helm
+        helm-docs --log-level info -s file -c "$chart_dir" \
+          -t "deploy/charts/template.md" \
+          -t "$chart_dir/README.tmpl.md"
+        helm dependency update "$chart_dir"
+        helm package "$chart_dir" \
+          --version "$version_no_v" \
+          --app-version "$version" \
+          --destination build/helm
+
+  charts-docs:
+    desc: Generate chart docs from deploy/charts
+    dir: deploy/charts
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: helm-docs }
+      - task: _print
+        vars: { TARGET: charts-docs }
+      - helm-docs --log-level trace -s file -c . -t "$PWD/template.md" -t README.tmpl.md
+
+  publish-javascript-sdk:
+    desc: Publish JavaScript SDK
+    preconditions:
+      - sh: '[ -n "${JS_SDK_RELEASE_VERSION:-}" ]'
+        msg: "JS_SDK_RELEASE_VERSION is required. Example: JS_SDK_RELEASE_VERSION=1.2.3 JS_SDK_RELEASE_TAG=beta task publish-javascript-sdk."
+      - sh: '[ -n "${JS_SDK_RELEASE_TAG:-}" ]'
+        msg: "JS_SDK_RELEASE_TAG is required. Example: JS_SDK_RELEASE_VERSION=1.2.3 JS_SDK_RELEASE_TAG=beta task publish-javascript-sdk."
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: pnpm }
+      - |
+        printf 'Executing target: \033[36m%s\033[0m\n' publish-javascript-sdk
+        cd api/client/javascript
+        pnpm --frozen-lockfile install
+        pnpm version "${JS_SDK_RELEASE_VERSION}" --no-git-tag-version
+        CACHE_BUSTER="$(date +%s)" pnpm publish --no-git-checks --tag "${JS_SDK_RELEASE_TAG}"
+        echo "Published JavaScript SDK version ${JS_SDK_RELEASE_VERSION} with tag ${JS_SDK_RELEASE_TAG}"
+
+  publish-python-sdk:
+    desc: Publish Python SDK
+    preconditions:
+      - sh: '[ -n "${PY_SDK_RELEASE_VERSION:-}" ] || [ -n "${PY_SDK_RELEASE_TAG:-}" ]'
+        msg: "PY_SDK_RELEASE_VERSION or PY_SDK_RELEASE_TAG is required."
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: poetry }
+      - task: _require-tool
+        vars: { TOOL: curl }
+      - task: _require-tool
+        vars: { TOOL: jq }
+      - task: _require-tool
+        vars: { TOOL: git }
+      - task: _print
+        vars: { TARGET: publish-python-sdk }
+      - cd api/client/python && ./scripts/release.sh
+
+  release:
+    desc: Tag and push a beta prerelease
+    summary: |
+      Checks out main, verifies the worktree is clean, computes the next beta prerelease tag,
+      creates the annotated tag, and pushes it to origin.
+    prompt: This checks out main, creates a release tag, and pushes it. Continue?
+    preconditions:
+      - sh: 'command -v git >/dev/null 2>&1'
+        msg: "git is required."
+      - sh: 'command -v semver >/dev/null 2>&1'
+        msg: "semver is required. Enter the Nix shell or install semver-tool."
+      - sh: 'git rev-parse --is-inside-work-tree >/dev/null 2>&1'
+        msg: "release must be run inside a git worktree."
+    cmds:
+      - |
+        set -eu
+        printf 'Executing target: \033[36m%s\033[0m\n' release
+
+        git checkout main >/dev/null 2>&1
+        git diff-index --quiet HEAD || (echo "Git directory is dirty" && exit 1)
+
+        version=v$(semver bump prerelease beta.. $(git describe --abbrev=0))
+
+        echo "Detected version: ${version}"
+        echo "Tagging release with version ${version}"
+
+        git tag -m "Release ${version}" "$version"
+        git push origin "$version"

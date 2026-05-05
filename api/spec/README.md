@@ -7,7 +7,7 @@ This workspace contains two TypeSpec packages that generate OpenAPI specs:
 | **Legacy** (`packages/legacy`) | OpenMeter API (v1-v2) and OpenMeter Cloud API                 | `openapi.OpenMeter.yaml`, `openapi.OpenMeterCloud.yaml` |
 | **AIP** (`packages/aip`)       | OpenMeter and Konnect metering & billing APIs (v3), AIP-style | `openapi.MeteringAndBilling.yaml` (OpenMeter + Konnect) |
 
-From the repo root, run `make gen-api` (or `make -C api/spec generate`) to build both packages and copy/bundle artifacts into `api/`.
+From the repo root, run `task gen-api` to build both packages and copy/bundle artifacts into `api/`.
 
 ---
 
