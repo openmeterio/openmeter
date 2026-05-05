@@ -1,0 +1,77 @@
+version: '3'
+
+tasks:
+  check-postgres:
+    internal: true
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: psql }
+      - |
+        PGPASSWORD="${PGPASSWORD:-postgres}" \
+          psql \
+            -h "${POSTGRES_HOST:-127.0.0.1}" \
+            -U "${POSTGRES_USER:-postgres}" \
+            "${POSTGRES_DB:-postgres}" \
+            -c "SELECT version();" || {
+              echo "!!! Postgres is not running. Please start it with 'docker compose up -d postgres' !!!"
+              exit 1
+            }
+
+  test:
+    desc: Run tests
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: go }
+      - task: check-postgres
+      - task: _print
+        vars: { TARGET: test }
+      - |
+        GO_BUILD_FLAGS="${GO_BUILD_FLAGS:--tags=dynamic}"
+        GO_TEST_PACKAGE_PARALLELISM="${GO_TEST_PACKAGE_PARALLELISM:-128}"
+        GO_TEST_FLAGS="${GO_TEST_FLAGS:--p ${GO_TEST_PACKAGE_PARALLELISM} -parallel 16 ${GO_BUILD_FLAGS}}"
+
+        # GO_TEST_FLAGS intentionally follows the old Makefile word-splitting behavior.
+        # shellcheck disable=SC2086
+        POSTGRES_HOST="${POSTGRES_HOST:-127.0.0.1}" go test ${GO_TEST_FLAGS} ./...
+
+  test-nocache:
+    desc: Run tests without cache
+    aliases: [test-no-cache]
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: go }
+      - task: check-postgres
+      - task: _print
+        vars: { TARGET: test-nocache }
+      - |
+        GO_BUILD_FLAGS="${GO_BUILD_FLAGS:--tags=dynamic}"
+        GO_TEST_PACKAGE_PARALLELISM="${GO_TEST_PACKAGE_PARALLELISM:-128}"
+        GO_TEST_FLAGS="${GO_TEST_FLAGS:--p ${GO_TEST_PACKAGE_PARALLELISM} -parallel 16 ${GO_BUILD_FLAGS}}"
+
+        # GO_TEST_FLAGS intentionally follows the old Makefile word-splitting behavior.
+        # shellcheck disable=SC2086
+        POSTGRES_HOST="${POSTGRES_HOST:-127.0.0.1}" go test ${GO_TEST_FLAGS} -count=1 ./...
+
+  test-all:
+    desc: Run tests with svix dependencies, bypassing the test cache
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: docker }
+      - task: _require-tool
+        vars: { TOOL: go }
+      - task: _print
+        vars: { TARGET: test-all }
+      - |
+        docker compose up -d postgres svix redis
+        ./tools/wait-for-compose.sh postgres svix redis
+
+        GO_BUILD_FLAGS="${GO_BUILD_FLAGS:--tags=dynamic}"
+        GO_TEST_PACKAGE_PARALLELISM="${GO_TEST_PACKAGE_PARALLELISM:-128}"
+        GO_TEST_FLAGS="${GO_TEST_FLAGS:--p ${GO_TEST_PACKAGE_PARALLELISM} -parallel 16 ${GO_BUILD_FLAGS}}"
+
+        # GO_TEST_FLAGS intentionally follows the old Makefile word-splitting behavior.
+        # shellcheck disable=SC2086
+        POSTGRES_HOST="${POSTGRES_HOST:-127.0.0.1}" \
+          SVIX_HOST="${SVIX_HOST:-localhost}" \
+          SVIX_JWT_SECRET="${SVIX_JWT_SECRET:-DUMMY_JWT_SECRET}" \
+          go test ${GO_TEST_FLAGS} -count=1 ./...

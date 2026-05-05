@@ -1,0 +1,102 @@
+version: '3'
+
+tasks:
+  lint:
+    desc: Run all linters
+    cmds:
+      - task: lint-go
+      - task: lint-api-spec
+      - task: lint-openapi
+      - task: lint-helm
+      - task: _print
+        vars: { TARGET: lint }
+
+  lint-go:
+    desc: Lint Go code
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: golangci-lint }
+      - task: _print
+        vars: { TARGET: lint-go }
+      - golangci-lint run -v ${GO_LINT_PATH:-./...}
+
+  lint-go-fast:
+    desc: Lint Go bug-finding checks. Set GO_LINT_PATH=./openmeter/ledger/... as needed
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: golangci-lint }
+      - task: _print
+        vars: { TARGET: lint-go-fast }
+      - golangci-lint run -v --config .golangci-fast.yaml ${GO_LINT_PATH:-./...}
+
+  lint-go-style:
+    desc: Lint Go formatting and import order
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: golangci-lint }
+      - task: _print
+        vars: { TARGET: lint-go-style }
+      - golangci-lint fmt -v -d ${GO_LINT_PATH:-./...}
+
+  lint-go-head:
+    desc: Lint Go code since last commit
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: golangci-lint }
+      - task: _print
+        vars: { TARGET: lint-go-head }
+      - golangci-lint run --new-from-rev=HEAD~1
+
+  lint-api-spec:
+    desc: Lint API spec
+    cmds:
+      - task: api-spec-lint
+
+  lint-openapi:
+    desc: Lint OpenAPI specs
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: spectral }
+      - task: _print
+        vars: { TARGET: lint-openapi }
+      - spectral lint api/openapi.yaml api/openapi.cloud.yaml api/v3/openapi.yaml
+
+  lint-helm:
+    desc: Lint Helm charts
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: helm }
+      - task: _print
+        vars: { TARGET: lint-helm }
+      - helm lint deploy/charts/openmeter
+      - helm lint deploy/charts/benthos-collector
+
+  ci:
+    desc: Run CI checks
+    summary: |
+      Runs the local CI sequence:
+      1. regenerate all generated code
+      2. run lint, tests, and e2e in parallel with prefixed output
+    cmds:
+      - task: _print
+        vars: { TARGET: ci }
+      - task generate-all
+      - task --output prefixed --parallel lint test e2e
+
+  fmt:
+    desc: Format code
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: golangci-lint }
+      - task: _print
+        vars: { TARGET: fmt }
+      - golangci-lint run --fix
+
+  mod:
+    desc: Run go mod tidy
+    cmds:
+      - task: _require-tool
+        vars: { TOOL: go }
+      - task: _print
+        vars: { TARGET: mod }
+      - go mod tidy

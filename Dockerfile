@@ -4,7 +4,7 @@ FROM --platform=$BUILDPLATFORM golang:1.25.5-alpine3.23@sha256:ac09a5f469f307e5d
 
 COPY --link --from=xx / /
 
-RUN xx-apk add --update --no-cache ca-certificates make git curl clang lld
+RUN xx-apk add --update --no-cache ca-certificates git curl clang lld
 
 ARG TARGETPLATFORM
 

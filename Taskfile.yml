@@ -1,0 +1,94 @@
+version: '3'
+
+silent: true
+
+includes:
+  api:
+    taskfile: ./tools/tasks/api.yml
+    dir: .
+    flatten: true
+  build:
+    taskfile: ./tools/tasks/build.yml
+    dir: .
+    flatten: true
+  dev:
+    taskfile: ./tools/tasks/dev.yml
+    dir: .
+    flatten: true
+  e2e:
+    taskfile: ./tools/tasks/e2e.yml
+    dir: .
+    flatten: true
+  lint:
+    taskfile: ./tools/tasks/lint.yml
+    dir: .
+    flatten: true
+  release:
+    taskfile: ./tools/tasks/release.yml
+    dir: .
+    flatten: true
+  test:
+    taskfile: ./tools/tasks/test.yml
+    dir: .
+    flatten: true
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task: help
+
+  help:
+    desc: List available tasks
+    cmds:
+      - task --list
+
+  _print:
+    internal: true
+    cmds:
+      - |
+        printf 'Executing target: \033[36m%s\033[0m\n' '{{.TARGET}}'
+
+  _require-tool:
+    internal: true
+    preconditions:
+      - sh: 'command -v {{.TOOL}} >/dev/null 2>&1'
+        msg: '{{.TOOL}} is required. Enter the Nix shell or install it locally.'
+    cmds:
+      - true
+
+  var:
+    desc: "Echo a task variable. Usage: task var -- GO_BUILD_FLAGS"
+    cmds:
+      - |
+        set -- {{.CLI_ARGS}}
+        name="${1:-}"
+        if [ -z "$name" ]; then
+          echo "Usage: task var -- <name>" >&2
+          exit 2
+        fi
+        case "$name" in
+          SVIX_JWT_SECRET) printf '%s\n' "${SVIX_JWT_SECRET:-DUMMY_JWT_SECRET}" ;;
+          GO_BUILD_FLAGS) printf '%s\n' "${GO_BUILD_FLAGS:--tags=dynamic}" ;;
+          GO_TEST_PACKAGE_PARALLELISM) printf '%s\n' "${GO_TEST_PACKAGE_PARALLELISM:-128}" ;;
+          GO_TEST_FLAGS)
+            go_build_flags="${GO_BUILD_FLAGS:--tags=dynamic}"
+            go_test_package_parallelism="${GO_TEST_PACKAGE_PARALLELISM:-128}"
+            printf '%s\n' "${GO_TEST_FLAGS:--p ${go_test_package_parallelism} -parallel 16 ${go_build_flags}}"
+            ;;
+          GO_LINT_PATH) printf '%s\n' "${GO_LINT_PATH:-./...}" ;;
+          *) printenv "$name" 2>/dev/null || true ;;
+        esac
+
+  varexport:
+    desc: "Echo a task variable as name=value. Usage: task varexport -- GO_BUILD_FLAGS"
+    cmds:
+      - |
+        set -- {{.CLI_ARGS}}
+        name="${1:-}"
+        if [ -z "$name" ]; then
+          echo "Usage: task varexport -- <name>" >&2
+          exit 2
+        fi
+        value="$(task var -- "$name")"
+        printf '%s=%s\n' "$name" "$value"

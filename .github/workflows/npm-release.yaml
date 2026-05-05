@@ -60,6 +60,8 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Publish NPM package
+        # This workflow intentionally stays outside the Nix shell; use the
+        # JavaScript Makefile shim fallback instead of installing Task here.
         run: make -C api/client/javascript publish-javascript-sdk
         env:
           JS_SDK_RELEASE_VERSION: ${{ inputs.version }}

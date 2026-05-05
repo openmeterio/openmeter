@@ -1,3 +1,9 @@
+# Compatibility shim. Canonical task definitions live in ../../Taskfile.yml.
+
+TASK ?= task
+TASK_ROOT := ../..
+
 .PHONY: docs
+
 docs:
-	helm-docs --log-level trace -s file -c . -t $$PWD/template.md -t README.tmpl.md
+	@$(TASK) --dir "$(TASK_ROOT)" charts-docs
