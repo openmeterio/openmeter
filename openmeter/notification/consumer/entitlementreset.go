@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/samber/lo"
-	"golang.org/x/exp/slices"
 
 	"github.com/openmeterio/openmeter/api"
 	customerhttphandler "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
