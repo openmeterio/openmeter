@@ -102,6 +102,7 @@ func (t TransferCustomerFBOToAccruedTemplate) routePairingKey(address ledger.Pos
 
 	return routePairingKey{
 		currency:  route.Currency,
+		taxCode:   taxCodeKey(route.TaxCode),
 		costBasis: costBasisKey(route.CostBasis),
 	}
 }
@@ -169,6 +170,7 @@ func (t TransferCustomerFBOToAccruedTemplate) resolveAccruedSubAccByRoutePairing
 		if current.Address == nil {
 			accruedSubAccount, err := accruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
 				Currency:  t.Currency,
+				TaxCode:   source.Address.Route().Route().TaxCode,
 				CostBasis: source.Address.Route().Route().CostBasis,
 			})
 			if err != nil {
@@ -225,12 +227,20 @@ func costBasisKey(costBasis *alpacadecimal.Decimal) string {
 	return costBasis.String()
 }
 
+func taxCodeKey(taxCode *string) string {
+	if taxCode == nil {
+		return "null"
+	}
+	return *taxCode
+}
+
 // TransferCustomerFBOAdvanceToAccruedTemplate moves value from the synthetic advance-backed
 // customer FBO route into the matching accrued route.
 type TransferCustomerFBOAdvanceToAccruedTemplate struct {
 	At             time.Time
 	Amount         alpacadecimal.Decimal
 	Currency       currencyx.Code
+	TaxCode        *string
 	CostBasis      *alpacadecimal.Decimal
 	CreditPriority *int
 }
@@ -325,6 +335,7 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) resolve(ctx context.Context
 
 	fbo, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
 		Currency:       t.Currency,
+		TaxCode:        t.TaxCode,
 		CostBasis:      t.CostBasis,
 		CreditPriority: priority,
 	})
@@ -334,6 +345,7 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) resolve(ctx context.Context
 
 	accrued, err := customerAccounts.AccruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
 		Currency:  t.Currency,
+		TaxCode:   t.TaxCode,
 		CostBasis: t.CostBasis,
 	})
 	if err != nil {
@@ -361,6 +373,7 @@ type TransferCustomerReceivableToAccruedTemplate struct {
 	At        time.Time
 	Amount    alpacadecimal.Decimal
 	Currency  currencyx.Code
+	TaxCode   *string
 	CostBasis *alpacadecimal.Decimal
 }
 
@@ -410,6 +423,7 @@ func (t TransferCustomerReceivableToAccruedTemplate) resolve(ctx context.Context
 
 	receivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
+		TaxCode:                        t.TaxCode,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -419,6 +433,7 @@ func (t TransferCustomerReceivableToAccruedTemplate) resolve(ctx context.Context
 
 	accrued, err := customerAccounts.AccruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
 		Currency:  t.Currency,
+		TaxCode:   t.TaxCode,
 		CostBasis: t.CostBasis,
 	})
 	if err != nil {
@@ -446,6 +461,7 @@ type TranslateCustomerAccruedCostBasisTemplate struct {
 	At            time.Time
 	Amount        alpacadecimal.Decimal
 	Currency      currencyx.Code
+	TaxCode       *string
 	FromCostBasis *alpacadecimal.Decimal
 	ToCostBasis   *alpacadecimal.Decimal
 }
@@ -546,6 +562,7 @@ func (t TranslateCustomerAccruedCostBasisTemplate) resolve(ctx context.Context, 
 
 	fromAccrued, err := customerAccounts.AccruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
 		Currency:  t.Currency,
+		TaxCode:   t.TaxCode,
 		CostBasis: t.FromCostBasis,
 	})
 	if err != nil {
@@ -554,6 +571,7 @@ func (t TranslateCustomerAccruedCostBasisTemplate) resolve(ctx context.Context, 
 
 	toAccrued, err := customerAccounts.AccruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
 		Currency:  t.Currency,
+		TaxCode:   t.TaxCode,
 		CostBasis: t.ToCostBasis,
 	})
 	if err != nil {

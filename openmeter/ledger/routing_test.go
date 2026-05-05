@@ -5,6 +5,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -13,15 +14,17 @@ import (
 func TestBuildRoutingKeyV1(t *testing.T) {
 	priority := 7
 	costBasis := mustDecimal(t, "0.7")
+	taxcode := "GST10"
 
 	key, err := BuildRoutingKeyV1(Route{
+		TaxCode:        &taxcode,
 		Currency:       currencyx.Code("USD"),
 		CostBasis:      &costBasis,
 		CreditPriority: &priority,
 	})
 	require.NoError(t, err)
 	require.Equal(t, RoutingKeyVersionV1, key.Version())
-	require.Equal(t, "currency:USD|tax_code:null|features:null|cost_basis:0.7|credit_priority:7|transaction_authorization_status:null", key.Value())
+	require.Equal(t, "currency:USD|tax_code:GST10|features:null|cost_basis:0.7|credit_priority:7|transaction_authorization_status:null", key.Value())
 }
 
 func TestBuildRoutingKeyV1_Nulls(t *testing.T) {
@@ -109,6 +112,115 @@ func TestBuildRoutingKeyV1_DifferentAuthorizationStatus_DifferentKey(t *testing.
 	require.Equal(t, "currency:USD|tax_code:null|features:null|cost_basis:null|credit_priority:null|transaction_authorization_status:authorized", key2.Value())
 }
 
+func TestBuildRoutingKeyV2_DifferentTaxBehavior_DifferentKey(t *testing.T) {
+	base := Route{Currency: currencyx.Code("USD"), TaxCode: lo.ToPtr("GST10"), TaxBehavior: lo.ToPtr(TaxBehaviorInclusive)}
+
+	k1, err := BuildRoutingKeyV2(base)
+	require.NoError(t, err)
+	require.Equal(t, RoutingKeyVersionV2, k1.Version())
+
+	exclusive := base
+	exclusive.TaxBehavior = lo.ToPtr(TaxBehaviorExclusive)
+	k2, err := BuildRoutingKeyV2(exclusive)
+	require.NoError(t, err)
+
+	require.NotEqual(t, k1.Value(), k2.Value())
+}
+
+func TestTaxBehaviorValidate(t *testing.T) {
+	require.NoError(t, TaxBehaviorInclusive.Validate())
+	require.NoError(t, TaxBehaviorExclusive.Validate())
+	require.Error(t, TaxBehavior("bogus").Validate())
+	require.Error(t, TaxBehavior("").Validate())
+}
+
+func TestRouteValidate_InvalidTaxBehavior(t *testing.T) {
+	r := Route{
+		Currency:    currencyx.Code("USD"),
+		TaxBehavior: lo.ToPtr(TaxBehavior("bogus")),
+	}
+	require.Error(t, r.Validate())
+}
+
+func TestRouteFilter_NormalizePreservesTaxCode(t *testing.T) {
+	tc := "VAT20"
+	f := RouteFilter{
+		Currency: currencyx.Code("USD"),
+		TaxCode:  mo.Some[*string](&tc),
+	}
+	norm, err := f.Normalize()
+	require.NoError(t, err)
+	require.True(t, norm.TaxCode.IsPresent())
+	got, _ := norm.TaxCode.Get()
+	require.Equal(t, &tc, got)
+}
+
+func TestRouteFilter_NormalizePreservesTaxBehavior(t *testing.T) {
+	b := TaxBehaviorExclusive
+	f := RouteFilter{
+		Currency:    currencyx.Code("USD"),
+		TaxBehavior: mo.Some[*TaxBehavior](&b),
+	}
+	norm, err := f.Normalize()
+	require.NoError(t, err)
+	require.True(t, norm.TaxBehavior.IsPresent())
+	got, _ := norm.TaxBehavior.Get()
+	require.Equal(t, &b, got)
+}
+
+func TestRouteFilter_NormalizeAbsentTaxFieldsStayAbsent(t *testing.T) {
+	f := RouteFilter{Currency: currencyx.Code("USD")}
+	norm, err := f.Normalize()
+	require.NoError(t, err)
+	require.True(t, norm.TaxCode.IsAbsent())
+	require.True(t, norm.TaxBehavior.IsAbsent())
+}
+
+func TestRouteFilter_NormalizeSomeNilTaxCodePreserved(t *testing.T) {
+	f := RouteFilter{
+		Currency: currencyx.Code("USD"),
+		TaxCode:  mo.Some[*string](nil),
+	}
+	norm, err := f.Normalize()
+	require.NoError(t, err)
+	require.True(t, norm.TaxCode.IsPresent())
+	got, _ := norm.TaxCode.Get()
+	require.Nil(t, got)
+}
+
+func TestRouteToFilter_TaxFieldsPinned(t *testing.T) {
+	tc := "GST10"
+	b := TaxBehaviorInclusive
+	r := Route{
+		Currency:    currencyx.Code("USD"),
+		TaxCode:     &tc,
+		TaxBehavior: &b,
+	}
+	f := r.Filter()
+
+	require.True(t, f.TaxCode.IsPresent())
+	gotCode, _ := f.TaxCode.Get()
+	require.Equal(t, &tc, gotCode)
+
+	require.True(t, f.TaxBehavior.IsPresent())
+	gotBehavior, _ := f.TaxBehavior.Get()
+	require.Equal(t, &b, gotBehavior)
+}
+
+func TestRouteToFilter_NilTaxFieldsPinnedAsPresent(t *testing.T) {
+	r := Route{Currency: currencyx.Code("USD")}
+	f := r.Filter()
+
+	// nil Route fields become Some(nil) in filter — "filter for null", not "don't care"
+	require.True(t, f.TaxCode.IsPresent())
+	tc, _ := f.TaxCode.Get()
+	require.Nil(t, tc)
+
+	require.True(t, f.TaxBehavior.IsPresent())
+	tb, _ := f.TaxBehavior.Get()
+	require.Nil(t, tb)
+}
+
 func mustDecimal(t *testing.T, raw string) alpacadecimal.Decimal {
 	t.Helper()
 
@@ -116,4 +228,15 @@ func mustDecimal(t *testing.T, raw string) alpacadecimal.Decimal {
 	require.NoError(t, err)
 
 	return value
+}
+
+func TestBuildRoutingKeyV2_WithTaxBehaviorAndTaxCode(t *testing.T) {
+	key, err := BuildRoutingKeyV2(Route{
+		Currency:    currencyx.Code("USD"),
+		TaxCode:     lo.ToPtr("GST10"),
+		TaxBehavior: lo.ToPtr(TaxBehaviorExclusive),
+	})
+	require.NoError(t, err)
+	require.Equal(t, RoutingKeyVersionV2, key.Version())
+	require.Equal(t, "currency:USD|tax_code:GST10|tax_behavior:exclusive|features:null|cost_basis:null|credit_priority:null|transaction_authorization_status:null", key.Value())
 }

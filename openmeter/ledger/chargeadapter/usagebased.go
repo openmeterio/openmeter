@@ -71,6 +71,7 @@ func (h *usageBasedHandler) OnInvoiceUsageAccrued(ctx context.Context, input usa
 			At:        input.BookedAt,
 			Amount:    amount,
 			Currency:  input.Charge.Intent.Currency,
+			TaxCode:   taxCodeIDFromIntent(input.Charge.Intent.TaxConfig),
 			CostBasis: invoiceCostBasis,
 		},
 	)
@@ -130,6 +131,7 @@ func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usage
 			At:        input.EventAt,
 			Amount:    receivableReplenishment,
 			Currency:  input.Charge.Intent.Currency,
+			TaxCode:   taxCodeIDFromIntent(input.Charge.Intent.TaxConfig),
 			CostBasis: invoiceCostBasis,
 		},
 	)
@@ -190,6 +192,7 @@ func (h *usageBasedHandler) OnPaymentSettled(ctx context.Context, input usagebas
 			At:        input.EventAt,
 			Amount:    input.Run.InvoiceUsage.Totals.Total,
 			Currency:  input.Charge.Intent.Currency,
+			TaxCode:   taxCodeIDFromIntent(input.Charge.Intent.TaxConfig),
 			CostBasis: invoiceCostBasis,
 		},
 	)
@@ -242,6 +245,8 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input
 		BookedAt:          input.BookedAt,
 		SourceBalanceAsOf: clock.Now(),
 		Currency:          input.Charge.Intent.Currency,
+		TaxCode:           taxCodeIDFromIntent(input.Charge.Intent.TaxConfig),
+		TaxBehavior:       taxBehaviorFromIntent(input.Charge.Intent.TaxConfig),
 		SettlementMode:    input.Charge.Intent.SettlementMode,
 		ServicePeriod:     input.Charge.Intent.ServicePeriod,
 		Amount:            input.AmountToAllocate,

@@ -10,13 +10,18 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
+// routePairingKey pairs source and counterpart sub-accounts during accrual and
+// earnings correction. TaxBehavior is deliberately excluded: it is an FBO-only
+// routing dimension. Accrued and earnings sub-accounts never carry TaxBehavior,
+// so it cannot be used to pair entries across those account types.
 type routePairingKey struct {
 	currency  currencyx.Code
+	taxCode   string
 	costBasis string
 }
 
 func (k routePairingKey) String() string {
-	return fmt.Sprintf("currency=%s,cost_basis=%s", k.currency, k.costBasis)
+	return fmt.Sprintf("currency=%s,tax_code=%s,cost_basis=%s", k.currency, k.taxCode, k.costBasis)
 }
 
 type correctionLeg struct {

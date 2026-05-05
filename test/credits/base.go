@@ -185,6 +185,7 @@ type CreateMockChargeIntentInput struct {
 	ManagedBy         billing.InvoiceLineManagedBy
 	UniqueReferenceID string
 	ProRating         productcatalog.ProRatingConfig
+	TaxConfig         *productcatalog.TaxCodeConfig
 }
 
 func (i *CreateMockChargeIntentInput) Validate() error {
@@ -237,6 +238,7 @@ func (s *BaseSuite) CreateMockChargeIntent(input CreateMockChargeIntentInput) ch
 		UniqueReferenceID: lo.EmptyableToPtr(input.UniqueReferenceID),
 		CustomerID:        input.Customer.ID,
 		Currency:          input.Currency,
+		TaxConfig:         input.TaxConfig,
 	}
 
 	if isFlatFee {
@@ -320,6 +322,25 @@ func (s *BaseSuite) MustCustomerFBOBalanceWithPriorityAsOf(customerID customer.C
 	return balance.Settled()
 }
 
+// MustCustomerFBOBalanceForTaxCode returns customer FBO balance filtered by cost basis and tax code.
+// Pass mo.None() for all tax codes, mo.Some(nil) for nil-TaxCode routes, or mo.Some(&id) for one TaxCode.
+func (s *BaseSuite) MustCustomerFBOBalanceForTaxCode(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], taxCode mo.Option[*string]) alpacadecimal.Decimal {
+	s.T().Helper()
+
+	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
+	s.NoError(err)
+
+	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.FBOAccount, ledger.RouteFilter{
+		Currency:       code,
+		CostBasis:      costBasis,
+		TaxCode:        taxCode,
+		CreditPriority: lo.ToPtr(ledger.DefaultCustomerFBOPriority),
+	}, nil)
+	s.NoError(err)
+
+	return balance.Settled()
+}
+
 // MustCustomerReceivableBalance returns customer receivable balance in a currency
 // for one authorization state. Pass mo.None() for all cost bases, mo.Some(nil)
 // for the explicit nil-cost-basis route, or mo.Some(&costBasis) for one concrete route.
@@ -334,6 +355,42 @@ func (s *BaseSuite) MustCustomerReceivableBalance(customerID customer.CustomerID
 		CostBasis:                      costBasis,
 		TransactionAuthorizationStatus: lo.ToPtr(status),
 	}, ledger.BalanceQuery{})
+	s.NoError(err)
+
+	return balance.Settled()
+}
+
+// MustCustomerReceivableBalanceForTaxCode returns customer receivable balance filtered by
+// cost basis, authorization status, and tax code.
+func (s *BaseSuite) MustCustomerReceivableBalanceForTaxCode(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], status ledger.TransactionAuthorizationStatus, taxCode mo.Option[*string]) alpacadecimal.Decimal {
+	s.T().Helper()
+
+	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
+	s.NoError(err)
+
+	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.ReceivableAccount, ledger.RouteFilter{
+		Currency:                       code,
+		CostBasis:                      costBasis,
+		TaxCode:                        taxCode,
+		TransactionAuthorizationStatus: lo.ToPtr(status),
+	}, nil)
+	s.NoError(err)
+
+	return balance.Settled()
+}
+
+// MustCustomerAccruedBalanceForTaxCode returns accrued balance filtered by cost basis and tax code.
+func (s *BaseSuite) MustCustomerAccruedBalanceForTaxCode(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], taxCode mo.Option[*string]) alpacadecimal.Decimal {
+	s.T().Helper()
+
+	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
+	s.NoError(err)
+
+	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.AccruedAccount, ledger.RouteFilter{
+		Currency:  code,
+		CostBasis: costBasis,
+		TaxCode:   taxCode,
+	}, nil)
 	s.NoError(err)
 
 	return balance.Settled()
@@ -407,6 +464,23 @@ func (s *BaseSuite) MustBreakageBalanceAsOf(namespace string, code currencyx.Cod
 		Currency:  code,
 		CostBasis: costBasis,
 	}, ledger.BalanceQuery{AsOf: &asOf})
+	s.NoError(err)
+
+	return balance.Settled()
+}
+
+// MustEarningsBalanceForTaxCode returns earnings balance filtered by both cost basis and tax code.
+func (s *BaseSuite) MustEarningsBalanceForTaxCode(namespace string, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], taxCode mo.Option[*string]) alpacadecimal.Decimal {
+	s.T().Helper()
+
+	businessAccounts, err := s.LedgerResolver.GetBusinessAccounts(s.T().Context(), namespace)
+	s.NoError(err)
+
+	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), businessAccounts.EarningsAccount, ledger.RouteFilter{
+		Currency:  code,
+		CostBasis: costBasis,
+		TaxCode:   taxCode,
+	}, nil)
 	s.NoError(err)
 
 	return balance.Settled()
@@ -491,6 +565,7 @@ type CreateCreditPurchaseIntentInput struct {
 	Priority      *int
 	ServicePeriod timeutil.ClosedPeriod
 	Settlement    creditpurchase.Settlement
+	TaxConfig     *productcatalog.TaxCodeConfig
 }
 
 func (i CreateCreditPurchaseIntentInput) Validate() error {
@@ -530,6 +605,7 @@ func (s *BaseSuite) CreateCreditPurchaseIntent(input CreateCreditPurchaseIntentI
 			ServicePeriod:     input.ServicePeriod,
 			BillingPeriod:     input.ServicePeriod,
 			FullServicePeriod: input.ServicePeriod,
+			TaxConfig:         input.TaxConfig,
 		},
 		CreditAmount: input.Amount,
 		EffectiveAt:  input.EffectiveAt,
@@ -547,6 +623,7 @@ type CreatePromotionalCreditFundingInput struct {
 	ExpiresAt *time.Time
 	CostBasis alpacadecimal.Decimal
 	Priority  *int
+	TaxConfig *productcatalog.TaxCodeConfig
 }
 
 type CreatePromotionalCreditFundingResult struct {
@@ -568,6 +645,7 @@ func (s *BaseSuite) CreatePromotionalCreditFunding(ctx context.Context, input Cr
 				Priority:      input.Priority,
 				ServicePeriod: timeutil.ClosedPeriod{From: input.At, To: input.At},
 				Settlement:    creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+				TaxConfig:     input.TaxConfig,
 			}),
 		},
 	})

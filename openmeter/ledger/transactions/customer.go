@@ -14,10 +14,12 @@ import (
 
 // IssueCustomerReceivableTemplate is a transaction increasing the customer's balance against an outstanding receivable account
 type IssueCustomerReceivableTemplate struct {
-	At        time.Time
-	Amount    alpacadecimal.Decimal
-	Currency  currencyx.Code
-	CostBasis *alpacadecimal.Decimal
+	At          time.Time
+	Amount      alpacadecimal.Decimal
+	Currency    currencyx.Code
+	TaxCode     *string
+	TaxBehavior *ledger.TaxBehavior
+	CostBasis   *alpacadecimal.Decimal
 	// Optional, defaults to ledger.DefaultCustomerFBOPriority.
 	CreditPriority *int
 }
@@ -116,6 +118,8 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 
 	fbo, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
 		Currency:       t.Currency,
+		TaxCode:        t.TaxCode,
+		TaxBehavior:    t.TaxBehavior,
 		CostBasis:      t.CostBasis,
 		CreditPriority: priority,
 	})
@@ -125,6 +129,7 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 
 	rec, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
+		TaxCode:                        t.TaxCode,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -153,6 +158,7 @@ type SettleCustomerReceivableFromPaymentTemplate struct {
 	At        time.Time
 	Amount    alpacadecimal.Decimal
 	Currency  currencyx.Code
+	TaxCode   *string
 	CostBasis *alpacadecimal.Decimal
 }
 
@@ -200,6 +206,7 @@ func (t SettleCustomerReceivableFromPaymentTemplate) resolve(ctx context.Context
 
 	rec, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
+		TaxCode:                        t.TaxCode,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusAuthorized,
 	})
@@ -241,6 +248,7 @@ type AuthorizeCustomerReceivablePaymentTemplate struct {
 	At        time.Time
 	Amount    alpacadecimal.Decimal
 	Currency  currencyx.Code
+	TaxCode   *string
 	CostBasis *alpacadecimal.Decimal
 }
 
@@ -288,6 +296,7 @@ func (t AuthorizeCustomerReceivablePaymentTemplate) resolve(ctx context.Context,
 
 	authorizedReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
+		TaxCode:                        t.TaxCode,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusAuthorized,
 	})
@@ -297,6 +306,7 @@ func (t AuthorizeCustomerReceivablePaymentTemplate) resolve(ctx context.Context,
 
 	openReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
+		TaxCode:                        t.TaxCode,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -325,6 +335,7 @@ type AttributeCustomerAdvanceReceivableCostBasisTemplate struct {
 	At        time.Time
 	Amount    alpacadecimal.Decimal
 	Currency  currencyx.Code
+	TaxCode   *string
 	CostBasis *alpacadecimal.Decimal
 }
 
@@ -414,6 +425,7 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) resolve(ctx context
 
 	advanceReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
+		TaxCode:                        t.TaxCode,
 		CostBasis:                      nil,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -423,6 +435,7 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) resolve(ctx context
 
 	attributedReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
+		TaxCode:                        t.TaxCode,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})

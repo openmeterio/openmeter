@@ -330,6 +330,155 @@ func TestDefaultValidator_AllowsWashToAuthorizedReceivable(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestDefaultValidator_RejectsFBOToAccruedTaxCodeMismatch(t *testing.T) {
+	validator := routingrules.DefaultValidator
+	taxA := "tax_A"
+	taxB := "tax_B"
+
+	err := validator.ValidateEntries([]ledger.EntryInput{
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerFBO, "sub-fbo-taxA", ledger.Route{
+				Currency: currencyx.Code("USD"),
+				TaxCode:  &taxA,
+			}),
+			AmountValue: alpacadecimal.NewFromInt(-50),
+		},
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-taxB", ledger.Route{
+				Currency: currencyx.Code("USD"),
+				TaxCode:  &taxB,
+			}),
+			AmountValue: alpacadecimal.NewFromInt(50),
+		},
+	})
+
+	require.Error(t, err)
+	require.ErrorContains(t, err, "ledger routing rule violated")
+}
+
+func TestDefaultValidator_RejectsReceivableToAccruedTaxCodeMismatch(t *testing.T) {
+	validator := routingrules.DefaultValidator
+	openStatus := ledger.TransactionAuthorizationStatusOpen
+	taxA := "tax_A"
+	taxB := "tax_B"
+
+	err := validator.ValidateEntries([]ledger.EntryInput{
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec-taxA", ledger.Route{
+				Currency:                       currencyx.Code("USD"),
+				TaxCode:                        &taxA,
+				TransactionAuthorizationStatus: &openStatus,
+			}),
+			AmountValue: alpacadecimal.NewFromInt(-50),
+		},
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-taxB", ledger.Route{
+				Currency: currencyx.Code("USD"),
+				TaxCode:  &taxB,
+			}),
+			AmountValue: alpacadecimal.NewFromInt(50),
+		},
+	})
+
+	require.Error(t, err)
+	require.ErrorContains(t, err, "ledger routing rule violated")
+}
+
+func TestDefaultValidator_RejectsAccruedToEarningsTaxCodeMismatch(t *testing.T) {
+	validator := routingrules.DefaultValidator
+	taxA := "tax_A"
+	taxB := "tax_B"
+
+	err := validator.ValidateEntries([]ledger.EntryInput{
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-taxA", ledger.Route{
+				Currency: currencyx.Code("USD"),
+				TaxCode:  &taxA,
+			}),
+			AmountValue: alpacadecimal.NewFromInt(-50),
+		},
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeEarnings, "sub-earn-taxB", ledger.Route{
+				Currency: currencyx.Code("USD"),
+				TaxCode:  &taxB,
+			}),
+			AmountValue: alpacadecimal.NewFromInt(50),
+		},
+	})
+
+	require.Error(t, err)
+	require.ErrorContains(t, err, "ledger routing rule violated")
+}
+
+func TestDefaultValidator_AllowsFBOToAccruedMatchingTaxCode(t *testing.T) {
+	validator := routingrules.DefaultValidator
+	tax := "tax_A"
+
+	err := validator.ValidateEntries([]ledger.EntryInput{
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerFBO, "sub-fbo-tax", ledger.Route{
+				Currency: currencyx.Code("USD"),
+				TaxCode:  &tax,
+			}),
+			AmountValue: alpacadecimal.NewFromInt(-50),
+		},
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-tax", ledger.Route{
+				Currency: currencyx.Code("USD"),
+				TaxCode:  &tax,
+			}),
+			AmountValue: alpacadecimal.NewFromInt(50),
+		},
+	})
+
+	require.NoError(t, err)
+}
+
+func TestDefaultValidator_AllowsAccruedToEarningsMatchingTaxCode(t *testing.T) {
+	validator := routingrules.DefaultValidator
+	tax := "tax_A"
+
+	err := validator.ValidateEntries([]ledger.EntryInput{
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-tax", ledger.Route{
+				Currency: currencyx.Code("USD"),
+				TaxCode:  &tax,
+			}),
+			AmountValue: alpacadecimal.NewFromInt(-50),
+		},
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeEarnings, "sub-earn-tax", ledger.Route{
+				Currency: currencyx.Code("USD"),
+				TaxCode:  &tax,
+			}),
+			AmountValue: alpacadecimal.NewFromInt(50),
+		},
+	})
+
+	require.NoError(t, err)
+}
+
+func TestDefaultValidator_AllowsAccruedToEarningsNilTaxCodeBothSides(t *testing.T) {
+	validator := routingrules.DefaultValidator
+
+	err := validator.ValidateEntries([]ledger.EntryInput{
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-nil", ledger.Route{
+				Currency: currencyx.Code("USD"),
+			}),
+			AmountValue: alpacadecimal.NewFromInt(-50),
+		},
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeEarnings, "sub-earn-nil", ledger.Route{
+				Currency: currencyx.Code("USD"),
+			}),
+			AmountValue: alpacadecimal.NewFromInt(50),
+		},
+	})
+
+	require.NoError(t, err)
+}
+
 func TestDefaultValidator_RejectsWashToOpenReceivable(t *testing.T) {
 	validator := routingrules.DefaultValidator
 	status := ledger.TransactionAuthorizationStatusOpen
@@ -357,7 +506,7 @@ func TestDefaultValidator_RejectsWashToOpenReceivable(t *testing.T) {
 func addressForRoute(t *testing.T, accountType ledger.AccountType, subAccountID string, route ledger.Route) ledger.PostingAddress {
 	t.Helper()
 
-	key, err := ledger.BuildRoutingKey(ledger.RoutingKeyVersionV1, route)
+	key, err := ledger.BuildRoutingKey(route)
 	require.NoError(t, err)
 
 	addr, err := ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
