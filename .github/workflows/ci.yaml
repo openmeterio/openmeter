@@ -125,8 +125,8 @@ jobs:
 
       - name: Validate commit messages
         run: |
-          nix develop --impure .#ci -c pre-commit run -a
-          nix develop --impure .#ci -c pre-commit run --hook-stage manual
+          nix develop --impure .#ci -c prek run -a
+          nix develop --impure .#ci -c prek run --stage manual
 
   generators-openapi:
     name: Code Generators / OpenAPI
