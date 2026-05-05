@@ -28,6 +28,6 @@ interface OrganizationDefaultTaxCodesOperations {
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   update(
-    @body body: OrgDefaultTaxCodes,
+    @body body: Shared.UpdateRequest<OrgDefaultTaxCodes>,
   ): Shared.UpsertResponse<OrgDefaultTaxCodes> | Common.NotFound | Common.ErrorResponses;
 }

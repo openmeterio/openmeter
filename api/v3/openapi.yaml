@@ -1230,7 +1230,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OrganizationDefaultTaxCodes'
+              $ref: '#/components/schemas/UpdateOrgDefaultTaxCodesRequest'
       x-internal: true
       x-unstable: true
       x-private: true
@@ -8700,6 +8700,20 @@ components:
           example:
             type: $.type
       description: Meter update request.
+    UpdateOrgDefaultTaxCodesRequest:
+      type: object
+      properties:
+        invoicing_tax_code:
+          allOf:
+            - $ref: '#/components/schemas/TaxCodeReference'
+          description: Default tax code for invoicing.
+          title: Invoicing tax code
+        credit_grant_tax_code:
+          allOf:
+            - $ref: '#/components/schemas/TaxCodeReference'
+          description: Default tax code for credit grants.
+          title: Credit grant tax code
+      description: OrgDefaultTaxCodes update request.
     UpsertAddonRequest:
       type: object
       required:
