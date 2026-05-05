@@ -104,9 +104,7 @@ model CreditGrantTaxConfig {
   /**
    * Tax code applied to the invoice line item.
    */
-  tax_code?: {
-    id: Shared.ULID;
-  };
+  tax_code?: Tax.TaxCodeReference;
 }
 
 /**

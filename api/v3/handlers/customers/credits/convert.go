@@ -186,11 +186,7 @@ func toAPIBillingCreditGrantTaxConfig(charge creditpurchase.Charge) *api.Billing
 	}
 
 	if charge.Intent.TaxConfig.TaxCodeID != nil {
-		tc.TaxCode = &struct {
-			Id api.ULID `json:"id"`
-		}{
-			Id: *charge.Intent.TaxConfig.TaxCodeID,
-		}
+		tc.TaxCode = &api.BillingTaxCodeReference{Id: *charge.Intent.TaxConfig.TaxCodeID}
 	}
 
 	return tc

@@ -24,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
@@ -757,6 +758,134 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPopulatesStrip
 	s.Equal(tc.ID, *line.TaxConfig.TaxCodeID)
 	s.Require().NotNil(line.TaxConfig.Stripe, "Stripe.Code must be backfilled on standard invoice line via TaxCode edge")
 	s.Equal(stripeCode, line.TaxConfig.Stripe.Code)
+}
+
+// TestTaxConfigInListCharges verifies that ListCharges returns charges with tax_config populated
+// for both flat-fee and usage-based charge types — the domain-layer counterpart to the API
+// conversion tested in convert_test.go.
+func (s *TaxCodePersistenceTestSuite) TestTaxConfigInListCharges() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-taxcode-list")
+
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+	defer apiRequestsTotal.Cleanup()
+
+	tc := s.createTestTaxCode(ctx, ns, "txcd-10000010")
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	clock.SetTime(servicePeriod.From)
+
+	tcID := tc.ID
+	taxConfigFlat := &productcatalog.TaxCodeConfig{
+		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+		TaxCodeID: &tcID,
+	}
+	taxConfigUsage := &productcatalog.TaxCodeConfig{
+		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+		TaxCodeID: &tcID,
+	}
+
+	_, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromFloat(100),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				name:              "flat-fee-list-taxcode",
+				managedBy:         billing.ManuallyManagedLine,
+				uniqueReferenceID: "flat-fee-list-taxcode",
+				taxConfig:         taxConfigFlat,
+			}),
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditOnlySettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromFloat(1),
+				}),
+				featureKey:        apiRequestsTotal.Feature.Key,
+				name:              "usage-based-list-taxcode",
+				managedBy:         billing.ManuallyManagedLine,
+				uniqueReferenceID: "usage-based-list-taxcode",
+				taxConfig:         taxConfigUsage,
+			}),
+		},
+	})
+	s.Require().NoError(err)
+
+	// Also seed a flat-fee charge without tax config to verify nil round-trips correctly.
+	_, err = s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromFloat(50),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				name:              "flat-fee-list-no-taxcode",
+				managedBy:         billing.ManuallyManagedLine,
+				uniqueReferenceID: "flat-fee-list-no-taxcode",
+			}),
+		},
+	})
+	s.Require().NoError(err)
+
+	result, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:   ns,
+		CustomerIDs: []string{cust.GetID().ID},
+		ChargeTypes: []meta.ChargeType{meta.ChargeTypeFlatFee, meta.ChargeTypeUsageBased},
+		Expands:     meta.Expands{meta.ExpandRealizations},
+		Page:        pagination.Page{PageSize: 20, PageNumber: 1},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(result.Items, 3, "all three charges must appear in list")
+
+	for _, charge := range result.Items {
+		switch charge.Type() {
+		case meta.ChargeTypeFlatFee:
+			ff, err := charge.AsFlatFeeCharge()
+			s.Require().NoError(err)
+
+			if ff.Intent.Intent.UniqueReferenceID != nil && *ff.Intent.Intent.UniqueReferenceID == "flat-fee-list-no-taxcode" {
+				s.Nil(ff.Intent.TaxConfig, "flat fee charge without tax config must list with nil TaxConfig")
+			} else {
+				s.Require().NotNil(ff.Intent.TaxConfig, "flat fee charge must carry TaxConfig in list response")
+				s.Require().NotNil(ff.Intent.TaxConfig.Behavior)
+				s.Equal(productcatalog.InclusiveTaxBehavior, *ff.Intent.TaxConfig.Behavior)
+				s.Require().NotNil(ff.Intent.TaxConfig.TaxCodeID)
+				s.Equal(tc.ID, *ff.Intent.TaxConfig.TaxCodeID)
+			}
+
+		case meta.ChargeTypeUsageBased:
+			ub, err := charge.AsUsageBasedCharge()
+			s.Require().NoError(err)
+			s.Require().NotNil(ub.Intent.TaxConfig, "usage-based charge must carry TaxConfig in list response")
+			s.Require().NotNil(ub.Intent.TaxConfig.Behavior)
+			s.Equal(productcatalog.InclusiveTaxBehavior, *ub.Intent.TaxConfig.Behavior)
+			s.Require().NotNil(ub.Intent.TaxConfig.TaxCodeID)
+			s.Equal(tc.ID, *ub.Intent.TaxConfig.TaxCodeID)
+
+		default:
+			s.Failf("unexpected charge type", "type=%s", string(charge.Type()))
+		}
+	}
 }
 
 func (s *TaxCodePersistenceTestSuite) createTestTaxCode(ctx context.Context, ns, key string) taxcode.TaxCode {
