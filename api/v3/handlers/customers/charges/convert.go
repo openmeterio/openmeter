@@ -372,6 +372,7 @@ func convertTaxCodeConfigToAPI(cfg *productcatalog.TaxCodeConfig) *api.BillingTa
 	}
 	if cfg.TaxCodeID != nil {
 		out.TaxCode = &api.BillingTaxCodeReference{Id: *cfg.TaxCodeID}
+		out.TaxCodeId = cfg.TaxCodeID
 	}
 	if out.Behavior == nil && out.TaxCode == nil {
 		return nil
