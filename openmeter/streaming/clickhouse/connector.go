@@ -1,6 +1,7 @@
 package clickhouse
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"log/slog"
@@ -9,7 +10,6 @@ import (
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
-	"golang.org/x/exp/constraints"
 
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
@@ -661,7 +661,7 @@ func (c *Connector) withProgressContext(ctx context.Context, namespace string, c
 	return ctx, nil
 }
 
-func min[T constraints.Ordered](a, b T) T {
+func min[T cmp.Ordered](a, b T) T {
 	if a < b {
 		return a
 	}

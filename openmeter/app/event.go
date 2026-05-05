@@ -38,7 +38,7 @@ func NewEventAppData(v any) (EventAppData, error) {
 
 // ParseInto parses the EventAppData into a given value, the value must be a pointer
 func (e EventAppData) ParseInto(v any) error {
-	if rv := reflect.ValueOf(v); rv.Kind() != reflect.Ptr || rv.IsNil() {
+	if rv := reflect.ValueOf(v); rv.Kind() != reflect.Pointer || rv.IsNil() {
 		return fmt.Errorf("target must be a non-nil pointer")
 	}
 

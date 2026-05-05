@@ -662,7 +662,7 @@ func toString(v interface{}, rec int) string {
 	vv := reflect.ValueOf(v)
 
 	switch vv.Kind() {
-	case reflect.Ptr:
+	case reflect.Pointer:
 		if vv.IsNil() {
 			return ""
 		}
