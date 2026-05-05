@@ -1,14 +1,9 @@
 namespace Billing;
 
 /**
- * Reference to a tax code.
- */
-@friendlyName("BillingTaxCodeReference")
-model TaxCodeReference extends Shared.ResourceReference<Tax.TaxCode> {}
-
-/**
  * Set of provider specific tax configs.
  */
+#suppress "@openmeter/api-spec-aip/repeated-prefix-grouping" "tax_code_id is deprecated"
 @friendlyName("BillingTaxConfig")
 model TaxConfig {
   /**
@@ -55,7 +50,7 @@ model TaxConfig {
    * When `stripe.code` is also provided, `tax_code` still wins and `stripe.code` is ignored.
    */
   @summary("Tax code")
-  tax_code?: TaxCodeReference;
+  tax_code?: Tax.TaxCodeReference;
 }
 
 /**

@@ -104,7 +104,7 @@ model CreditGrantTaxConfig {
   /**
    * Tax code applied to the invoice line item.
    */
-  tax_code?: Billing.TaxCodeReference;
+  tax_code?: Tax.TaxCodeReference;
 }
 
 /**

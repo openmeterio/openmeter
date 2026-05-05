@@ -36,3 +36,10 @@ model TaxCode {
   @summary("App type to tax code mappings")
   app_mappings: TaxCodeAppMapping[];
 }
+
+/**
+ * Reference to a tax code.
+ */
+#suppress "@openmeter/api-spec-aip/composition-over-inheritance" "spead doesn't work here"
+@friendlyName("BillingTaxCodeReference")
+model TaxCodeReference extends Shared.ResourceReference<Tax.TaxCode> {}
