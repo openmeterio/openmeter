@@ -1,16 +1,10 @@
 namespace Billing;
 
 /**
- * A reference to a tax code entity.
+ * Reference to a tax code.
  */
 @friendlyName("BillingTaxCodeReference")
-@summary("Tax code reference")
-model TaxCodeReference {
-  /**
-   * ID of the tax code.
-   */
-  id: Shared.ULID;
-}
+model TaxCodeReference extends Shared.ResourceReference<Tax.TaxCode> {}
 
 /**
  * Set of provider specific tax configs.

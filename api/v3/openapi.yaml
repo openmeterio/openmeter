@@ -5932,15 +5932,9 @@ components:
       description: Mapping of app types to tax codes.
     BillingTaxCodeReference:
       type: object
-      required:
-        - id
-      properties:
-        id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          description: ID of the tax code.
-      description: A reference to a tax code entity.
-      title: Tax code reference
+      allOf:
+        - $ref: '#/components/schemas/TaxCodeReference'
+      description: Reference to a tax code.
     BillingTaxConfig:
       type: object
       properties:
@@ -8515,6 +8509,14 @@ components:
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
       description: Page paginated response.
+    TaxCodeReference:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          $ref: '#/components/schemas/ULID'
+      description: TaxCode reference.
     TaxCodeReferenceItem:
       type: object
       required:
