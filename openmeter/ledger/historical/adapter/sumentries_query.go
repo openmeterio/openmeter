@@ -121,9 +121,13 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 			ledgersubaccountroutedb.CreditPriority(*normalizedRoute.CreditPriority),
 		)
 	}
-	// DEFERRED: tax/feature route filters are not active yet but plumbing is in place.
-	if normalizedRoute.TaxCode != nil {
-		routePredicates = append(routePredicates, ledgersubaccountroutedb.TaxCode(*normalizedRoute.TaxCode))
+	if normalizedRoute.TaxCode.IsPresent() {
+		tc, _ := normalizedRoute.TaxCode.Get()
+		if tc != nil {
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.TaxCode(*tc))
+		} else {
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.TaxCodeIsNil())
+		}
 	}
 	if len(normalizedRoute.Features) > 0 {
 		// DB stores features as a sorted jsonb array; filter value is also sorted for canonical comparison.

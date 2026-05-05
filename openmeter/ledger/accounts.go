@@ -31,6 +31,7 @@ type CustomerFBORouteParams struct {
 	Currency       currencyx.Code
 	CreditPriority int
 	TaxCode        *string
+	TaxBehavior    *TaxBehavior
 	Features       []string
 	CostBasis      *alpacadecimal.Decimal
 }
@@ -51,6 +52,7 @@ func (p CustomerFBORouteParams) Route() Route {
 	return Route{
 		Currency:       p.Currency,
 		TaxCode:        p.TaxCode,
+		TaxBehavior:    p.TaxBehavior,
 		Features:       p.Features,
 		CostBasis:      p.CostBasis,
 		CreditPriority: &p.CreditPriority,

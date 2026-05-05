@@ -49,11 +49,12 @@ type SubAccount interface {
 type RouteFilter struct {
 	Currency currencyx.Code
 
-	// DEFERRED: tax/feature not active yet.
 	// Non-currency fields are retained for near-future expansion.
-	TaxCode   *string
-	Features  []string
-	CostBasis mo.Option[*alpacadecimal.Decimal]
+	// mo.Option provides nil-distinction: absent = don't filter, Some(nil) = filter for null, Some(&v) = filter for v.
+	TaxCode     mo.Option[*string]
+	TaxBehavior mo.Option[*TaxBehavior]
+	Features    []string
+	CostBasis   mo.Option[*alpacadecimal.Decimal]
 
 	// CreditPriority is only meaningful for customer_fbo queries.
 	CreditPriority *int

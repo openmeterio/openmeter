@@ -163,9 +163,13 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 				dbledgersubaccountroute.CreditPriority(*normalizedRoute.CreditPriority),
 			)
 		}
-		// DEFERRED: tax/feature route filters are not active yet but plumbing is in place.
-		if normalizedRoute.TaxCode != nil {
-			routePredicates = append(routePredicates, dbledgersubaccountroute.TaxCode(*normalizedRoute.TaxCode))
+		if normalizedRoute.TaxCode.IsPresent() {
+			tc, _ := normalizedRoute.TaxCode.Get()
+			if tc != nil {
+				routePredicates = append(routePredicates, dbledgersubaccountroute.TaxCode(*tc))
+			} else {
+				routePredicates = append(routePredicates, dbledgersubaccountroute.TaxCodeIsNil())
+			}
 		}
 		if len(normalizedRoute.Features) > 0 {
 			// DB stores features as a sorted jsonb array; filter value is also sorted for canonical comparison.

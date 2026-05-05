@@ -25,6 +25,13 @@ const (
 	TransactionAuthorizationStatusAuthorized TransactionAuthorizationStatus = "authorized"
 )
 
+type TaxBehavior string
+
+const (
+	TaxBehaviorInclusive TaxBehavior = "inclusive"
+	TaxBehaviorExclusive TaxBehavior = "exclusive"
+)
+
 func (s TransactionAuthorizationStatus) Validate() error {
 	switch s {
 	case TransactionAuthorizationStatusOpen:
@@ -45,6 +52,19 @@ func (v RoutingKeyVersion) Validate() error {
 	default:
 		return ErrRoutingKeyVersionInvalid.WithAttrs(models.Attributes{
 			"routing_key_version": v,
+		})
+	}
+}
+
+func (b TaxBehavior) Validate() error {
+	switch b {
+	case TaxBehaviorInclusive:
+		return nil
+	case TaxBehaviorExclusive:
+		return nil
+	default:
+		return ErrTaxBehaviorInvalid.WithAttrs(models.Attributes{
+			"tax_behavior": b,
 		})
 	}
 }
@@ -151,6 +171,7 @@ func (r SubAccountRoute) Route() Route {
 type Route struct {
 	Currency                       currencyx.Code
 	TaxCode                        *string
+	TaxBehavior                    *TaxBehavior
 	Features                       []string
 	CostBasis                      *alpacadecimal.Decimal
 	CreditPriority                 *int
@@ -180,14 +201,22 @@ func (r Route) Validate() error {
 		}
 	}
 
+	if r.TaxBehavior != nil {
+		if err := r.TaxBehavior.Validate(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
 // Filter converts a Route to a RouteFilter for use in queries.
+// All present route fields are pinned as exact-match filters (including nil values).
 func (r Route) Filter() RouteFilter {
 	return RouteFilter{
 		Currency:                       r.Currency,
-		TaxCode:                        r.TaxCode,
+		TaxCode:                        mo.Some(r.TaxCode),
+		TaxBehavior:                    mo.Some(r.TaxBehavior),
 		Features:                       r.Features,
 		CostBasis:                      mo.Some(r.CostBasis),
 		CreditPriority:                 r.CreditPriority,
@@ -210,14 +239,17 @@ func (r Route) Normalize() (Route, error) {
 
 // Normalize canonicalizes route filter values before querying.
 func (f RouteFilter) Normalize() (RouteFilter, error) {
-	if f.Currency == "" && f.TaxCode == nil && len(f.Features) == 0 && f.CostBasis.IsAbsent() && f.CreditPriority == nil && f.TransactionAuthorizationStatus == nil {
+	if f.Currency == "" && f.TaxCode.IsAbsent() && len(f.Features) == 0 && f.CostBasis.IsAbsent() && f.CreditPriority == nil && f.TransactionAuthorizationStatus == nil && f.TaxBehavior.IsAbsent() {
 		return f, nil
 	}
 
+	taxCode, _ := f.TaxCode.Get()
+	taxBehavior, _ := f.TaxBehavior.Get()
 	costBasis, _ := f.CostBasis.Get()
 	normalized, err := Route{
 		Currency:                       f.Currency,
-		TaxCode:                        f.TaxCode,
+		TaxCode:                        taxCode,
+		TaxBehavior:                    taxBehavior,
 		Features:                       f.Features,
 		CostBasis:                      costBasis,
 		CreditPriority:                 f.CreditPriority,
@@ -232,9 +264,20 @@ func (f RouteFilter) Normalize() (RouteFilter, error) {
 		normalizedCostBasis = mo.Some(normalized.CostBasis)
 	}
 
+	normalizedTaxCode := mo.None[*string]()
+	if f.TaxCode.IsPresent() {
+		normalizedTaxCode = mo.Some(normalized.TaxCode)
+	}
+
+	normalizedTaxBehavior := mo.None[*TaxBehavior]()
+	if f.TaxBehavior.IsPresent() {
+		normalizedTaxBehavior = mo.Some(normalized.TaxBehavior)
+	}
+
 	return RouteFilter{
 		Currency:                       normalized.Currency,
-		TaxCode:                        normalized.TaxCode,
+		TaxCode:                        normalizedTaxCode,
+		TaxBehavior:                    normalizedTaxBehavior,
 		Features:                       normalized.Features,
 		CostBasis:                      normalizedCostBasis,
 		CreditPriority:                 normalized.CreditPriority,
@@ -270,6 +313,7 @@ func BuildRoutingKeyV1(route Route) (RoutingKey, error) {
 	value := strings.Join([]string{
 		"currency:" + string(normalizedRoute.Currency),
 		"tax_code:" + optionalStringValue(normalizedRoute.TaxCode),
+		"tax_behavior:" + optionalTaxBehaviorValue(normalizedRoute.TaxBehavior),
 		"features:" + canonicalFeatures(normalizedRoute.Features),
 		"cost_basis:" + optionalDecimalValue(normalizedRoute.CostBasis),
 		"credit_priority:" + optionalIntValue(normalizedRoute.CreditPriority),
@@ -380,4 +424,11 @@ func optionalDecimalValue(v *alpacadecimal.Decimal) string {
 		return "null"
 	}
 	return v.String()
+}
+
+func optionalTaxBehaviorValue(v *TaxBehavior) string {
+	if v == nil {
+		return "null"
+	}
+	return string(*v)
 }
