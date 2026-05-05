@@ -133,9 +133,9 @@ func (s *AccountResolver) GetCustomerAccounts(ctx context.Context, customerID cu
 		return ledger.CustomerAccounts{}, fmt.Errorf("failed to get FBO account: %w", err)
 	}
 
-	fboAccount, err := fboAcc.AsCustomerFBOAccount()
-	if err != nil {
-		return ledger.CustomerAccounts{}, err
+	fboAccount, ok := fboAcc.(ledger.CustomerFBOAccount)
+	if !ok {
+		return ledger.CustomerAccounts{}, fmt.Errorf("account %s/%s has type %s, expected %s", fboAcc.ID().Namespace, fboAcc.ID().ID, fboAcc.Type(), ledger.AccountTypeCustomerFBO)
 	}
 
 	receivableAcc, err := s.AccountService.GetAccountByID(ctx, models.NamespacedID{Namespace: ns, ID: receivableID})
@@ -143,9 +143,9 @@ func (s *AccountResolver) GetCustomerAccounts(ctx context.Context, customerID cu
 		return ledger.CustomerAccounts{}, fmt.Errorf("failed to get Receivable account: %w", err)
 	}
 
-	receivableAccount, err := receivableAcc.AsCustomerReceivableAccount()
-	if err != nil {
-		return ledger.CustomerAccounts{}, err
+	receivableAccount, ok := receivableAcc.(ledger.CustomerReceivableAccount)
+	if !ok {
+		return ledger.CustomerAccounts{}, fmt.Errorf("account %s/%s has type %s, expected %s", receivableAcc.ID().Namespace, receivableAcc.ID().ID, receivableAcc.Type(), ledger.AccountTypeCustomerReceivable)
 	}
 
 	accruedAcc, err := s.AccountService.GetAccountByID(ctx, models.NamespacedID{Namespace: ns, ID: accruedID})
@@ -153,9 +153,9 @@ func (s *AccountResolver) GetCustomerAccounts(ctx context.Context, customerID cu
 		return ledger.CustomerAccounts{}, fmt.Errorf("failed to get Accrued account: %w", err)
 	}
 
-	accruedAccount, err := accruedAcc.AsCustomerAccruedAccount()
-	if err != nil {
-		return ledger.CustomerAccounts{}, err
+	accruedAccount, ok := accruedAcc.(ledger.CustomerAccruedAccount)
+	if !ok {
+		return ledger.CustomerAccounts{}, fmt.Errorf("account %s/%s has type %s, expected %s", accruedAcc.ID().Namespace, accruedAcc.ID().ID, accruedAcc.Type(), ledger.AccountTypeCustomerAccrued)
 	}
 
 	return ledger.CustomerAccounts{
@@ -227,19 +227,19 @@ func (s *AccountResolver) GetBusinessAccounts(ctx context.Context, namespace str
 		})
 	}
 
-	washAcc, err := wash.AsBusinessAccount()
-	if err != nil {
-		return ledger.BusinessAccounts{}, err
+	washAcc, ok := wash.(ledger.BusinessAccount)
+	if !ok {
+		return ledger.BusinessAccounts{}, fmt.Errorf("account %s/%s has type %s, expected business account", wash.ID().Namespace, wash.ID().ID, wash.Type())
 	}
 
-	earningsAcc, err := earnings.AsBusinessAccount()
-	if err != nil {
-		return ledger.BusinessAccounts{}, err
+	earningsAcc, ok := earnings.(ledger.BusinessAccount)
+	if !ok {
+		return ledger.BusinessAccounts{}, fmt.Errorf("account %s/%s has type %s, expected business account", earnings.ID().Namespace, earnings.ID().ID, earnings.Type())
 	}
 
-	brokerageAcc, err := brokerage.AsBusinessAccount()
-	if err != nil {
-		return ledger.BusinessAccounts{}, err
+	brokerageAcc, ok := brokerage.(ledger.BusinessAccount)
+	if !ok {
+		return ledger.BusinessAccounts{}, fmt.Errorf("account %s/%s has type %s, expected business account", brokerage.ID().Namespace, brokerage.ID().ID, brokerage.Type())
 	}
 
 	return ledger.BusinessAccounts{
@@ -249,7 +249,7 @@ func (s *AccountResolver) GetBusinessAccounts(ctx context.Context, namespace str
 	}, nil
 }
 
-func (s *AccountResolver) listBusinessAccountsByType(ctx context.Context, namespace string) (map[ledger.AccountType]*ledgeraccount.Account, error) {
+func (s *AccountResolver) listBusinessAccountsByType(ctx context.Context, namespace string) (map[ledger.AccountType]ledger.Account, error) {
 	existing, err := s.AccountService.ListAccounts(ctx, ledgeraccount.ListAccountsInput{
 		Namespace:    namespace,
 		AccountTypes: ledger.BusinessAccountTypes,
@@ -258,7 +258,7 @@ func (s *AccountResolver) listBusinessAccountsByType(ctx context.Context, namesp
 		return nil, fmt.Errorf("failed to list business accounts: %w", err)
 	}
 
-	byType := make(map[ledger.AccountType]*ledgeraccount.Account, len(existing))
+	byType := make(map[ledger.AccountType]ledger.Account, len(existing))
 	for _, acc := range existing {
 		if prev, ok := byType[acc.Type()]; ok {
 			return nil, fmt.Errorf("multiple %s accounts found in namespace %s: %s and %s", acc.Type(), namespace, prev.ID().ID, acc.ID().ID)

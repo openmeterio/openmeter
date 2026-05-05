@@ -24,7 +24,7 @@ import (
 
 type ledgerReadWriter interface {
 	ledger.Ledger
-	ledger.Querier
+	ledger.BalanceQuerier
 }
 
 type customerLedgerProvisioner interface {
@@ -40,8 +40,10 @@ var LedgerStack = wire.NewSet(
 	NewLedgerHistoricalRepo,
 	NewLedgerResolversRepo,
 	NewLedgerHistoricalLedger,
-	NewLedgerQuerier,
 	NewLedgerAccountService,
+	NewLedgerAccountCatalog,
+	NewLedgerAccountLocker,
+	NewLedgerBalanceQuerier,
 	NewLedgerAccountResolver,
 	NewLedgerService,
 	NewLedgerNamespaceHandler,
@@ -68,41 +70,38 @@ func NewLedgerAccountService(
 	creditsConfig config.CreditsConfiguration,
 	repo ledgeraccount.Repo,
 	locker *lockr.Locker,
-	querier ledger.Querier,
 ) ledgeraccount.Service {
 	if !creditsConfig.Enabled {
 		return ledgernoop.AccountService{}
 	}
 
-	return accountservice.New(repo, ledgeraccount.AccountLiveServices{
-		Locker:  locker,
-		Querier: querier,
-	})
+	return accountservice.New(repo, locker)
 }
 
 func NewLedgerHistoricalLedger(
 	creditsConfig config.CreditsConfiguration,
 	repo historical.Repo,
-	accountRepo ledgeraccount.Repo,
-	locker *lockr.Locker,
+	accountCatalog ledger.AccountCatalog,
+	accountLocker ledger.AccountLocker,
 	routingValidator ledger.RoutingValidator,
 ) ledgerReadWriter {
 	if !creditsConfig.Enabled {
 		return ledgernoop.Ledger{}
 	}
 
-	// TODO: this is a hack
-	// package boundary between account and historical ledger is incorrect, dependency resolution is broken
-	accountSvc := accountservice.New(accountRepo, ledgeraccount.AccountLiveServices{
-		Locker: locker,
-		// Querier: nil, // This is the hack
-	})
-
-	return historical.NewLedger(repo, accountSvc, locker, routingValidator)
+	return historical.NewLedger(repo, accountCatalog, accountLocker, routingValidator)
 }
 
-func NewLedgerQuerier(historicalLedger ledgerReadWriter) ledger.Querier {
+func NewLedgerBalanceQuerier(historicalLedger ledgerReadWriter) ledger.BalanceQuerier {
 	return historicalLedger
+}
+
+func NewLedgerAccountCatalog(accountSvc ledgeraccount.Service) ledger.AccountCatalog {
+	return accountSvc
+}
+
+func NewLedgerAccountLocker(accountSvc ledgeraccount.Service) ledger.AccountLocker {
+	return accountSvc
 }
 
 func NewLedgerResolversService(

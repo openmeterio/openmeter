@@ -27,6 +27,7 @@ func (balance) Pending() alpacadecimal.Decimal {
 }
 
 type subAccount struct {
+	accountID   models.NamespacedID
 	accountType ledger.AccountType
 	route       ledger.Route
 }
@@ -37,6 +38,10 @@ func (s subAccount) Address() ledger.PostingAddress {
 
 func (s subAccount) Route() ledger.Route {
 	return s.route
+}
+
+func (s subAccount) AccountID() models.NamespacedID {
+	return s.accountID
 }
 
 func (subAccount) GetBalance(context.Context) (ledger.Balance, error) {
@@ -66,8 +71,8 @@ func (postingAddress) Route() ledger.SubAccountRoute {
 type Ledger struct{}
 
 var (
-	_ ledger.Ledger  = Ledger{}
-	_ ledger.Querier = Ledger{}
+	_ ledger.Ledger         = Ledger{}
+	_ ledger.BalanceQuerier = Ledger{}
 )
 
 func (Ledger) CommitGroup(context.Context, ledger.TransactionGroupInput) (ledger.TransactionGroup, error) {
@@ -82,8 +87,12 @@ func (Ledger) ListTransactions(context.Context, ledger.ListTransactionsInput) (l
 	return ledger.ListTransactionsResult{}, nil
 }
 
-func (Ledger) SumEntries(context.Context, ledger.Query) (ledger.QuerySummedResult, error) {
-	return ledger.QuerySummedResult{}, nil
+func (Ledger) GetAccountBalance(context.Context, ledger.Account, ledger.RouteFilter, *ledger.TransactionCursor) (ledger.Balance, error) {
+	return balance{}, nil
+}
+
+func (Ledger) GetSubAccountBalance(context.Context, ledger.SubAccount, *ledger.TransactionCursor) (ledger.Balance, error) {
+	return balance{}, nil
 }
 
 type AccountResolver struct{}
@@ -126,28 +135,32 @@ type AccountService struct{}
 
 var _ ledgeraccount.Service = AccountService{}
 
-func (AccountService) CreateAccount(_ context.Context, input ledgeraccount.CreateAccountInput) (*ledgeraccount.Account, error) {
+func (AccountService) CreateAccount(_ context.Context, input ledger.CreateAccountInput) (ledger.Account, error) {
 	return newAccount(input.Namespace, input.Type, normalizeID(string(input.Type), "noop-account")), nil
 }
 
-func (AccountService) EnsureSubAccount(_ context.Context, input ledgeraccount.CreateSubAccountInput) (*ledgeraccount.SubAccount, error) {
+func (AccountService) EnsureSubAccount(_ context.Context, input ledger.CreateSubAccountInput) (ledger.SubAccount, error) {
 	return newSubAccount(input.Namespace, input.AccountID, input.Route), nil
 }
 
-func (AccountService) GetAccountByID(_ context.Context, id models.NamespacedID) (*ledgeraccount.Account, error) {
+func (AccountService) GetAccountByID(_ context.Context, id models.NamespacedID) (ledger.Account, error) {
 	return newAccount(id.Namespace, ledger.AccountTypeCustomerAccrued, id.ID), nil
 }
 
-func (AccountService) GetSubAccountByID(_ context.Context, id models.NamespacedID) (*ledgeraccount.SubAccount, error) {
+func (AccountService) GetSubAccountByID(_ context.Context, id models.NamespacedID) (ledger.SubAccount, error) {
 	return newSubAccount(id.Namespace, id.ID, ledger.Route{Currency: noopCurrency}), nil
 }
 
-func (AccountService) ListSubAccounts(context.Context, ledgeraccount.ListSubAccountsInput) ([]*ledgeraccount.SubAccount, error) {
-	return []*ledgeraccount.SubAccount{}, nil
+func (AccountService) ListSubAccounts(context.Context, ledger.ListSubAccountsInput) ([]ledger.SubAccount, error) {
+	return []ledger.SubAccount{}, nil
 }
 
-func (AccountService) ListAccounts(context.Context, ledgeraccount.ListAccountsInput) ([]*ledgeraccount.Account, error) {
-	return []*ledgeraccount.Account{}, nil
+func (AccountService) ListAccounts(context.Context, ledger.ListAccountsInput) ([]ledger.Account, error) {
+	return []ledger.Account{}, nil
+}
+
+func (AccountService) LockAccountsForPosting(context.Context, []ledger.Account) error {
+	return nil
 }
 
 type customerAccount struct {
@@ -160,6 +173,14 @@ func (customerAccount) GetBalance(context.Context, ledger.RouteFilter, *ledger.T
 
 func (customerAccount) Lock(context.Context) error {
 	return nil
+}
+
+func (c customerAccount) ID() models.NamespacedID {
+	return models.NamespacedID{Namespace: "noop", ID: string(c.accountType)}
+}
+
+func (c customerAccount) Type() ledger.AccountType {
+	return c.accountType
 }
 
 type customerFBOAccount struct {
@@ -194,6 +215,14 @@ func (businessAccount) GetBalance(context.Context, ledger.RouteFilter, *ledger.T
 	return balance{}, nil
 }
 
+func (b businessAccount) ID() models.NamespacedID {
+	return models.NamespacedID{Namespace: "noop", ID: string(b.accountType)}
+}
+
+func (b businessAccount) Type() ledger.AccountType {
+	return b.accountType
+}
+
 func (b businessAccount) GetSubAccountForRoute(context.Context, ledger.BusinessRouteParams) (ledger.SubAccount, error) {
 	return subAccount{accountType: b.accountType}, nil
 }
@@ -210,7 +239,7 @@ func (NamespaceHandler) DeleteNamespace(context.Context, string) error {
 	return nil
 }
 
-func newAccount(namespace string, accountType ledger.AccountType, id string) *ledgeraccount.Account {
+func newAccount(namespace string, accountType ledger.AccountType, id string) ledger.Account {
 	if accountType == "" {
 		accountType = ledger.AccountTypeCustomerAccrued
 	}
@@ -222,11 +251,10 @@ func newAccount(namespace string, accountType ledger.AccountType, id string) *le
 		},
 		AccountType: accountType,
 	}, ledgeraccount.AccountLiveServices{
-		Querier:           Ledger{},
 		SubAccountService: AccountService{},
 	})
 	if err != nil {
-		return &ledgeraccount.Account{}
+		return customerAccruedAccount{customerAccount: customerAccount{accountType: ledger.AccountTypeCustomerAccrued}}
 	}
 
 	return account
@@ -256,7 +284,7 @@ func newSubAccount(namespace, accountID string, route ledger.Route) *ledgeraccou
 			RoutingKey:        routingKey.Value(),
 		},
 		CreatedAt: time.Unix(0, 0),
-	}, newAccount(namespace, accountType, accountID))
+	})
 	if err != nil {
 		return &ledgeraccount.SubAccount{}
 	}

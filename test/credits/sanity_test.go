@@ -52,6 +52,7 @@ type CreditsTestSuite struct {
 
 	Charges              charges.Service
 	Ledger               ledger.Ledger
+	BalanceQuerier       ledger.BalanceQuerier
 	LedgerAccountService ledgeraccount.Service
 	LedgerResolver       *ledgerresolvers.AccountResolver
 	RevenueRecognizer    recognizer.Service
@@ -70,6 +71,7 @@ func (s *CreditsTestSuite) SetupSuite() {
 	s.NoError(err)
 
 	s.Ledger = deps.HistoricalLedger
+	s.BalanceQuerier = deps.HistoricalLedger
 	s.LedgerAccountService = deps.AccountService
 	s.LedgerResolver = deps.ResolversService
 
@@ -86,8 +88,9 @@ func (s *CreditsTestSuite) SetupSuite() {
 	revenueRecognizer, err := recognizer.NewService(recognizer.Config{
 		Ledger: deps.HistoricalLedger,
 		Dependencies: transactions.ResolverDependencies{
-			AccountService:    deps.ResolversService,
-			SubAccountService: deps.AccountService,
+			AccountService: deps.ResolversService,
+			AccountCatalog: deps.AccountService,
+			BalanceQuerier: deps.HistoricalLedger,
 		},
 		Lineage:            lineageService,
 		TransactionManager: enttx.NewCreator(s.DBClient),
@@ -98,8 +101,9 @@ func (s *CreditsTestSuite) SetupSuite() {
 	collectorService := ledgercollector.NewService(ledgercollector.Config{
 		Ledger: deps.HistoricalLedger,
 		Dependencies: transactions.ResolverDependencies{
-			AccountService:    deps.ResolversService,
-			SubAccountService: deps.AccountService,
+			AccountService: deps.ResolversService,
+			AccountCatalog: deps.AccountService,
+			BalanceQuerier: deps.HistoricalLedger,
 		},
 	})
 
@@ -109,9 +113,9 @@ func (s *CreditsTestSuite) SetupSuite() {
 		BillingService:        s.BillingService,
 		FeatureService:        s.FeatureService,
 		StreamingConnector:    s.MockStreamingConnector,
-		FlatFeeHandler:        ledgerchargeadapter.NewFlatFeeHandler(deps.HistoricalLedger, transactions.ResolverDependencies{AccountService: deps.ResolversService, SubAccountService: deps.AccountService}, collectorService),
-		CreditPurchaseHandler: ledgerchargeadapter.NewCreditPurchaseHandler(deps.HistoricalLedger, deps.ResolversService, deps.AccountService),
-		UsageBasedHandler:     ledgerchargeadapter.NewUsageBasedHandler(deps.HistoricalLedger, transactions.ResolverDependencies{AccountService: deps.ResolversService, SubAccountService: deps.AccountService}, collectorService),
+		FlatFeeHandler:        ledgerchargeadapter.NewFlatFeeHandler(deps.HistoricalLedger, transactions.ResolverDependencies{AccountService: deps.ResolversService, AccountCatalog: deps.AccountService, BalanceQuerier: deps.HistoricalLedger}, collectorService),
+		CreditPurchaseHandler: ledgerchargeadapter.NewCreditPurchaseHandler(deps.HistoricalLedger, deps.HistoricalLedger, deps.ResolversService, deps.AccountService),
+		UsageBasedHandler:     ledgerchargeadapter.NewUsageBasedHandler(deps.HistoricalLedger, transactions.ResolverDependencies{AccountService: deps.ResolversService, AccountCatalog: deps.AccountService, BalanceQuerier: deps.HistoricalLedger}, collectorService),
 	})
 	s.NoError(err)
 	s.Charges = stack.ChargesService
@@ -1686,7 +1690,7 @@ func (s *CreditsTestSuite) mustCustomerFBOBalanceWithPriority(customerID custome
 	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
 	s.NoError(err)
 
-	balance, err := customerAccounts.FBOAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
+	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.FBOAccount, ledger.RouteFilter{
 		Currency:       code,
 		CostBasis:      costBasis,
 		CreditPriority: lo.ToPtr(priority),
@@ -1705,7 +1709,7 @@ func (s *CreditsTestSuite) mustCustomerReceivableBalance(customerID customer.Cus
 	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
 	s.NoError(err)
 
-	balance, err := customerAccounts.ReceivableAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
+	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.ReceivableAccount, ledger.RouteFilter{
 		Currency:                       code,
 		CostBasis:                      costBasis,
 		TransactionAuthorizationStatus: lo.ToPtr(status),
@@ -1724,7 +1728,7 @@ func (s *CreditsTestSuite) mustCustomerAccruedBalance(customerID customer.Custom
 	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
 	s.NoError(err)
 
-	balance, err := customerAccounts.AccruedAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
+	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.AccruedAccount, ledger.RouteFilter{
 		Currency:  code,
 		CostBasis: costBasis,
 	}, nil)
@@ -1742,7 +1746,7 @@ func (s *CreditsTestSuite) mustWashBalance(namespace string, code currencyx.Code
 	businessAccounts, err := s.LedgerResolver.GetBusinessAccounts(s.T().Context(), namespace)
 	s.NoError(err)
 
-	balance, err := businessAccounts.WashAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
+	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), businessAccounts.WashAccount, ledger.RouteFilter{
 		Currency:  code,
 		CostBasis: costBasis,
 	}, nil)
@@ -1764,7 +1768,7 @@ func (s *CreditsTestSuite) mustEarningsBalanceForCostBasis(namespace string, cod
 	businessAccounts, err := s.LedgerResolver.GetBusinessAccounts(s.T().Context(), namespace)
 	s.NoError(err)
 
-	balance, err := businessAccounts.EarningsAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
+	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), businessAccounts.EarningsAccount, ledger.RouteFilter{
 		Currency:  code,
 		CostBasis: costBasis,
 	}, nil)

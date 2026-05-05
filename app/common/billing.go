@@ -143,6 +143,7 @@ func NewBillingRegistry(
 	taxCodeService taxcode.Service,
 	locker *lockr.Locker,
 	ledgerService ledger.Ledger,
+	balanceQuerier ledger.BalanceQuerier,
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
 ) (BillingRegistry, error) {
@@ -179,6 +180,7 @@ func NewBillingRegistry(
 			featureConnector,
 			streamingConnector,
 			ledgerService,
+			balanceQuerier,
 			accountResolver,
 			accountService,
 			fsConfig.NamespaceLockdown,

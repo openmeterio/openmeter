@@ -442,8 +442,9 @@ func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
 	collectorService := ledgercollector.NewService(ledgercollector.Config{
 		Ledger: base.Deps.HistoricalLedger,
 		Dependencies: transactions.ResolverDependencies{
-			AccountService:    base.Deps.ResolversService,
-			SubAccountService: base.Deps.AccountService,
+			AccountService: base.Deps.ResolversService,
+			AccountCatalog: base.Deps.AccountService,
+			BalanceQuerier: base.Deps.HistoricalLedger,
 		},
 	})
 	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
@@ -457,8 +458,9 @@ func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
 	require.NoError(t, err)
 
 	deps := transactions.ResolverDependencies{
-		AccountService:    base.Deps.ResolversService,
-		SubAccountService: base.Deps.AccountService,
+		AccountService: base.Deps.ResolversService,
+		AccountCatalog: base.Deps.AccountService,
+		BalanceQuerier: base.Deps.HistoricalLedger,
 	}
 	recognizerService, err := recognizer.NewService(recognizer.Config{
 		Ledger:             base.Deps.HistoricalLedger,
@@ -471,8 +473,9 @@ func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
 	return &usageBasedHandlerTestEnv{
 		IntegrationEnv: base,
 		handler: chargeadapter.NewUsageBasedHandler(base.Deps.HistoricalLedger, transactions.ResolverDependencies{
-			AccountService:    base.Deps.ResolversService,
-			SubAccountService: base.Deps.AccountService,
+			AccountService: base.Deps.ResolversService,
+			AccountCatalog: base.Deps.AccountService,
+			BalanceQuerier: base.Deps.HistoricalLedger,
 		}, collectorService),
 		lineage:    lineageService,
 		recognizer: recognizerService,
@@ -623,8 +626,9 @@ func (e *usageBasedHandlerTestEnv) fundPriority(t *testing.T, priority int, amou
 	inputs, err := transactions.ResolveTransactions(
 		t.Context(),
 		transactions.ResolverDependencies{
-			AccountService:    e.Deps.ResolversService,
-			SubAccountService: e.Deps.AccountService,
+			AccountService: e.Deps.ResolversService,
+			AccountCatalog: e.Deps.AccountService,
+			BalanceQuerier: e.Deps.HistoricalLedger,
 		},
 		transactions.ResolutionScope{
 			CustomerID: e.CustomerID,

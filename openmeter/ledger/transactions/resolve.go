@@ -7,14 +7,14 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // ResolverDependencies are the dependencies required to resolve transactions
 type ResolverDependencies struct {
-	AccountService    ledger.AccountResolver
-	SubAccountService ledgeraccount.Service
+	AccountService ledger.AccountResolver
+	AccountCatalog ledger.AccountCatalog
+	BalanceQuerier ledger.BalanceQuerier
 }
 
 // ResolutionScope is the scope for which we resolve the transaction templates

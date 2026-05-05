@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -206,15 +205,11 @@ func (s *service) customerFBOAccountID(ctx context.Context, customerID customer.
 		return "", err
 	}
 
-	return fboAccountIDFromCustomerAccounts(accounts), nil
-}
-
-func fboAccountIDFromCustomerAccounts(accounts ledger.CustomerAccounts) string {
-	if fbo, ok := accounts.FBOAccount.(*ledgeraccount.CustomerFBOAccount); ok {
-		return fbo.ID().ID
+	if accounts.FBOAccount == nil {
+		return "", nil
 	}
 
-	return ""
+	return accounts.FBOAccount.ID().ID, nil
 }
 
 func creditTransactionsFromLedgerTransactions(txs []ledger.Transaction) ([]CreditTransaction, error) {

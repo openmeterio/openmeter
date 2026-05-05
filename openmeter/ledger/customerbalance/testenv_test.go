@@ -164,8 +164,9 @@ func newTestEnv(t *testing.T) *testEnv {
 	collectorService := ledgercollector.NewService(ledgercollector.Config{
 		Ledger: base.Deps.HistoricalLedger,
 		Dependencies: transactions.ResolverDependencies{
-			AccountService:    base.Deps.ResolversService,
-			SubAccountService: base.Deps.AccountService,
+			AccountService: base.Deps.ResolversService,
+			AccountCatalog: base.Deps.AccountService,
+			BalanceQuerier: base.Deps.HistoricalLedger,
 		},
 	})
 
@@ -188,8 +189,9 @@ func newTestEnv(t *testing.T) *testEnv {
 		Handler: ledgerchargeadapter.NewFlatFeeHandler(
 			base.Deps.HistoricalLedger,
 			transactions.ResolverDependencies{
-				AccountService:    base.Deps.ResolversService,
-				SubAccountService: base.Deps.AccountService,
+				AccountService: base.Deps.ResolversService,
+				AccountCatalog: base.Deps.AccountService,
+				BalanceQuerier: base.Deps.HistoricalLedger,
 			},
 			collectorService,
 		),
@@ -205,8 +207,9 @@ func newTestEnv(t *testing.T) *testEnv {
 		Handler: ledgerchargeadapter.NewUsageBasedHandler(
 			base.Deps.HistoricalLedger,
 			transactions.ResolverDependencies{
-				AccountService:    base.Deps.ResolversService,
-				SubAccountService: base.Deps.AccountService,
+				AccountService: base.Deps.ResolversService,
+				AccountCatalog: base.Deps.AccountService,
+				BalanceQuerier: base.Deps.HistoricalLedger,
 			},
 			collectorService,
 		),
@@ -244,6 +247,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		CreditPurchaseSvc: creditPurchaseAdapter,
 		UsageBasedService: usageService,
 		Ledger:            base.Deps.HistoricalLedger,
+		BalanceQuerier:    base.Deps.HistoricalLedger,
 	})
 	require.NoError(t, err)
 
@@ -288,8 +292,9 @@ func (e *testEnv) bookFBOBalanceInCurrency(t *testing.T, amount alpacadecimal.De
 	inputs, err := transactions.ResolveTransactions(
 		t.Context(),
 		transactions.ResolverDependencies{
-			AccountService:    e.Deps.ResolversService,
-			SubAccountService: e.Deps.AccountService,
+			AccountService: e.Deps.ResolversService,
+			AccountCatalog: e.Deps.AccountService,
+			BalanceQuerier: e.Deps.HistoricalLedger,
 		},
 		transactions.ResolutionScope{
 			CustomerID: e.CustomerID,
@@ -317,8 +322,9 @@ func (e *testEnv) fundOpenReceivableInCurrency(t *testing.T, amount alpacadecima
 	inputs, err := transactions.ResolveTransactions(
 		t.Context(),
 		transactions.ResolverDependencies{
-			AccountService:    e.Deps.ResolversService,
-			SubAccountService: e.Deps.AccountService,
+			AccountService: e.Deps.ResolversService,
+			AccountCatalog: e.Deps.AccountService,
+			BalanceQuerier: e.Deps.HistoricalLedger,
 		},
 		transactions.ResolutionScope{
 			CustomerID: e.CustomerID,

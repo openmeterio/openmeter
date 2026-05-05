@@ -9,7 +9,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -54,8 +53,12 @@ func listCustomerFBOSources(
 	currency currencyx.Code,
 	deps ResolverDependencies,
 ) ([]prioritizedSubAccountBalance, error) {
-	if deps.SubAccountService == nil {
-		return nil, fmt.Errorf("sub-account service is required")
+	if deps.AccountCatalog == nil {
+		return nil, fmt.Errorf("account catalog is required")
+	}
+
+	if deps.BalanceQuerier == nil {
+		return nil, fmt.Errorf("balance querier is required")
 	}
 
 	customerAccounts, err := deps.AccountService.GetCustomerAccounts(ctx, customerID)
@@ -68,7 +71,7 @@ func listCustomerFBOSources(
 		return nil, fmt.Errorf("customer FBO account does not expose an ID")
 	}
 
-	subAccounts, err := deps.SubAccountService.ListSubAccounts(ctx, ledgeraccount.ListSubAccountsInput{
+	subAccounts, err := deps.AccountCatalog.ListSubAccounts(ctx, ledger.ListSubAccountsInput{
 		Namespace: fboAccountWithID.ID().Namespace,
 		AccountID: fboAccountWithID.ID().ID,
 	})
@@ -83,7 +86,7 @@ func listCustomerFBOSources(
 			continue
 		}
 
-		balance, err := settledBalanceForSubAccount(ctx, subAccount)
+		balance, err := settledBalanceForSubAccount(ctx, deps, subAccount)
 		if err != nil {
 			return nil, err
 		}
@@ -158,7 +161,7 @@ func collectFromAttributableCustomerAccrued(
 		return nil, fmt.Errorf("customer accrued account does not expose an ID")
 	}
 
-	subAccounts, err := deps.SubAccountService.ListSubAccounts(ctx, ledgeraccount.ListSubAccountsInput{
+	subAccounts, err := deps.AccountCatalog.ListSubAccounts(ctx, ledger.ListSubAccountsInput{
 		Namespace: accruedAccountWithID.ID().Namespace,
 		AccountID: accruedAccountWithID.ID().ID,
 	})
@@ -173,7 +176,7 @@ func collectFromAttributableCustomerAccrued(
 			continue
 		}
 
-		balance, err := settledBalanceForSubAccount(ctx, subAccount)
+		balance, err := settledBalanceForSubAccount(ctx, deps, subAccount)
 		if err != nil {
 			return nil, err
 		}
@@ -230,8 +233,8 @@ func decimalPointersEqual(left, right *alpacadecimal.Decimal) bool {
 	}
 }
 
-func settledBalanceForSubAccount(ctx context.Context, subAccount ledger.SubAccount) (alpacadecimal.Decimal, error) {
-	balance, err := subAccount.GetBalance(ctx)
+func settledBalanceForSubAccount(ctx context.Context, deps ResolverDependencies, subAccount ledger.SubAccount) (alpacadecimal.Decimal, error) {
+	balance, err := deps.BalanceQuerier.GetSubAccountBalance(ctx, subAccount, nil)
 	if err != nil {
 		return alpacadecimal.Decimal{}, fmt.Errorf("get balance for sub-account %s: %w", subAccount.Address().SubAccountID(), err)
 	}
