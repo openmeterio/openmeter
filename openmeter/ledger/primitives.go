@@ -50,7 +50,6 @@ type RouteFilter struct {
 	Currency currencyx.Code
 
 	// Non-currency fields are retained for near-future expansion.
-	// mo.Option provides nil-distinction: absent = don't filter, Some(nil) = filter for null, Some(&v) = filter for v.
 	TaxCode     mo.Option[*string]
 	TaxBehavior mo.Option[*TaxBehavior]
 	Features    []string

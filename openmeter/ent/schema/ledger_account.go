@@ -113,8 +113,9 @@ func (LedgerSubAccountRoute) Fields() []ent.Field {
 			GoType(ledger.RoutingKeyVersion("")).
 			Immutable(),
 		field.String("routing_key").Immutable(),
-		// Literal routing values
+		// Literal routing values (denormalized from routing_key for query filtering; not FKs).
 		field.String("currency").Immutable(),
+		// tax_code stores the TaxCode.Key string used as a routing dimension, not a FK to the tax_codes table.
 		field.String("tax_code").Optional().Nillable().Immutable(),
 		field.String("tax_behavior").
 			GoType(ledger.TaxBehavior("")).

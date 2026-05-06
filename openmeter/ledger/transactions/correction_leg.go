@@ -12,11 +12,12 @@ import (
 
 type routePairingKey struct {
 	currency  currencyx.Code
+	taxCode   string
 	costBasis string
 }
 
 func (k routePairingKey) String() string {
-	return fmt.Sprintf("currency=%s,cost_basis=%s", k.currency, k.costBasis)
+	return fmt.Sprintf("currency=%s,tax_code=%s,cost_basis=%s", k.currency, k.taxCode, k.costBasis)
 }
 
 type correctionLeg struct {

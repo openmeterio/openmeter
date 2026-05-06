@@ -157,6 +157,64 @@ func TestTransferCustomerFBOAdvanceToAccruedTemplate_UnknownCostBasisAdvanceNetE
 	require.True(t, env.SumBalance(t, env.AccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(30)))
 }
 
+func TestTransferCustomerFBOToAccruedTemplate_SeparatesTaxCodeBuckets(t *testing.T) {
+	env := newTransactionsTestEnv(t)
+	costBasis := alpacadecimal.NewFromInt(1)
+
+	taxA := "tax_A"
+	taxB := "tax_B"
+
+	// Fund two FBO sub-accounts: same priority+costBasis but different TaxCodes.
+	fboTaxA := env.fundPriorityWithCostBasisAndTaxCode(t, 1, 30, &costBasis, &taxA)
+	fboTaxB := env.fundPriorityWithCostBasisAndTaxCode(t, 1, 50, &costBasis, &taxB)
+
+	inputs := env.resolveAndCommit(
+		t,
+		TransferCustomerFBOToAccruedTemplate{
+			At:       env.Now(),
+			Amount:   alpacadecimal.NewFromInt(80),
+			Currency: env.Currency,
+		},
+	)
+	require.Len(t, inputs, 1)
+
+	// Both FBO sources fully drained.
+	require.True(t, env.SumBalance(t, fboTaxA).Equal(alpacadecimal.Zero))
+	require.True(t, env.SumBalance(t, fboTaxB).Equal(alpacadecimal.Zero))
+
+	// Each TaxCode lands in its own accrued bucket.
+	require.True(t, env.AccruedSubAccountWithCostBasisAndTaxCode(t, &costBasis, &taxA) != env.AccruedSubAccountWithCostBasisAndTaxCode(t, &costBasis, &taxB))
+	require.True(t, env.SumBalance(t, env.AccruedSubAccountWithCostBasisAndTaxCode(t, &costBasis, &taxA)).Equal(alpacadecimal.NewFromInt(30)))
+	require.True(t, env.SumBalance(t, env.AccruedSubAccountWithCostBasisAndTaxCode(t, &costBasis, &taxB)).Equal(alpacadecimal.NewFromInt(50)))
+}
+
+func TestTransferCustomerFBOToAccruedTemplate_NilTaxCodeIsolatedFromNonNil(t *testing.T) {
+	env := newTransactionsTestEnv(t)
+
+	taxA := "tax_A"
+
+	// One FBO with nil TaxCode, one with non-nil TaxCode.
+	fboNilTax := env.fundPriorityWithCostBasisAndTaxCode(t, 1, 40, nil, nil)
+	fboTaxA := env.fundPriorityWithCostBasisAndTaxCode(t, 2, 20, nil, &taxA)
+
+	inputs := env.resolveAndCommit(
+		t,
+		TransferCustomerFBOToAccruedTemplate{
+			At:       env.Now(),
+			Amount:   alpacadecimal.NewFromInt(60),
+			Currency: env.Currency,
+		},
+	)
+	require.Len(t, inputs, 1)
+
+	require.True(t, env.SumBalance(t, fboNilTax).Equal(alpacadecimal.Zero))
+	require.True(t, env.SumBalance(t, fboTaxA).Equal(alpacadecimal.Zero))
+
+	// Nil TaxCode and non-nil TaxCode land in separate accrued buckets.
+	require.True(t, env.SumBalance(t, env.AccruedSubAccountWithCostBasisAndTaxCode(t, nil, nil)).Equal(alpacadecimal.NewFromInt(40)))
+	require.True(t, env.SumBalance(t, env.AccruedSubAccountWithCostBasisAndTaxCode(t, nil, &taxA)).Equal(alpacadecimal.NewFromInt(20)))
+}
+
 func TestTranslateCustomerAccruedCostBasisTemplate(t *testing.T) {
 	env := newTransactionsTestEnv(t)
 	purchasedCostBasis := alpacadecimal.NewFromInt(1)

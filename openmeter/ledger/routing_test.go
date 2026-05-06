@@ -237,11 +237,11 @@ func mustDecimal(t *testing.T, raw string) alpacadecimal.Decimal {
 	return value
 }
 
-func TestBuildroutingKeyV1_WithTaxBehaviorAndTaxCode(t *testing.T) {
+func TestBuildRoutingKeyV1_WithTaxBehaviorAndTaxCode(t *testing.T) {
 	key, err := BuildRoutingKeyV1(Route{
 		Currency:    currencyx.Code("USD"),
 		TaxCode:     lo.ToPtr("GST10"),
-		TaxBehavior: lo.ToPtr(TaxBehavior("exclusive")),
+		TaxBehavior: lo.ToPtr(TaxBehaviorExclusive),
 	})
 	require.NoError(t, err)
 	require.Equal(t, "currency:USD|tax_code:GST10|tax_behavior:exclusive|features:null|cost_basis:null|credit_priority:null|transaction_authorization_status:null", key.Value())

@@ -102,6 +102,7 @@ func (t TransferCustomerFBOToAccruedTemplate) routePairingKey(address ledger.Pos
 
 	return routePairingKey{
 		currency:  route.Currency,
+		taxCode:   taxCodeKey(route.TaxCode),
 		costBasis: costBasisKey(route.CostBasis),
 	}
 }
@@ -211,6 +212,13 @@ func costBasisKey(costBasis *alpacadecimal.Decimal) string {
 	}
 
 	return costBasis.String()
+}
+
+func taxCodeKey(taxCode *string) string {
+	if taxCode == nil {
+		return "null"
+	}
+	return *taxCode
 }
 
 // TransferCustomerFBOAdvanceToAccruedTemplate moves value from the synthetic advance-backed
