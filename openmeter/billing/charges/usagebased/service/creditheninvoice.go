@@ -212,12 +212,17 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, _ meta
 
 type invoiceCreatedInput struct {
 	LineID          string
+	InvoiceID       string
 	ServicePeriodTo time.Time
 }
 
 func (i invoiceCreatedInput) Validate() error {
 	if i.LineID == "" {
 		return fmt.Errorf("line id is required")
+	}
+
+	if i.InvoiceID == "" {
+		return fmt.Errorf("invoice id is required")
 	}
 
 	if i.ServicePeriodTo.IsZero() {
@@ -255,6 +260,7 @@ func (s *CreditThenInvoiceStateMachine) startInvoiceCreatedRun(
 		StoredAtLT:         storedAtLT,
 		ServicePeriodTo:    servicePeriodTo,
 		LineID:             lo.ToPtr(input.LineID),
+		InvoiceID:          lo.ToPtr(input.InvoiceID),
 		CreditAllocation:   usagebasedrun.CreditAllocationAvailable,
 		CurrencyCalculator: s.CurrencyCalculator,
 	})

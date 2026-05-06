@@ -149,6 +149,7 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 
 		if err := stateMachine.FireAndActivate(ctx, trigger, invoiceCreatedInput{
 			LineID:          stdLine.ID,
+			InvoiceID:       input.Invoice.ID,
 			ServicePeriodTo: stdLine.Period.To,
 		}); err != nil {
 			return nil, fmt.Errorf("triggering %s for charge[%s]: %w", trigger, stateMachine.GetCharge().ID, err)

@@ -31,6 +31,7 @@ func (a *adapter) CreateRealizationRun(ctx context.Context, chargeID meta.Charge
 			SetServicePeriodTo(meta.NormalizeTimestamp(input.ServicePeriodTo)).
 			SetDetailedLinesPresent(false).
 			SetNillableBillingInvoiceLineID(input.LineID).
+			SetNillableBillingInvoiceID(input.InvoiceID).
 			SetMeteredQuantity(input.MeteredQuantity).
 			SetNoFiatTransactionRequired(input.NoFiatTransactionRequired)
 

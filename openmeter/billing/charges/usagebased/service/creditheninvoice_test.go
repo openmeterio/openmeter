@@ -17,7 +17,8 @@ func TestStartInvoiceCreatedRunValidatesInput(t *testing.T) {
 	err := machine.startInvoiceCreatedRun(
 		t.Context(),
 		invoiceCreatedInput{
-			LineID: "line-1",
+			LineID:    "line-1",
+			InvoiceID: "invoice-1",
 		},
 		usagebased.RealizationRunTypePartialInvoice,
 	)
