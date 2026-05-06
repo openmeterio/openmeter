@@ -162,6 +162,20 @@ func decodeTyped[T any](c *v3Client, status int, raw []byte, problem *v3Problem,
 	return status, &v, nil
 }
 
+// --- Meters ---
+
+func (c *v3Client) CreateMeter(body apiv3.CreateMeterRequest) (int, *apiv3.Meter, *v3Problem) {
+	status, raw, problem := c.do(http.MethodPost, "/meters", body)
+	return decodeTyped[apiv3.Meter](c, status, raw, problem, http.StatusCreated)
+}
+
+// --- Features ---
+
+func (c *v3Client) CreateFeature(body apiv3.CreateFeatureRequest) (int, *apiv3.Feature, *v3Problem) {
+	status, raw, problem := c.do(http.MethodPost, "/features", body)
+	return decodeTyped[apiv3.Feature](c, status, raw, problem, http.StatusCreated)
+}
+
 // --- Plans ---
 
 func (c *v3Client) CreatePlan(body apiv3.CreatePlanRequest) (int, *apiv3.BillingPlan, *v3Problem) {
@@ -381,6 +395,16 @@ func validUnitRateCard(keyPrefix string) apiv3.BillingRateCard {
 		BillingCadence: &cadence,
 		PaymentTerm:    &term,
 	}
+}
+
+// validUsageRateCard returns a unit-priced rate card bound to the given
+// feature ID — the shape needed when a plan/addon meters usage against a
+// metered feature. Reuses validUnitRateCard's price + cadence + payment_term
+// (unit prices must use in_arrears).
+func validUsageRateCard(keyPrefix, featureID string) apiv3.BillingRateCard {
+	rc := validUnitRateCard(keyPrefix)
+	rc.Feature = &apiv3.FeatureReferenceItem{Id: featureID}
+	return rc
 }
 
 // validGraduatedRateCard returns a graduated tiered rate card with two tiers:
