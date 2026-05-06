@@ -91,7 +91,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Product Catalog
-      x-private: true
+      x-internal: true
       x-unstable: true
     post:
       operationId: create-addon
@@ -118,7 +118,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateAddonRequest'
-      x-private: true
+      x-internal: true
       x-unstable: true
   /openmeter/addons/{addonId}:
     put:
@@ -156,7 +156,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpsertAddonRequest'
-      x-private: true
+      x-internal: true
       x-unstable: true
     get:
       operationId: get-addon
@@ -187,7 +187,7 @@ paths:
           $ref: '#/components/responses/Gone'
       tags:
         - OpenMeter Product Catalog
-      x-private: true
+      x-internal: true
       x-unstable: true
     delete:
       operationId: delete-addon
@@ -212,7 +212,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-private: true
+      x-internal: true
       x-unstable: true
   /openmeter/addons/{addonId}/archive:
     post:
@@ -242,7 +242,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-private: true
+      x-internal: true
       x-unstable: true
   /openmeter/addons/{addonId}/publish:
     post:
@@ -272,7 +272,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-private: true
+      x-internal: true
       x-unstable: true
   /openmeter/apps:
     get:
@@ -847,7 +847,11 @@ paths:
         - name: expand
           in: query
           required: false
-          description: Expands
+          description: |-
+            Expand full objects for referenced entities.
+
+            Supported values are:
+            - `real_time_usage`: Expand the charge's real-time usage.
           schema:
             type: array
             items:
@@ -1283,7 +1287,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - Metering Events
-      x-private: true
+      x-internal: true
       x-unstable: true
     post:
       operationId: ingest-metering-events
@@ -1367,7 +1371,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Features
-      x-private: true
+      x-internal: true
       x-unstable: true
     post:
       operationId: create-feature
@@ -1394,7 +1398,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateFeatureRequest'
-      x-private: true
+      x-internal: true
       x-unstable: true
   /openmeter/features/{featureId}:
     get:
@@ -1426,7 +1430,7 @@ paths:
           $ref: '#/components/responses/Gone'
       tags:
         - OpenMeter Features
-      x-private: true
+      x-internal: true
       x-unstable: true
     patch:
       operationId: update-feature
@@ -1463,7 +1467,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateFeatureRequest'
-      x-private: true
+      x-internal: true
       x-unstable: true
     delete:
       operationId: delete-feature
@@ -1488,7 +1492,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Features
-      x-private: true
+      x-internal: true
       x-unstable: true
   /openmeter/features/{featureId}/cost/query:
     post:
@@ -1524,7 +1528,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MeterQueryRequest'
-      x-private: true
+      x-internal: true
       x-unstable: true
   /openmeter/llm-cost/overrides:
     get:
@@ -1833,7 +1837,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateMeterRequest'
-      x-private: true
+      x-internal: true
       x-unstable: true
     delete:
       operationId: delete-meter
@@ -1914,7 +1918,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-      x-private: true
+      x-internal: true
       x-unstable: true
       tags:
         - Meters
@@ -1968,7 +1972,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Product Catalog
-      x-private: true
+      x-internal: true
       x-unstable: true
     post:
       operationId: create-plan
@@ -1995,7 +1999,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreatePlanRequest'
-      x-private: true
+      x-internal: true
       x-unstable: true
   /openmeter/plans/{planId}:
     put:
@@ -2033,7 +2037,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpsertPlanRequest'
-      x-private: true
+      x-internal: true
       x-unstable: true
     get:
       operationId: get-plan
@@ -2064,7 +2068,7 @@ paths:
           $ref: '#/components/responses/Gone'
       tags:
         - OpenMeter Product Catalog
-      x-private: true
+      x-internal: true
       x-unstable: true
     delete:
       operationId: delete-plan
@@ -2089,7 +2093,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-private: true
+      x-internal: true
       x-unstable: true
   /openmeter/plans/{planId}/addons:
     get:
@@ -2120,7 +2124,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-private: true
+      x-internal: true
       x-unstable: true
     post:
       operationId: create-plan-addon
@@ -2155,7 +2159,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreatePlanAddonRequest'
-      x-private: true
+      x-internal: true
       x-unstable: true
   /openmeter/plans/{planId}/addons/{planAddonId}:
     get:
@@ -2190,7 +2194,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-private: true
+      x-internal: true
       x-unstable: true
     put:
       operationId: update-plan-addon
@@ -2230,7 +2234,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpsertPlanAddonRequest'
-      x-private: true
+      x-internal: true
       x-unstable: true
     delete:
       operationId: delete-plan-addon
@@ -2260,7 +2264,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-private: true
+      x-internal: true
       x-unstable: true
   /openmeter/plans/{planId}/archive:
     post:
@@ -2290,7 +2294,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-private: true
+      x-internal: true
       x-unstable: true
   /openmeter/plans/{planId}/publish:
     post:
@@ -2320,7 +2324,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-private: true
+      x-internal: true
       x-unstable: true
   /openmeter/profiles:
     get:
@@ -2686,7 +2690,7 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateTaxCodeRequest'
       x-unstable: true
-      x-private: true
+      x-internal: true
     get:
       operationId: list-tax-codes
       summary: List tax codes
@@ -2716,7 +2720,7 @@ paths:
       tags:
         - OpenMeter Tax
       x-unstable: true
-      x-private: true
+      x-internal: true
   /openmeter/tax-codes/{taxCodeId}:
     get:
       operationId: get-tax-code
@@ -2745,7 +2749,7 @@ paths:
       tags:
         - OpenMeter Tax
       x-unstable: true
-      x-private: true
+      x-internal: true
     put:
       operationId: upsert-tax-code
       summary: Upsert tax code
@@ -2781,7 +2785,7 @@ paths:
             schema:
               $ref: '#/components/schemas/UpsertTaxCodeRequest'
       x-unstable: true
-      x-private: true
+      x-internal: true
     delete:
       operationId: delete-tax-code
       summary: Delete tax code
@@ -2805,7 +2809,7 @@ paths:
       tags:
         - OpenMeter Tax
       x-unstable: true
-      x-private: true
+      x-internal: true
 components:
   parameters:
     CursorPaginationQuery:
@@ -2847,6 +2851,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - key
         - version
         - instance_type
@@ -3166,6 +3172,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - type
         - definition
         - status
@@ -3276,6 +3284,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - type
         - definition
         - status
@@ -3344,6 +3354,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - type
         - definition
         - status
@@ -3938,6 +3950,7 @@ components:
         - id
         - fiat_code
         - rate
+        - created_at
       properties:
         id:
           allOf:
@@ -4039,6 +4052,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - funding_method
         - currency
         - amount
@@ -4256,6 +4271,7 @@ components:
       required:
         - id
         - name
+        - created_at
         - booked_at
         - type
         - currency
@@ -4368,6 +4384,7 @@ components:
         - type
         - name
         - code
+        - created_at
       properties:
         id:
           allOf:
@@ -4451,6 +4468,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - key
       properties:
         id:
@@ -4780,6 +4799,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - type
         - customer
         - managed_by
@@ -5009,6 +5030,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - key
         - version
         - currency
@@ -5078,10 +5101,7 @@ components:
           title: Billing cadence
         pro_rating_enabled:
           type: boolean
-          description: |-
-            Whether pro-rating is enabled for this plan.
-
-            TODO: WIP — pro-rating mode and exact semantics will be defined in a later iteration.
+          description: Whether pro-rating is enabled for this plan.
           title: Pro-rating enabled
           default: true
         effective_from:
@@ -5352,6 +5372,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - supplier
         - workflow
         - apps
@@ -5601,6 +5623,8 @@ components:
       type: object
       required:
         - id
+        - created_at
+        - updated_at
         - customer_id
         - billing_anchor
         - status
@@ -5921,6 +5945,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - key
         - app_mappings
       properties:
@@ -6124,6 +6150,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - type
         - customer
         - managed_by
@@ -7040,10 +7068,7 @@ components:
           title: Billing cadence
         pro_rating_enabled:
           type: boolean
-          description: |-
-            Whether pro-rating is enabled for this plan.
-
-            TODO: WIP — pro-rating mode and exact semantics will be defined in a later iteration.
+          description: Whether pro-rating is enabled for this plan.
           title: Pro-rating enabled
           default: true
         phases:
@@ -7248,6 +7273,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - key
       properties:
         id:
@@ -7409,10 +7436,6 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingCurrencyCode'
           description: Filter credit balance by currency.
-        feature:
-          allOf:
-            - $ref: '#/components/schemas/ResourceKey'
-          description: Filter by specific feature.
       description: Filter options for getting a credit balance.
     ISO8601Duration:
       type: string
@@ -7523,6 +7546,8 @@ components:
         - currency
         - source
         - effective_from
+        - created_at
+        - updated_at
       properties:
         id:
           allOf:
@@ -7794,6 +7819,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - key
         - aggregation
         - event_type
@@ -8227,6 +8254,8 @@ components:
       required:
         - id
         - name
+        - created_at
+        - updated_at
         - addon
         - from_plan_phase
       properties:
@@ -8926,10 +8955,7 @@ components:
           $ref: '#/components/schemas/Labels'
         pro_rating_enabled:
           type: boolean
-          description: |-
-            Whether pro-rating is enabled for this plan.
-
-            TODO: WIP — pro-rating mode and exact semantics will be defined in a later iteration.
+          description: Whether pro-rating is enabled for this plan.
           title: Pro-rating enabled
           default: true
         phases:

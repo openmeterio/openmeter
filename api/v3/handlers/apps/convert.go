@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/samber/lo"
-
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/api/v3/response"
@@ -119,8 +117,8 @@ func toAPIBillingAppSandbox(sandboxApp appsandbox.Meta) (api.BillingAppSandbox, 
 		Definition:  definition,
 		Labels:      labels.FromMetadata(sandboxApp.GetMetadata()),
 		Description: sandboxApp.GetDescription(),
-		CreatedAt:   lo.ToPtr(sandboxApp.CreatedAt),
-		UpdatedAt:   lo.ToPtr(sandboxApp.UpdatedAt),
+		CreatedAt:   sandboxApp.CreatedAt,
+		UpdatedAt:   sandboxApp.UpdatedAt,
 		DeletedAt:   sandboxApp.DeletedAt,
 	}, nil
 }
@@ -141,8 +139,8 @@ func toAPIBillingAppStripe(
 		Definition:  definition,
 		Labels:      labels.FromMetadata(stripeApp.GetMetadata()),
 		Description: stripeApp.GetDescription(),
-		CreatedAt:   lo.ToPtr(stripeApp.CreatedAt),
-		UpdatedAt:   lo.ToPtr(stripeApp.UpdatedAt),
+		CreatedAt:   stripeApp.CreatedAt,
+		UpdatedAt:   stripeApp.UpdatedAt,
 		DeletedAt:   stripeApp.DeletedAt,
 
 		MaskedApiKey: stripeApp.MaskedAPIKey,
@@ -167,8 +165,8 @@ func toAPIBillingAppExternalInvoicing(customInvoicingApp appcustominvoicing.Meta
 		Definition:  definition,
 		Labels:      labels.FromMetadata(customInvoicingApp.GetMetadata()),
 		Description: customInvoicingApp.GetDescription(),
-		CreatedAt:   lo.ToPtr(customInvoicingApp.CreatedAt),
-		UpdatedAt:   lo.ToPtr(customInvoicingApp.UpdatedAt),
+		CreatedAt:   customInvoicingApp.CreatedAt,
+		UpdatedAt:   customInvoicingApp.UpdatedAt,
 		DeletedAt:   customInvoicingApp.DeletedAt,
 
 		EnableDraftSyncHook:   customInvoicingApp.Configuration.EnableDraftSyncHook,

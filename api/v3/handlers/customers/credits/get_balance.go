@@ -2,7 +2,6 @@ package customerscredits
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
 	api "github.com/openmeterio/openmeter/api/v3"
@@ -13,10 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
-
-var errUnsupportedFeatureFilter = errors.New("feature filter is not supported for this balance endpoint")
 
 type (
 	GetCustomerCreditBalanceRequest struct {
@@ -37,20 +33,6 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 			namespace, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return GetCustomerCreditBalanceRequest{}, err
-			}
-
-			if args.Params.Filter != nil && args.Params.Filter.Feature != nil {
-				return GetCustomerCreditBalanceRequest{}, apierrors.NewBadRequestError(
-					ctx,
-					models.NewGenericValidationError(errUnsupportedFeatureFilter),
-					apierrors.InvalidParameters{
-						{
-							Field:  "filter.feature",
-							Reason: errUnsupportedFeatureFilter.Error(),
-							Source: apierrors.InvalidParamSourceQuery,
-						},
-					},
-				)
 			}
 
 			request := GetCustomerCreditBalanceRequest{

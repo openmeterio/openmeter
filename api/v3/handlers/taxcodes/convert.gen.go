@@ -41,19 +41,19 @@ func init() {
 	ToAPIBillingTaxCode = func(source taxcode.TaxCode) (v3.BillingTaxCode, error) {
 		var v3BillingTaxCode v3.BillingTaxCode
 		v3BillingTaxCode.AppMappings = ToAPIBillingTaxCodeAppMappings(source.AppMappings)
-		v3BillingTaxCode.CreatedAt = timeTimeToPTimeTime(source.ManagedModel.CreatedAt)
+		v3BillingTaxCode.CreatedAt = timeTimeToTimeTime(source.ManagedModel.CreatedAt)
 		v3BillingTaxCode.DeletedAt = source.ManagedModel.DeletedAt
 		v3BillingTaxCode.Description = source.Description
 		v3BillingTaxCode.Id = source.NamespacedID.ID
 		v3BillingTaxCode.Key = source.Key
 		v3BillingTaxCode.Labels = ConvertMetadataAnnotationsToLabels(source)
 		v3BillingTaxCode.Name = source.Name
-		v3BillingTaxCode.UpdatedAt = timeTimeToPTimeTime(source.ManagedModel.UpdatedAt)
+		v3BillingTaxCode.UpdatedAt = timeTimeToTimeTime(source.ManagedModel.UpdatedAt)
 		return v3BillingTaxCode, nil
 	}
 }
-func timeTimeToPTimeTime(source time.Time) *time.Time {
-	return &source
+func timeTimeToTimeTime(source time.Time) time.Time {
+	return source
 }
 func v3BillingTaxCodeAppMappingListToTaxcodeTaxCodeAppMappings(source []v3.BillingTaxCodeAppMapping) taxcode.TaxCodeAppMappings {
 	var taxcodeTaxCodeAppMappings taxcode.TaxCodeAppMappings

@@ -37,7 +37,7 @@ func convertFlatFeeChargeToAPI(source flatfee.Charge) (api.BillingFlatFeeCharge,
 		AdvanceAfter:           source.State.AdvanceAfter,
 		AmountAfterProration:   ConvertDecimalToCurrencyAmount(source.ChargeBase.State.AmountAfterProration),
 		BillingPeriod:          ConvertClosedPeriodToAPI(source.ChargeBase.Intent.Intent.BillingPeriod),
-		CreatedAt:              lo.ToPtr(source.ChargeBase.ManagedResource.ManagedModel.CreatedAt),
+		CreatedAt:              source.ChargeBase.ManagedResource.ManagedModel.CreatedAt,
 		Currency:               ConvertCurrencyCodeToAPI(source.ChargeBase.Intent.Intent.Currency),
 		Customer:               ConvertCustomerIDToReference(source.ChargeBase.Intent.Intent.CustomerID),
 		DeletedAt:              source.ChargeBase.ManagedResource.ManagedModel.DeletedAt,
@@ -60,7 +60,7 @@ func convertFlatFeeChargeToAPI(source flatfee.Charge) (api.BillingFlatFeeCharge,
 		TaxConfig:              convertTaxCodeConfigToAPI(source.ChargeBase.Intent.Intent.TaxConfig),
 		Type:                   api.BillingFlatFeeChargeTypeFlatFee,
 		UniqueReferenceId:      source.ChargeBase.Intent.Intent.UniqueReferenceID,
-		UpdatedAt:              lo.ToPtr(source.ChargeBase.ManagedResource.ManagedModel.UpdatedAt),
+		UpdatedAt:              source.ChargeBase.ManagedResource.ManagedModel.UpdatedAt,
 	}, nil
 }
 
@@ -79,7 +79,7 @@ func convertUsageBasedChargeToAPI(source usagebased.Charge) (api.BillingUsageBas
 	return api.BillingUsageBasedCharge{
 		AdvanceAfter:      source.State.AdvanceAfter,
 		BillingPeriod:     ConvertClosedPeriodToAPI(source.ChargeBase.Intent.Intent.BillingPeriod),
-		CreatedAt:         lo.ToPtr(source.ChargeBase.ManagedResource.ManagedModel.CreatedAt),
+		CreatedAt:         source.ChargeBase.ManagedResource.ManagedModel.CreatedAt,
 		Currency:          ConvertCurrencyCodeToAPI(source.ChargeBase.Intent.Intent.Currency),
 		Customer:          ConvertCustomerIDToReference(source.ChargeBase.Intent.Intent.CustomerID),
 		DeletedAt:         source.ChargeBase.ManagedResource.ManagedModel.DeletedAt,
@@ -101,7 +101,7 @@ func convertUsageBasedChargeToAPI(source usagebased.Charge) (api.BillingUsageBas
 		Totals:            convertUsageBasedChargeTotals(source),
 		Type:              api.BillingUsageBasedChargeTypeUsageBased,
 		UniqueReferenceId: source.ChargeBase.Intent.Intent.UniqueReferenceID,
-		UpdatedAt:         lo.ToPtr(source.ChargeBase.ManagedResource.ManagedModel.UpdatedAt),
+		UpdatedAt:         source.ChargeBase.ManagedResource.ManagedModel.UpdatedAt,
 	}, nil
 }
 

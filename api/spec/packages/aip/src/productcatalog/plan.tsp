@@ -59,9 +59,8 @@ model Plan {
 
   /**
    * Whether pro-rating is enabled for this plan.
-   *
-   * TODO: WIP — pro-rating mode and exact semantics will be defined in a later iteration.
    */
+  // TODO: WIP — pro-rating mode and exact semantics will be defined in a later iteration.
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Pro-rating enabled")
   pro_rating_enabled?: boolean = true;

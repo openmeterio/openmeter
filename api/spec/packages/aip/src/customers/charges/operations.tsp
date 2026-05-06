@@ -68,7 +68,10 @@ interface CustomerChargesOperations {
     filter?: ListCustomerChargesParamsFilter,
 
     /**
-     * Expands
+     * Expand full objects for referenced entities.
+     *
+     * Supported values are:
+     * - `real_time_usage`: Expand the charge's real-time usage.
      */
     @query(#{ name: "expand", explode: true })
     expand?: ChargesExpand[],
