@@ -72,6 +72,7 @@ type CustomerReceivableAccount interface {
 // TransactionAuthorizationStatus is required; callers must explicitly select the open or authorized route.
 type CustomerReceivableRouteParams struct {
 	Currency                       currencyx.Code
+	TaxCode                        *string
 	CostBasis                      *alpacadecimal.Decimal
 	TransactionAuthorizationStatus TransactionAuthorizationStatus
 }
@@ -87,6 +88,7 @@ func (p CustomerReceivableRouteParams) Validate() error {
 func (p CustomerReceivableRouteParams) Route() Route {
 	return Route{
 		Currency:                       p.Currency,
+		TaxCode:                        p.TaxCode,
 		CostBasis:                      p.CostBasis,
 		TransactionAuthorizationStatus: &p.TransactionAuthorizationStatus,
 	}
@@ -101,9 +103,9 @@ type CustomerAccruedAccount interface {
 }
 
 // CustomerAccruedRouteParams are routing parameters specific to customer accrued sub-accounts.
-// Routed by currency only for now.
 type CustomerAccruedRouteParams struct {
 	Currency  currencyx.Code
+	TaxCode   *string
 	CostBasis *alpacadecimal.Decimal
 }
 
@@ -114,6 +116,7 @@ func (p CustomerAccruedRouteParams) Validate() error {
 func (p CustomerAccruedRouteParams) Route() Route {
 	return Route{
 		Currency:  p.Currency,
+		TaxCode:   p.TaxCode,
 		CostBasis: p.CostBasis,
 	}
 }
