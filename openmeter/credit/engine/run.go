@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
@@ -57,10 +58,11 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 		relevantGrants := e.filterRelevantGrants(params.Grants, snapshot.Balances, period)
 
 		runRes, err := e.runBetweenResets(ctx, inbetweenRunParams{
-			Grants:           relevantGrants,
-			Until:            period.To,
-			StartingSnapshot: snapshot,
-			Meter:            params.Meter,
+			Grants:                              relevantGrants,
+			Until:                               period.To,
+			StartingSnapshot:                    snapshot,
+			Meter:                               params.Meter,
+			PeriodEndRecurrenceBoundaryBehavior: lo.Ternary(idx == len(timeline.GetClosedPeriods())-1, timeutil.Inclusive, timeutil.Exclusive),
 		})
 		if err != nil {
 			return RunResult{}, fmt.Errorf("failed to run calculation for period %s - %s: %w", period.From, period.To, err)
@@ -107,6 +109,10 @@ type inbetweenRunParams struct {
 	StartingSnapshot balance.Snapshot
 	// Meter for the current run.
 	Meter meter.Meter
+	// PeriodEndRecurrenceBoundaryBehavior controls whether events exactly at Until should produce
+	// a terminal zero-length phase. Internal reset boundaries apply those events in
+	// the following period instead.
+	PeriodEndRecurrenceBoundaryBehavior timeutil.Boundary
 }
 
 // Burns down all grants in the defined period by the usage amounts.
@@ -123,7 +129,7 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 	grants := make([]grant.Grant, len(params.Grants))
 	copy(grants, params.Grants)
 
-	phasePlan, err := e.getPhases(grants, period)
+	phasePlan, err := e.getPhases(grants, period, params.PeriodEndRecurrenceBoundaryBehavior)
 	if err != nil {
 		return RunResult{}, fmt.Errorf("failed to get burn phases: %w", err)
 	}

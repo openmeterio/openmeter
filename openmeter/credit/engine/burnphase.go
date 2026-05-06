@@ -31,9 +31,9 @@ type phasePlan struct {
 //
 // Note that grant balance does not effect the burndown order if we simply ignore grants that don't
 // have balance while burning down.
-func (e *engine) getPhases(grants []grant.Grant, period timeutil.ClosedPeriod) (phasePlan, error) {
+func (e *engine) getPhases(grants []grant.Grant, period timeutil.ClosedPeriod, recurrenceEndBoundaryBehavior timeutil.Boundary) (phasePlan, error) {
 	activityChanges := e.getGrantActivityChanges(grants, period)
-	recurrenceTimes, err := e.getGrantRecurrenceTimes(grants, period)
+	recurrenceTimes, err := e.getGrantRecurrenceTimes(grants, period, recurrenceEndBoundaryBehavior)
 	if err != nil {
 		return phasePlan{}, fmt.Errorf("failed to get grant recurrence times: %w", err)
 	}
@@ -68,6 +68,10 @@ func (e *engine) getPhases(grants []grant.Grant, period timeutil.ClosedPeriod) (
 	phaseFrom := period.From
 
 	appendPhase := func(phase burnPhase) {
+		if !phase.to.After(phase.from) {
+			return
+		}
+
 		phases = append(phases, phase)
 		phaseFrom = phase.to
 	}
@@ -102,10 +106,7 @@ func (e *engine) getPhases(grants []grant.Grant, period timeutil.ClosedPeriod) (
 			rtI++
 		}
 
-		// If it's a valid phase (non-zero duration), we save it and break
-		if phase.to.After(phase.from) {
-			appendPhase(phase)
-		}
+		appendPhase(phase)
 	}
 
 	// order here doesn't matter as one or both of them is empty
@@ -129,6 +130,25 @@ func (e *engine) getPhases(grants []grant.Grant, period timeutil.ClosedPeriod) (
 	if phaseFrom.Before(period.To) {
 		appendPhase(burnPhase{
 			from: phaseFrom,
+			to:   period.To,
+		})
+	}
+
+	if len(phases) > 0 {
+		lastPhase := phases[len(phases)-1]
+		terminalEvent := lastPhase.to.Equal(period.To) &&
+			len(lastPhase.grantsRecurredAtEnd) > 0
+		if terminalEvent {
+			phases = append(phases, burnPhase{
+				from: period.To,
+				to:   period.To,
+			})
+		}
+	}
+
+	if len(phases) == 0 {
+		phases = append(phases, burnPhase{
+			from: period.From,
 			to:   period.To,
 		})
 	}

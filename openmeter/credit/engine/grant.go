@@ -16,26 +16,27 @@ import (
 // An activity change is a grant becoming active or a grant expiring.
 func (e *engine) getGrantActivityChanges(grants []grant.Grant, period timeutil.ClosedPeriod) []time.Time {
 	activityChanges := []time.Time{}
+
 	for _, grant := range grants {
 		// grants that take effect in the period
-		if grant.EffectiveAt.After(period.From) && (grant.EffectiveAt.Before(period.To)) {
+		if period.Contains(grant.EffectiveAt) {
 			activityChanges = append(activityChanges, grant.EffectiveAt)
 		}
 		// grants that expire in the period
 		if grant.ExpiresAt != nil {
-			if grant.ExpiresAt.After(period.From) && (grant.ExpiresAt.Before(period.To)) {
+			if period.Contains(*grant.ExpiresAt) {
 				activityChanges = append(activityChanges, *grant.ExpiresAt)
 			}
 		}
 		// grants that are deleted in the period
 		if grant.DeletedAt != nil {
-			if grant.DeletedAt.After(period.From) && (grant.DeletedAt.Before(period.To)) {
+			if period.Contains(*grant.DeletedAt) {
 				activityChanges = append(activityChanges, *grant.DeletedAt)
 			}
 		}
 		// grants that are voided in the period
 		if grant.VoidedAt != nil {
-			if grant.VoidedAt.After(period.From) && (grant.VoidedAt.Before(period.To)) {
+			if period.Contains(*grant.VoidedAt) {
 				activityChanges = append(activityChanges, *grant.VoidedAt)
 			}
 		}
@@ -62,7 +63,7 @@ func (e *engine) getGrantActivityChanges(grants []grant.Grant, period timeutil.C
 }
 
 // Get all times grants recurr in the period.
-func (e *engine) getGrantRecurrenceTimes(grants []grant.Grant, period timeutil.ClosedPeriod) ([]struct {
+func (e *engine) getGrantRecurrenceTimes(grants []grant.Grant, period timeutil.ClosedPeriod, endBoundaryBehavior timeutil.Boundary) ([]struct {
 	time     time.Time
 	grantIDs []string
 }, error,
@@ -86,12 +87,29 @@ func (e *engine) getGrantRecurrenceTimes(grants []grant.Grant, period timeutil.C
 		if err != nil {
 			return nil, err
 		}
-		// Write all recurrence times in [period.From, period.To).
+
+		// Write all recurrence times in [period.From, period.To]).
 		// For a zero-length period [T, T], include T so a recurrence at the
 		// start of that period can still be applied.
+		// Include period.To for the final run period so a run ending exactly on
+		// a recurrence produces a zero-length terminal phase where it is applied.
 		inPeriod := func(at time.Time) bool {
-			return at.Before(period.To) || (period.From.Equal(period.To) && at.Equal(period.From))
+			behavior := endBoundaryBehavior
+
+			if period.IsEmpty() && at.Equal(period.From) {
+				behavior = timeutil.Inclusive
+			}
+
+			switch behavior {
+			case timeutil.Inclusive:
+				return period.ContainsInclusive(at) // [from, to]
+			case timeutil.Exclusive:
+				return period.Contains(at) // [from, to)
+			default:
+				return false
+			}
 		}
+
 		for inPeriod(it.At) && grant.ActiveAt(it.At) {
 			times = append(times, struct {
 				time    time.Time
