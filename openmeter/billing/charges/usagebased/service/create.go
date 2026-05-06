@@ -35,8 +35,9 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 			}
 
 			return usagebased.CreateIntent{
-				Intent:    intent,
-				FeatureID: featureMeter.Feature.ID,
+				Intent:       intent,
+				FeatureID:    featureMeter.Feature.ID,
+				RatingEngine: s.rater.GetPreferredRatingEngineFor(intent),
 			}, nil
 		})
 		if err != nil {

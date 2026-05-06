@@ -31,11 +31,18 @@ Primary packages:
 - `openmeter/billing/charges/service/invoicable_test.go`
 - `openmeter/billing/charges/service/advance_test.go`
 
+When changing usage-based rating algorithms, update the package documentation in
+the same change. The calculation contracts are documented in:
+
+- `openmeter/billing/charges/usagebased/service/rating/delta/README.md`
+- `openmeter/billing/charges/usagebased/service/rating/periodpreserving/README.md`
+- `openmeter/billing/charges/usagebased/service/rating/subtract/README.md`
+
 ## Current Design
 
 `openmeter/billing/charges` is the root facade for charge operations.
 
-For charge-owned detailed lines, the shared invoice-agnostic base belongs in `openmeter/billing/models/stddetailedline`. Prefer using `type DetailedLine = stddetailedline.Base` in charge packages and keep ownership implicit through containment in the parent aggregate (`flatfee.Realizations` or `usagebased.RealizationRun`) rather than duplicating `charge_id` / `run_id` fields in the domain type. Reuse the shared detailed-line base mapping and create helpers instead of duplicating common field assembly in charge adapters.
+For charge-owned detailed lines, the shared invoice-agnostic base belongs in `openmeter/billing/models/stddetailedline`. Prefer reusing `stddetailedline.Base` for invoice-agnostic base lines, or define a concrete charge-owned type that embeds/composes `stddetailedline.Base` when the package needs additional fields (for example `usagebased.DetailedLine`). Keep ownership implicit through containment in the parent aggregate (`flatfee.Realizations` or `usagebased.RealizationRun`) rather than duplicating `charge_id` / `run_id` fields in the domain type. Reuse the shared detailed-line base mapping and create helpers instead of duplicating common field assembly in charge adapters.
 
 Charge-backed invoicing no longer relies on a charges-side `InvoicePendingLines(...)` wrapper. Billing owns invoice creation and dispatches gathering lines by `billing.LineEngineType`, while charge packages provide charge-specific line engines where needed.
 
@@ -87,8 +94,21 @@ Important types:
   - `ServicePeriodTo`
   - `MeteredQuantity`
   - `Totals`
+- `usagebased.RealizationRunBase.MeteredQuantity` is a cumulative charge snapshot for `[intent.ServicePeriod.From, ServicePeriodTo)` capped by that run's `StoredAtLT`. Do not copy it directly into `billing.StandardLine.UsageBased.MeteredQuantity` for progressive billing: billing standard lines expect line-period quantity. Use `usagebased.RealizationRuns.MapToBillingMeteredQuantity(currentRun)` when mapping a run into a standard invoice line, and map `LinePeriod` to `Quantity` / `MeteredQuantity`, and `PreLinePeriod` to `PreLinePeriodQuantity` / `MeteredPreLinePeriodQuantity`.
+- `MapToBillingMeteredQuantity` intentionally uses the latest prior invoice-backed run's persisted cumulative `MeteredQuantity` as `PreLinePeriod`. That prior value may have been captured with an older `StoredAtLT` than the current run. This differs from period-preserving rating internals, which may freshly snapshot prior event-time periods with the current `StoredAtLT` for correction calculations; standard invoice line quantities should reflect what was previously billed.
 - `usagebased.RealizationRun` can expand:
   - `DetailedLines`
+
+## Usage-Based Invoice Line Mapping
+
+Usage-based charge realization runs are not billing standard lines. When mapping a run back to `billing.StandardLine` in `openmeter/billing/charges/usagebased/service/linemapper.go`, preserve the billing-facing semantics:
+
+- `MeteredQuantity` and `MeteredPreLinePeriodQuantity` are raw metered usage for the current line period and prior line periods.
+- `Quantity` and `PreLinePeriodQuantity` are net billable usage after rate-card usage discounts.
+- Reuse the standard billing usage-discount mutator contract (`billing/rating/service/mutator.ApplyUsageDiscount`) instead of reimplementing discount math in charges. This keeps usage-based charges compatible with standard billing's `discounts.usage.quantity` and `discounts.usage.preLinePeriodQuantity` API behavior.
+- Use the standard line's real `RateCardDiscounts` when mapping invoice-line discount metadata. Do not use usage-based rating's synthetic `"usagebased-ratecard-*"` correlation IDs for persisted invoice-line discount communication.
+
+Do not emulate every billing rating mutator in the line mapper. Usage discounts are special because they mutate line-header quantities and `StandardLineDiscounts.Usage`. Percentage discounts and maximum-spend discounts are amount discounts on detailed lines; if API parity is required for those, preserve amount-discount metadata through usage-based charge detailed lines instead of recalculating discounts during mapping. Minimum-spend commitments already materialize as commitment detailed lines during rating. Credits are owned by charge credit allocation and should be mapped from run credit realizations, not reapplied through the standard billing credits mutator.
 
 Detailed-line expansion rules:
 
@@ -232,6 +252,8 @@ Current expected behavior:
 - usage-based and flat-fee service/orchestration layers should skip invoice-accrual persistence when the invoice line total is zero
 - ledger handlers may still defensively tolerate zero and return `ledgertransaction.GroupReference{}`
 - when a service proceeds with non-zero invoice accrual, it must require a non-empty transaction group reference before storing accrued usage
+
+Zero invoice accrual is different from payment booking. Usage-based invoice payment records (`charges/models/payment`) require a positive amount and a real ledger transaction reference. A fully credit-covered standard invoice can reach `payment_processing.pending` with `Totals.Total == 0`, but blindly sending `TriggerPaid` through the normal payment authorization/settlement path can fail with validation errors such as `amount must be positive` and `transaction group ID is required`. Add an explicit zero-total payment no-op path before expecting fully credited invoice-backed usage runs to reach settled payment state.
 
 ## HTTP/API Conversion
 

@@ -3379,6 +3379,20 @@ func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearDescription(value *
 	return u.SetDescription(*value)
 }
 
+func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearCorrectsRunID(value *string) *ChargeUsageBasedRunDetailedLineUpdate {
+	if value == nil {
+		return u.ClearCorrectsRunID()
+	}
+	return u.SetCorrectsRunID(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearCorrectsRunID(value *string) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearCorrectsRunID()
+	}
+	return u.SetCorrectsRunID(*value)
+}
+
 func (u *ChargeUsageBasedRunInvoicedUsageUpdate) SetOrClearLineID(value *string) *ChargeUsageBasedRunInvoicedUsageUpdate {
 	if value == nil {
 		return u.ClearLineID()

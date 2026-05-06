@@ -413,7 +413,8 @@ func newDetailedRatingTestCharge(period timeutil.ClosedPeriod, runs usagebased.R
 			},
 			Status: usagebased.StatusCreated,
 			State: usagebased.State{
-				FeatureID: "feature-1",
+				FeatureID:    "feature-1",
+				RatingEngine: usagebased.RatingEngineDelta,
 			},
 		},
 		Realizations: runs,

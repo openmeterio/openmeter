@@ -190,6 +190,11 @@ func ChargeID(v string) predicate.ChargeFlatFeeDetailedLine {
 	return predicate.ChargeFlatFeeDetailedLine(sql.FieldEQ(FieldChargeID, v))
 }
 
+// PricerReferenceID applies equality check predicate on the "pricer_reference_id" field. It's identical to PricerReferenceIDEQ.
+func PricerReferenceID(v string) predicate.ChargeFlatFeeDetailedLine {
+	return predicate.ChargeFlatFeeDetailedLine(sql.FieldEQ(FieldPricerReferenceID, v))
+}
+
 // CurrencyEQ applies the EQ predicate on the "currency" field.
 func CurrencyEQ(v currencyx.Code) predicate.ChargeFlatFeeDetailedLine {
 	vc := string(v)
@@ -1557,6 +1562,71 @@ func ChargeIDEqualFold(v string) predicate.ChargeFlatFeeDetailedLine {
 // ChargeIDContainsFold applies the ContainsFold predicate on the "charge_id" field.
 func ChargeIDContainsFold(v string) predicate.ChargeFlatFeeDetailedLine {
 	return predicate.ChargeFlatFeeDetailedLine(sql.FieldContainsFold(FieldChargeID, v))
+}
+
+// PricerReferenceIDEQ applies the EQ predicate on the "pricer_reference_id" field.
+func PricerReferenceIDEQ(v string) predicate.ChargeFlatFeeDetailedLine {
+	return predicate.ChargeFlatFeeDetailedLine(sql.FieldEQ(FieldPricerReferenceID, v))
+}
+
+// PricerReferenceIDNEQ applies the NEQ predicate on the "pricer_reference_id" field.
+func PricerReferenceIDNEQ(v string) predicate.ChargeFlatFeeDetailedLine {
+	return predicate.ChargeFlatFeeDetailedLine(sql.FieldNEQ(FieldPricerReferenceID, v))
+}
+
+// PricerReferenceIDIn applies the In predicate on the "pricer_reference_id" field.
+func PricerReferenceIDIn(vs ...string) predicate.ChargeFlatFeeDetailedLine {
+	return predicate.ChargeFlatFeeDetailedLine(sql.FieldIn(FieldPricerReferenceID, vs...))
+}
+
+// PricerReferenceIDNotIn applies the NotIn predicate on the "pricer_reference_id" field.
+func PricerReferenceIDNotIn(vs ...string) predicate.ChargeFlatFeeDetailedLine {
+	return predicate.ChargeFlatFeeDetailedLine(sql.FieldNotIn(FieldPricerReferenceID, vs...))
+}
+
+// PricerReferenceIDGT applies the GT predicate on the "pricer_reference_id" field.
+func PricerReferenceIDGT(v string) predicate.ChargeFlatFeeDetailedLine {
+	return predicate.ChargeFlatFeeDetailedLine(sql.FieldGT(FieldPricerReferenceID, v))
+}
+
+// PricerReferenceIDGTE applies the GTE predicate on the "pricer_reference_id" field.
+func PricerReferenceIDGTE(v string) predicate.ChargeFlatFeeDetailedLine {
+	return predicate.ChargeFlatFeeDetailedLine(sql.FieldGTE(FieldPricerReferenceID, v))
+}
+
+// PricerReferenceIDLT applies the LT predicate on the "pricer_reference_id" field.
+func PricerReferenceIDLT(v string) predicate.ChargeFlatFeeDetailedLine {
+	return predicate.ChargeFlatFeeDetailedLine(sql.FieldLT(FieldPricerReferenceID, v))
+}
+
+// PricerReferenceIDLTE applies the LTE predicate on the "pricer_reference_id" field.
+func PricerReferenceIDLTE(v string) predicate.ChargeFlatFeeDetailedLine {
+	return predicate.ChargeFlatFeeDetailedLine(sql.FieldLTE(FieldPricerReferenceID, v))
+}
+
+// PricerReferenceIDContains applies the Contains predicate on the "pricer_reference_id" field.
+func PricerReferenceIDContains(v string) predicate.ChargeFlatFeeDetailedLine {
+	return predicate.ChargeFlatFeeDetailedLine(sql.FieldContains(FieldPricerReferenceID, v))
+}
+
+// PricerReferenceIDHasPrefix applies the HasPrefix predicate on the "pricer_reference_id" field.
+func PricerReferenceIDHasPrefix(v string) predicate.ChargeFlatFeeDetailedLine {
+	return predicate.ChargeFlatFeeDetailedLine(sql.FieldHasPrefix(FieldPricerReferenceID, v))
+}
+
+// PricerReferenceIDHasSuffix applies the HasSuffix predicate on the "pricer_reference_id" field.
+func PricerReferenceIDHasSuffix(v string) predicate.ChargeFlatFeeDetailedLine {
+	return predicate.ChargeFlatFeeDetailedLine(sql.FieldHasSuffix(FieldPricerReferenceID, v))
+}
+
+// PricerReferenceIDEqualFold applies the EqualFold predicate on the "pricer_reference_id" field.
+func PricerReferenceIDEqualFold(v string) predicate.ChargeFlatFeeDetailedLine {
+	return predicate.ChargeFlatFeeDetailedLine(sql.FieldEqualFold(FieldPricerReferenceID, v))
+}
+
+// PricerReferenceIDContainsFold applies the ContainsFold predicate on the "pricer_reference_id" field.
+func PricerReferenceIDContainsFold(v string) predicate.ChargeFlatFeeDetailedLine {
+	return predicate.ChargeFlatFeeDetailedLine(sql.FieldContainsFold(FieldPricerReferenceID, v))
 }
 
 // HasCharge applies the HasEdge predicate on the "charge" edge.

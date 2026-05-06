@@ -305,6 +305,12 @@ func (_c *ChargeFlatFeeDetailedLineCreate) SetChargeID(v string) *ChargeFlatFeeD
 	return _c
 }
 
+// SetPricerReferenceID sets the "pricer_reference_id" field.
+func (_c *ChargeFlatFeeDetailedLineCreate) SetPricerReferenceID(v string) *ChargeFlatFeeDetailedLineCreate {
+	_c.mutation.SetPricerReferenceID(v)
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *ChargeFlatFeeDetailedLineCreate) SetID(v string) *ChargeFlatFeeDetailedLineCreate {
 	_c.mutation.SetID(v)
@@ -491,6 +497,14 @@ func (_c *ChargeFlatFeeDetailedLineCreate) check() error {
 	if _, ok := _c.mutation.ChargeID(); !ok {
 		return &ValidationError{Name: "charge_id", err: errors.New(`db: missing required field "ChargeFlatFeeDetailedLine.charge_id"`)}
 	}
+	if _, ok := _c.mutation.PricerReferenceID(); !ok {
+		return &ValidationError{Name: "pricer_reference_id", err: errors.New(`db: missing required field "ChargeFlatFeeDetailedLine.pricer_reference_id"`)}
+	}
+	if v, ok := _c.mutation.PricerReferenceID(); ok {
+		if err := chargeflatfeedetailedline.PricerReferenceIDValidator(v); err != nil {
+			return &ValidationError{Name: "pricer_reference_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeDetailedLine.pricer_reference_id": %w`, err)}
+		}
+	}
 	if len(_c.mutation.ChargeIDs()) == 0 {
 		return &ValidationError{Name: "charge", err: errors.New(`db: missing required edge "ChargeFlatFeeDetailedLine.charge"`)}
 	}
@@ -645,6 +659,10 @@ func (_c *ChargeFlatFeeDetailedLineCreate) createSpec() (*ChargeFlatFeeDetailedL
 	if value, ok := _c.mutation.Total(); ok {
 		_spec.SetField(chargeflatfeedetailedline.FieldTotal, field.TypeOther, value)
 		_node.Total = value
+	}
+	if value, ok := _c.mutation.PricerReferenceID(); ok {
+		_spec.SetField(chargeflatfeedetailedline.FieldPricerReferenceID, field.TypeString, value)
+		_node.PricerReferenceID = value
 	}
 	if nodes := _c.mutation.ChargeIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -1131,6 +1149,18 @@ func (u *ChargeFlatFeeDetailedLineUpsert) SetChargeID(v string) *ChargeFlatFeeDe
 // UpdateChargeID sets the "charge_id" field to the value that was provided on create.
 func (u *ChargeFlatFeeDetailedLineUpsert) UpdateChargeID() *ChargeFlatFeeDetailedLineUpsert {
 	u.SetExcluded(chargeflatfeedetailedline.FieldChargeID)
+	return u
+}
+
+// SetPricerReferenceID sets the "pricer_reference_id" field.
+func (u *ChargeFlatFeeDetailedLineUpsert) SetPricerReferenceID(v string) *ChargeFlatFeeDetailedLineUpsert {
+	u.Set(chargeflatfeedetailedline.FieldPricerReferenceID, v)
+	return u
+}
+
+// UpdatePricerReferenceID sets the "pricer_reference_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeDetailedLineUpsert) UpdatePricerReferenceID() *ChargeFlatFeeDetailedLineUpsert {
+	u.SetExcluded(chargeflatfeedetailedline.FieldPricerReferenceID)
 	return u
 }
 
@@ -1657,6 +1687,20 @@ func (u *ChargeFlatFeeDetailedLineUpsertOne) SetChargeID(v string) *ChargeFlatFe
 func (u *ChargeFlatFeeDetailedLineUpsertOne) UpdateChargeID() *ChargeFlatFeeDetailedLineUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeDetailedLineUpsert) {
 		s.UpdateChargeID()
+	})
+}
+
+// SetPricerReferenceID sets the "pricer_reference_id" field.
+func (u *ChargeFlatFeeDetailedLineUpsertOne) SetPricerReferenceID(v string) *ChargeFlatFeeDetailedLineUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeDetailedLineUpsert) {
+		s.SetPricerReferenceID(v)
+	})
+}
+
+// UpdatePricerReferenceID sets the "pricer_reference_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeDetailedLineUpsertOne) UpdatePricerReferenceID() *ChargeFlatFeeDetailedLineUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeDetailedLineUpsert) {
+		s.UpdatePricerReferenceID()
 	})
 }
 
@@ -2350,6 +2394,20 @@ func (u *ChargeFlatFeeDetailedLineUpsertBulk) SetChargeID(v string) *ChargeFlatF
 func (u *ChargeFlatFeeDetailedLineUpsertBulk) UpdateChargeID() *ChargeFlatFeeDetailedLineUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeDetailedLineUpsert) {
 		s.UpdateChargeID()
+	})
+}
+
+// SetPricerReferenceID sets the "pricer_reference_id" field.
+func (u *ChargeFlatFeeDetailedLineUpsertBulk) SetPricerReferenceID(v string) *ChargeFlatFeeDetailedLineUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeDetailedLineUpsert) {
+		s.SetPricerReferenceID(v)
+	})
+}
+
+// UpdatePricerReferenceID sets the "pricer_reference_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeDetailedLineUpsertBulk) UpdatePricerReferenceID() *ChargeFlatFeeDetailedLineUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeDetailedLineUpsert) {
+		s.UpdatePricerReferenceID()
 	})
 }
 

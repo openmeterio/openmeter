@@ -67,6 +67,13 @@ func TestSettleInvoicedPaymentInputValidate(t *testing.T) {
 		require.ErrorContains(t, in.Validate(), "cannot settle an unauthorized payment")
 	})
 
+	t.Run("allows missing payment when no fiat transaction is required", func(t *testing.T) {
+		in := newSettlePaymentInput()
+		in.Run.Payment = nil
+		in.Run.NoFiatTransactionRequired = true
+		require.NoError(t, in.Validate())
+	})
+
 	t.Run("rejects mismatched payment line id", func(t *testing.T) {
 		in := newSettlePaymentInput()
 		in.Run.Payment.LineID = "other-line"
@@ -187,7 +194,8 @@ func newUsageBasedCharge() usagebased.Charge {
 			},
 			Status: usagebased.StatusActiveAwaitingPaymentSettlement,
 			State: usagebased.State{
-				FeatureID: "feature-1",
+				FeatureID:    "feature-1",
+				RatingEngine: usagebased.RatingEngineDelta,
 			},
 		},
 	}

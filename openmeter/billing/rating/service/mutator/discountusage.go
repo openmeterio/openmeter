@@ -27,43 +27,68 @@ func (m *DiscountUsage) Mutate(l rate.PricerCalculateInput) (rate.PricerCalculat
 		return l, err
 	}
 
-	usageDiscount, err := m.getUsageDiscount(l)
+	discountedUsage, err := ApplyUsageDiscount(ApplyUsageDiscountInput{
+		Usage:                 usage,
+		RateCardDiscounts:     l.GetRateCardDiscounts(),
+		StandardLineDiscounts: l.StandardLineDiscounts,
+	})
 	if err != nil {
 		return l, err
 	}
 
+	l.Usage = &discountedUsage.Usage
+	l.StandardLineDiscounts = discountedUsage.StandardLineDiscounts
+
+	return l, nil
+}
+
+// ApplyUsageDiscountInput describes the raw usage and discounts before usage discount application.
+type ApplyUsageDiscountInput struct {
+	Usage                 rating.Usage
+	RateCardDiscounts     billing.Discounts
+	StandardLineDiscounts billing.StandardLineDiscounts
+}
+
+// ApplyUsageDiscountResult contains net usage and line-level discount metadata after usage discount application.
+type ApplyUsageDiscountResult struct {
+	Usage                 rating.Usage
+	StandardLineDiscounts billing.StandardLineDiscounts
+}
+
+// ApplyUsageDiscount applies the rate card usage discount contract shared by standard billing and charge line projection.
+func ApplyUsageDiscount(in ApplyUsageDiscountInput) (ApplyUsageDiscountResult, error) {
+	out := ApplyUsageDiscountResult{
+		Usage:                 in.Usage,
+		StandardLineDiscounts: in.StandardLineDiscounts.Clone(),
+	}
+
+	usageDiscount := in.RateCardDiscounts.Usage
 	if usageDiscount == nil {
-		// If there is no usage discount intent, let's remove all the usage discounts from the line (in case there are any)
-
-		return m.removeUsageDiscounts(l), nil
+		out.StandardLineDiscounts = removeRateCardUsageDiscounts(out.StandardLineDiscounts)
+		return out, nil
 	}
 
-	discountLimit := usageDiscount.UsageDiscount.Quantity
+	if usageDiscount.CorrelationID == "" {
+		return ApplyUsageDiscountResult{}, fmt.Errorf("discount has no correlation ID")
+	}
 
-	previouslyAppliedDiscount := applyDiscount(discountLimit, usage.PreLinePeriodQuantity)
-	// Let's apply any previous applied discounts to the pre line period quantity
-	l.Usage.PreLinePeriodQuantity = usage.PreLinePeriodQuantity.Sub(previouslyAppliedDiscount.discountApplied)
+	previouslyAppliedDiscount := applyDiscount(usageDiscount.UsageDiscount.Quantity, in.Usage.PreLinePeriodQuantity)
+	out.Usage.PreLinePeriodQuantity = in.Usage.PreLinePeriodQuantity.Sub(previouslyAppliedDiscount.discountApplied)
 
-	// Let's apply the discount to the current line
-	discountAppliedToCurrentLine := applyDiscount(previouslyAppliedDiscount.discountRemaining, usage.Quantity)
-
+	discountAppliedToCurrentLine := applyDiscount(previouslyAppliedDiscount.discountRemaining, in.Usage.Quantity)
 	if discountAppliedToCurrentLine.discountApplied.IsZero() {
-		// We have no discount to apply, let's remove the usage discount from the line
-
-		return m.removeUsageDiscounts(l), nil
+		out.StandardLineDiscounts = removeRateCardUsageDiscounts(out.StandardLineDiscounts)
+		return out, nil
 	}
 
-	// We have discounts to apply
-	l = m.removeUsageDiscounts(l)
-
-	l.Usage.Quantity = usage.Quantity.Sub(discountAppliedToCurrentLine.discountApplied)
-
-	l.StandardLineDiscounts.Usage = l.StandardLineDiscounts.Usage.MergeDiscountsByChildUniqueReferenceID(
+	out.StandardLineDiscounts = removeRateCardUsageDiscounts(out.StandardLineDiscounts)
+	out.Usage.Quantity = in.Usage.Quantity.Sub(discountAppliedToCurrentLine.discountApplied)
+	out.StandardLineDiscounts.Usage = out.StandardLineDiscounts.Usage.MergeDiscountsByChildUniqueReferenceID(
 		billing.UsageLineDiscountManaged{
 			UsageLineDiscount: billing.UsageLineDiscount{
 				LineDiscountBase: billing.LineDiscountBase{
-					ChildUniqueReferenceID: lo.ToPtr(usageDiscount.childUniqueReferenceID),
-					Reason:                 billing.NewDiscountReasonFrom(usageDiscount.UsageDiscount),
+					ChildUniqueReferenceID: lo.ToPtr(fmt.Sprintf(rating.RateCardDiscountChildUniqueReferenceID, usageDiscount.CorrelationID)),
+					Reason:                 billing.NewDiscountReasonFrom(*usageDiscount),
 				},
 				Quantity:              discountAppliedToCurrentLine.discountApplied,
 				PreLinePeriodQuantity: lo.EmptyableToPtr(previouslyAppliedDiscount.discountApplied),
@@ -71,38 +96,15 @@ func (m *DiscountUsage) Mutate(l rate.PricerCalculateInput) (rate.PricerCalculat
 		},
 	)
 
-	return l, nil
+	return out, nil
 }
 
-func (m *DiscountUsage) removeUsageDiscounts(l rate.PricerCalculateInput) rate.PricerCalculateInput {
-	l.StandardLineDiscounts.Usage = lo.Filter(l.StandardLineDiscounts.Usage, func(item billing.UsageLineDiscountManaged, _ int) bool {
+func removeRateCardUsageDiscounts(discounts billing.StandardLineDiscounts) billing.StandardLineDiscounts {
+	discounts.Usage = lo.Filter(discounts.Usage, func(item billing.UsageLineDiscountManaged, _ int) bool {
 		return item.Reason.Type() != billing.RatecardUsageDiscountReason
 	})
 
-	return l
-}
-
-type usageDiscountWithChildUniqueReferenceID struct {
-	billing.UsageDiscount
-	childUniqueReferenceID string
-}
-
-func (m *DiscountUsage) getUsageDiscount(l rate.PricerCalculateInput) (*usageDiscountWithChildUniqueReferenceID, error) {
-	discounts := l.GetRateCardDiscounts()
-	if discounts.Usage == nil {
-		return nil, nil
-	}
-
-	rcUsageDiscount := discounts.Usage
-
-	if rcUsageDiscount.CorrelationID == "" {
-		return nil, fmt.Errorf("discount has no correlation ID")
-	}
-
-	return &usageDiscountWithChildUniqueReferenceID{
-		UsageDiscount:          *rcUsageDiscount,
-		childUniqueReferenceID: fmt.Sprintf(rating.RateCardDiscountChildUniqueReferenceID, rcUsageDiscount.CorrelationID),
-	}, nil
+	return discounts
 }
 
 type applyDiscountResult struct {

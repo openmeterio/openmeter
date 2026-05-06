@@ -195,6 +195,16 @@ func RunID(v string) predicate.ChargeUsageBasedRunDetailedLine {
 	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldEQ(FieldRunID, v))
 }
 
+// PricerReferenceID applies equality check predicate on the "pricer_reference_id" field. It's identical to PricerReferenceIDEQ.
+func PricerReferenceID(v string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldEQ(FieldPricerReferenceID, v))
+}
+
+// CorrectsRunID applies equality check predicate on the "corrects_run_id" field. It's identical to CorrectsRunIDEQ.
+func CorrectsRunID(v string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldEQ(FieldCorrectsRunID, v))
+}
+
 // CurrencyEQ applies the EQ predicate on the "currency" field.
 func CurrencyEQ(v currencyx.Code) predicate.ChargeUsageBasedRunDetailedLine {
 	vc := string(v)
@@ -1629,6 +1639,146 @@ func RunIDContainsFold(v string) predicate.ChargeUsageBasedRunDetailedLine {
 	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldContainsFold(FieldRunID, v))
 }
 
+// PricerReferenceIDEQ applies the EQ predicate on the "pricer_reference_id" field.
+func PricerReferenceIDEQ(v string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldEQ(FieldPricerReferenceID, v))
+}
+
+// PricerReferenceIDNEQ applies the NEQ predicate on the "pricer_reference_id" field.
+func PricerReferenceIDNEQ(v string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldNEQ(FieldPricerReferenceID, v))
+}
+
+// PricerReferenceIDIn applies the In predicate on the "pricer_reference_id" field.
+func PricerReferenceIDIn(vs ...string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldIn(FieldPricerReferenceID, vs...))
+}
+
+// PricerReferenceIDNotIn applies the NotIn predicate on the "pricer_reference_id" field.
+func PricerReferenceIDNotIn(vs ...string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldNotIn(FieldPricerReferenceID, vs...))
+}
+
+// PricerReferenceIDGT applies the GT predicate on the "pricer_reference_id" field.
+func PricerReferenceIDGT(v string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldGT(FieldPricerReferenceID, v))
+}
+
+// PricerReferenceIDGTE applies the GTE predicate on the "pricer_reference_id" field.
+func PricerReferenceIDGTE(v string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldGTE(FieldPricerReferenceID, v))
+}
+
+// PricerReferenceIDLT applies the LT predicate on the "pricer_reference_id" field.
+func PricerReferenceIDLT(v string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldLT(FieldPricerReferenceID, v))
+}
+
+// PricerReferenceIDLTE applies the LTE predicate on the "pricer_reference_id" field.
+func PricerReferenceIDLTE(v string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldLTE(FieldPricerReferenceID, v))
+}
+
+// PricerReferenceIDContains applies the Contains predicate on the "pricer_reference_id" field.
+func PricerReferenceIDContains(v string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldContains(FieldPricerReferenceID, v))
+}
+
+// PricerReferenceIDHasPrefix applies the HasPrefix predicate on the "pricer_reference_id" field.
+func PricerReferenceIDHasPrefix(v string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldHasPrefix(FieldPricerReferenceID, v))
+}
+
+// PricerReferenceIDHasSuffix applies the HasSuffix predicate on the "pricer_reference_id" field.
+func PricerReferenceIDHasSuffix(v string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldHasSuffix(FieldPricerReferenceID, v))
+}
+
+// PricerReferenceIDEqualFold applies the EqualFold predicate on the "pricer_reference_id" field.
+func PricerReferenceIDEqualFold(v string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldEqualFold(FieldPricerReferenceID, v))
+}
+
+// PricerReferenceIDContainsFold applies the ContainsFold predicate on the "pricer_reference_id" field.
+func PricerReferenceIDContainsFold(v string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldContainsFold(FieldPricerReferenceID, v))
+}
+
+// CorrectsRunIDEQ applies the EQ predicate on the "corrects_run_id" field.
+func CorrectsRunIDEQ(v string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldEQ(FieldCorrectsRunID, v))
+}
+
+// CorrectsRunIDNEQ applies the NEQ predicate on the "corrects_run_id" field.
+func CorrectsRunIDNEQ(v string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldNEQ(FieldCorrectsRunID, v))
+}
+
+// CorrectsRunIDIn applies the In predicate on the "corrects_run_id" field.
+func CorrectsRunIDIn(vs ...string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldIn(FieldCorrectsRunID, vs...))
+}
+
+// CorrectsRunIDNotIn applies the NotIn predicate on the "corrects_run_id" field.
+func CorrectsRunIDNotIn(vs ...string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldNotIn(FieldCorrectsRunID, vs...))
+}
+
+// CorrectsRunIDGT applies the GT predicate on the "corrects_run_id" field.
+func CorrectsRunIDGT(v string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldGT(FieldCorrectsRunID, v))
+}
+
+// CorrectsRunIDGTE applies the GTE predicate on the "corrects_run_id" field.
+func CorrectsRunIDGTE(v string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldGTE(FieldCorrectsRunID, v))
+}
+
+// CorrectsRunIDLT applies the LT predicate on the "corrects_run_id" field.
+func CorrectsRunIDLT(v string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldLT(FieldCorrectsRunID, v))
+}
+
+// CorrectsRunIDLTE applies the LTE predicate on the "corrects_run_id" field.
+func CorrectsRunIDLTE(v string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldLTE(FieldCorrectsRunID, v))
+}
+
+// CorrectsRunIDContains applies the Contains predicate on the "corrects_run_id" field.
+func CorrectsRunIDContains(v string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldContains(FieldCorrectsRunID, v))
+}
+
+// CorrectsRunIDHasPrefix applies the HasPrefix predicate on the "corrects_run_id" field.
+func CorrectsRunIDHasPrefix(v string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldHasPrefix(FieldCorrectsRunID, v))
+}
+
+// CorrectsRunIDHasSuffix applies the HasSuffix predicate on the "corrects_run_id" field.
+func CorrectsRunIDHasSuffix(v string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldHasSuffix(FieldCorrectsRunID, v))
+}
+
+// CorrectsRunIDIsNil applies the IsNil predicate on the "corrects_run_id" field.
+func CorrectsRunIDIsNil() predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldIsNull(FieldCorrectsRunID))
+}
+
+// CorrectsRunIDNotNil applies the NotNil predicate on the "corrects_run_id" field.
+func CorrectsRunIDNotNil() predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldNotNull(FieldCorrectsRunID))
+}
+
+// CorrectsRunIDEqualFold applies the EqualFold predicate on the "corrects_run_id" field.
+func CorrectsRunIDEqualFold(v string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldEqualFold(FieldCorrectsRunID, v))
+}
+
+// CorrectsRunIDContainsFold applies the ContainsFold predicate on the "corrects_run_id" field.
+func CorrectsRunIDContainsFold(v string) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldContainsFold(FieldCorrectsRunID, v))
+}
+
 // HasCharge applies the HasEdge predicate on the "charge" edge.
 func HasCharge() predicate.ChargeUsageBasedRunDetailedLine {
 	return predicate.ChargeUsageBasedRunDetailedLine(func(s *sql.Selector) {
@@ -1667,6 +1817,29 @@ func HasRun() predicate.ChargeUsageBasedRunDetailedLine {
 func HasRunWith(preds ...predicate.ChargeUsageBasedRuns) predicate.ChargeUsageBasedRunDetailedLine {
 	return predicate.ChargeUsageBasedRunDetailedLine(func(s *sql.Selector) {
 		step := newRunStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCorrectsRun applies the HasEdge predicate on the "corrects_run" edge.
+func HasCorrectsRun() predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, CorrectsRunTable, CorrectsRunColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCorrectsRunWith applies the HasEdge predicate on the "corrects_run" edge with a given conditions (other predicates).
+func HasCorrectsRunWith(preds ...predicate.ChargeUsageBasedRuns) predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(func(s *sql.Selector) {
+		step := newCorrectsRunStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

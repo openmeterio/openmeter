@@ -80,6 +80,8 @@ const (
 	FieldFeatureKey = "feature_key"
 	// FieldFeatureID holds the string denoting the feature_id field in the database.
 	FieldFeatureID = "feature_id"
+	// FieldRatingEngine holds the string denoting the rating_engine field in the database.
+	FieldRatingEngine = "rating_engine"
 	// FieldPrice holds the string denoting the price field in the database.
 	FieldPrice = "price"
 	// FieldCurrentRealizationRunID holds the string denoting the current_realization_run_id field in the database.
@@ -213,6 +215,7 @@ var Columns = []string{
 	FieldDiscounts,
 	FieldFeatureKey,
 	FieldFeatureID,
+	FieldRatingEngine,
 	FieldPrice,
 	FieldCurrentRealizationRunID,
 	FieldStatusDetailed,
@@ -291,6 +294,16 @@ func SettlementModeValidator(sm productcatalog.SettlementMode) error {
 		return nil
 	default:
 		return fmt.Errorf("chargeusagebased: invalid enum value for settlement_mode field: %q", sm)
+	}
+}
+
+// RatingEngineValidator is a validator for the "rating_engine" field enum values. It is called by the builders before save.
+func RatingEngineValidator(re usagebased.RatingEngine) error {
+	switch re {
+	case "delta", "period_preserving":
+		return nil
+	default:
+		return fmt.Errorf("chargeusagebased: invalid enum value for rating_engine field: %q", re)
 	}
 }
 
@@ -450,6 +463,11 @@ func ByFeatureKey(opts ...sql.OrderTermOption) OrderOption {
 // ByFeatureID orders the results by the feature_id field.
 func ByFeatureID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldFeatureID, opts...).ToFunc()
+}
+
+// ByRatingEngine orders the results by the rating_engine field.
+func ByRatingEngine(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRatingEngine, opts...).ToFunc()
 }
 
 // ByPrice orders the results by the price field.

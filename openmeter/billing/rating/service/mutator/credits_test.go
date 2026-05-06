@@ -5,13 +5,17 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
+	"github.com/openmeterio/openmeter/openmeter/billing/rating/service/mutator"
+	"github.com/openmeterio/openmeter/openmeter/billing/rating/service/rate"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating/service/testutil"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 func TestCreditsMutator(t *testing.T) {
@@ -392,4 +396,79 @@ func TestCreditsMutator(t *testing.T) {
 			ExpectErrorIs: billing.ErrInvoiceLineCreditsNotConsumedFully,
 		})
 	})
+}
+
+func TestCreditsMutatorSkipsNonPositiveDetailedLineTotals(t *testing.T) {
+	calc, err := currencyx.Code("USD").Calculator()
+	require.NoError(t, err)
+
+	out, err := (&mutator.Credits{}).Mutate(rate.PricerCalculateInput{
+		StandardLineAccessor: &billing.StandardLine{
+			StandardLineBase: billing.StandardLineBase{
+				CreditsApplied: billing.CreditsApplied{
+					{
+						Amount: alpacadecimal.NewFromFloat(25),
+					},
+				},
+			},
+		},
+		CurrencyCalculator: calc,
+	}, rating.DetailedLines{
+		{
+			Name:                   "negative correction",
+			PerUnitAmount:          alpacadecimal.NewFromFloat(10),
+			Quantity:               alpacadecimal.NewFromFloat(1),
+			ChildUniqueReferenceID: "negative-correction",
+			CreditsApplied: billing.CreditsApplied{
+				{
+					Amount: alpacadecimal.NewFromFloat(15),
+				},
+			},
+		},
+		{
+			Name:                   "positive line",
+			PerUnitAmount:          alpacadecimal.NewFromFloat(50),
+			Quantity:               alpacadecimal.NewFromFloat(1),
+			ChildUniqueReferenceID: "positive-line",
+		},
+	})
+	require.NoError(t, err)
+
+	require.Len(t, out[0].CreditsApplied, 1)
+	require.Len(t, out[1].CreditsApplied, 1)
+	require.Equal(t, float64(25), out[1].CreditsApplied[0].Amount.InexactFloat64())
+}
+
+func TestCreditsMutatorAllocatesOnlyRemainingPayableAmount(t *testing.T) {
+	calc, err := currencyx.Code("USD").Calculator()
+	require.NoError(t, err)
+
+	out, err := (&mutator.Credits{}).Mutate(rate.PricerCalculateInput{
+		StandardLineAccessor: &billing.StandardLine{
+			StandardLineBase: billing.StandardLineBase{
+				CreditsApplied: billing.CreditsApplied{
+					{
+						Amount: alpacadecimal.NewFromFloat(30),
+					},
+				},
+			},
+		},
+		CurrencyCalculator: calc,
+	}, rating.DetailedLines{
+		{
+			Name:                   "partially credited line",
+			PerUnitAmount:          alpacadecimal.NewFromFloat(50),
+			Quantity:               alpacadecimal.NewFromFloat(1),
+			ChildUniqueReferenceID: "partially-credited-line",
+			CreditsApplied: billing.CreditsApplied{
+				{
+					Amount: alpacadecimal.NewFromFloat(20),
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	require.Len(t, out[0].CreditsApplied, 2)
+	require.Equal(t, float64(30), out[0].CreditsApplied[1].Amount.InexactFloat64())
 }

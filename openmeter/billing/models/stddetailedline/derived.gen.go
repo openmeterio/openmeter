@@ -4,7 +4,6 @@ package stddetailedline
 
 import (
 	creditsapplied "github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
-	totals "github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	models "github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -21,10 +20,10 @@ func deriveEqualBase(this, that *Base) bool {
 			this.Currency == that.Currency &&
 			this.PerUnitAmount.Equal(that.PerUnitAmount) &&
 			this.Quantity.Equal(that.Quantity) &&
-			deriveEqual_(&this.Totals, &that.Totals) &&
+			this.Totals.Equal(that.Totals) &&
 			this.TaxConfig.Equal(that.TaxConfig) &&
 			this.ExternalIDs.Equal(that.ExternalIDs) &&
-			deriveEqual_1(this.CreditsApplied, that.CreditsApplied)
+			deriveEqual_(this.CreditsApplied, that.CreditsApplied)
 }
 
 // deriveEqual returns whether this and that are equal.
@@ -39,21 +38,7 @@ func deriveEqual(this, that *models.ManagedResource) bool {
 }
 
 // deriveEqual_ returns whether this and that are equal.
-func deriveEqual_(this, that *totals.Totals) bool {
-	return (this == nil && that == nil) ||
-		this != nil && that != nil &&
-			this.Amount.Equal(that.Amount) &&
-			this.ChargesTotal.Equal(that.ChargesTotal) &&
-			this.DiscountsTotal.Equal(that.DiscountsTotal) &&
-			this.TaxesInclusiveTotal.Equal(that.TaxesInclusiveTotal) &&
-			this.TaxesExclusiveTotal.Equal(that.TaxesExclusiveTotal) &&
-			this.TaxesTotal.Equal(that.TaxesTotal) &&
-			this.CreditsTotal.Equal(that.CreditsTotal) &&
-			this.Total.Equal(that.Total)
-}
-
-// deriveEqual_1 returns whether this and that are equal.
-func deriveEqual_1(this, that []creditsapplied.CreditApplied) bool {
+func deriveEqual_(this, that []creditsapplied.CreditApplied) bool {
 	if this == nil || that == nil {
 		return this == nil && that == nil
 	}
@@ -61,15 +46,15 @@ func deriveEqual_1(this, that []creditsapplied.CreditApplied) bool {
 		return false
 	}
 	for i := 0; i < len(this); i++ {
-		if !(deriveEqual_2(&this[i], &that[i])) {
+		if !(deriveEqual_1(&this[i], &that[i])) {
 			return false
 		}
 	}
 	return true
 }
 
-// deriveEqual_2 returns whether this and that are equal.
-func deriveEqual_2(this, that *creditsapplied.CreditApplied) bool {
+// deriveEqual_1 returns whether this and that are equal.
+func deriveEqual_1(this, that *creditsapplied.CreditApplied) bool {
 	return (this == nil && that == nil) ||
 		this != nil && that != nil &&
 			this.Amount.Equal(that.Amount) &&

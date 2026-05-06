@@ -312,6 +312,26 @@ func (_c *ChargeUsageBasedRunDetailedLineCreate) SetRunID(v string) *ChargeUsage
 	return _c
 }
 
+// SetPricerReferenceID sets the "pricer_reference_id" field.
+func (_c *ChargeUsageBasedRunDetailedLineCreate) SetPricerReferenceID(v string) *ChargeUsageBasedRunDetailedLineCreate {
+	_c.mutation.SetPricerReferenceID(v)
+	return _c
+}
+
+// SetCorrectsRunID sets the "corrects_run_id" field.
+func (_c *ChargeUsageBasedRunDetailedLineCreate) SetCorrectsRunID(v string) *ChargeUsageBasedRunDetailedLineCreate {
+	_c.mutation.SetCorrectsRunID(v)
+	return _c
+}
+
+// SetNillableCorrectsRunID sets the "corrects_run_id" field if the given value is not nil.
+func (_c *ChargeUsageBasedRunDetailedLineCreate) SetNillableCorrectsRunID(v *string) *ChargeUsageBasedRunDetailedLineCreate {
+	if v != nil {
+		_c.SetCorrectsRunID(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *ChargeUsageBasedRunDetailedLineCreate) SetID(v string) *ChargeUsageBasedRunDetailedLineCreate {
 	_c.mutation.SetID(v)
@@ -334,6 +354,11 @@ func (_c *ChargeUsageBasedRunDetailedLineCreate) SetCharge(v *ChargeUsageBased) 
 // SetRun sets the "run" edge to the ChargeUsageBasedRuns entity.
 func (_c *ChargeUsageBasedRunDetailedLineCreate) SetRun(v *ChargeUsageBasedRuns) *ChargeUsageBasedRunDetailedLineCreate {
 	return _c.SetRunID(v.ID)
+}
+
+// SetCorrectsRun sets the "corrects_run" edge to the ChargeUsageBasedRuns entity.
+func (_c *ChargeUsageBasedRunDetailedLineCreate) SetCorrectsRun(v *ChargeUsageBasedRuns) *ChargeUsageBasedRunDetailedLineCreate {
+	return _c.SetCorrectsRunID(v.ID)
 }
 
 // SetTaxCode sets the "tax_code" edge to the TaxCode entity.
@@ -506,6 +531,19 @@ func (_c *ChargeUsageBasedRunDetailedLineCreate) check() error {
 	if _, ok := _c.mutation.RunID(); !ok {
 		return &ValidationError{Name: "run_id", err: errors.New(`db: missing required field "ChargeUsageBasedRunDetailedLine.run_id"`)}
 	}
+	if _, ok := _c.mutation.PricerReferenceID(); !ok {
+		return &ValidationError{Name: "pricer_reference_id", err: errors.New(`db: missing required field "ChargeUsageBasedRunDetailedLine.pricer_reference_id"`)}
+	}
+	if v, ok := _c.mutation.PricerReferenceID(); ok {
+		if err := chargeusagebasedrundetailedline.PricerReferenceIDValidator(v); err != nil {
+			return &ValidationError{Name: "pricer_reference_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.pricer_reference_id": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.CorrectsRunID(); ok {
+		if err := chargeusagebasedrundetailedline.CorrectsRunIDValidator(v); err != nil {
+			return &ValidationError{Name: "corrects_run_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.corrects_run_id": %w`, err)}
+		}
+	}
 	if len(_c.mutation.ChargeIDs()) == 0 {
 		return &ValidationError{Name: "charge", err: errors.New(`db: missing required edge "ChargeUsageBasedRunDetailedLine.charge"`)}
 	}
@@ -664,6 +702,10 @@ func (_c *ChargeUsageBasedRunDetailedLineCreate) createSpec() (*ChargeUsageBased
 		_spec.SetField(chargeusagebasedrundetailedline.FieldTotal, field.TypeOther, value)
 		_node.Total = value
 	}
+	if value, ok := _c.mutation.PricerReferenceID(); ok {
+		_spec.SetField(chargeusagebasedrundetailedline.FieldPricerReferenceID, field.TypeString, value)
+		_node.PricerReferenceID = value
+	}
 	if nodes := _c.mutation.ChargeIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -696,6 +738,23 @@ func (_c *ChargeUsageBasedRunDetailedLineCreate) createSpec() (*ChargeUsageBased
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.RunID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CorrectsRunIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebasedrundetailedline.CorrectsRunTable,
+			Columns: []string{chargeusagebasedrundetailedline.CorrectsRunColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CorrectsRunID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.TaxCodeIDs(); len(nodes) > 0 {
@@ -1178,6 +1237,36 @@ func (u *ChargeUsageBasedRunDetailedLineUpsert) SetRunID(v string) *ChargeUsageB
 // UpdateRunID sets the "run_id" field to the value that was provided on create.
 func (u *ChargeUsageBasedRunDetailedLineUpsert) UpdateRunID() *ChargeUsageBasedRunDetailedLineUpsert {
 	u.SetExcluded(chargeusagebasedrundetailedline.FieldRunID)
+	return u
+}
+
+// SetPricerReferenceID sets the "pricer_reference_id" field.
+func (u *ChargeUsageBasedRunDetailedLineUpsert) SetPricerReferenceID(v string) *ChargeUsageBasedRunDetailedLineUpsert {
+	u.Set(chargeusagebasedrundetailedline.FieldPricerReferenceID, v)
+	return u
+}
+
+// UpdatePricerReferenceID sets the "pricer_reference_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunDetailedLineUpsert) UpdatePricerReferenceID() *ChargeUsageBasedRunDetailedLineUpsert {
+	u.SetExcluded(chargeusagebasedrundetailedline.FieldPricerReferenceID)
+	return u
+}
+
+// SetCorrectsRunID sets the "corrects_run_id" field.
+func (u *ChargeUsageBasedRunDetailedLineUpsert) SetCorrectsRunID(v string) *ChargeUsageBasedRunDetailedLineUpsert {
+	u.Set(chargeusagebasedrundetailedline.FieldCorrectsRunID, v)
+	return u
+}
+
+// UpdateCorrectsRunID sets the "corrects_run_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunDetailedLineUpsert) UpdateCorrectsRunID() *ChargeUsageBasedRunDetailedLineUpsert {
+	u.SetExcluded(chargeusagebasedrundetailedline.FieldCorrectsRunID)
+	return u
+}
+
+// ClearCorrectsRunID clears the value of the "corrects_run_id" field.
+func (u *ChargeUsageBasedRunDetailedLineUpsert) ClearCorrectsRunID() *ChargeUsageBasedRunDetailedLineUpsert {
+	u.SetNull(chargeusagebasedrundetailedline.FieldCorrectsRunID)
 	return u
 }
 
@@ -1718,6 +1807,41 @@ func (u *ChargeUsageBasedRunDetailedLineUpsertOne) SetRunID(v string) *ChargeUsa
 func (u *ChargeUsageBasedRunDetailedLineUpsertOne) UpdateRunID() *ChargeUsageBasedRunDetailedLineUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
 		s.UpdateRunID()
+	})
+}
+
+// SetPricerReferenceID sets the "pricer_reference_id" field.
+func (u *ChargeUsageBasedRunDetailedLineUpsertOne) SetPricerReferenceID(v string) *ChargeUsageBasedRunDetailedLineUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
+		s.SetPricerReferenceID(v)
+	})
+}
+
+// UpdatePricerReferenceID sets the "pricer_reference_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunDetailedLineUpsertOne) UpdatePricerReferenceID() *ChargeUsageBasedRunDetailedLineUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
+		s.UpdatePricerReferenceID()
+	})
+}
+
+// SetCorrectsRunID sets the "corrects_run_id" field.
+func (u *ChargeUsageBasedRunDetailedLineUpsertOne) SetCorrectsRunID(v string) *ChargeUsageBasedRunDetailedLineUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
+		s.SetCorrectsRunID(v)
+	})
+}
+
+// UpdateCorrectsRunID sets the "corrects_run_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunDetailedLineUpsertOne) UpdateCorrectsRunID() *ChargeUsageBasedRunDetailedLineUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
+		s.UpdateCorrectsRunID()
+	})
+}
+
+// ClearCorrectsRunID clears the value of the "corrects_run_id" field.
+func (u *ChargeUsageBasedRunDetailedLineUpsertOne) ClearCorrectsRunID() *ChargeUsageBasedRunDetailedLineUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
+		s.ClearCorrectsRunID()
 	})
 }
 
@@ -2425,6 +2549,41 @@ func (u *ChargeUsageBasedRunDetailedLineUpsertBulk) SetRunID(v string) *ChargeUs
 func (u *ChargeUsageBasedRunDetailedLineUpsertBulk) UpdateRunID() *ChargeUsageBasedRunDetailedLineUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
 		s.UpdateRunID()
+	})
+}
+
+// SetPricerReferenceID sets the "pricer_reference_id" field.
+func (u *ChargeUsageBasedRunDetailedLineUpsertBulk) SetPricerReferenceID(v string) *ChargeUsageBasedRunDetailedLineUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
+		s.SetPricerReferenceID(v)
+	})
+}
+
+// UpdatePricerReferenceID sets the "pricer_reference_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunDetailedLineUpsertBulk) UpdatePricerReferenceID() *ChargeUsageBasedRunDetailedLineUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
+		s.UpdatePricerReferenceID()
+	})
+}
+
+// SetCorrectsRunID sets the "corrects_run_id" field.
+func (u *ChargeUsageBasedRunDetailedLineUpsertBulk) SetCorrectsRunID(v string) *ChargeUsageBasedRunDetailedLineUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
+		s.SetCorrectsRunID(v)
+	})
+}
+
+// UpdateCorrectsRunID sets the "corrects_run_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunDetailedLineUpsertBulk) UpdateCorrectsRunID() *ChargeUsageBasedRunDetailedLineUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
+		s.UpdateCorrectsRunID()
+	})
+}
+
+// ClearCorrectsRunID clears the value of the "corrects_run_id" field.
+func (u *ChargeUsageBasedRunDetailedLineUpsertBulk) ClearCorrectsRunID() *ChargeUsageBasedRunDetailedLineUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
+		s.ClearCorrectsRunID()
 	})
 }
 

@@ -46,6 +46,8 @@ type newDetailedLineInput struct {
 	RunID                  usagebased.RealizationRunID
 	ServicePeriod          timeutil.ClosedPeriod
 	ChildUniqueReferenceID string
+	PricerReferenceID      string
+	CorrectsRunID          *string
 	Quantity               int64
 	Description            *string
 }
@@ -120,14 +122,26 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 						Amount: alpacadecimal.NewFromFloat(0.1),
 					}),
 				},
-				FeatureID: "feature-1",
+				FeatureID:    "feature-1",
+				RatingEngine: usagebased.RatingEngineDelta,
 			},
 		},
 	})
 	s.Require().NoError(err)
 	s.Require().Len(createdCharges, 1)
+	s.Require().Equal(usagebased.RatingEngineDelta, createdCharges[0].State.RatingEngine)
 
 	charge := createdCharges[0]
+	correctedRunBase, err := s.adapter.CreateRealizationRun(ctx, charge.GetChargeID(), usagebased.CreateRealizationRunInput{
+		FeatureID:       "feature-1",
+		Type:            usagebased.RealizationRunTypePartialInvoice,
+		StoredAtLT:      servicePeriod.From,
+		ServicePeriodTo: servicePeriod.From,
+		MeteredQuantity: alpacadecimal.NewFromInt(0),
+		Totals:          totals.Totals{},
+	})
+	s.Require().NoError(err)
+
 	runBase, err := s.adapter.CreateRealizationRun(ctx, charge.GetChargeID(), usagebased.CreateRealizationRunInput{
 		FeatureID:       "feature-1",
 		Type:            usagebased.RealizationRunTypeFinalRealization,
@@ -162,12 +176,24 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 	}
 	s.Require().NoError(s.adapter.UpsertRunDetailedLines(ctx, charge.GetChargeID(), runBase.ID, initialLines))
 
+	initialKeepRow, err := s.dbClient.ChargeUsageBasedRunDetailedLine.Query().
+		Where(
+			dbchargeusagebasedrundetailedline.NamespaceEQ(namespace),
+			dbchargeusagebasedrundetailedline.ChargeIDEQ(charge.ID),
+			dbchargeusagebasedrundetailedline.RunIDEQ(runBase.ID.ID),
+			dbchargeusagebasedrundetailedline.ChildUniqueReferenceIDEQ("keep@[2026-01-01T00:00:00Z..2026-02-01T00:00:00Z]"),
+			dbchargeusagebasedrundetailedline.DeletedAtIsNil(),
+		).
+		Only(ctx)
+	s.Require().NoError(err)
+
 	replacementLines := usagebased.DetailedLines{
 		s.newDetailedLine(newDetailedLineInput{
 			Charge:                 charge,
 			RunID:                  runBase.ID,
 			ServicePeriod:          servicePeriod,
 			ChildUniqueReferenceID: "keep@[2026-01-01T00:00:00Z..2026-02-01T00:00:00Z]",
+			PricerReferenceID:      "keep-pricer-reference",
 			Quantity:               3,
 		}),
 		s.newDetailedLine(newDetailedLineInput{
@@ -175,11 +201,24 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 			RunID:                  runBase.ID,
 			ServicePeriod:          servicePeriod,
 			ChildUniqueReferenceID: "new@[2026-01-01T00:00:00Z..2026-02-01T00:00:00Z]",
-			Quantity:               4,
+			CorrectsRunID:          lo.ToPtr(correctedRunBase.ID.ID),
+			Quantity:               -4,
 			Description:            lo.ToPtr("new description"),
 		}),
 	}
 	s.Require().NoError(s.adapter.UpsertRunDetailedLines(ctx, charge.GetChargeID(), runBase.ID, replacementLines))
+
+	replacedKeepRow, err := s.dbClient.ChargeUsageBasedRunDetailedLine.Query().
+		Where(
+			dbchargeusagebasedrundetailedline.NamespaceEQ(namespace),
+			dbchargeusagebasedrundetailedline.ChargeIDEQ(charge.ID),
+			dbchargeusagebasedrundetailedline.RunIDEQ(runBase.ID.ID),
+			dbchargeusagebasedrundetailedline.ChildUniqueReferenceIDEQ("keep@[2026-01-01T00:00:00Z..2026-02-01T00:00:00Z]"),
+			dbchargeusagebasedrundetailedline.DeletedAtIsNil(),
+		).
+		Only(ctx)
+	s.Require().NoError(err)
+	s.Equal(initialKeepRow.ID, replacedKeepRow.ID)
 
 	fetchedCharge, err := s.adapter.GetByID(ctx, usagebased.GetByIDInput{
 		ChargeID: charge.GetChargeID(),
@@ -189,13 +228,21 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 		},
 	})
 	s.Require().NoError(err)
-	s.Require().Len(fetchedCharge.Realizations, 1)
-	s.True(fetchedCharge.Realizations[0].DetailedLines.IsPresent())
-	s.Len(fetchedCharge.Realizations[0].DetailedLines.OrEmpty(), 2)
-	s.Equal("keep@[2026-01-01T00:00:00Z..2026-02-01T00:00:00Z]", fetchedCharge.Realizations[0].DetailedLines.OrEmpty()[0].ChildUniqueReferenceID)
-	s.Equal("new@[2026-01-01T00:00:00Z..2026-02-01T00:00:00Z]", fetchedCharge.Realizations[0].DetailedLines.OrEmpty()[1].ChildUniqueReferenceID)
-	s.Equal(float64(3), fetchedCharge.Realizations[0].DetailedLines.OrEmpty()[0].Quantity.InexactFloat64())
-	s.Nil(fetchedCharge.Realizations[0].DetailedLines.OrEmpty()[0].Description)
+	fetchedRun, ok := lo.Find(fetchedCharge.Realizations, func(run usagebased.RealizationRun) bool {
+		return run.ID.ID == runBase.ID.ID
+	})
+	s.Require().True(ok)
+	s.True(fetchedRun.DetailedLines.IsPresent())
+	s.Len(fetchedRun.DetailedLines.OrEmpty(), 2)
+	s.Equal("keep@[2026-01-01T00:00:00Z..2026-02-01T00:00:00Z]", fetchedRun.DetailedLines.OrEmpty()[0].ChildUniqueReferenceID)
+	s.Equal("new@[2026-01-01T00:00:00Z..2026-02-01T00:00:00Z]", fetchedRun.DetailedLines.OrEmpty()[1].ChildUniqueReferenceID)
+	s.Equal("keep-pricer-reference", fetchedRun.DetailedLines.OrEmpty()[0].PricerReferenceID)
+	s.Equal("new@[2026-01-01T00:00:00Z..2026-02-01T00:00:00Z]", fetchedRun.DetailedLines.OrEmpty()[1].PricerReferenceID)
+	s.Equal(float64(3), fetchedRun.DetailedLines.OrEmpty()[0].Quantity.InexactFloat64())
+	s.Nil(fetchedRun.DetailedLines.OrEmpty()[0].Description)
+	s.Nil(fetchedRun.DetailedLines.OrEmpty()[0].CorrectsRunID)
+	s.Equal(float64(-4), fetchedRun.DetailedLines.OrEmpty()[1].Quantity.InexactFloat64())
+	s.Equal(lo.ToPtr(correctedRunBase.ID.ID), fetchedRun.DetailedLines.OrEmpty()[1].CorrectsRunID)
 
 	deletedRow, err := s.dbClient.ChargeUsageBasedRunDetailedLine.Query().
 		Where(
@@ -398,12 +445,14 @@ func (s *DetailedLineAdapterSuite) createChargeWithRun(namespace string) (usageb
 						Amount: alpacadecimal.NewFromFloat(0.1),
 					}),
 				},
-				FeatureID: featureID,
+				FeatureID:    featureID,
+				RatingEngine: usagebased.RatingEngineDelta,
 			},
 		},
 	})
 	s.Require().NoError(err)
 	s.Require().Len(createdCharges, 1)
+	s.Require().Equal(usagebased.RatingEngineDelta, createdCharges[0].State.RatingEngine)
 
 	charge := createdCharges[0]
 	runBase, err := s.adapter.CreateRealizationRun(s.T().Context(), charge.GetChargeID(), usagebased.CreateRealizationRunInput{
@@ -451,22 +500,26 @@ func (s *DetailedLineAdapterSuite) newDetailedLine(input newDetailedLineInput) u
 	s.T().Helper()
 
 	return usagebased.DetailedLine{
-		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-			Namespace:   input.Charge.Namespace,
-			Name:        "Detailed line",
-			Description: input.Description,
-		}),
-		ServicePeriod:          input.ServicePeriod,
-		Currency:               input.Charge.Intent.Currency,
-		ChildUniqueReferenceID: input.ChildUniqueReferenceID,
-		PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-		PerUnitAmount:          alpacadecimal.NewFromFloat(0.1),
-		Quantity:               alpacadecimal.NewFromInt(input.Quantity),
-		Category:               stddetailedline.CategoryRegular,
-		Totals: totals.Totals{
-			Amount:       alpacadecimal.NewFromFloat(0.1).Mul(alpacadecimal.NewFromInt(input.Quantity)),
-			ChargesTotal: alpacadecimal.NewFromFloat(0.1).Mul(alpacadecimal.NewFromInt(input.Quantity)),
-			Total:        alpacadecimal.NewFromFloat(0.1).Mul(alpacadecimal.NewFromInt(input.Quantity)),
+		PricerReferenceID: lo.CoalesceOrEmpty(input.PricerReferenceID, input.ChildUniqueReferenceID),
+		Base: stddetailedline.Base{
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Namespace:   input.Charge.Namespace,
+				Name:        "Detailed line",
+				Description: input.Description,
+			}),
+			ServicePeriod:          input.ServicePeriod,
+			Currency:               input.Charge.Intent.Currency,
+			ChildUniqueReferenceID: input.ChildUniqueReferenceID,
+			PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+			PerUnitAmount:          alpacadecimal.NewFromFloat(0.1),
+			Quantity:               alpacadecimal.NewFromInt(input.Quantity),
+			Category:               stddetailedline.CategoryRegular,
+			Totals: totals.Totals{
+				Amount:       alpacadecimal.NewFromFloat(0.1).Mul(alpacadecimal.NewFromInt(input.Quantity)),
+				ChargesTotal: alpacadecimal.NewFromFloat(0.1).Mul(alpacadecimal.NewFromInt(input.Quantity)),
+				Total:        alpacadecimal.NewFromFloat(0.1).Mul(alpacadecimal.NewFromInt(input.Quantity)),
+			},
 		},
+		CorrectsRunID: input.CorrectsRunID,
 	}
 }

@@ -1166,6 +1166,10 @@ func init() {
 	chargeflatfeedetailedline.DefaultUpdatedAt = chargeflatfeedetailedlineDescUpdatedAt.Default.(func() time.Time)
 	// chargeflatfeedetailedline.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	chargeflatfeedetailedline.UpdateDefaultUpdatedAt = chargeflatfeedetailedlineDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// chargeflatfeedetailedlineDescPricerReferenceID is the schema descriptor for pricer_reference_id field.
+	chargeflatfeedetailedlineDescPricerReferenceID := chargeflatfeedetailedlineFields[1].Descriptor()
+	// chargeflatfeedetailedline.PricerReferenceIDValidator is a validator for the "pricer_reference_id" field. It is called by the builders before save.
+	chargeflatfeedetailedline.PricerReferenceIDValidator = chargeflatfeedetailedlineDescPricerReferenceID.Validators[0].(func(string) error)
 	// chargeflatfeedetailedlineDescID is the schema descriptor for id field.
 	chargeflatfeedetailedlineDescID := chargeflatfeedetailedlineMixinFields0[15].Descriptor()
 	// chargeflatfeedetailedline.DefaultID holds the default value on creation for the id field.
@@ -1271,7 +1275,7 @@ func init() {
 	// chargeusagebased.FeatureIDValidator is a validator for the "feature_id" field. It is called by the builders before save.
 	chargeusagebased.FeatureIDValidator = chargeusagebasedDescFeatureID.Validators[0].(func(string) error)
 	// chargeusagebasedDescPrice is the schema descriptor for price field.
-	chargeusagebasedDescPrice := chargeusagebasedFields[5].Descriptor()
+	chargeusagebasedDescPrice := chargeusagebasedFields[6].Descriptor()
 	chargeusagebased.ValueScanner.Price = chargeusagebasedDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
 	// chargeusagebasedDescID is the schema descriptor for id field.
 	chargeusagebasedDescID := chargeusagebasedMixinFields0[18].Descriptor()
@@ -1339,6 +1343,14 @@ func init() {
 	chargeusagebasedrundetailedline.DefaultUpdatedAt = chargeusagebasedrundetailedlineDescUpdatedAt.Default.(func() time.Time)
 	// chargeusagebasedrundetailedline.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	chargeusagebasedrundetailedline.UpdateDefaultUpdatedAt = chargeusagebasedrundetailedlineDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// chargeusagebasedrundetailedlineDescPricerReferenceID is the schema descriptor for pricer_reference_id field.
+	chargeusagebasedrundetailedlineDescPricerReferenceID := chargeusagebasedrundetailedlineFields[2].Descriptor()
+	// chargeusagebasedrundetailedline.PricerReferenceIDValidator is a validator for the "pricer_reference_id" field. It is called by the builders before save.
+	chargeusagebasedrundetailedline.PricerReferenceIDValidator = chargeusagebasedrundetailedlineDescPricerReferenceID.Validators[0].(func(string) error)
+	// chargeusagebasedrundetailedlineDescCorrectsRunID is the schema descriptor for corrects_run_id field.
+	chargeusagebasedrundetailedlineDescCorrectsRunID := chargeusagebasedrundetailedlineFields[3].Descriptor()
+	// chargeusagebasedrundetailedline.CorrectsRunIDValidator is a validator for the "corrects_run_id" field. It is called by the builders before save.
+	chargeusagebasedrundetailedline.CorrectsRunIDValidator = chargeusagebasedrundetailedlineDescCorrectsRunID.Validators[0].(func(string) error)
 	// chargeusagebasedrundetailedlineDescID is the schema descriptor for id field.
 	chargeusagebasedrundetailedlineDescID := chargeusagebasedrundetailedlineMixinFields0[15].Descriptor()
 	// chargeusagebasedrundetailedline.DefaultID holds the default value on creation for the id field.

@@ -477,6 +477,40 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetNillableRunID(v *string) *Ch
 	return _u
 }
 
+// SetPricerReferenceID sets the "pricer_reference_id" field.
+func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetPricerReferenceID(v string) *ChargeUsageBasedRunDetailedLineUpdate {
+	_u.mutation.SetPricerReferenceID(v)
+	return _u
+}
+
+// SetNillablePricerReferenceID sets the "pricer_reference_id" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetNillablePricerReferenceID(v *string) *ChargeUsageBasedRunDetailedLineUpdate {
+	if v != nil {
+		_u.SetPricerReferenceID(*v)
+	}
+	return _u
+}
+
+// SetCorrectsRunID sets the "corrects_run_id" field.
+func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetCorrectsRunID(v string) *ChargeUsageBasedRunDetailedLineUpdate {
+	_u.mutation.SetCorrectsRunID(v)
+	return _u
+}
+
+// SetNillableCorrectsRunID sets the "corrects_run_id" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetNillableCorrectsRunID(v *string) *ChargeUsageBasedRunDetailedLineUpdate {
+	if v != nil {
+		_u.SetCorrectsRunID(*v)
+	}
+	return _u
+}
+
+// ClearCorrectsRunID clears the value of the "corrects_run_id" field.
+func (_u *ChargeUsageBasedRunDetailedLineUpdate) ClearCorrectsRunID() *ChargeUsageBasedRunDetailedLineUpdate {
+	_u.mutation.ClearCorrectsRunID()
+	return _u
+}
+
 // SetCharge sets the "charge" edge to the ChargeUsageBased entity.
 func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetCharge(v *ChargeUsageBased) *ChargeUsageBasedRunDetailedLineUpdate {
 	return _u.SetChargeID(v.ID)
@@ -485,6 +519,11 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetCharge(v *ChargeUsageBased) 
 // SetRun sets the "run" edge to the ChargeUsageBasedRuns entity.
 func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetRun(v *ChargeUsageBasedRuns) *ChargeUsageBasedRunDetailedLineUpdate {
 	return _u.SetRunID(v.ID)
+}
+
+// SetCorrectsRun sets the "corrects_run" edge to the ChargeUsageBasedRuns entity.
+func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetCorrectsRun(v *ChargeUsageBasedRuns) *ChargeUsageBasedRunDetailedLineUpdate {
+	return _u.SetCorrectsRunID(v.ID)
 }
 
 // SetTaxCode sets the "tax_code" edge to the TaxCode entity.
@@ -506,6 +545,12 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdate) ClearCharge() *ChargeUsageBased
 // ClearRun clears the "run" edge to the ChargeUsageBasedRuns entity.
 func (_u *ChargeUsageBasedRunDetailedLineUpdate) ClearRun() *ChargeUsageBasedRunDetailedLineUpdate {
 	_u.mutation.ClearRun()
+	return _u
+}
+
+// ClearCorrectsRun clears the "corrects_run" edge to the ChargeUsageBasedRuns entity.
+func (_u *ChargeUsageBasedRunDetailedLineUpdate) ClearCorrectsRun() *ChargeUsageBasedRunDetailedLineUpdate {
+	_u.mutation.ClearCorrectsRun()
 	return _u
 }
 
@@ -581,6 +626,16 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdate) check() error {
 	if v, ok := _u.mutation.CreditsApplied(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "credits_applied", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.credits_applied": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.PricerReferenceID(); ok {
+		if err := chargeusagebasedrundetailedline.PricerReferenceIDValidator(v); err != nil {
+			return &ValidationError{Name: "pricer_reference_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.pricer_reference_id": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.CorrectsRunID(); ok {
+		if err := chargeusagebasedrundetailedline.CorrectsRunIDValidator(v); err != nil {
+			return &ValidationError{Name: "corrects_run_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.corrects_run_id": %w`, err)}
 		}
 	}
 	if _u.mutation.ChargeCleared() && len(_u.mutation.ChargeIDs()) > 0 {
@@ -712,6 +767,9 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdate) sqlSave(ctx context.Context) (_
 	if value, ok := _u.mutation.Total(); ok {
 		_spec.SetField(chargeusagebasedrundetailedline.FieldTotal, field.TypeOther, value)
 	}
+	if value, ok := _u.mutation.PricerReferenceID(); ok {
+		_spec.SetField(chargeusagebasedrundetailedline.FieldPricerReferenceID, field.TypeString, value)
+	}
 	if _u.mutation.ChargeCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -760,6 +818,35 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdate) sqlSave(ctx context.Context) (_
 			Inverse: true,
 			Table:   chargeusagebasedrundetailedline.RunTable,
 			Columns: []string{chargeusagebasedrundetailedline.RunColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CorrectsRunCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebasedrundetailedline.CorrectsRunTable,
+			Columns: []string{chargeusagebasedrundetailedline.CorrectsRunColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CorrectsRunIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebasedrundetailedline.CorrectsRunTable,
+			Columns: []string{chargeusagebasedrundetailedline.CorrectsRunColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
@@ -1260,6 +1347,40 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetNillableRunID(v *string) 
 	return _u
 }
 
+// SetPricerReferenceID sets the "pricer_reference_id" field.
+func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetPricerReferenceID(v string) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	_u.mutation.SetPricerReferenceID(v)
+	return _u
+}
+
+// SetNillablePricerReferenceID sets the "pricer_reference_id" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetNillablePricerReferenceID(v *string) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if v != nil {
+		_u.SetPricerReferenceID(*v)
+	}
+	return _u
+}
+
+// SetCorrectsRunID sets the "corrects_run_id" field.
+func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetCorrectsRunID(v string) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	_u.mutation.SetCorrectsRunID(v)
+	return _u
+}
+
+// SetNillableCorrectsRunID sets the "corrects_run_id" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetNillableCorrectsRunID(v *string) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if v != nil {
+		_u.SetCorrectsRunID(*v)
+	}
+	return _u
+}
+
+// ClearCorrectsRunID clears the value of the "corrects_run_id" field.
+func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) ClearCorrectsRunID() *ChargeUsageBasedRunDetailedLineUpdateOne {
+	_u.mutation.ClearCorrectsRunID()
+	return _u
+}
+
 // SetCharge sets the "charge" edge to the ChargeUsageBased entity.
 func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetCharge(v *ChargeUsageBased) *ChargeUsageBasedRunDetailedLineUpdateOne {
 	return _u.SetChargeID(v.ID)
@@ -1268,6 +1389,11 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetCharge(v *ChargeUsageBase
 // SetRun sets the "run" edge to the ChargeUsageBasedRuns entity.
 func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetRun(v *ChargeUsageBasedRuns) *ChargeUsageBasedRunDetailedLineUpdateOne {
 	return _u.SetRunID(v.ID)
+}
+
+// SetCorrectsRun sets the "corrects_run" edge to the ChargeUsageBasedRuns entity.
+func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetCorrectsRun(v *ChargeUsageBasedRuns) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	return _u.SetCorrectsRunID(v.ID)
 }
 
 // SetTaxCode sets the "tax_code" edge to the TaxCode entity.
@@ -1289,6 +1415,12 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) ClearCharge() *ChargeUsageBa
 // ClearRun clears the "run" edge to the ChargeUsageBasedRuns entity.
 func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) ClearRun() *ChargeUsageBasedRunDetailedLineUpdateOne {
 	_u.mutation.ClearRun()
+	return _u
+}
+
+// ClearCorrectsRun clears the "corrects_run" edge to the ChargeUsageBasedRuns entity.
+func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) ClearCorrectsRun() *ChargeUsageBasedRunDetailedLineUpdateOne {
+	_u.mutation.ClearCorrectsRun()
 	return _u
 }
 
@@ -1377,6 +1509,16 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) check() error {
 	if v, ok := _u.mutation.CreditsApplied(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "credits_applied", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.credits_applied": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.PricerReferenceID(); ok {
+		if err := chargeusagebasedrundetailedline.PricerReferenceIDValidator(v); err != nil {
+			return &ValidationError{Name: "pricer_reference_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.pricer_reference_id": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.CorrectsRunID(); ok {
+		if err := chargeusagebasedrundetailedline.CorrectsRunIDValidator(v); err != nil {
+			return &ValidationError{Name: "corrects_run_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.corrects_run_id": %w`, err)}
 		}
 	}
 	if _u.mutation.ChargeCleared() && len(_u.mutation.ChargeIDs()) > 0 {
@@ -1525,6 +1667,9 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) sqlSave(ctx context.Context)
 	if value, ok := _u.mutation.Total(); ok {
 		_spec.SetField(chargeusagebasedrundetailedline.FieldTotal, field.TypeOther, value)
 	}
+	if value, ok := _u.mutation.PricerReferenceID(); ok {
+		_spec.SetField(chargeusagebasedrundetailedline.FieldPricerReferenceID, field.TypeString, value)
+	}
 	if _u.mutation.ChargeCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -1573,6 +1718,35 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) sqlSave(ctx context.Context)
 			Inverse: true,
 			Table:   chargeusagebasedrundetailedline.RunTable,
 			Columns: []string{chargeusagebasedrundetailedline.RunColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CorrectsRunCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebasedrundetailedline.CorrectsRunTable,
+			Columns: []string{chargeusagebasedrundetailedline.CorrectsRunColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CorrectsRunIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebasedrundetailedline.CorrectsRunTable,
+			Columns: []string{chargeusagebasedrundetailedline.CorrectsRunColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),

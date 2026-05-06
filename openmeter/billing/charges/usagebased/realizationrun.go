@@ -45,14 +45,29 @@ func (i RealizationRunID) Validate() error {
 	return models.NamespacedID(i).Validate()
 }
 
+// BillingMeteredQuantity maps a cumulative charge run quantity to the quantity
+// semantics expected by billing.StandardLine. RealizationRun.MeteredQuantity is
+// cumulative from the charge service-period start to the run's ServicePeriodTo,
+// while standard invoice lines need the current line-period quantity plus the
+// quantity already represented by earlier billed lines.
+type BillingMeteredQuantity struct {
+	// PreLinePeriod is the cumulative quantity already represented by earlier
+	// billed runs.
+	PreLinePeriod alpacadecimal.Decimal
+	// LinePeriod is the quantity represented by the current standard invoice
+	// line.
+	LinePeriod alpacadecimal.Decimal
+}
+
 type CreateRealizationRunInput struct {
-	FeatureID       string                `json:"featureId"`
-	Type            RealizationRunType    `json:"type"`
-	StoredAtLT      time.Time             `json:"storedAtLT"`
-	ServicePeriodTo time.Time             `json:"servicePeriodTo"`
-	LineID          *string               `json:"lineId,omitempty"`
-	MeteredQuantity alpacadecimal.Decimal `json:"meteredQuantity"`
-	Totals          totals.Totals         `json:"totals"`
+	FeatureID                 string                `json:"featureId"`
+	Type                      RealizationRunType    `json:"type"`
+	StoredAtLT                time.Time             `json:"storedAtLT"`
+	ServicePeriodTo           time.Time             `json:"servicePeriodTo"`
+	LineID                    *string               `json:"lineId,omitempty"`
+	MeteredQuantity           alpacadecimal.Decimal `json:"meteredQuantity"`
+	Totals                    totals.Totals         `json:"totals"`
+	NoFiatTransactionRequired bool                  `json:"noFiatTransactionRequired"`
 }
 
 func (r CreateRealizationRunInput) Normalized() CreateRealizationRunInput {
@@ -99,10 +114,11 @@ func (r CreateRealizationRunInput) Validate() error {
 type UpdateRealizationRunInput struct {
 	ID RealizationRunID
 
-	StoredAtLT      mo.Option[time.Time]             `json:"storedAtLT"`
-	LineID          mo.Option[*string]               `json:"lineId,omitempty"`
-	MeteredQuantity mo.Option[alpacadecimal.Decimal] `json:"meteredQuantity"`
-	Totals          mo.Option[totals.Totals]         `json:"totals"`
+	StoredAtLT                mo.Option[time.Time]             `json:"storedAtLT"`
+	LineID                    mo.Option[*string]               `json:"lineId,omitempty"`
+	MeteredQuantity           mo.Option[alpacadecimal.Decimal] `json:"meteredQuantity"`
+	Totals                    mo.Option[totals.Totals]         `json:"totals"`
+	NoFiatTransactionRequired mo.Option[bool]                  `json:"noFiatTransactionRequired"`
 }
 
 func (r UpdateRealizationRunInput) Normalized() UpdateRealizationRunInput {
@@ -157,8 +173,9 @@ type RealizationRunBase struct {
 	// ServicePeriodTo is the end of the service period for the realization run.
 	ServicePeriodTo time.Time `json:"servicePeriodTo"`
 	// MeteredQuantity is the metered quantity for time IN [intent.servicePeriod.from, servicePeriodTo) capped by stored_at < StoredAtLT.
-	MeteredQuantity alpacadecimal.Decimal `json:"meteredQuantity"`
-	Totals          totals.Totals         `json:"totals"`
+	MeteredQuantity           alpacadecimal.Decimal `json:"meteredQuantity"`
+	Totals                    totals.Totals         `json:"totals"`
+	NoFiatTransactionRequired bool                  `json:"noFiatTransactionRequired"`
 }
 
 func (r RealizationRunBase) Normalized() RealizationRunBase {
@@ -253,6 +270,49 @@ func (r RealizationRun) Validate() error {
 }
 
 type RealizationRuns []RealizationRun
+
+func (r RealizationRuns) MapToBillingMeteredQuantity(currentRun RealizationRun) (BillingMeteredQuantity, error) {
+	preLinePeriod := alpacadecimal.Zero
+	var latestPriorRun *RealizationRun
+
+	for idx := range r {
+		if r[idx].Type != RealizationRunTypeFinalRealization && r[idx].Type != RealizationRunTypePartialInvoice {
+			continue
+		}
+
+		if !r[idx].ServicePeriodTo.Before(currentRun.ServicePeriodTo) {
+			continue
+		}
+
+		if latestPriorRun == nil || r[idx].ServicePeriodTo.After(latestPriorRun.ServicePeriodTo) {
+			latestPriorRun = &r[idx]
+		}
+	}
+
+	if latestPriorRun != nil {
+		// Standard invoice line quantities intentionally use the prior run's
+		// persisted cumulative quantity. That value may have been captured with
+		// an older StoredAtLT than the current run. Period-preserving rating may
+		// still freshly snapshot prior event-time periods with the current
+		// StoredAtLT for correction calculation, but invoice line quantities
+		// should reflect what was previously billed.
+		preLinePeriod = latestPriorRun.MeteredQuantity
+	}
+
+	linePeriod := currentRun.MeteredQuantity.Sub(preLinePeriod)
+	if linePeriod.IsNegative() {
+		return BillingMeteredQuantity{}, fmt.Errorf(
+			"line period metered quantity is negative: current=%s pre_line=%s",
+			currentRun.MeteredQuantity.String(),
+			preLinePeriod.String(),
+		)
+	}
+
+	return BillingMeteredQuantity{
+		PreLinePeriod: preLinePeriod,
+		LinePeriod:    linePeriod,
+	}, nil
+}
 
 func (r RealizationRuns) Validate() error {
 	var errs []error

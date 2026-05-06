@@ -333,10 +333,11 @@ func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context
 	currentRun.DetailedLines = mo.Some(ratingResult.DetailedLines)
 
 	currentRunBase, err := s.Adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
-		ID:              currentRun.ID,
-		StoredAtLT:      mo.Some(storedAtLT),
-		MeteredQuantity: mo.Some(ratingResult.Quantity),
-		Totals:          mo.Some(currentTotals),
+		ID:                        currentRun.ID,
+		StoredAtLT:                mo.Some(storedAtLT),
+		MeteredQuantity:           mo.Some(ratingResult.Quantity),
+		Totals:                    mo.Some(currentTotals),
+		NoFiatTransactionRequired: mo.Some(currentTotals.Total.IsZero()),
 	})
 	if err != nil {
 		return fmt.Errorf("update realization run: %w", err)

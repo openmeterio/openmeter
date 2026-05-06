@@ -88,6 +88,8 @@ type ChargeFlatFeeDetailedLine struct {
 	Total alpacadecimal.Decimal `json:"total,omitempty"`
 	// ChargeID holds the value of the "charge_id" field.
 	ChargeID string `json:"charge_id,omitempty"`
+	// PricerReferenceID holds the value of the "pricer_reference_id" field.
+	PricerReferenceID string `json:"pricer_reference_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChargeFlatFeeDetailedLineQuery when eager-loading is set.
 	Edges        ChargeFlatFeeDetailedLineEdges `json:"edges"`
@@ -138,7 +140,7 @@ func (*ChargeFlatFeeDetailedLine) scanValues(columns []string) ([]any, error) {
 			values[i] = new(alpacadecimal.Decimal)
 		case chargeflatfeedetailedline.FieldIndex:
 			values[i] = new(sql.NullInt64)
-		case chargeflatfeedetailedline.FieldID, chargeflatfeedetailedline.FieldCurrency, chargeflatfeedetailedline.FieldTaxCodeID, chargeflatfeedetailedline.FieldTaxBehavior, chargeflatfeedetailedline.FieldInvoicingAppExternalID, chargeflatfeedetailedline.FieldChildUniqueReferenceID, chargeflatfeedetailedline.FieldCategory, chargeflatfeedetailedline.FieldPaymentTerm, chargeflatfeedetailedline.FieldNamespace, chargeflatfeedetailedline.FieldName, chargeflatfeedetailedline.FieldDescription, chargeflatfeedetailedline.FieldChargeID:
+		case chargeflatfeedetailedline.FieldID, chargeflatfeedetailedline.FieldCurrency, chargeflatfeedetailedline.FieldTaxCodeID, chargeflatfeedetailedline.FieldTaxBehavior, chargeflatfeedetailedline.FieldInvoicingAppExternalID, chargeflatfeedetailedline.FieldChildUniqueReferenceID, chargeflatfeedetailedline.FieldCategory, chargeflatfeedetailedline.FieldPaymentTerm, chargeflatfeedetailedline.FieldNamespace, chargeflatfeedetailedline.FieldName, chargeflatfeedetailedline.FieldDescription, chargeflatfeedetailedline.FieldChargeID, chargeflatfeedetailedline.FieldPricerReferenceID:
 			values[i] = new(sql.NullString)
 		case chargeflatfeedetailedline.FieldServicePeriodStart, chargeflatfeedetailedline.FieldServicePeriodEnd, chargeflatfeedetailedline.FieldCreatedAt, chargeflatfeedetailedline.FieldUpdatedAt, chargeflatfeedetailedline.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -363,6 +365,12 @@ func (_m *ChargeFlatFeeDetailedLine) assignValues(columns []string, values []any
 			} else if value.Valid {
 				_m.ChargeID = value.String
 			}
+		case chargeflatfeedetailedline.FieldPricerReferenceID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field pricer_reference_id", values[i])
+			} else if value.Valid {
+				_m.PricerReferenceID = value.String
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -513,6 +521,9 @@ func (_m *ChargeFlatFeeDetailedLine) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("charge_id=")
 	builder.WriteString(_m.ChargeID)
+	builder.WriteString(", ")
+	builder.WriteString("pricer_reference_id=")
+	builder.WriteString(_m.PricerReferenceID)
 	builder.WriteByte(')')
 	return builder.String()
 }

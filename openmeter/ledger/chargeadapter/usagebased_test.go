@@ -522,7 +522,8 @@ func (e *usageBasedHandlerTestEnv) newCharge(settlementMode productcatalog.Settl
 			},
 			Status: chargeusagebased.StatusActiveFinalRealizationProcessing,
 			State: chargeusagebased.State{
-				FeatureID: featureID,
+				FeatureID:    featureID,
+				RatingEngine: chargeusagebased.RatingEngineDelta,
 			},
 		},
 	}

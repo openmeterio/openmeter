@@ -153,6 +153,9 @@ func (ChargeFlatFeeDetailedLine) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
 			}),
+
+		field.String("pricer_reference_id").
+			NotEmpty(),
 	}
 }
 

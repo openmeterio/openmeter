@@ -233,9 +233,10 @@ func (i Intent) Validate() error {
 }
 
 type State struct {
-	CurrentRealizationRunID *string    `json:"currentRealizationRunId"`
-	AdvanceAfter            *time.Time `json:"advanceAfter"`
-	FeatureID               string     `json:"featureId"`
+	CurrentRealizationRunID *string      `json:"currentRealizationRunId"`
+	AdvanceAfter            *time.Time   `json:"advanceAfter"`
+	FeatureID               string       `json:"featureId"`
+	RatingEngine            RatingEngine `json:"ratingEngine"`
 }
 
 func (s State) Normalized() State {
@@ -253,6 +254,10 @@ func (s State) Validate() error {
 
 	if s.FeatureID == "" {
 		errs = append(errs, fmt.Errorf("feature id must be set"))
+	}
+
+	if err := s.RatingEngine.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("rating engine: %w", err))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

@@ -217,14 +217,17 @@ type LineEngine interface {
 	OnStandardInvoiceCreated(ctx context.Context, input OnStandardInvoiceCreatedInput) (StandardLines, error)
 	// OnCollectionCompleted is invoked when a standard invoice collection window closes.
 	OnCollectionCompleted(ctx context.Context, input OnCollectionCompletedInput) (StandardLines, error)
-	// CalculateLines recalculates detailed lines and totals for standard-invoice lines owned by this engine.
-	CalculateLines(input CalculateLinesInput) (StandardLines, error)
 	// OnInvoiceIssued is invoked when a standard invoice reaches the issued state.
 	OnInvoiceIssued(ctx context.Context, input OnInvoiceIssuedInput) error
 	// OnPaymentAuthorized is invoked when a standard invoice reaches the payment authorized state.
 	OnPaymentAuthorized(ctx context.Context, input OnPaymentAuthorizedInput) error
 	// OnPaymentSettled is invoked when a standard invoice reaches the paid state.
 	OnPaymentSettled(ctx context.Context, input OnPaymentSettledInput) error
+}
+
+type LineCalculator interface {
+	// CalculateLines recalculates detailed lines and totals for standard-invoice lines owned by this engine.
+	CalculateLines(input CalculateLinesInput) (StandardLines, error)
 }
 
 func LineEngineValidationComponent(engineType LineEngineType) ComponentName {

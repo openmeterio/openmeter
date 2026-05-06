@@ -35,6 +35,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 			Where(dbchargeusagebased.NamespaceEQ(charge.Namespace)).
 			SetDiscounts(&charge.Intent.Discounts).
 			SetFeatureID(charge.State.FeatureID).
+			SetRatingEngine(charge.State.RatingEngine).
 			SetStatus(metaStatus).
 			SetStatusDetailed(charge.Status).
 			SetOrClearCurrentRealizationRunID(charge.State.CurrentRealizationRunID)
@@ -221,6 +222,7 @@ func (a *adapter) buildCreateUsageBasedCharge(ctx context.Context, ns string, in
 	create := a.db.ChargeUsageBased.Create().
 		SetDiscounts(&intent.Discounts).
 		SetFeatureID(intent.FeatureID).
+		SetRatingEngine(intent.RatingEngine).
 		SetPrice(&intent.Price).
 		SetStatusDetailed(usagebased.Status(meta.ChargeStatusCreated)).
 		SetFeatureKey(intent.FeatureKey).
