@@ -16,8 +16,8 @@ type OrderBy string
 
 const (
 	OrderByID         OrderBy = "id"
-	OrderByActiveFrom OrderBy = "active_from"
-	OrderByActiveTo   OrderBy = "active_to"
+	OrderByActiveFrom OrderBy = "activeFrom"
+	OrderByActiveTo   OrderBy = "activeTo"
 )
 
 func (o OrderBy) Validate() error {

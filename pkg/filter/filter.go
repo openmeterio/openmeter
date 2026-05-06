@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
@@ -112,6 +113,10 @@ func (f FilterString) ValidateWithComplexity(maxDepth int) error {
 func (f FilterString) validateWithComplexity(maxDepth int) error {
 	if err := validateSingleOperator(f); err != nil {
 		return err
+	}
+
+	if slices.Contains(collectStringValues(f), "") {
+		return ErrFilterFormatMismatch
 	}
 
 	if f.And == nil && f.Or == nil {
