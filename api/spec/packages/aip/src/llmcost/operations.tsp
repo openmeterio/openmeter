@@ -42,7 +42,6 @@ interface LLMCostPricesOperations {
    * List global LLM cost prices.
    * Returns prices with overrides applied if any.
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @get
@@ -77,7 +76,6 @@ interface LLMCostPricesOperations {
    * Get a specific LLM cost price by ID.
    * Returns the price with overrides applied if any.
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @get
@@ -95,7 +93,6 @@ interface LLMCostOverridesOperations {
   /**
    * List per-namespace price overrides.
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @get
@@ -111,7 +108,6 @@ interface LLMCostOverridesOperations {
   /**
    * Create a per-namespace price override.
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @post
@@ -124,7 +120,6 @@ interface LLMCostOverridesOperations {
   /**
    * Delete a per-namespace price override.
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @delete

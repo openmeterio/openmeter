@@ -36,7 +36,6 @@ interface CustomerCreditGrantsOperations {
    * Create a new credit grant.
    * A credit grant represents an allocation of prepaid credits to a customer.
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @post
@@ -50,7 +49,6 @@ interface CustomerCreditGrantsOperations {
   /**
    * Get a credit grant.
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @get
@@ -64,7 +62,6 @@ interface CustomerCreditGrantsOperations {
   /**
    * List credit grants.
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @get
@@ -119,7 +116,6 @@ interface CustomerCreditGrantExternalSettlementOperations {
    * Use this endpoint to synchronize the payment state of an external payment
    * with the system so that revenue recognition and credit availability work as expected.
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @post
@@ -147,7 +143,6 @@ interface CustomerCreditBalancesOperations {
   /**
    * Get a credit balance.
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @get
@@ -187,7 +182,6 @@ interface CustomerCreditTransactionOperations {
    * funded credits and consumed credits.
    * Transactions are returned in reverse chronological order by default.
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @get
@@ -212,7 +206,6 @@ interface CustomerCreditAdjustmentsOperations {
    * Supported use-cases:
    * - Usage correction
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @post

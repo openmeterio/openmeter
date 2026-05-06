@@ -2,6 +2,7 @@ namespace Shared;
 
 const MeteringAndBillingTitle = "Metering & Billing";
 const OpenMeterTitle = "OpenMeter";
+
 const MetersTag = "Meters";
 const MetersDescription = "Meters specify how to aggregate events for billing and analytics purposes. Meters can be configured with multiple aggregation methods and groupings. Multiple meters can be created for the same event type, enabling flexible metering scenarios.";
 
@@ -38,6 +39,9 @@ const ProductCatalogDescription = "Product catalog manages plans, add-ons, and t
 const DefaultsTag = "OpenMeter Defaults";
 const DefaultsDescription = "Organization-level default configuration.";
 
+// The functionality should be considered unstable.
 const UnstableExtension = "x-unstable";
+// The functionality is internal and should not be used by customers.
 const InternalExtension = "x-internal";
+// The functionality is private and should not be exposed to customers.
 const PrivateExtension = "x-private";
