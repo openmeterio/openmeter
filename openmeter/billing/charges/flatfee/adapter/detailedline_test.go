@@ -176,6 +176,28 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 	s.Equal(float64(3), fetchedCharge.Realizations.DetailedLines.OrEmpty()[0].Quantity.InexactFloat64())
 	s.Nil(fetchedCharge.Realizations.DetailedLines.OrEmpty()[0].Description)
 
+	keptRow, err := s.dbClient.ChargeFlatFeeDetailedLine.Query().
+		Where(
+			dbchargeflatfeedetailedline.NamespaceEQ(namespace),
+			dbchargeflatfeedetailedline.ChargeIDEQ(charge.ID),
+			dbchargeflatfeedetailedline.ChildUniqueReferenceIDEQ("keep"),
+			dbchargeflatfeedetailedline.DeletedAtIsNil(),
+		).
+		Only(ctx)
+	s.Require().NoError(err)
+	s.Equal("keep", keptRow.PricerReferenceID)
+
+	newRow, err := s.dbClient.ChargeFlatFeeDetailedLine.Query().
+		Where(
+			dbchargeflatfeedetailedline.NamespaceEQ(namespace),
+			dbchargeflatfeedetailedline.ChargeIDEQ(charge.ID),
+			dbchargeflatfeedetailedline.ChildUniqueReferenceIDEQ("new"),
+			dbchargeflatfeedetailedline.DeletedAtIsNil(),
+		).
+		Only(ctx)
+	s.Require().NoError(err)
+	s.Equal("new", newRow.PricerReferenceID)
+
 	deletedRow, err := s.dbClient.ChargeFlatFeeDetailedLine.Query().
 		Where(
 			dbchargeflatfeedetailedline.NamespaceEQ(namespace),

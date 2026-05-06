@@ -12,6 +12,8 @@ type Credits struct{}
 
 var _ PostCalculationMutator = (*Credits)(nil)
 
+// TODO: Deprecate this mutator for charge-backed invoice flows once charge line mappers
+// own credit projection there.
 func (m *Credits) Mutate(i rate.PricerCalculateInput, pricerResult rating.DetailedLines) (rating.DetailedLines, error) {
 	for _, creditToApply := range i.GetCreditsApplied() {
 		creditValueRemaining := i.CurrencyCalculator.RoundToPrecision(creditToApply.Amount)
@@ -22,12 +24,12 @@ func (m *Credits) Mutate(i rate.PricerCalculateInput, pricerResult rating.Detail
 			}
 
 			totalAmount := pricerResult[idx].TotalAmount(i.CurrencyCalculator)
-			if totalAmount.IsZero() {
+			if !totalAmount.IsPositive() {
 				continue
 			}
 
 			if totalAmount.LessThanOrEqual(creditValueRemaining) {
-				creditValueRemaining = creditValueRemaining.Sub(totalAmount)
+				creditValueRemaining = i.CurrencyCalculator.RoundToPrecision(creditValueRemaining.Sub(totalAmount))
 				pricerResult[idx].CreditsApplied = append(pricerResult[idx].CreditsApplied, creditToApply.CloneWithAmount(totalAmount))
 			} else {
 				pricerResult[idx].CreditsApplied = append(pricerResult[idx].CreditsApplied, creditToApply.CloneWithAmount(creditValueRemaining))

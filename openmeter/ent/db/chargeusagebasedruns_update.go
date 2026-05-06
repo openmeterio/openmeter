@@ -234,6 +234,20 @@ func (_u *ChargeUsageBasedRunsUpdate) SetNillableMeteredQuantity(v *alpacadecima
 	return _u
 }
 
+// SetNoFiatTransactionRequired sets the "no_fiat_transaction_required" field.
+func (_u *ChargeUsageBasedRunsUpdate) SetNoFiatTransactionRequired(v bool) *ChargeUsageBasedRunsUpdate {
+	_u.mutation.SetNoFiatTransactionRequired(v)
+	return _u
+}
+
+// SetNillableNoFiatTransactionRequired sets the "no_fiat_transaction_required" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdate) SetNillableNoFiatTransactionRequired(v *bool) *ChargeUsageBasedRunsUpdate {
+	if v != nil {
+		_u.SetNoFiatTransactionRequired(*v)
+	}
+	return _u
+}
+
 // SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
 func (_u *ChargeUsageBasedRunsUpdate) SetBillingInvoiceLineID(id string) *ChargeUsageBasedRunsUpdate {
 	_u.mutation.SetBillingInvoiceLineID(id)
@@ -281,6 +295,21 @@ func (_u *ChargeUsageBasedRunsUpdate) AddDetailedLines(v ...*ChargeUsageBasedRun
 		ids[i] = v[i].ID
 	}
 	return _u.AddDetailedLineIDs(ids...)
+}
+
+// AddCorrectedDetailedLineIDs adds the "corrected_detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity by IDs.
+func (_u *ChargeUsageBasedRunsUpdate) AddCorrectedDetailedLineIDs(ids ...string) *ChargeUsageBasedRunsUpdate {
+	_u.mutation.AddCorrectedDetailedLineIDs(ids...)
+	return _u
+}
+
+// AddCorrectedDetailedLines adds the "corrected_detailed_lines" edges to the ChargeUsageBasedRunDetailedLine entity.
+func (_u *ChargeUsageBasedRunsUpdate) AddCorrectedDetailedLines(v ...*ChargeUsageBasedRunDetailedLine) *ChargeUsageBasedRunsUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCorrectedDetailedLineIDs(ids...)
 }
 
 // SetInvoicedUsageID sets the "invoiced_usage" edge to the ChargeUsageBasedRunInvoicedUsage entity by ID.
@@ -372,6 +401,27 @@ func (_u *ChargeUsageBasedRunsUpdate) RemoveDetailedLines(v ...*ChargeUsageBased
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveDetailedLineIDs(ids...)
+}
+
+// ClearCorrectedDetailedLines clears all "corrected_detailed_lines" edges to the ChargeUsageBasedRunDetailedLine entity.
+func (_u *ChargeUsageBasedRunsUpdate) ClearCorrectedDetailedLines() *ChargeUsageBasedRunsUpdate {
+	_u.mutation.ClearCorrectedDetailedLines()
+	return _u
+}
+
+// RemoveCorrectedDetailedLineIDs removes the "corrected_detailed_lines" edge to ChargeUsageBasedRunDetailedLine entities by IDs.
+func (_u *ChargeUsageBasedRunsUpdate) RemoveCorrectedDetailedLineIDs(ids ...string) *ChargeUsageBasedRunsUpdate {
+	_u.mutation.RemoveCorrectedDetailedLineIDs(ids...)
+	return _u
+}
+
+// RemoveCorrectedDetailedLines removes "corrected_detailed_lines" edges to ChargeUsageBasedRunDetailedLine entities.
+func (_u *ChargeUsageBasedRunsUpdate) RemoveCorrectedDetailedLines(v ...*ChargeUsageBasedRunDetailedLine) *ChargeUsageBasedRunsUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCorrectedDetailedLineIDs(ids...)
 }
 
 // ClearInvoicedUsage clears the "invoiced_usage" edge to the ChargeUsageBasedRunInvoicedUsage entity.
@@ -492,6 +542,9 @@ func (_u *ChargeUsageBasedRunsUpdate) sqlSave(ctx context.Context) (_node int, e
 	if value, ok := _u.mutation.MeteredQuantity(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldMeteredQuantity, field.TypeOther, value)
 	}
+	if value, ok := _u.mutation.NoFiatTransactionRequired(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldNoFiatTransactionRequired, field.TypeBool, value)
+	}
 	if _u.mutation.BillingInvoiceLineCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
@@ -601,6 +654,51 @@ func (_u *ChargeUsageBasedRunsUpdate) sqlSave(ctx context.Context) (_node int, e
 			Inverse: false,
 			Table:   chargeusagebasedruns.DetailedLinesTable,
 			Columns: []string{chargeusagebasedruns.DetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CorrectedDetailedLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebasedruns.CorrectedDetailedLinesTable,
+			Columns: []string{chargeusagebasedruns.CorrectedDetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCorrectedDetailedLinesIDs(); len(nodes) > 0 && !_u.mutation.CorrectedDetailedLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebasedruns.CorrectedDetailedLinesTable,
+			Columns: []string{chargeusagebasedruns.CorrectedDetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CorrectedDetailedLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebasedruns.CorrectedDetailedLinesTable,
+			Columns: []string{chargeusagebasedruns.CorrectedDetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
@@ -889,6 +987,20 @@ func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableMeteredQuantity(v *alpacadec
 	return _u
 }
 
+// SetNoFiatTransactionRequired sets the "no_fiat_transaction_required" field.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetNoFiatTransactionRequired(v bool) *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.SetNoFiatTransactionRequired(v)
+	return _u
+}
+
+// SetNillableNoFiatTransactionRequired sets the "no_fiat_transaction_required" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableNoFiatTransactionRequired(v *bool) *ChargeUsageBasedRunsUpdateOne {
+	if v != nil {
+		_u.SetNoFiatTransactionRequired(*v)
+	}
+	return _u
+}
+
 // SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
 func (_u *ChargeUsageBasedRunsUpdateOne) SetBillingInvoiceLineID(id string) *ChargeUsageBasedRunsUpdateOne {
 	_u.mutation.SetBillingInvoiceLineID(id)
@@ -936,6 +1048,21 @@ func (_u *ChargeUsageBasedRunsUpdateOne) AddDetailedLines(v ...*ChargeUsageBased
 		ids[i] = v[i].ID
 	}
 	return _u.AddDetailedLineIDs(ids...)
+}
+
+// AddCorrectedDetailedLineIDs adds the "corrected_detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity by IDs.
+func (_u *ChargeUsageBasedRunsUpdateOne) AddCorrectedDetailedLineIDs(ids ...string) *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.AddCorrectedDetailedLineIDs(ids...)
+	return _u
+}
+
+// AddCorrectedDetailedLines adds the "corrected_detailed_lines" edges to the ChargeUsageBasedRunDetailedLine entity.
+func (_u *ChargeUsageBasedRunsUpdateOne) AddCorrectedDetailedLines(v ...*ChargeUsageBasedRunDetailedLine) *ChargeUsageBasedRunsUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCorrectedDetailedLineIDs(ids...)
 }
 
 // SetInvoicedUsageID sets the "invoiced_usage" edge to the ChargeUsageBasedRunInvoicedUsage entity by ID.
@@ -1027,6 +1154,27 @@ func (_u *ChargeUsageBasedRunsUpdateOne) RemoveDetailedLines(v ...*ChargeUsageBa
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveDetailedLineIDs(ids...)
+}
+
+// ClearCorrectedDetailedLines clears all "corrected_detailed_lines" edges to the ChargeUsageBasedRunDetailedLine entity.
+func (_u *ChargeUsageBasedRunsUpdateOne) ClearCorrectedDetailedLines() *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.ClearCorrectedDetailedLines()
+	return _u
+}
+
+// RemoveCorrectedDetailedLineIDs removes the "corrected_detailed_lines" edge to ChargeUsageBasedRunDetailedLine entities by IDs.
+func (_u *ChargeUsageBasedRunsUpdateOne) RemoveCorrectedDetailedLineIDs(ids ...string) *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.RemoveCorrectedDetailedLineIDs(ids...)
+	return _u
+}
+
+// RemoveCorrectedDetailedLines removes "corrected_detailed_lines" edges to ChargeUsageBasedRunDetailedLine entities.
+func (_u *ChargeUsageBasedRunsUpdateOne) RemoveCorrectedDetailedLines(v ...*ChargeUsageBasedRunDetailedLine) *ChargeUsageBasedRunsUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCorrectedDetailedLineIDs(ids...)
 }
 
 // ClearInvoicedUsage clears the "invoiced_usage" edge to the ChargeUsageBasedRunInvoicedUsage entity.
@@ -1177,6 +1325,9 @@ func (_u *ChargeUsageBasedRunsUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 	if value, ok := _u.mutation.MeteredQuantity(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldMeteredQuantity, field.TypeOther, value)
 	}
+	if value, ok := _u.mutation.NoFiatTransactionRequired(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldNoFiatTransactionRequired, field.TypeBool, value)
+	}
 	if _u.mutation.BillingInvoiceLineCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
@@ -1286,6 +1437,51 @@ func (_u *ChargeUsageBasedRunsUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 			Inverse: false,
 			Table:   chargeusagebasedruns.DetailedLinesTable,
 			Columns: []string{chargeusagebasedruns.DetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CorrectedDetailedLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebasedruns.CorrectedDetailedLinesTable,
+			Columns: []string{chargeusagebasedruns.CorrectedDetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCorrectedDetailedLinesIDs(); len(nodes) > 0 && !_u.mutation.CorrectedDetailedLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebasedruns.CorrectedDetailedLinesTable,
+			Columns: []string{chargeusagebasedruns.CorrectedDetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CorrectedDetailedLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebasedruns.CorrectedDetailedLinesTable,
+			Columns: []string{chargeusagebasedruns.CorrectedDetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),

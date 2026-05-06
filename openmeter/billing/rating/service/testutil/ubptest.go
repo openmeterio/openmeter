@@ -45,10 +45,11 @@ type CalculationTestCase struct {
 	ExpectErrorIs        error
 	PreviousBilledAmount alpacadecimal.Decimal
 	CreditsApplied       billing.CreditsApplied
+	Options              []rating.GenerateDetailedLinesOption
 }
 
 type Service interface {
-	GenerateDetailedLines(in rating.StandardLineAccessor) (rating.GenerateDetailedLinesResult, error)
+	GenerateDetailedLines(in rating.StandardLineAccessor, opts ...rating.GenerateDetailedLinesOption) (rating.GenerateDetailedLinesResult, error)
 }
 
 func RunCalculationTestCase(t *testing.T, tc CalculationTestCase) {
@@ -124,7 +125,7 @@ func RunCalculationTestCase(t *testing.T, tc CalculationTestCase) {
 
 	service := service.New()
 
-	res, err := service.GenerateDetailedLines(line)
+	res, err := service.GenerateDetailedLines(line, tc.Options...)
 	if err != nil {
 		if tc.ExpectErrorIs != nil {
 			require.ErrorIs(t, err, tc.ExpectErrorIs)

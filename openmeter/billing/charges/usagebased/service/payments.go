@@ -132,6 +132,10 @@ func areAllInvoicedRunsSettled(charge usagebased.Charge) bool {
 			continue
 		}
 
+		if run.NoFiatTransactionRequired {
+			continue
+		}
+
 		if run.Payment == nil || run.Payment.Status != payment.StatusSettled {
 			return false
 		}

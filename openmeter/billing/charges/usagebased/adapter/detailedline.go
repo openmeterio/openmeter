@@ -185,6 +185,8 @@ func (a *adapter) UpsertRunDetailedLines(ctx context.Context, chargeID chargesme
 			UpdateTaxCodeID().
 			UpdateTaxBehavior().
 			UpdateIndex().
+			UpdatePricerReferenceID().
+			UpdateCorrectsRunID().
 			UpdateDeletedAt().
 			UpdateInvoicingAppExternalID().
 			UpdateChildUniqueReferenceID().
@@ -204,9 +206,11 @@ func buildDetailedLineCreate(db *entdb.Client, chargeID chargesmeta.ChargeID, ru
 		SetID(line.ID).
 		SetNamespace(runID.Namespace).
 		SetChargeID(chargeID.ID).
-		SetRunID(runID.ID)
+		SetRunID(runID.ID).
+		SetPricerReferenceID(lo.CoalesceOrEmpty(line.PricerReferenceID, line.ChildUniqueReferenceID)).
+		SetNillableCorrectsRunID(line.CorrectsRunID)
 
-	create = stddetailedline.Create(create, line)
+	create = stddetailedline.Create(create, line.Base)
 
 	if len(line.CreditsApplied) > 0 {
 		create = create.SetCreditsApplied(&line.CreditsApplied)
@@ -222,14 +226,18 @@ func buildDetailedLineCreate(db *entdb.Client, chargeID chargesmeta.ChargeID, ru
 }
 
 func mapDetailedLineFromDB(dbLine *entdb.ChargeUsageBasedRunDetailedLine) (usagebased.DetailedLine, error) {
-	line := stddetailedline.FromDB(
-		dbLine,
-		stddetailedline.BackfillTaxConfig(
-			lo.EmptyableToPtr(dbLine.TaxConfig),
-			dbLine.TaxBehavior,
-			taxCodeIDFromEnt(dbLine.Edges.TaxCode),
+	line := usagebased.DetailedLine{
+		Base: stddetailedline.FromDB(
+			dbLine,
+			stddetailedline.BackfillTaxConfig(
+				lo.EmptyableToPtr(dbLine.TaxConfig),
+				dbLine.TaxBehavior,
+				taxCodeIDFromEnt(dbLine.Edges.TaxCode),
+			),
 		),
-	)
+		PricerReferenceID: dbLine.PricerReferenceID,
+		CorrectsRunID:     dbLine.CorrectsRunID,
+	}
 
 	return line, line.Validate()
 }

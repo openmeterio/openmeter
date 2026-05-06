@@ -11,7 +11,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-var _ billing.LineEngine = (*LineEngine)(nil)
+var (
+	_ billing.LineEngine     = (*LineEngine)(nil)
+	_ billing.LineCalculator = (*LineEngine)(nil)
+)
 
 type LineEngine struct {
 	service *service
