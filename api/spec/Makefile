@@ -16,6 +16,7 @@ generate: format ## Generate OpenAPI spec
 	pnpm --filter @openmeter/api-spec-aip exec openapi bundle output/definitions/metering-and-billing/v3/openapi.OpenMeter.yaml -o ../../../v3/openapi.yaml
 	cp packages/legacy/output/openapi.OpenMeter.yaml ../openapi.yaml
 	cp packages/legacy/output/openapi.OpenMeterCloud.yaml ../openapi.cloud.yaml
+	cp packages/aip/output/definitions/metering-and-billing/v3/openapi.Test.yaml ../v3/test/openapi.test.yaml
 
 .PHONY: lint
 lint: ## Lint OpenAPI spec
