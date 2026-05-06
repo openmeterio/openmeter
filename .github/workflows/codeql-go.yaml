@@ -36,7 +36,7 @@ jobs:
   analyze-go:
     name: Analyze Go
     if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
-    runs-on: depot-ubuntu-latest-8
+    runs-on: depot-ubuntu-latest-16
     timeout-minutes: 60
 
     steps:
@@ -58,12 +58,21 @@ jobs:
           build-mode: manual
           dependency-caching: false
 
-      - name: Build for CodeQL
+      - name: Build backend for CodeQL
         run: |
-          # Preseed go caches
           make build-server GO_BUILD_FLAGS=
-          # Let's build all the binaries
-          make -j 6 build GO_BUILD_FLAGS=
+
+      - name: Build remaining binaries for CodeQL
+        if: ${{ github.event_name != 'pull_request' }}
+        run: |
+          make -j 6 \
+            build-sink-worker \
+            build-benthos-collector \
+            build-balance-worker \
+            build-billing-worker \
+            build-notification-service \
+            build-jobs \
+            GO_BUILD_FLAGS=
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@e46ed2cbd01164d986452f91f178727624ae40d7 # v4.35.3
