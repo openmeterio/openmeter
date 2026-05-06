@@ -4723,6 +4723,20 @@ func (u *NotificationRuleUpdateOne) SetOrClearDisabled(value *bool) *Notificatio
 	return u.SetDisabled(*value)
 }
 
+func (u *OrganizationDefaultTaxCodesUpdate) SetOrClearDeletedAt(value *time.Time) *OrganizationDefaultTaxCodesUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *OrganizationDefaultTaxCodesUpdateOne) SetOrClearDeletedAt(value *time.Time) *OrganizationDefaultTaxCodesUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
 func (u *PlanUpdate) SetOrClearMetadata(value *map[string]string) *PlanUpdate {
 	if value == nil {
 		return u.ClearMetadata()

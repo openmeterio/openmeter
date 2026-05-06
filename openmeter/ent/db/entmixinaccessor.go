@@ -2545,6 +2545,22 @@ func (e *NotificationRule) GetMetadata() map[string]string {
 	return e.Metadata
 }
 
+func (e *OrganizationDefaultTaxCodes) GetID() string {
+	return e.ID
+}
+
+func (e *OrganizationDefaultTaxCodes) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *OrganizationDefaultTaxCodes) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *OrganizationDefaultTaxCodes) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
 func (e *Plan) GetID() string {
 	return e.ID
 }

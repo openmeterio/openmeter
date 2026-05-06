@@ -217,6 +217,8 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		NotificationRule: NewNotificationRuleClient(config),
 
+		OrganizationDefaultTaxCodes: NewOrganizationDefaultTaxCodesClient(config),
+
 		Plan: NewPlanClient(config),
 
 		PlanAddon: NewPlanAddonClient(config),

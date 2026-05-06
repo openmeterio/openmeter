@@ -765,6 +765,18 @@ func (f NotificationRuleFunc) Mutate(ctx context.Context, m db.Mutation) (db.Val
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.NotificationRuleMutation", m)
 }
 
+// The OrganizationDefaultTaxCodesFunc type is an adapter to allow the use of ordinary
+// function as OrganizationDefaultTaxCodes mutator.
+type OrganizationDefaultTaxCodesFunc func(context.Context, *db.OrganizationDefaultTaxCodesMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OrganizationDefaultTaxCodesFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.OrganizationDefaultTaxCodesMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.OrganizationDefaultTaxCodesMutation", m)
+}
+
 // The PlanFunc type is an adapter to allow the use of ordinary
 // function as Plan mutator.
 type PlanFunc func(context.Context, *db.PlanMutation) (db.Value, error)

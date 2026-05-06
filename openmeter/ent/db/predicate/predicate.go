@@ -363,6 +363,9 @@ func NotificationRuleOrErr(p NotificationRule, err error) NotificationRule {
 	}
 }
 
+// OrganizationDefaultTaxCodes is the predicate function for organizationdefaulttaxcodes builders.
+type OrganizationDefaultTaxCodes func(*sql.Selector)
+
 // Plan is the predicate function for plan builders.
 type Plan func(*sql.Selector)
 

@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/organizationdefaulttaxcodes"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
@@ -334,6 +335,36 @@ func (_u *TaxCodeUpdate) AddChargeCreditPurchases(v ...*ChargeCreditPurchase) *T
 	return _u.AddChargeCreditPurchaseIDs(ids...)
 }
 
+// AddOrganizationDefaultInvoicingIDs adds the "organization_default_invoicing" edge to the OrganizationDefaultTaxCodes entity by IDs.
+func (_u *TaxCodeUpdate) AddOrganizationDefaultInvoicingIDs(ids ...string) *TaxCodeUpdate {
+	_u.mutation.AddOrganizationDefaultInvoicingIDs(ids...)
+	return _u
+}
+
+// AddOrganizationDefaultInvoicing adds the "organization_default_invoicing" edges to the OrganizationDefaultTaxCodes entity.
+func (_u *TaxCodeUpdate) AddOrganizationDefaultInvoicing(v ...*OrganizationDefaultTaxCodes) *TaxCodeUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddOrganizationDefaultInvoicingIDs(ids...)
+}
+
+// AddOrganizationDefaultCreditGrantIDs adds the "organization_default_credit_grant" edge to the OrganizationDefaultTaxCodes entity by IDs.
+func (_u *TaxCodeUpdate) AddOrganizationDefaultCreditGrantIDs(ids ...string) *TaxCodeUpdate {
+	_u.mutation.AddOrganizationDefaultCreditGrantIDs(ids...)
+	return _u
+}
+
+// AddOrganizationDefaultCreditGrant adds the "organization_default_credit_grant" edges to the OrganizationDefaultTaxCodes entity.
+func (_u *TaxCodeUpdate) AddOrganizationDefaultCreditGrant(v ...*OrganizationDefaultTaxCodes) *TaxCodeUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddOrganizationDefaultCreditGrantIDs(ids...)
+}
+
 // Mutation returns the TaxCodeMutation object of the builder.
 func (_u *TaxCodeUpdate) Mutation() *TaxCodeMutation {
 	return _u.mutation
@@ -610,6 +641,48 @@ func (_u *TaxCodeUpdate) RemoveChargeCreditPurchases(v ...*ChargeCreditPurchase)
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveChargeCreditPurchaseIDs(ids...)
+}
+
+// ClearOrganizationDefaultInvoicing clears all "organization_default_invoicing" edges to the OrganizationDefaultTaxCodes entity.
+func (_u *TaxCodeUpdate) ClearOrganizationDefaultInvoicing() *TaxCodeUpdate {
+	_u.mutation.ClearOrganizationDefaultInvoicing()
+	return _u
+}
+
+// RemoveOrganizationDefaultInvoicingIDs removes the "organization_default_invoicing" edge to OrganizationDefaultTaxCodes entities by IDs.
+func (_u *TaxCodeUpdate) RemoveOrganizationDefaultInvoicingIDs(ids ...string) *TaxCodeUpdate {
+	_u.mutation.RemoveOrganizationDefaultInvoicingIDs(ids...)
+	return _u
+}
+
+// RemoveOrganizationDefaultInvoicing removes "organization_default_invoicing" edges to OrganizationDefaultTaxCodes entities.
+func (_u *TaxCodeUpdate) RemoveOrganizationDefaultInvoicing(v ...*OrganizationDefaultTaxCodes) *TaxCodeUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveOrganizationDefaultInvoicingIDs(ids...)
+}
+
+// ClearOrganizationDefaultCreditGrant clears all "organization_default_credit_grant" edges to the OrganizationDefaultTaxCodes entity.
+func (_u *TaxCodeUpdate) ClearOrganizationDefaultCreditGrant() *TaxCodeUpdate {
+	_u.mutation.ClearOrganizationDefaultCreditGrant()
+	return _u
+}
+
+// RemoveOrganizationDefaultCreditGrantIDs removes the "organization_default_credit_grant" edge to OrganizationDefaultTaxCodes entities by IDs.
+func (_u *TaxCodeUpdate) RemoveOrganizationDefaultCreditGrantIDs(ids ...string) *TaxCodeUpdate {
+	_u.mutation.RemoveOrganizationDefaultCreditGrantIDs(ids...)
+	return _u
+}
+
+// RemoveOrganizationDefaultCreditGrant removes "organization_default_credit_grant" edges to OrganizationDefaultTaxCodes entities.
+func (_u *TaxCodeUpdate) RemoveOrganizationDefaultCreditGrant(v ...*OrganizationDefaultTaxCodes) *TaxCodeUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveOrganizationDefaultCreditGrantIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -1282,6 +1355,96 @@ func (_u *TaxCodeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.OrganizationDefaultInvoicingCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.OrganizationDefaultInvoicingTable,
+			Columns: []string{dbtaxcode.OrganizationDefaultInvoicingColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationdefaulttaxcodes.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedOrganizationDefaultInvoicingIDs(); len(nodes) > 0 && !_u.mutation.OrganizationDefaultInvoicingCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.OrganizationDefaultInvoicingTable,
+			Columns: []string{dbtaxcode.OrganizationDefaultInvoicingColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationdefaulttaxcodes.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OrganizationDefaultInvoicingIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.OrganizationDefaultInvoicingTable,
+			Columns: []string{dbtaxcode.OrganizationDefaultInvoicingColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationdefaulttaxcodes.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.OrganizationDefaultCreditGrantCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.OrganizationDefaultCreditGrantTable,
+			Columns: []string{dbtaxcode.OrganizationDefaultCreditGrantColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationdefaulttaxcodes.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedOrganizationDefaultCreditGrantIDs(); len(nodes) > 0 && !_u.mutation.OrganizationDefaultCreditGrantCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.OrganizationDefaultCreditGrantTable,
+			Columns: []string{dbtaxcode.OrganizationDefaultCreditGrantColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationdefaulttaxcodes.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OrganizationDefaultCreditGrantIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.OrganizationDefaultCreditGrantTable,
+			Columns: []string{dbtaxcode.OrganizationDefaultCreditGrantColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationdefaulttaxcodes.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{dbtaxcode.Label}
@@ -1593,6 +1756,36 @@ func (_u *TaxCodeUpdateOne) AddChargeCreditPurchases(v ...*ChargeCreditPurchase)
 	return _u.AddChargeCreditPurchaseIDs(ids...)
 }
 
+// AddOrganizationDefaultInvoicingIDs adds the "organization_default_invoicing" edge to the OrganizationDefaultTaxCodes entity by IDs.
+func (_u *TaxCodeUpdateOne) AddOrganizationDefaultInvoicingIDs(ids ...string) *TaxCodeUpdateOne {
+	_u.mutation.AddOrganizationDefaultInvoicingIDs(ids...)
+	return _u
+}
+
+// AddOrganizationDefaultInvoicing adds the "organization_default_invoicing" edges to the OrganizationDefaultTaxCodes entity.
+func (_u *TaxCodeUpdateOne) AddOrganizationDefaultInvoicing(v ...*OrganizationDefaultTaxCodes) *TaxCodeUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddOrganizationDefaultInvoicingIDs(ids...)
+}
+
+// AddOrganizationDefaultCreditGrantIDs adds the "organization_default_credit_grant" edge to the OrganizationDefaultTaxCodes entity by IDs.
+func (_u *TaxCodeUpdateOne) AddOrganizationDefaultCreditGrantIDs(ids ...string) *TaxCodeUpdateOne {
+	_u.mutation.AddOrganizationDefaultCreditGrantIDs(ids...)
+	return _u
+}
+
+// AddOrganizationDefaultCreditGrant adds the "organization_default_credit_grant" edges to the OrganizationDefaultTaxCodes entity.
+func (_u *TaxCodeUpdateOne) AddOrganizationDefaultCreditGrant(v ...*OrganizationDefaultTaxCodes) *TaxCodeUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddOrganizationDefaultCreditGrantIDs(ids...)
+}
+
 // Mutation returns the TaxCodeMutation object of the builder.
 func (_u *TaxCodeUpdateOne) Mutation() *TaxCodeMutation {
 	return _u.mutation
@@ -1869,6 +2062,48 @@ func (_u *TaxCodeUpdateOne) RemoveChargeCreditPurchases(v ...*ChargeCreditPurcha
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveChargeCreditPurchaseIDs(ids...)
+}
+
+// ClearOrganizationDefaultInvoicing clears all "organization_default_invoicing" edges to the OrganizationDefaultTaxCodes entity.
+func (_u *TaxCodeUpdateOne) ClearOrganizationDefaultInvoicing() *TaxCodeUpdateOne {
+	_u.mutation.ClearOrganizationDefaultInvoicing()
+	return _u
+}
+
+// RemoveOrganizationDefaultInvoicingIDs removes the "organization_default_invoicing" edge to OrganizationDefaultTaxCodes entities by IDs.
+func (_u *TaxCodeUpdateOne) RemoveOrganizationDefaultInvoicingIDs(ids ...string) *TaxCodeUpdateOne {
+	_u.mutation.RemoveOrganizationDefaultInvoicingIDs(ids...)
+	return _u
+}
+
+// RemoveOrganizationDefaultInvoicing removes "organization_default_invoicing" edges to OrganizationDefaultTaxCodes entities.
+func (_u *TaxCodeUpdateOne) RemoveOrganizationDefaultInvoicing(v ...*OrganizationDefaultTaxCodes) *TaxCodeUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveOrganizationDefaultInvoicingIDs(ids...)
+}
+
+// ClearOrganizationDefaultCreditGrant clears all "organization_default_credit_grant" edges to the OrganizationDefaultTaxCodes entity.
+func (_u *TaxCodeUpdateOne) ClearOrganizationDefaultCreditGrant() *TaxCodeUpdateOne {
+	_u.mutation.ClearOrganizationDefaultCreditGrant()
+	return _u
+}
+
+// RemoveOrganizationDefaultCreditGrantIDs removes the "organization_default_credit_grant" edge to OrganizationDefaultTaxCodes entities by IDs.
+func (_u *TaxCodeUpdateOne) RemoveOrganizationDefaultCreditGrantIDs(ids ...string) *TaxCodeUpdateOne {
+	_u.mutation.RemoveOrganizationDefaultCreditGrantIDs(ids...)
+	return _u
+}
+
+// RemoveOrganizationDefaultCreditGrant removes "organization_default_credit_grant" edges to OrganizationDefaultTaxCodes entities.
+func (_u *TaxCodeUpdateOne) RemoveOrganizationDefaultCreditGrant(v ...*OrganizationDefaultTaxCodes) *TaxCodeUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveOrganizationDefaultCreditGrantIDs(ids...)
 }
 
 // Where appends a list predicates to the TaxCodeUpdate builder.
@@ -2564,6 +2799,96 @@ func (_u *TaxCodeUpdateOne) sqlSave(ctx context.Context) (_node *TaxCode, err er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.OrganizationDefaultInvoicingCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.OrganizationDefaultInvoicingTable,
+			Columns: []string{dbtaxcode.OrganizationDefaultInvoicingColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationdefaulttaxcodes.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedOrganizationDefaultInvoicingIDs(); len(nodes) > 0 && !_u.mutation.OrganizationDefaultInvoicingCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.OrganizationDefaultInvoicingTable,
+			Columns: []string{dbtaxcode.OrganizationDefaultInvoicingColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationdefaulttaxcodes.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OrganizationDefaultInvoicingIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.OrganizationDefaultInvoicingTable,
+			Columns: []string{dbtaxcode.OrganizationDefaultInvoicingColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationdefaulttaxcodes.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.OrganizationDefaultCreditGrantCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.OrganizationDefaultCreditGrantTable,
+			Columns: []string{dbtaxcode.OrganizationDefaultCreditGrantColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationdefaulttaxcodes.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedOrganizationDefaultCreditGrantIDs(); len(nodes) > 0 && !_u.mutation.OrganizationDefaultCreditGrantCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.OrganizationDefaultCreditGrantTable,
+			Columns: []string{dbtaxcode.OrganizationDefaultCreditGrantColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationdefaulttaxcodes.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OrganizationDefaultCreditGrantIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.OrganizationDefaultCreditGrantTable,
+			Columns: []string{dbtaxcode.OrganizationDefaultCreditGrantColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationdefaulttaxcodes.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
