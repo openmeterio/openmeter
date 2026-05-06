@@ -82707,6 +82707,7 @@ type LedgerSubAccountRouteMutation struct {
 	routing_key                      *string
 	currency                         *string
 	tax_code                         *string
+	tax_behavior                     *ledger.TaxBehavior
 	features                         *[]string
 	appendfeatures                   []string
 	cost_basis                       *alpacadecimal.Decimal
@@ -83178,6 +83179,55 @@ func (m *LedgerSubAccountRouteMutation) ResetTaxCode() {
 	delete(m.clearedFields, ledgersubaccountroute.FieldTaxCode)
 }
 
+// SetTaxBehavior sets the "tax_behavior" field.
+func (m *LedgerSubAccountRouteMutation) SetTaxBehavior(lb ledger.TaxBehavior) {
+	m.tax_behavior = &lb
+}
+
+// TaxBehavior returns the value of the "tax_behavior" field in the mutation.
+func (m *LedgerSubAccountRouteMutation) TaxBehavior() (r ledger.TaxBehavior, exists bool) {
+	v := m.tax_behavior
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxBehavior returns the old "tax_behavior" field's value of the LedgerSubAccountRoute entity.
+// If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerSubAccountRouteMutation) OldTaxBehavior(ctx context.Context) (v *ledger.TaxBehavior, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxBehavior is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxBehavior requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxBehavior: %w", err)
+	}
+	return oldValue.TaxBehavior, nil
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (m *LedgerSubAccountRouteMutation) ClearTaxBehavior() {
+	m.tax_behavior = nil
+	m.clearedFields[ledgersubaccountroute.FieldTaxBehavior] = struct{}{}
+}
+
+// TaxBehaviorCleared returns if the "tax_behavior" field was cleared in this mutation.
+func (m *LedgerSubAccountRouteMutation) TaxBehaviorCleared() bool {
+	_, ok := m.clearedFields[ledgersubaccountroute.FieldTaxBehavior]
+	return ok
+}
+
+// ResetTaxBehavior resets all changes to the "tax_behavior" field.
+func (m *LedgerSubAccountRouteMutation) ResetTaxBehavior() {
+	m.tax_behavior = nil
+	delete(m.clearedFields, ledgersubaccountroute.FieldTaxBehavior)
+}
+
 // SetFeatures sets the "features" field.
 func (m *LedgerSubAccountRouteMutation) SetFeatures(s []string) {
 	m.features = &s
@@ -83526,7 +83576,7 @@ func (m *LedgerSubAccountRouteMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LedgerSubAccountRouteMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 14)
 	if m.namespace != nil {
 		fields = append(fields, ledgersubaccountroute.FieldNamespace)
 	}
@@ -83553,6 +83603,9 @@ func (m *LedgerSubAccountRouteMutation) Fields() []string {
 	}
 	if m.tax_code != nil {
 		fields = append(fields, ledgersubaccountroute.FieldTaxCode)
+	}
+	if m.tax_behavior != nil {
+		fields = append(fields, ledgersubaccountroute.FieldTaxBehavior)
 	}
 	if m.features != nil {
 		fields = append(fields, ledgersubaccountroute.FieldFeatures)
@@ -83592,6 +83645,8 @@ func (m *LedgerSubAccountRouteMutation) Field(name string) (ent.Value, bool) {
 		return m.Currency()
 	case ledgersubaccountroute.FieldTaxCode:
 		return m.TaxCode()
+	case ledgersubaccountroute.FieldTaxBehavior:
+		return m.TaxBehavior()
 	case ledgersubaccountroute.FieldFeatures:
 		return m.Features()
 	case ledgersubaccountroute.FieldCostBasis:
@@ -83627,6 +83682,8 @@ func (m *LedgerSubAccountRouteMutation) OldField(ctx context.Context, name strin
 		return m.OldCurrency(ctx)
 	case ledgersubaccountroute.FieldTaxCode:
 		return m.OldTaxCode(ctx)
+	case ledgersubaccountroute.FieldTaxBehavior:
+		return m.OldTaxBehavior(ctx)
 	case ledgersubaccountroute.FieldFeatures:
 		return m.OldFeatures(ctx)
 	case ledgersubaccountroute.FieldCostBasis:
@@ -83707,6 +83764,13 @@ func (m *LedgerSubAccountRouteMutation) SetField(name string, value ent.Value) e
 		}
 		m.SetTaxCode(v)
 		return nil
+	case ledgersubaccountroute.FieldTaxBehavior:
+		v, ok := value.(ledger.TaxBehavior)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxBehavior(v)
+		return nil
 	case ledgersubaccountroute.FieldFeatures:
 		v, ok := value.([]string)
 		if !ok {
@@ -83786,6 +83850,9 @@ func (m *LedgerSubAccountRouteMutation) ClearedFields() []string {
 	if m.FieldCleared(ledgersubaccountroute.FieldTaxCode) {
 		fields = append(fields, ledgersubaccountroute.FieldTaxCode)
 	}
+	if m.FieldCleared(ledgersubaccountroute.FieldTaxBehavior) {
+		fields = append(fields, ledgersubaccountroute.FieldTaxBehavior)
+	}
 	if m.FieldCleared(ledgersubaccountroute.FieldFeatures) {
 		fields = append(fields, ledgersubaccountroute.FieldFeatures)
 	}
@@ -83817,6 +83884,9 @@ func (m *LedgerSubAccountRouteMutation) ClearField(name string) error {
 		return nil
 	case ledgersubaccountroute.FieldTaxCode:
 		m.ClearTaxCode()
+		return nil
+	case ledgersubaccountroute.FieldTaxBehavior:
+		m.ClearTaxBehavior()
 		return nil
 	case ledgersubaccountroute.FieldFeatures:
 		m.ClearFeatures()
@@ -83864,6 +83934,9 @@ func (m *LedgerSubAccountRouteMutation) ResetField(name string) error {
 		return nil
 	case ledgersubaccountroute.FieldTaxCode:
 		m.ResetTaxCode()
+		return nil
+	case ledgersubaccountroute.FieldTaxBehavior:
+		m.ResetTaxBehavior()
 		return nil
 	case ledgersubaccountroute.FieldFeatures:
 		m.ResetFeatures()

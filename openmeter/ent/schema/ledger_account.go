@@ -116,6 +116,9 @@ func (LedgerSubAccountRoute) Fields() []ent.Field {
 		// Literal routing values
 		field.String("currency").Immutable(),
 		field.String("tax_code").Optional().Nillable().Immutable(),
+		field.String("tax_behavior").
+			GoType(ledger.TaxBehavior("")).
+			Optional().Nillable().Immutable(),
 		field.Strings("features").Optional().Immutable(),
 		field.Other("cost_basis", alpacadecimal.Decimal{}).
 			Optional().Nillable().Immutable().

@@ -39,6 +39,8 @@ type LedgerSubAccountRoute struct {
 	Currency string `json:"currency,omitempty"`
 	// TaxCode holds the value of the "tax_code" field.
 	TaxCode *string `json:"tax_code,omitempty"`
+	// TaxBehavior holds the value of the "tax_behavior" field.
+	TaxBehavior *ledger.TaxBehavior `json:"tax_behavior,omitempty"`
 	// Features holds the value of the "features" field.
 	Features []string `json:"features,omitempty"`
 	// CostBasis holds the value of the "cost_basis" field.
@@ -95,7 +97,7 @@ func (*LedgerSubAccountRoute) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case ledgersubaccountroute.FieldCreditPriority:
 			values[i] = new(sql.NullInt64)
-		case ledgersubaccountroute.FieldID, ledgersubaccountroute.FieldNamespace, ledgersubaccountroute.FieldAccountID, ledgersubaccountroute.FieldRoutingKeyVersion, ledgersubaccountroute.FieldRoutingKey, ledgersubaccountroute.FieldCurrency, ledgersubaccountroute.FieldTaxCode, ledgersubaccountroute.FieldTransactionAuthorizationStatus:
+		case ledgersubaccountroute.FieldID, ledgersubaccountroute.FieldNamespace, ledgersubaccountroute.FieldAccountID, ledgersubaccountroute.FieldRoutingKeyVersion, ledgersubaccountroute.FieldRoutingKey, ledgersubaccountroute.FieldCurrency, ledgersubaccountroute.FieldTaxCode, ledgersubaccountroute.FieldTaxBehavior, ledgersubaccountroute.FieldTransactionAuthorizationStatus:
 			values[i] = new(sql.NullString)
 		case ledgersubaccountroute.FieldCreatedAt, ledgersubaccountroute.FieldUpdatedAt, ledgersubaccountroute.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -175,6 +177,13 @@ func (_m *LedgerSubAccountRoute) assignValues(columns []string, values []any) er
 			} else if value.Valid {
 				_m.TaxCode = new(string)
 				*_m.TaxCode = value.String
+			}
+		case ledgersubaccountroute.FieldTaxBehavior:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
+			} else if value.Valid {
+				_m.TaxBehavior = new(ledger.TaxBehavior)
+				*_m.TaxBehavior = ledger.TaxBehavior(value.String)
 			}
 		case ledgersubaccountroute.FieldFeatures:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -280,6 +289,11 @@ func (_m *LedgerSubAccountRoute) String() string {
 	if v := _m.TaxCode; v != nil {
 		builder.WriteString("tax_code=")
 		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.TaxBehavior; v != nil {
+		builder.WriteString("tax_behavior=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("features=")
