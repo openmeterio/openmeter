@@ -1187,7 +1187,7 @@ paths:
       summary: Get organization default tax codes
       responses:
         '200':
-          description: OrgDefaultTaxCodes response.
+          description: OrganizationDefaultTaxCodes response.
           content:
             application/json:
               schema:
@@ -1210,7 +1210,7 @@ paths:
       summary: Update organization default tax codes
       responses:
         '200':
-          description: OrgDefaultTaxCodes upsert response.
+          description: OrganizationDefaultTaxCodes upsert response.
           content:
             application/json:
               schema:
@@ -1230,7 +1230,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateOrgDefaultTaxCodesRequest'
+              $ref: '#/components/schemas/UpdateOrganizationDefaultTaxCodesRequest'
       x-internal: true
       x-unstable: true
       x-private: true
@@ -8700,7 +8700,7 @@ components:
           example:
             type: $.type
       description: Meter update request.
-    UpdateOrgDefaultTaxCodesRequest:
+    UpdateOrganizationDefaultTaxCodesRequest:
       type: object
       properties:
         invoicing_tax_code:
@@ -8713,7 +8713,7 @@ components:
             - $ref: '#/components/schemas/TaxCodeReference'
           description: Default tax code for credit grants.
           title: Credit grant tax code
-      description: OrgDefaultTaxCodes update request.
+      description: OrganizationDefaultTaxCodes update request.
     UpsertAddonRequest:
       type: object
       required:

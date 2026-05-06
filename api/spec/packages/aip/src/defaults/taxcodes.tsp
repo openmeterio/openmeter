@@ -10,7 +10,7 @@ namespace Defaults;
  * organization. Provisioned automatically when the organization is created.
  */
 @friendlyName("OrganizationDefaultTaxCodes")
-model OrgDefaultTaxCodes {
+model OrganizationDefaultTaxCodes {
   /**
    * Default tax code for invoicing.
    */

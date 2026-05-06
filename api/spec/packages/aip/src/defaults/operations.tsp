@@ -19,7 +19,7 @@ interface OrganizationDefaultTaxCodesOperations {
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   get(
-  ): Shared.GetResponse<OrgDefaultTaxCodes> | Common.NotFound | Common.ErrorResponses;
+  ): Shared.GetResponse<OrganizationDefaultTaxCodes> | Common.NotFound | Common.ErrorResponses;
 
   @put
   @operationId("update-organization-default-tax-codes")
@@ -28,6 +28,6 @@ interface OrganizationDefaultTaxCodesOperations {
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   update(
-    @body body: Shared.UpdateRequest<OrgDefaultTaxCodes>,
-  ): Shared.UpsertResponse<OrgDefaultTaxCodes> | Common.NotFound | Common.ErrorResponses;
+    @body body: Shared.UpdateRequest<OrganizationDefaultTaxCodes>,
+  ): Shared.UpsertResponse<OrganizationDefaultTaxCodes> | Common.NotFound | Common.ErrorResponses;
 }

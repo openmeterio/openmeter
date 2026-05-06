@@ -185,5 +185,5 @@ interface PlanAddonEndpoints extends ProductCatalog.PlanAddonOperations {}
 
 @route("/openmeter/defaults/tax-codes")
 @tag(Shared.DefaultsTag)
-interface OrgDefaultTaxCodesEndpoints
+interface OrganizationDefaultTaxCodesEndpoints
   extends Defaults.OrganizationDefaultTaxCodesOperations {}
