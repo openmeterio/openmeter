@@ -10,7 +10,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-var _ billing.LineEngine = (*Engine)(nil)
+var (
+	_ billing.LineEngine     = (*Engine)(nil)
+	_ billing.LineCalculator = (*Engine)(nil)
+)
 
 type Config struct {
 	RatingService rating.Service

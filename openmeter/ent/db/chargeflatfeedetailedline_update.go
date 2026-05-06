@@ -462,6 +462,20 @@ func (_u *ChargeFlatFeeDetailedLineUpdate) SetNillableChargeID(v *string) *Charg
 	return _u
 }
 
+// SetPricerReferenceID sets the "pricer_reference_id" field.
+func (_u *ChargeFlatFeeDetailedLineUpdate) SetPricerReferenceID(v string) *ChargeFlatFeeDetailedLineUpdate {
+	_u.mutation.SetPricerReferenceID(v)
+	return _u
+}
+
+// SetNillablePricerReferenceID sets the "pricer_reference_id" field if the given value is not nil.
+func (_u *ChargeFlatFeeDetailedLineUpdate) SetNillablePricerReferenceID(v *string) *ChargeFlatFeeDetailedLineUpdate {
+	if v != nil {
+		_u.SetPricerReferenceID(*v)
+	}
+	return _u
+}
+
 // SetCharge sets the "charge" edge to the ChargeFlatFee entity.
 func (_u *ChargeFlatFeeDetailedLineUpdate) SetCharge(v *ChargeFlatFee) *ChargeFlatFeeDetailedLineUpdate {
 	return _u.SetChargeID(v.ID)
@@ -555,6 +569,11 @@ func (_u *ChargeFlatFeeDetailedLineUpdate) check() error {
 	if v, ok := _u.mutation.CreditsApplied(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "credits_applied", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeDetailedLine.credits_applied": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.PricerReferenceID(); ok {
+		if err := chargeflatfeedetailedline.PricerReferenceIDValidator(v); err != nil {
+			return &ValidationError{Name: "pricer_reference_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeDetailedLine.pricer_reference_id": %w`, err)}
 		}
 	}
 	if _u.mutation.ChargeCleared() && len(_u.mutation.ChargeIDs()) > 0 {
@@ -682,6 +701,9 @@ func (_u *ChargeFlatFeeDetailedLineUpdate) sqlSave(ctx context.Context) (_node i
 	}
 	if value, ok := _u.mutation.Total(); ok {
 		_spec.SetField(chargeflatfeedetailedline.FieldTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.PricerReferenceID(); ok {
+		_spec.SetField(chargeflatfeedetailedline.FieldPricerReferenceID, field.TypeString, value)
 	}
 	if _u.mutation.ChargeCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1188,6 +1210,20 @@ func (_u *ChargeFlatFeeDetailedLineUpdateOne) SetNillableChargeID(v *string) *Ch
 	return _u
 }
 
+// SetPricerReferenceID sets the "pricer_reference_id" field.
+func (_u *ChargeFlatFeeDetailedLineUpdateOne) SetPricerReferenceID(v string) *ChargeFlatFeeDetailedLineUpdateOne {
+	_u.mutation.SetPricerReferenceID(v)
+	return _u
+}
+
+// SetNillablePricerReferenceID sets the "pricer_reference_id" field if the given value is not nil.
+func (_u *ChargeFlatFeeDetailedLineUpdateOne) SetNillablePricerReferenceID(v *string) *ChargeFlatFeeDetailedLineUpdateOne {
+	if v != nil {
+		_u.SetPricerReferenceID(*v)
+	}
+	return _u
+}
+
 // SetCharge sets the "charge" edge to the ChargeFlatFee entity.
 func (_u *ChargeFlatFeeDetailedLineUpdateOne) SetCharge(v *ChargeFlatFee) *ChargeFlatFeeDetailedLineUpdateOne {
 	return _u.SetChargeID(v.ID)
@@ -1294,6 +1330,11 @@ func (_u *ChargeFlatFeeDetailedLineUpdateOne) check() error {
 	if v, ok := _u.mutation.CreditsApplied(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "credits_applied", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeDetailedLine.credits_applied": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.PricerReferenceID(); ok {
+		if err := chargeflatfeedetailedline.PricerReferenceIDValidator(v); err != nil {
+			return &ValidationError{Name: "pricer_reference_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeDetailedLine.pricer_reference_id": %w`, err)}
 		}
 	}
 	if _u.mutation.ChargeCleared() && len(_u.mutation.ChargeIDs()) > 0 {
@@ -1438,6 +1479,9 @@ func (_u *ChargeFlatFeeDetailedLineUpdateOne) sqlSave(ctx context.Context) (_nod
 	}
 	if value, ok := _u.mutation.Total(); ok {
 		_spec.SetField(chargeflatfeedetailedline.FieldTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.PricerReferenceID(); ok {
+		_spec.SetField(chargeflatfeedetailedline.FieldPricerReferenceID, field.TypeString, value)
 	}
 	if _u.mutation.ChargeCleared() {
 		edge := &sqlgraph.EdgeSpec{

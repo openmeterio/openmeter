@@ -162,6 +162,11 @@ func MeteredQuantity(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldMeteredQuantity, v))
 }
 
+// NoFiatTransactionRequired applies equality check predicate on the "no_fiat_transaction_required" field. It's identical to NoFiatTransactionRequiredEQ.
+func NoFiatTransactionRequired(v bool) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldNoFiatTransactionRequired, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldNamespace, v))
@@ -1042,6 +1047,16 @@ func MeteredQuantityLTE(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns 
 	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldMeteredQuantity, v))
 }
 
+// NoFiatTransactionRequiredEQ applies the EQ predicate on the "no_fiat_transaction_required" field.
+func NoFiatTransactionRequiredEQ(v bool) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldNoFiatTransactionRequired, v))
+}
+
+// NoFiatTransactionRequiredNEQ applies the NEQ predicate on the "no_fiat_transaction_required" field.
+func NoFiatTransactionRequiredNEQ(v bool) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldNoFiatTransactionRequired, v))
+}
+
 // HasUsageBased applies the HasEdge predicate on the "usage_based" edge.
 func HasUsageBased() predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {
@@ -1149,6 +1164,29 @@ func HasDetailedLines() predicate.ChargeUsageBasedRuns {
 func HasDetailedLinesWith(preds ...predicate.ChargeUsageBasedRunDetailedLine) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {
 		step := newDetailedLinesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCorrectedDetailedLines applies the HasEdge predicate on the "corrected_detailed_lines" edge.
+func HasCorrectedDetailedLines() predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, CorrectedDetailedLinesTable, CorrectedDetailedLinesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCorrectedDetailedLinesWith applies the HasEdge predicate on the "corrected_detailed_lines" edge with a given conditions (other predicates).
+func HasCorrectedDetailedLinesWith(preds ...predicate.ChargeUsageBasedRunDetailedLine) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {
+		step := newCorrectedDetailedLinesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

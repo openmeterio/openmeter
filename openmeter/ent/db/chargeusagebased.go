@@ -92,6 +92,8 @@ type ChargeUsageBased struct {
 	FeatureKey string `json:"feature_key,omitempty"`
 	// FeatureID holds the value of the "feature_id" field.
 	FeatureID string `json:"feature_id,omitempty"`
+	// RatingEngine holds the value of the "rating_engine" field.
+	RatingEngine usagebased.RatingEngine `json:"rating_engine,omitempty"`
 	// Price holds the value of the "price" field.
 	Price *productcatalog.Price `json:"price,omitempty"`
 	// CurrentRealizationRunID holds the value of the "current_realization_run_id" field.
@@ -244,7 +246,7 @@ func (*ChargeUsageBased) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargeusagebased.FieldAnnotations, chargeusagebased.FieldMetadata:
 			values[i] = new([]byte)
-		case chargeusagebased.FieldID, chargeusagebased.FieldCustomerID, chargeusagebased.FieldStatus, chargeusagebased.FieldUniqueReferenceID, chargeusagebased.FieldCurrency, chargeusagebased.FieldManagedBy, chargeusagebased.FieldSubscriptionID, chargeusagebased.FieldSubscriptionPhaseID, chargeusagebased.FieldSubscriptionItemID, chargeusagebased.FieldTaxCodeID, chargeusagebased.FieldTaxBehavior, chargeusagebased.FieldNamespace, chargeusagebased.FieldName, chargeusagebased.FieldDescription, chargeusagebased.FieldSettlementMode, chargeusagebased.FieldFeatureKey, chargeusagebased.FieldFeatureID, chargeusagebased.FieldCurrentRealizationRunID, chargeusagebased.FieldStatusDetailed:
+		case chargeusagebased.FieldID, chargeusagebased.FieldCustomerID, chargeusagebased.FieldStatus, chargeusagebased.FieldUniqueReferenceID, chargeusagebased.FieldCurrency, chargeusagebased.FieldManagedBy, chargeusagebased.FieldSubscriptionID, chargeusagebased.FieldSubscriptionPhaseID, chargeusagebased.FieldSubscriptionItemID, chargeusagebased.FieldTaxCodeID, chargeusagebased.FieldTaxBehavior, chargeusagebased.FieldNamespace, chargeusagebased.FieldName, chargeusagebased.FieldDescription, chargeusagebased.FieldSettlementMode, chargeusagebased.FieldFeatureKey, chargeusagebased.FieldFeatureID, chargeusagebased.FieldRatingEngine, chargeusagebased.FieldCurrentRealizationRunID, chargeusagebased.FieldStatusDetailed:
 			values[i] = new(sql.NullString)
 		case chargeusagebased.FieldServicePeriodFrom, chargeusagebased.FieldServicePeriodTo, chargeusagebased.FieldBillingPeriodFrom, chargeusagebased.FieldBillingPeriodTo, chargeusagebased.FieldFullServicePeriodFrom, chargeusagebased.FieldFullServicePeriodTo, chargeusagebased.FieldAdvanceAfter, chargeusagebased.FieldCreatedAt, chargeusagebased.FieldUpdatedAt, chargeusagebased.FieldDeletedAt, chargeusagebased.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
@@ -466,6 +468,12 @@ func (_m *ChargeUsageBased) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.FeatureID = value.String
 			}
+		case chargeusagebased.FieldRatingEngine:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field rating_engine", values[i])
+			} else if value.Valid {
+				_m.RatingEngine = usagebased.RatingEngine(value.String)
+			}
 		case chargeusagebased.FieldPrice:
 			if value, err := chargeusagebased.ValueScanner.Price.FromValue(values[i]); err != nil {
 				return err
@@ -680,6 +688,9 @@ func (_m *ChargeUsageBased) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("feature_id=")
 	builder.WriteString(_m.FeatureID)
+	builder.WriteString(", ")
+	builder.WriteString("rating_engine=")
+	builder.WriteString(fmt.Sprintf("%v", _m.RatingEngine))
 	builder.WriteString(", ")
 	builder.WriteString("price=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Price))

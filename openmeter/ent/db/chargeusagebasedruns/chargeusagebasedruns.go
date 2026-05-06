@@ -56,6 +56,8 @@ const (
 	FieldLineID = "line_id"
 	// FieldMeteredQuantity holds the string denoting the metered_quantity field in the database.
 	FieldMeteredQuantity = "metered_quantity"
+	// FieldNoFiatTransactionRequired holds the string denoting the no_fiat_transaction_required field in the database.
+	FieldNoFiatTransactionRequired = "no_fiat_transaction_required"
 	// EdgeUsageBased holds the string denoting the usage_based edge name in mutations.
 	EdgeUsageBased = "usage_based"
 	// EdgeFeature holds the string denoting the feature edge name in mutations.
@@ -66,6 +68,8 @@ const (
 	EdgeCreditAllocations = "credit_allocations"
 	// EdgeDetailedLines holds the string denoting the detailed_lines edge name in mutations.
 	EdgeDetailedLines = "detailed_lines"
+	// EdgeCorrectedDetailedLines holds the string denoting the corrected_detailed_lines edge name in mutations.
+	EdgeCorrectedDetailedLines = "corrected_detailed_lines"
 	// EdgeInvoicedUsage holds the string denoting the invoiced_usage edge name in mutations.
 	EdgeInvoicedUsage = "invoiced_usage"
 	// EdgePayment holds the string denoting the payment edge name in mutations.
@@ -107,6 +111,13 @@ const (
 	DetailedLinesInverseTable = "charge_usage_based_run_detailed_line"
 	// DetailedLinesColumn is the table column denoting the detailed_lines relation/edge.
 	DetailedLinesColumn = "run_id"
+	// CorrectedDetailedLinesTable is the table that holds the corrected_detailed_lines relation/edge.
+	CorrectedDetailedLinesTable = "charge_usage_based_run_detailed_line"
+	// CorrectedDetailedLinesInverseTable is the table name for the ChargeUsageBasedRunDetailedLine entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeusagebasedrundetailedline" package.
+	CorrectedDetailedLinesInverseTable = "charge_usage_based_run_detailed_line"
+	// CorrectedDetailedLinesColumn is the table column denoting the corrected_detailed_lines relation/edge.
+	CorrectedDetailedLinesColumn = "corrects_run_id"
 	// InvoicedUsageTable is the table that holds the invoiced_usage relation/edge.
 	InvoicedUsageTable = "charge_usage_based_run_invoiced_usages"
 	// InvoicedUsageInverseTable is the table name for the ChargeUsageBasedRunInvoicedUsage entity.
@@ -146,6 +157,7 @@ var Columns = []string{
 	FieldDetailedLinesPresent,
 	FieldLineID,
 	FieldMeteredQuantity,
+	FieldNoFiatTransactionRequired,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -293,6 +305,11 @@ func ByMeteredQuantity(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMeteredQuantity, opts...).ToFunc()
 }
 
+// ByNoFiatTransactionRequired orders the results by the no_fiat_transaction_required field.
+func ByNoFiatTransactionRequired(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNoFiatTransactionRequired, opts...).ToFunc()
+}
+
 // ByUsageBasedField orders the results by usage_based field.
 func ByUsageBasedField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -342,6 +359,20 @@ func ByDetailedLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
+// ByCorrectedDetailedLinesCount orders the results by corrected_detailed_lines count.
+func ByCorrectedDetailedLinesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newCorrectedDetailedLinesStep(), opts...)
+	}
+}
+
+// ByCorrectedDetailedLines orders the results by corrected_detailed_lines terms.
+func ByCorrectedDetailedLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCorrectedDetailedLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByInvoicedUsageField orders the results by invoiced_usage field.
 func ByInvoicedUsageField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -388,6 +419,13 @@ func newDetailedLinesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(DetailedLinesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, DetailedLinesTable, DetailedLinesColumn),
+	)
+}
+func newCorrectedDetailedLinesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CorrectedDetailedLinesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, CorrectedDetailedLinesTable, CorrectedDetailedLinesColumn),
 	)
 }
 func newInvoicedUsageStep() *sqlgraph.Step {

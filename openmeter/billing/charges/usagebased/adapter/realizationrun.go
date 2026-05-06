@@ -31,7 +31,8 @@ func (a *adapter) CreateRealizationRun(ctx context.Context, chargeID meta.Charge
 			SetServicePeriodTo(meta.NormalizeTimestamp(input.ServicePeriodTo)).
 			SetDetailedLinesPresent(false).
 			SetNillableBillingInvoiceLineID(input.LineID).
-			SetMeteredQuantity(input.MeteredQuantity)
+			SetMeteredQuantity(input.MeteredQuantity).
+			SetNoFiatTransactionRequired(input.NoFiatTransactionRequired)
 
 		create = totals.Set(create, input.Totals)
 
@@ -67,6 +68,10 @@ func (a *adapter) UpdateRealizationRun(ctx context.Context, input usagebased.Upd
 
 		if input.Totals.IsPresent() {
 			update = totals.Set(update, input.Totals.OrEmpty())
+		}
+
+		if input.NoFiatTransactionRequired.IsPresent() {
+			update = update.SetNoFiatTransactionRequired(input.NoFiatTransactionRequired.OrEmpty())
 		}
 
 		dbRun, err := update.Save(ctx)

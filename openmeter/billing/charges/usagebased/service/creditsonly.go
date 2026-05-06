@@ -151,14 +151,15 @@ func (s *CreditsOnlyStateMachine) StartFinalRealizationRun(ctx context.Context) 
 	}
 
 	result, err := s.Runs.CreateRatedRun(ctx, usagebasedrun.CreateRatedRunInput{
-		Charge:             s.Charge,
-		CustomerOverride:   s.CustomerOverride,
-		FeatureMeter:       s.FeatureMeter,
-		Type:               usagebased.RealizationRunTypeFinalRealization,
-		StoredAtLT:         storedAtLT,
-		ServicePeriodTo:    meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.To),
-		CreditAllocation:   usagebasedrun.CreditAllocationExact,
-		CurrencyCalculator: s.CurrencyCalculator,
+		Charge:                    s.Charge,
+		CustomerOverride:          s.CustomerOverride,
+		FeatureMeter:              s.FeatureMeter,
+		Type:                      usagebased.RealizationRunTypeFinalRealization,
+		StoredAtLT:                storedAtLT,
+		ServicePeriodTo:           meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.To),
+		CreditAllocation:          usagebasedrun.CreditAllocationExact,
+		CurrencyCalculator:        s.CurrencyCalculator,
+		NoFiatTransactionRequired: true,
 	})
 	if err != nil {
 		return err
@@ -214,10 +215,11 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 	currentRun.DetailedLines = mo.Some(ratingResult.DetailedLines)
 
 	currentRunBase, err := s.Adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
-		ID:              currentRun.ID,
-		StoredAtLT:      mo.Some(storedAtLT),
-		MeteredQuantity: mo.Some(ratingResult.Quantity),
-		Totals:          mo.Some(currentTotals),
+		ID:                        currentRun.ID,
+		StoredAtLT:                mo.Some(storedAtLT),
+		MeteredQuantity:           mo.Some(ratingResult.Quantity),
+		Totals:                    mo.Some(currentTotals),
+		NoFiatTransactionRequired: mo.Some(true),
 	})
 	if err != nil {
 		return fmt.Errorf("update realization run: %w", err)

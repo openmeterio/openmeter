@@ -184,6 +184,12 @@ func (_c *ChargeUsageBasedRunsCreate) SetMeteredQuantity(v alpacadecimal.Decimal
 	return _c
 }
 
+// SetNoFiatTransactionRequired sets the "no_fiat_transaction_required" field.
+func (_c *ChargeUsageBasedRunsCreate) SetNoFiatTransactionRequired(v bool) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetNoFiatTransactionRequired(v)
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *ChargeUsageBasedRunsCreate) SetID(v string) *ChargeUsageBasedRunsCreate {
 	_c.mutation.SetID(v)
@@ -261,6 +267,21 @@ func (_c *ChargeUsageBasedRunsCreate) AddDetailedLines(v ...*ChargeUsageBasedRun
 		ids[i] = v[i].ID
 	}
 	return _c.AddDetailedLineIDs(ids...)
+}
+
+// AddCorrectedDetailedLineIDs adds the "corrected_detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity by IDs.
+func (_c *ChargeUsageBasedRunsCreate) AddCorrectedDetailedLineIDs(ids ...string) *ChargeUsageBasedRunsCreate {
+	_c.mutation.AddCorrectedDetailedLineIDs(ids...)
+	return _c
+}
+
+// AddCorrectedDetailedLines adds the "corrected_detailed_lines" edges to the ChargeUsageBasedRunDetailedLine entity.
+func (_c *ChargeUsageBasedRunsCreate) AddCorrectedDetailedLines(v ...*ChargeUsageBasedRunDetailedLine) *ChargeUsageBasedRunsCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddCorrectedDetailedLineIDs(ids...)
 }
 
 // SetInvoicedUsageID sets the "invoiced_usage" edge to the ChargeUsageBasedRunInvoicedUsage entity by ID.
@@ -426,6 +447,9 @@ func (_c *ChargeUsageBasedRunsCreate) check() error {
 	if _, ok := _c.mutation.MeteredQuantity(); !ok {
 		return &ValidationError{Name: "metered_quantity", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.metered_quantity"`)}
 	}
+	if _, ok := _c.mutation.NoFiatTransactionRequired(); !ok {
+		return &ValidationError{Name: "no_fiat_transaction_required", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.no_fiat_transaction_required"`)}
+	}
 	if len(_c.mutation.UsageBasedIDs()) == 0 {
 		return &ValidationError{Name: "usage_based", err: errors.New(`db: missing required edge "ChargeUsageBasedRuns.usage_based"`)}
 	}
@@ -536,6 +560,10 @@ func (_c *ChargeUsageBasedRunsCreate) createSpec() (*ChargeUsageBasedRuns, *sqlg
 		_spec.SetField(chargeusagebasedruns.FieldMeteredQuantity, field.TypeOther, value)
 		_node.MeteredQuantity = value
 	}
+	if value, ok := _c.mutation.NoFiatTransactionRequired(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldNoFiatTransactionRequired, field.TypeBool, value)
+		_node.NoFiatTransactionRequired = value
+	}
 	if nodes := _c.mutation.UsageBasedIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -609,6 +637,22 @@ func (_c *ChargeUsageBasedRunsCreate) createSpec() (*ChargeUsageBasedRuns, *sqlg
 			Inverse: false,
 			Table:   chargeusagebasedruns.DetailedLinesTable,
 			Columns: []string{chargeusagebasedruns.DetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CorrectedDetailedLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebasedruns.CorrectedDetailedLinesTable,
+			Columns: []string{chargeusagebasedruns.CorrectedDetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
@@ -880,6 +924,18 @@ func (u *ChargeUsageBasedRunsUpsert) SetMeteredQuantity(v alpacadecimal.Decimal)
 // UpdateMeteredQuantity sets the "metered_quantity" field to the value that was provided on create.
 func (u *ChargeUsageBasedRunsUpsert) UpdateMeteredQuantity() *ChargeUsageBasedRunsUpsert {
 	u.SetExcluded(chargeusagebasedruns.FieldMeteredQuantity)
+	return u
+}
+
+// SetNoFiatTransactionRequired sets the "no_fiat_transaction_required" field.
+func (u *ChargeUsageBasedRunsUpsert) SetNoFiatTransactionRequired(v bool) *ChargeUsageBasedRunsUpsert {
+	u.Set(chargeusagebasedruns.FieldNoFiatTransactionRequired, v)
+	return u
+}
+
+// UpdateNoFiatTransactionRequired sets the "no_fiat_transaction_required" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsert) UpdateNoFiatTransactionRequired() *ChargeUsageBasedRunsUpsert {
+	u.SetExcluded(chargeusagebasedruns.FieldNoFiatTransactionRequired)
 	return u
 }
 
@@ -1156,6 +1212,20 @@ func (u *ChargeUsageBasedRunsUpsertOne) SetMeteredQuantity(v alpacadecimal.Decim
 func (u *ChargeUsageBasedRunsUpsertOne) UpdateMeteredQuantity() *ChargeUsageBasedRunsUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
 		s.UpdateMeteredQuantity()
+	})
+}
+
+// SetNoFiatTransactionRequired sets the "no_fiat_transaction_required" field.
+func (u *ChargeUsageBasedRunsUpsertOne) SetNoFiatTransactionRequired(v bool) *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetNoFiatTransactionRequired(v)
+	})
+}
+
+// UpdateNoFiatTransactionRequired sets the "no_fiat_transaction_required" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertOne) UpdateNoFiatTransactionRequired() *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateNoFiatTransactionRequired()
 	})
 }
 
@@ -1599,6 +1669,20 @@ func (u *ChargeUsageBasedRunsUpsertBulk) SetMeteredQuantity(v alpacadecimal.Deci
 func (u *ChargeUsageBasedRunsUpsertBulk) UpdateMeteredQuantity() *ChargeUsageBasedRunsUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
 		s.UpdateMeteredQuantity()
+	})
+}
+
+// SetNoFiatTransactionRequired sets the "no_fiat_transaction_required" field.
+func (u *ChargeUsageBasedRunsUpsertBulk) SetNoFiatTransactionRequired(v bool) *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetNoFiatTransactionRequired(v)
+	})
+}
+
+// UpdateNoFiatTransactionRequired sets the "no_fiat_transaction_required" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertBulk) UpdateNoFiatTransactionRequired() *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateNoFiatTransactionRequired()
 	})
 }
 

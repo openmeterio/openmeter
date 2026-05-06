@@ -60,6 +60,12 @@ func (s *Service) BookInvoicedPaymentAuthorized(ctx context.Context, in BookInvo
 		return BookInvoicedPaymentAuthorizedResult{}, err
 	}
 
+	if in.Run.NoFiatTransactionRequired {
+		return BookInvoicedPaymentAuthorizedResult{
+			Run: in.Run,
+		}, nil
+	}
+
 	input := usagebased.OnPaymentAuthorizedInput{
 		Charge: in.Charge,
 		Run:    in.Run,
@@ -133,6 +139,10 @@ func (i SettleInvoicedPaymentInput) Validate() error {
 		return fmt.Errorf("run %s already linked to a different line", i.Run.ID.ID)
 	}
 
+	if i.Run.NoFiatTransactionRequired {
+		return nil
+	}
+
 	if i.Run.Payment == nil {
 		return payment.ErrCannotSettleNotAuthorizedPayment.WithAttrs(i.Charge.ErrorAttributes())
 	}
@@ -156,6 +166,12 @@ type SettleInvoicedPaymentResult struct {
 func (s *Service) SettleInvoicedPayment(ctx context.Context, in SettleInvoicedPaymentInput) (SettleInvoicedPaymentResult, error) {
 	if err := in.Validate(); err != nil {
 		return SettleInvoicedPaymentResult{}, err
+	}
+
+	if in.Run.NoFiatTransactionRequired {
+		return SettleInvoicedPaymentResult{
+			Run: in.Run,
+		}, nil
 	}
 
 	input := usagebased.OnPaymentSettledInput{

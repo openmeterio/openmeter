@@ -45,6 +45,12 @@ type Service interface {
 	// GetDetailedRatingForUsage returns rated detailed lines and the metered quantity snapshot used to compute them.
 	// Prefer GetTotalsForUsage when only totals are required because it is faster.
 	GetDetailedRatingForUsage(ctx context.Context, in GetDetailedRatingForUsageInput) (GetDetailedRatingForUsageResult, error)
+	// GetPreferredRatingEngineFor returns the preferred rating engine for a given intent.
+	GetPreferredRatingEngineFor(intent usagebased.Intent) usagebased.RatingEngine
+}
+
+func (s *service) GetPreferredRatingEngineFor(_ usagebased.Intent) usagebased.RatingEngine {
+	return usagebased.RatingEngineDelta
 }
 
 type service struct {
