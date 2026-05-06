@@ -24,7 +24,7 @@
 
 services:
   clickhouse-keeper-01:
-    image: clickhouse/clickhouse-keeper:25.12.3-alpine
+    image: clickhouse/clickhouse-keeper:25.12.3-alpine@sha256:ebccfa614db8cd3d73139b3b836ace69042d5a08736103d0e26d7e43039e931b
     hostname: clickhouse-keeper-01
     ports:
       - "127.0.0.1:39181:9181"
