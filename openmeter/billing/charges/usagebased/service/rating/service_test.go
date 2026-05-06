@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	ratingtestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating/testutils"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
@@ -31,7 +32,6 @@ import (
 type getDetailedRatingForUsageFixture struct {
 	config Config
 	input  GetDetailedRatingForUsageInput
-	rater  *stubRatingService
 }
 
 func TestFormatDetailedLineChildUniqueReferenceID(t *testing.T) {
@@ -45,43 +45,37 @@ func TestFormatDetailedLineChildUniqueReferenceID(t *testing.T) {
 	require.Equal(
 		t,
 		"unit-price-usage@[2025-01-01T11:30:45Z..2025-02-01T09:02:03Z]",
-		formatDetailedLineChildUniqueReferenceID("unit-price-usage", servicePeriod),
+		ratingtestutils.FormatDetailedLineChildUniqueReferenceID("unit-price-usage", servicePeriod),
 	)
 }
 
-func TestGetDetailedRatingForUsageAddsServicePeriodToDetailedLineChildUniqueReferenceIDs(t *testing.T) {
+func TestGetPreferredRatingEngineFor(t *testing.T) {
 	t.Parallel()
 
-	fixture := newGetDetailedRatingForUsageFixture(t, billingrating.GenerateDetailedLinesResult{
-		DetailedLines: billingrating.DetailedLines{
-			{
-				Name:                   "Usage",
-				Quantity:               alpacadecimal.NewFromInt(12),
-				PerUnitAmount:          alpacadecimal.NewFromInt(3),
-				ChildUniqueReferenceID: "unit-price-usage",
-			},
-			{
-				Name:                   "Discount",
-				Quantity:               alpacadecimal.NewFromInt(1),
-				PerUnitAmount:          alpacadecimal.NewFromInt(1),
-				ChildUniqueReferenceID: "rateCardDiscount/correlationID=discount-50pct",
-			},
-		},
-	})
+	fixture := newGetDetailedRatingForUsageFixture(t, billingrating.GenerateDetailedLinesResult{})
 
 	svc, err := New(fixture.config)
 	require.NoError(t, err)
 
-	out, err := svc.GetDetailedRatingForUsage(t.Context(), fixture.input)
-	require.NoError(t, err)
-
-	require.Equal(t, "unit-price-usage@[2025-01-01T00:00:00Z..2025-02-01T00:00:00Z]", out.DetailedLines[0].ChildUniqueReferenceID)
-	require.Equal(t, "rateCardDiscount/correlationID=discount-50pct@[2025-01-01T00:00:00Z..2025-02-01T00:00:00Z]", out.DetailedLines[1].ChildUniqueReferenceID)
-	require.Equal(t, float64(12), out.Quantity.InexactFloat64())
-	require.False(t, fixture.rater.lastOpts.IgnoreMinimumCommitment)
+	require.Equal(t, usagebased.RatingEngineDelta, svc.GetPreferredRatingEngineFor(usagebased.Intent{}))
 }
 
-func TestMapBillingRatingDetailedLinesToUsageBasedDetailedLines(t *testing.T) {
+func TestGetDetailedRatingForUsageDisablesCreditsMutator(t *testing.T) {
+	t.Parallel()
+
+	fixture := newGetDetailedRatingForUsageFixture(t, billingrating.GenerateDetailedLinesResult{})
+	ratingService := fixture.config.RatingService.(*stubRatingService)
+
+	svc, err := New(fixture.config)
+	require.NoError(t, err)
+
+	_, err = svc.GetDetailedRatingForUsage(t.Context(), fixture.input)
+	require.NoError(t, err)
+
+	require.True(t, ratingService.lastOpts.DisableCreditsMutator)
+}
+
+func TestNewDetailedLinesFromBilling(t *testing.T) {
 	t.Parallel()
 
 	defaultServicePeriod := timeutil.ClosedPeriod{
@@ -97,7 +91,7 @@ func TestMapBillingRatingDetailedLinesToUsageBasedDetailedLines(t *testing.T) {
 		Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 	}
 
-	out := mapBillingRatingDetailedLinesToUsageBasedDetailedLines(
+	out := usagebased.NewDetailedLinesFromBilling(
 		intent,
 		defaultServicePeriod,
 		billingrating.DetailedLines{
@@ -139,21 +133,6 @@ func TestMapBillingRatingDetailedLinesToUsageBasedDetailedLines(t *testing.T) {
 	require.Equal(t, explicitServicePeriod, out[1].ServicePeriod)
 	require.Equal(t, productcatalog.InAdvancePaymentTerm, out[1].PaymentTerm)
 	require.Equal(t, stddetailedline.CategoryCommitment, out[1].Category)
-}
-
-func TestGetDetailedRatingForUsageIgnoresMinimumCommitmentForPartialRun(t *testing.T) {
-	t.Parallel()
-
-	fixture := newGetDetailedRatingForUsageFixture(t, billingrating.GenerateDetailedLinesResult{})
-	partialServicePeriodTo := fixture.input.Charge.Intent.ServicePeriod.From.Add(24 * time.Hour)
-	fixture.input.ServicePeriodTo = partialServicePeriodTo
-
-	svc, err := New(fixture.config)
-	require.NoError(t, err)
-
-	_, err = svc.GetDetailedRatingForUsage(t.Context(), fixture.input)
-	require.NoError(t, err)
-	require.True(t, fixture.rater.lastOpts.IgnoreMinimumCommitment)
 }
 
 func TestGetDetailedRatingForUsageIgnoresCurrentRunOnCharge(t *testing.T) {
@@ -356,7 +335,6 @@ func newGetDetailedRatingForUsageFixture(t *testing.T, result billingrating.Gene
 			Customer:        newDetailedRatingTestCustomer(),
 			FeatureMeter:    newDetailedRatingTestFeatureMeter(),
 		},
-		rater: ratingService,
 	}
 }
 

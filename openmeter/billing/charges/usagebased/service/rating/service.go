@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating/delta"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -57,6 +58,7 @@ type service struct {
 	streamingConnector   streaming.Connector
 	ratingService        billingrating.Service
 	detailedLinesFetcher DetailedLinesFetcher
+	deltaRater           delta.Engine
 }
 
 func New(config Config) (Service, error) {
@@ -68,5 +70,6 @@ func New(config Config) (Service, error) {
 		streamingConnector:   config.StreamingConnector,
 		ratingService:        config.RatingService,
 		detailedLinesFetcher: config.DetailedLinesFetcher,
+		deltaRater:           delta.New(config.RatingService),
 	}, nil
 }
