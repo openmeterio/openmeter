@@ -34,5 +34,5 @@ model CostBasis {
    * An ISO-8601 timestamp representation of entity creation date.
    */
   @visibility(Lifecycle.Read)
-  created_at?: Shared.DateTime;
+  created_at: Shared.DateTime;
 }

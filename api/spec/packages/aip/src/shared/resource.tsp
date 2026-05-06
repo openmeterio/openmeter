@@ -39,13 +39,13 @@ model Resource {
    * An ISO-8601 timestamp representation of entity creation date.
    */
   @visibility(Lifecycle.Read)
-  created_at?: DateTime;
+  created_at: DateTime;
 
   /**
    * An ISO-8601 timestamp representation of entity last update date.
    */
   @visibility(Lifecycle.Read)
-  updated_at?: DateTime;
+  updated_at: DateTime;
 
   /**
    * An ISO-8601 timestamp representation of entity deletion date.

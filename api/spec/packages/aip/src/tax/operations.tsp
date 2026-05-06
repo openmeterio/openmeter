@@ -17,7 +17,7 @@ interface TaxCodesOperations {
   @post
   @operationId("create-tax-code")
   @summary("Create tax code")
-  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.InternalExtension, true)
   @extension(Shared.UnstableExtension, true)
   create(
     @body
@@ -27,7 +27,7 @@ interface TaxCodesOperations {
   @get
   @operationId("get-tax-code")
   @summary("Get tax code")
-  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.InternalExtension, true)
   @extension(Shared.UnstableExtension, true)
   get(
     @path taxCodeId: Shared.ULID,
@@ -36,7 +36,7 @@ interface TaxCodesOperations {
   @get
   @operationId("list-tax-codes")
   @summary("List tax codes")
-  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.InternalExtension, true)
   @extension(Shared.UnstableExtension, true)
   list(
     ...Common.PagePaginationQuery,
@@ -51,7 +51,7 @@ interface TaxCodesOperations {
   @put
   @operationId("upsert-tax-code")
   @summary("Upsert tax code")
-  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.InternalExtension, true)
   @extension(Shared.UnstableExtension, true)
   upsert(
     @path taxCodeId: Shared.ULID,
@@ -67,7 +67,7 @@ interface TaxCodesOperations {
   @delete
   @operationId("delete-tax-code")
   @summary("Delete tax code")
-  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.InternalExtension, true)
   @extension(Shared.UnstableExtension, true)
   delete(
     @path taxCodeId: Shared.ULID,

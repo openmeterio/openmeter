@@ -141,11 +141,6 @@ model GetCreditBalanceParamsFilter {
    * Filter credit balance by currency.
    */
   currency?: Currencies.CurrencyCode;
-
-  /**
-   * Filter by specific feature.
-   */
-  feature?: Shared.ResourceKey;
 }
 
 interface CustomerCreditBalancesOperations {
