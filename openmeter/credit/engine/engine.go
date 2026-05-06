@@ -56,36 +56,14 @@ type RunResult struct {
 	RunParams RunParams
 }
 
-// TotalAvailableGrantAmount is the total amount of grants either currently active + the used amount of currently inactive grants.
-func (r RunResult) TotalAvailableGrantAmount() float64 {
-	// First, let's calculate the total amount of grants active at the end of the period.
-	activeAmount := lo.Reduce(r.RunParams.Grants, func(agg alpacadecimal.Decimal, grant grant.Grant, _ int) alpacadecimal.Decimal {
-		if !grant.ActiveAt(r.RunParams.Until) {
-			return agg
-		}
+// TotalAvailableGrantAmountAtLastPeriod is the total grant amount available in the run period:
+// grant-covered usage plus remaining balances still available at the end.
+func (r RunResult) TotalAvailableGrantAmountAtLastPeriod() float64 {
+	lastUsagePeriodHistory, _ := lo.Last(r.History.ChunkByResets())
 
-		return agg.Add(alpacadecimal.NewFromFloat(grant.Amount))
-	}, alpacadecimal.NewFromFloat(0))
-
-	// Second, let's calculate the used-up amount of since inactive grants.
-	inactiveGrants := lo.Filter(r.RunParams.Grants, func(grant grant.Grant, _ int) bool {
-		return !grant.ActiveAt(r.RunParams.Until)
-	})
-
-	usedInactive := alpacadecimal.NewFromFloat(0)
-	if len(inactiveGrants) > 0 {
-		for _, seg := range r.History.Segments() {
-			for _, usage := range seg.GrantUsages {
-				if lo.SomeBy(inactiveGrants, func(grant grant.Grant) bool {
-					return grant.ID == usage.GrantID
-				}) {
-					usedInactive = usedInactive.Add(alpacadecimal.NewFromFloat(usage.Usage))
-				}
-			}
-		}
-	}
-
-	return activeAmount.Add(usedInactive).InexactFloat64()
+	return lastUsagePeriodHistory.TotalGrantUsage().
+		Add(alpacadecimal.NewFromFloat(r.Snapshot.Balance())).
+		InexactFloat64()
 }
 
 type Engine interface {
