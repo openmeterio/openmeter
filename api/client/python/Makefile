@@ -1,19 +1,12 @@
-# A Self-Documenting Makefile: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
+# Compatibility shim. Canonical task definitions live in ../../../justfile.
 
-.PHONY: publish-python-sdk
-publish-python-sdk: ## Publish Python SDK
-	$(call print-target)
-	./scripts/release.sh
+JUST ?= just
 
-.PHONY: help
+.PHONY: help publish-python-sdk
 .DEFAULT_GOAL := help
+
 help:
-	@grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+	@if command -v "$(JUST)" >/dev/null 2>&1; then "$(JUST)" --list; else echo "just is required for task help."; fi
 
-# Variable outputting/exporting rules
-var-%: ; @echo $($*)
-varexport-%: ; @echo $*=$($*)
-
-define print-target
-    @printf "Executing target: \033[36m$@\033[0m\n"
-endef
+publish-python-sdk:
+	@$(JUST) publish-python-sdk

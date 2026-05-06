@@ -144,10 +144,10 @@ recommended. See [CONTRIBUTING.md](CONTRIBUTING.md) for
 detailed setup instructions.
 
 ```sh
-make up       # Start dependencies (Postgres, Kafka, ClickHouse)
-make server   # Run the API server with hot reload
-make test     # Run tests
-make lint     # Run linters
+just up       # Start dependencies (Postgres, Kafka, ClickHouse)
+just server   # Run the API server with hot reload
+just test     # Run tests
+just lint     # Run linters
 ```
 
 ## License
