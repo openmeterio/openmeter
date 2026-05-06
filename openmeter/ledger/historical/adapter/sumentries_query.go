@@ -112,7 +112,7 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 		})
 	}
 
-	routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 6)
+	routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 7)
 	if normalizedRoute.Currency != "" {
 		routePredicates = append(routePredicates, ledgersubaccountroutedb.Currency(string(normalizedRoute.Currency)))
 	}
@@ -141,6 +141,14 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 			routePredicates = append(routePredicates, ledgersubaccountroutedb.CostBasis(*costBasis))
 		} else {
 			routePredicates = append(routePredicates, ledgersubaccountroutedb.CostBasisIsNil())
+		}
+	}
+	if normalizedRoute.TaxBehavior.IsPresent() {
+		tb, _ := normalizedRoute.TaxBehavior.Get()
+		if tb != nil {
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.TaxBehavior(*tb))
+		} else {
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.TaxBehaviorIsNil())
 		}
 	}
 	if normalizedRoute.TransactionAuthorizationStatus != nil {
