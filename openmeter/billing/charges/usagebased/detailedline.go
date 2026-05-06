@@ -20,7 +20,7 @@ type DetailedLine struct {
 	stddetailedline.Base
 
 	PricerReferenceID string  `json:"pricerReferenceID"`
-	CorrectsRunID     *string `json:"correctsRunId,omitempty"`
+	CorrectsRunID     *string `json:"correctsRunID,omitempty"`
 }
 
 func (l DetailedLine) Clone() DetailedLine {

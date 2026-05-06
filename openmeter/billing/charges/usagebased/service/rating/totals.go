@@ -57,6 +57,7 @@ func (s *service) GetTotalsForUsage(ctx context.Context, in GetTotalsForUsageInp
 		return totals.Totals{}, fmt.Errorf("get snapshot quantity: %w", err)
 	}
 
+	// Totals must stay gross before charge credit allocation; run creation applies credits later and expects gross rating totals here.
 	opts := []billingrating.GenerateDetailedLinesOption{
 		billingrating.WithCreditsMutatorDisabled(),
 	}
