@@ -37,7 +37,6 @@ interface CustomerChargesOperations {
    *
    * Returns the customer's charges that are represented as either flat fee or usage-based charges.
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @get

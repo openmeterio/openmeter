@@ -15,7 +15,6 @@ interface OrganizationDefaultTaxCodesOperations {
   @get
   @operationId("get-organization-default-tax-codes")
   @summary("Get organization default tax codes")
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   get(
@@ -24,7 +23,6 @@ interface OrganizationDefaultTaxCodesOperations {
   @put
   @operationId("update-organization-default-tax-codes")
   @summary("Update organization default tax codes")
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   update(
