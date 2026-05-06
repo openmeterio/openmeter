@@ -97,6 +97,7 @@ func MapRealizationRunBaseFromDB(dbRun *entdb.ChargeUsageBasedRuns) usagebased.R
 
 		FeatureID:       dbRun.FeatureID,
 		LineID:          dbRun.LineID,
+		InvoiceID:       dbRun.InvoiceID,
 		Type:            dbRun.Type,
 		StoredAtLT:      dbRun.StoredAtLt.UTC(),
 		ServicePeriodTo: dbRun.ServicePeriodTo.UTC(),

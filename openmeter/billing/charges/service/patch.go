@@ -7,6 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
@@ -65,6 +66,27 @@ func (s *service) applyPatches(ctx context.Context, customerID customer.Customer
 	invocableChargesByID, err := s.newInvocableCharges(chargesItems)
 	if err != nil {
 		return err
+	}
+
+	invoicePatches := make([]invoiceupdater.Patch, 0, len(patchesByChargeID))
+	for chargeID, patch := range patchesByChargeID {
+		invocableCharge, ok := invocableChargesByID[chargeID]
+		if !ok {
+			return fmt.Errorf("charge %s not found", chargeID)
+		}
+
+		newInvoicePatches, err := invocableCharge.GetInvoicePatchesForPatch(patch)
+		if err != nil {
+			return fmt.Errorf("getting invoice patches for charge %s: %w", chargeID, err)
+		}
+
+		invoicePatches = append(invoicePatches, newInvoicePatches...)
+	}
+
+	if len(invoicePatches) > 0 {
+		if err := s.invoiceUpdater.ApplyPatches(ctx, customerID, invoicePatches); err != nil {
+			return fmt.Errorf("updating invoices: %w", err)
+		}
 	}
 
 	for chargeID, patch := range patchesByChargeID {

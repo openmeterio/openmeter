@@ -24,6 +24,7 @@ type CreateRatedRunInput struct {
 	StoredAtLT         time.Time
 	ServicePeriodTo    time.Time
 	LineID             *string
+	InvoiceID          *string
 	CreditAllocation   CreditAllocationMode
 	CurrencyCalculator currencyx.Calculator
 }
@@ -68,6 +69,10 @@ func (i CreateRatedRunInput) Validate() error {
 
 	if i.LineID != nil && *i.LineID == "" {
 		return fmt.Errorf("line id if set, must be non-empty")
+	}
+
+	if i.InvoiceID != nil && *i.InvoiceID == "" {
+		return fmt.Errorf("invoice id if set, must be non-empty")
 	}
 
 	if err := i.CreditAllocation.Validate(); err != nil {
@@ -148,6 +153,7 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 		StoredAtLT:      in.StoredAtLT,
 		ServicePeriodTo: in.ServicePeriodTo,
 		LineID:          in.LineID,
+		InvoiceID:       in.InvoiceID,
 		MeteredQuantity: ratingResult.Quantity,
 		Totals:          runTotals,
 	})

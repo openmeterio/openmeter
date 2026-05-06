@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
@@ -178,6 +179,20 @@ func (_c *ChargeUsageBasedRunsCreate) SetNillableLineID(v *string) *ChargeUsageB
 	return _c
 }
 
+// SetInvoiceID sets the "invoice_id" field.
+func (_c *ChargeUsageBasedRunsCreate) SetInvoiceID(v string) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetInvoiceID(v)
+	return _c
+}
+
+// SetNillableInvoiceID sets the "invoice_id" field if the given value is not nil.
+func (_c *ChargeUsageBasedRunsCreate) SetNillableInvoiceID(v *string) *ChargeUsageBasedRunsCreate {
+	if v != nil {
+		_c.SetInvoiceID(*v)
+	}
+	return _c
+}
+
 // SetMeteredQuantity sets the "metered_quantity" field.
 func (_c *ChargeUsageBasedRunsCreate) SetMeteredQuantity(v alpacadecimal.Decimal) *ChargeUsageBasedRunsCreate {
 	_c.mutation.SetMeteredQuantity(v)
@@ -231,6 +246,25 @@ func (_c *ChargeUsageBasedRunsCreate) SetNillableBillingInvoiceLineID(id *string
 // SetBillingInvoiceLine sets the "billing_invoice_line" edge to the BillingInvoiceLine entity.
 func (_c *ChargeUsageBasedRunsCreate) SetBillingInvoiceLine(v *BillingInvoiceLine) *ChargeUsageBasedRunsCreate {
 	return _c.SetBillingInvoiceLineID(v.ID)
+}
+
+// SetBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by ID.
+func (_c *ChargeUsageBasedRunsCreate) SetBillingInvoiceID(id string) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetBillingInvoiceID(id)
+	return _c
+}
+
+// SetNillableBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by ID if the given value is not nil.
+func (_c *ChargeUsageBasedRunsCreate) SetNillableBillingInvoiceID(id *string) *ChargeUsageBasedRunsCreate {
+	if id != nil {
+		_c = _c.SetBillingInvoiceID(*id)
+	}
+	return _c
+}
+
+// SetBillingInvoice sets the "billing_invoice" edge to the BillingInvoice entity.
+func (_c *ChargeUsageBasedRunsCreate) SetBillingInvoice(v *BillingInvoice) *ChargeUsageBasedRunsCreate {
+	return _c.SetBillingInvoiceID(v.ID)
 }
 
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeUsageBasedRunCreditAllocations entity by IDs.
@@ -423,6 +457,11 @@ func (_c *ChargeUsageBasedRunsCreate) check() error {
 			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRuns.line_id": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.InvoiceID(); ok {
+		if err := chargeusagebasedruns.InvoiceIDValidator(v); err != nil {
+			return &ValidationError{Name: "invoice_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRuns.invoice_id": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.MeteredQuantity(); !ok {
 		return &ValidationError{Name: "metered_quantity", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.metered_quantity"`)}
 	}
@@ -585,6 +624,23 @@ func (_c *ChargeUsageBasedRunsCreate) createSpec() (*ChargeUsageBasedRuns, *sqlg
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.LineID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.BillingInvoiceIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebasedruns.BillingInvoiceTable,
+			Columns: []string{chargeusagebasedruns.BillingInvoiceColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.InvoiceID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.CreditAllocationsIDs(); len(nodes) > 0 {
@@ -917,6 +973,9 @@ func (u *ChargeUsageBasedRunsUpsertOne) UpdateNewValues() *ChargeUsageBasedRunsU
 		}
 		if _, exists := u.create.mutation.ServicePeriodTo(); exists {
 			s.SetIgnore(chargeusagebasedruns.FieldServicePeriodTo)
+		}
+		if _, exists := u.create.mutation.InvoiceID(); exists {
+			s.SetIgnore(chargeusagebasedruns.FieldInvoiceID)
 		}
 	}))
 	return u
@@ -1359,6 +1418,9 @@ func (u *ChargeUsageBasedRunsUpsertBulk) UpdateNewValues() *ChargeUsageBasedRuns
 			}
 			if _, exists := b.mutation.ServicePeriodTo(); exists {
 				s.SetIgnore(chargeusagebasedruns.FieldServicePeriodTo)
+			}
+			if _, exists := b.mutation.InvoiceID(); exists {
+				s.SetIgnore(chargeusagebasedruns.FieldInvoiceID)
 			}
 		}
 	}))

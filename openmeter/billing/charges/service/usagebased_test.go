@@ -208,6 +208,8 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		s.Equal(usagebased.RealizationRunTypePartialInvoice, currentRun.Type)
 		s.Require().NotNil(currentRun.LineID)
 		s.Equal(stdLine.ID, *currentRun.LineID)
+		s.Require().NotNil(currentRun.InvoiceID)
+		s.Equal(partialInvoice.ID, *currentRun.InvoiceID)
 		s.True(midPeriodInvoiceAt.Equal(currentRun.ServicePeriodTo))
 		s.True(midPeriodInvoiceAt.Equal(currentRun.StoredAtLT))
 		s.Require().NotNil(partialInvoice.CollectionAt)
@@ -335,6 +337,8 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		currentRun, runErr := charge.GetCurrentRealizationRun()
 		s.NoError(runErr)
 		s.Equal(usagebased.RealizationRunTypeFinalRealization, currentRun.Type)
+		s.Require().NotNil(currentRun.InvoiceID)
+		s.Equal(finalInvoice.ID, *currentRun.InvoiceID)
 
 		// given
 		clock.FreezeTime(finalInvoice.DefaultCollectionAtForStandardInvoice())
@@ -447,6 +451,94 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		s.Len(charge.Realizations, 2)
 		s.Nil(charge.State.CurrentRealizationRunID)
 	})
+}
+
+func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoiceDeletePatchDeletesPendingGatheringLine() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-usage-based-delete-pending-gathering-line")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID())
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+	meterSlug := apiRequestsTotal.Feature.Key
+
+	res, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: []charges.ChargeIntent{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromFloat(1),
+				}),
+				name:              "usage-based-delete-pending-gathering-line",
+				managedBy:         billing.SubscriptionManagedLine,
+				uniqueReferenceID: "usage-based-delete-pending-gathering-line",
+				featureKey:        meterSlug,
+			}),
+		},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(res, 1)
+
+	usageBasedCharge, err := res[0].AsUsageBasedCharge()
+	s.Require().NoError(err)
+	chargeID := usageBasedCharge.GetChargeID()
+
+	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
+		Namespaces: []string{ns},
+		Customers:  []string{cust.ID},
+		Expand: billing.GatheringInvoiceExpands{
+			billing.GatheringInvoiceExpandLines,
+		},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(gatheringInvoices.Items, 1)
+	s.Require().Len(gatheringInvoices.Items[0].Lines.OrEmpty(), 1)
+	s.Require().NotNil(gatheringInvoices.Items[0].Lines.OrEmpty()[0].ChargeID)
+	s.Equal(chargeID.ID, *gatheringInvoices.Items[0].Lines.OrEmpty()[0].ChargeID)
+
+	err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+		CustomerID: cust.GetID(),
+		PatchesByChargeID: map[string]charges.Patch{
+			chargeID.ID: meta.NewPatchDelete(meta.RefundAsCreditsDeletePolicy),
+		},
+	})
+	s.Require().NoError(err)
+
+	activeGatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
+		Namespaces: []string{ns},
+		Customers:  []string{cust.ID},
+	})
+	s.Require().NoError(err)
+	s.Empty(activeGatheringInvoices.Items)
+
+	deletedGatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
+		Namespaces:     []string{ns},
+		Customers:      []string{cust.ID},
+		IncludeDeleted: true,
+		Expand: billing.GatheringInvoiceExpands{
+			billing.GatheringInvoiceExpandLines,
+			billing.GatheringInvoiceExpandDeletedLines,
+		},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(deletedGatheringInvoices.Items, 1)
+	s.NotNil(deletedGatheringInvoices.Items[0].DeletedAt)
+	s.Require().Len(deletedGatheringInvoices.Items[0].Lines.OrEmpty(), 1)
+	s.NotNil(deletedGatheringInvoices.Items[0].Lines.OrEmpty()[0].DeletedAt)
 }
 
 func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePendingPartialInvoiceBlocksFinalRealizationUntilApproval() {

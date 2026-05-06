@@ -142,6 +142,8 @@ const (
 	EdgeBillingInvoiceDetailedLines = "billing_invoice_detailed_lines"
 	// EdgeBillingInvoiceValidationIssues holds the string denoting the billing_invoice_validation_issues edge name in mutations.
 	EdgeBillingInvoiceValidationIssues = "billing_invoice_validation_issues"
+	// EdgeChargeUsageBasedRuns holds the string denoting the charge_usage_based_runs edge name in mutations.
+	EdgeChargeUsageBasedRuns = "charge_usage_based_runs"
 	// EdgeBillingInvoiceCustomer holds the string denoting the billing_invoice_customer edge name in mutations.
 	EdgeBillingInvoiceCustomer = "billing_invoice_customer"
 	// EdgeTaxApp holds the string denoting the tax_app edge name in mutations.
@@ -187,6 +189,13 @@ const (
 	BillingInvoiceValidationIssuesInverseTable = "billing_invoice_validation_issues"
 	// BillingInvoiceValidationIssuesColumn is the table column denoting the billing_invoice_validation_issues relation/edge.
 	BillingInvoiceValidationIssuesColumn = "invoice_id"
+	// ChargeUsageBasedRunsTable is the table that holds the charge_usage_based_runs relation/edge.
+	ChargeUsageBasedRunsTable = "charge_usage_based_runs"
+	// ChargeUsageBasedRunsInverseTable is the table name for the ChargeUsageBasedRuns entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeusagebasedruns" package.
+	ChargeUsageBasedRunsInverseTable = "charge_usage_based_runs"
+	// ChargeUsageBasedRunsColumn is the table column denoting the charge_usage_based_runs relation/edge.
+	ChargeUsageBasedRunsColumn = "invoice_id"
 	// BillingInvoiceCustomerTable is the table that holds the billing_invoice_customer relation/edge.
 	BillingInvoiceCustomerTable = "billing_invoices"
 	// BillingInvoiceCustomerInverseTable is the table name for the Customer entity.
@@ -678,6 +687,20 @@ func ByBillingInvoiceValidationIssues(term sql.OrderTerm, terms ...sql.OrderTerm
 	}
 }
 
+// ByChargeUsageBasedRunsCount orders the results by charge_usage_based_runs count.
+func ByChargeUsageBasedRunsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newChargeUsageBasedRunsStep(), opts...)
+	}
+}
+
+// ByChargeUsageBasedRuns orders the results by charge_usage_based_runs terms.
+func ByChargeUsageBasedRuns(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newChargeUsageBasedRunsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByBillingInvoiceCustomerField orders the results by billing_invoice_customer field.
 func ByBillingInvoiceCustomerField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -738,6 +761,13 @@ func newBillingInvoiceValidationIssuesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingInvoiceValidationIssuesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceValidationIssuesTable, BillingInvoiceValidationIssuesColumn),
+	)
+}
+func newChargeUsageBasedRunsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ChargeUsageBasedRunsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ChargeUsageBasedRunsTable, ChargeUsageBasedRunsColumn),
 	)
 }
 func newBillingInvoiceCustomerStep() *sqlgraph.Step {

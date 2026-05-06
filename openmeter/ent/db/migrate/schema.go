@@ -2765,6 +2765,7 @@ var (
 		{Name: "service_period_to", Type: field.TypeTime},
 		{Name: "detailed_lines_present", Type: field.TypeBool},
 		{Name: "metered_quantity", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "invoice_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "line_id", Type: field.TypeString, Unique: true, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "charge_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "feature_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -2776,20 +2777,26 @@ var (
 		PrimaryKey: []*schema.Column{ChargeUsageBasedRunsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "charge_usage_based_runs_billing_invoice_lines_charge_usage_based_run",
+				Symbol:     "charge_usage_based_runs_billing_invoices_charge_usage_based_runs",
 				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[18]},
+				RefColumns: []*schema.Column{BillingInvoicesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "charge_usage_based_runs_billing_invoice_lines_charge_usage_based_run",
+				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[19]},
 				RefColumns: []*schema.Column{BillingInvoiceLinesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_usage_based_runs_charge_usage_based_runs",
-				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[19]},
+				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[20]},
 				RefColumns: []*schema.Column{ChargeUsageBasedColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "charge_usage_based_runs_features_usage_based_runs",
-				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[20]},
+				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[21]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -2808,7 +2815,7 @@ var (
 			{
 				Name:    "chargeusagebasedruns_namespace_charge_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedRunsColumns[1], ChargeUsageBasedRunsColumns[19]},
+				Columns: []*schema.Column{ChargeUsageBasedRunsColumns[1], ChargeUsageBasedRunsColumns[20]},
 			},
 		},
 	}
@@ -5186,9 +5193,10 @@ func init() {
 	}
 	ChargeUsageBasedRunInvoicedUsagesTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunsTable
 	ChargeUsageBasedRunPaymentsTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunsTable
-	ChargeUsageBasedRunsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
-	ChargeUsageBasedRunsTable.ForeignKeys[1].RefTable = ChargeUsageBasedTable
-	ChargeUsageBasedRunsTable.ForeignKeys[2].RefTable = FeaturesTable
+	ChargeUsageBasedRunsTable.ForeignKeys[0].RefTable = BillingInvoicesTable
+	ChargeUsageBasedRunsTable.ForeignKeys[1].RefTable = BillingInvoiceLinesTable
+	ChargeUsageBasedRunsTable.ForeignKeys[2].RefTable = ChargeUsageBasedTable
+	ChargeUsageBasedRunsTable.ForeignKeys[3].RefTable = FeaturesTable
 	CreditRealizationLineagesTable.ForeignKeys[0].RefTable = ChargesTable
 	CreditRealizationLineageSegmentsTable.ForeignKeys[0].RefTable = CreditRealizationLineagesTable
 	CurrencyCostBasesTable.ForeignKeys[0].RefTable = CustomCurrenciesTable

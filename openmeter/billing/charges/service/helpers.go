@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 )
@@ -60,6 +61,7 @@ func chargesByType(in charges.Charges) (chargesByTypeResult, error) {
 type InvocableCharge interface {
 	GetChargeID() meta.ChargeID
 	TriggerPatch(ctx context.Context, patch meta.Patch) (*charges.Charge, error)
+	GetInvoicePatchesForPatch(patch meta.Patch) ([]invoiceupdater.Patch, error)
 }
 
 func (s *service) newInvocableCharges(si charges.ChargeSearchItems) (map[string]InvocableCharge, error) {
@@ -111,6 +113,10 @@ func (c *flatFeeInvocableCharge) GetChargeID() meta.ChargeID {
 	return c.chargeID
 }
 
+func (c *flatFeeInvocableCharge) GetInvoicePatchesForPatch(_ meta.Patch) ([]invoiceupdater.Patch, error) {
+	return nil, nil
+}
+
 var _ InvocableCharge = (*usageBasedInvocableCharge)(nil)
 
 type usageBasedInvocableCharge struct {
@@ -133,4 +139,15 @@ func (c *usageBasedInvocableCharge) TriggerPatch(ctx context.Context, patch meta
 
 func (c *usageBasedInvocableCharge) GetChargeID() meta.ChargeID {
 	return c.chargeID
+}
+
+func (c *usageBasedInvocableCharge) GetInvoicePatchesForPatch(patch meta.Patch) ([]invoiceupdater.Patch, error) {
+	switch patch.(type) {
+	case meta.PatchDelete, *meta.PatchDelete:
+		return []invoiceupdater.Patch{
+			invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(c.chargeID.ID),
+		}, nil
+	default:
+		return nil, nil
+	}
 }

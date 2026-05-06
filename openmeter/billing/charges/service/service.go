@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
@@ -20,6 +21,7 @@ type service struct {
 	// Note: if meta has a service layer, we should use it here instead of the adapter
 	metaAdapter    meta.Adapter
 	billingService billing.Service
+	invoiceUpdater *invoiceupdater.Updater
 	featureService feature.FeatureConnector
 
 	flatFeeService        flatfee.Service
@@ -91,6 +93,7 @@ func New(config Config) (*service, error) {
 	svc := &service{
 		adapter:               config.Adapter,
 		billingService:        config.BillingService,
+		invoiceUpdater:        invoiceupdater.New(config.BillingService, nil),
 		featureService:        config.FeatureService,
 		metaAdapter:           config.MetaAdapter,
 		flatFeeService:        config.FlatFeeService,

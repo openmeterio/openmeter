@@ -51,6 +51,7 @@ type CreateRealizationRunInput struct {
 	StoredAtLT      time.Time             `json:"storedAtLT"`
 	ServicePeriodTo time.Time             `json:"servicePeriodTo"`
 	LineID          *string               `json:"lineId,omitempty"`
+	InvoiceID       *string               `json:"invoiceId,omitempty"`
 	MeteredQuantity alpacadecimal.Decimal `json:"meteredQuantity"`
 	Totals          totals.Totals         `json:"totals"`
 }
@@ -91,6 +92,10 @@ func (r CreateRealizationRunInput) Validate() error {
 
 	if r.LineID != nil && *r.LineID == "" {
 		errs = append(errs, fmt.Errorf("line id must be non-empty"))
+	}
+
+	if r.InvoiceID != nil && *r.InvoiceID == "" {
+		errs = append(errs, fmt.Errorf("invoice id must be non-empty"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -151,6 +156,7 @@ type RealizationRunBase struct {
 
 	FeatureID string  `json:"featureId"`
 	LineID    *string `json:"lineId,omitempty"`
+	InvoiceID *string `json:"invoiceId,omitempty"`
 
 	Type       RealizationRunType `json:"type"`
 	StoredAtLT time.Time          `json:"storedAtLT"`
@@ -185,6 +191,10 @@ func (r RealizationRunBase) Validate() error {
 
 	if r.LineID != nil && *r.LineID == "" {
 		errs = append(errs, fmt.Errorf("line id must be non-empty"))
+	}
+
+	if r.InvoiceID != nil && *r.InvoiceID == "" {
+		errs = append(errs, fmt.Errorf("invoice id must be non-empty"))
 	}
 
 	if err := r.Type.Validate(); err != nil {
