@@ -2,6 +2,7 @@ name: CodeQL Go
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "**/*.go"
       - "go.mod"
@@ -29,11 +30,12 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: true
 
 jobs:
   analyze-go:
     name: Analyze Go
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
     runs-on: depot-ubuntu-latest-8
     timeout-minutes: 60
 
