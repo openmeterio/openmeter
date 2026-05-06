@@ -142,8 +142,8 @@ func TestOrganizationDefaultTaxCodesService(t *testing.T) {
 			})
 			require.NoError(t, err)
 			assert.Equal(t, ns2, result.Namespace)
-			assert.Equal(t, invoicing.ID, result.InvoicingTaxCode.ID)
-			assert.Equal(t, creditGrant.ID, result.CreditGrantTaxCode.ID)
+			assert.Equal(t, invoicing.ID, result.InvoicingTaxCodeID)
+			assert.Equal(t, creditGrant.ID, result.CreditGrantTaxCodeID)
 
 			t.Run("Get", func(t *testing.T) {
 				got, err := env.Service.GetOrganizationDefaultTaxCodes(t.Context(), taxcode.GetOrganizationDefaultTaxCodesInput{
@@ -151,8 +151,8 @@ func TestOrganizationDefaultTaxCodesService(t *testing.T) {
 				})
 				require.NoError(t, err)
 				assert.Equal(t, result.ID, got.ID)
-				assert.Equal(t, invoicing.ID, got.InvoicingTaxCode.ID)
-				assert.Equal(t, creditGrant.ID, got.CreditGrantTaxCode.ID)
+				assert.Equal(t, invoicing.ID, got.InvoicingTaxCodeID)
+				assert.Equal(t, creditGrant.ID, got.CreditGrantTaxCodeID)
 			})
 
 			t.Run("Update", func(t *testing.T) {
@@ -165,8 +165,8 @@ func TestOrganizationDefaultTaxCodesService(t *testing.T) {
 				})
 				require.NoError(t, err)
 				assert.Equal(t, result.ID, updated.ID, "record ID must not change on update")
-				assert.Equal(t, newInvoicing.ID, updated.InvoicingTaxCode.ID)
-				assert.Equal(t, creditGrant.ID, updated.CreditGrantTaxCode.ID)
+				assert.Equal(t, newInvoicing.ID, updated.InvoicingTaxCodeID)
+				assert.Equal(t, creditGrant.ID, updated.CreditGrantTaxCodeID)
 			})
 		})
 
@@ -188,8 +188,8 @@ func TestOrganizationDefaultTaxCodesService(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.Equal(t, first.ID, second.ID, "row ID must be stable across identical upserts")
-			assert.Equal(t, first.InvoicingTaxCode.ID, second.InvoicingTaxCode.ID)
-			assert.Equal(t, first.CreditGrantTaxCode.ID, second.CreditGrantTaxCode.ID)
+			assert.Equal(t, first.InvoicingTaxCodeID, second.InvoicingTaxCodeID)
+			assert.Equal(t, first.CreditGrantTaxCodeID, second.CreditGrantTaxCodeID)
 			assert.Equal(t, first.CreatedAt, second.CreatedAt, "created_at must not move on a no-op upsert")
 		})
 
@@ -203,8 +203,84 @@ func TestOrganizationDefaultTaxCodesService(t *testing.T) {
 				CreditGrantTaxCodeID: tc.ID,
 			})
 			require.NoError(t, err)
-			assert.Equal(t, tc.ID, result.InvoicingTaxCode.ID)
-			assert.Equal(t, tc.ID, result.CreditGrantTaxCode.ID)
+			assert.Equal(t, tc.ID, result.InvoicingTaxCodeID)
+			assert.Equal(t, tc.ID, result.CreditGrantTaxCodeID)
+		})
+	})
+
+	t.Run("Expand", func(t *testing.T) {
+		nsExp := testutils.NameGenerator.Generate().Key
+		invoicing := createTaxCode(t, nsExp)
+		creditGrant := createTaxCode(t, nsExp)
+
+		_, err := env.Service.UpsertOrganizationDefaultTaxCodes(t.Context(), taxcode.UpsertOrganizationDefaultTaxCodesInput{
+			Namespace:            nsExp,
+			InvoicingTaxCodeID:   invoicing.ID,
+			CreditGrantTaxCodeID: creditGrant.ID,
+		})
+		require.NoError(t, err)
+
+		t.Run("NoExpand/TaxCodesAreNil", func(t *testing.T) {
+			result, err := env.Service.GetOrganizationDefaultTaxCodes(t.Context(), taxcode.GetOrganizationDefaultTaxCodesInput{
+				Namespace: nsExp,
+			})
+			require.NoError(t, err)
+			assert.Nil(t, result.InvoicingTaxCode, "InvoicingTaxCode must be nil without expand")
+			assert.Nil(t, result.CreditGrantTaxCode, "CreditGrantTaxCode must be nil without expand")
+			assert.Equal(t, invoicing.ID, result.InvoicingTaxCodeID)
+			assert.Equal(t, creditGrant.ID, result.CreditGrantTaxCodeID)
+		})
+
+		t.Run("ExpandAll/TaxCodesArePopulated", func(t *testing.T) {
+			result, err := env.Service.GetOrganizationDefaultTaxCodes(t.Context(), taxcode.GetOrganizationDefaultTaxCodesInput{
+				Namespace: nsExp,
+				Expand:    taxcode.OrganizationDefaultTaxCodesExpandAll,
+			})
+			require.NoError(t, err)
+			require.NotNil(t, result.InvoicingTaxCode)
+			require.NotNil(t, result.CreditGrantTaxCode)
+			assert.Equal(t, invoicing.ID, result.InvoicingTaxCode.ID)
+			assert.Equal(t, creditGrant.ID, result.CreditGrantTaxCode.ID)
+		})
+
+		t.Run("ExpandInvoicingOnly", func(t *testing.T) {
+			result, err := env.Service.GetOrganizationDefaultTaxCodes(t.Context(), taxcode.GetOrganizationDefaultTaxCodesInput{
+				Namespace: nsExp,
+				Expand:    taxcode.OrganizationDefaultTaxCodesExpand{InvoicingTaxCode: true},
+			})
+			require.NoError(t, err)
+			require.NotNil(t, result.InvoicingTaxCode)
+			assert.Equal(t, invoicing.ID, result.InvoicingTaxCode.ID)
+			assert.Nil(t, result.CreditGrantTaxCode, "CreditGrantTaxCode must be nil when not expanded")
+		})
+
+		t.Run("ExpandCreditGrantOnly", func(t *testing.T) {
+			result, err := env.Service.GetOrganizationDefaultTaxCodes(t.Context(), taxcode.GetOrganizationDefaultTaxCodesInput{
+				Namespace: nsExp,
+				Expand:    taxcode.OrganizationDefaultTaxCodesExpand{CreditGrantTaxCode: true},
+			})
+			require.NoError(t, err)
+			assert.Nil(t, result.InvoicingTaxCode, "InvoicingTaxCode must be nil when not expanded")
+			require.NotNil(t, result.CreditGrantTaxCode)
+			assert.Equal(t, creditGrant.ID, result.CreditGrantTaxCode.ID)
+		})
+
+		t.Run("UpsertWithExpand/ResponseContainsTaxCodes", func(t *testing.T) {
+			nsExp2 := testutils.NameGenerator.Generate().Key
+			inv := createTaxCode(t, nsExp2)
+			cg := createTaxCode(t, nsExp2)
+
+			result, err := env.Service.UpsertOrganizationDefaultTaxCodes(t.Context(), taxcode.UpsertOrganizationDefaultTaxCodesInput{
+				Namespace:            nsExp2,
+				InvoicingTaxCodeID:   inv.ID,
+				CreditGrantTaxCodeID: cg.ID,
+				Expand:               taxcode.OrganizationDefaultTaxCodesExpandAll,
+			})
+			require.NoError(t, err)
+			require.NotNil(t, result.InvoicingTaxCode)
+			require.NotNil(t, result.CreditGrantTaxCode)
+			assert.Equal(t, inv.ID, result.InvoicingTaxCode.ID)
+			assert.Equal(t, cg.ID, result.CreditGrantTaxCode.ID)
 		})
 	})
 }

@@ -31,12 +31,19 @@ func (a *adapter) GetOrganizationDefaultTaxCodes(ctx context.Context, input taxc
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (taxcode.OrganizationDefaultTaxCodes, error) {
-		entity, err := a.db.OrganizationDefaultTaxCodes.Query().
+		query := a.db.OrganizationDefaultTaxCodes.Query().
 			Where(orgdefaultsdb.NamespaceEQ(input.Namespace)).
-			Where(orgdefaultsdb.DeletedAtIsNil()).
-			WithInvoicingTaxCode().
-			WithCreditGrantTaxCode().
-			Only(ctx)
+			Where(orgdefaultsdb.DeletedAtIsNil())
+
+		if input.Expand.InvoicingTaxCode {
+			query = query.WithInvoicingTaxCode()
+		}
+
+		if input.Expand.CreditGrantTaxCode {
+			query = query.WithCreditGrantTaxCode()
+		}
+
+		entity, err := query.Only(ctx)
 		if err != nil {
 			if db.IsNotFound(err) {
 				return taxcode.OrganizationDefaultTaxCodes{}, taxcode.NewOrganizationDefaultTaxCodesNotFoundError(input.Namespace)
@@ -45,7 +52,7 @@ func (a *adapter) GetOrganizationDefaultTaxCodes(ctx context.Context, input taxc
 			return taxcode.OrganizationDefaultTaxCodes{}, fmt.Errorf("failed to get organization default tax codes: %w", err)
 		}
 
-		return mapOrganizationDefaultTaxCodesFromEntity(entity)
+		return mapOrganizationDefaultTaxCodesFromEntity(entity, input.Expand)
 	})
 }
 
@@ -92,32 +99,13 @@ func (a *adapter) UpsertOrganizationDefaultTaxCodes(ctx context.Context, input t
 
 		return a.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{
 			Namespace: input.Namespace,
+			Expand:    input.Expand,
 		})
 	})
 }
 
-func mapOrganizationDefaultTaxCodesFromEntity(entity *db.OrganizationDefaultTaxCodes) (taxcode.OrganizationDefaultTaxCodes, error) {
-	invoicingEdge, err := entity.Edges.InvoicingTaxCodeOrErr()
-	if err != nil {
-		return taxcode.OrganizationDefaultTaxCodes{}, fmt.Errorf("failed to load invoicing_tax_code edge: %w", err)
-	}
-
-	creditGrantEdge, err := entity.Edges.CreditGrantTaxCodeOrErr()
-	if err != nil {
-		return taxcode.OrganizationDefaultTaxCodes{}, fmt.Errorf("failed to load credit_grant_tax_code edge: %w", err)
-	}
-
-	invoicingTaxCode, err := MapTaxCodeFromEntity(invoicingEdge)
-	if err != nil {
-		return taxcode.OrganizationDefaultTaxCodes{}, err
-	}
-
-	creditGrantTaxCode, err := MapTaxCodeFromEntity(creditGrantEdge)
-	if err != nil {
-		return taxcode.OrganizationDefaultTaxCodes{}, err
-	}
-
-	return taxcode.OrganizationDefaultTaxCodes{
+func mapOrganizationDefaultTaxCodesFromEntity(entity *db.OrganizationDefaultTaxCodes, expand taxcode.OrganizationDefaultTaxCodesExpand) (taxcode.OrganizationDefaultTaxCodes, error) {
+	result := taxcode.OrganizationDefaultTaxCodes{
 		NamespacedID: models.NamespacedID{
 			Namespace: entity.Namespace,
 			ID:        entity.ID,
@@ -127,7 +115,37 @@ func mapOrganizationDefaultTaxCodesFromEntity(entity *db.OrganizationDefaultTaxC
 			UpdatedAt: entity.UpdatedAt,
 			DeletedAt: entity.DeletedAt,
 		},
-		InvoicingTaxCode:   invoicingTaxCode,
-		CreditGrantTaxCode: creditGrantTaxCode,
-	}, nil
+		InvoicingTaxCodeID:   entity.InvoicingTaxCodeID,
+		CreditGrantTaxCodeID: entity.CreditGrantTaxCodeID,
+	}
+
+	if expand.InvoicingTaxCode {
+		invoicingEdge, err := entity.Edges.InvoicingTaxCodeOrErr()
+		if err != nil {
+			return taxcode.OrganizationDefaultTaxCodes{}, fmt.Errorf("failed to load invoicing_tax_code edge: %w", err)
+		}
+
+		invoicingTaxCode, err := MapTaxCodeFromEntity(invoicingEdge)
+		if err != nil {
+			return taxcode.OrganizationDefaultTaxCodes{}, err
+		}
+
+		result.InvoicingTaxCode = &invoicingTaxCode
+	}
+
+	if expand.CreditGrantTaxCode {
+		creditGrantEdge, err := entity.Edges.CreditGrantTaxCodeOrErr()
+		if err != nil {
+			return taxcode.OrganizationDefaultTaxCodes{}, fmt.Errorf("failed to load credit_grant_tax_code edge: %w", err)
+		}
+
+		creditGrantTaxCode, err := MapTaxCodeFromEntity(creditGrantEdge)
+		if err != nil {
+			return taxcode.OrganizationDefaultTaxCodes{}, err
+		}
+
+		result.CreditGrantTaxCode = &creditGrantTaxCode
+	}
+
+	return result, nil
 }

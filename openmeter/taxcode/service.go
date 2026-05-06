@@ -206,6 +206,7 @@ func (i DeleteTaxCodeInput) Validate() error {
 
 type GetOrganizationDefaultTaxCodesInput struct {
 	Namespace string
+	Expand    OrganizationDefaultTaxCodesExpand
 }
 
 func (i GetOrganizationDefaultTaxCodesInput) Validate() error {
@@ -220,6 +221,7 @@ type UpsertOrganizationDefaultTaxCodesInput struct {
 	Namespace            string
 	InvoicingTaxCodeID   string
 	CreditGrantTaxCodeID string
+	Expand               OrganizationDefaultTaxCodesExpand
 }
 
 func (i UpsertOrganizationDefaultTaxCodesInput) Validate() error {
