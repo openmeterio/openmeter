@@ -440,3 +440,13 @@ func (s *Server) ListCustomerCharges(w http.ResponseWriter, r *http.Request, cus
 		Params:     params,
 	}).ServeHTTP(w, r)
 }
+
+// Organization Default Tax Codes
+
+func (s *Server) GetOrganizationDefaultTaxCodes(w http.ResponseWriter, r *http.Request) {
+	unimplemented.GetOrganizationDefaultTaxCodes(w, r)
+}
+
+func (s *Server) UpdateOrganizationDefaultTaxCodes(w http.ResponseWriter, r *http.Request) {
+	unimplemented.UpdateOrganizationDefaultTaxCodes(w, r)
+}

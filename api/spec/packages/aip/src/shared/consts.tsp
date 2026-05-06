@@ -35,6 +35,9 @@ const FeaturesDescription = "Features represent product capabilities backed by m
 const ProductCatalogTag = "OpenMeter Product Catalog";
 const ProductCatalogDescription = "Product catalog manages plans, add-ons, and their associations for subscription-based billing.";
 
+const DefaultsTag = "OpenMeter Defaults";
+const DefaultsDescription = "Organization-level default configuration.";
+
 const UnstableExtension = "x-unstable";
 const InternalExtension = "x-internal";
 const PrivateExtension = "x-private";

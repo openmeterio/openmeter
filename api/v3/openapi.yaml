@@ -19,6 +19,8 @@ servers:
     description: Cloud
     variables: {}
 tags:
+  - name: OpenMeter Defaults
+    description: Organization-level default configuration.
   - name: OpenMeter Product Catalog
     description: Product catalog manages plans, add-ons, and their associations for subscription-based billing.
   - name: OpenMeter LLM Cost
@@ -1179,6 +1181,59 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Entitlements
+  /openmeter/defaults/tax-codes:
+    get:
+      operationId: get-organization-default-tax-codes
+      summary: Get organization default tax codes
+      responses:
+        '200':
+          description: OrganizationDefaultTaxCodes response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationDefaultTaxCodes'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Defaults
+      x-internal: true
+      x-unstable: true
+      x-private: true
+    put:
+      operationId: update-organization-default-tax-codes
+      summary: Update organization default tax codes
+      responses:
+        '200':
+          description: OrganizationDefaultTaxCodes upsert response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationDefaultTaxCodes'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Defaults
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrganizationDefaultTaxCodesRequest'
+      x-internal: true
+      x-unstable: true
+      x-private: true
   /openmeter/events:
     get:
       operationId: list-metering-events
@@ -8134,6 +8189,39 @@ components:
       type: string
       pattern: ^\-?[0-9]+(\.[0-9]+)?$
       description: Numeric represents an arbitrary precision number.
+    OrganizationDefaultTaxCodes:
+      type: object
+      required:
+        - invoicing_tax_code
+        - credit_grant_tax_code
+        - created_at
+        - updated_at
+      properties:
+        invoicing_tax_code:
+          allOf:
+            - $ref: '#/components/schemas/TaxCodeReference'
+          description: Default tax code for invoicing.
+          title: Invoicing tax code
+        credit_grant_tax_code:
+          allOf:
+            - $ref: '#/components/schemas/TaxCodeReference'
+          description: Default tax code for credit grants.
+          title: Credit grant tax code
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Timestamp of creation.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Timestamp of last update.
+          readOnly: true
+      description: |-
+        Organization-level default tax code references.
+
+        Stores the default tax codes applied to specific billing contexts for this
+        organization. Provisioned automatically when the organization is created.
     PlanAddon:
       type: object
       required:
@@ -8612,6 +8700,20 @@ components:
           example:
             type: $.type
       description: Meter update request.
+    UpdateOrganizationDefaultTaxCodesRequest:
+      type: object
+      properties:
+        invoicing_tax_code:
+          allOf:
+            - $ref: '#/components/schemas/TaxCodeReference'
+          description: Default tax code for invoicing.
+          title: Invoicing tax code
+        credit_grant_tax_code:
+          allOf:
+            - $ref: '#/components/schemas/TaxCodeReference'
+          description: Default tax code for credit grants.
+          title: Credit grant tax code
+      description: OrganizationDefaultTaxCodes update request.
     UpsertAddonRequest:
       type: object
       required:

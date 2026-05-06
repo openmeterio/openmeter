@@ -12,6 +12,7 @@ import "./subscriptions/index.tsp";
 import "./apps/index.tsp";
 import "./billing/index.tsp";
 import "./tax/index.tsp";
+import "./defaults/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -52,6 +53,7 @@ using TypeSpec.OpenAPI;
   Shared.ProductCatalogTag,
   #{ description: Shared.ProductCatalogDescription }
 )
+@tagMetadata(Shared.DefaultsTag, #{ description: Shared.DefaultsDescription })
 @useAuth(systemAccountAccessToken | personalAccessToken | konnectAccessToken)
 namespace MeteringAndBilling;
 
@@ -175,6 +177,11 @@ interface AddonsEndpoints extends ProductCatalog.AddonOperations {}
 @route("/openmeter/plans/{planId}/addons")
 @tag(Shared.ProductCatalogTag)
 interface PlanAddonEndpoints extends ProductCatalog.PlanAddonOperations {}
+
+@route("/openmeter/defaults/tax-codes")
+@tag(Shared.DefaultsTag)
+interface OrganizationDefaultTaxCodesEndpoints
+  extends Defaults.OrganizationDefaultTaxCodesOperations {}
 
 /**
  * The system account access token is meant for automations and integrations that are not directly associated with a human identity.
