@@ -1477,7 +1477,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceFullyCredite
 		s.Equal(float64(10), currentRun.CreditsAllocated[0].Amount.InexactFloat64())
 	})
 
-	s.Run("#5 approve invoice without invoice usage accrual", func() {
+	s.Run("#5 approve invoice with no fiat invoice usage accrual", func() {
 		defer s.UsageBasedTestHandler.Reset()
 
 		invoiceUsageAccruedCallback := newCountedLedgerTransactionCallback[usagebased.OnInvoiceUsageAccruedInput]()
@@ -1498,7 +1498,15 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceFullyCredite
 		s.Equal(float64(100), finalRun.MeteredQuantity.InexactFloat64())
 		s.NotNil(finalRun.LineID)
 		s.Equal(stdLineID.ID, *finalRun.LineID)
-		s.Nil(finalRun.InvoiceUsage)
+		s.True(finalRun.NoFiatTransactionRequired)
+		s.NotNil(finalRun.InvoiceUsage)
+		s.NotNil(finalRun.InvoiceUsage.LineID)
+		s.Equal(stdLineID.ID, *finalRun.InvoiceUsage.LineID)
+		s.Nil(finalRun.InvoiceUsage.LedgerTransaction)
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:       10,
+			CreditsTotal: 10,
+		}, finalRun.InvoiceUsage.Totals)
 	})
 }
 
