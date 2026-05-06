@@ -2955,6 +2955,22 @@ func (c *BillingInvoiceClient) QueryBillingInvoiceValidationIssues(_m *BillingIn
 	return query
 }
 
+// QueryChargeUsageBasedRuns queries the charge_usage_based_runs edge of a BillingInvoice.
+func (c *BillingInvoiceClient) QueryChargeUsageBasedRuns(_m *BillingInvoice) *ChargeUsageBasedRunsQuery {
+	query := (&ChargeUsageBasedRunsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, id),
+			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.ChargeUsageBasedRunsTable, billinginvoice.ChargeUsageBasedRunsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryBillingInvoiceCustomer queries the billing_invoice_customer edge of a BillingInvoice.
 func (c *BillingInvoiceClient) QueryBillingInvoiceCustomer(_m *BillingInvoice) *CustomerQuery {
 	query := (&CustomerClient{config: c.config}).Query()
@@ -8533,6 +8549,22 @@ func (c *ChargeUsageBasedRunsClient) QueryBillingInvoiceLine(_m *ChargeUsageBase
 			sqlgraph.From(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID, id),
 			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, true, chargeusagebasedruns.BillingInvoiceLineTable, chargeusagebasedruns.BillingInvoiceLineColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBillingInvoice queries the billing_invoice edge of a ChargeUsageBasedRuns.
+func (c *ChargeUsageBasedRunsClient) QueryBillingInvoice(_m *ChargeUsageBasedRuns) *BillingInvoiceQuery {
+	query := (&BillingInvoiceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID, id),
+			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedruns.BillingInvoiceTable, chargeusagebasedruns.BillingInvoiceColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil

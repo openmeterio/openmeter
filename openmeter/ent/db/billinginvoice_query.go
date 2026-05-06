@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
@@ -36,6 +37,7 @@ type BillingInvoiceQuery struct {
 	withBillingInvoiceLines            *BillingInvoiceLineQuery
 	withBillingInvoiceDetailedLines    *BillingStandardInvoiceDetailedLineQuery
 	withBillingInvoiceValidationIssues *BillingInvoiceValidationIssueQuery
+	withChargeUsageBasedRuns           *ChargeUsageBasedRunsQuery
 	withBillingInvoiceCustomer         *CustomerQuery
 	withTaxApp                         *AppQuery
 	withInvoicingApp                   *AppQuery
@@ -180,6 +182,28 @@ func (_q *BillingInvoiceQuery) QueryBillingInvoiceValidationIssues() *BillingInv
 			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, selector),
 			sqlgraph.To(billinginvoicevalidationissue.Table, billinginvoicevalidationissue.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.BillingInvoiceValidationIssuesTable, billinginvoice.BillingInvoiceValidationIssuesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryChargeUsageBasedRuns chains the current query on the "charge_usage_based_runs" edge.
+func (_q *BillingInvoiceQuery) QueryChargeUsageBasedRuns() *ChargeUsageBasedRunsQuery {
+	query := (&ChargeUsageBasedRunsClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, selector),
+			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.ChargeUsageBasedRunsTable, billinginvoice.ChargeUsageBasedRunsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -472,6 +496,7 @@ func (_q *BillingInvoiceQuery) Clone() *BillingInvoiceQuery {
 		withBillingInvoiceLines:            _q.withBillingInvoiceLines.Clone(),
 		withBillingInvoiceDetailedLines:    _q.withBillingInvoiceDetailedLines.Clone(),
 		withBillingInvoiceValidationIssues: _q.withBillingInvoiceValidationIssues.Clone(),
+		withChargeUsageBasedRuns:           _q.withChargeUsageBasedRuns.Clone(),
 		withBillingInvoiceCustomer:         _q.withBillingInvoiceCustomer.Clone(),
 		withTaxApp:                         _q.withTaxApp.Clone(),
 		withInvoicingApp:                   _q.withInvoicingApp.Clone(),
@@ -534,6 +559,17 @@ func (_q *BillingInvoiceQuery) WithBillingInvoiceValidationIssues(opts ...func(*
 		opt(query)
 	}
 	_q.withBillingInvoiceValidationIssues = query
+	return _q
+}
+
+// WithChargeUsageBasedRuns tells the query-builder to eager-load the nodes that are connected to
+// the "charge_usage_based_runs" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *BillingInvoiceQuery) WithChargeUsageBasedRuns(opts ...func(*ChargeUsageBasedRunsQuery)) *BillingInvoiceQuery {
+	query := (&ChargeUsageBasedRunsClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withChargeUsageBasedRuns = query
 	return _q
 }
 
@@ -659,12 +695,13 @@ func (_q *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 	var (
 		nodes       = []*BillingInvoice{}
 		_spec       = _q.querySpec()
-		loadedTypes = [9]bool{
+		loadedTypes = [10]bool{
 			_q.withSourceBillingProfile != nil,
 			_q.withBillingWorkflowConfig != nil,
 			_q.withBillingInvoiceLines != nil,
 			_q.withBillingInvoiceDetailedLines != nil,
 			_q.withBillingInvoiceValidationIssues != nil,
+			_q.withChargeUsageBasedRuns != nil,
 			_q.withBillingInvoiceCustomer != nil,
 			_q.withTaxApp != nil,
 			_q.withInvoicingApp != nil,
@@ -727,6 +764,15 @@ func (_q *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 			func(n *BillingInvoice) { n.Edges.BillingInvoiceValidationIssues = []*BillingInvoiceValidationIssue{} },
 			func(n *BillingInvoice, e *BillingInvoiceValidationIssue) {
 				n.Edges.BillingInvoiceValidationIssues = append(n.Edges.BillingInvoiceValidationIssues, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withChargeUsageBasedRuns; query != nil {
+		if err := _q.loadChargeUsageBasedRuns(ctx, query, nodes,
+			func(n *BillingInvoice) { n.Edges.ChargeUsageBasedRuns = []*ChargeUsageBasedRuns{} },
+			func(n *BillingInvoice, e *ChargeUsageBasedRuns) {
+				n.Edges.ChargeUsageBasedRuns = append(n.Edges.ChargeUsageBasedRuns, e)
 			}); err != nil {
 			return nil, err
 		}
@@ -902,6 +948,39 @@ func (_q *BillingInvoiceQuery) loadBillingInvoiceValidationIssues(ctx context.Co
 		node, ok := nodeids[fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "invoice_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *BillingInvoiceQuery) loadChargeUsageBasedRuns(ctx context.Context, query *ChargeUsageBasedRunsQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *ChargeUsageBasedRuns)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*BillingInvoice)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargeusagebasedruns.FieldInvoiceID)
+	}
+	query.Where(predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(billinginvoice.ChargeUsageBasedRunsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.InvoiceID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "invoice_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "invoice_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

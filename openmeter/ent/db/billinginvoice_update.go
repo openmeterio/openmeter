@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -978,6 +979,21 @@ func (_u *BillingInvoiceUpdate) AddBillingInvoiceValidationIssues(v ...*BillingI
 	return _u.AddBillingInvoiceValidationIssueIDs(ids...)
 }
 
+// AddChargeUsageBasedRunIDs adds the "charge_usage_based_runs" edge to the ChargeUsageBasedRuns entity by IDs.
+func (_u *BillingInvoiceUpdate) AddChargeUsageBasedRunIDs(ids ...string) *BillingInvoiceUpdate {
+	_u.mutation.AddChargeUsageBasedRunIDs(ids...)
+	return _u
+}
+
+// AddChargeUsageBasedRuns adds the "charge_usage_based_runs" edges to the ChargeUsageBasedRuns entity.
+func (_u *BillingInvoiceUpdate) AddChargeUsageBasedRuns(v ...*ChargeUsageBasedRuns) *BillingInvoiceUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargeUsageBasedRunIDs(ids...)
+}
+
 // Mutation returns the BillingInvoiceMutation object of the builder.
 func (_u *BillingInvoiceUpdate) Mutation() *BillingInvoiceMutation {
 	return _u.mutation
@@ -1050,6 +1066,27 @@ func (_u *BillingInvoiceUpdate) RemoveBillingInvoiceValidationIssues(v ...*Billi
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBillingInvoiceValidationIssueIDs(ids...)
+}
+
+// ClearChargeUsageBasedRuns clears all "charge_usage_based_runs" edges to the ChargeUsageBasedRuns entity.
+func (_u *BillingInvoiceUpdate) ClearChargeUsageBasedRuns() *BillingInvoiceUpdate {
+	_u.mutation.ClearChargeUsageBasedRuns()
+	return _u
+}
+
+// RemoveChargeUsageBasedRunIDs removes the "charge_usage_based_runs" edge to ChargeUsageBasedRuns entities by IDs.
+func (_u *BillingInvoiceUpdate) RemoveChargeUsageBasedRunIDs(ids ...string) *BillingInvoiceUpdate {
+	_u.mutation.RemoveChargeUsageBasedRunIDs(ids...)
+	return _u
+}
+
+// RemoveChargeUsageBasedRuns removes "charge_usage_based_runs" edges to ChargeUsageBasedRuns entities.
+func (_u *BillingInvoiceUpdate) RemoveChargeUsageBasedRuns(v ...*ChargeUsageBasedRuns) *BillingInvoiceUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargeUsageBasedRunIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -1567,6 +1604,51 @@ func (_u *BillingInvoiceUpdate) sqlSave(ctx context.Context) (_node int, err err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicevalidationissue.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargeUsageBasedRunsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.ChargeUsageBasedRunsTable,
+			Columns: []string{billinginvoice.ChargeUsageBasedRunsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargeUsageBasedRunsIDs(); len(nodes) > 0 && !_u.mutation.ChargeUsageBasedRunsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.ChargeUsageBasedRunsTable,
+			Columns: []string{billinginvoice.ChargeUsageBasedRunsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeUsageBasedRunsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.ChargeUsageBasedRunsTable,
+			Columns: []string{billinginvoice.ChargeUsageBasedRunsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -2537,6 +2619,21 @@ func (_u *BillingInvoiceUpdateOne) AddBillingInvoiceValidationIssues(v ...*Billi
 	return _u.AddBillingInvoiceValidationIssueIDs(ids...)
 }
 
+// AddChargeUsageBasedRunIDs adds the "charge_usage_based_runs" edge to the ChargeUsageBasedRuns entity by IDs.
+func (_u *BillingInvoiceUpdateOne) AddChargeUsageBasedRunIDs(ids ...string) *BillingInvoiceUpdateOne {
+	_u.mutation.AddChargeUsageBasedRunIDs(ids...)
+	return _u
+}
+
+// AddChargeUsageBasedRuns adds the "charge_usage_based_runs" edges to the ChargeUsageBasedRuns entity.
+func (_u *BillingInvoiceUpdateOne) AddChargeUsageBasedRuns(v ...*ChargeUsageBasedRuns) *BillingInvoiceUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargeUsageBasedRunIDs(ids...)
+}
+
 // Mutation returns the BillingInvoiceMutation object of the builder.
 func (_u *BillingInvoiceUpdateOne) Mutation() *BillingInvoiceMutation {
 	return _u.mutation
@@ -2609,6 +2706,27 @@ func (_u *BillingInvoiceUpdateOne) RemoveBillingInvoiceValidationIssues(v ...*Bi
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBillingInvoiceValidationIssueIDs(ids...)
+}
+
+// ClearChargeUsageBasedRuns clears all "charge_usage_based_runs" edges to the ChargeUsageBasedRuns entity.
+func (_u *BillingInvoiceUpdateOne) ClearChargeUsageBasedRuns() *BillingInvoiceUpdateOne {
+	_u.mutation.ClearChargeUsageBasedRuns()
+	return _u
+}
+
+// RemoveChargeUsageBasedRunIDs removes the "charge_usage_based_runs" edge to ChargeUsageBasedRuns entities by IDs.
+func (_u *BillingInvoiceUpdateOne) RemoveChargeUsageBasedRunIDs(ids ...string) *BillingInvoiceUpdateOne {
+	_u.mutation.RemoveChargeUsageBasedRunIDs(ids...)
+	return _u
+}
+
+// RemoveChargeUsageBasedRuns removes "charge_usage_based_runs" edges to ChargeUsageBasedRuns entities.
+func (_u *BillingInvoiceUpdateOne) RemoveChargeUsageBasedRuns(v ...*ChargeUsageBasedRuns) *BillingInvoiceUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargeUsageBasedRunIDs(ids...)
 }
 
 // Where appends a list predicates to the BillingInvoiceUpdate builder.
@@ -3156,6 +3274,51 @@ func (_u *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *BillingI
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicevalidationissue.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargeUsageBasedRunsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.ChargeUsageBasedRunsTable,
+			Columns: []string{billinginvoice.ChargeUsageBasedRunsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargeUsageBasedRunsIDs(); len(nodes) > 0 && !_u.mutation.ChargeUsageBasedRunsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.ChargeUsageBasedRunsTable,
+			Columns: []string{billinginvoice.ChargeUsageBasedRunsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeUsageBasedRunsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.ChargeUsageBasedRunsTable,
+			Columns: []string{billinginvoice.ChargeUsageBasedRunsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
