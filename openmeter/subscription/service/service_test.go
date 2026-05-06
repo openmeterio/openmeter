@@ -748,7 +748,7 @@ func TestList(t *testing.T) {
 			require.Equal(t, sub1.ID, list.Items[0].ID)
 		})
 
-		t.Run("FilterByIDOeq", func(t *testing.T) {
+		t.Run("FilterByIDIn", func(t *testing.T) {
 			ids := []string{sub1.ID, sub2.ID}
 			list, err := service.List(ctx, subscription.ListSubscriptionsInput{
 				Namespaces: []string{ns},

@@ -172,10 +172,8 @@ func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscri
 		query = filter.ApplyToQuery(query, in.CustomerID, dbsubscription.FieldCustomerID)
 		query = filter.ApplyToQuery(query, in.PlanID, dbsubscription.FieldPlanID)
 
-		if in.PlanKey != nil {
-			if planKeyPred := filter.SelectPredicate[predicate.Plan](*in.PlanKey, dbplan.FieldKey); planKeyPred != nil {
-				query = query.Where(dbsubscription.HasPlanWith(*planKeyPred))
-			}
+		if planKeyPred := filter.SelectPredicate[predicate.Plan](lo.FromPtrOr(in.PlanKey, filter.FilterString{}), dbplan.FieldKey); planKeyPred != nil {
+			query = query.Where(dbsubscription.HasPlanWith(*planKeyPred))
 		}
 
 		if in.ActiveAt != nil {
