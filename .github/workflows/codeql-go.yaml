@@ -58,15 +58,10 @@ jobs:
 
       - name: Build for CodeQL
         run: |
+          # Preseed go caches
           make build-server GO_BUILD_FLAGS=
-          make -j 6 \
-            build-sink-worker \
-            build-benthos-collector \
-            build-balance-worker \
-            build-billing-worker \
-            build-notification-service \
-            build-jobs \
-            GO_BUILD_FLAGS=
+          # Let's build all the binaries
+          make -j 6 build GO_BUILD_FLAGS=
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@e46ed2cbd01164d986452f91f178727624ae40d7 # v4.35.3
