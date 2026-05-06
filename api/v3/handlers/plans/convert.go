@@ -16,28 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-var unsupportedV3PriceTypes = map[productcatalog.PriceType]struct{}{
-	productcatalog.DynamicPriceType: {},
-	productcatalog.PackagePriceType: {},
-}
-
-func hasUnsupportedV3Price(p plan.Plan) bool {
-	for _, phase := range p.Phases {
-		for _, rc := range phase.RateCards {
-			price := rc.AsMeta().Price
-			if price == nil {
-				continue
-			}
-
-			if _, unsupported := unsupportedV3PriceTypes[price.Type()]; unsupported {
-				return true
-			}
-		}
-	}
-
-	return false
-}
-
 func ToAPIBillingPlan(p plan.Plan) (api.BillingPlan, error) {
 	validationIssues, _ := p.AsProductCatalogPlan().ValidationErrors()
 
@@ -163,7 +141,52 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (api.BillingRateCard, erro
 
 	result.Price = price
 
+	unitConfig, err := ToAPIBillingRateCardUnitConfig(meta.Price)
+	if err != nil {
+		return result, fmt.Errorf("failed to convert unit config: %w", err)
+	}
+
+	result.UnitConfig = unitConfig
+
 	return result, nil
+}
+
+// ToAPIBillingRateCardUnitConfig synthesizes a v3 unit config from a v1 dynamic
+// or package price. v3 does not surface dynamic or package prices directly;
+// instead they are rendered as a unit price paired with a unit config that
+// describes the conversion that v1 applied implicitly.
+func ToAPIBillingRateCardUnitConfig(p *productcatalog.Price) (*api.BillingUnitConfig, error) {
+	if p == nil {
+		return nil, nil
+	}
+
+	switch p.Type() {
+	case productcatalog.DynamicPriceType:
+		dynamic, err := p.AsDynamic()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read dynamic price: %w", err)
+		}
+
+		return &api.BillingUnitConfig{
+			Operation:        api.BillingUnitConfigOperationMultiply,
+			ConversionFactor: dynamic.Multiplier.String(),
+		}, nil
+
+	case productcatalog.PackagePriceType:
+		pkg, err := p.AsPackage()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read package price: %w", err)
+		}
+
+		return &api.BillingUnitConfig{
+			Operation:        api.BillingUnitConfigOperationDivide,
+			ConversionFactor: pkg.QuantityPerPackage.String(),
+			Rounding:         lo.ToPtr(api.BillingUnitConfigRoundingModeCeiling),
+		}, nil
+
+	default:
+		return nil, nil
+	}
 }
 
 func ToAPIBillingPrice(p *productcatalog.Price) (api.BillingPrice, error) {
@@ -236,10 +259,29 @@ func ToAPIBillingPrice(p *productcatalog.Price) (api.BillingPrice, error) {
 		}
 
 	case productcatalog.DynamicPriceType:
-		return result, models.NewGenericConflictError(fmt.Errorf("dynamic price is not supported in v3 API"))
+		// Dynamic prices are surfaced in v3 as a unit price of amount 1; the
+		// multiplier is carried separately on the rate card's unit config.
+		if err := result.FromBillingPriceUnit(api.BillingPriceUnit{
+			Amount: "1",
+			Type:   api.BillingPriceUnitType("unit"),
+		}); err != nil {
+			return result, fmt.Errorf("failed to set unit price for dynamic price: %w", err)
+		}
 
 	case productcatalog.PackagePriceType:
-		return result, models.NewGenericConflictError(fmt.Errorf("package price is not supported in v3 API"))
+		// Package prices are surfaced in v3 as a unit price; the package size
+		// is carried separately on the rate card's unit config.
+		pkg, err := p.AsPackage()
+		if err != nil {
+			return result, fmt.Errorf("failed to read package price: %w", err)
+		}
+
+		if err = result.FromBillingPriceUnit(api.BillingPriceUnit{
+			Amount: pkg.Amount.String(),
+			Type:   api.BillingPriceUnitType("unit"),
+		}); err != nil {
+			return result, fmt.Errorf("failed to set unit price for package price: %w", err)
+		}
 
 	default:
 		return result, fmt.Errorf("unknown price type: %s", p.Type())
