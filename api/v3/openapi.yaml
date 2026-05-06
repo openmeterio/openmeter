@@ -358,7 +358,6 @@ paths:
         - OpenMeter Billing
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/currencies/custom:
     post:
       operationId: create-custom-currency
@@ -389,7 +388,6 @@ paths:
               $ref: '#/components/schemas/CreateCurrencyCustomRequest'
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/currencies/custom/{currencyId}/cost-bases:
     get:
       operationId: list-cost-bases
@@ -433,7 +431,6 @@ paths:
         - OpenMeter Billing
       x-internal: true
       x-unstable: true
-      x-private: true
     post:
       operationId: create-cost-basis
       summary: Create cost basis
@@ -467,7 +464,6 @@ paths:
               $ref: '#/components/schemas/CreateCostBasisRequest'
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/customers:
     post:
       operationId: create-customer
@@ -876,7 +872,6 @@ paths:
         - OpenMeter Billing
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/customers/{customerId}/credits/adjustments:
     post:
       operationId: create-credit-adjustment
@@ -917,7 +912,6 @@ paths:
               $ref: '#/components/schemas/CreateCreditAdjustmentRequest'
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/customers/{customerId}/credits/balance:
     get:
       operationId: get-customer-credit-balance
@@ -954,7 +948,6 @@ paths:
         - OpenMeter Customers
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/customers/{customerId}/credits/grants:
     post:
       operationId: create-credit-grant
@@ -993,7 +986,6 @@ paths:
               $ref: '#/components/schemas/CreateCreditGrantRequest'
       x-internal: true
       x-unstable: true
-      x-private: true
     get:
       operationId: list-credit-grants
       summary: List credit grants
@@ -1031,7 +1023,6 @@ paths:
         - OpenMeter Customers
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/customers/{customerId}/credits/grants/{creditGrantId}:
     get:
       operationId: get-credit-grant
@@ -1067,7 +1058,6 @@ paths:
         - OpenMeter Customers
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/customers/{customerId}/credits/grants/{creditGrantId}/settlement/external:
     post:
       operationId: update-credit-grant-external-settlement
@@ -1113,7 +1103,6 @@ paths:
               $ref: '#/components/schemas/UpdateCreditGrantExternalSettlementRequest'
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/customers/{customerId}/credits/transactions:
     get:
       operationId: list-credit-transactions
@@ -1157,7 +1146,6 @@ paths:
         - OpenMeter Customers
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/customers/{customerId}/entitlement-access:
     get:
       operationId: list-customer-entitlement-access
@@ -1208,7 +1196,6 @@ paths:
         - OpenMeter Defaults
       x-internal: true
       x-unstable: true
-      x-private: true
     put:
       operationId: update-organization-default-tax-codes
       summary: Update organization default tax codes
@@ -1237,7 +1224,6 @@ paths:
               $ref: '#/components/schemas/UpdateOrganizationDefaultTaxCodesRequest'
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/events:
     get:
       operationId: list-metering-events
@@ -1560,7 +1546,6 @@ paths:
         - OpenMeter LLM Cost
       x-internal: true
       x-unstable: true
-      x-private: true
     post:
       operationId: create-llm-cost-override
       summary: Create LLM cost override
@@ -1588,7 +1573,6 @@ paths:
               $ref: '#/components/schemas/LLMCostOverrideCreate'
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/llm-cost/overrides/{priceId}:
     delete:
       operationId: delete-llm-cost-override
@@ -1615,7 +1599,6 @@ paths:
         - OpenMeter LLM Cost
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/llm-cost/prices:
     get:
       operationId: list-llm-cost-prices
@@ -1667,7 +1650,6 @@ paths:
         - OpenMeter LLM Cost
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/llm-cost/prices/{priceId}:
     get:
       operationId: get-llm-cost-price
@@ -1700,7 +1682,6 @@ paths:
         - OpenMeter LLM Cost
       x-internal: true
       x-unstable: true
-      x-private: true
   /openmeter/meters:
     post:
       operationId: create-meter

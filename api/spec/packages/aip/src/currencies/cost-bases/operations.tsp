@@ -29,7 +29,6 @@ interface CurrenciesCustomCostBasesOperations {
    * List cost bases for a currency.
    * For custom currencies, there can be multiple cost bases with different `effective_from` dates.
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @get
@@ -52,7 +51,6 @@ interface CurrenciesCustomCostBasesOperations {
   /**
    * Create a cost basis for a currency.
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @post

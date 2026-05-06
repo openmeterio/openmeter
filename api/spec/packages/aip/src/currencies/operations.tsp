@@ -27,7 +27,6 @@ interface CurrenciesOperations {
   /**
    * List currencies supported by the billing system.
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @get
@@ -51,7 +50,6 @@ interface CurrenciesCustomOperations {
    * Create a custom currency.
    * This operation allows defining your own custom currency for billing purposes.
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @post
