@@ -806,6 +806,48 @@ func (e BillingTaxBehavior) Valid() bool {
 	}
 }
 
+// Defines values for BillingUnitConfigOperation.
+const (
+	BillingUnitConfigOperationDivide   BillingUnitConfigOperation = "divide"
+	BillingUnitConfigOperationMultiply BillingUnitConfigOperation = "multiply"
+)
+
+// Valid indicates whether the value is a known member of the BillingUnitConfigOperation enum.
+func (e BillingUnitConfigOperation) Valid() bool {
+	switch e {
+	case BillingUnitConfigOperationDivide:
+		return true
+	case BillingUnitConfigOperationMultiply:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingUnitConfigRoundingMode.
+const (
+	BillingUnitConfigRoundingModeCeiling BillingUnitConfigRoundingMode = "ceiling"
+	BillingUnitConfigRoundingModeFloor   BillingUnitConfigRoundingMode = "floor"
+	BillingUnitConfigRoundingModeHalfUp  BillingUnitConfigRoundingMode = "half_up"
+	BillingUnitConfigRoundingModeNone    BillingUnitConfigRoundingMode = "none"
+)
+
+// Valid indicates whether the value is a known member of the BillingUnitConfigRoundingMode enum.
+func (e BillingUnitConfigRoundingMode) Valid() bool {
+	switch e {
+	case BillingUnitConfigRoundingModeCeiling:
+		return true
+	case BillingUnitConfigRoundingModeFloor:
+		return true
+	case BillingUnitConfigRoundingModeHalfUp:
+		return true
+	case BillingUnitConfigRoundingModeNone:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for BillingUsageBasedChargeType.
 const (
 	BillingUsageBasedChargeTypeUsageBased BillingUsageBasedChargeType = "usage_based"
@@ -2967,6 +3009,14 @@ type BillingRateCard struct {
 
 	// TaxConfig The tax config of the rate card.
 	TaxConfig *BillingRateCardTaxConfig `json:"tax_config,omitempty"`
+
+	// UnitConfig Unit conversion configuration for the rate card.
+	//
+	// Synthesized on read for plans authored with v1 dynamic or package prices:
+	// dynamic prices map to a unit price with a multiply unit config, and package
+	// prices map to a unit price with a divide unit config. Not yet accepted on create
+	// or update.
+	UnitConfig *BillingUnitConfig `json:"unit_config,omitempty"`
 }
 
 // BillingRateCardDiscounts Discount configuration for a rate card.
@@ -3348,6 +3398,78 @@ type BillingTotals struct {
 	// Total The final total value of the resource after taxes, discounts and commitments.
 	Total Numeric `json:"total"`
 }
+
+// BillingUnitConfig Unit conversion configuration.
+//
+// Transforms raw metered quantities into billing-ready units before pricing and
+// entitlement evaluation. Applied at the rate card level so the same feature can
+// be billed in different units across plans.
+//
+// Examples:
+//
+// - Meter bytes, bill GB: operation=divide, conversionFactor=1e9,
+// rounding=ceiling, displayUnit="GB"
+// - Meter seconds, bill hours: operation=divide, conversionFactor=3600,
+// rounding=ceiling, displayUnit="hours"
+// - Cost + 20% margin: operation=multiply, conversionFactor=1.2
+// - Bill per million tokens: operation=divide, conversionFactor=1e6,
+// rounding=ceiling, displayUnit="M"
+//
+// v1 equivalents:
+//
+// - DynamicPrice(multiplier): operation=multiply, conversionFactor=multiplier +
+// UnitPrice(amount=1)
+// - PackagePrice(amount, quantityPerPkg): operation=divide,
+// conversionFactor=quantityPerPkg, rounding=ceiling + UnitPrice(amount)
+type BillingUnitConfig struct {
+	// ConversionFactor The factor used in the conversion operation.
+	//
+	// - For `divide`: `converted = raw / conversionFactor`.
+	// - For `multiply`: `converted = raw × conversionFactor`.
+	//
+	// Must be a positive non-zero value.
+	ConversionFactor Numeric `json:"conversion_factor"`
+
+	// DisplayUnit A human-readable label for the converted unit shown on invoices and in the
+	// customer portal (e.g., "GB", "hours", "M tokens").
+	//
+	// Optional. When omitted, no unit label is rendered.
+	DisplayUnit *string `json:"display_unit,omitempty"`
+
+	// Operation The arithmetic operation to apply to the raw metered quantity.
+	Operation BillingUnitConfigOperation `json:"operation"`
+
+	// Precision The number of decimal places to retain after rounding.
+	//
+	// Only meaningful when rounding is not "none". Defaults to 0 (round to whole
+	// numbers).
+	Precision *int `json:"precision,omitempty"`
+
+	// Rounding The rounding mode applied to the converted quantity for invoicing.
+	//
+	// Defaults to none (no rounding). Entitlement checks always use the precise
+	// (unrounded) value.
+	Rounding *BillingUnitConfigRoundingMode `json:"rounding,omitempty"`
+}
+
+// BillingUnitConfigOperation The arithmetic operation used to convert raw metered units into billing units.
+//
+// - `divide`: Divide the metered quantity by the conversion factor (e.g., bytes ÷
+// 1e9 = GB).
+// - `multiply`: Multiply the metered quantity by the conversion factor (e.g., cost
+// × 1.2 = cost + 20% margin).
+type BillingUnitConfigOperation string
+
+// BillingUnitConfigRoundingMode The rounding mode applied to the converted quantity for invoicing.
+//
+// Rounding is applied only to the invoiced quantity. Entitlement balance checks
+// use the precise decimal value after conversion.
+//
+// - `ceiling`: Round up to the next integer (typical for package-style billing).
+// - `floor`: Round down to the previous integer.
+// - `half_up`: Round to the nearest integer, with 0.5 rounding up.
+// - `none`: No rounding; the converted value is used as-is.
+type BillingUnitConfigRoundingMode string
 
 // BillingUsageBasedCharge A usage-based charge for a customer.
 type BillingUsageBasedCharge struct {

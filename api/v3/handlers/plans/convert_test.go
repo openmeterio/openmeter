@@ -529,25 +529,199 @@ func TestFromBillingPrice(t *testing.T) {
 		assert.Equal(t, "volume", disc)
 	})
 
-	t.Run("dynamic price returns conflict error", func(t *testing.T) {
-		p := productcatalog.NewPriceFrom(productcatalog.DynamicPrice{})
-
-		_, err := ToAPIBillingPrice(p)
-		require.Error(t, err)
-		assert.True(t, models.IsGenericConflictError(err))
-		assert.Contains(t, err.Error(), "dynamic price is not supported in v3 API")
-	})
-
-	t.Run("package price returns conflict error", func(t *testing.T) {
-		p := productcatalog.NewPriceFrom(productcatalog.PackagePrice{
-			Amount:             decimal.NewFromFloat(10),
-			QuantityPerPackage: decimal.NewFromInt(100),
+	t.Run("dynamic price translates to unit price of amount 1", func(t *testing.T) {
+		p := productcatalog.NewPriceFrom(productcatalog.DynamicPrice{
+			Multiplier: decimal.NewFromFloat(1.2),
 		})
 
-		_, err := ToAPIBillingPrice(p)
-		require.Error(t, err)
-		assert.True(t, models.IsGenericConflictError(err))
-		assert.Contains(t, err.Error(), "package price is not supported in v3 API")
+		result, err := ToAPIBillingPrice(p)
+		require.NoError(t, err)
+
+		disc, err := result.Discriminator()
+		require.NoError(t, err)
+		assert.Equal(t, "unit", disc)
+
+		unit, err := result.AsBillingPriceUnit()
+		require.NoError(t, err)
+		assert.Equal(t, api.Numeric("1"), unit.Amount)
+	})
+
+	t.Run("package price translates to unit price with package amount", func(t *testing.T) {
+		p := productcatalog.NewPriceFrom(productcatalog.PackagePrice{
+			Amount:             decimal.NewFromFloat(0.5),
+			QuantityPerPackage: decimal.NewFromInt(1000),
+		})
+
+		result, err := ToAPIBillingPrice(p)
+		require.NoError(t, err)
+
+		disc, err := result.Discriminator()
+		require.NoError(t, err)
+		assert.Equal(t, "unit", disc)
+
+		unit, err := result.AsBillingPriceUnit()
+		require.NoError(t, err)
+		assert.Equal(t, api.Numeric("0.5"), unit.Amount)
+	})
+}
+
+func TestToAPIBillingRateCardUnitConfig(t *testing.T) {
+	t.Run("nil price has no unit config", func(t *testing.T) {
+		result, err := ToAPIBillingRateCardUnitConfig(nil)
+		require.NoError(t, err)
+		assert.Nil(t, result)
+	})
+
+	t.Run("flat price has no unit config", func(t *testing.T) {
+		p := productcatalog.NewPriceFrom(productcatalog.FlatPrice{Amount: decimal.NewFromFloat(5)})
+
+		result, err := ToAPIBillingRateCardUnitConfig(p)
+		require.NoError(t, err)
+		assert.Nil(t, result)
+	})
+
+	t.Run("unit price has no unit config", func(t *testing.T) {
+		p := productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: decimal.NewFromFloat(0.05)})
+
+		result, err := ToAPIBillingRateCardUnitConfig(p)
+		require.NoError(t, err)
+		assert.Nil(t, result)
+	})
+
+	t.Run("dynamic price produces multiply unit config", func(t *testing.T) {
+		p := productcatalog.NewPriceFrom(productcatalog.DynamicPrice{
+			Multiplier: decimal.NewFromFloat(1.2),
+		})
+
+		result, err := ToAPIBillingRateCardUnitConfig(p)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, api.BillingUnitConfigOperationMultiply, result.Operation)
+		assert.Equal(t, api.Numeric("1.2"), result.ConversionFactor)
+		assert.Nil(t, result.Rounding)
+		assert.Nil(t, result.Precision)
+		assert.Nil(t, result.DisplayUnit)
+	})
+
+	t.Run("package price produces divide unit config with ceiling rounding", func(t *testing.T) {
+		p := productcatalog.NewPriceFrom(productcatalog.PackagePrice{
+			Amount:             decimal.NewFromFloat(10),
+			QuantityPerPackage: decimal.NewFromInt(1000),
+		})
+
+		result, err := ToAPIBillingRateCardUnitConfig(p)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, api.BillingUnitConfigOperationDivide, result.Operation)
+		assert.Equal(t, api.Numeric("1000"), result.ConversionFactor)
+		require.NotNil(t, result.Rounding)
+		assert.Equal(t, api.BillingUnitConfigRoundingModeCeiling, *result.Rounding)
+	})
+}
+
+func TestFromRateCard_DynamicAndPackagePrices(t *testing.T) {
+	cadence, err := datetime.ISODurationString("P1M").Parse()
+	require.NoError(t, err)
+
+	t.Run("dynamic price renders as unit price plus multiply unit config and preserves commitments", func(t *testing.T) {
+		minAmt := decimal.NewFromFloat(10)
+		maxAmt := decimal.NewFromFloat(100)
+		price := productcatalog.NewPriceFrom(productcatalog.DynamicPrice{
+			Multiplier: decimal.NewFromFloat(1.2),
+			Commitments: productcatalog.Commitments{
+				MinimumAmount: &minAmt,
+				MaximumAmount: &maxAmt,
+			},
+		})
+
+		rc := &productcatalog.UsageBasedRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:   "tokens",
+				Name:  "Tokens",
+				Price: price,
+			},
+			BillingCadence: cadence,
+		}
+
+		result, err := ToAPIBillingRateCard(rc)
+		require.NoError(t, err)
+
+		disc, err := result.Price.Discriminator()
+		require.NoError(t, err)
+		assert.Equal(t, "unit", disc)
+
+		unit, err := result.Price.AsBillingPriceUnit()
+		require.NoError(t, err)
+		assert.Equal(t, api.Numeric("1"), unit.Amount)
+
+		require.NotNil(t, result.UnitConfig)
+		assert.Equal(t, api.BillingUnitConfigOperationMultiply, result.UnitConfig.Operation)
+		assert.Equal(t, api.Numeric("1.2"), result.UnitConfig.ConversionFactor)
+		assert.Nil(t, result.UnitConfig.Rounding)
+
+		require.NotNil(t, result.Commitments)
+		assert.Equal(t, lo.ToPtr(api.Numeric("10")), result.Commitments.MinimumAmount)
+		assert.Equal(t, lo.ToPtr(api.Numeric("100")), result.Commitments.MaximumAmount)
+	})
+
+	t.Run("package price renders as unit price plus divide unit config and preserves commitments", func(t *testing.T) {
+		minAmt := decimal.NewFromFloat(5)
+		price := productcatalog.NewPriceFrom(productcatalog.PackagePrice{
+			Amount:             decimal.NewFromFloat(0.5),
+			QuantityPerPackage: decimal.NewFromInt(1000),
+			Commitments: productcatalog.Commitments{
+				MinimumAmount: &minAmt,
+			},
+		})
+
+		rc := &productcatalog.UsageBasedRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:   "api-calls",
+				Name:  "API Calls",
+				Price: price,
+			},
+			BillingCadence: cadence,
+		}
+
+		result, err := ToAPIBillingRateCard(rc)
+		require.NoError(t, err)
+
+		disc, err := result.Price.Discriminator()
+		require.NoError(t, err)
+		assert.Equal(t, "unit", disc)
+
+		unit, err := result.Price.AsBillingPriceUnit()
+		require.NoError(t, err)
+		assert.Equal(t, api.Numeric("0.5"), unit.Amount)
+
+		require.NotNil(t, result.UnitConfig)
+		assert.Equal(t, api.BillingUnitConfigOperationDivide, result.UnitConfig.Operation)
+		assert.Equal(t, api.Numeric("1000"), result.UnitConfig.ConversionFactor)
+		require.NotNil(t, result.UnitConfig.Rounding)
+		assert.Equal(t, api.BillingUnitConfigRoundingModeCeiling, *result.UnitConfig.Rounding)
+
+		require.NotNil(t, result.Commitments)
+		assert.Equal(t, lo.ToPtr(api.Numeric("5")), result.Commitments.MinimumAmount)
+		assert.Nil(t, result.Commitments.MaximumAmount)
+	})
+
+	t.Run("unit price has no unit config on rate card", func(t *testing.T) {
+		price := productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Amount: decimal.NewFromFloat(0.05),
+		})
+
+		rc := &productcatalog.UsageBasedRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:   "api-calls",
+				Name:  "API Calls",
+				Price: price,
+			},
+			BillingCadence: cadence,
+		}
+
+		result, err := ToAPIBillingRateCard(rc)
+		require.NoError(t, err)
+		assert.Nil(t, result.UnitConfig)
 	})
 }
 

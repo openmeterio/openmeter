@@ -5704,6 +5704,18 @@ components:
             - $ref: '#/components/schemas/BillingPrice'
           description: The price of the rate card.
           title: Price
+        unit_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingUnitConfig'
+          description: |-
+            Unit conversion configuration for the rate card.
+
+            Synthesized on read for plans authored with v1 dynamic or package prices:
+            dynamic prices map to a unit price with a multiply unit config, and package
+            prices map to a unit price with a divide unit config. Not yet accepted on create
+            or update.
+          title: Unit config
+          readOnly: true
         payment_term:
           allOf:
             - $ref: '#/components/schemas/BillingPricePaymentTerm'
@@ -6369,6 +6381,108 @@ components:
           readOnly: true
       additionalProperties: false
       description: Totals contains the summaries of all calculations for a billing resource.
+    BillingUnitConfig:
+      type: object
+      required:
+        - operation
+        - conversion_factor
+      properties:
+        operation:
+          allOf:
+            - $ref: '#/components/schemas/BillingUnitConfigOperation'
+          description: The arithmetic operation to apply to the raw metered quantity.
+          title: Conversion operation
+        conversion_factor:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The factor used in the conversion operation.
+
+            - For `divide`: `converted = raw / conversionFactor`.
+            - For `multiply`: `converted = raw × conversionFactor`.
+
+            Must be a positive non-zero value.
+          title: Conversion factor
+        rounding:
+          allOf:
+            - $ref: '#/components/schemas/BillingUnitConfigRoundingMode'
+          description: |-
+            The rounding mode applied to the converted quantity for invoicing.
+
+            Defaults to none (no rounding). Entitlement checks always use the precise
+            (unrounded) value.
+          title: Rounding mode
+          default: none
+        precision:
+          type: integer
+          description: |-
+            The number of decimal places to retain after rounding.
+
+            Only meaningful when rounding is not "none". Defaults to 0 (round to whole
+            numbers).
+          title: Rounding precision (decimal places)
+          default: 0
+        display_unit:
+          type: string
+          description: |-
+            A human-readable label for the converted unit shown on invoices and in the
+            customer portal (e.g., "GB", "hours", "M tokens").
+
+            Optional. When omitted, no unit label is rendered.
+          title: Display unit label
+      additionalProperties: false
+      description: |-
+        Unit conversion configuration.
+
+        Transforms raw metered quantities into billing-ready units before pricing and
+        entitlement evaluation. Applied at the rate card level so the same feature can
+        be billed in different units across plans.
+
+        Examples:
+
+        - Meter bytes, bill GB: operation=divide, conversionFactor=1e9,
+        rounding=ceiling, displayUnit="GB"
+        - Meter seconds, bill hours: operation=divide, conversionFactor=3600,
+        rounding=ceiling, displayUnit="hours"
+        - Cost + 20% margin: operation=multiply, conversionFactor=1.2
+        - Bill per million tokens: operation=divide, conversionFactor=1e6,
+        rounding=ceiling, displayUnit="M"
+
+        v1 equivalents:
+
+        - DynamicPrice(multiplier): operation=multiply, conversionFactor=multiplier +
+        UnitPrice(amount=1)
+        - PackagePrice(amount, quantityPerPkg): operation=divide,
+        conversionFactor=quantityPerPkg, rounding=ceiling + UnitPrice(amount)
+    BillingUnitConfigOperation:
+      type: string
+      enum:
+        - divide
+        - multiply
+      description: |-
+        The arithmetic operation used to convert raw metered units into billing units.
+
+        - `divide`: Divide the metered quantity by the conversion factor (e.g., bytes ÷
+        1e9 = GB).
+        - `multiply`: Multiply the metered quantity by the conversion factor (e.g., cost
+        × 1.2 = cost + 20% margin).
+    BillingUnitConfigRoundingMode:
+      type: string
+      enum:
+        - ceiling
+        - floor
+        - half_up
+        - none
+      description: |-
+        The rounding mode applied to the converted quantity for invoicing.
+
+        Rounding is applied only to the invoiced quantity. Entitlement balance checks
+        use the precise decimal value after conversion.
+
+        - `ceiling`: Round up to the next integer (typical for package-style billing).
+        - `floor`: Round down to the previous integer.
+        - `half_up`: Round to the nearest integer, with 0.5 rounding up.
+        - `none`: No rounding; the converted value is used as-is.
     BillingUsageBasedCharge:
       type: object
       required:
