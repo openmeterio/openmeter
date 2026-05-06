@@ -1,8 +1,10 @@
 package rating
 
 import (
+	"cmp"
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -11,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating/delta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating/periodpreserving"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -134,6 +137,14 @@ func (s *service) GetDetailedRatingForUsage(ctx context.Context, in GetDetailedR
 			DetailedLines: out.DetailedLines,
 			Quantity:      currentQuantity,
 		}, nil
+	case usagebased.RatingEnginePeriodPreserving:
+		return s.ratePeriodPreservingDetails(ctx, ratePeriodPreservingDetailsInput{
+			Input:                   in,
+			Charge:                  charge,
+			EligibleRealizations:    eligibleRealizations,
+			CurrentQuantity:         currentQuantity,
+			CurrentRunServicePeriod: currentRunServicePeriod,
+		})
 	default:
 		return GetDetailedRatingForUsageResult{}, fmt.Errorf("unsupported rating engine: %s", charge.State.RatingEngine)
 	}
@@ -176,4 +187,92 @@ func currentBillingPeriod(currentRunServicePeriod timeutil.ClosedPeriod, eligibl
 	}
 
 	return currentBillingPeriod
+}
+
+type ratePeriodPreservingDetailsInput struct {
+	Input                   GetDetailedRatingForUsageInput
+	Charge                  usagebased.Charge
+	EligibleRealizations    usagebased.RealizationRuns
+	CurrentQuantity         alpacadecimal.Decimal
+	CurrentRunServicePeriod timeutil.ClosedPeriod
+}
+
+func (s *service) ratePeriodPreservingDetails(ctx context.Context, in ratePeriodPreservingDetailsInput) (GetDetailedRatingForUsageResult, error) {
+	// Let's sort the eligible realizations by service period to
+	slices.SortStableFunc(in.EligibleRealizations, func(a, b usagebased.RealizationRun) int {
+		return cmp.Compare(a.ServicePeriodTo.UnixNano(), b.ServicePeriodTo.UnixNano())
+	})
+
+	servicePeriodFrom := in.Charge.Intent.ServicePeriod.From
+	priorPeriods := make([]periodpreserving.PriorPeriod, 0, len(in.EligibleRealizations))
+
+	for _, realization := range in.EligibleRealizations {
+		servicePeriod := timeutil.ClosedPeriod{
+			From: servicePeriodFrom,
+			To:   realization.ServicePeriodTo,
+		}
+
+		// TODO: Later persist prior-period value snapshots for previous runs to avoid re-querying them. This only
+		// helps if we have customers with a lot of interim invoices.
+		//
+		// The future optimization should snapshot prior runs as follows:
+		//
+		// - Determine the previous run as the latest non-current run with `ServicePeriodTo < current ServicePeriodTo`.
+		// - For monotonic-compatible meters (monotonic + SUM), load that previous run's stored prior-period values.
+		// - Re-query prior run quantities using the current run's `StoredAtLT`.
+		// - Iterate prior runs from newest to oldest.
+		// - Once a freshly queried prior quantity matches the value stored by the previous run, stop querying older periods.
+		// - Copy the remaining older prior-period values from the previous run instead.
+		// - This avoids expensive meter queries for older periods when the previous snapshot already proves they have not changed.
+		//
+		// An alternative approach is to do two queries and aggregate from there (for SUM, COUNT, MIN, MAX, etc.).
+		//
+		// - Query the meter between [intent.ServicePeriodFrom ... servicePeriod.To) capped by [previousStoredAtLT ... currentStoredAtLT)
+		// - Query the meter between [servicePeriod.To ... currentServicePeriod.To) capped by currentStoredAtLT
+		// - Aggregate the two results
+
+		priorPeriodQty, err := s.snapshotQuantity(ctx, snapshotQuantityInput{
+			Customer:     in.Input.Customer.Customer,
+			FeatureMeter: in.Input.FeatureMeter,
+			// The invariant for *meter queries* is that it contains the aggregate quantity between [intent.ServicePeriodFrom ... servicePeriod.To) capped by StoredAtLT.
+			// The service period captured inside the PriorPeriod only contains the prior period's service period from billing perspective, but rating engines need the
+			// cumulative quantity for proper operation.
+			ServicePeriod: timeutil.ClosedPeriod{
+				From: in.Charge.Intent.ServicePeriod.From,
+				To:   realization.ServicePeriodTo,
+			},
+			StoredAtLT: in.Input.StoredAtLT,
+		})
+		if err != nil {
+			return GetDetailedRatingForUsageResult{}, fmt.Errorf("get prior period quantity: %w", err)
+		}
+
+		priorPeriods = append(priorPeriods, periodpreserving.PriorPeriod{
+			RunID:           realization.ID,
+			MeteredQuantity: priorPeriodQty,
+			ServicePeriod:   servicePeriod,
+			DetailedLines:   realization.DetailedLines.OrEmpty(),
+		})
+
+		servicePeriodFrom = servicePeriod.To
+	}
+
+	billingPeriod := currentBillingPeriod(in.CurrentRunServicePeriod, in.EligibleRealizations)
+	out, err := s.periodPreservingRater.Rate(ctx, periodpreserving.Input{
+		Intent: in.Charge.Intent,
+		CurrentPeriod: periodpreserving.CurrentPeriod{
+			MeteredQuantity: in.CurrentQuantity,
+			ServicePeriod:   billingPeriod,
+		},
+		PriorPeriods: priorPeriods,
+	})
+	if err != nil {
+		return GetDetailedRatingForUsageResult{}, err
+	}
+
+	return GetDetailedRatingForUsageResult{
+		Totals:        out.DetailedLines.SumTotals(),
+		DetailedLines: out.DetailedLines,
+		Quantity:      in.CurrentQuantity,
+	}, nil
 }

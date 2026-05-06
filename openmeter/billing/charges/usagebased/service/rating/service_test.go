@@ -149,6 +149,99 @@ func TestGetDetailedRatingForUsageIgnoresCurrentRunOnCharge(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestGetDetailedRatingForUsageUsesPeriodPreservingRatingEngine(t *testing.T) {
+	t.Parallel()
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	priorPeriod := timeutil.ClosedPeriod{
+		From: servicePeriod.From,
+		To:   servicePeriod.From.Add(24 * time.Hour),
+	}
+	currentPeriod := timeutil.ClosedPeriod{
+		From: priorPeriod.To,
+		To:   servicePeriod.To,
+	}
+
+	streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
+	streamingConnector.AddSimpleEvent("meter-1", 4, servicePeriod.From.Add(30*time.Minute))
+	streamingConnector.AddSimpleEvent("meter-1", 3, priorPeriod.To.Add(30*time.Minute))
+
+	priorRun := newDetailedRatingTestRun("prior", priorPeriod.To, 3)
+	priorRun.DetailedLines = mo.Some(usagebased.DetailedLines{
+		{
+			PricerReferenceID: billingrating.UnitPriceUsageChildUniqueReferenceID,
+			Base: stddetailedline.Base{
+				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+					Name: "Usage",
+				}),
+				ServicePeriod:          priorPeriod,
+				Currency:               currencyx.Code("USD"),
+				ChildUniqueReferenceID: ratingtestutils.FormatDetailedLineChildUniqueReferenceID(billingrating.UnitPriceUsageChildUniqueReferenceID, priorPeriod),
+				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+				PerUnitAmount:          alpacadecimal.NewFromInt(3),
+				Quantity:               alpacadecimal.NewFromInt(3),
+				Category:               stddetailedline.CategoryRegular,
+				Totals: totals.Totals{
+					Amount: alpacadecimal.NewFromInt(9),
+					Total:  alpacadecimal.NewFromInt(9),
+				},
+			},
+		},
+	})
+
+	charge := newDetailedRatingTestCharge(servicePeriod, usagebased.RealizationRuns{priorRun})
+	charge.State.RatingEngine = usagebased.RatingEnginePeriodPreserving
+
+	svc, err := New(Config{
+		StreamingConnector:   streamingConnector,
+		RatingService:        billingratingservice.New(),
+		DetailedLinesFetcher: passthroughDetailedLinesFetcher,
+	})
+	require.NoError(t, err)
+
+	out, err := svc.GetDetailedRatingForUsage(t.Context(), GetDetailedRatingForUsageInput{
+		Charge:          charge,
+		ServicePeriodTo: servicePeriod.To,
+		StoredAtLT:      servicePeriod.To,
+		Customer:        newDetailedRatingTestCustomer(),
+		FeatureMeter:    newDetailedRatingTestFeatureMeter(),
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, []ratingtestutils.ExpectedDetailedLine{
+		{
+			ChildUniqueReferenceID: ratingtestutils.FormatDetailedLineChildUniqueReferenceID(billingrating.UnitPriceUsageChildUniqueReferenceID, priorPeriod),
+			Category:               stddetailedline.CategoryRegular,
+			ServicePeriod:          lo.ToPtr(priorPeriod),
+			CorrectsRunID:          lo.ToPtr("prior"),
+			PerUnitAmount:          3,
+			Quantity:               1,
+			Totals: ratingtestutils.ExpectedTotals{
+				Amount: 3,
+				Total:  3,
+			},
+		},
+		{
+			ChildUniqueReferenceID: ratingtestutils.FormatDetailedLineChildUniqueReferenceID(billingrating.UnitPriceUsageChildUniqueReferenceID, currentPeriod),
+			Category:               stddetailedline.CategoryRegular,
+			ServicePeriod:          lo.ToPtr(currentPeriod),
+			PerUnitAmount:          3,
+			Quantity:               3,
+			Totals: ratingtestutils.ExpectedTotals{
+				Amount: 9,
+				Total:  9,
+			},
+		},
+	}, ratingtestutils.ToExpectedDetailedLinesWithServicePeriod(out.DetailedLines))
+	require.Equal(t, ratingtestutils.ExpectedTotals{
+		Amount: 12,
+		Total:  12,
+	}, ratingtestutils.ToExpectedTotals(out.Totals))
+}
+
 func TestGetDetailedRatingForUsageLoadsPriorDetailedLines(t *testing.T) {
 	t.Parallel()
 
