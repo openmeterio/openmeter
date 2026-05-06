@@ -4134,6 +4134,9 @@ var (
 				Name:    "organizationdefaulttaxcodes_namespace",
 				Unique:  true,
 				Columns: []*schema.Column{OrganizationDefaultTaxCodesColumns[4]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
 			},
 		},
 	}

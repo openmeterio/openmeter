@@ -3,9 +3,11 @@ package schema
 import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -53,6 +55,7 @@ func (OrganizationDefaultTaxCodes) Edges() []ent.Edge {
 func (OrganizationDefaultTaxCodes) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace").
+			Annotations(entsql.IndexWhere("deleted_at IS NULL")).
 			Unique(),
 	}
 }

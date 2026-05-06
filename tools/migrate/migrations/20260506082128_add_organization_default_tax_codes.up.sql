@@ -14,4 +14,4 @@ CREATE TABLE "organization_default_tax_codes" (
 -- create index "organizationdefaulttaxcodes_id" to table: "organization_default_tax_codes"
 CREATE UNIQUE INDEX "organizationdefaulttaxcodes_id" ON "organization_default_tax_codes" ("id");
 -- create index "organizationdefaulttaxcodes_namespace" to table: "organization_default_tax_codes"
-CREATE UNIQUE INDEX "organizationdefaulttaxcodes_namespace" ON "organization_default_tax_codes" ("namespace");
+CREATE UNIQUE INDEX "organizationdefaulttaxcodes_namespace" ON "organization_default_tax_codes" ("namespace") WHERE (deleted_at IS NULL);
