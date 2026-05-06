@@ -29,7 +29,7 @@ type fieldFiltersTarget struct {
 	StringExact *filters.FilterStringExact `json:"string_exact,omitempty"`
 	ULID        *filters.FilterULID        `json:"ulid,omitempty"`
 	DateTime    *filters.FilterDateTime    `json:"datetime,omitempty"`
-	Labels      *filters.FilterString      `json:"labels,omitempty"`
+	Labels      *filters.FilterLabels      `json:"labels,omitempty"`
 }
 
 // validatorErrorResponse mirrors the AIP-style error body produced by
@@ -480,13 +480,13 @@ func TestFieldFilterParse(t *testing.T) {
 		// fixture wires the labels field as a single filter, not a labels map.
 		{
 			name:      "labels short",
-			query:     "filter[labels]=team-a",
-			wantParse: fieldFiltersTarget{Labels: &filters.FilterString{Eq: lo.ToPtr("team-a")}},
+			query:     "filter[labels][key]=team-a",
+			wantParse: fieldFiltersTarget{Labels: &filters.FilterLabels{"key": {Eq: lo.ToPtr("team-a")}}},
 		},
 		{
 			name:      "labels contains",
-			query:     "filter[labels][contains]=team",
-			wantParse: fieldFiltersTarget{Labels: &filters.FilterString{Contains: lo.ToPtr("team")}},
+			query:     "filter[labels][key][contains]=team",
+			wantParse: fieldFiltersTarget{Labels: &filters.FilterLabels{"key": {Contains: lo.ToPtr("team")}}},
 		},
 
 		// Multiple independent filters in one request.
@@ -501,11 +501,11 @@ func TestFieldFilterParse(t *testing.T) {
 		},
 		{
 			name:  "combined ulid+datetime+labels",
-			query: "filter[ulid][eq]=" + ulid1 + "&filter[datetime][lt]=2024-01-02T03:04:05Z&filter[labels]=team-a",
+			query: "filter[ulid][eq]=" + ulid1 + "&filter[datetime][lt]=2024-01-02T03:04:05Z&filter[labels][key]=team-a",
 			wantParse: fieldFiltersTarget{
 				ULID:     &filters.FilterULID{Eq: &ulid1},
 				DateTime: &filters.FilterDateTime{Lt: &dt},
-				Labels:   &filters.FilterString{Eq: lo.ToPtr("team-a")},
+				Labels:   &filters.FilterLabels{"key": {Eq: lo.ToPtr("team-a")}},
 			},
 		},
 
