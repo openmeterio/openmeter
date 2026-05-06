@@ -829,6 +829,52 @@ func HasChargeCreditPurchasesWith(preds ...predicate.ChargeCreditPurchase) predi
 	})
 }
 
+// HasOrganizationDefaultInvoicing applies the HasEdge predicate on the "organization_default_invoicing" edge.
+func HasOrganizationDefaultInvoicing() predicate.TaxCode {
+	return predicate.TaxCode(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, OrganizationDefaultInvoicingTable, OrganizationDefaultInvoicingColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasOrganizationDefaultInvoicingWith applies the HasEdge predicate on the "organization_default_invoicing" edge with a given conditions (other predicates).
+func HasOrganizationDefaultInvoicingWith(preds ...predicate.OrganizationDefaultTaxCodes) predicate.TaxCode {
+	return predicate.TaxCode(func(s *sql.Selector) {
+		step := newOrganizationDefaultInvoicingStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasOrganizationDefaultCreditGrant applies the HasEdge predicate on the "organization_default_credit_grant" edge.
+func HasOrganizationDefaultCreditGrant() predicate.TaxCode {
+	return predicate.TaxCode(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, OrganizationDefaultCreditGrantTable, OrganizationDefaultCreditGrantColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasOrganizationDefaultCreditGrantWith applies the HasEdge predicate on the "organization_default_credit_grant" edge with a given conditions (other predicates).
+func HasOrganizationDefaultCreditGrantWith(preds ...predicate.OrganizationDefaultTaxCodes) predicate.TaxCode {
+	return predicate.TaxCode(func(s *sql.Selector) {
+		step := newOrganizationDefaultCreditGrantStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.TaxCode) predicate.TaxCode {
 	return predicate.TaxCode(sql.AndPredicates(predicates...))

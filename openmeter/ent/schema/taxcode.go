@@ -64,6 +64,10 @@ func (TaxCode) Edges() []ent.Edge {
 		edge.To("charge_flat_fees", ChargeFlatFee.Type),
 		edge.To("charge_usage_based", ChargeUsageBased.Type),
 		edge.To("charge_credit_purchases", ChargeCreditPurchase.Type),
+		edge.To("organization_default_invoicing", OrganizationDefaultTaxCodes.Type).
+			StorageKey(edge.Symbol("org_dtc_invoicing_tax_code_fk")),
+		edge.To("organization_default_credit_grant", OrganizationDefaultTaxCodes.Type).
+			StorageKey(edge.Symbol("org_dtc_credit_grant_tax_code_fk")),
 	}
 }
 

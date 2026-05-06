@@ -142,6 +142,8 @@ type Tx struct {
 	NotificationEventDeliveryStatus *NotificationEventDeliveryStatusClient
 	// NotificationRule is the client for interacting with the NotificationRule builders.
 	NotificationRule *NotificationRuleClient
+	// OrganizationDefaultTaxCodes is the client for interacting with the OrganizationDefaultTaxCodes builders.
+	OrganizationDefaultTaxCodes *OrganizationDefaultTaxCodesClient
 	// Plan is the client for interacting with the Plan builders.
 	Plan *PlanClient
 	// PlanAddon is the client for interacting with the PlanAddon builders.
@@ -363,6 +365,7 @@ func (tx *Tx) init() {
 	tx.NotificationEvent = NewNotificationEventClient(tx.config)
 	tx.NotificationEventDeliveryStatus = NewNotificationEventDeliveryStatusClient(tx.config)
 	tx.NotificationRule = NewNotificationRuleClient(tx.config)
+	tx.OrganizationDefaultTaxCodes = NewOrganizationDefaultTaxCodesClient(tx.config)
 	tx.Plan = NewPlanClient(tx.config)
 	tx.PlanAddon = NewPlanAddonClient(tx.config)
 	tx.PlanPhase = NewPlanPhaseClient(tx.config)

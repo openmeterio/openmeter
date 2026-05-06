@@ -78,6 +78,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/organizationdefaulttaxcodes"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
@@ -228,6 +229,8 @@ type Client struct {
 	NotificationEventDeliveryStatus *NotificationEventDeliveryStatusClient
 	// NotificationRule is the client for interacting with the NotificationRule builders.
 	NotificationRule *NotificationRuleClient
+	// OrganizationDefaultTaxCodes is the client for interacting with the OrganizationDefaultTaxCodes builders.
+	OrganizationDefaultTaxCodes *OrganizationDefaultTaxCodesClient
 	// Plan is the client for interacting with the Plan builders.
 	Plan *PlanClient
 	// PlanAddon is the client for interacting with the PlanAddon builders.
@@ -329,6 +332,7 @@ func (c *Client) init() {
 	c.NotificationEvent = NewNotificationEventClient(c.config)
 	c.NotificationEventDeliveryStatus = NewNotificationEventDeliveryStatusClient(c.config)
 	c.NotificationRule = NewNotificationRuleClient(c.config)
+	c.OrganizationDefaultTaxCodes = NewOrganizationDefaultTaxCodesClient(c.config)
 	c.Plan = NewPlanClient(c.config)
 	c.PlanAddon = NewPlanAddonClient(c.config)
 	c.PlanPhase = NewPlanPhaseClient(c.config)
@@ -498,6 +502,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		NotificationEvent:                                NewNotificationEventClient(cfg),
 		NotificationEventDeliveryStatus:                  NewNotificationEventDeliveryStatusClient(cfg),
 		NotificationRule:                                 NewNotificationRuleClient(cfg),
+		OrganizationDefaultTaxCodes:                      NewOrganizationDefaultTaxCodesClient(cfg),
 		Plan:                                             NewPlanClient(cfg),
 		PlanAddon:                                        NewPlanAddonClient(cfg),
 		PlanPhase:                                        NewPlanPhaseClient(cfg),
@@ -594,6 +599,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		NotificationEvent:                                NewNotificationEventClient(cfg),
 		NotificationEventDeliveryStatus:                  NewNotificationEventDeliveryStatusClient(cfg),
 		NotificationRule:                                 NewNotificationRuleClient(cfg),
+		OrganizationDefaultTaxCodes:                      NewOrganizationDefaultTaxCodesClient(cfg),
 		Plan:                                             NewPlanClient(cfg),
 		PlanAddon:                                        NewPlanAddonClient(cfg),
 		PlanPhase:                                        NewPlanPhaseClient(cfg),
@@ -658,8 +664,9 @@ func (c *Client) Use(hooks ...Hook) {
 		c.LLMCostPrice, c.LedgerAccount, c.LedgerCustomerAccount, c.LedgerEntry,
 		c.LedgerSubAccount, c.LedgerSubAccountRoute, c.LedgerTransaction,
 		c.LedgerTransactionGroup, c.Meter, c.NotificationChannel, c.NotificationEvent,
-		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanAddon,
-		c.PlanPhase, c.PlanRateCard, c.Subject, c.Subscription, c.SubscriptionAddon,
+		c.NotificationEventDeliveryStatus, c.NotificationRule,
+		c.OrganizationDefaultTaxCodes, c.Plan, c.PlanAddon, c.PlanPhase,
+		c.PlanRateCard, c.Subject, c.Subscription, c.SubscriptionAddon,
 		c.SubscriptionAddonQuantity, c.SubscriptionBillingSyncState,
 		c.SubscriptionItem, c.SubscriptionPhase, c.TaxCode, c.UsageReset,
 	} {
@@ -693,8 +700,9 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.LLMCostPrice, c.LedgerAccount, c.LedgerCustomerAccount, c.LedgerEntry,
 		c.LedgerSubAccount, c.LedgerSubAccountRoute, c.LedgerTransaction,
 		c.LedgerTransactionGroup, c.Meter, c.NotificationChannel, c.NotificationEvent,
-		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanAddon,
-		c.PlanPhase, c.PlanRateCard, c.Subject, c.Subscription, c.SubscriptionAddon,
+		c.NotificationEventDeliveryStatus, c.NotificationRule,
+		c.OrganizationDefaultTaxCodes, c.Plan, c.PlanAddon, c.PlanPhase,
+		c.PlanRateCard, c.Subject, c.Subscription, c.SubscriptionAddon,
 		c.SubscriptionAddonQuantity, c.SubscriptionBillingSyncState,
 		c.SubscriptionItem, c.SubscriptionPhase, c.TaxCode, c.UsageReset,
 	} {
@@ -831,6 +839,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.NotificationEventDeliveryStatus.mutate(ctx, m)
 	case *NotificationRuleMutation:
 		return c.NotificationRule.mutate(ctx, m)
+	case *OrganizationDefaultTaxCodesMutation:
+		return c.OrganizationDefaultTaxCodes.mutate(ctx, m)
 	case *PlanMutation:
 		return c.Plan.mutate(ctx, m)
 	case *PlanAddonMutation:
@@ -12327,6 +12337,171 @@ func (c *NotificationRuleClient) mutate(ctx context.Context, m *NotificationRule
 	}
 }
 
+// OrganizationDefaultTaxCodesClient is a client for the OrganizationDefaultTaxCodes schema.
+type OrganizationDefaultTaxCodesClient struct {
+	config
+}
+
+// NewOrganizationDefaultTaxCodesClient returns a client for the OrganizationDefaultTaxCodes from the given config.
+func NewOrganizationDefaultTaxCodesClient(c config) *OrganizationDefaultTaxCodesClient {
+	return &OrganizationDefaultTaxCodesClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `organizationdefaulttaxcodes.Hooks(f(g(h())))`.
+func (c *OrganizationDefaultTaxCodesClient) Use(hooks ...Hook) {
+	c.hooks.OrganizationDefaultTaxCodes = append(c.hooks.OrganizationDefaultTaxCodes, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `organizationdefaulttaxcodes.Intercept(f(g(h())))`.
+func (c *OrganizationDefaultTaxCodesClient) Intercept(interceptors ...Interceptor) {
+	c.inters.OrganizationDefaultTaxCodes = append(c.inters.OrganizationDefaultTaxCodes, interceptors...)
+}
+
+// Create returns a builder for creating a OrganizationDefaultTaxCodes entity.
+func (c *OrganizationDefaultTaxCodesClient) Create() *OrganizationDefaultTaxCodesCreate {
+	mutation := newOrganizationDefaultTaxCodesMutation(c.config, OpCreate)
+	return &OrganizationDefaultTaxCodesCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of OrganizationDefaultTaxCodes entities.
+func (c *OrganizationDefaultTaxCodesClient) CreateBulk(builders ...*OrganizationDefaultTaxCodesCreate) *OrganizationDefaultTaxCodesCreateBulk {
+	return &OrganizationDefaultTaxCodesCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *OrganizationDefaultTaxCodesClient) MapCreateBulk(slice any, setFunc func(*OrganizationDefaultTaxCodesCreate, int)) *OrganizationDefaultTaxCodesCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &OrganizationDefaultTaxCodesCreateBulk{err: fmt.Errorf("calling to OrganizationDefaultTaxCodesClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*OrganizationDefaultTaxCodesCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &OrganizationDefaultTaxCodesCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for OrganizationDefaultTaxCodes.
+func (c *OrganizationDefaultTaxCodesClient) Update() *OrganizationDefaultTaxCodesUpdate {
+	mutation := newOrganizationDefaultTaxCodesMutation(c.config, OpUpdate)
+	return &OrganizationDefaultTaxCodesUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *OrganizationDefaultTaxCodesClient) UpdateOne(_m *OrganizationDefaultTaxCodes) *OrganizationDefaultTaxCodesUpdateOne {
+	mutation := newOrganizationDefaultTaxCodesMutation(c.config, OpUpdateOne, withOrganizationDefaultTaxCodes(_m))
+	return &OrganizationDefaultTaxCodesUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *OrganizationDefaultTaxCodesClient) UpdateOneID(id string) *OrganizationDefaultTaxCodesUpdateOne {
+	mutation := newOrganizationDefaultTaxCodesMutation(c.config, OpUpdateOne, withOrganizationDefaultTaxCodesID(id))
+	return &OrganizationDefaultTaxCodesUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for OrganizationDefaultTaxCodes.
+func (c *OrganizationDefaultTaxCodesClient) Delete() *OrganizationDefaultTaxCodesDelete {
+	mutation := newOrganizationDefaultTaxCodesMutation(c.config, OpDelete)
+	return &OrganizationDefaultTaxCodesDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *OrganizationDefaultTaxCodesClient) DeleteOne(_m *OrganizationDefaultTaxCodes) *OrganizationDefaultTaxCodesDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *OrganizationDefaultTaxCodesClient) DeleteOneID(id string) *OrganizationDefaultTaxCodesDeleteOne {
+	builder := c.Delete().Where(organizationdefaulttaxcodes.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &OrganizationDefaultTaxCodesDeleteOne{builder}
+}
+
+// Query returns a query builder for OrganizationDefaultTaxCodes.
+func (c *OrganizationDefaultTaxCodesClient) Query() *OrganizationDefaultTaxCodesQuery {
+	return &OrganizationDefaultTaxCodesQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeOrganizationDefaultTaxCodes},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a OrganizationDefaultTaxCodes entity by its id.
+func (c *OrganizationDefaultTaxCodesClient) Get(ctx context.Context, id string) (*OrganizationDefaultTaxCodes, error) {
+	return c.Query().Where(organizationdefaulttaxcodes.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *OrganizationDefaultTaxCodesClient) GetX(ctx context.Context, id string) *OrganizationDefaultTaxCodes {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryInvoicingTaxCode queries the invoicing_tax_code edge of a OrganizationDefaultTaxCodes.
+func (c *OrganizationDefaultTaxCodesClient) QueryInvoicingTaxCode(_m *OrganizationDefaultTaxCodes) *TaxCodeQuery {
+	query := (&TaxCodeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(organizationdefaulttaxcodes.Table, organizationdefaulttaxcodes.FieldID, id),
+			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, organizationdefaulttaxcodes.InvoicingTaxCodeTable, organizationdefaulttaxcodes.InvoicingTaxCodeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCreditGrantTaxCode queries the credit_grant_tax_code edge of a OrganizationDefaultTaxCodes.
+func (c *OrganizationDefaultTaxCodesClient) QueryCreditGrantTaxCode(_m *OrganizationDefaultTaxCodes) *TaxCodeQuery {
+	query := (&TaxCodeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(organizationdefaulttaxcodes.Table, organizationdefaulttaxcodes.FieldID, id),
+			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, organizationdefaulttaxcodes.CreditGrantTaxCodeTable, organizationdefaulttaxcodes.CreditGrantTaxCodeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *OrganizationDefaultTaxCodesClient) Hooks() []Hook {
+	return c.hooks.OrganizationDefaultTaxCodes
+}
+
+// Interceptors returns the client interceptors.
+func (c *OrganizationDefaultTaxCodesClient) Interceptors() []Interceptor {
+	return c.inters.OrganizationDefaultTaxCodes
+}
+
+func (c *OrganizationDefaultTaxCodesClient) mutate(ctx context.Context, m *OrganizationDefaultTaxCodesMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&OrganizationDefaultTaxCodesCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&OrganizationDefaultTaxCodesUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&OrganizationDefaultTaxCodesUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&OrganizationDefaultTaxCodesDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown OrganizationDefaultTaxCodes mutation op: %q", m.Op())
+	}
+}
+
 // PlanClient is a client for the Plan schema.
 type PlanClient struct {
 	config
@@ -14746,6 +14921,38 @@ func (c *TaxCodeClient) QueryChargeCreditPurchases(_m *TaxCode) *ChargeCreditPur
 	return query
 }
 
+// QueryOrganizationDefaultInvoicing queries the organization_default_invoicing edge of a TaxCode.
+func (c *TaxCodeClient) QueryOrganizationDefaultInvoicing(_m *TaxCode) *OrganizationDefaultTaxCodesQuery {
+	query := (&OrganizationDefaultTaxCodesClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, id),
+			sqlgraph.To(organizationdefaulttaxcodes.Table, organizationdefaulttaxcodes.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.OrganizationDefaultInvoicingTable, dbtaxcode.OrganizationDefaultInvoicingColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryOrganizationDefaultCreditGrant queries the organization_default_credit_grant edge of a TaxCode.
+func (c *TaxCodeClient) QueryOrganizationDefaultCreditGrant(_m *TaxCode) *OrganizationDefaultTaxCodesQuery {
+	query := (&OrganizationDefaultTaxCodesClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, id),
+			sqlgraph.To(organizationdefaulttaxcodes.Table, organizationdefaulttaxcodes.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.OrganizationDefaultCreditGrantTable, dbtaxcode.OrganizationDefaultCreditGrantColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *TaxCodeClient) Hooks() []Hook {
 	return c.hooks.TaxCode
@@ -14943,10 +15150,11 @@ type (
 		CustomerSubjects, Entitlement, Feature, Grant, LLMCostPrice, LedgerAccount,
 		LedgerCustomerAccount, LedgerEntry, LedgerSubAccount, LedgerSubAccountRoute,
 		LedgerTransaction, LedgerTransactionGroup, Meter, NotificationChannel,
-		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
-		PlanAddon, PlanPhase, PlanRateCard, Subject, Subscription, SubscriptionAddon,
-		SubscriptionAddonQuantity, SubscriptionBillingSyncState, SubscriptionItem,
-		SubscriptionPhase, TaxCode, UsageReset []ent.Hook
+		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule,
+		OrganizationDefaultTaxCodes, Plan, PlanAddon, PlanPhase, PlanRateCard, Subject,
+		Subscription, SubscriptionAddon, SubscriptionAddonQuantity,
+		SubscriptionBillingSyncState, SubscriptionItem, SubscriptionPhase, TaxCode,
+		UsageReset []ent.Hook
 	}
 	inters struct {
 		Addon, AddonRateCard, App, AppCustomInvoicing, AppCustomInvoicingCustomer,
@@ -14969,10 +15177,11 @@ type (
 		CustomerSubjects, Entitlement, Feature, Grant, LLMCostPrice, LedgerAccount,
 		LedgerCustomerAccount, LedgerEntry, LedgerSubAccount, LedgerSubAccountRoute,
 		LedgerTransaction, LedgerTransactionGroup, Meter, NotificationChannel,
-		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
-		PlanAddon, PlanPhase, PlanRateCard, Subject, Subscription, SubscriptionAddon,
-		SubscriptionAddonQuantity, SubscriptionBillingSyncState, SubscriptionItem,
-		SubscriptionPhase, TaxCode, UsageReset []ent.Interceptor
+		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule,
+		OrganizationDefaultTaxCodes, Plan, PlanAddon, PlanPhase, PlanRateCard, Subject,
+		Subscription, SubscriptionAddon, SubscriptionAddonQuantity,
+		SubscriptionBillingSyncState, SubscriptionItem, SubscriptionPhase, TaxCode,
+		UsageReset []ent.Interceptor
 	}
 )
 

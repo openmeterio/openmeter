@@ -87,6 +87,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/organizationdefaulttaxcodes"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
@@ -186,6 +187,7 @@ const (
 	TypeNotificationEvent                                = "NotificationEvent"
 	TypeNotificationEventDeliveryStatus                  = "NotificationEventDeliveryStatus"
 	TypeNotificationRule                                 = "NotificationRule"
+	TypeOrganizationDefaultTaxCodes                      = "OrganizationDefaultTaxCodes"
 	TypePlan                                             = "Plan"
 	TypePlanAddon                                        = "PlanAddon"
 	TypePlanPhase                                        = "PlanPhase"
@@ -88284,6 +88286,730 @@ func (m *NotificationRuleMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown NotificationRule edge %s", name)
 }
 
+// OrganizationDefaultTaxCodesMutation represents an operation that mutates the OrganizationDefaultTaxCodes nodes in the graph.
+type OrganizationDefaultTaxCodesMutation struct {
+	config
+	op                           Op
+	typ                          string
+	id                           *string
+	created_at                   *time.Time
+	updated_at                   *time.Time
+	deleted_at                   *time.Time
+	namespace                    *string
+	clearedFields                map[string]struct{}
+	invoicing_tax_code           *string
+	clearedinvoicing_tax_code    bool
+	credit_grant_tax_code        *string
+	clearedcredit_grant_tax_code bool
+	done                         bool
+	oldValue                     func(context.Context) (*OrganizationDefaultTaxCodes, error)
+	predicates                   []predicate.OrganizationDefaultTaxCodes
+}
+
+var _ ent.Mutation = (*OrganizationDefaultTaxCodesMutation)(nil)
+
+// organizationdefaulttaxcodesOption allows management of the mutation configuration using functional options.
+type organizationdefaulttaxcodesOption func(*OrganizationDefaultTaxCodesMutation)
+
+// newOrganizationDefaultTaxCodesMutation creates new mutation for the OrganizationDefaultTaxCodes entity.
+func newOrganizationDefaultTaxCodesMutation(c config, op Op, opts ...organizationdefaulttaxcodesOption) *OrganizationDefaultTaxCodesMutation {
+	m := &OrganizationDefaultTaxCodesMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeOrganizationDefaultTaxCodes,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withOrganizationDefaultTaxCodesID sets the ID field of the mutation.
+func withOrganizationDefaultTaxCodesID(id string) organizationdefaulttaxcodesOption {
+	return func(m *OrganizationDefaultTaxCodesMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *OrganizationDefaultTaxCodes
+		)
+		m.oldValue = func(ctx context.Context) (*OrganizationDefaultTaxCodes, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().OrganizationDefaultTaxCodes.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withOrganizationDefaultTaxCodes sets the old OrganizationDefaultTaxCodes of the mutation.
+func withOrganizationDefaultTaxCodes(node *OrganizationDefaultTaxCodes) organizationdefaulttaxcodesOption {
+	return func(m *OrganizationDefaultTaxCodesMutation) {
+		m.oldValue = func(context.Context) (*OrganizationDefaultTaxCodes, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m OrganizationDefaultTaxCodesMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m OrganizationDefaultTaxCodesMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of OrganizationDefaultTaxCodes entities.
+func (m *OrganizationDefaultTaxCodesMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *OrganizationDefaultTaxCodesMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *OrganizationDefaultTaxCodesMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().OrganizationDefaultTaxCodes.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *OrganizationDefaultTaxCodesMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *OrganizationDefaultTaxCodesMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the OrganizationDefaultTaxCodes entity.
+// If the OrganizationDefaultTaxCodes object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrganizationDefaultTaxCodesMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *OrganizationDefaultTaxCodesMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *OrganizationDefaultTaxCodesMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *OrganizationDefaultTaxCodesMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the OrganizationDefaultTaxCodes entity.
+// If the OrganizationDefaultTaxCodes object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrganizationDefaultTaxCodesMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *OrganizationDefaultTaxCodesMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *OrganizationDefaultTaxCodesMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *OrganizationDefaultTaxCodesMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the OrganizationDefaultTaxCodes entity.
+// If the OrganizationDefaultTaxCodes object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrganizationDefaultTaxCodesMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *OrganizationDefaultTaxCodesMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[organizationdefaulttaxcodes.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *OrganizationDefaultTaxCodesMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[organizationdefaulttaxcodes.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *OrganizationDefaultTaxCodesMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, organizationdefaulttaxcodes.FieldDeletedAt)
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *OrganizationDefaultTaxCodesMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *OrganizationDefaultTaxCodesMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the OrganizationDefaultTaxCodes entity.
+// If the OrganizationDefaultTaxCodes object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrganizationDefaultTaxCodesMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *OrganizationDefaultTaxCodesMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetInvoicingTaxCodeID sets the "invoicing_tax_code_id" field.
+func (m *OrganizationDefaultTaxCodesMutation) SetInvoicingTaxCodeID(s string) {
+	m.invoicing_tax_code = &s
+}
+
+// InvoicingTaxCodeID returns the value of the "invoicing_tax_code_id" field in the mutation.
+func (m *OrganizationDefaultTaxCodesMutation) InvoicingTaxCodeID() (r string, exists bool) {
+	v := m.invoicing_tax_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInvoicingTaxCodeID returns the old "invoicing_tax_code_id" field's value of the OrganizationDefaultTaxCodes entity.
+// If the OrganizationDefaultTaxCodes object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrganizationDefaultTaxCodesMutation) OldInvoicingTaxCodeID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInvoicingTaxCodeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInvoicingTaxCodeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInvoicingTaxCodeID: %w", err)
+	}
+	return oldValue.InvoicingTaxCodeID, nil
+}
+
+// ResetInvoicingTaxCodeID resets all changes to the "invoicing_tax_code_id" field.
+func (m *OrganizationDefaultTaxCodesMutation) ResetInvoicingTaxCodeID() {
+	m.invoicing_tax_code = nil
+}
+
+// SetCreditGrantTaxCodeID sets the "credit_grant_tax_code_id" field.
+func (m *OrganizationDefaultTaxCodesMutation) SetCreditGrantTaxCodeID(s string) {
+	m.credit_grant_tax_code = &s
+}
+
+// CreditGrantTaxCodeID returns the value of the "credit_grant_tax_code_id" field in the mutation.
+func (m *OrganizationDefaultTaxCodesMutation) CreditGrantTaxCodeID() (r string, exists bool) {
+	v := m.credit_grant_tax_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreditGrantTaxCodeID returns the old "credit_grant_tax_code_id" field's value of the OrganizationDefaultTaxCodes entity.
+// If the OrganizationDefaultTaxCodes object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrganizationDefaultTaxCodesMutation) OldCreditGrantTaxCodeID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreditGrantTaxCodeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreditGrantTaxCodeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreditGrantTaxCodeID: %w", err)
+	}
+	return oldValue.CreditGrantTaxCodeID, nil
+}
+
+// ResetCreditGrantTaxCodeID resets all changes to the "credit_grant_tax_code_id" field.
+func (m *OrganizationDefaultTaxCodesMutation) ResetCreditGrantTaxCodeID() {
+	m.credit_grant_tax_code = nil
+}
+
+// ClearInvoicingTaxCode clears the "invoicing_tax_code" edge to the TaxCode entity.
+func (m *OrganizationDefaultTaxCodesMutation) ClearInvoicingTaxCode() {
+	m.clearedinvoicing_tax_code = true
+	m.clearedFields[organizationdefaulttaxcodes.FieldInvoicingTaxCodeID] = struct{}{}
+}
+
+// InvoicingTaxCodeCleared reports if the "invoicing_tax_code" edge to the TaxCode entity was cleared.
+func (m *OrganizationDefaultTaxCodesMutation) InvoicingTaxCodeCleared() bool {
+	return m.clearedinvoicing_tax_code
+}
+
+// InvoicingTaxCodeIDs returns the "invoicing_tax_code" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// InvoicingTaxCodeID instead. It exists only for internal usage by the builders.
+func (m *OrganizationDefaultTaxCodesMutation) InvoicingTaxCodeIDs() (ids []string) {
+	if id := m.invoicing_tax_code; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetInvoicingTaxCode resets all changes to the "invoicing_tax_code" edge.
+func (m *OrganizationDefaultTaxCodesMutation) ResetInvoicingTaxCode() {
+	m.invoicing_tax_code = nil
+	m.clearedinvoicing_tax_code = false
+}
+
+// ClearCreditGrantTaxCode clears the "credit_grant_tax_code" edge to the TaxCode entity.
+func (m *OrganizationDefaultTaxCodesMutation) ClearCreditGrantTaxCode() {
+	m.clearedcredit_grant_tax_code = true
+	m.clearedFields[organizationdefaulttaxcodes.FieldCreditGrantTaxCodeID] = struct{}{}
+}
+
+// CreditGrantTaxCodeCleared reports if the "credit_grant_tax_code" edge to the TaxCode entity was cleared.
+func (m *OrganizationDefaultTaxCodesMutation) CreditGrantTaxCodeCleared() bool {
+	return m.clearedcredit_grant_tax_code
+}
+
+// CreditGrantTaxCodeIDs returns the "credit_grant_tax_code" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CreditGrantTaxCodeID instead. It exists only for internal usage by the builders.
+func (m *OrganizationDefaultTaxCodesMutation) CreditGrantTaxCodeIDs() (ids []string) {
+	if id := m.credit_grant_tax_code; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCreditGrantTaxCode resets all changes to the "credit_grant_tax_code" edge.
+func (m *OrganizationDefaultTaxCodesMutation) ResetCreditGrantTaxCode() {
+	m.credit_grant_tax_code = nil
+	m.clearedcredit_grant_tax_code = false
+}
+
+// Where appends a list predicates to the OrganizationDefaultTaxCodesMutation builder.
+func (m *OrganizationDefaultTaxCodesMutation) Where(ps ...predicate.OrganizationDefaultTaxCodes) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the OrganizationDefaultTaxCodesMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *OrganizationDefaultTaxCodesMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.OrganizationDefaultTaxCodes, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *OrganizationDefaultTaxCodesMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *OrganizationDefaultTaxCodesMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (OrganizationDefaultTaxCodes).
+func (m *OrganizationDefaultTaxCodesMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *OrganizationDefaultTaxCodesMutation) Fields() []string {
+	fields := make([]string, 0, 6)
+	if m.created_at != nil {
+		fields = append(fields, organizationdefaulttaxcodes.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, organizationdefaulttaxcodes.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, organizationdefaulttaxcodes.FieldDeletedAt)
+	}
+	if m.namespace != nil {
+		fields = append(fields, organizationdefaulttaxcodes.FieldNamespace)
+	}
+	if m.invoicing_tax_code != nil {
+		fields = append(fields, organizationdefaulttaxcodes.FieldInvoicingTaxCodeID)
+	}
+	if m.credit_grant_tax_code != nil {
+		fields = append(fields, organizationdefaulttaxcodes.FieldCreditGrantTaxCodeID)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *OrganizationDefaultTaxCodesMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case organizationdefaulttaxcodes.FieldCreatedAt:
+		return m.CreatedAt()
+	case organizationdefaulttaxcodes.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case organizationdefaulttaxcodes.FieldDeletedAt:
+		return m.DeletedAt()
+	case organizationdefaulttaxcodes.FieldNamespace:
+		return m.Namespace()
+	case organizationdefaulttaxcodes.FieldInvoicingTaxCodeID:
+		return m.InvoicingTaxCodeID()
+	case organizationdefaulttaxcodes.FieldCreditGrantTaxCodeID:
+		return m.CreditGrantTaxCodeID()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *OrganizationDefaultTaxCodesMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case organizationdefaulttaxcodes.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case organizationdefaulttaxcodes.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case organizationdefaulttaxcodes.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case organizationdefaulttaxcodes.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case organizationdefaulttaxcodes.FieldInvoicingTaxCodeID:
+		return m.OldInvoicingTaxCodeID(ctx)
+	case organizationdefaulttaxcodes.FieldCreditGrantTaxCodeID:
+		return m.OldCreditGrantTaxCodeID(ctx)
+	}
+	return nil, fmt.Errorf("unknown OrganizationDefaultTaxCodes field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *OrganizationDefaultTaxCodesMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case organizationdefaulttaxcodes.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case organizationdefaulttaxcodes.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case organizationdefaulttaxcodes.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case organizationdefaulttaxcodes.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case organizationdefaulttaxcodes.FieldInvoicingTaxCodeID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInvoicingTaxCodeID(v)
+		return nil
+	case organizationdefaulttaxcodes.FieldCreditGrantTaxCodeID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreditGrantTaxCodeID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown OrganizationDefaultTaxCodes field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *OrganizationDefaultTaxCodesMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *OrganizationDefaultTaxCodesMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *OrganizationDefaultTaxCodesMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown OrganizationDefaultTaxCodes numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *OrganizationDefaultTaxCodesMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(organizationdefaulttaxcodes.FieldDeletedAt) {
+		fields = append(fields, organizationdefaulttaxcodes.FieldDeletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *OrganizationDefaultTaxCodesMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *OrganizationDefaultTaxCodesMutation) ClearField(name string) error {
+	switch name {
+	case organizationdefaulttaxcodes.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown OrganizationDefaultTaxCodes nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *OrganizationDefaultTaxCodesMutation) ResetField(name string) error {
+	switch name {
+	case organizationdefaulttaxcodes.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case organizationdefaulttaxcodes.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case organizationdefaulttaxcodes.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case organizationdefaulttaxcodes.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case organizationdefaulttaxcodes.FieldInvoicingTaxCodeID:
+		m.ResetInvoicingTaxCodeID()
+		return nil
+	case organizationdefaulttaxcodes.FieldCreditGrantTaxCodeID:
+		m.ResetCreditGrantTaxCodeID()
+		return nil
+	}
+	return fmt.Errorf("unknown OrganizationDefaultTaxCodes field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *OrganizationDefaultTaxCodesMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.invoicing_tax_code != nil {
+		edges = append(edges, organizationdefaulttaxcodes.EdgeInvoicingTaxCode)
+	}
+	if m.credit_grant_tax_code != nil {
+		edges = append(edges, organizationdefaulttaxcodes.EdgeCreditGrantTaxCode)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *OrganizationDefaultTaxCodesMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case organizationdefaulttaxcodes.EdgeInvoicingTaxCode:
+		if id := m.invoicing_tax_code; id != nil {
+			return []ent.Value{*id}
+		}
+	case organizationdefaulttaxcodes.EdgeCreditGrantTaxCode:
+		if id := m.credit_grant_tax_code; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *OrganizationDefaultTaxCodesMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *OrganizationDefaultTaxCodesMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *OrganizationDefaultTaxCodesMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedinvoicing_tax_code {
+		edges = append(edges, organizationdefaulttaxcodes.EdgeInvoicingTaxCode)
+	}
+	if m.clearedcredit_grant_tax_code {
+		edges = append(edges, organizationdefaulttaxcodes.EdgeCreditGrantTaxCode)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *OrganizationDefaultTaxCodesMutation) EdgeCleared(name string) bool {
+	switch name {
+	case organizationdefaulttaxcodes.EdgeInvoicingTaxCode:
+		return m.clearedinvoicing_tax_code
+	case organizationdefaulttaxcodes.EdgeCreditGrantTaxCode:
+		return m.clearedcredit_grant_tax_code
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *OrganizationDefaultTaxCodesMutation) ClearEdge(name string) error {
+	switch name {
+	case organizationdefaulttaxcodes.EdgeInvoicingTaxCode:
+		m.ClearInvoicingTaxCode()
+		return nil
+	case organizationdefaulttaxcodes.EdgeCreditGrantTaxCode:
+		m.ClearCreditGrantTaxCode()
+		return nil
+	}
+	return fmt.Errorf("unknown OrganizationDefaultTaxCodes unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *OrganizationDefaultTaxCodesMutation) ResetEdge(name string) error {
+	switch name {
+	case organizationdefaulttaxcodes.EdgeInvoicingTaxCode:
+		m.ResetInvoicingTaxCode()
+		return nil
+	case organizationdefaulttaxcodes.EdgeCreditGrantTaxCode:
+		m.ResetCreditGrantTaxCode()
+		return nil
+	}
+	return fmt.Errorf("unknown OrganizationDefaultTaxCodes edge %s", name)
+}
+
 // PlanMutation represents an operation that mutates the Plan nodes in the graph.
 type PlanMutation struct {
 	config
@@ -102798,6 +103524,12 @@ type TaxCodeMutation struct {
 	charge_credit_purchases                        map[string]struct{}
 	removedcharge_credit_purchases                 map[string]struct{}
 	clearedcharge_credit_purchases                 bool
+	organization_default_invoicing                 map[string]struct{}
+	removedorganization_default_invoicing          map[string]struct{}
+	clearedorganization_default_invoicing          bool
+	organization_default_credit_grant              map[string]struct{}
+	removedorganization_default_credit_grant       map[string]struct{}
+	clearedorganization_default_credit_grant       bool
 	done                                           bool
 	oldValue                                       func(context.Context) (*TaxCode, error)
 	predicates                                     []predicate.TaxCode
@@ -104034,6 +104766,114 @@ func (m *TaxCodeMutation) ResetChargeCreditPurchases() {
 	m.removedcharge_credit_purchases = nil
 }
 
+// AddOrganizationDefaultInvoicingIDs adds the "organization_default_invoicing" edge to the OrganizationDefaultTaxCodes entity by ids.
+func (m *TaxCodeMutation) AddOrganizationDefaultInvoicingIDs(ids ...string) {
+	if m.organization_default_invoicing == nil {
+		m.organization_default_invoicing = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.organization_default_invoicing[ids[i]] = struct{}{}
+	}
+}
+
+// ClearOrganizationDefaultInvoicing clears the "organization_default_invoicing" edge to the OrganizationDefaultTaxCodes entity.
+func (m *TaxCodeMutation) ClearOrganizationDefaultInvoicing() {
+	m.clearedorganization_default_invoicing = true
+}
+
+// OrganizationDefaultInvoicingCleared reports if the "organization_default_invoicing" edge to the OrganizationDefaultTaxCodes entity was cleared.
+func (m *TaxCodeMutation) OrganizationDefaultInvoicingCleared() bool {
+	return m.clearedorganization_default_invoicing
+}
+
+// RemoveOrganizationDefaultInvoicingIDs removes the "organization_default_invoicing" edge to the OrganizationDefaultTaxCodes entity by IDs.
+func (m *TaxCodeMutation) RemoveOrganizationDefaultInvoicingIDs(ids ...string) {
+	if m.removedorganization_default_invoicing == nil {
+		m.removedorganization_default_invoicing = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.organization_default_invoicing, ids[i])
+		m.removedorganization_default_invoicing[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedOrganizationDefaultInvoicing returns the removed IDs of the "organization_default_invoicing" edge to the OrganizationDefaultTaxCodes entity.
+func (m *TaxCodeMutation) RemovedOrganizationDefaultInvoicingIDs() (ids []string) {
+	for id := range m.removedorganization_default_invoicing {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// OrganizationDefaultInvoicingIDs returns the "organization_default_invoicing" edge IDs in the mutation.
+func (m *TaxCodeMutation) OrganizationDefaultInvoicingIDs() (ids []string) {
+	for id := range m.organization_default_invoicing {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetOrganizationDefaultInvoicing resets all changes to the "organization_default_invoicing" edge.
+func (m *TaxCodeMutation) ResetOrganizationDefaultInvoicing() {
+	m.organization_default_invoicing = nil
+	m.clearedorganization_default_invoicing = false
+	m.removedorganization_default_invoicing = nil
+}
+
+// AddOrganizationDefaultCreditGrantIDs adds the "organization_default_credit_grant" edge to the OrganizationDefaultTaxCodes entity by ids.
+func (m *TaxCodeMutation) AddOrganizationDefaultCreditGrantIDs(ids ...string) {
+	if m.organization_default_credit_grant == nil {
+		m.organization_default_credit_grant = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.organization_default_credit_grant[ids[i]] = struct{}{}
+	}
+}
+
+// ClearOrganizationDefaultCreditGrant clears the "organization_default_credit_grant" edge to the OrganizationDefaultTaxCodes entity.
+func (m *TaxCodeMutation) ClearOrganizationDefaultCreditGrant() {
+	m.clearedorganization_default_credit_grant = true
+}
+
+// OrganizationDefaultCreditGrantCleared reports if the "organization_default_credit_grant" edge to the OrganizationDefaultTaxCodes entity was cleared.
+func (m *TaxCodeMutation) OrganizationDefaultCreditGrantCleared() bool {
+	return m.clearedorganization_default_credit_grant
+}
+
+// RemoveOrganizationDefaultCreditGrantIDs removes the "organization_default_credit_grant" edge to the OrganizationDefaultTaxCodes entity by IDs.
+func (m *TaxCodeMutation) RemoveOrganizationDefaultCreditGrantIDs(ids ...string) {
+	if m.removedorganization_default_credit_grant == nil {
+		m.removedorganization_default_credit_grant = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.organization_default_credit_grant, ids[i])
+		m.removedorganization_default_credit_grant[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedOrganizationDefaultCreditGrant returns the removed IDs of the "organization_default_credit_grant" edge to the OrganizationDefaultTaxCodes entity.
+func (m *TaxCodeMutation) RemovedOrganizationDefaultCreditGrantIDs() (ids []string) {
+	for id := range m.removedorganization_default_credit_grant {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// OrganizationDefaultCreditGrantIDs returns the "organization_default_credit_grant" edge IDs in the mutation.
+func (m *TaxCodeMutation) OrganizationDefaultCreditGrantIDs() (ids []string) {
+	for id := range m.organization_default_credit_grant {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetOrganizationDefaultCreditGrant resets all changes to the "organization_default_credit_grant" edge.
+func (m *TaxCodeMutation) ResetOrganizationDefaultCreditGrant() {
+	m.organization_default_credit_grant = nil
+	m.clearedorganization_default_credit_grant = false
+	m.removedorganization_default_credit_grant = nil
+}
+
 // Where appends a list predicates to the TaxCodeMutation builder.
 func (m *TaxCodeMutation) Where(ps ...predicate.TaxCode) {
 	m.predicates = append(m.predicates, ps...)
@@ -104353,7 +105193,7 @@ func (m *TaxCodeMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *TaxCodeMutation) AddedEdges() []string {
-	edges := make([]string, 0, 13)
+	edges := make([]string, 0, 15)
 	if m.billing_workflow_configs != nil {
 		edges = append(edges, dbtaxcode.EdgeBillingWorkflowConfigs)
 	}
@@ -104392,6 +105232,12 @@ func (m *TaxCodeMutation) AddedEdges() []string {
 	}
 	if m.charge_credit_purchases != nil {
 		edges = append(edges, dbtaxcode.EdgeChargeCreditPurchases)
+	}
+	if m.organization_default_invoicing != nil {
+		edges = append(edges, dbtaxcode.EdgeOrganizationDefaultInvoicing)
+	}
+	if m.organization_default_credit_grant != nil {
+		edges = append(edges, dbtaxcode.EdgeOrganizationDefaultCreditGrant)
 	}
 	return edges
 }
@@ -104478,13 +105324,25 @@ func (m *TaxCodeMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case dbtaxcode.EdgeOrganizationDefaultInvoicing:
+		ids := make([]ent.Value, 0, len(m.organization_default_invoicing))
+		for id := range m.organization_default_invoicing {
+			ids = append(ids, id)
+		}
+		return ids
+	case dbtaxcode.EdgeOrganizationDefaultCreditGrant:
+		ids := make([]ent.Value, 0, len(m.organization_default_credit_grant))
+		for id := range m.organization_default_credit_grant {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *TaxCodeMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 13)
+	edges := make([]string, 0, 15)
 	if m.removedbilling_workflow_configs != nil {
 		edges = append(edges, dbtaxcode.EdgeBillingWorkflowConfigs)
 	}
@@ -104523,6 +105381,12 @@ func (m *TaxCodeMutation) RemovedEdges() []string {
 	}
 	if m.removedcharge_credit_purchases != nil {
 		edges = append(edges, dbtaxcode.EdgeChargeCreditPurchases)
+	}
+	if m.removedorganization_default_invoicing != nil {
+		edges = append(edges, dbtaxcode.EdgeOrganizationDefaultInvoicing)
+	}
+	if m.removedorganization_default_credit_grant != nil {
+		edges = append(edges, dbtaxcode.EdgeOrganizationDefaultCreditGrant)
 	}
 	return edges
 }
@@ -104609,13 +105473,25 @@ func (m *TaxCodeMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case dbtaxcode.EdgeOrganizationDefaultInvoicing:
+		ids := make([]ent.Value, 0, len(m.removedorganization_default_invoicing))
+		for id := range m.removedorganization_default_invoicing {
+			ids = append(ids, id)
+		}
+		return ids
+	case dbtaxcode.EdgeOrganizationDefaultCreditGrant:
+		ids := make([]ent.Value, 0, len(m.removedorganization_default_credit_grant))
+		for id := range m.removedorganization_default_credit_grant {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *TaxCodeMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 13)
+	edges := make([]string, 0, 15)
 	if m.clearedbilling_workflow_configs {
 		edges = append(edges, dbtaxcode.EdgeBillingWorkflowConfigs)
 	}
@@ -104655,6 +105531,12 @@ func (m *TaxCodeMutation) ClearedEdges() []string {
 	if m.clearedcharge_credit_purchases {
 		edges = append(edges, dbtaxcode.EdgeChargeCreditPurchases)
 	}
+	if m.clearedorganization_default_invoicing {
+		edges = append(edges, dbtaxcode.EdgeOrganizationDefaultInvoicing)
+	}
+	if m.clearedorganization_default_credit_grant {
+		edges = append(edges, dbtaxcode.EdgeOrganizationDefaultCreditGrant)
+	}
 	return edges
 }
 
@@ -104688,6 +105570,10 @@ func (m *TaxCodeMutation) EdgeCleared(name string) bool {
 		return m.clearedcharge_usage_based
 	case dbtaxcode.EdgeChargeCreditPurchases:
 		return m.clearedcharge_credit_purchases
+	case dbtaxcode.EdgeOrganizationDefaultInvoicing:
+		return m.clearedorganization_default_invoicing
+	case dbtaxcode.EdgeOrganizationDefaultCreditGrant:
+		return m.clearedorganization_default_credit_grant
 	}
 	return false
 }
@@ -104742,6 +105628,12 @@ func (m *TaxCodeMutation) ResetEdge(name string) error {
 		return nil
 	case dbtaxcode.EdgeChargeCreditPurchases:
 		m.ResetChargeCreditPurchases()
+		return nil
+	case dbtaxcode.EdgeOrganizationDefaultInvoicing:
+		m.ResetOrganizationDefaultInvoicing()
+		return nil
+	case dbtaxcode.EdgeOrganizationDefaultCreditGrant:
+		m.ResetOrganizationDefaultCreditGrant()
 		return nil
 	}
 	return fmt.Errorf("unknown TaxCode edge %s", name)

@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/organizationdefaulttaxcodes"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
@@ -337,6 +338,36 @@ func (_c *TaxCodeCreate) AddChargeCreditPurchases(v ...*ChargeCreditPurchase) *T
 		ids[i] = v[i].ID
 	}
 	return _c.AddChargeCreditPurchaseIDs(ids...)
+}
+
+// AddOrganizationDefaultInvoicingIDs adds the "organization_default_invoicing" edge to the OrganizationDefaultTaxCodes entity by IDs.
+func (_c *TaxCodeCreate) AddOrganizationDefaultInvoicingIDs(ids ...string) *TaxCodeCreate {
+	_c.mutation.AddOrganizationDefaultInvoicingIDs(ids...)
+	return _c
+}
+
+// AddOrganizationDefaultInvoicing adds the "organization_default_invoicing" edges to the OrganizationDefaultTaxCodes entity.
+func (_c *TaxCodeCreate) AddOrganizationDefaultInvoicing(v ...*OrganizationDefaultTaxCodes) *TaxCodeCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddOrganizationDefaultInvoicingIDs(ids...)
+}
+
+// AddOrganizationDefaultCreditGrantIDs adds the "organization_default_credit_grant" edge to the OrganizationDefaultTaxCodes entity by IDs.
+func (_c *TaxCodeCreate) AddOrganizationDefaultCreditGrantIDs(ids ...string) *TaxCodeCreate {
+	_c.mutation.AddOrganizationDefaultCreditGrantIDs(ids...)
+	return _c
+}
+
+// AddOrganizationDefaultCreditGrant adds the "organization_default_credit_grant" edges to the OrganizationDefaultTaxCodes entity.
+func (_c *TaxCodeCreate) AddOrganizationDefaultCreditGrant(v ...*OrganizationDefaultTaxCodes) *TaxCodeCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddOrganizationDefaultCreditGrantIDs(ids...)
 }
 
 // Mutation returns the TaxCodeMutation object of the builder.
@@ -704,6 +735,38 @@ func (_c *TaxCodeCreate) createSpec() (*TaxCode, *sqlgraph.CreateSpec, error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.OrganizationDefaultInvoicingIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.OrganizationDefaultInvoicingTable,
+			Columns: []string{dbtaxcode.OrganizationDefaultInvoicingColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationdefaulttaxcodes.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.OrganizationDefaultCreditGrantIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.OrganizationDefaultCreditGrantTable,
+			Columns: []string{dbtaxcode.OrganizationDefaultCreditGrantColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationdefaulttaxcodes.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -80,6 +80,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/organizationdefaulttaxcodes"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
@@ -218,6 +219,7 @@ func checkColumn(t, c string) error {
 			notificationevent.Table:                                notificationevent.ValidColumn,
 			notificationeventdeliverystatus.Table:                  notificationeventdeliverystatus.ValidColumn,
 			notificationrule.Table:                                 notificationrule.ValidColumn,
+			organizationdefaulttaxcodes.Table:                      organizationdefaulttaxcodes.ValidColumn,
 			plan.Table:                                             plan.ValidColumn,
 			planaddon.Table:                                        planaddon.ValidColumn,
 			planphase.Table:                                        planphase.ValidColumn,

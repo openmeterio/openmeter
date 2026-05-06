@@ -62,6 +62,10 @@ const (
 	EdgeChargeUsageBased = "charge_usage_based"
 	// EdgeChargeCreditPurchases holds the string denoting the charge_credit_purchases edge name in mutations.
 	EdgeChargeCreditPurchases = "charge_credit_purchases"
+	// EdgeOrganizationDefaultInvoicing holds the string denoting the organization_default_invoicing edge name in mutations.
+	EdgeOrganizationDefaultInvoicing = "organization_default_invoicing"
+	// EdgeOrganizationDefaultCreditGrant holds the string denoting the organization_default_credit_grant edge name in mutations.
+	EdgeOrganizationDefaultCreditGrant = "organization_default_credit_grant"
 	// Table holds the table name of the taxcode in the database.
 	Table = "tax_codes"
 	// BillingWorkflowConfigsTable is the table that holds the billing_workflow_configs relation/edge.
@@ -155,6 +159,20 @@ const (
 	ChargeCreditPurchasesInverseTable = "charge_credit_purchases"
 	// ChargeCreditPurchasesColumn is the table column denoting the charge_credit_purchases relation/edge.
 	ChargeCreditPurchasesColumn = "tax_code_id"
+	// OrganizationDefaultInvoicingTable is the table that holds the organization_default_invoicing relation/edge.
+	OrganizationDefaultInvoicingTable = "organization_default_tax_codes"
+	// OrganizationDefaultInvoicingInverseTable is the table name for the OrganizationDefaultTaxCodes entity.
+	// It exists in this package in order to avoid circular dependency with the "organizationdefaulttaxcodes" package.
+	OrganizationDefaultInvoicingInverseTable = "organization_default_tax_codes"
+	// OrganizationDefaultInvoicingColumn is the table column denoting the organization_default_invoicing relation/edge.
+	OrganizationDefaultInvoicingColumn = "invoicing_tax_code_id"
+	// OrganizationDefaultCreditGrantTable is the table that holds the organization_default_credit_grant relation/edge.
+	OrganizationDefaultCreditGrantTable = "organization_default_tax_codes"
+	// OrganizationDefaultCreditGrantInverseTable is the table name for the OrganizationDefaultTaxCodes entity.
+	// It exists in this package in order to avoid circular dependency with the "organizationdefaulttaxcodes" package.
+	OrganizationDefaultCreditGrantInverseTable = "organization_default_tax_codes"
+	// OrganizationDefaultCreditGrantColumn is the table column denoting the organization_default_credit_grant relation/edge.
+	OrganizationDefaultCreditGrantColumn = "credit_grant_tax_code_id"
 )
 
 // Columns holds all SQL columns for taxcode fields.
@@ -430,6 +448,34 @@ func ByChargeCreditPurchases(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOp
 		sqlgraph.OrderByNeighborTerms(s, newChargeCreditPurchasesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByOrganizationDefaultInvoicingCount orders the results by organization_default_invoicing count.
+func ByOrganizationDefaultInvoicingCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newOrganizationDefaultInvoicingStep(), opts...)
+	}
+}
+
+// ByOrganizationDefaultInvoicing orders the results by organization_default_invoicing terms.
+func ByOrganizationDefaultInvoicing(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newOrganizationDefaultInvoicingStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByOrganizationDefaultCreditGrantCount orders the results by organization_default_credit_grant count.
+func ByOrganizationDefaultCreditGrantCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newOrganizationDefaultCreditGrantStep(), opts...)
+	}
+}
+
+// ByOrganizationDefaultCreditGrant orders the results by organization_default_credit_grant terms.
+func ByOrganizationDefaultCreditGrant(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newOrganizationDefaultCreditGrantStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newBillingWorkflowConfigsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -519,5 +565,19 @@ func newChargeCreditPurchasesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ChargeCreditPurchasesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, ChargeCreditPurchasesTable, ChargeCreditPurchasesColumn),
+	)
+}
+func newOrganizationDefaultInvoicingStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(OrganizationDefaultInvoicingInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, OrganizationDefaultInvoicingTable, OrganizationDefaultInvoicingColumn),
+	)
+}
+func newOrganizationDefaultCreditGrantStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(OrganizationDefaultCreditGrantInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, OrganizationDefaultCreditGrantTable, OrganizationDefaultCreditGrantColumn),
 	)
 }

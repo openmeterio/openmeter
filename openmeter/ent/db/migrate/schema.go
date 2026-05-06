@@ -4095,6 +4095,48 @@ var (
 			},
 		},
 	}
+	// OrganizationDefaultTaxCodesColumns holds the columns for the "organization_default_tax_codes" table.
+	OrganizationDefaultTaxCodesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "invoicing_tax_code_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "credit_grant_tax_code_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// OrganizationDefaultTaxCodesTable holds the schema information for the "organization_default_tax_codes" table.
+	OrganizationDefaultTaxCodesTable = &schema.Table{
+		Name:       "organization_default_tax_codes",
+		Columns:    OrganizationDefaultTaxCodesColumns,
+		PrimaryKey: []*schema.Column{OrganizationDefaultTaxCodesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "org_dtc_invoicing_tax_code_fk",
+				Columns:    []*schema.Column{OrganizationDefaultTaxCodesColumns[5]},
+				RefColumns: []*schema.Column{TaxCodesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "org_dtc_credit_grant_tax_code_fk",
+				Columns:    []*schema.Column{OrganizationDefaultTaxCodesColumns[6]},
+				RefColumns: []*schema.Column{TaxCodesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "organizationdefaulttaxcodes_id",
+				Unique:  true,
+				Columns: []*schema.Column{OrganizationDefaultTaxCodesColumns[0]},
+			},
+			{
+				Name:    "organizationdefaulttaxcodes_namespace",
+				Unique:  true,
+				Columns: []*schema.Column{OrganizationDefaultTaxCodesColumns[4]},
+			},
+		},
+	}
 	// PlansColumns holds the columns for the "plans" table.
 	PlansColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -5013,6 +5055,7 @@ var (
 		NotificationEventsTable,
 		NotificationEventDeliveryStatusTable,
 		NotificationRulesTable,
+		OrganizationDefaultTaxCodesTable,
 		PlansTable,
 		PlanAddonsTable,
 		PlanPhasesTable,
@@ -5164,6 +5207,8 @@ func init() {
 	LedgerSubAccountRoutesTable.ForeignKeys[0].RefTable = LedgerAccountsTable
 	LedgerTransactionsTable.ForeignKeys[0].RefTable = LedgerTransactionGroupsTable
 	NotificationEventsTable.ForeignKeys[0].RefTable = NotificationRulesTable
+	OrganizationDefaultTaxCodesTable.ForeignKeys[0].RefTable = TaxCodesTable
+	OrganizationDefaultTaxCodesTable.ForeignKeys[1].RefTable = TaxCodesTable
 	PlanAddonsTable.ForeignKeys[0].RefTable = AddonsTable
 	PlanAddonsTable.ForeignKeys[1].RefTable = PlansTable
 	PlanPhasesTable.ForeignKeys[0].RefTable = PlansTable

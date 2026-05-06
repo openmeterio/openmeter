@@ -73,6 +73,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/organizationdefaulttaxcodes"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
@@ -2216,6 +2217,31 @@ func init() {
 	notificationruleDescID := notificationruleMixinFields0[0].Descriptor()
 	// notificationrule.DefaultID holds the default value on creation for the id field.
 	notificationrule.DefaultID = notificationruleDescID.Default.(func() string)
+	organizationdefaulttaxcodesMixin := schema.OrganizationDefaultTaxCodes{}.Mixin()
+	organizationdefaulttaxcodesMixinFields0 := organizationdefaulttaxcodesMixin[0].Fields()
+	_ = organizationdefaulttaxcodesMixinFields0
+	organizationdefaulttaxcodesMixinFields1 := organizationdefaulttaxcodesMixin[1].Fields()
+	_ = organizationdefaulttaxcodesMixinFields1
+	organizationdefaulttaxcodesFields := schema.OrganizationDefaultTaxCodes{}.Fields()
+	_ = organizationdefaulttaxcodesFields
+	// organizationdefaulttaxcodesDescCreatedAt is the schema descriptor for created_at field.
+	organizationdefaulttaxcodesDescCreatedAt := organizationdefaulttaxcodesMixinFields1[0].Descriptor()
+	// organizationdefaulttaxcodes.DefaultCreatedAt holds the default value on creation for the created_at field.
+	organizationdefaulttaxcodes.DefaultCreatedAt = organizationdefaulttaxcodesDescCreatedAt.Default.(func() time.Time)
+	// organizationdefaulttaxcodesDescUpdatedAt is the schema descriptor for updated_at field.
+	organizationdefaulttaxcodesDescUpdatedAt := organizationdefaulttaxcodesMixinFields1[1].Descriptor()
+	// organizationdefaulttaxcodes.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	organizationdefaulttaxcodes.DefaultUpdatedAt = organizationdefaulttaxcodesDescUpdatedAt.Default.(func() time.Time)
+	// organizationdefaulttaxcodes.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	organizationdefaulttaxcodes.UpdateDefaultUpdatedAt = organizationdefaulttaxcodesDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// organizationdefaulttaxcodesDescNamespace is the schema descriptor for namespace field.
+	organizationdefaulttaxcodesDescNamespace := organizationdefaulttaxcodesFields[0].Descriptor()
+	// organizationdefaulttaxcodes.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	organizationdefaulttaxcodes.NamespaceValidator = organizationdefaulttaxcodesDescNamespace.Validators[0].(func(string) error)
+	// organizationdefaulttaxcodesDescID is the schema descriptor for id field.
+	organizationdefaulttaxcodesDescID := organizationdefaulttaxcodesMixinFields0[0].Descriptor()
+	// organizationdefaulttaxcodes.DefaultID holds the default value on creation for the id field.
+	organizationdefaulttaxcodes.DefaultID = organizationdefaulttaxcodesDescID.Default.(func() string)
 	planMixin := schema.Plan{}.Mixin()
 	planMixinFields0 := planMixin[0].Fields()
 	_ = planMixinFields0
