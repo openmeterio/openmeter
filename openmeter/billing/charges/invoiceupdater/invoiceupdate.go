@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const invoiceUpdaterComponentName billing.ComponentName = "charges.invoiceupdater"
@@ -41,17 +40,20 @@ func (u *Updater) ApplyPatches(ctx context.Context, customerID customer.Customer
 		return fmt.Errorf("provisioning upcoming lines: %w", err)
 	}
 
+	invoicesByID, err := u.listInvoicesByID(ctx, customerID.Namespace, lo.Keys(patchesParsed.updatedLinesByInvoiceID))
+	if err != nil {
+		return fmt.Errorf("listing invoices: %w", err)
+	}
+
 	for invoiceID, linePatches := range patchesParsed.updatedLinesByInvoiceID {
 		namespacedInvoiceID := billing.InvoiceID{
 			Namespace: customerID.Namespace,
 			ID:        invoiceID,
 		}
 
-		invoice, err := u.billingService.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
-			Invoice: namespacedInvoiceID,
-		})
-		if err != nil {
-			return fmt.Errorf("getting invoice: %w", err)
+		invoice, ok := invoicesByID[invoiceID]
+		if !ok {
+			return fmt.Errorf("getting invoice: invoice[%s/%s] not found", customerID.Namespace, invoiceID)
 		}
 
 		if invoice.Type() == billing.InvoiceTypeGathering {
@@ -80,12 +82,34 @@ func (u *Updater) ApplyPatches(ctx context.Context, customerID customer.Customer
 		}
 	}
 
-	err = u.upsertSplitLineGroups(ctx, customerID, patchesParsed.splitLineGroups)
-	if err != nil {
-		return fmt.Errorf("upserting split line groups: %w", err)
+	return nil
+}
+
+func (u *Updater) listInvoicesByID(ctx context.Context, namespace string, invoiceIDs []string) (map[string]billing.Invoice, error) {
+	if len(invoiceIDs) == 0 {
+		return map[string]billing.Invoice{}, nil
 	}
 
-	return nil
+	resp, err := u.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
+		Namespaces:     []string{namespace},
+		IDs:            invoiceIDs,
+		IncludeDeleted: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	invoicesByID := make(map[string]billing.Invoice, len(resp.Items))
+	for _, invoice := range resp.Items {
+		genericInvoice, err := invoice.AsGenericInvoice()
+		if err != nil {
+			return nil, fmt.Errorf("converting invoice to generic invoice: %w", err)
+		}
+
+		invoicesByID[genericInvoice.GetID()] = invoice
+	}
+
+	return invoicesByID, nil
 }
 
 func (u *Updater) LogPatches(patches []Patch, invoicesByID map[string]billing.Invoice) {
@@ -171,18 +195,11 @@ type patchesParsed struct {
 	newLines []billing.GatheringLine
 
 	updatedLinesByInvoiceID map[string]invoicePatches
-
-	splitLineGroups splitLineGroupPatches
 }
 
 type invoicePatches struct {
 	updatedLines []billing.GenericInvoiceLine
 	deletedLines []billing.LineID
-}
-
-type splitLineGroupPatches struct {
-	deleted []models.NamespacedID
-	updated []billing.SplitLineGroupUpdate
 }
 
 func (u *Updater) parsePatches(patches []Patch) (patchesParsed, error) {
@@ -317,7 +334,7 @@ func (u *Updater) updateMutableStandardInvoice(ctx context.Context, invoice bill
 		}
 	}
 
-	return err
+	return nil
 }
 
 func (u *Updater) updateGatheringInvoice(ctx context.Context, invoiceID billing.InvoiceID, linePatches invoicePatches) error {
@@ -420,7 +437,8 @@ func (u *Updater) updateImmutableInvoice(ctx context.Context, invoice billing.St
 				return fmt.Errorf("snapshotting quantity for line[%s]: %w", targetState.GetID(), err)
 			}
 
-			if !targetStateWithUpdatedQty.UsageBased.Quantity.Equal(lo.FromPtr(existingLine.UsageBased.Quantity)) {
+			existingQty := existingLine.UsageBased.Quantity
+			if existingQty == nil || !targetStateWithUpdatedQty.UsageBased.Quantity.Equal(*existingQty) {
 				validationIssues = append(validationIssues,
 					newValidationIssueOnLine(existingLine, "usage based line's quantity cannot be changed on immutable invoice (new qty: %s)",
 						targetStateWithUpdatedQty.UsageBased.Quantity.String()),
@@ -482,24 +500,4 @@ func (u *Updater) mergeValidationIssues(invoice billing.StandardInvoice, issues 
 	}
 
 	return invoice.ValidationIssues, changed
-}
-
-func (u *Updater) upsertSplitLineGroups(ctx context.Context, customerID customer.CustomerID, changes splitLineGroupPatches) error {
-	if len(changes.deleted) == 0 && len(changes.updated) == 0 {
-		return nil
-	}
-
-	for _, groupID := range changes.deleted {
-		if err := u.billingService.DeleteSplitLineGroup(ctx, groupID); err != nil {
-			return fmt.Errorf("deleting split line group: %w", err)
-		}
-	}
-
-	for _, group := range changes.updated {
-		if _, err := u.billingService.UpdateSplitLineGroup(ctx, group); err != nil {
-			return fmt.Errorf("upserting split line group: %w", err)
-		}
-	}
-
-	return nil
 }
