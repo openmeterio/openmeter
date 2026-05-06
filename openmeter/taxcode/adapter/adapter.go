@@ -39,7 +39,7 @@ func (c Config) Validate() error {
 	return nil
 }
 
-func New(config Config) (taxcode.Repository, error) {
+func New(config Config) (taxcode.TaxCodeRepository, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func New(config Config) (taxcode.Repository, error) {
 	}, nil
 }
 
-var _ taxcode.Repository = (*adapter)(nil)
+var _ taxcode.TaxCodeRepository = (*adapter)(nil)
 
 type adapter struct {
 	db *entdb.Client

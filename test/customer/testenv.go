@@ -263,7 +263,22 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create tax code adapter: %w", err)
 	}
 
-	taxCodeService := taxcodeservice.New(taxCodeAdapter, logger.WithGroup("taxcode"))
+	orgDefaultsAdapter, err := taxcodeadapter.NewOrganizationDefaultTaxCodesAdapter(taxcodeadapter.Config{
+		Client: dbDeps.DBClient,
+		Logger: logger.WithGroup("taxcode"),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create org defaults adapter: %w", err)
+	}
+
+	taxCodeService, err := taxcodeservice.New(taxcodeservice.Config{
+		Adapter:                     taxCodeAdapter,
+		OrganizationDefaultsAdapter: orgDefaultsAdapter,
+		Logger:                      logger.WithGroup("taxcode"),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create tax code service: %w", err)
+	}
 
 	planService, err := planservice.New(planservice.Config{
 		Adapter:   planAdapter,

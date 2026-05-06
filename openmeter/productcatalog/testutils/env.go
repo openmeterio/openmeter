@@ -108,7 +108,18 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	require.NoErrorf(t, err, "initializing tax code adapter must not fail")
 	require.NotNilf(t, taxCodeAdapter, "tax code adapter must not be nil")
 
-	taxCodeService := taxcodeservice.New(taxCodeAdapter, logger)
+	orgDefaultsAdapter, err := taxcodeadapter.NewOrganizationDefaultTaxCodesAdapter(taxcodeadapter.Config{
+		Client: client,
+		Logger: logger,
+	})
+	require.NoErrorf(t, err, "initializing org defaults adapter must not fail")
+
+	taxCodeService, err := taxcodeservice.New(taxcodeservice.Config{
+		Adapter:                     taxCodeAdapter,
+		OrganizationDefaultsAdapter: orgDefaultsAdapter,
+		Logger:                      logger,
+	})
+	require.NoErrorf(t, err, "initializing tax code service must not fail")
 
 	// Init plan service
 	planAdapter, err := planadapter.New(planadapter.Config{

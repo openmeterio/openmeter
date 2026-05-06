@@ -178,7 +178,18 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	})
 	require.NoError(t, err)
 
-	taxCodeService := taxcodeservice.New(taxCodeAdapter, logger)
+	orgDefaultsAdapter, err := taxcodeadapter.NewOrganizationDefaultTaxCodesAdapter(taxcodeadapter.Config{
+		Client: dbDeps.DBClient,
+		Logger: logger,
+	})
+	require.NoError(t, err)
+
+	taxCodeService, err := taxcodeservice.New(taxcodeservice.Config{
+		Adapter:                     taxCodeAdapter,
+		OrganizationDefaultsAdapter: orgDefaultsAdapter,
+		Logger:                      logger,
+	})
+	require.NoError(t, err)
 
 	planService, err := planservice.New(planservice.Config{
 		Feature:   entitlementRegistry.Feature,

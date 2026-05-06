@@ -7,7 +7,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-type Repository interface {
+type TaxCodeRepository interface {
 	entutils.TxCreator
 
 	CreateTaxCode(ctx context.Context, input CreateTaxCodeInput) (TaxCode, error)
@@ -16,4 +16,11 @@ type Repository interface {
 	GetTaxCode(ctx context.Context, input GetTaxCodeInput) (TaxCode, error)
 	GetTaxCodeByAppMapping(ctx context.Context, input GetTaxCodeByAppMappingInput) (TaxCode, error)
 	DeleteTaxCode(ctx context.Context, input DeleteTaxCodeInput) error
+}
+
+type OrganizationDefaultTaxCodesRepository interface {
+	entutils.TxCreator
+
+	GetOrganizationDefaultTaxCodes(ctx context.Context, input GetOrganizationDefaultTaxCodesInput) (OrganizationDefaultTaxCodes, error)
+	UpsertOrganizationDefaultTaxCodes(ctx context.Context, input UpsertOrganizationDefaultTaxCodesInput) (OrganizationDefaultTaxCodes, error)
 }

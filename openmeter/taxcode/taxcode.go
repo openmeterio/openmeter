@@ -120,3 +120,34 @@ func (t TaxCode) Validate() error {
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
+
+// OrganizationDefaultTaxCodes stores the per-namespace default tax code references.
+type OrganizationDefaultTaxCodes struct {
+	models.NamespacedID
+	models.ManagedModel
+
+	InvoicingTaxCode   TaxCode `json:"invoicing_tax_code"`
+	CreditGrantTaxCode TaxCode `json:"credit_grant_tax_code"`
+}
+
+func (o OrganizationDefaultTaxCodes) Validate() error {
+	var errs []error
+
+	if err := o.NamespacedID.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := o.ManagedModel.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := o.InvoicingTaxCode.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := o.CreditGrantTaxCode.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}

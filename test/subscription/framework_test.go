@@ -89,7 +89,19 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 		Logger: slog.Default(),
 	})
 	require.NoError(t, err)
-	taxCodeService := taxcodeservice.New(taxCodeAdapter, slog.Default())
+
+	orgDefaultsAdapter, err := taxcodeadapter.NewOrganizationDefaultTaxCodesAdapter(taxcodeadapter.Config{
+		Client: deps.DBDeps.DBClient,
+		Logger: slog.Default(),
+	})
+	require.NoError(t, err)
+
+	taxCodeService, err := taxcodeservice.New(taxcodeservice.Config{
+		Adapter:                     taxCodeAdapter,
+		OrganizationDefaultsAdapter: orgDefaultsAdapter,
+		Logger:                      slog.Default(),
+	})
+	require.NoError(t, err)
 
 	billingService, err := billingservice.New(billingservice.Config{
 		Adapter:                      billingAdapter,

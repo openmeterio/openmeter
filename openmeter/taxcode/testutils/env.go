@@ -74,7 +74,20 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	})
 	require.NoErrorf(t, err, "initializing taxcode adapter must not fail")
 
-	env.Service = taxcodeservice.New(adapter, logger)
+	orgDefaultsAdapter, err := taxcodeadapter.NewOrganizationDefaultTaxCodesAdapter(taxcodeadapter.Config{
+		Client: client,
+		Logger: logger,
+	})
+	require.NoErrorf(t, err, "initializing organization defaults adapter must not fail")
+
+	svc, err := taxcodeservice.New(taxcodeservice.Config{
+		Adapter:                     adapter,
+		OrganizationDefaultsAdapter: orgDefaultsAdapter,
+		Logger:                      logger,
+	})
+	require.NoErrorf(t, err, "initializing taxcode service must not fail")
+
+	env.Service = svc
 
 	return env
 }
