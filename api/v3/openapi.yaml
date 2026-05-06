@@ -2494,6 +2494,7 @@ paths:
                 allOf:
                   - $ref: '#/components/schemas/ULID'
                 description: Filter subscriptions by customer ID.
+            additionalProperties: false
           style: deepObject
       responses:
         '200':
@@ -2810,6 +2811,7 @@ components:
           before:
             type: string
             description: Request the previous page of data, starting with the item before this parameter.
+        additionalProperties: false
       style: deepObject
     PagePaginationQuery:
       name: page
@@ -2825,6 +2827,7 @@ components:
           number:
             type: integer
             description: The page number.
+        additionalProperties: false
       style: deepObject
   schemas:
     Addon:
@@ -2937,6 +2940,7 @@ components:
           description: List of validation errors.
           title: Validation errors
           readOnly: true
+      additionalProperties: false
       description: Add-on allows extending subscriptions with compatible plans with additional ratecards.
     AddonInstanceType:
       type: string
@@ -2959,6 +2963,7 @@ components:
             $ref: '#/components/schemas/Addon'
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
       description: Page paginated response.
     AddonReference:
       type: object
@@ -2967,6 +2972,7 @@ components:
       properties:
         id:
           $ref: '#/components/schemas/ULID'
+      additionalProperties: false
       description: Addon reference.
     AddonReferenceItem:
       type: object
@@ -2975,6 +2981,7 @@ components:
       properties:
         id:
           $ref: '#/components/schemas/ULID'
+      additionalProperties: false
       description: Addon reference.
     AddonStatus:
       type: string
@@ -3019,6 +3026,7 @@ components:
           type: string
           description: Phone number.
           title: Phone Number
+      additionalProperties: false
       description: Address
     AppPagePaginatedResponse:
       type: object
@@ -3032,6 +3040,7 @@ components:
             $ref: '#/components/schemas/BillingApp'
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
       description: Page paginated response.
     BillingAddress:
       type: object
@@ -3065,6 +3074,7 @@ components:
           type: string
           description: Phone number.
           title: Phone Number
+      additionalProperties: false
       description: Address
     BillingApp:
       type: object
@@ -3099,6 +3109,7 @@ components:
           type: string
           description: Description of the app.
           readOnly: true
+      additionalProperties: false
       description: |-
         Available apps for billing integrations to connect with third-party services.
         Apps can have various capabilities like syncing data from or to external systems, integrating with third-party services for tax calculation, delivery of invoices, collection of payments, etc.
@@ -3119,6 +3130,7 @@ components:
             - $ref: '#/components/schemas/BillingAppCustomerDataExternalInvoicing'
           description: Used if the customer has a linked external invoicing app.
           title: External invoicing
+      additionalProperties: false
       description: App customer data.
     BillingAppCustomerDataExternalInvoicing:
       type: object
@@ -3128,6 +3140,7 @@ components:
             - $ref: '#/components/schemas/Labels'
           description: Labels for this external invoicing integration on the customer.
           title: Labels
+      additionalProperties: false
       description: External invoicing customer data.
     BillingAppCustomerDataStripe:
       type: object
@@ -3147,6 +3160,7 @@ components:
             - $ref: '#/components/schemas/Labels'
           description: Labels for this Stripe integration on the customer.
           title: Labels
+      additionalProperties: false
       description: Stripe customer data.
     BillingAppExternalInvoicing:
       type: object
@@ -3236,6 +3250,7 @@ components:
 
             When disabled, invoices automatically progress through the issuing state and are
             immediately marked as issued.
+      additionalProperties: false
       description: |-
         External Invoicing app enables integration with third-party invoicing or payment system.
 
@@ -3259,6 +3274,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/ULID'
           description: The ID of the app.
+      additionalProperties: false
       description: App reference.
     BillingAppSandbox:
       type: object
@@ -3323,6 +3339,7 @@ components:
             - $ref: '#/components/schemas/BillingAppStatus'
           description: Status of the app connection.
           readOnly: true
+      additionalProperties: false
       description: Sandbox app can be used for testing billing features.
     BillingAppStatus:
       type: string
@@ -3408,6 +3425,7 @@ components:
           type: string
           description: The masked Stripe API key that only exposes the first and last few characters.
           readOnly: true
+      additionalProperties: false
       description: Stripe app.
     BillingAppStripeCheckoutSessionCustomTextParams:
       type: object
@@ -3419,6 +3437,7 @@ components:
               type: string
               maxLength: 1200
               description: The custom message text (max 1200 characters).
+          additionalProperties: false
           description: Text displayed after the payment confirmation button.
         shipping_address:
           type: object
@@ -3427,6 +3446,7 @@ components:
               type: string
               maxLength: 1200
               description: The custom message text (max 1200 characters).
+          additionalProperties: false
           description: Text displayed alongside shipping address collection.
         submit:
           type: object
@@ -3435,6 +3455,7 @@ components:
               type: string
               maxLength: 1200
               description: The custom message text (max 1200 characters).
+          additionalProperties: false
           description: Text displayed alongside the payment confirmation button.
         terms_of_service_acceptance:
           type: object
@@ -3443,7 +3464,9 @@ components:
               type: string
               maxLength: 1200
               description: The custom message text (max 1200 characters).
+          additionalProperties: false
           description: Text replacing the default terms of service agreement text.
+      additionalProperties: false
       description: Custom text displayed at various stages of the checkout flow.
     BillingAppStripeCheckoutSessionMode:
       type: string
@@ -3487,6 +3510,7 @@ components:
             Requires customers to accept terms of service before payment.
 
             Requires a valid terms of service URL in your Stripe Dashboard settings.
+      additionalProperties: false
       description: Checkout Session consent collection configuration.
     BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreement:
       type: object
@@ -3495,6 +3519,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition'
           description: Position and visibility of the payment method reuse agreement.
+      additionalProperties: false
       description: Payment method reuse agreement configuration.
     BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition:
       type: string
@@ -3541,6 +3566,7 @@ components:
 
             Defaults to "never".
           default: never
+      additionalProperties: false
       description: Controls which customer fields can be updated by the checkout session.
     BillingAppStripeCreateCheckoutSessionCustomerUpdateBehavior:
       type: string
@@ -3660,6 +3686,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingAppStripeCreateCheckoutSessionTaxIdCollection'
           description: Configuration for collecting tax IDs during checkout.
+      additionalProperties: false
       description: |-
         Configuration options for creating a Stripe Checkout Session.
 
@@ -3745,6 +3772,7 @@ components:
         return_url:
           type: string
           description: The return URL for embedded sessions after authentication.
+      additionalProperties: false
       description: |-
         Result of creating a Stripe Checkout Session.
 
@@ -3768,6 +3796,7 @@ components:
 
             Defaults to "never".
           default: never
+      additionalProperties: false
       description: Tax ID collection configuration for checkout sessions.
     BillingAppStripeCreateCheckoutSessionTaxIdCollectionRequired:
       type: string
@@ -3794,6 +3823,7 @@ components:
           description: |-
             The [URL to redirect](https://docs.stripe.com/api/customer_portal/sessions/create#create_portal_session-return_url) the customer to after they have completed
             their requested actions.
+      additionalProperties: false
       description: Request to create a Stripe Customer Portal Session.
     BillingAppStripeCreateCustomerPortalSessionResult:
       type: object
@@ -3852,6 +3882,7 @@ components:
           description: |-
             The URL to redirect the customer to after they have completed
             their requested actions.
+      additionalProperties: false
       description: |-
         Result of creating a [Stripe Customer Portal Session](https://docs.stripe.com/api/customer_portal/sessions/object).
 
@@ -3911,6 +3942,7 @@ components:
             Requires the `realtime_usage` expand.
           title: Realtime totals
           readOnly: true
+      additionalProperties: false
       description: |-
         The totals of a change.
 
@@ -3956,6 +3988,7 @@ components:
             - $ref: '#/components/schemas/DateTime'
           description: An ISO-8601 timestamp representation of entity creation date.
           readOnly: true
+      additionalProperties: false
       description: Describes currency basis supported by billing system.
     BillingCreditAdjustment:
       type: object
@@ -3979,6 +4012,7 @@ components:
             Maximum 1024 characters.
         labels:
           $ref: '#/components/schemas/Labels'
+      additionalProperties: false
       description: |-
         A credit adjustment can be used to make manual adjustments to a customer's credit balance.
 
@@ -4013,6 +4047,7 @@ components:
             $ref: '#/components/schemas/CreditBalance'
           description: The balances by currencies.
           readOnly: true
+      additionalProperties: false
       description: The balances of the credits of a customer.
       title: Credit balances
     BillingCreditFundingMethod:
@@ -4131,6 +4166,7 @@ components:
           required:
             - currency
             - amount
+          additionalProperties: false
           description: |-
             Purchase and payment terms of the grant.
             Present when a funding workflow applies (funding_method is not `none`).
@@ -4157,8 +4193,10 @@ components:
                   $ref: '#/components/schemas/ULID'
               required:
                 - id
+              additionalProperties: false
               description: Identifier of the invoice line associated with the grant.
               readOnly: true
+          additionalProperties: false
           description: |-
             Invoice references for the grant.
             Available when `funding_method` is `invoice`.
@@ -4176,6 +4214,7 @@ components:
               example:
                 - input_tokens
                 - output_tokens
+          additionalProperties: false
           description: Filters for the credit grant.
         priority:
           type: integer
@@ -4196,6 +4235,7 @@ components:
             - $ref: '#/components/schemas/BillingCreditGrantStatus'
           description: Current lifecycle status of the grant.
           readOnly: true
+      additionalProperties: false
       description: |-
         A credit grant allocates credits to a customer.
 
@@ -4228,6 +4268,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingTaxCodeReference'
           description: Tax code applied to the invoice line item.
+      additionalProperties: false
       description: |-
         Tax configuration for a credit grant.
 
@@ -4317,8 +4358,10 @@ components:
           required:
             - before
             - after
+          additionalProperties: false
           description: The available balance before and after the transaction.
           readOnly: true
+      additionalProperties: false
       description: |-
         A credit transaction represents a single credit movement on the customer's balance.
 
@@ -4398,6 +4441,7 @@ components:
             - $ref: '#/components/schemas/DateTime'
           description: An ISO-8601 timestamp representation of the custom currency creation date.
           readOnly: true
+      additionalProperties: false
       description: Describes custom currency.
     BillingCurrencyFiat:
       type: object
@@ -4435,6 +4479,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
           readOnly: true
+      additionalProperties: false
       description: Currency describes a currency supported by the billing system.
     BillingCurrencyType:
       type: string
@@ -4514,6 +4559,7 @@ components:
             The billing address of the customer.
             Used for tax and invoicing.
           title: Billing Address
+      additionalProperties: false
       description: Customers can be individuals or organizations that can subscribe to plans and have access to features.
     BillingCustomerData:
       type: object
@@ -4531,6 +4577,7 @@ components:
             - $ref: '#/components/schemas/BillingAppCustomerData'
           description: App customer data.
           title: App customer data
+      additionalProperties: false
       description: Billing customer data.
     BillingCustomerReference:
       type: object
@@ -4541,6 +4588,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/ULID'
           description: The ID of the customer.
+      additionalProperties: false
       description: Customer reference.
     BillingCustomerStripeCreateCheckoutSessionRequest:
       type: object
@@ -4554,6 +4602,7 @@ components:
             Options for configuring the Stripe Checkout Session.
 
             These options are passed directly to Stripe's [checkout session creation API](https://docs.stripe.com/api/checkout/sessions/create).
+      additionalProperties: false
       description: |-
         Request to create a Stripe Checkout Session for the customer.
 
@@ -4569,6 +4618,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingAppStripeCreateCustomerPortalSessionOptions'
           description: Options for configuring the Stripe Customer Portal Session.
+      additionalProperties: false
       description: |-
         Request to create a Stripe Customer Portal Session for the customer.
 
@@ -4589,6 +4639,7 @@ components:
             The subjects that are attributed to the customer.
             Can be empty when no usage event subjects are associated with the customer.
           title: Subject Keys
+      additionalProperties: false
       description: |-
         Mapping to attribute metered usage to the customer.
         One customer can have zero or more subjects,
@@ -4628,6 +4679,7 @@ components:
             Useful to describe per customer configuration.
           example: '{ "availableModels": ["gpt-5", "gpt-4o"] }'
           readOnly: true
+      additionalProperties: false
       description: Entitlement access result.
     BillingEntitlementType:
       type: string
@@ -4710,6 +4762,7 @@ components:
             either from static values or from meter group-by filters with exact matches.
           title: Resolved pricing
           readOnly: true
+      additionalProperties: false
       description: |-
         LLM cost lookup configuration.
         Each dimension (provider, model, token type) can be specified as either
@@ -4745,6 +4798,7 @@ components:
             - $ref: '#/components/schemas/Numeric'
           description: Cost per cache write token in USD.
           title: Cache write per token
+      additionalProperties: false
       description: Resolved per-token pricing from the LLM cost database.
     BillingFeatureManualUnitCost:
       type: object
@@ -4761,6 +4815,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: Fixed per-unit cost amount in USD.
+      additionalProperties: false
       description: A fixed per-unit cost amount.
     BillingFeatureUnitCost:
       type: object
@@ -4948,6 +5003,7 @@ components:
           description: The amount after proration of the charge.
           title: Amount after proration
           readOnly: true
+      additionalProperties: false
       description: A flat fee charge for a customer.
       title: Flat fee charge
     BillingFlatFeeDiscounts:
@@ -4958,6 +5014,7 @@ components:
           minimum: 0
           maximum: 100
           description: Percentage discount applied to the price (0–100).
+      additionalProperties: false
       description: |-
         Discounts applicable to flat fee charges.
 
@@ -4987,6 +5044,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingPartyAddresses'
           description: Address for where information should be sent if needed.
+      additionalProperties: false
       description: Party represents a person or business entity.
     BillingPartyAddresses:
       type: object
@@ -4997,6 +5055,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/Address'
           description: Billing address.
+      additionalProperties: false
       description: A collection of addresses for the party.
     BillingPartyTaxIdentity:
       type: object
@@ -5005,6 +5064,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingTaxIdentificationCode'
           description: Normalized tax identification code shown on the original identity document.
+      additionalProperties: false
       description: Identity stores the details required to identify an entity for tax purposes in a specific country.
     BillingPlan:
       type: object
@@ -5130,6 +5190,7 @@ components:
           description: List of validation errors in `draft` state that prevent the plan from being published.
           title: Validation errors
           readOnly: true
+      additionalProperties: false
       description: Plans provide a template for subscriptions.
     BillingPlanPhase:
       type: object
@@ -5170,6 +5231,7 @@ components:
             $ref: '#/components/schemas/BillingRateCard'
           description: The rate cards of the plan.
           title: Rate cards
+      additionalProperties: false
       description: The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
     BillingPlanStatus:
       type: string
@@ -5218,6 +5280,7 @@ components:
             - $ref: '#/components/schemas/Numeric'
           description: The amount of the flat price.
           title: Amount
+      additionalProperties: false
       description: Flat price.
     BillingPriceFree:
       type: object
@@ -5230,6 +5293,7 @@ components:
             - free
           description: The type of the price.
           title: Type
+      additionalProperties: false
       description: Free price.
     BillingPriceGraduated:
       type: object
@@ -5252,6 +5316,7 @@ components:
             The tiers of the graduated price.
             At least one tier is required.
           title: Tiers
+      additionalProperties: false
       description: |-
         Graduated tiered price.
 
@@ -5290,6 +5355,7 @@ components:
             The unit price component of the tier.
             Charged per billing unit within the tier.
           title: Unit price component
+      additionalProperties: false
       description: |-
         A price tier used in graduated and volume pricing.
 
@@ -5313,6 +5379,7 @@ components:
             - $ref: '#/components/schemas/Numeric'
           description: The amount of the unit price.
           title: Amount
+      additionalProperties: false
       description: |-
         Unit price.
 
@@ -5340,6 +5407,7 @@ components:
             The tiers of the volume price.
             At least one tier is required.
           title: Tiers
+      additionalProperties: false
       description: |-
         Volume tiered price.
 
@@ -5411,6 +5479,7 @@ components:
         default:
           type: boolean
           description: Whether this is the default profile.
+      additionalProperties: false
       description: Billing profiles contain the settings for billing and controls invoice generation.
     BillingProfileAppReferences:
       type: object
@@ -5431,6 +5500,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingAppReference'
           description: The payment app used for this workflow.
+      additionalProperties: false
       description: References to the applications used by a billing profile.
     BillingProfilePagePaginatedResponse:
       type: object
@@ -5444,6 +5514,7 @@ components:
             $ref: '#/components/schemas/BillingProfile'
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
       description: Page paginated response.
     BillingProfileReference:
       type: object
@@ -5454,6 +5525,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/ULID'
           description: The ID of the billing profile.
+      additionalProperties: false
       description: Billing profile reference.
     BillingRateCard:
       type: object
@@ -5523,6 +5595,7 @@ components:
             - $ref: '#/components/schemas/BillingRateCardTaxConfig'
           description: The tax config of the rate card.
           title: Tax config
+      additionalProperties: false
       description: A rate card defines the pricing and entitlement of a feature or service.
     BillingRateCardDiscounts:
       type: object
@@ -5539,6 +5612,7 @@ components:
             Number of usage units granted free before billing starts.
             Only applies to usage-based lines (not flat fees). Usage is treated as zero
             until this amount is exhausted.
+      additionalProperties: false
       description: Discount configuration for a rate card.
     BillingRateCardProrationConfiguration:
       type: object
@@ -5550,6 +5624,7 @@ components:
             - $ref: '#/components/schemas/BillingRateCardProrationMode'
           description: The proration mode of the rate card.
           title: Proration mode
+      additionalProperties: false
       description: The proration configuration of the rate card.
     BillingRateCardProrationMode:
       type: string
@@ -5571,6 +5646,7 @@ components:
           $ref: '#/components/schemas/BillingTaxBehavior'
         code:
           $ref: '#/components/schemas/TaxCodeReferenceItem'
+      additionalProperties: false
       description: The tax config of the rate card.
     BillingSettlementMode:
       type: string
@@ -5597,6 +5673,7 @@ components:
             - $ref: '#/components/schemas/Numeric'
           description: The customer is limited to spend at most the amount.
           title: Maximum amount
+      additionalProperties: false
       description: |-
         Spend commitments for a rate card.
         The customer is committed to spend at least the minimum amount and at most the maximum amount.
@@ -5663,6 +5740,7 @@ components:
           description: The status of the subscription.
           title: Status
           readOnly: true
+      additionalProperties: false
       description: Subscription.
     BillingSubscriptionCancel:
       type: object
@@ -5672,6 +5750,7 @@ components:
             - $ref: '#/components/schemas/BillingSubscriptionEditTiming'
           description: If not provided the subscription is canceled immediately.
           default: immediate
+      additionalProperties: false
       description: Request for canceling a subscription.
     BillingSubscriptionChange:
       type: object
@@ -5703,6 +5782,7 @@ components:
                 Either customer ID or customer key must be provided.
                 If both are provided, the ID will be used.
               title: Customer Key
+          additionalProperties: false
           description: The customer to create the subscription for.
         plan:
           type: object
@@ -5733,6 +5813,7 @@ components:
                 The plan version of the subscription, if any.
                 If not provided, the latest version of the plan will be used.
               title: Plan Version
+          additionalProperties: false
           description: The plan reference of the subscription.
         billing_anchor:
           allOf:
@@ -5753,6 +5834,7 @@ components:
           description: |-
             Timing configuration for the change, when the change should take effect.
             For changing a subscription, the accepted values depend on the subscription configuration.
+      additionalProperties: false
       description: Request for changing a subscription.
     BillingSubscriptionChangeResponse:
       type: object
@@ -5768,6 +5850,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingSubscription'
           description: The new state of the subscription after the change.
+      additionalProperties: false
       description: Response for changing a subscription.
     BillingSubscriptionCreate:
       type: object
@@ -5798,6 +5881,7 @@ components:
                 Either customer ID or customer key must be provided.
                 If both are provided, the ID will be used.
               title: Customer Key
+          additionalProperties: false
           description: The customer to create the subscription for.
         plan:
           type: object
@@ -5828,6 +5912,7 @@ components:
                 The plan version of the subscription, if any.
                 If not provided, the latest version of the plan will be used.
               title: Plan Version
+          additionalProperties: false
           description: The plan reference of the subscription.
         billing_anchor:
           allOf:
@@ -5842,6 +5927,7 @@ components:
 
             If not provided, the subscription will be created with the subscription's creation time as the billing anchor.
           title: Billing anchor
+      additionalProperties: false
       description: Subscription create request.
     BillingSubscriptionEditTiming:
       oneOf:
@@ -5892,15 +5978,18 @@ components:
                   readOnly: true
               required:
                 - id
+              additionalProperties: false
               description: The item of the phase.
               title: Item ID
               readOnly: true
           required:
             - id
             - item
+          additionalProperties: false
           description: The phase of the subscription.
           title: Phase ID
           readOnly: true
+      additionalProperties: false
       description: |-
         Subscription reference represents a reference to the specific subscription item this
         entity represents.
@@ -5975,6 +6064,7 @@ components:
             $ref: '#/components/schemas/BillingTaxCodeAppMapping'
           description: Mapping of app types to tax codes.
           title: App type to tax code mappings
+      additionalProperties: false
       description: Tax codes by provider.
     BillingTaxCodeAppMapping:
       type: object
@@ -5991,9 +6081,13 @@ components:
           type: string
           description: Tax code.
           title: Tax code
+      additionalProperties: false
       description: Mapping of app types to tax codes.
     BillingTaxCodeReference:
       type: object
+      properties:
+        id: {}
+      additionalProperties: false
       allOf:
         - $ref: '#/components/schemas/TaxCodeReference'
       description: Reference to a tax code.
@@ -6036,6 +6130,7 @@ components:
             When both `tax_code` and `tax_code_id` are provided, `tax_code` takes precedence.
             When `stripe.code` is also provided, `tax_code` still wins and `stripe.code` is ignored.
           title: Tax code
+      additionalProperties: false
       description: Set of provider specific tax configs.
     BillingTaxConfigExternalInvoicing:
       type: object
@@ -6047,6 +6142,7 @@ components:
           maxLength: 64
           description: The tax code should be interpreted by the external invoicing provider.
           title: Tax code
+      additionalProperties: false
       description: External invoicing tax config.
     BillingTaxConfigStripe:
       type: object
@@ -6059,6 +6155,7 @@ components:
           description: Product [tax code](https://docs.stripe.com/tax/tax-codes).
           title: Tax code
           example: txcd_10000000
+      additionalProperties: false
       description: The tax config for Stripe.
     BillingTaxIdentificationCode:
       type: string
@@ -6125,6 +6222,7 @@ components:
           description: The final total value of the resource after taxes, discounts and commitments.
           title: Total
           readOnly: true
+      additionalProperties: false
       description: Totals contains the summaries of all calculations for a billing resource.
     BillingUsageBasedCharge:
       type: object
@@ -6288,6 +6386,7 @@ components:
           description: Aggregated booked and realtime totals for the charge.
           title: Totals for the charge
           readOnly: true
+      additionalProperties: false
       description: A usage-based charge for a customer.
       title: Usage-based charge
     BillingWorkflow:
@@ -6309,6 +6408,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingWorkflowTaxSettings'
           description: The tax settings for this workflow
+      additionalProperties: false
       description: Billing workflow settings.
     BillingWorkflowCollectionAlignment:
       type: object
@@ -6340,6 +6440,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/RecurringPeriod'
           description: The recurring period for the alignment.
+      additionalProperties: false
       description: |-
         BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items
         into an invoice.
@@ -6353,6 +6454,7 @@ components:
           enum:
             - subscription
           description: The type of alignment.
+      additionalProperties: false
       description: |-
         BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the pending line items
         into an invoice.
@@ -6375,6 +6477,7 @@ components:
             This is useful, in case of multiple subscriptions having slightly different billing periods.
           example: P1D
           default: PT1H
+      additionalProperties: false
       description: Workflow collection specifies how to collect the pending line items for an invoice.
       title: Workflow collection settings
     BillingWorkflowInvoicingSettings:
@@ -6394,6 +6497,7 @@ components:
           type: boolean
           description: Should progressive billing be allowed for this workflow?
           default: true
+      additionalProperties: false
       description: Invoice settings for a billing workflow.
       title: Workflow invoice settings
     BillingWorkflowPaymentChargeAutomaticallySettings:
@@ -6406,6 +6510,7 @@ components:
           enum:
             - charge_automatically
           description: The collection method for the invoice.
+      additionalProperties: false
       description: Payment settings for a billing workflow when the collection method is charge automatically.
     BillingWorkflowPaymentSendInvoiceSettings:
       type: object
@@ -6425,6 +6530,7 @@ components:
             With some payment solutions it's only applicable for manual collection method.
           example: P30D
           default: P30D
+      additionalProperties: false
       description: Payment settings for a billing workflow when the collection method is send invoice.
     BillingWorkflowPaymentSettings:
       type: object
@@ -6458,6 +6564,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingTaxConfig'
           description: Default tax configuration to apply to the invoices for line items.
+      additionalProperties: false
       description: Tax settings for a billing workflow.
       title: Workflow tax settings
     ChargePagePaginatedResponse:
@@ -6472,6 +6579,7 @@ components:
             $ref: '#/components/schemas/BillingCharge'
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
       description: Page paginated response.
     ClosedPeriod:
       type: object
@@ -6497,6 +6605,7 @@ components:
             The period is exclusive at the end.
           title: End
           example: '2023-01-01T01:01:01.001Z'
+      additionalProperties: false
       description: |-
         A period with defined start and end dates.
 
@@ -6513,6 +6622,7 @@ components:
             $ref: '#/components/schemas/BillingCostBasis'
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
       description: Page paginated response.
     CountryCode:
       type: string
@@ -6572,6 +6682,7 @@ components:
             $ref: '#/components/schemas/BillingRateCard'
           description: The rate cards of the add-on.
           title: Rate cards
+      additionalProperties: false
       description: Addon create request.
     CreateBillingProfileRequest:
       type: object
@@ -6614,6 +6725,7 @@ components:
         default:
           type: boolean
           description: Whether this is the default profile.
+      additionalProperties: false
       description: BillingProfile create request.
     CreateCostBasisRequest:
       type: object
@@ -6635,6 +6747,7 @@ components:
           description: |-
             An ISO-8601 timestamp representation of the date from which the cost basis is effective.
             If not provided, it will be effective immediately and will set to `now` by the system.
+      additionalProperties: false
       description: CostBasis create request.
     CreateCreditAdjustmentRequest:
       type: object
@@ -6668,6 +6781,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: Granted credit amount.
+      additionalProperties: false
       description: CreditAdjustment create request.
     CreateCreditGrantRequest:
       type: object
@@ -6736,6 +6850,7 @@ components:
               default: on_creation
           required:
             - currency
+          additionalProperties: false
           description: |-
             Purchase and payment terms of the grant.
             Present when a funding workflow applies (funding_method is not `none`).
@@ -6760,6 +6875,7 @@ components:
               example:
                 - input_tokens
                 - output_tokens
+          additionalProperties: false
           description: Filters for the credit grant.
         priority:
           type: integer
@@ -6770,6 +6886,7 @@ components:
             Draw-down priority of the grant.
             Lower values have higher priority.
           default: 10
+      additionalProperties: false
       description: CreditGrant create request.
     CreateCurrencyCustomRequest:
       type: object
@@ -6793,6 +6910,7 @@ components:
           description: The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.
         code:
           $ref: '#/components/schemas/BillingCurrencyCodeCustom'
+      additionalProperties: false
       description: CurrencyCustom create request.
     CreateCustomerRequest:
       type: object
@@ -6842,6 +6960,7 @@ components:
             The billing address of the customer.
             Used for tax and invoicing.
           title: Billing Address
+      additionalProperties: false
       description: Customer create request.
     CreateFeatureRequest:
       type: object
@@ -6884,6 +7003,7 @@ components:
               title: Meter dimensions filters
           required:
             - id
+          additionalProperties: false
           description: |-
             The meter that the feature is associated with and and based on which usage is calculated.
             If not specified, the feature is static.
@@ -6896,6 +7016,7 @@ components:
             Use "manual" for a fixed per-unit cost, or "llm" to look up cost
             from the LLM cost database based on meter group-by properties.
           title: Unit cost
+      additionalProperties: false
       description: Feature create request.
     CreateMeterRequest:
       type: object
@@ -6960,6 +7081,7 @@ components:
             Keys must be unique and consist only alphanumeric and underscore characters.
           example:
             type: $.type
+      additionalProperties: false
       description: Meter create request.
     CreatePlanAddonRequest:
       type: object
@@ -7003,6 +7125,7 @@ components:
             For single-instance add-ons this field must be omitted.
             For multi-instance add-ons when omitted, unlimited quantity can be purchased.
           title: Max quantity
+      additionalProperties: false
       description: PlanAddon create request.
     CreatePlanRequest:
       type: object
@@ -7062,6 +7185,7 @@ components:
             A phase switch occurs only at the end of a billing period.
             At least one phase is required.
           title: Plan phases
+      additionalProperties: false
       description: Plan create request.
     CreateTaxCodeRequest:
       type: object
@@ -7095,6 +7219,7 @@ components:
             $ref: '#/components/schemas/BillingTaxCodeAppMapping'
           description: Mapping of app types to tax codes.
           title: App type to tax code mappings
+      additionalProperties: false
       description: TaxCode create request.
     CreditBalance:
       type: object
@@ -7123,6 +7248,7 @@ components:
             Derived from cleared grants after applying eligibility and restriction rules.
           example: '150.00'
           readOnly: true
+      additionalProperties: false
       description: The credit balance by currency.
       title: Credit balance
     CreditGrantPagePaginatedResponse:
@@ -7137,6 +7263,7 @@ components:
             $ref: '#/components/schemas/BillingCreditGrant'
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
       description: Page paginated response.
     CreditTransactionPaginatedResponse:
       type: object
@@ -7150,6 +7277,7 @@ components:
             $ref: '#/components/schemas/BillingCreditTransaction'
         meta:
           $ref: '#/components/schemas/CursorMeta'
+      additionalProperties: false
       description: Cursor paginated response.
     CurrencyAmount:
       type: object
@@ -7161,6 +7289,7 @@ components:
           $ref: '#/components/schemas/Numeric'
         currency:
           $ref: '#/components/schemas/CurrencyCode'
+      additionalProperties: false
       description: Monetary amount in a specific currency.
     CurrencyCode:
       type: string
@@ -7183,6 +7312,7 @@ components:
             $ref: '#/components/schemas/BillingCurrency'
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
       description: Page paginated response.
     CustomerPagePaginatedResponse:
       type: object
@@ -7196,6 +7326,7 @@ components:
             $ref: '#/components/schemas/BillingCustomer'
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
       description: Page paginated response.
     CustomerReference:
       type: object
@@ -7204,6 +7335,7 @@ components:
       properties:
         id:
           $ref: '#/components/schemas/ULID'
+      additionalProperties: false
       description: Customer reference.
     DateTime:
       type: string
@@ -7222,6 +7354,7 @@ components:
               description: Value strictly equals given RFC-3339 formatted timestamp in UTC.
           required:
             - eq
+          additionalProperties: false
         - type: object
           properties:
             lt:
@@ -7230,6 +7363,7 @@ components:
               description: Value is less than the given RFC-3339 formatted timestamp in UTC.
           required:
             - lt
+          additionalProperties: false
         - type: object
           properties:
             lte:
@@ -7238,6 +7372,7 @@ components:
               description: Value is less than or equal to the given RFC-3339 formatted timestamp in UTC.
           required:
             - lte
+          additionalProperties: false
         - type: object
           properties:
             gt:
@@ -7246,6 +7381,7 @@ components:
               description: Value is greater than the given RFC-3339 formatted timestamp in UTC.
           required:
             - gt
+          additionalProperties: false
         - type: object
           properties:
             gte:
@@ -7254,6 +7390,7 @@ components:
               description: Value is greater than or equal to the given RFC-3339 formatted timestamp in UTC.
           required:
             - gte
+          additionalProperties: false
       description: |-
         Filters on the given datetime (RFC-3339) field value.
         All properties are optional; provide exactly one to specify the comparison.
@@ -7331,6 +7468,7 @@ components:
               title: Meter dimensions filters
           required:
             - id
+          additionalProperties: false
           description: |-
             The meter that the feature is associated with and and based on which usage is calculated.
             If not specified, the feature is static.
@@ -7343,6 +7481,7 @@ components:
             Use "manual" for a fixed per-unit cost, or "llm" to look up cost
             from the LLM cost database based on meter group-by properties.
           title: Unit cost
+      additionalProperties: false
       description: A capability or billable dimension offered by a provider.
     FeatureCostQueryResult:
       type: object
@@ -7362,6 +7501,7 @@ components:
           items:
             $ref: '#/components/schemas/FeatureCostQueryRow'
           description: The cost data rows.
+      additionalProperties: false
       description: Result of a feature cost query.
     FeatureCostQueryRow:
       type: object
@@ -7407,6 +7547,7 @@ components:
           description: |-
             The dimensions the value is aggregated over.
             `subject` and `customer_id` are reserved dimensions.
+      additionalProperties: false
       description: A row in the result of a feature cost query.
     FeaturePagePaginatedResponse:
       type: object
@@ -7420,6 +7561,7 @@ components:
             $ref: '#/components/schemas/Feature'
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
       description: Page paginated response.
     FeatureReferenceItem:
       type: object
@@ -7428,6 +7570,7 @@ components:
       properties:
         id:
           $ref: '#/components/schemas/ULID'
+      additionalProperties: false
       description: Feature reference.
     GetCreditBalanceParamsFilter:
       type: object
@@ -7436,6 +7579,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingCurrencyCode'
           description: Filter credit balance by currency.
+      additionalProperties: false
       description: Filter options for getting a credit balance.
     ISO8601Duration:
       type: string
@@ -7456,6 +7600,7 @@ components:
             $ref: '#/components/schemas/MeteringIngestedEvent'
         meta:
           $ref: '#/components/schemas/CursorMeta'
+      additionalProperties: false
       description: Cursor paginated response.
     LLMCostModel:
       type: object
@@ -7469,6 +7614,7 @@ components:
         name:
           type: string
           description: Name of the model, e.g., "GPT-4", "Claude 3.5 Sonnet".
+      additionalProperties: false
       description: LLM Model
     LLMCostModelPricing:
       type: object
@@ -7496,6 +7642,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: Reasoning output price per token (USD).
+      additionalProperties: false
       description: Token pricing for an LLM model, denominated per token.
     LLMCostOverrideCreate:
       type: object
@@ -7531,6 +7678,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/DateTime'
           description: When this override expires.
+      additionalProperties: false
       description: |-
         Input for creating a per-namespace price override.
         Unique per provider, model and currency.
@@ -7599,6 +7747,7 @@ components:
             - $ref: '#/components/schemas/DateTime'
           description: Last update timestamp.
           readOnly: true
+      additionalProperties: false
       description: |-
         An LLM cost price record, representing the cost per token
         for a specific model from a specific provider.
@@ -7620,6 +7769,7 @@ components:
         name:
           type: string
           description: Name of the provider, e.g., "OpenAI", "Anthropic".
+      additionalProperties: false
       description: LLM Provider
     ListAddonsParamsFilter:
       type: object
@@ -7634,6 +7784,7 @@ components:
           $ref: '#/components/schemas/StringFieldFilterExact'
         currency:
           $ref: '#/components/schemas/StringFieldFilterExact'
+      additionalProperties: false
       description: Filter options for listing add-ons.
     ListChargesParamsFilter:
       type: object
@@ -7651,6 +7802,7 @@ components:
             - `deleted`
 
             If omitted, all statuses are returned except for `deleted`.
+      additionalProperties: false
       description: Filter options for listing charges.
     ListCostBasesParamsFilter:
       type: object
@@ -7659,6 +7811,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
           description: Filter cost bases by fiat currency code.
+      additionalProperties: false
       description: Filter options for listing cost bases.
     ListCreditGrantsParamsFilter:
       type: object
@@ -7671,6 +7824,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
           description: Filter credit grants by currency.
+      additionalProperties: false
       description: Filter options for listing credit grants.
     ListCreditTransactionsParamsFilter:
       type: object
@@ -7683,6 +7837,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingCurrencyCode'
           description: Filter credit transactions by currency.
+      additionalProperties: false
       description: Filter options for listing credit transactions.
     ListCurrenciesParamsFilter:
       type: object
@@ -7691,6 +7846,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingCurrencyType'
           description: Filter currencies by type.
+      additionalProperties: false
       description: Filter options for listing currencies.
     ListCustomerEntitlementAccessResponseData:
       type: object
@@ -7703,6 +7859,7 @@ components:
             $ref: '#/components/schemas/BillingEntitlementAccessResult'
           description: The list of entitlement access results.
           readOnly: true
+      additionalProperties: false
       description: List customer entitlement access response data.
     ListCustomersParamsFilter:
       type: object
@@ -7719,6 +7876,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/StringFieldFilter'
           description: Filter customers by primary email.
+      additionalProperties: false
       description: Filter options for listing customers.
     ListEventsParamsFilter:
       type: object
@@ -7755,6 +7913,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/DateTimeFieldFilter'
           description: Filter events by the time the event was stored.
+      additionalProperties: false
       description: Filter options for listing ingested events.
     ListFeatureParamsFilter:
       type: object
@@ -7765,6 +7924,7 @@ components:
           $ref: '#/components/schemas/StringFieldFilter'
         name:
           $ref: '#/components/schemas/StringFieldFilter'
+      additionalProperties: false
       description: Filter options for listing features.
     ListLLMCostPricesParamsFilter:
       type: object
@@ -7789,6 +7949,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/StringFieldFilter'
           description: Filter by source. e.g. ?filter[source][eq]=system
+      additionalProperties: false
       description: Filter options for listing LLM cost prices.
     ListMetersParamsFilter:
       type: object
@@ -7801,6 +7962,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/StringFieldFilter'
           description: Filter meters by name.
+      additionalProperties: false
       description: Filter options for listing meters.
     ListPlansParamsFilter:
       type: object
@@ -7813,6 +7975,7 @@ components:
           $ref: '#/components/schemas/StringFieldFilterExact'
         currency:
           $ref: '#/components/schemas/StringFieldFilterExact'
+      additionalProperties: false
       description: Filter options for listing plans.
     Meter:
       type: object
@@ -7899,6 +8062,7 @@ components:
             Keys must be unique and consist only alphanumeric and underscore characters.
           example:
             type: $.type
+      additionalProperties: false
       description: A meter is a configuration that defines how to match and aggregate events.
       example:
         id: 01G65Z755AFWAKHE12NY0CQ9FH
@@ -7936,6 +8100,7 @@ components:
             $ref: '#/components/schemas/Meter'
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
       description: Page paginated response.
     MeterQueryFilters:
       type: object
@@ -7948,6 +8113,7 @@ components:
           description: |-
             Filters to apply to the dimensions of the query.
             For `subject` and `customer_id` only equals ("eq", "in") comparisons are supported.
+      additionalProperties: false
       description: Filters to apply to a meter query.
     MeterQueryGranularity:
       type: string
@@ -7996,6 +8162,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/MeterQueryFilters'
           description: Filters to apply to the query.
+      additionalProperties: false
       description: A meter query request.
       example:
         from: '2023-01-01T00:00:00Z'
@@ -8022,6 +8189,7 @@ components:
           description: |-
             The usage data.
             If no data is available, an empty array is returned.
+      additionalProperties: false
       description: Meter query result.
       example:
         from: '2023-01-01T00:00:00Z'
@@ -8061,6 +8229,7 @@ components:
           description: |-
             The dimensions the value is aggregated over.
             `subject` and `customer_id` are reserved dimensions.
+      additionalProperties: false
       description: A row in the result of a meter query.
       example:
         value: '12.3456'
@@ -8133,6 +8302,7 @@ components:
           description: |-
             The event payload.
             Optional, if present it must be a JSON object.
+      additionalProperties: false
       description: Metering event following the CloudEvents specification.
       title: Metering Event
       example:
@@ -8175,6 +8345,7 @@ components:
           items:
             $ref: '#/components/schemas/MeteringIngestedEventValidationError'
           description: The validation errors of the ingested event.
+      additionalProperties: false
       description: An ingested metering event with ingestion metadata.
       title: Ingested Event
       example:
@@ -8211,6 +8382,7 @@ components:
           description: Additional attributes.
           title: Attributes
           readOnly: true
+      additionalProperties: false
       description: Event validation errors.
     Numeric:
       type: string
@@ -8244,6 +8416,7 @@ components:
             - $ref: '#/components/schemas/DateTime'
           description: Timestamp of last update.
           readOnly: true
+      additionalProperties: false
       description: |-
         Organization-level default tax code references.
 
@@ -8320,6 +8493,7 @@ components:
           description: List of validation errors.
           title: Validation errors
           readOnly: true
+      additionalProperties: false
       description: |-
         PlanAddon represents an association between a plan and an add-on,
         controlling which add-ons are available for purchase within a plan.
@@ -8335,6 +8509,7 @@ components:
             $ref: '#/components/schemas/PlanAddon'
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
       description: Page paginated response.
     PlanPagePaginatedResponse:
       type: object
@@ -8348,6 +8523,7 @@ components:
             $ref: '#/components/schemas/BillingPlan'
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
       description: Page paginated response.
     PricePagePaginatedResponse:
       type: object
@@ -8361,6 +8537,7 @@ components:
             $ref: '#/components/schemas/LLMCostPrice'
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
       description: Page paginated response.
     ProductCatalogValidationError:
       type: object
@@ -8393,6 +8570,7 @@ components:
           description: Additional attributes.
           title: Attributes
           readOnly: true
+      additionalProperties: false
       description: Validation errors providing detailed description of the issue.
     QueryFilterString:
       type: object
@@ -8437,6 +8615,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/QueryFilterString'
+      additionalProperties: false
       description: |-
         A query filter for a string attribute.
         Operators are mutually exclusive, only one operator is allowed at a time.
@@ -8487,6 +8666,7 @@ components:
           minItems: 1
           maxItems: 10
           description: Combines the provided filters with a logical OR.
+      additionalProperties: false
       description: |-
         A query filter for an item in a string map attribute.
         Operators are mutually exclusive, only one operator is allowed at a time.
@@ -8509,6 +8689,7 @@ components:
           description: The interval duration in ISO 8601 format.
           title: Interval in ISO 8601 duration format
           example: P1M
+      additionalProperties: false
       description: Recurring period with an anchor and an interval.
     ResourceKey:
       type: string
@@ -8542,6 +8723,7 @@ components:
               description: Value strictly equals the given string value.
           required:
             - eq
+          additionalProperties: false
         - type: object
           properties:
             neq:
@@ -8549,6 +8731,7 @@ components:
               description: Value does not equal the given string value.
           required:
             - neq
+          additionalProperties: false
         - type: object
           properties:
             contains:
@@ -8556,6 +8739,7 @@ components:
               description: Value contains the given string value (fuzzy match).
           required:
             - contains
+          additionalProperties: false
         - type: object
           properties:
             ocontains:
@@ -8566,6 +8750,7 @@ components:
               description: Returns entities that fuzzy-match any of the comma-delimited phrases in the filter string.
           required:
             - ocontains
+          additionalProperties: false
         - type: object
           properties:
             oeq:
@@ -8576,6 +8761,7 @@ components:
               description: Returns entities that exact match any of the comma-delimited phrases in the filter string.
           required:
             - oeq
+          additionalProperties: false
         - type: object
           properties:
             gt:
@@ -8583,6 +8769,7 @@ components:
               description: Value is greater than the given string value (lexicographic compare).
           required:
             - gt
+          additionalProperties: false
         - type: object
           properties:
             gte:
@@ -8590,6 +8777,7 @@ components:
               description: Value is greater than or equal to the given string value (lexicographic compare).
           required:
             - gte
+          additionalProperties: false
         - type: object
           properties:
             lt:
@@ -8597,6 +8785,7 @@ components:
               description: Value is less than the given string value (lexicographic compare).
           required:
             - lt
+          additionalProperties: false
         - type: object
           properties:
             lte:
@@ -8604,6 +8793,7 @@ components:
               description: Value is less than or equal to the given string value (lexicographic compare).
           required:
             - lte
+          additionalProperties: false
         - type: object
           properties:
             exists:
@@ -8611,6 +8801,7 @@ components:
               description: When true, the field must be present (non-null); when false, the field must be absent (null).
           required:
             - exists
+          additionalProperties: false
       description: |-
         Filters on the given string field value by either exact or fuzzy match.
         All properties are optional; provide exactly one to specify the comparison.
@@ -8628,6 +8819,7 @@ components:
               description: Value strictly equals the given string value.
           required:
             - eq
+          additionalProperties: false
         - type: object
           properties:
             oeq:
@@ -8638,6 +8830,7 @@ components:
               description: Returns entities that exact match any of the comma-delimited phrases in the filter string.
           required:
             - oeq
+          additionalProperties: false
         - type: object
           properties:
             neq:
@@ -8645,6 +8838,7 @@ components:
               description: Value does not equal the given string value.
           required:
             - neq
+          additionalProperties: false
       description: |-
         Filters on the given string field value by exact match.
         All properties are optional; provide exactly one to specify the comparison.
@@ -8664,6 +8858,7 @@ components:
             $ref: '#/components/schemas/BillingSubscription'
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
       description: Page paginated response.
     TaxCodePagePaginatedResponse:
       type: object
@@ -8677,6 +8872,7 @@ components:
             $ref: '#/components/schemas/BillingTaxCode'
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
       description: Page paginated response.
     TaxCodeReference:
       type: object
@@ -8711,6 +8907,7 @@ components:
               description: Value strictly equals the given ULID value.
           required:
             - eq
+          additionalProperties: false
         - type: object
           properties:
             oeq:
@@ -8721,6 +8918,7 @@ components:
               description: Returns entities that exact match any of the comma-delimited ULIDs in the filter string.
           required:
             - oeq
+          additionalProperties: false
         - type: object
           properties:
             neq:
@@ -8729,6 +8927,7 @@ components:
               description: Value does not equal the given ULID value.
           required:
             - neq
+          additionalProperties: false
       description: |-
         Filters on the given ULID field value by exact match.
         All properties are optional; provide exactly one to specify the comparison.
@@ -8745,6 +8944,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingCreditPurchasePaymentSettlementStatus'
           description: The new payment settlement status.
+      additionalProperties: false
       description: Request body for updating the external payment settlement status of a credit grant.
     UpdateFeatureRequest:
       type: object
@@ -8758,6 +8958,7 @@ components:
             Use "manual" for a fixed per-unit cost, or "llm" to look up cost
             from the LLM cost database based on meter group-by properties.
           title: Unit cost
+      additionalProperties: false
       description: |-
         Request body for updating a feature.
         Currently only the unit_cost field can be updated.
@@ -8791,6 +8992,7 @@ components:
             Keys must be unique and consist only alphanumeric and underscore characters.
           example:
             type: $.type
+      additionalProperties: false
       description: Meter update request.
     UpdateOrganizationDefaultTaxCodesRequest:
       type: object
@@ -8805,6 +9007,7 @@ components:
             - $ref: '#/components/schemas/TaxCodeReference'
           description: Default tax code for credit grants.
           title: Credit grant tax code
+      additionalProperties: false
       description: OrganizationDefaultTaxCodes update request.
     UpsertAddonRequest:
       type: object
@@ -8841,6 +9044,7 @@ components:
             $ref: '#/components/schemas/BillingRateCard'
           description: The rate cards of the add-on.
           title: Rate cards
+      additionalProperties: false
       description: Addon upsert request.
     UpsertAppCustomerDataRequest:
       type: object
@@ -8855,6 +9059,7 @@ components:
             - $ref: '#/components/schemas/BillingAppCustomerDataExternalInvoicing'
           description: Used if the customer has a linked external invoicing app.
           title: External invoicing
+      additionalProperties: false
       description: AppCustomerData upsert request.
     UpsertBillingProfileRequest:
       type: object
@@ -8892,6 +9097,7 @@ components:
         default:
           type: boolean
           description: Whether this is the default profile.
+      additionalProperties: false
       description: BillingProfile upsert request.
     UpsertCustomerBillingDataRequest:
       type: object
@@ -8909,6 +9115,7 @@ components:
             - $ref: '#/components/schemas/BillingAppCustomerData'
           description: App customer data.
           title: App customer data
+      additionalProperties: false
       description: CustomerBillingData upsert request.
     UpsertCustomerRequest:
       type: object
@@ -8955,6 +9162,7 @@ components:
             The billing address of the customer.
             Used for tax and invoicing.
           title: Billing Address
+      additionalProperties: false
       description: Customer upsert request.
     UpsertPlanAddonRequest:
       type: object
@@ -8992,6 +9200,7 @@ components:
             For single-instance add-ons this field must be omitted.
             For multi-instance add-ons when omitted, unlimited quantity can be purchased.
           title: Max quantity
+      additionalProperties: false
       description: PlanAddon upsert request.
     UpsertPlanRequest:
       type: object
@@ -9031,6 +9240,7 @@ components:
             A phase switch occurs only at the end of a billing period.
             At least one phase is required.
           title: Plan phases
+      additionalProperties: false
       description: Plan upsert request.
     UpsertTaxCodeRequest:
       type: object
@@ -9061,6 +9271,7 @@ components:
             $ref: '#/components/schemas/BillingTaxCodeAppMapping'
           description: Mapping of app types to tax codes.
           title: App type to tax code mappings
+      additionalProperties: false
       description: TaxCode upsert request.
     UsageAttributionSubjectKey:
       type: string

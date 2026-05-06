@@ -206,13 +206,28 @@ func TestFieldFilterValidation(t *testing.T) {
 			wantReasonSubstr: "doesn't match any schema",
 		},
 
-		// LabelsFieldFilter
-		{name: "labels valid short", query: "filter[labels]=team-a", wantStatus: http.StatusNoContent},
-		{name: "labels valid eq", query: "filter[labels][eq]=team-a", wantStatus: http.StatusNoContent},
-		{name: "labels valid contains", query: "filter[labels][contains]=team", wantStatus: http.StatusNoContent},
-		{name: "labels valid ocontains", query: "filter[labels][ocontains]=a,b", wantStatus: http.StatusNoContent},
-		{name: "labels valid oeq", query: "filter[labels][oeq]=a,b", wantStatus: http.StatusNoContent},
-		{name: "labels valid neq", query: "filter[labels][neq]=team-a", wantStatus: http.StatusNoContent},
+		// LabelsFieldFilter — schema is Record<StringFieldFilter>, so each
+		// label key is itself a StringFieldFilter. Both nested and dot-notation
+		// forms are accepted by the validator.
+		{name: "labels nested short", query: "filter[labels][owner]=team-a", wantStatus: http.StatusNoContent},
+		{name: "labels nested eq", query: "filter[labels][owner][eq]=team-a", wantStatus: http.StatusNoContent},
+		{name: "labels nested contains", query: "filter[labels][owner][contains]=team", wantStatus: http.StatusNoContent},
+		{name: "labels nested ocontains", query: "filter[labels][owner][ocontains]=a,b", wantStatus: http.StatusNoContent},
+		{name: "labels nested oeq", query: "filter[labels][owner][oeq]=a,b", wantStatus: http.StatusNoContent},
+		{name: "labels nested neq", query: "filter[labels][owner][neq]=team-a", wantStatus: http.StatusNoContent},
+		{name: "labels dot short", query: "filter[labels.owner]=team-a", wantStatus: http.StatusNoContent},
+		{name: "labels dot eq", query: "filter[labels.owner][eq]=team-a", wantStatus: http.StatusNoContent},
+		{name: "labels dot contains", query: "filter[labels.owner][contains]=team", wantStatus: http.StatusNoContent},
+		// `labels` must be a map, not a bare scalar — the schema (Record<…>)
+		// enforces this at the validator level.
+		{
+			name:             "labels bare scalar rejected",
+			query:            "filter[labels]=team-a",
+			wantStatus:       http.StatusBadRequest,
+			wantField:        "labels",
+			wantRule:         "type",
+			wantReasonSubstr: "must be an object",
+		},
 
 		// Multiple filters in one request — independent fields can be combined.
 		{
@@ -480,12 +495,12 @@ func TestFieldFilterParse(t *testing.T) {
 		// fixture wires the labels field as a single filter, not a labels map.
 		{
 			name:      "labels short",
-			query:     "filter[labels][key]=team-a",
+			query:     "filter[labels.key]=team-a",
 			wantParse: fieldFiltersTarget{Labels: &filters.FilterLabels{"key": {Eq: lo.ToPtr("team-a")}}},
 		},
 		{
 			name:      "labels contains",
-			query:     "filter[labels][key][contains]=team",
+			query:     "filter[labels.key][contains]=team",
 			wantParse: fieldFiltersTarget{Labels: &filters.FilterLabels{"key": {Contains: lo.ToPtr("team")}}},
 		},
 
@@ -501,7 +516,7 @@ func TestFieldFilterParse(t *testing.T) {
 		},
 		{
 			name:  "combined ulid+datetime+labels",
-			query: "filter[ulid][eq]=" + ulid1 + "&filter[datetime][lt]=2024-01-02T03:04:05Z&filter[labels][key]=team-a",
+			query: "filter[ulid][eq]=" + ulid1 + "&filter[datetime][lt]=2024-01-02T03:04:05Z&filter[labels.key]=team-a",
 			wantParse: fieldFiltersTarget{
 				ULID:     &filters.FilterULID{Eq: &ulid1},
 				DateTime: &filters.FilterDateTime{Lt: &dt},

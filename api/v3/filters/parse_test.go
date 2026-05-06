@@ -20,7 +20,7 @@ type testFilter struct {
 	Field     *FilterString      `json:"field,omitempty"`
 	Name      *FilterString      `json:"name,omitempty"`
 	Email     *FilterString      `json:"email,omitempty"`
-	Labels    *FilterString      `json:"labels,omitempty"`
+	Labels    *FilterLabels      `json:"labels,omitempty"`
 	Status    *FilterStringExact `json:"status,omitempty"`
 	Count     *FilterNumeric     `json:"count,omitempty"`
 	CreatedAt *FilterDateTime    `json:"created_at,omitempty"`

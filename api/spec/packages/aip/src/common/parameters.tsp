@@ -298,6 +298,10 @@ union DateTimeFieldFilter {
 
 /**
  * Filters on the resource's `labels` field.
+ *
+ * The schema is a map keyed by the label name; each value is a `StringFieldFilter`.
+ * Both deepObject forms are accepted: `filter[labels][key]=value` (nested) and
+ * `filter[labels.key]=value` (dot-notation).
  */
 @friendlyName("LabelsFieldFilter")
 @extension("x-go-type", "filters.FilterLabels")
@@ -305,41 +309,5 @@ union DateTimeFieldFilter {
   "x-go-type-import",
   #{ path: "github.com/openmeterio/openmeter/api/v3/filters" }
 )
-@oneOf
 @summary("Labels Field Filter")
-union LabelsFieldFilter {
-  @summary("Equals (short form)")
-  equals: string,
-
-  @summary("Equals")
-  LabelsFieldEqualsFilter: {
-    /** Value strictly equals the given string value. */
-    eq: string,
-  },
-
-  @summary("Contains")
-  LabelsFieldContainsFilter: {
-    /** Value contains the given string value (fuzzy match). */
-    contains: string,
-  },
-
-  @summary("Contains one of")
-  LabelsFieldOContainsFilter: {
-    /** Returns entities that fuzzy-match any of the comma-delimited phrases in the filter string. */
-    @encode(ArrayEncoding.commaDelimited)
-    ocontains: string[],
-  },
-
-  @summary("Equals one of")
-  LabelsFieldOEQFilter: {
-    /** Returns entities that exact match any of the comma-delimited phrases in the filter string. */
-    @encode(ArrayEncoding.commaDelimited)
-    oeq: string[],
-  },
-
-  @summary("Not Equals")
-  LabelsFieldNEQFilter: {
-    /** Value does not equal the given string value. */
-    neq: string,
-  },
-}
+model LabelsFieldFilter is Record<StringFieldFilter>;

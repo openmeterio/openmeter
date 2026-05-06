@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "generate": "tsp compile --config tspconfig.yaml ./src && node ./scripts/flatten-allof.mjs ./output/definitions/metering-and-billing/v3/openapi.MeteringAndBilling.yaml",
+    "generate": "tsp compile --config tspconfig.yaml ./src && node ./scripts/flatten-allof.mjs ./output/definitions/metering-and-billing/v3/openapi.MeteringAndBilling.yaml && node ./scripts/seal-object-schemas.mjs ./output/definitions/metering-and-billing/v3/*.yaml",
     "bundle": "openapi bundle output/definitions/metering-and-billing/v3/openapi.OpenMeter.yaml",
     "watch": "tsp compile --watch --config tspconfig.yaml ./src",
     "format": "prettier --ignore-path ../../.prettierignore --list-different --find-config-path --write .",
