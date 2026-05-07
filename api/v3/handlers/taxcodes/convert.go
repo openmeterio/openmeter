@@ -2,6 +2,8 @@
 package taxcodes
 
 import (
+	"errors"
+
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/openmeter/app"
@@ -19,6 +21,9 @@ import (
 // goverter:extend ToAPIBillingAppType
 // goverter:extend ToAPIBillingTaxCodeAppMappings
 // goverter:extend ConvertLabelsToMetadata
+// goverter:extend IDStringToTaxCodeReference
+// goverter:extend InvoicingTaxCodeReferenceToIDString
+// goverter:extend CreditGrantTaxCodeReferenceToIDString
 var (
 	// goverter:context namespace
 	// goverter:map Namespace | NamespaceFromContext
@@ -40,6 +45,19 @@ var (
 	// goverter:map ManagedModel.DeletedAt DeletedAt
 	// goverter:map AppMappings | ToAPIBillingTaxCodeAppMappings
 	ToAPIBillingTaxCode func(taxcode.TaxCode) (api.BillingTaxCode, error)
+
+	// goverter:map ManagedModel.CreatedAt CreatedAt
+	// goverter:map ManagedModel.UpdatedAt UpdatedAt
+	// goverter:map InvoicingTaxCodeID InvoicingTaxCode | IDStringToTaxCodeReference
+	// goverter:map CreditGrantTaxCodeID CreditGrantTaxCode | IDStringToTaxCodeReference
+	ToAPIOrganizationDefaultTaxCodes func(taxcode.OrganizationDefaultTaxCodes) (api.OrganizationDefaultTaxCodes, error)
+
+	// goverter:context namespace
+	// goverter:map Namespace | NamespaceFromContext
+	// goverter:map InvoicingTaxCode InvoicingTaxCodeID | InvoicingTaxCodeReferenceToIDString
+	// goverter:map CreditGrantTaxCode CreditGrantTaxCodeID | CreditGrantTaxCodeReferenceToIDString
+	// goverter:ignore Expand
+	FromAPIUpdateOrganizationDefaultTaxCodesRequest func(namespace string, body api.UpdateOrganizationDefaultTaxCodesRequest) (taxcode.UpsertOrganizationDefaultTaxCodesInput, error)
 )
 
 var ConvertLabelsToMetadata = labels.ToMetadata
@@ -74,6 +92,24 @@ func ToAPIBillingAppType(source app.AppType) api.BillingAppType {
 		return "external_invoicing"
 	}
 	return api.BillingAppType(source)
+}
+
+func IDStringToTaxCodeReference(id string) api.TaxCodeReference {
+	return api.TaxCodeReference{Id: id}
+}
+
+func InvoicingTaxCodeReferenceToIDString(ref *api.TaxCodeReference) (string, error) {
+	if ref == nil || ref.Id == "" {
+		return "", models.NewGenericValidationError(errors.New("invoicing_tax_code.id is required"))
+	}
+	return ref.Id, nil
+}
+
+func CreditGrantTaxCodeReferenceToIDString(ref *api.TaxCodeReference) (string, error) {
+	if ref == nil || ref.Id == "" {
+		return "", models.NewGenericValidationError(errors.New("credit_grant_tax_code.id is required"))
+	}
+	return ref.Id, nil
 }
 
 // ToAPIBillingTaxCodeAppMappings converts domain app mappings to API app mappings.
