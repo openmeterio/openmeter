@@ -21,7 +21,7 @@ paths:
 components:
   schemas:
     BooleanFieldFilter:
-      oneOf:
+      anyOf:
         - type: boolean
         - type: object
           properties:
@@ -43,7 +43,7 @@ components:
       title: RFC3339 Date-Time
       example: 2023-01-01T01:01:01.001Z
     DateTimeFieldFilter:
-      oneOf:
+      anyOf:
         - $ref: "#/components/schemas/DateTime"
         - type: object
           properties:
@@ -51,44 +51,22 @@ components:
               allOf:
                 - $ref: "#/components/schemas/DateTime"
               description: Value strictly equals given RFC-3339 formatted timestamp in UTC.
-          required:
-            - eq
-          additionalProperties: false
-        - type: object
-          properties:
             lt:
               allOf:
                 - $ref: "#/components/schemas/DateTime"
               description: Value is less than the given RFC-3339 formatted timestamp in UTC.
-          required:
-            - lt
-          additionalProperties: false
-        - type: object
-          properties:
             lte:
               allOf:
                 - $ref: "#/components/schemas/DateTime"
               description: Value is less than or equal to the given RFC-3339 formatted timestamp in UTC.
-          required:
-            - lte
-          additionalProperties: false
-        - type: object
-          properties:
             gt:
               allOf:
                 - $ref: "#/components/schemas/DateTime"
               description: Value is greater than the given RFC-3339 formatted timestamp in UTC.
-          required:
-            - gt
-          additionalProperties: false
-        - type: object
-          properties:
             gte:
               allOf:
                 - $ref: "#/components/schemas/DateTime"
               description: Value is greater than or equal to the given RFC-3339 formatted timestamp in UTC.
-          required:
-            - gte
           additionalProperties: false
       description: |-
         Filters on the given datetime (RFC-3339) field value.
@@ -131,7 +109,7 @@ components:
         path: github.com/openmeterio/openmeter/api/v3/filters
       x-go-type: filters.FilterLabels
     NumericFieldFilter:
-      oneOf:
+      anyOf:
         - type: number
           format: double
         - type: object
@@ -140,20 +118,10 @@ components:
               type: number
               format: double
               description: Value strictly equals the given numeric value.
-          required:
-            - eq
-          additionalProperties: false
-        - type: object
-          properties:
             neq:
               type: number
               format: double
               description: Value does not equal the given numeric value.
-          required:
-            - neq
-          additionalProperties: false
-        - type: object
-          properties:
             oeq:
               type: string
               items:
@@ -161,44 +129,22 @@ components:
                 format: double
               format: ArrayEncoding.commaDelimited
               description: Returns entities that match any of the comma-delimited numeric values.
-          required:
-            - oeq
-          additionalProperties: false
-        - type: object
-          properties:
             lt:
               type: number
               format: double
               description: Value is less than the given numeric value.
-          required:
-            - lt
-          additionalProperties: false
-        - type: object
-          properties:
             lte:
               type: number
               format: double
               description: Value is less than or equal to the given numeric value.
-          required:
-            - lte
-          additionalProperties: false
-        - type: object
-          properties:
             gt:
               type: number
               format: double
               description: Value is greater than the given numeric value.
-          required:
-            - gt
-          additionalProperties: false
-        - type: object
-          properties:
             gte:
               type: number
               format: double
               description: Value is greater than or equal to the given numeric value.
-          required:
-            - gte
           additionalProperties: false
       description: |-
         Filter by a numeric value.
@@ -208,130 +154,70 @@ components:
         path: github.com/openmeterio/openmeter/api/v3/filters
       x-go-type: filters.FilterNumeric
     StringFieldFilter:
-      oneOf:
+      anyOf:
         - type: string
         - type: object
           properties:
             eq:
               type: string
               description: Value strictly equals the given string value.
-          required:
-            - eq
-          additionalProperties: false
-        - type: object
-          properties:
             neq:
               type: string
               description: Value does not equal the given string value.
-          required:
-            - neq
-          additionalProperties: false
-        - type: object
-          properties:
             contains:
               type: string
               description: Value contains the given string value (fuzzy match).
-          required:
-            - contains
-          additionalProperties: false
-        - type: object
-          properties:
             ocontains:
               type: string
               items:
                 type: string
               format: ArrayEncoding.commaDelimited
               description: Returns entities that fuzzy-match any of the comma-delimited phrases in the filter string.
-          required:
-            - ocontains
-          additionalProperties: false
-        - type: object
-          properties:
             oeq:
               type: string
               items:
                 type: string
               format: ArrayEncoding.commaDelimited
               description: Returns entities that exact match any of the comma-delimited phrases in the filter string.
-          required:
-            - oeq
-          additionalProperties: false
-        - type: object
-          properties:
             gt:
               type: string
               description: Value is greater than the given string value (lexicographic compare).
-          required:
-            - gt
-          additionalProperties: false
-        - type: object
-          properties:
             gte:
               type: string
               description: Value is greater than or equal to the given string value (lexicographic compare).
-          required:
-            - gte
-          additionalProperties: false
-        - type: object
-          properties:
             lt:
               type: string
               description: Value is less than the given string value (lexicographic compare).
-          required:
-            - lt
-          additionalProperties: false
-        - type: object
-          properties:
             lte:
               type: string
               description: Value is less than or equal to the given string value (lexicographic compare).
-          required:
-            - lte
-          additionalProperties: false
-        - type: object
-          properties:
             exists:
               type: boolean
               description: When true, the field must be present (non-null); when false, the field must be absent (null).
-          required:
-            - exists
           additionalProperties: false
       description: |-
         Filters on the given string field value by either exact or fuzzy match.
         All properties are optional; provide exactly one to specify the comparison.
-      title: String Field Filter
       x-go-type-import:
         path: github.com/openmeterio/openmeter/api/v3/filters
       x-go-type: filters.FilterString
     StringFieldFilterExact:
-      oneOf:
+      anyOf:
         - type: string
         - type: object
           properties:
             eq:
               type: string
               description: Value strictly equals the given string value.
-          required:
-            - eq
-          additionalProperties: false
-        - type: object
-          properties:
             oeq:
               type: string
               items:
                 type: string
               format: ArrayEncoding.commaDelimited
               description: Returns entities that exact match any of the comma-delimited phrases in the filter string.
-          required:
-            - oeq
-          additionalProperties: false
-        - type: object
-          properties:
             neq:
               type: string
               description: Value does not equal the given string value.
-          required:
-            - neq
           additionalProperties: false
       description: |-
         Filters on the given string field value by exact match.
@@ -347,7 +233,7 @@ components:
       title: ULID
       example: 01G65Z755AFWAKHE12NY0CQ9FH
     ULIDFieldFilter:
-      oneOf:
+      anyOf:
         - $ref: "#/components/schemas/ULID"
         - type: object
           properties:
@@ -355,28 +241,16 @@ components:
               allOf:
                 - $ref: "#/components/schemas/ULID"
               description: Value strictly equals the given ULID value.
-          required:
-            - eq
-          additionalProperties: false
-        - type: object
-          properties:
             oeq:
               type: string
               items:
                 $ref: "#/components/schemas/ULID"
               format: ArrayEncoding.commaDelimited
               description: Returns entities that exact match any of the comma-delimited ULIDs in the filter string.
-          required:
-            - oeq
-          additionalProperties: false
-        - type: object
-          properties:
             neq:
               allOf:
                 - $ref: "#/components/schemas/ULID"
               description: Value does not equal the given ULID value.
-          required:
-            - neq
           additionalProperties: false
       description: |-
         Filters on the given ULID field value by exact match.

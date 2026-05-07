@@ -25,14 +25,10 @@ model SortQuery {}
   "x-go-type-import",
   #{ path: "github.com/openmeterio/openmeter/api/v3/filters" }
 )
-@oneOf
 @summary("Boolean Field Filter")
 union BooleanFieldFilter {
-  @summary("Equals (short form)")
   equals: boolean,
-
-  @summary("Equals")
-  BooleanFieldEQFilter: {
+  object: {
     /** Value strictly equals the given boolean value. */
     eq: boolean,
   },
@@ -48,53 +44,31 @@ union BooleanFieldFilter {
   "x-go-type-import",
   #{ path: "github.com/openmeterio/openmeter/api/v3/filters" }
 )
-@oneOf
 @summary("Numeric Field Filter")
 union NumericFieldFilter {
-  @summary("Equals (short form)")
   equals: float64,
-
-  @summary("Equals")
-  NumericFieldEQFilter: {
+  object: {
     /** Value strictly equals the given numeric value. */
-    eq: float64,
-  },
+    eq?: float64,
 
-  @summary("Not Equals")
-  NumericFieldNEQFilter: {
     /** Value does not equal the given numeric value. */
-    neq: float64,
-  },
+    neq?: float64,
 
-  @summary("Equals one of")
-  NumericFieldOEQFilter: {
     /** Returns entities that match any of the comma-delimited numeric values. */
     @encode(ArrayEncoding.commaDelimited)
-    oeq: float64[],
-  },
+    oeq?: float64[],
 
-  @summary("Less Than")
-  NumericFieldLTFilter: {
     /** Value is less than the given numeric value. */
-    lt: float64,
-  },
+    lt?: float64,
 
-  @summary("Less Than or Equal To")
-  NumericFieldLTEFilter: {
     /** Value is less than or equal to the given numeric value. */
-    lte: float64,
-  },
+    lte?: float64,
 
-  @summary("Greater Than")
-  NumericFieldGTFilter: {
     /** Value is greater than the given numeric value. */
-    gt: float64,
-  },
+    gt?: float64,
 
-  @summary("Greater Than or Equal To")
-  NumericFieldGTEFilter: {
     /** Value is greater than or equal to the given numeric value. */
-    gte: float64,
+    gte?: float64,
   },
 }
 
@@ -108,72 +82,40 @@ union NumericFieldFilter {
   "x-go-type-import",
   #{ path: "github.com/openmeterio/openmeter/api/v3/filters" }
 )
-@oneOf
-@summary("String Field Filter")
 union StringFieldFilter {
-  @summary("Equals (short form)")
   equals: string,
-
-  @summary("Equals")
-  StringFieldEQFilter: {
+  object: {
     /** Value strictly equals the given string value. */
-    eq: string,
-  },
+    eq?: string,
 
-  @summary("Not Equals")
-  StringFieldNEQFilter: {
     /** Value does not equal the given string value. */
-    neq: string,
-  },
+    neq?: string,
 
-  @summary("Contains")
-  StringFieldContainsFilter: {
     /** Value contains the given string value (fuzzy match). */
-    contains: string,
-  },
+    contains?: string,
 
-  @summary("Contains one of")
-  StringFieldOContainsFilter: {
     /** Returns entities that fuzzy-match any of the comma-delimited phrases in the filter string. */
     @encode(ArrayEncoding.commaDelimited)
-    ocontains: string[],
-  },
+    ocontains?: string[],
 
-  @summary("Equals one of")
-  StringFieldOEQFilter: {
     /** Returns entities that exact match any of the comma-delimited phrases in the filter string. */
     @encode(ArrayEncoding.commaDelimited)
-    oeq: string[],
-  },
+    oeq?: string[],
 
-  @summary("Greater Than")
-  StringFieldGTFilter: {
     /** Value is greater than the given string value (lexicographic compare). */
-    gt: string,
-  },
+    gt?: string,
 
-  @summary("Greater Than or Equal To")
-  StringFieldGTEFilter: {
     /** Value is greater than or equal to the given string value (lexicographic compare). */
-    gte: string,
-  },
+    gte?: string,
 
-  @summary("Less Than")
-  StringFieldLTFilter: {
     /** Value is less than the given string value (lexicographic compare). */
-    lt: string,
-  },
+    lt?: string,
 
-  @summary("Less Than or Equal To")
-  StringFieldLTEFilter: {
     /** Value is less than or equal to the given string value (lexicographic compare). */
-    lte: string,
-  },
+    lte?: string,
 
-  @summary("Exists")
-  StringFieldExistsFilter: {
     /** When true, the field must be present (non-null); when false, the field must be absent (null). */
-    exists: boolean,
+    exists?: boolean,
   },
 }
 
@@ -187,29 +129,19 @@ union StringFieldFilter {
   "x-go-type-import",
   #{ path: "github.com/openmeterio/openmeter/api/v3/filters" }
 )
-@oneOf
 @summary("String Field Filter Exact")
 union StringFieldFilterExact {
-  @summary("Equals (short form)")
   equals: string,
-
-  @summary("Equals")
-  StringFieldEQFilter: {
+  object: {
     /** Value strictly equals the given string value. */
-    eq: string,
-  },
+    eq?: string,
 
-  @summary("Equals one of")
-  StringFieldOEQFilter: {
     /** Returns entities that exact match any of the comma-delimited phrases in the filter string. */
     @encode(ArrayEncoding.commaDelimited)
-    oeq: string[],
-  },
+    oeq?: string[],
 
-  @summary("Not Equals")
-  StringFieldNEQFilter: {
     /** Value does not equal the given string value. */
-    neq: string,
+    neq?: string,
   },
 }
 
@@ -223,29 +155,19 @@ union StringFieldFilterExact {
   "x-go-type-import",
   #{ path: "github.com/openmeterio/openmeter/api/v3/filters" }
 )
-@oneOf
 @summary("ULID Field Filter")
 union ULIDFieldFilter {
-  @summary("Equals (short form)")
   equals: Shared.ULID,
-
-  @summary("Equals")
-  ULIDFieldEQFilter: {
+  object: {
     /** Value strictly equals the given ULID value. */
-    eq: Shared.ULID,
-  },
+    eq?: Shared.ULID,
 
-  @summary("Equals one of")
-  ULIDFieldOEQFilter: {
     /** Returns entities that exact match any of the comma-delimited ULIDs in the filter string. */
     @encode(ArrayEncoding.commaDelimited)
-    oeq: Shared.ULID[],
-  },
+    oeq?: Shared.ULID[],
 
-  @summary("Not Equals")
-  ULIDFieldNEQFilter: {
     /** Value does not equal the given ULID value. */
-    neq: Shared.ULID,
+    neq?: Shared.ULID,
   },
 }
 
@@ -259,40 +181,24 @@ union ULIDFieldFilter {
   "x-go-type-import",
   #{ path: "github.com/openmeterio/openmeter/api/v3/filters" }
 )
-@oneOf
 @summary("DateTime Field Filter")
 union DateTimeFieldFilter {
-  @summary("Equals (short form)")
   equals: Shared.DateTime,
-
-  @summary("Equals")
-  DateTimeFieldEQFilter: {
+  object: {
     /** Value strictly equals given RFC-3339 formatted timestamp in UTC. */
-    eq: Shared.DateTime,
-  },
+    eq?: Shared.DateTime,
 
-  @summary("Less Than")
-  DateTimeFieldLTFilter: {
     /** Value is less than the given RFC-3339 formatted timestamp in UTC. */
-    lt: Shared.DateTime,
-  },
+    lt?: Shared.DateTime,
 
-  @summary("Less Than or Equal To")
-  DateTimeFieldLTEFilter: {
     /** Value is less than or equal to the given RFC-3339 formatted timestamp in UTC. */
-    lte: Shared.DateTime,
-  },
+    lte?: Shared.DateTime,
 
-  @summary("Greater Than")
-  DateTimeFieldGTFilter: {
     /** Value is greater than the given RFC-3339 formatted timestamp in UTC. */
-    gt: Shared.DateTime,
-  },
+    gt?: Shared.DateTime,
 
-  @summary("Greater Than or Equal To")
-  DateTimeFieldGTEFilter: {
     /** Value is greater than or equal to the given RFC-3339 formatted timestamp in UTC. */
-    gte: Shared.DateTime,
+    gte?: Shared.DateTime,
   },
 }
 

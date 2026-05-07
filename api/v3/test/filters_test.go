@@ -161,14 +161,14 @@ func TestFieldFilterValidation(t *testing.T) {
 		{name: "ulid valid oeq", query: "filter[ulid][oeq]=01G65Z755AFWAKHE12NY0CQ9FH,01G65Z755AFWAKHE12NY0CQ9FJ", wantStatus: http.StatusNoContent},
 		// Pattern violation — ULID schema enforces ^[0-7][0-9A-HJKMNP-TV-Z]{25}$.
 		// kin-openapi collapses the underlying pattern miss into a generic
-		// oneOf-failure entry on the parent union; we still get the right
+		// anyOf-failure entry on the parent union; we still get the right
 		// field name back, just not the per-branch rule.
 		{
 			name:             "ulid invalid short pattern",
 			query:            "filter[ulid]=not-a-ulid",
 			wantStatus:       http.StatusBadRequest,
 			wantField:        "ulid",
-			wantRule:         "oneOf",
+			wantRule:         "anyOf",
 			wantReasonSubstr: "doesn't match any schema",
 		},
 		{
@@ -176,7 +176,7 @@ func TestFieldFilterValidation(t *testing.T) {
 			query:            "filter[ulid][eq]=not-a-ulid",
 			wantStatus:       http.StatusBadRequest,
 			wantField:        "ulid",
-			wantRule:         "oneOf",
+			wantRule:         "anyOf",
 			wantReasonSubstr: "doesn't match any schema",
 		},
 
@@ -188,13 +188,13 @@ func TestFieldFilterValidation(t *testing.T) {
 		{name: "datetime valid gt", query: "filter[datetime][gt]=2024-01-01T00:00:00Z", wantStatus: http.StatusNoContent},
 		{name: "datetime valid gte", query: "filter[datetime][gte]=2024-01-01T00:00:00Z", wantStatus: http.StatusNoContent},
 		// Format violation — DateTime schema enforces RFC-3339; like the ULID
-		// pattern miss, the per-branch failure surfaces as a oneOf collapse.
+		// pattern miss, the per-branch failure surfaces as an anyOf collapse.
 		{
 			name:             "datetime invalid short format",
 			query:            "filter[datetime]=not-a-datetime",
 			wantStatus:       http.StatusBadRequest,
 			wantField:        "datetime",
-			wantRule:         "oneOf",
+			wantRule:         "anyOf",
 			wantReasonSubstr: "doesn't match any schema",
 		},
 		{
@@ -202,7 +202,7 @@ func TestFieldFilterValidation(t *testing.T) {
 			query:            "filter[datetime][eq]=not-a-datetime",
 			wantStatus:       http.StatusBadRequest,
 			wantField:        "datetime",
-			wantRule:         "oneOf",
+			wantRule:         "anyOf",
 			wantReasonSubstr: "doesn't match any schema",
 		},
 
@@ -238,6 +238,30 @@ func TestFieldFilterValidation(t *testing.T) {
 		{
 			name:       "combined ulid+datetime",
 			query:      "filter[ulid][eq]=01G65Z755AFWAKHE12NY0CQ9FH&filter[datetime][lt]=2024-01-01T00:00:00Z",
+			wantStatus: http.StatusNoContent,
+		},
+
+		// Multiple operators on the same field — the schema's object branch lists
+		// every operator as optional, so combinations like a closed range are
+		// valid against the validator.
+		{
+			name:       "datetime gte and lte on same field",
+			query:      "filter[datetime][gte]=2024-01-01T00:00:00Z&filter[datetime][lte]=2024-12-31T23:59:59Z",
+			wantStatus: http.StatusNoContent,
+		},
+		{
+			name:       "numeric gte and lt on same field",
+			query:      "filter[numeric][gte]=1&filter[numeric][lt]=10",
+			wantStatus: http.StatusNoContent,
+		},
+		{
+			name:       "string gte and lte on same field",
+			query:      "filter[string][gte]=alpha&filter[string][lte]=zeta",
+			wantStatus: http.StatusNoContent,
+		},
+		{
+			name:       "string neq and contains on same field",
+			query:      "filter[string][neq]=foo&filter[string][contains]=bar",
 			wantStatus: http.StatusNoContent,
 		},
 	}
@@ -521,6 +545,31 @@ func TestFieldFilterParse(t *testing.T) {
 				ULID:     &filters.FilterULID{Eq: &ulid1},
 				DateTime: &filters.FilterDateTime{Lt: &dt},
 				Labels:   &filters.FilterLabels{"key": {Eq: lo.ToPtr("team-a")}},
+			},
+		},
+
+		// Multiple operators on the same field — the parser populates each
+		// operator on the shared filter struct so the resulting predicate is
+		// the AND of all branches (e.g. a half-open or closed range).
+		{
+			name:  "datetime gte and lte on same field",
+			query: "filter[datetime][gte]=2024-01-02T03:04:05Z&filter[datetime][lte]=2024-01-02T03:04:05Z",
+			wantParse: fieldFiltersTarget{
+				DateTime: &filters.FilterDateTime{Gte: &dt, Lte: &dt},
+			},
+		},
+		{
+			name:  "numeric gte and lt on same field",
+			query: "filter[numeric][gte]=1&filter[numeric][lt]=10",
+			wantParse: fieldFiltersTarget{
+				Numeric: &filters.FilterNumeric{Gte: lo.ToPtr(1.0), Lt: lo.ToPtr(10.0)},
+			},
+		},
+		{
+			name:  "string neq and contains on same field",
+			query: "filter[string][neq]=foo&filter[string][contains]=bar",
+			wantParse: fieldFiltersTarget{
+				String: &filters.FilterString{Neq: lo.ToPtr("foo"), Contains: lo.ToPtr("bar")},
 			},
 		},
 
