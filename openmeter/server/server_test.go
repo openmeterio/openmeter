@@ -2008,6 +2008,10 @@ func (n NoopTaxCodeService) GetOrCreateByAppMapping(ctx context.Context, input t
 	return taxcode.TaxCode{}, nil
 }
 
+func (n NoopTaxCodeService) ProvisionDefaultTaxCodes(ctx context.Context, namespace string) error {
+	return nil
+}
+
 // SubjectService methods
 
 var _ subject.Service = &NoopSubjectService{}

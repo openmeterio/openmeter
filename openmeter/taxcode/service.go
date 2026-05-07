@@ -17,6 +17,11 @@ type Service interface {
 	GetTaxCodeByAppMapping(ctx context.Context, input GetTaxCodeByAppMappingInput) (TaxCode, error)
 	GetOrCreateByAppMapping(ctx context.Context, input GetOrCreateByAppMappingInput) (TaxCode, error)
 	DeleteTaxCode(ctx context.Context, input DeleteTaxCodeInput) error
+
+	// ProvisionDefaultTaxCodes seeds the well-known Stripe tax codes defined in
+	// DefaultStripeTaxCodes into the given namespace. The operation is idempotent:
+	// codes that already exist (matched by key) are silently skipped.
+	ProvisionDefaultTaxCodes(ctx context.Context, namespace string) error
 }
 
 type inputOptions struct {

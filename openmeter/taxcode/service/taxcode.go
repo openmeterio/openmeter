@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -140,5 +141,30 @@ func (s *service) DeleteTaxCode(ctx context.Context, input taxcode.DeleteTaxCode
 		}
 
 		return s.adapter.DeleteTaxCode(ctx, input)
+	})
+}
+
+// ProvisionDefaultTaxCodes seeds the well-known Stripe tax codes from
+// taxcode.DefaultStripeTaxCodes into the given namespace inside a single
+// transaction. Already-existing codes (matched by key) are silently skipped,
+// making the call idempotent.
+func (s *service) ProvisionDefaultTaxCodes(ctx context.Context, namespace string) error {
+	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
+		for _, seed := range taxcode.DefaultStripeTaxCodes {
+			_, err := s.adapter.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+				Namespace:   namespace,
+				Key:         seed.Key,
+				Name:        seed.Name,
+				Description: seed.Description,
+				AppMappings: taxcode.TaxCodeAppMappings{
+					{AppType: app.AppTypeStripe, TaxCode: seed.StripeCode},
+				},
+			})
+			if err != nil && !models.IsGenericConflictError(err) {
+				return fmt.Errorf("failed to provision default tax code %q: %w", seed.Key, err)
+			}
+		}
+
+		return nil
 	})
 }

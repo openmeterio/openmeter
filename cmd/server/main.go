@@ -139,6 +139,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Provision default tax codes
+	err = app.TaxCodeService.ProvisionDefaultTaxCodes(ctx, app.NamespaceManager.GetDefaultNamespace())
+	if err != nil {
+		logger.Error("failed to provision default tax codes", "error", err)
+		os.Exit(1)
+	}
+
 	// Create meters from config
 	err = app.MeterConfigInitializer(ctx)
 	if err != nil {
