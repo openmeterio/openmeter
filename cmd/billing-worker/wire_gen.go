@@ -245,7 +245,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	productCatalogConfiguration := conf.ProductCatalog
-	taxCodeRepository, err := common.NewTaxCodeAdapter(logger, client)
+	repository, err := common.NewTaxCodeAdapter(logger, client)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -256,7 +256,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	taxcodeService, err := common.NewTaxCodeService(logger, taxCodeRepository)
+	taxcodeService, err := common.NewTaxCodeService(logger, repository)
 	if err != nil {
 		cleanup7()
 		cleanup6()
