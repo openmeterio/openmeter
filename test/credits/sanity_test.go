@@ -4,39 +4,25 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"testing"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
-	"github.com/stretchr/testify/suite"
 
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
-	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
-	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
-	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
-	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
-	ledgerresolvers "github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
-	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
-	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
-	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -44,88 +30,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
-
-const USD = currencyx.Code(currency.USD)
-
-type CreditsTestSuite struct {
-	billingtest.BaseSuite
-
-	Charges              charges.Service
-	Ledger               ledger.Ledger
-	BalanceQuerier       ledger.BalanceQuerier
-	LedgerAccountService ledgeraccount.Service
-	LedgerResolver       *ledgerresolvers.AccountResolver
-	RevenueRecognizer    recognizer.Service
-}
-
-func TestCreditsTestSuite(t *testing.T) {
-	suite.Run(t, new(CreditsTestSuite))
-}
-
-func (s *CreditsTestSuite) SetupSuite() {
-	s.BaseSuite.SetupSuite()
-
-	logger := omtestutils.NewLogger(s.T())
-
-	deps, err := ledgertestutils.InitDeps(s.DBClient, logger)
-	s.NoError(err)
-
-	s.Ledger = deps.HistoricalLedger
-	s.BalanceQuerier = deps.HistoricalLedger
-	s.LedgerAccountService = deps.AccountService
-	s.LedgerResolver = deps.ResolversService
-
-	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
-		Client: s.DBClient,
-	})
-	s.NoError(err)
-
-	lineageService, err := lineageservice.New(lineageservice.Config{
-		Adapter: lineageAdapter,
-	})
-	s.NoError(err)
-
-	revenueRecognizer, err := recognizer.NewService(recognizer.Config{
-		Ledger: deps.HistoricalLedger,
-		Dependencies: transactions.ResolverDependencies{
-			AccountService: deps.ResolversService,
-			AccountCatalog: deps.AccountService,
-			BalanceQuerier: deps.HistoricalLedger,
-		},
-		Lineage:            lineageService,
-		TransactionManager: enttx.NewCreator(s.DBClient),
-	})
-	s.NoError(err)
-	s.RevenueRecognizer = revenueRecognizer
-
-	collectorService := ledgercollector.NewService(ledgercollector.Config{
-		Ledger: deps.HistoricalLedger,
-		Dependencies: transactions.ResolverDependencies{
-			AccountService: deps.ResolversService,
-			AccountCatalog: deps.AccountService,
-			BalanceQuerier: deps.HistoricalLedger,
-		},
-	})
-
-	stack, err := chargestestutils.NewServices(s.T(), chargestestutils.Config{
-		Client:                s.DBClient,
-		Logger:                logger,
-		BillingService:        s.BillingService,
-		FeatureService:        s.FeatureService,
-		StreamingConnector:    s.MockStreamingConnector,
-		FlatFeeHandler:        ledgerchargeadapter.NewFlatFeeHandler(deps.HistoricalLedger, transactions.ResolverDependencies{AccountService: deps.ResolversService, AccountCatalog: deps.AccountService, BalanceQuerier: deps.HistoricalLedger}, collectorService),
-		CreditPurchaseHandler: ledgerchargeadapter.NewCreditPurchaseHandler(deps.HistoricalLedger, deps.HistoricalLedger, deps.ResolversService, deps.AccountService),
-		UsageBasedHandler:     ledgerchargeadapter.NewUsageBasedHandler(deps.HistoricalLedger, transactions.ResolverDependencies{AccountService: deps.ResolversService, AccountCatalog: deps.AccountService, BalanceQuerier: deps.HistoricalLedger}, collectorService),
-	})
-	s.NoError(err)
-	s.Charges = stack.ChargesService
-}
-
-func (s *CreditsTestSuite) TearDownTest() {
-	s.MockStreamingConnector.Reset()
-	clock.UnFreeze()
-	clock.ResetTime()
-}
 
 func (s *CreditsTestSuite) TestFlatFeeCreditOnlyDeleteCorrectionSanity() {
 	setup := s.setupFlatFeeCreditOnlyDeleteCorrection("charges-sanity-flatfee-credit-only-delete")

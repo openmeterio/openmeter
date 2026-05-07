@@ -90,6 +90,33 @@ func TestRealizationRuns_MapToBillingMeteredQuantity(t *testing.T) {
 	}
 }
 
+func TestRealizationRuns_GetByLineID(t *testing.T) {
+	lineID := "line-1"
+	otherLineID := "line-2"
+
+	runs := RealizationRuns{
+		{
+			RealizationRunBase: RealizationRunBase{
+				ID:     RealizationRunID{Namespace: "namespace", ID: "run-1"},
+				LineID: &otherLineID,
+			},
+		},
+		{
+			RealizationRunBase: RealizationRunBase{
+				ID:     RealizationRunID{Namespace: "namespace", ID: "run-2"},
+				LineID: &lineID,
+			},
+		},
+	}
+
+	run, err := runs.GetByLineID(lineID)
+	require.NoError(t, err)
+	require.Equal(t, "run-2", run.ID.ID)
+
+	_, err = runs.GetByLineID("missing-line")
+	require.ErrorContains(t, err, "realization run not found")
+}
+
 func newRealizationRunForBillingMeteredQuantityTest(id string, typ RealizationRunType, servicePeriodTo time.Time, meteredQuantity int64) RealizationRun {
 	return RealizationRun{
 		RealizationRunBase: RealizationRunBase{

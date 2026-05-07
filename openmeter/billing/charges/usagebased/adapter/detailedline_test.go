@@ -411,6 +411,36 @@ func (s *DetailedLineAdapterSuite) TestFetchDetailedLinesClearsStaleDetailedLine
 	s.False(fetchedCharge.Realizations[0].DetailedLines.IsPresent())
 }
 
+func (s *DetailedLineAdapterSuite) TestExpandRealizationsExcludesDeletedRuns() {
+	ctx := s.T().Context()
+	namespace := "usagebased-realizations-exclude-deleted-runs"
+	charge, runBase, servicePeriod := s.createChargeWithRun(namespace)
+
+	deletedRunBase, err := s.adapter.CreateRealizationRun(ctx, charge.GetChargeID(), usagebased.CreateRealizationRunInput{
+		FeatureID:       runBase.FeatureID,
+		Type:            usagebased.RealizationRunTypePartialInvoice,
+		StoredAtLT:      servicePeriod.From,
+		ServicePeriodTo: servicePeriod.From,
+		MeteredQuantity: alpacadecimal.Zero,
+		Totals:          totals.Totals{},
+	})
+	s.Require().NoError(err)
+
+	_, err = s.adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
+		ID:        deletedRunBase.ID,
+		DeletedAt: mo.Some(lo.ToPtr(time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC))),
+	})
+	s.Require().NoError(err)
+
+	fetchedCharge, err := s.adapter.GetByID(ctx, usagebased.GetByIDInput{
+		ChargeID: charge.GetChargeID(),
+		Expands:  chargesmeta.Expands{chargesmeta.ExpandRealizations},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(fetchedCharge.Realizations, 1)
+	s.Equal(runBase.ID, fetchedCharge.Realizations[0].ID)
+}
+
 func (s *DetailedLineAdapterSuite) createChargeWithRun(namespace string) (usagebased.Charge, usagebased.RealizationRunBase, timeutil.ClosedPeriod) {
 	s.T().Helper()
 

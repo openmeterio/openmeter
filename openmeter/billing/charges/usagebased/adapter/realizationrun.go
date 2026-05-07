@@ -47,6 +47,8 @@ func (a *adapter) CreateRealizationRun(ctx context.Context, chargeID meta.Charge
 }
 
 func (a *adapter) UpdateRealizationRun(ctx context.Context, input usagebased.UpdateRealizationRunInput) (usagebased.RealizationRunBase, error) {
+	input = input.Normalized()
+
 	if err := input.Validate(); err != nil {
 		return usagebased.RealizationRunBase{}, err
 	}
@@ -56,7 +58,11 @@ func (a *adapter) UpdateRealizationRun(ctx context.Context, input usagebased.Upd
 			Where(dbchargeusagebasedruns.NamespaceEQ(input.ID.Namespace))
 
 		if input.StoredAtLT.IsPresent() {
-			update = update.SetStoredAtLt(meta.NormalizeTimestamp(input.StoredAtLT.OrEmpty()))
+			update = update.SetStoredAtLt(input.StoredAtLT.OrEmpty())
+		}
+
+		if input.DeletedAt.IsPresent() {
+			update = update.SetOrClearDeletedAt(input.DeletedAt.OrEmpty())
 		}
 
 		if input.LineID.IsPresent() {

@@ -269,6 +269,7 @@ func NewChargesAdapter(
 }
 
 func NewChargesService(
+	logger *slog.Logger,
 	rootAdapter charges.Adapter,
 	metaAdapter meta.Adapter,
 	featureService feature.FeatureConnector,
@@ -280,6 +281,7 @@ func NewChargesService(
 	fsNamespaceLockdown []string,
 ) (charges.Service, error) {
 	chargesSvc, err := chargesservice.New(chargesservice.Config{
+		Logger:                logger,
 		Adapter:               rootAdapter,
 		MetaAdapter:           metaAdapter,
 		FeatureService:        featureService,
@@ -424,6 +426,7 @@ func newChargesRegistry(
 	}
 
 	chargesSvc, err := NewChargesService(
+		logger,
 		rootAdapter,
 		metaAdapter,
 		featureService,

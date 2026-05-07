@@ -16,14 +16,26 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
+	"github.com/openmeterio/openmeter/openmeter/customer"
+	dbchargeusagebasedruns "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
+
+type creditThenInvoiceLedgerSnapshot struct {
+	fbo                  alpacadecimal.Decimal
+	openReceivable       alpacadecimal.Decimal
+	authorizedReceivable alpacadecimal.Decimal
+	accrued              alpacadecimal.Decimal
+	wash                 alpacadecimal.Decimal
+	earnings             alpacadecimal.Decimal
+}
 
 func (s *CreditsTestSuite) TestUsageBasedCreditThenInvoiceProgressiveBillingCreditAllocation() {
 	t := s.T()
@@ -543,6 +555,543 @@ func (s *CreditsTestSuite) TestUsageBasedCreditThenInvoiceLateCollectionUsageReq
 		s.Equal(float64(0), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
 		s.Equal(float64(0), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized).InexactFloat64())
 	})
+}
+
+func (s *CreditsTestSuite) TestUsageBasedCreditThenInvoiceDeletePatchDeletesPendingGatheringLine() {
+	t := s.T()
+	ctx := t.Context()
+	ns := s.GetUniqueNamespace("charges-credits-usagebased-credit-then-invoice-delete-gathering")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.createLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(t, "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+
+	setupAt := datetime.MustParseTimeInLocation(t, "2025-12-01T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(t, "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(t, "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	clock.FreezeTime(setupAt)
+	defer clock.UnFreeze()
+
+	var usageBasedChargeID meta.ChargeID
+	startLedger := s.creditThenInvoiceLedgerSnapshot(ns, cust.GetID(), mo.None[*alpacadecimal.Decimal]())
+
+	s.Run("given a credit-then-invoice usage charge with a pending gathering line", func() {
+		// given:
+		// - a ledger-backed customer has no credit allocations or invoice bookings
+		// when:
+		// - a credit-then-invoice usage charge is created for a future service period
+		// then:
+		// - billing has one active gathering line for the charge and the ledger remains unchanged
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				s.createMockChargeIntent(createMockChargeIntentInput{
+					customer:       cust.GetID(),
+					currency:       USD,
+					servicePeriod:  servicePeriod,
+					settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromInt(1),
+					}),
+					name:              "usage-based-credit-then-invoice-delete-gathering",
+					managedBy:         billing.SubscriptionManagedLine,
+					uniqueReferenceID: "usage-based-credit-then-invoice-delete-gathering",
+					featureKey:        apiRequestsTotal.Feature.Key,
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+
+		usageBasedCharge, err := res[0].AsUsageBasedCharge()
+		s.NoError(err)
+		usageBasedChargeID = usageBasedCharge.GetChargeID()
+
+		activeLines := s.mustGatheringLinesForCharge(ns, cust.ID, usageBasedChargeID.ID, false)
+		s.Len(activeLines, 1)
+		s.Nil(activeLines[0].DeletedAt)
+
+		s.assertCreditThenInvoiceLedgerSnapshot(ns, cust.GetID(), mo.None[*alpacadecimal.Decimal](), startLedger)
+	})
+
+	s.Run("when the charge delete patch is applied", func() {
+		// given:
+		// - the only billing artifact is a mutable gathering line
+		// when:
+		// - the charge is deleted through the patch flow
+		// then:
+		// - the gathering line is soft-deleted
+		s.mustRefundCharge(ctx, cust.GetID(), usageBasedChargeID)
+
+		activeLines := s.mustGatheringLinesForCharge(ns, cust.ID, usageBasedChargeID.ID, false)
+		s.Empty(activeLines)
+
+		allLines := s.mustGatheringLinesForCharge(ns, cust.ID, usageBasedChargeID.ID, true)
+		s.Len(allLines, 1)
+		s.NotNil(allLines[0].DeletedAt)
+	})
+
+	s.Run("then no ledger transaction was reversed or created for the gathering-line-only delete", func() {
+		// given:
+		// - gathering lines do not have credit allocations, invoice accrual, or payment bookings
+		// when:
+		// - the deleted gathering line is inspected after the patch
+		// then:
+		// - every ledger balance is still identical to the pre-delete snapshot
+		s.assertCreditThenInvoiceLedgerSnapshot(ns, cust.GetID(), mo.None[*alpacadecimal.Decimal](), startLedger)
+	})
+}
+
+func (s *CreditsTestSuite) TestUsageBasedCreditThenInvoiceDeletePatchDeletesMutableStandardLineAndCorrectsCredits() {
+	t := s.T()
+	ctx := t.Context()
+	ns := s.GetUniqueNamespace("charges-credits-usagebased-credit-then-invoice-delete-standard")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.createLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(t, "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+
+	setupAt := datetime.MustParseTimeInLocation(t, "2025-12-01T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(t, "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(t, "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	zeroCostBasis := alpacadecimal.Zero
+
+	clock.FreezeTime(setupAt)
+	defer clock.UnFreeze()
+
+	var (
+		usageBasedChargeID meta.ChargeID
+		invoice            billing.StandardInvoice
+		lineID             billing.LineID
+		runID              usagebased.RealizationRunID
+		startLedger        creditThenInvoiceLedgerSnapshot
+	)
+
+	s.Run("given prepaid credits and a credit-then-invoice usage charge", func() {
+		// given:
+		// - a ledger-backed customer receives 5 USD promotional credits
+		// - 5 usage units are visible inside the service period
+		// when:
+		// - a unit-priced credit-then-invoice usage charge is created
+		// then:
+		// - credits are available in FBO and the charge has no invoice-backed run yet
+		grantIntent := s.createCreditPurchaseIntent(createCreditPurchaseIntentInput{
+			customer:      cust.GetID(),
+			currency:      USD,
+			amount:        alpacadecimal.NewFromInt(5),
+			servicePeriod: timeutil.ClosedPeriod{From: setupAt, To: setupAt},
+			settlement:    creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+		})
+
+		grantRes, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				grantIntent,
+			},
+		})
+		s.NoError(err)
+		s.Len(grantRes, 1)
+
+		s.MockStreamingConnector.AddSimpleEvent(
+			apiRequestsTotal.Feature.Key,
+			5,
+			datetime.MustParseTimeInLocation(t, "2026-01-15T00:00:00Z", time.UTC).AsTime(),
+		)
+
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				s.createMockChargeIntent(createMockChargeIntentInput{
+					customer:       cust.GetID(),
+					currency:       USD,
+					servicePeriod:  servicePeriod,
+					settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromInt(1),
+					}),
+					name:              "usage-based-credit-then-invoice-delete-standard",
+					managedBy:         billing.SubscriptionManagedLine,
+					uniqueReferenceID: "usage-based-credit-then-invoice-delete-standard",
+					featureKey:        apiRequestsTotal.Feature.Key,
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+
+		usageBasedCharge, err := res[0].AsUsageBasedCharge()
+		s.NoError(err)
+		usageBasedChargeID = usageBasedCharge.GetChargeID()
+
+		startLedger = s.creditThenInvoiceLedgerSnapshot(ns, cust.GetID(), mo.Some(&zeroCostBasis))
+		s.assertDecimalEqual(alpacadecimal.NewFromInt(5), startLedger.fbo, "prepaid credits should be available before invoicing")
+		s.assertDecimalEqual(alpacadecimal.Zero, startLedger.accrued, "no usage should be accrued before invoicing")
+	})
+
+	s.Run("when the pending line is collected into a mutable draft invoice", func() {
+		// given:
+		// - usage is fully covered by available credits
+		// when:
+		// - billing creates and collects the standard invoice but does not approve it
+		// then:
+		// - the mutable standard line has credit allocations but no invoice accrued usage or payment booking
+		clock.FreezeTime(servicePeriod.To.Add(time.Second))
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(servicePeriod.To),
+		})
+		s.NoError(err)
+		s.Len(invoices, 1)
+		invoice = invoices[0]
+
+		clock.FreezeTime(invoice.DefaultCollectionAtForStandardInvoice())
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
+		s.Len(invoice.Lines.OrEmpty(), 1)
+
+		line := invoice.Lines.OrEmpty()[0]
+		lineID = line.GetLineID()
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:       5,
+			CreditsTotal: 5,
+			Total:        0,
+		}, line.Totals)
+
+		charge, err := s.mustGetChargeByID(usageBasedChargeID).AsUsageBasedCharge()
+		s.NoError(err)
+		s.Len(charge.Realizations, 1)
+		currentRun, err := charge.GetCurrentRealizationRun()
+		s.NoError(err)
+		runID = currentRun.ID
+		s.Equal(lineID.ID, lo.FromPtr(currentRun.LineID))
+		s.Equal(invoice.ID, lo.FromPtr(currentRun.InvoiceID))
+		s.Equal(alpacadecimal.NewFromInt(5), currentRun.CreditsAllocated.Sum())
+		s.Nil(currentRun.InvoiceUsage)
+		s.Nil(currentRun.Payment)
+
+		s.assertDecimalEqual(alpacadecimal.Zero, s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&zeroCostBasis)), "draft line credit allocation should consume FBO")
+		s.assertDecimalEqual(alpacadecimal.NewFromInt(5), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&zeroCostBasis)), "draft line credit allocation should accrue credits")
+		s.assertDecimalEqual(alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen), "fully credited draft should not create open receivable")
+		s.assertDecimalEqual(alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized), "fully credited draft should not create authorized receivable")
+	})
+
+	s.Run("when the charge delete patch removes the mutable standard line", func() {
+		// given:
+		// - the standard invoice is still mutable and has no payment or invoice accrued allocation
+		// when:
+		// - the charge is deleted through the patch flow
+		// then:
+		// - the standard line is soft-deleted and the realization run is marked deleted
+		s.mustRefundCharge(ctx, cust.GetID(), usageBasedChargeID)
+
+		fetchedInvoice, err := s.BillingService.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+			Expand: billing.InvoiceExpands{
+				billing.InvoiceExpandLines,
+				billing.InvoiceExpandDeletedLines,
+			},
+		})
+		s.NoError(err)
+
+		standardInvoice, err := fetchedInvoice.AsStandardInvoice()
+		s.NoError(err)
+		deletedLine := standardInvoice.Lines.GetByID(lineID.ID)
+		s.Require().NotNil(deletedLine)
+		s.NotNil(deletedLine.DeletedAt)
+		s.Zero(standardInvoice.Lines.NonDeletedLineCount())
+
+		dbRun, err := s.DBClient.ChargeUsageBasedRuns.Query().
+			Where(
+				dbchargeusagebasedruns.NamespaceEQ(ns),
+				dbchargeusagebasedruns.IDEQ(runID.ID),
+			).
+			Only(ctx)
+		s.NoError(err)
+		s.NotNil(dbRun.DeletedAt)
+	})
+
+	s.Run("then deleting the mutable line reverses only the credit allocation ledger transactions", func() {
+		// given:
+		// - the deleted draft line had only credit allocations
+		// when:
+		// - the line-engine cleanup has completed
+		// then:
+		// - credits are returned to FBO, accrued is cleared, and receivables stay unchanged
+		s.assertCreditThenInvoiceLedgerSnapshot(ns, cust.GetID(), mo.Some(&zeroCostBasis), startLedger)
+		s.assertDecimalEqual(alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen), "aggregate open receivable should stay empty")
+		s.assertDecimalEqual(alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized), "aggregate authorized receivable should stay empty")
+	})
+}
+
+func (s *CreditsTestSuite) TestUsageBasedCreditThenInvoiceDeletePatchKeepsImmutableStandardLineAndLedgerBookings() {
+	t := s.T()
+	ctx := t.Context()
+	ns := s.GetUniqueNamespace("charges-credits-usagebased-credit-then-invoice-delete-immutable")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.createLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(t, "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+
+	setupAt := datetime.MustParseTimeInLocation(t, "2025-12-01T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(t, "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(t, "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	zeroCostBasis := alpacadecimal.Zero
+
+	clock.FreezeTime(setupAt)
+	defer clock.UnFreeze()
+
+	var (
+		usageBasedChargeID meta.ChargeID
+		invoice            billing.StandardInvoice
+		lineID             billing.LineID
+		runID              usagebased.RealizationRunID
+		immutableLedger    creditThenInvoiceLedgerSnapshot
+	)
+
+	s.Run("given a credit-then-invoice usage charge with an immutable invoice", func() {
+		// given:
+		// - a ledger-backed customer has enough credits to cover the invoice line
+		// - usage is visible inside the service period
+		// when:
+		// - the standard invoice is collected and approved
+		// then:
+		// - the invoice line is immutable and its credit/invoice-usage ledger bookings exist
+		grantIntent := s.createCreditPurchaseIntent(createCreditPurchaseIntentInput{
+			customer:      cust.GetID(),
+			currency:      USD,
+			amount:        alpacadecimal.NewFromInt(5),
+			servicePeriod: timeutil.ClosedPeriod{From: setupAt, To: setupAt},
+			settlement:    creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+		})
+
+		grantRes, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				grantIntent,
+			},
+		})
+		s.NoError(err)
+		s.Len(grantRes, 1)
+
+		s.MockStreamingConnector.AddSimpleEvent(
+			apiRequestsTotal.Feature.Key,
+			5,
+			datetime.MustParseTimeInLocation(t, "2026-01-15T00:00:00Z", time.UTC).AsTime(),
+		)
+
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				s.createMockChargeIntent(createMockChargeIntentInput{
+					customer:       cust.GetID(),
+					currency:       USD,
+					servicePeriod:  servicePeriod,
+					settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromInt(1),
+					}),
+					name:              "usage-based-credit-then-invoice-delete-immutable",
+					managedBy:         billing.SubscriptionManagedLine,
+					uniqueReferenceID: "usage-based-credit-then-invoice-delete-immutable",
+					featureKey:        apiRequestsTotal.Feature.Key,
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+
+		usageBasedCharge, err := res[0].AsUsageBasedCharge()
+		s.NoError(err)
+		usageBasedChargeID = usageBasedCharge.GetChargeID()
+
+		clock.FreezeTime(servicePeriod.To.Add(time.Second))
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(servicePeriod.To),
+		})
+		s.NoError(err)
+		s.Len(invoices, 1)
+		invoice = invoices[0]
+
+		clock.FreezeTime(invoice.DefaultCollectionAtForStandardInvoice())
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
+		s.Len(invoice.Lines.OrEmpty(), 1)
+
+		line := invoice.Lines.OrEmpty()[0]
+		lineID = line.GetLineID()
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:       5,
+			CreditsTotal: 5,
+			Total:        0,
+		}, line.Totals)
+
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+		s.True(invoice.StatusDetails.Immutable)
+
+		charge, err := s.mustGetChargeByID(usageBasedChargeID).AsUsageBasedCharge()
+		s.NoError(err)
+		s.Len(charge.Realizations, 1)
+		currentRun := charge.Realizations[0]
+		runID = currentRun.ID
+		s.Equal(lineID.ID, lo.FromPtr(currentRun.LineID))
+		s.Equal(invoice.ID, lo.FromPtr(currentRun.InvoiceID))
+		s.Equal(alpacadecimal.NewFromInt(5), currentRun.CreditsAllocated.Sum())
+		s.NotNil(currentRun.InvoiceUsage)
+		s.Nil(currentRun.Payment)
+
+		immutableLedger = s.creditThenInvoiceLedgerSnapshot(ns, cust.GetID(), mo.Some(&zeroCostBasis))
+		s.assertDecimalEqual(alpacadecimal.Zero, immutableLedger.fbo, "immutable invoice credit allocation should keep FBO consumed")
+		s.assertDecimalEqual(alpacadecimal.NewFromInt(5), immutableLedger.accrued, "immutable invoice should keep accrued credit booking")
+		s.assertDecimalEqual(alpacadecimal.Zero, immutableLedger.openReceivable, "fully credited immutable invoice should not create open receivable")
+	})
+
+	s.Run("when the charge delete patch targets the immutable standard line", func() {
+		// given:
+		// - the invoice line is immutable and cannot be deleted without prorating support
+		// when:
+		// - the charge is deleted through the patch flow
+		// then:
+		// - the invoice line and realization run remain active, and the invoice records a warning
+		s.mustRefundCharge(ctx, cust.GetID(), usageBasedChargeID)
+
+		fetchedInvoice, err := s.BillingService.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+			Expand: billing.InvoiceExpands{
+				billing.InvoiceExpandLines,
+			},
+		})
+		s.NoError(err)
+
+		standardInvoice, err := fetchedInvoice.AsStandardInvoice()
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, standardInvoice.Status)
+
+		line := standardInvoice.Lines.GetByID(lineID.ID)
+		s.Require().NotNil(line)
+		s.Nil(line.DeletedAt)
+		s.Equal(1, standardInvoice.Lines.NonDeletedLineCount())
+
+		s.Require().Len(standardInvoice.ValidationIssues, 1)
+		issue := standardInvoice.ValidationIssues[0]
+		s.Equal(billing.ValidationIssueSeverityWarning, issue.Severity)
+		s.Equal(billing.ImmutableInvoiceHandlingNotSupportedErrorCode, issue.Code)
+		s.Equal(billing.ComponentName("charges.invoiceupdater"), issue.Component)
+		s.Equal("line should be deleted, but the invoice is immutable", issue.Message)
+		s.Equal("lines/"+lineID.ID, issue.Path)
+
+		dbRun, err := s.DBClient.ChargeUsageBasedRuns.Query().
+			Where(
+				dbchargeusagebasedruns.NamespaceEQ(ns),
+				dbchargeusagebasedruns.IDEQ(runID.ID),
+			).
+			Only(ctx)
+		s.NoError(err)
+		s.Nil(dbRun.DeletedAt)
+	})
+
+	s.Run("then immutable invoice deletion does not reverse ledger bookings", func() {
+		// given:
+		// - the delete request only produced an immutable-invoice warning
+		// when:
+		// - the ledger is inspected after the patch
+		// then:
+		// - the already-issued invoice credit and accrual bookings remain unchanged
+		s.assertCreditThenInvoiceLedgerSnapshot(ns, cust.GetID(), mo.Some(&zeroCostBasis), immutableLedger)
+		s.assertDecimalEqual(alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen), "aggregate open receivable should stay empty")
+		s.assertDecimalEqual(alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized), "aggregate authorized receivable should stay empty")
+	})
+}
+
+func (s *CreditsTestSuite) mustGatheringLinesForCharge(namespace, customerID, chargeID string, includeDeletedLines bool) []billing.GatheringLine {
+	s.T().Helper()
+
+	expand := billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines}
+	if includeDeletedLines {
+		expand = append(expand, billing.GatheringInvoiceExpandDeletedLines)
+	}
+
+	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(s.T().Context(), billing.ListGatheringInvoicesInput{
+		Namespaces:     []string{namespace},
+		Customers:      []string{customerID},
+		Currencies:     []currencyx.Code{USD},
+		IncludeDeleted: includeDeletedLines,
+		Expand:         expand,
+	})
+	s.NoError(err)
+
+	var lines []billing.GatheringLine
+	for _, invoice := range gatheringInvoices.Items {
+		for _, line := range invoice.Lines.OrEmpty() {
+			if line.ChargeID == nil || *line.ChargeID != chargeID {
+				continue
+			}
+
+			lines = append(lines, line)
+		}
+	}
+
+	return lines
+}
+
+func (s *CreditsTestSuite) creditThenInvoiceLedgerSnapshot(namespace string, customerID customer.CustomerID, costBasis mo.Option[*alpacadecimal.Decimal]) creditThenInvoiceLedgerSnapshot {
+	s.T().Helper()
+
+	return creditThenInvoiceLedgerSnapshot{
+		fbo:                  s.mustCustomerFBOBalance(customerID, USD, costBasis),
+		openReceivable:       s.mustCustomerReceivableBalance(customerID, USD, costBasis, ledger.TransactionAuthorizationStatusOpen),
+		authorizedReceivable: s.mustCustomerReceivableBalance(customerID, USD, costBasis, ledger.TransactionAuthorizationStatusAuthorized),
+		accrued:              s.mustCustomerAccruedBalance(customerID, USD, costBasis),
+		wash:                 s.mustWashBalance(namespace, USD, costBasis),
+		earnings:             s.mustEarningsBalance(namespace, USD),
+	}
+}
+
+func (s *CreditsTestSuite) assertCreditThenInvoiceLedgerSnapshot(namespace string, customerID customer.CustomerID, costBasis mo.Option[*alpacadecimal.Decimal], expected creditThenInvoiceLedgerSnapshot) {
+	s.T().Helper()
+
+	actual := s.creditThenInvoiceLedgerSnapshot(namespace, customerID, costBasis)
+	s.assertDecimalEqual(expected.fbo, actual.fbo, "FBO balance")
+	s.assertDecimalEqual(expected.openReceivable, actual.openReceivable, "open receivable balance")
+	s.assertDecimalEqual(expected.authorizedReceivable, actual.authorizedReceivable, "authorized receivable balance")
+	s.assertDecimalEqual(expected.accrued, actual.accrued, "accrued balance")
+	s.assertDecimalEqual(expected.wash, actual.wash, "wash balance")
+	s.assertDecimalEqual(expected.earnings, actual.earnings, "earnings balance")
+}
+
+func (s *CreditsTestSuite) assertDecimalEqual(expected, actual alpacadecimal.Decimal, label string) {
+	s.T().Helper()
+
+	s.True(actual.Equal(expected), "%s: expected %s, got %s", label, expected.String(), actual.String())
 }
 
 func (s *CreditsTestSuite) mustGetUsageBasedChargeByIDWithDetailedLines(chargeID meta.ChargeID) usagebased.Charge {
