@@ -2,6 +2,7 @@ package subscriptionaddons
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
@@ -41,6 +42,10 @@ func (h *handler) GetSubscriptionAddon() GetSubscriptionAddonHandler {
 			a, err := h.addonService.Get(ctx, request)
 			if err != nil {
 				return GetSubscriptionAddonResponse{}, err
+			}
+
+			if a == nil {
+				return GetSubscriptionAddonResponse{}, models.NewGenericNotFoundError(errors.New("subscription addon not found"))
 			}
 
 			return toAPISubscriptionAddon(*a)

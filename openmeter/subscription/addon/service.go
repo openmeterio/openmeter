@@ -85,13 +85,13 @@ type GetSubscriptionAddonInput struct {
 func (i GetSubscriptionAddonInput) Validate() error {
 	var errs []error
 
-	if err := i.NamespacedID.Validate(); err != nil {
-		errs = append(errs, err)
+	if i.NamespacedID.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
 	}
 
 	if i.ID == "" {
 		if i.SubscriptionID == "" {
-			errs = append(errs, errors.New("subscription id or key must be provided if assignment id is not provided"))
+			errs = append(errs, errors.New("subscription id must be provided if assignment id is not provided"))
 		} else if _, err := ulid.Parse(i.SubscriptionID); err != nil {
 			errs = append(errs, errors.New("subscription id is not a valid ULID"))
 		}
