@@ -228,6 +228,10 @@ func (e *LineEngine) OnCollectionCompleted(ctx context.Context, input billing.On
 	return input.Lines, nil
 }
 
+func (e *LineEngine) OnMutableStandardLinesDeleted(_ context.Context, _ billing.OnMutableStandardLinesDeletedInput) error {
+	return nil
+}
+
 func (e *LineEngine) OnInvoiceIssued(ctx context.Context, input billing.OnInvoiceIssuedInput) error {
 	if err := input.Validate(); err != nil {
 		return fmt.Errorf("validating input: %w", err)

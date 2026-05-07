@@ -129,11 +129,12 @@ func (i StandardLineEventInput) Validate() error {
 }
 
 type (
-	OnStandardInvoiceCreatedInput = StandardLineEventInput
-	OnCollectionCompletedInput    = StandardLineEventInput
-	OnInvoiceIssuedInput          = StandardLineEventInput
-	OnPaymentAuthorizedInput      = StandardLineEventInput
-	OnPaymentSettledInput         = StandardLineEventInput
+	OnStandardInvoiceCreatedInput      = StandardLineEventInput
+	OnCollectionCompletedInput         = StandardLineEventInput
+	OnMutableStandardLinesDeletedInput = StandardLineEventInput
+	OnInvoiceIssuedInput               = StandardLineEventInput
+	OnPaymentAuthorizedInput           = StandardLineEventInput
+	OnPaymentSettledInput              = StandardLineEventInput
 )
 
 type IsLineBillableAsOfInput struct {
@@ -217,6 +218,8 @@ type LineEngine interface {
 	OnStandardInvoiceCreated(ctx context.Context, input OnStandardInvoiceCreatedInput) (StandardLines, error)
 	// OnCollectionCompleted is invoked when a standard invoice collection window closes.
 	OnCollectionCompleted(ctx context.Context, input OnCollectionCompletedInput) (StandardLines, error)
+	// OnMutableStandardLinesDeleted is invoked after mutable standard invoice lines are marked deleted.
+	OnMutableStandardLinesDeleted(ctx context.Context, input OnMutableStandardLinesDeletedInput) error
 	// OnInvoiceIssued is invoked when a standard invoice reaches the issued state.
 	OnInvoiceIssued(ctx context.Context, input OnInvoiceIssuedInput) error
 	// OnPaymentAuthorized is invoked when a standard invoice reaches the payment authorized state.

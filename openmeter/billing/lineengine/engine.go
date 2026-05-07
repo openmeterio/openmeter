@@ -92,6 +92,10 @@ func (e *Engine) OnCollectionCompleted(ctx context.Context, input billing.OnColl
 	return input.Lines, nil
 }
 
+func (e *Engine) OnMutableStandardLinesDeleted(_ context.Context, _ billing.OnMutableStandardLinesDeletedInput) error {
+	return nil
+}
+
 func (e *Engine) OnStandardInvoiceCreated(_ context.Context, input billing.OnStandardInvoiceCreatedInput) (billing.StandardLines, error) {
 	return input.Lines, nil
 }
