@@ -10,12 +10,12 @@ import (
 var _ taxcode.Service = (*Service)(nil)
 
 type Service struct {
-	adapter taxcode.TaxCodeRepository
+	adapter taxcode.Repository
 	logger  *slog.Logger
 }
 
 type Config struct {
-	Adapter taxcode.TaxCodeRepository
+	Adapter taxcode.Repository
 	Logger  *slog.Logger
 }
 

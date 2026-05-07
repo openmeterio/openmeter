@@ -16,7 +16,7 @@ var TaxCode = wire.NewSet(
 	NewTaxCodeService,
 )
 
-func NewTaxCodeAdapter(logger *slog.Logger, db *entdb.Client) (taxcode.TaxCodeRepository, error) {
+func NewTaxCodeAdapter(logger *slog.Logger, db *entdb.Client) (taxcode.Repository, error) {
 	return taxcodeadapter.New(taxcodeadapter.Config{
 		Client: db,
 		Logger: logger.With("subsystem", "taxcode"),
@@ -25,7 +25,7 @@ func NewTaxCodeAdapter(logger *slog.Logger, db *entdb.Client) (taxcode.TaxCodeRe
 
 func NewTaxCodeService(
 	logger *slog.Logger,
-	adapter taxcode.TaxCodeRepository,
+	adapter taxcode.Repository,
 ) (taxcode.Service, error) {
 	return taxcodeservice.New(taxcodeservice.Config{
 		Adapter: adapter,

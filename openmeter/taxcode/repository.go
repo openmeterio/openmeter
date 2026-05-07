@@ -7,7 +7,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-type TaxCodeRepository interface {
+type Repository interface {
 	entutils.TxCreator
 
 	CreateTaxCode(ctx context.Context, input CreateTaxCodeInput) (TaxCode, error)
