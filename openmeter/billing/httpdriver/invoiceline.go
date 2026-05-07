@@ -292,8 +292,9 @@ func mapDetailedLineToAPI(line billing.DetailedLine, invoiceAt time.Time) (api.I
 			Quantity: lo.ToPtr(line.Quantity.String()),
 		},
 
-		Discounts: discountsAPI,
-		Totals:    mapTotalsToAPI(line.Totals),
+		CreditAllocations: mapInvoiceLineCreditsToAPI(line.CreditsApplied),
+		Discounts:         discountsAPI,
+		Totals:            mapTotalsToAPI(line.Totals),
 
 		ExternalIds: mapLineAppExternalIdsToAPI(line.ExternalIDs),
 	}, nil
@@ -377,9 +378,10 @@ func mapInvoiceLineToAPI(line *billing.StandardLine) (api.InvoiceLine, error) {
 			FeatureKey: lo.EmptyableToPtr(line.UsageBased.FeatureKey),
 		},
 
-		Discounts: discountsAPI,
-		Children:  children,
-		Totals:    mapTotalsToAPI(line.Totals),
+		CreditAllocations: mapInvoiceLineCreditsToAPI(line.CreditsApplied),
+		Discounts:         discountsAPI,
+		Children:          children,
+		Totals:            mapTotalsToAPI(line.Totals),
 
 		ExternalIds:  mapLineAppExternalIdsToAPI(line.ExternalIDs),
 		Subscription: mapSubscriptionReferencesToAPI(line.Subscription),
@@ -411,6 +413,21 @@ func mapSubscriptionReferencesToAPI(optSub *billing.SubscriptionReference) *api.
 	}
 
 	return out
+}
+
+func mapInvoiceLineCreditsToAPI(credits billing.CreditsApplied) *[]api.InvoiceLineCreditAllocation {
+	if len(credits) == 0 {
+		return nil
+	}
+
+	out := lo.Map(credits, func(credit billing.CreditApplied, _ int) api.InvoiceLineCreditAllocation {
+		return api.InvoiceLineCreditAllocation{
+			Amount:      credit.Amount.String(),
+			Description: lo.EmptyableToPtr(credit.Description),
+		}
+	})
+
+	return &out
 }
 
 func mapDiscountsToAPI(discounts billing.StandardLineDiscounts) (*api.InvoiceLineDiscounts, error) {

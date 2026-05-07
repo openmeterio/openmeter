@@ -7727,6 +7727,10 @@ class InvoiceDetailedLine(_Model):
      New discounts can be added via the invoice's discounts API, to facilitate
      discounts that are affecting multiple lines.
     :vartype discounts: ~openmeter._generated.models.InvoiceLineDiscounts
+    :ivar credit_allocations: Credit allocations applied to this line.
+
+     Credits are deducted from the line total before taxes are applied.
+    :vartype credit_allocations: list[~openmeter._generated.models.InvoiceLineCreditAllocation]
     :ivar invoice: The invoice this item belongs to.
     :vartype invoice: ~openmeter._generated.models.InvoiceReference
     :ivar currency: The currency of this line. Required.
@@ -7790,6 +7794,12 @@ class InvoiceDetailedLine(_Model):
      
      New discounts can be added via the invoice's discounts API, to facilitate
      discounts that are affecting multiple lines."""
+    credit_allocations: Optional[list["_models.InvoiceLineCreditAllocation"]] = rest_field(
+        name="creditAllocations", visibility=["read"]
+    )
+    """Credit allocations applied to this line.
+     
+     Credits are deducted from the line total before taxes are applied."""
     invoice: Optional["_models.InvoiceReference"] = rest_field(visibility=["read", "create"])
     """The invoice this item belongs to."""
     currency: str = rest_field(visibility=["read", "create"])
@@ -7830,7 +7840,7 @@ class InvoiceDetailedLine(_Model):
     """Category of the flat fee. Known values are: \"regular\" and \"commitment\"."""
 
     @overload
-    def __init__(
+    def __init__(  # pylint: disable=too-many-locals
         self,
         *,
         name: str,
@@ -7936,6 +7946,10 @@ class InvoiceLine(_Model):
      New discounts can be added via the invoice's discounts API, to facilitate
      discounts that are affecting multiple lines.
     :vartype discounts: ~openmeter._generated.models.InvoiceLineDiscounts
+    :ivar credit_allocations: Credit allocations applied to this line.
+
+     Credits are deducted from the line total before taxes are applied.
+    :vartype credit_allocations: list[~openmeter._generated.models.InvoiceLineCreditAllocation]
     :ivar invoice: The invoice this item belongs to.
     :vartype invoice: ~openmeter._generated.models.InvoiceReference
     :ivar currency: The currency of this line. Required.
@@ -8025,6 +8039,12 @@ class InvoiceLine(_Model):
      
      New discounts can be added via the invoice's discounts API, to facilitate
      discounts that are affecting multiple lines."""
+    credit_allocations: Optional[list["_models.InvoiceLineCreditAllocation"]] = rest_field(
+        name="creditAllocations", visibility=["read"]
+    )
+    """Credit allocations applied to this line.
+     
+     Credits are deducted from the line total before taxes are applied."""
     invoice: Optional["_models.InvoiceReference"] = rest_field(visibility=["read", "create"])
     """The invoice this item belongs to."""
     currency: str = rest_field(visibility=["read", "create"])
@@ -8173,6 +8193,22 @@ class InvoiceLineAppExternalIds(_Model):
     """The external ID of the invoice in the invoicing app if available."""
     tax: Optional[str] = rest_field(visibility=["read"])
     """The external ID of the invoice in the tax app if available."""
+
+
+class InvoiceLineCreditAllocation(_Model):
+    """InvoiceLineCreditAllocation represents a credit amount allocated to the line before taxes are
+    applied.
+
+    :ivar amount: Amount in the currency of the invoice. Required.
+    :vartype amount: str
+    :ivar description: Text description as to why the credit was allocated.
+    :vartype description: str
+    """
+
+    amount: str = rest_field(visibility=["read"])
+    """Amount in the currency of the invoice. Required."""
+    description: Optional[str] = rest_field(visibility=["read"])
+    """Text description as to why the credit was allocated."""
 
 
 class InvoiceLineDiscounts(_Model):
@@ -9026,6 +9062,8 @@ class InvoiceTotals(_Model):
     :vartype charges_total: str
     :ivar discounts_total: The amount of value of the line that are due to discounts. Required.
     :vartype discounts_total: str
+    :ivar credits_total: The amount of value of the line that are due to credits. Required.
+    :vartype credits_total: str
     :ivar taxes_inclusive_total: The total amount of taxes that are included in the line. Required.
     :vartype taxes_inclusive_total: str
     :ivar taxes_exclusive_total: The total amount of taxes that are added on top of amount from the
@@ -9044,6 +9082,8 @@ class InvoiceTotals(_Model):
     """The amount of value of the line that are due to additional charges. Required."""
     discounts_total: str = rest_field(name="discountsTotal", visibility=["read"])
     """The amount of value of the line that are due to discounts. Required."""
+    credits_total: str = rest_field(name="creditsTotal", visibility=["read"])
+    """The amount of value of the line that are due to credits. Required."""
     taxes_inclusive_total: str = rest_field(name="taxesInclusiveTotal", visibility=["read"])
     """The total amount of taxes that are included in the line. Required."""
     taxes_exclusive_total: str = rest_field(name="taxesExclusiveTotal", visibility=["read"])

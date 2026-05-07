@@ -14,6 +14,7 @@ import "./party.tsp";
 import "./pay.tsp";
 import "./docref.tsp";
 import "./discounts.tsp";
+import "./credits.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;

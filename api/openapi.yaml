@@ -19036,6 +19036,15 @@ components:
             New discounts can be added via the invoice's discounts API, to facilitate
             discounts that are affecting multiple lines.
           readOnly: true
+        creditAllocations:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceLineCreditAllocation'
+          description: |-
+            Credit allocations applied to this line.
+
+            Credits are deducted from the line total before taxes are applied.
+          readOnly: true
         invoice:
           allOf:
             - $ref: '#/components/schemas/InvoiceReference'
@@ -19335,6 +19344,15 @@ components:
             New discounts can be added via the invoice's discounts API, to facilitate
             discounts that are affecting multiple lines.
           readOnly: true
+        creditAllocations:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceLineCreditAllocation'
+          description: |-
+            Credit allocations applied to this line.
+
+            Credits are deducted from the line total before taxes are applied.
+          readOnly: true
         invoice:
           allOf:
             - $ref: '#/components/schemas/InvoiceReference'
@@ -19605,6 +19623,15 @@ components:
             New discounts can be added via the invoice's discounts API, to facilitate
             discounts that are affecting multiple lines.
           readOnly: true
+        creditAllocations:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceLineCreditAllocation'
+          description: |-
+            Credit allocations applied to this line.
+
+            Credits are deducted from the line total before taxes are applied.
+          readOnly: true
         invoice:
           allOf:
             - $ref: '#/components/schemas/InvoiceReference'
@@ -19655,6 +19682,22 @@ components:
         InvoiceLine represents a single item or service sold to the customer.
 
         This is a base class for all line types, and should not be used directly.
+    InvoiceLineCreditAllocation:
+      type: object
+      required:
+        - amount
+      properties:
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Amount allocated from credits.
+          title: Amount in the currency of the invoice
+          readOnly: true
+        description:
+          type: string
+          description: Text description as to why the credit was allocated.
+          readOnly: true
+      description: InvoiceLineCreditAllocation represents a credit amount allocated to the line before taxes are applied.
     InvoiceLineDiscounts:
       type: object
       properties:
@@ -20325,6 +20368,7 @@ components:
         - amount
         - chargesTotal
         - discountsTotal
+        - creditsTotal
         - taxesInclusiveTotal
         - taxesExclusiveTotal
         - taxesTotal
@@ -20344,6 +20388,11 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: The amount of value of the line that are due to discounts.
+          readOnly: true
+        creditsTotal:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The amount of value of the line that are due to credits.
           readOnly: true
         taxesInclusiveTotal:
           allOf:
