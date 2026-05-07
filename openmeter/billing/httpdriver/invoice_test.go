@@ -11,9 +11,11 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/oliveagle/jsonpath"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -27,6 +29,46 @@ type InvoicingTestSuite struct {
 
 func TestInvoicingTax(t *testing.T) {
 	suite.Run(t, new(InvoicingTestSuite))
+}
+
+func TestMapTotalsToAPIIncludesCreditsTotal(t *testing.T) {
+	got := mapTotalsToAPI(totals.Totals{
+		Amount:              alpacadecimal.NewFromInt(100),
+		ChargesTotal:        alpacadecimal.NewFromInt(0),
+		DiscountsTotal:      alpacadecimal.NewFromInt(10),
+		CreditsTotal:        alpacadecimal.NewFromInt(15),
+		TaxesInclusiveTotal: alpacadecimal.NewFromInt(0),
+		TaxesExclusiveTotal: alpacadecimal.NewFromInt(5),
+		TaxesTotal:          alpacadecimal.NewFromInt(5),
+		Total:               alpacadecimal.NewFromInt(80),
+	})
+
+	require.Equal(t, "15", got.CreditsTotal)
+}
+
+func TestMapInvoiceLineCreditsToAPI(t *testing.T) {
+	got := mapInvoiceLineCreditsToAPI(billing.CreditsApplied{
+		{
+			Amount:              alpacadecimal.NewFromFloat(12.34),
+			Description:         "credit grant",
+			CreditRealizationID: "01K8N36X000000000000000001",
+		},
+		{
+			Amount:              alpacadecimal.NewFromInt(5),
+			CreditRealizationID: "01K8N36X000000000000000002",
+		},
+	})
+
+	require.NotNil(t, got)
+	require.Len(t, *got, 2)
+	require.Equal(t, "12.34", (*got)[0].Amount)
+	require.Equal(t, "credit grant", *(*got)[0].Description)
+	require.Equal(t, "5", (*got)[1].Amount)
+	require.Nil(t, (*got)[1].Description)
+}
+
+func TestMapInvoiceLineCreditsToAPIOmitsEmptyCredits(t *testing.T) {
+	require.Nil(t, mapInvoiceLineCreditsToAPI(nil))
 }
 
 func (s *InvoicingTestSuite) TestGatheringInvoiceSerialization() {
