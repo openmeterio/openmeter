@@ -607,7 +607,7 @@ func getStripeInvoiceItemParams(line billing.DetailedLine, calculator StripeCalc
 	}
 
 	// If the line has a quantity we add the quantity and per unit amount to the description
-	if line.Quantity.GreaterThan(alpacadecimal.NewFromInt(1)) {
+	if line.Quantity.GreaterThan(alpacadecimal.NewFromInt(1)) || line.Quantity.IsNegative() {
 		description = fmt.Sprintf(
 			"%s (%s x %s)",
 			description,
