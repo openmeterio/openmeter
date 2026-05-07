@@ -31,7 +31,7 @@ type ListSubscriptionAddonRepositoryInput struct {
 
 type SubscriptionAddonRepository interface {
 	Create(ctx context.Context, namespace string, input CreateSubscriptionAddonRepositoryInput) (*models.NamespacedID, error)
-	Get(ctx context.Context, id models.NamespacedID) (*SubscriptionAddon, error)
+	Get(ctx context.Context, params GetSubscriptionAddonInput) (*SubscriptionAddon, error)
 	List(ctx context.Context, namespace string, filter ListSubscriptionAddonRepositoryInput) (pagination.Result[SubscriptionAddon], error)
 }
 

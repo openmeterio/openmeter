@@ -214,6 +214,10 @@ func (c *Config) Validate() error {
 		errs = append(errs, errors.New("addon service is required"))
 	}
 
+	if c.SubscriptionAddonService == nil {
+		errs = append(errs, errors.New("subscription addon service is required"))
+	}
+
 	return errors.Join(errs...)
 }
 

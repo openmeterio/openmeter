@@ -174,4 +174,18 @@ interface SubscriptionAddonOperations {
     @query(#{ name: "sort" })
     sort?: Common.SortQuery,
   ): Shared.PagePaginatedResponse<SubscriptionAddon> | Common.NotFound | Common.ErrorResponses;
+
+  /**
+   * Get an add-on association for a subscription.
+   */
+  @get
+  @route("/{subscriptionAddonId}")
+  @operationId("get-subscription-addon")
+  @summary("Get add-on association for subscription")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  getAddon(
+    @path subscriptionId: Shared.ULID,
+    @path subscriptionAddonId: Shared.ULID,
+  ): Shared.GetResponse<SubscriptionAddon> | Common.ErrorResponses | Common.NotFound;
 }
