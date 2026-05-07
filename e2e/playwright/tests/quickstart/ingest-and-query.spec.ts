@@ -1,3 +1,18 @@
+/**
+ * Quickstart > ingest and query
+ *
+ * Mirrors the OpenMeter quickstart flow: create a SUM meter, ingest three
+ * CloudEvents with distinct ids and timestamps, then poll the meter query
+ * endpoint until the aggregated value reflects all events.
+ *
+ * Endpoints exercised:
+ *   POST /api/v3/openmeter/meters
+ *   POST /api/v3/openmeter/events (CloudEvents JSON, 202 accepted)
+ *   POST /api/v3/openmeter/meters/{meterId}/query
+ *
+ * Requires the sink-worker to be running alongside the API server; the
+ * v3 query stays at 0 until events are processed off Kafka into ClickHouse.
+ */
 import { test, expect } from '@playwright/test'
 import { faker } from '@faker-js/faker'
 import { BASE, createMeter, ingestEvent } from '../../helpers/catalog'

@@ -1,3 +1,23 @@
+/**
+ * Plan + addon > smoke lifecycle
+ *
+ * Sequential lifecycle smoke covering the v3 product-catalog plan/addon
+ * happy path: provision a meter and feature, create a draft plan with a
+ * flat rate card, attach unit and graduated rate cards, reject a
+ * duplicate-key rate card, then create + publish an addon, attach it to
+ * the plan, and publish the plan.
+ *
+ * Endpoints exercised:
+ *   POST /api/v3/openmeter/meters
+ *   POST /api/v3/openmeter/features
+ *   POST /api/v3/openmeter/plans (+ PUT, + GET, + /publish)
+ *   POST /api/v3/openmeter/addons (+ /publish)
+ *   POST /api/v3/openmeter/plans/{planId}/addons
+ *
+ * Tests run serially (test.describe.configure mode 'serial') and share
+ * state via outer-scope variables; an early failure intentionally fails
+ * the rest.
+ */
 import { test, expect } from '@playwright/test'
 import { faker } from '@faker-js/faker'
 import { BASE, createMeter, createFeature } from '../../helpers/catalog'

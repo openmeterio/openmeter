@@ -139,6 +139,30 @@ tests/subscriptions/subscribe-and-cancel.spec.ts
 tests/billing/invoice-lifecycle.spec.ts
 ```
 
+### File header
+
+Every spec file starts with a JSDoc-style multiline comment that names the
+suite, summarises the journey, and lists the endpoints it exercises. Add
+any non-obvious preconditions (dependent worker that must be running,
+ordering constraints, eventual-consistency waits):
+
+```typescript
+/**
+ * <Suite name — match the test.describe title>
+ *
+ * One short paragraph describing the journey or scenarios.
+ *
+ * Endpoints exercised:
+ *   POST /api/v3/openmeter/<...>
+ *   GET  /api/v3/openmeter/<...>
+ *
+ * (Optional) Notes on preconditions or ordering.
+ */
+```
+
+Place the header above the first `import`. Keep it under ~15 lines —
+this is orientation, not documentation.
+
 ### Test structure
 
 Import directly from `@playwright/test` and use the `request` fixture. Define a `BASE` constant for the API path prefix. Use `faker.string.uuid()` for unique string fields:

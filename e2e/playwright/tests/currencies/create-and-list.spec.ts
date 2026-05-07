@@ -1,3 +1,15 @@
+/**
+ * Currencies > create and list
+ *
+ * Verifies the custom-currency happy path: a created currency is returned
+ * by the list endpoint, the type filter partitions custom and fiat
+ * currencies correctly, and create requests with missing required fields
+ * (name, code) are rejected with a 400 schema error.
+ *
+ * Endpoints exercised:
+ *   POST /api/v3/openmeter/currencies/custom
+ *   GET  /api/v3/openmeter/currencies (with filter[type])
+ */
 import { test, expect } from '@playwright/test'
 import { faker } from '@faker-js/faker'
 
