@@ -31,7 +31,7 @@ func (l DetailedLineBase) Validate() error {
 		errs = append(errs, errors.New("invoiceID is required"))
 	}
 
-	if err := l.Base.Validate(); err != nil {
+	if err := l.Base.Validate(stddetailedline.IgnoreQuantityChecks()); err != nil {
 		errs = append(errs, fmt.Errorf("base: %w", err))
 	}
 

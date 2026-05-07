@@ -607,6 +607,10 @@ func (i StandardLine) Validate() error {
 		errs = append(errs, err)
 	}
 
+	if err := i.Totals.ValidateTotalNonNegative(); err != nil {
+		errs = append(errs, fmt.Errorf("totals: %w", err))
+	}
+
 	if err := i.Discounts.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("discounts: %w", err))
 	}
