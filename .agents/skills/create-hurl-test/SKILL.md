@@ -67,7 +67,6 @@ Hurl has no built-in random generation. Pass a unique suffix at CLI time:
 ```bash
 hurl --test \
   --variable base_url=http://localhost:8888 \
-  --variable api_key="" \
   --variable run_id=$(date +%s%N | head -c 13) \
   e2e/hurl/openmeter-v3-meters.hurl
 ```
@@ -86,15 +85,13 @@ Every test file uses these variables (passed via CLI `--variable`):
 | Variable | Default at CLI | Purpose |
 |---|---|---|
 | `base_url` | `http://localhost:8888` | Server base URL (no trailing slash) |
-| `api_key` | `""` (empty = no auth) | Bearer token; empty value omits auth effectively |
 | `run_id` | `$(date +%s%N \| head -c 13)` | Unique suffix to avoid key collisions |
 
-Auth header in every request (empty value is a valid no-op for local dev):
-
-```hurl
-Authorization: Bearer {{api_key}}
-Content-Type: application/json
-```
+The local OpenMeter dev server doesn't enforce auth, so requests don't carry an
+`Authorization` header. If you're targeting an auth-enabled deployment (e.g.
+OpenMeter Cloud, or a self-hosted instance with auth wired up), pass
+`--variable api_key=<token>` at the CLI and add `Authorization: Bearer {{api_key}}`
+as a header on each request.
 
 ## Step 1 — Research the Endpoint
 
@@ -164,7 +161,6 @@ v3 path = `{{base_url}}/api/v3` + OpenAPI path suffix without `/openmeter` prefi
 ```hurl
 # ── 1. Create ─────────────────────────────────────────────────────────────────
 POST {{base_url}}/api/v3/openmeter/meters
-Authorization: Bearer {{api_key}}
 Content-Type: application/json
 ```json
 {
@@ -187,7 +183,6 @@ jsonpath "$.deleted_at" not exists
 
 # ── 2. Get by ID ──────────────────────────────────────────────────────────────
 GET {{base_url}}/api/v3/openmeter/meters/{{meter_id}}
-Authorization: Bearer {{api_key}}
 HTTP 200
 [Asserts]
 jsonpath "$.id" == "{{meter_id}}"
@@ -198,7 +193,6 @@ jsonpath "$.key" == "test_meter_{{run_id}}"
 # $.data[*].id returns a bare string (not array) when exactly 1 item exists,
 # making the contains predicate do a substring check instead of membership check.
 GET {{base_url}}/api/v3/openmeter/meters
-Authorization: Bearer {{api_key}}
 [QueryStringParams]
 page[size]: 1000
 HTTP 200
@@ -208,7 +202,6 @@ jsonpath "$.data[?(@.id=='{{meter_id}}')].id" contains "{{meter_id}}"
 
 # ── 4. List — filter by key ───────────────────────────────────────────────────
 GET {{base_url}}/api/v3/openmeter/meters
-Authorization: Bearer {{api_key}}
 [QueryStringParams]
 filter[key]: test_meter_{{run_id}}
 page[size]: 10
@@ -219,7 +212,6 @@ jsonpath "$.data[0].id" == "{{meter_id}}"
 
 # ── 5. Update ─────────────────────────────────────────────────────────────────
 PUT {{base_url}}/api/v3/openmeter/meters/{{meter_id}}
-Authorization: Bearer {{api_key}}
 Content-Type: application/json
 ```json
 {
@@ -233,12 +225,10 @@ jsonpath "$.key" == "test_meter_{{run_id}}"
 
 # ── 6. Delete ─────────────────────────────────────────────────────────────────
 DELETE {{base_url}}/api/v3/openmeter/meters/{{meter_id}}
-Authorization: Bearer {{api_key}}
 HTTP 204
 
 # ── 7. Get after delete — soft delete returns 200 + deleted_at ───────────────
 GET {{base_url}}/api/v3/openmeter/meters/{{meter_id}}
-Authorization: Bearer {{api_key}}
 HTTP 200
 [Asserts]
 jsonpath "$.deleted_at" isString
@@ -249,7 +239,6 @@ jsonpath "$.deleted_at" isString
 ```hurl
 # ── Validation: count aggregation must not have value_property ───────────────
 POST {{base_url}}/api/v3/openmeter/meters
-Authorization: Bearer {{api_key}}
 Content-Type: application/json
 ```json
 {
@@ -329,7 +318,6 @@ or the retry budget is exhausted.
 ```hurl
 # Wait for the async ingest pipeline to surface events in the meter query.
 POST {{base_url}}/api/v3/openmeter/meters/{{meter_id}}/query
-Authorization: Bearer {{api_key}}
 Content-Type: application/json
 [Options]
 retry: 60
@@ -357,7 +345,6 @@ Add a run command comment at the top of each new file:
 ```hurl
 # Run: hurl --test \
 #   --variable base_url=http://localhost:8888 \
-#   --variable api_key="" \
 #   --variable run_id=$(date +%s%N | head -c 13) \
 #   e2e/hurl/openmeter-v3-meters.hurl
 ```
@@ -367,7 +354,6 @@ Run the test:
 ```bash
 hurl --test \
   --variable base_url=http://localhost:8888 \
-  --variable api_key="" \
   --variable run_id=$(date +%s%N | head -c 13) \
   e2e/hurl/openmeter-v3-<domain>.hurl
 ```
@@ -377,7 +363,6 @@ Run all hurl files:
 ```bash
 hurl --test \
   --variable base_url=http://localhost:8888 \
-  --variable api_key="" \
   --variable run_id=$(date +%s%N | head -c 13) \
   e2e/hurl/*.hurl
 ```
@@ -419,7 +404,6 @@ Use `[QueryStringParams]` section — not inline URL query string — for deepOb
 
 ```hurl
 GET {{base_url}}/api/v3/openmeter/meters
-Authorization: Bearer {{api_key}}
 [QueryStringParams]
 filter[key]: my-meter-key
 filter[name]: My Meter

@@ -9,13 +9,11 @@
 # Run:
 #   hurl --test \
 #     --variable base_url=http://localhost:8888 \
-#     --variable api_key="" \
 #     --variable run_id=$(date +%s%N | head -c 13) \
 #     e2e/hurl/openmeter-v3-currencies.hurl
 
 # ── 1. Create custom currency ─────────────────────────────────────────────────
 POST {{base_url}}/api/v3/openmeter/currencies/custom
-Authorization: Bearer {{api_key}}
 Content-Type: application/json
 ```json
 {
@@ -39,7 +37,6 @@ jsonpath "$.symbol" == "T$"
 # Use JSONPath filter expression — avoids $.data[*].id type inconsistency
 # (returns string for 1-item arrays, breaking contains predicate)
 GET {{base_url}}/api/v3/openmeter/currencies
-Authorization: Bearer {{api_key}}
 [QueryStringParams]
 page[size]: 1000
 HTTP 200
@@ -49,7 +46,6 @@ jsonpath "$.data[?(@.id=='{{currency_id}}')].id" contains "{{currency_id}}"
 
 # ── 3. List filtered by type=custom — currency present, all entries custom ───
 GET {{base_url}}/api/v3/openmeter/currencies
-Authorization: Bearer {{api_key}}
 [QueryStringParams]
 filter[type]: custom
 page[size]: 1000
@@ -61,7 +57,6 @@ jsonpath "$.data[0].type" == "custom"
 # ── 4. List filtered by type=fiat — only fiat currencies returned ─────────────
 # Fiat currencies have no id field; assert type of first result is fiat
 GET {{base_url}}/api/v3/openmeter/currencies
-Authorization: Bearer {{api_key}}
 [QueryStringParams]
 filter[type]: fiat
 page[size]: 10
@@ -72,7 +67,6 @@ jsonpath "$.data[0].type" == "fiat"
 
 # ── 5. Create cost basis ──────────────────────────────────────────────────────
 POST {{base_url}}/api/v3/openmeter/currencies/custom/{{currency_id}}/cost-bases
-Authorization: Bearer {{api_key}}
 Content-Type: application/json
 ```json
 {
@@ -90,7 +84,6 @@ jsonpath "$.rate" == "1.5"
 
 # ── 6. List cost bases — cost basis present ───────────────────────────────────
 GET {{base_url}}/api/v3/openmeter/currencies/custom/{{currency_id}}/cost-bases
-Authorization: Bearer {{api_key}}
 HTTP 200
 [Asserts]
 jsonpath "$.data" isCollection
@@ -100,7 +93,6 @@ jsonpath "$.data[0].rate" == "1.5"
 
 # ── 7. Duplicate code rejected with 409 ──────────────────────────────────────
 POST {{base_url}}/api/v3/openmeter/currencies/custom
-Authorization: Bearer {{api_key}}
 Content-Type: application/json
 ```json
 {

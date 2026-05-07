@@ -819,3 +819,119 @@ jobs:
             e2e/logs/openmeter/openmeter.log
             e2e/logs/sink-worker/openmeter.log
           retention-days: 14
+
+  e2e-hurl:
+    name: E2E Hurl
+    runs-on: depot-ubuntu-latest-8
+    # Note: This check is running against the image that is going to be pushed.
+    needs:
+      - trusted-artifacts
+      - untrusted-artifacts
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(needs.*.result, 'success') }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Create override files for e2e
+        env:
+          DEPOT_IMAGE_URL: ${{ needs.trusted-artifacts.outputs.container-image-url-depot }}
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        run: |
+          cat > e2e/docker-compose.override.yaml <<EOF
+          services:
+            openmeter:
+              image: $DEPOT_IMAGE_URL
+            sink-worker:
+              image: $DEPOT_IMAGE_URL
+          EOF
+
+          cat e2e/docker-compose.override.yaml
+
+      - name: Build as part of e2e
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+        run: |
+          cat > e2e/docker-compose.override.yaml <<EOF
+          services:
+            openmeter:
+              build: ..
+            sink-worker:
+              build: ..
+          EOF
+
+          cat e2e/docker-compose.override.yaml
+
+      - name: Launch Docker Compose infra
+        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml up -d
+        working-directory: e2e
+
+      - name: Set up Nix
+        uses: nixbuild/nix-quick-install-action@2c9db80fb984ceb1bcaa77cdda3fdf8cfba92035 # v34
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          nix_conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: Restore Nix store
+        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+        with:
+          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          restore-prefixes-first-match: |
+            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
+            ${{ runner.os }}-openmeter-nix-build-main-
+            ${{ runner.os }}-openmeter-nix-build-
+
+      - name: Check container health
+        run: docker inspect --format "{{json .State.Health }}" $(docker container list --all --filter 'name=^*-openmeter-*' --format '{{.Names}}')
+        if: always()
+        continue-on-error: true
+
+      - name: Wait for worker to become ready
+        run: |
+          curl --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:30000/healthz
+          docker ps
+
+      # Single hurl invocation across the fast suite (e2e/hurl/*.hurl) AND the
+      # async suite (e2e/hurl/async/*.hurl) so the HTML/JUnit reports cover the
+      # whole run. The async suite needs sink-worker, which the e2e compose
+      # stack already brings up.
+      - name: Run Hurl tests
+        env:
+          HURL_BASE_URL: http://localhost:38888
+          TZ: UTC
+        run: |
+          mkdir -p e2e/hurl-reports
+          nix develop --impure .#ci -c hurl --test \
+            --variable "base_url=$HURL_BASE_URL" \
+            --variable "run_id=$(date +%s%N | head -c 13)" \
+            --report-html e2e/hurl-reports/html \
+            --report-junit e2e/hurl-reports/junit.xml \
+            e2e/hurl/*.hurl e2e/hurl/async/*.hurl
+
+      - name: Cleanup Docker Compose
+        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml down -v
+        working-directory: e2e
+        if: always()
+
+      - name: Upload Hurl reports
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: "[${{ github.job }}] Hurl reports"
+          path: e2e/hurl-reports/
+          retention-days: 14
+
+      - name: Upload Openmeter logs as artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: "[${{ github.job }}] Openmeter logs"
+          path: |
+            e2e/logs/openmeter/openmeter.log
+            e2e/logs/sink-worker/openmeter.log
+          retention-days: 14

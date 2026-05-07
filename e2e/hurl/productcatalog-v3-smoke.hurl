@@ -20,13 +20,11 @@
 # Run:
 #   hurl --test \
 #     --variable base_url=http://localhost:8888 \
-#     --variable api_key="" \
 #     --variable run_id=$(date +%s%N | head -c 13) \
 #     e2e/hurl/productcatalog-v3-smoke.hurl
 
 # ── 1. Create a meter ─────────────────────────────────────────────────────────
 POST {{base_url}}/api/v3/openmeter/meters
-Authorization: Bearer {{api_key}}
 Content-Type: application/json
 ```json
 {
@@ -46,7 +44,6 @@ jsonpath "$.key" == "pc_smoke_meter_{{run_id}}"
 
 # ── 2. Create a feature bound to the meter ────────────────────────────────────
 POST {{base_url}}/api/v3/openmeter/features
-Authorization: Bearer {{api_key}}
 Content-Type: application/json
 ```json
 {
@@ -67,7 +64,6 @@ jsonpath "$.meter.id" == "{{meter_id}}"
 
 # ── 3. Create a draft plan with a single flat rate card ───────────────────────
 POST {{base_url}}/api/v3/openmeter/plans
-Authorization: Bearer {{api_key}}
 Content-Type: application/json
 ```json
 {
@@ -104,7 +100,6 @@ jsonpath "$.phases[0].key" == "pc_smoke_phase_{{run_id}}"
 
 # ── 4. Update the plan: flat + unit-with-feature + graduated rate cards ───────
 PUT {{base_url}}/api/v3/openmeter/plans/{{plan_id}}
-Authorization: Bearer {{api_key}}
 Content-Type: application/json
 ```json
 {
@@ -157,7 +152,6 @@ jsonpath "$.phases[0].rate_cards[?(@.key=='usage_{{run_id}}')].feature.id" conta
 # Plan cadence is P1M, so a P2W rate card surfaces rate_card_billing_cadence_unaligned.
 # The PUT itself is accepted (200) — the defect appears as a draft validation_error.
 PUT {{base_url}}/api/v3/openmeter/plans/{{plan_id}}
-Authorization: Bearer {{api_key}}
 Content-Type: application/json
 ```json
 {
@@ -213,7 +207,6 @@ jsonpath "$.phases[0].rate_cards" count == 4
 
 # ── 6. GET plan — validation_errors surfaces the cadence-unaligned code ──────
 GET {{base_url}}/api/v3/openmeter/plans/{{plan_id}}
-Authorization: Bearer {{api_key}}
 HTTP 200
 [Asserts]
 jsonpath "$.status" == "draft"
@@ -221,14 +214,12 @@ jsonpath "$.validation_errors[?(@.code=='rate_card_billing_cadence_unaligned')].
 
 # ── 7. Publish — rejected with the same domain code ──────────────────────────
 POST {{base_url}}/api/v3/openmeter/plans/{{plan_id}}/publish
-Authorization: Bearer {{api_key}}
 HTTP 400
 [Asserts]
 jsonpath "$.extensions.validationErrors[?(@.code=='rate_card_billing_cadence_unaligned')].code" contains "rate_card_billing_cadence_unaligned"
 
 # ── 8. Update the plan: remove the defective rate card ───────────────────────
 PUT {{base_url}}/api/v3/openmeter/plans/{{plan_id}}
-Authorization: Bearer {{api_key}}
 Content-Type: application/json
 ```json
 {
@@ -279,14 +270,12 @@ jsonpath "$.phases[0].rate_cards" count == 3
 # Robust against the field being absent OR an empty array OR populated by
 # unrelated codes — only the one we just fixed is asserted absent.
 GET {{base_url}}/api/v3/openmeter/plans/{{plan_id}}
-Authorization: Bearer {{api_key}}
 HTTP 200
 [Asserts]
 jsonpath "$.validation_errors[?(@.code=='rate_card_billing_cadence_unaligned')]" not exists
 
 # ── 10. Create a draft addon ─────────────────────────────────────────────────
 POST {{base_url}}/api/v3/openmeter/addons
-Authorization: Bearer {{api_key}}
 Content-Type: application/json
 ```json
 {
@@ -314,7 +303,6 @@ jsonpath "$.status" == "draft"
 
 # ── 11. Publish the addon ────────────────────────────────────────────────────
 POST {{base_url}}/api/v3/openmeter/addons/{{addon_id}}/publish
-Authorization: Bearer {{api_key}}
 HTTP 200
 [Asserts]
 jsonpath "$.id" == "{{addon_id}}"
@@ -322,7 +310,6 @@ jsonpath "$.status" == "active"
 
 # ── 12. Attach the published addon to the still-draft plan ───────────────────
 POST {{base_url}}/api/v3/openmeter/plans/{{plan_id}}/addons
-Authorization: Bearer {{api_key}}
 Content-Type: application/json
 ```json
 {
@@ -341,7 +328,6 @@ jsonpath "$.from_plan_phase" == "pc_smoke_phase_{{run_id}}"
 
 # ── 13. Publish the plan — addon attached, plan goes active ──────────────────
 POST {{base_url}}/api/v3/openmeter/plans/{{plan_id}}/publish
-Authorization: Bearer {{api_key}}
 HTTP 200
 [Asserts]
 jsonpath "$.id" == "{{plan_id}}"
@@ -350,7 +336,6 @@ jsonpath "$.effective_from" isString
 
 # ── 14. List plan-addons — attached addon survives publish ───────────────────
 GET {{base_url}}/api/v3/openmeter/plans/{{plan_id}}/addons
-Authorization: Bearer {{api_key}}
 [QueryStringParams]
 page[size]: 1000
 HTTP 200

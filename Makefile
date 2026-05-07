@@ -216,14 +216,12 @@ etoe-slow: ## Run e2e tests with slow tests enabled
 	$(MAKE) -C e2e test-local
 
 HURL_BASE_URL ?= http://localhost:8888
-HURL_API_KEY ?=
 
 .PHONY: etoe-hurl
-etoe-hurl: ## Run Hurl e2e tests (requires server running; set HURL_BASE_URL and HURL_API_KEY as needed)
+etoe-hurl: ## Run Hurl e2e tests (requires server running; override HURL_BASE_URL if not on localhost:8888)
 	$(call print-target)
 	hurl --test \
 		--variable base_url=$(HURL_BASE_URL) \
-		--variable api_key=$(HURL_API_KEY) \
 		--variable run_id=$$(date +%s%N | head -c 13) \
 		e2e/hurl/*.hurl
 
@@ -236,7 +234,6 @@ etoe-hurl-async: ## Run async Hurl e2e tests (requires sink-worker running; see 
 	$(call print-target)
 	hurl --test \
 		--variable base_url=$(HURL_BASE_URL) \
-		--variable api_key=$(HURL_API_KEY) \
 		--variable run_id=$$(date +%s%N | head -c 13) \
 		e2e/hurl/async/*.hurl
 
