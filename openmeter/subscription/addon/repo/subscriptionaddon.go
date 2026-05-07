@@ -61,6 +61,9 @@ func (r *subscriptionAddonRepo) Get(ctx context.Context, params subscriptionaddo
 				dbsubscriptionaddon.ID(params.ID),
 				dbsubscriptionaddon.Namespace(params.Namespace),
 			)
+			if params.SubscriptionID != "" {
+				query = query.Where(dbsubscriptionaddon.SubscriptionID(params.SubscriptionID))
+			}
 		} else {
 			query = query.Where(
 				dbsubscriptionaddon.Namespace(params.Namespace),

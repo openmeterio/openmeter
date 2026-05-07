@@ -9,7 +9,7 @@ import (
 
 type Handler interface {
 	ListSubscriptionAddons() ListSubscriptionAddonsHandler
-	GetSubscriptionAddons() GetSubscriptionAddonHandler
+	GetSubscriptionAddon() GetSubscriptionAddonHandler
 }
 
 type handler struct {
