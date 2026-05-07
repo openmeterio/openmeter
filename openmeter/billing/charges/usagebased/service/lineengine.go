@@ -251,6 +251,11 @@ func (e *LineEngine) OnMutableStandardLinesDeleted(ctx context.Context, input bi
 		if err != nil {
 			return err
 		}
+		// Deleted realizations have already been cleaned up through a prior line deletion,
+		// so billing must not run the cleanup path for them again.
+		if run.DeletedAt != nil {
+			return fmt.Errorf("usage based standard line[%s] cannot be deleted because realization run[%s] is already deleted", stdLine.ID, run.ID.ID)
+		}
 
 		if run.InvoiceID == nil || *run.InvoiceID != input.Invoice.ID {
 			return fmt.Errorf("usage based standard line[%s] cannot be deleted because realization run[%s] is not associated with invoice[%s]", stdLine.ID, run.ID.ID, input.Invoice.ID)
@@ -309,6 +314,10 @@ func (e *LineEngine) markMutableStandardLineRunDeleted(
 	currentRunDeleted := charge.State.CurrentRealizationRunID != nil && *charge.State.CurrentRealizationRunID == run.ID.ID
 	if currentRunDeleted {
 		charge.State.CurrentRealizationRunID = nil
+		if charge.Status != usagebased.StatusDeleted {
+			charge.Status = usagebased.StatusActive
+			charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(charge.Intent.ServicePeriod.To))
+		}
 
 		updatedChargeBase, err := e.service.adapter.UpdateCharge(ctx, charge.ChargeBase)
 		if err != nil {
