@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/api"
+	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -38,7 +39,9 @@ func (h *handler) GetSubscriptionAddon() GetSubscriptionAddonHandler {
 			}, nil
 		},
 		func(ctx context.Context, req GetSubscriptionAddonRequest) (GetSubscriptionAddonResponse, error) {
-			res, err := h.SubscriptionAddonService.Get(ctx, req.SubscriptionAddonID)
+			res, err := h.SubscriptionAddonService.Get(ctx, subscriptionaddon.GetSubscriptionAddonInput{
+				NamespacedID: req.SubscriptionAddonID,
+			})
 			if err != nil {
 				return GetSubscriptionAddonResponse{}, err
 			}

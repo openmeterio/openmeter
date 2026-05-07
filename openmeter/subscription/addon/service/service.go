@@ -178,7 +178,9 @@ func (s *service) Create(ctx context.Context, ns string, input subscriptionaddon
 		}
 
 		// Let's fetch the addon again and return it
-		subscriptionAddon, err := s.cfg.SubAddRepo.Get(ctx, *subAdd)
+		subscriptionAddon, err := s.cfg.SubAddRepo.Get(ctx, subscriptionaddon.GetSubscriptionAddonInput{
+			NamespacedID: *subAdd,
+		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to get subscription add-on: %w", err)
 		}
@@ -198,8 +200,8 @@ func (s *service) Create(ctx context.Context, ns string, input subscriptionaddon
 }
 
 // Get gets a subscription add-on
-func (s *service) Get(ctx context.Context, id models.NamespacedID) (*subscriptionaddon.SubscriptionAddon, error) {
-	return s.cfg.SubAddRepo.Get(ctx, id)
+func (s *service) Get(ctx context.Context, params subscriptionaddon.GetSubscriptionAddonInput) (*subscriptionaddon.SubscriptionAddon, error) {
+	return s.cfg.SubAddRepo.Get(ctx, params)
 }
 
 // List lists subscription add-ons
@@ -218,7 +220,9 @@ func (s *service) ChangeQuantity(ctx context.Context, id models.NamespacedID, in
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
 
-	subAdd, err := s.cfg.SubAddRepo.Get(ctx, id)
+	subAdd, err := s.cfg.SubAddRepo.Get(ctx, subscriptionaddon.GetSubscriptionAddonInput{
+		NamespacedID: id,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get subscription add-on: %w", err)
 	}
@@ -292,7 +296,9 @@ func (s *service) ChangeQuantity(ctx context.Context, id models.NamespacedID, in
 		}
 
 		// Let's fetch the addon and return it
-		subscriptionAddon, err := s.cfg.SubAddRepo.Get(ctx, id)
+		subscriptionAddon, err := s.cfg.SubAddRepo.Get(ctx, subscriptionaddon.GetSubscriptionAddonInput{
+			NamespacedID: id,
+		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to get subscription add-on: %w", err)
 		}

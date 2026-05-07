@@ -123,7 +123,9 @@ func (s *service) ChangeAddonQuantity(ctx context.Context, subscriptionID models
 		return def1, def2, models.NewGenericValidationError(fmt.Errorf("subscription and subscription addon are in different namespaces"))
 	}
 
-	subsAdd, err := s.AddonService.Get(ctx, changeInp.SubscriptionAddonID)
+	subsAdd, err := s.AddonService.Get(ctx, subscriptionaddon.GetSubscriptionAddonInput{
+		NamespacedID: changeInp.SubscriptionAddonID,
+	})
 	if err != nil {
 		return def1, def2, fmt.Errorf("failed to get subscription addon: %w", err)
 	}

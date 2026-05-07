@@ -1680,7 +1680,7 @@ func (n NoopSubscriptionAddonService) ChangeQuantity(ctx context.Context, subscr
 	return nil, nil
 }
 
-func (n NoopSubscriptionAddonService) Get(ctx context.Context, addonId models.NamespacedID) (*subscriptionaddon.SubscriptionAddon, error) {
+func (n NoopSubscriptionAddonService) Get(ctx context.Context, params subscriptionaddon.GetSubscriptionAddonInput) (*subscriptionaddon.SubscriptionAddon, error) {
 	return nil, nil
 }
 

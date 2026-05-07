@@ -85,7 +85,7 @@ func (h *handler) ListSubscriptionAddons() ListSubscriptionAddonsHandler {
 			}, nil
 		},
 		func(ctx context.Context, req ListSubscriptionAddonsRequest) (ListSubscriptionAddonsResponse, error) {
-			res, err := h.subscriptionAddonService.List(ctx, req.SubscriptionID.Namespace, req.Input)
+			res, err := h.addonService.List(ctx, req.SubscriptionID.Namespace, req.Input)
 			if err != nil {
 				return ListSubscriptionAddonsResponse{}, fmt.Errorf("failed to list subscription addons: %w", err)
 			}

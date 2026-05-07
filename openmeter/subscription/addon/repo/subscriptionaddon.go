@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	addondb "github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	dbsubscriptionaddon "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	dbsubscriptionaddonquantity "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonquantity"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
@@ -51,18 +52,28 @@ func (r *subscriptionAddonRepo) Create(ctx context.Context, namespace string, in
 }
 
 // Get retrieves a subscription addon by ID
-func (r *subscriptionAddonRepo) Get(ctx context.Context, id models.NamespacedID) (*subscriptionaddon.SubscriptionAddon, error) {
+func (r *subscriptionAddonRepo) Get(ctx context.Context, params subscriptionaddon.GetSubscriptionAddonInput) (*subscriptionaddon.SubscriptionAddon, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionAddonRepo) (*subscriptionaddon.SubscriptionAddon, error) {
-		entity, err := querySubscriptionAddon(repo.db.SubscriptionAddon.Query()).
-			Where(
-				dbsubscriptionaddon.ID(id.ID),
-				dbsubscriptionaddon.Namespace(id.Namespace),
-			).
-			Only(ctx)
+		query := querySubscriptionAddon(repo.db.SubscriptionAddon.Query())
+
+		if params.ID != "" {
+			query = query.Where(
+				dbsubscriptionaddon.ID(params.ID),
+				dbsubscriptionaddon.Namespace(params.Namespace),
+			)
+		} else {
+			query = query.Where(
+				dbsubscriptionaddon.Namespace(params.Namespace),
+				dbsubscriptionaddon.SubscriptionID(params.SubscriptionID),
+				dbsubscriptionaddon.HasAddonWith(addondb.Or(addondb.ID(params.AddonIDOrKey), addondb.Key(params.AddonIDOrKey))),
+			)
+		}
+
+		entity, err := query.Only(ctx)
 		if err != nil {
 			if db.IsNotFound(err) {
 				return nil, models.NewGenericNotFoundError(
-					fmt.Errorf("subscription addon %s not found", id.ID),
+					fmt.Errorf("subscription addon %s not found", params.ID),
 				)
 			}
 
