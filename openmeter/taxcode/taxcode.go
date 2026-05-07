@@ -156,6 +156,14 @@ func (o OrganizationDefaultTaxCodes) Validate() error {
 		errs = append(errs, err)
 	}
 
+	if o.InvoicingTaxCodeID == "" {
+		errs = append(errs, ErrResourceIDEmpty.WithPathString("invoicing_tax_code_id"))
+	}
+
+	if o.CreditGrantTaxCodeID == "" {
+		errs = append(errs, ErrResourceIDEmpty.WithPathString("credit_grant_tax_code_id"))
+	}
+
 	if o.InvoicingTaxCode != nil {
 		if err := o.InvoicingTaxCode.Validate(); err != nil {
 			errs = append(errs, err)
