@@ -13,7 +13,7 @@ import (
 )
 
 type (
-	UpsertOrganizationDefaultTaxCodesRequest = taxcode.UpsertOrganizationDefaultTaxCodesInput
+	UpsertOrganizationDefaultTaxCodesRequest  = taxcode.UpsertOrganizationDefaultTaxCodesInput
 	UpsertOrganizationDefaultTaxCodesResponse = api.OrganizationDefaultTaxCodes
 	UpsertOrganizationDefaultTaxCodesHandler  = httptransport.Handler[UpsertOrganizationDefaultTaxCodesRequest, UpsertOrganizationDefaultTaxCodesResponse]
 )
