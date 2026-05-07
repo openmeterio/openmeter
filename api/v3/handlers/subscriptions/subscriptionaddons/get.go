@@ -21,7 +21,7 @@ type (
 	GetSubscriptionAddonHandler  httptransport.HandlerWithArgs[GetSubscriptionAddonRequest, GetSubscriptionAddonResponse, GetSubscriptionAddonParams]
 )
 
-func (h *handler) GetSubscriptionAddons() GetSubscriptionAddonHandler {
+func (h *handler) GetSubscriptionAddon() GetSubscriptionAddonHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, params GetSubscriptionAddonParams) (GetSubscriptionAddonRequest, error) {
 			ns, err := h.resolveNamespace(ctx)

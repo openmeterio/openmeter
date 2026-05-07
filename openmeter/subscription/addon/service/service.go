@@ -201,6 +201,9 @@ func (s *service) Create(ctx context.Context, ns string, input subscriptionaddon
 
 // Get gets a subscription add-on
 func (s *service) Get(ctx context.Context, params subscriptionaddon.GetSubscriptionAddonInput) (*subscriptionaddon.SubscriptionAddon, error) {
+	if err := params.Validate(); err != nil {
+		return nil, models.NewGenericValidationError(err)
+	}
 	return s.cfg.SubAddRepo.Get(ctx, params)
 }
 

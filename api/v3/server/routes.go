@@ -118,7 +118,7 @@ func (s *Server) ListSubscriptionAddons(w http.ResponseWriter, r *http.Request, 
 }
 
 func (s *Server) GetSubscriptionAddon(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID, subscriptionAddonId api.ULID) {
-	s.subscriptionAddonsHandler.GetSubscriptionAddons().With(subscriptionaddonshandler.GetSubscriptionAddonParams{
+	s.subscriptionAddonsHandler.GetSubscriptionAddon().With(subscriptionaddonshandler.GetSubscriptionAddonParams{
 		SubscriptionID:      subscriptionId,
 		SubscriptionAddonID: subscriptionAddonId,
 	}).ServeHTTP(w, r)
