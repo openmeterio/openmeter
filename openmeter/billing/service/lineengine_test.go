@@ -2,6 +2,7 @@ package billingservice
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -56,14 +57,45 @@ func TestOnMutableStandardLinesDeletedGroupsLinesByEngine(t *testing.T) {
 	require.Equal(t, []string{"line-2"}, lineIDs(chargeEngine.inputs[0].Lines))
 }
 
+func TestOnMutableStandardLinesDeletedReturnsEngineError(t *testing.T) {
+	errEngineFailed := errors.New("engine failed")
+	invoiceEngine := &recordingLineEngine{
+		NoopLineEngine: billingtestutils.NoopLineEngine{
+			EngineType: billing.LineEngineTypeInvoice,
+		},
+		err: errEngineFailed,
+	}
+
+	svc := &Service{
+		lineEngines: newEngineRegistry(),
+	}
+
+	require.NoError(t, svc.RegisterLineEngine(invoiceEngine))
+
+	err := svc.OnMutableStandardLinesDeleted(t.Context(), billing.OnMutableStandardLinesDeletedInput{
+		Invoice: billing.StandardInvoice{
+			StandardInvoiceBase: billing.StandardInvoiceBase{
+				Namespace: "ns",
+				ID:        "invoice-1",
+			},
+		},
+		Lines: billing.StandardLines{
+			newStandardLineForLineEngineTest("line-1", billing.LineEngineTypeInvoice, true),
+		},
+	})
+
+	require.ErrorIs(t, err, errEngineFailed)
+}
+
 type recordingLineEngine struct {
 	billingtestutils.NoopLineEngine
 	inputs []billing.OnMutableStandardLinesDeletedInput
+	err    error
 }
 
 func (e *recordingLineEngine) OnMutableStandardLinesDeleted(_ context.Context, input billing.OnMutableStandardLinesDeletedInput) error {
 	e.inputs = append(e.inputs, input)
-	return nil
+	return e.err
 }
 
 func lineIDs(lines billing.StandardLines) []string {
