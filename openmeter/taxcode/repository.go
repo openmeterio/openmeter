@@ -16,10 +16,6 @@ type TaxCodeRepository interface {
 	GetTaxCode(ctx context.Context, input GetTaxCodeInput) (TaxCode, error)
 	GetTaxCodeByAppMapping(ctx context.Context, input GetTaxCodeByAppMappingInput) (TaxCode, error)
 	DeleteTaxCode(ctx context.Context, input DeleteTaxCodeInput) error
-}
-
-type OrganizationDefaultTaxCodesRepository interface {
-	entutils.TxCreator
 
 	GetOrganizationDefaultTaxCodes(ctx context.Context, input GetOrganizationDefaultTaxCodesInput) (OrganizationDefaultTaxCodes, error)
 	UpsertOrganizationDefaultTaxCodes(ctx context.Context, input UpsertOrganizationDefaultTaxCodesInput) (OrganizationDefaultTaxCodes, error)

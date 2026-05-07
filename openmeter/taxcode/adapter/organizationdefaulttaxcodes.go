@@ -4,26 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"entgo.io/ent/dialect/sql"
+
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	orgdefaultsdb "github.com/openmeterio/openmeter/openmeter/ent/db/organizationdefaulttaxcodes"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
-
-var _ taxcode.OrganizationDefaultTaxCodesRepository = (*adapter)(nil)
-
-// NewOrganizationDefaultTaxCodesAdapter creates an adapter satisfying OrganizationDefaultTaxCodesRepository.
-func NewOrganizationDefaultTaxCodesAdapter(config Config) (taxcode.OrganizationDefaultTaxCodesRepository, error) {
-	if err := config.Validate(); err != nil {
-		return nil, err
-	}
-
-	return &adapter{
-		db:     config.Client,
-		logger: config.Logger,
-	}, nil
-}
 
 func (a *adapter) GetOrganizationDefaultTaxCodes(ctx context.Context, input taxcode.GetOrganizationDefaultTaxCodesInput) (taxcode.OrganizationDefaultTaxCodes, error) {
 	if err := input.Validate(); err != nil {
@@ -62,39 +50,22 @@ func (a *adapter) UpsertOrganizationDefaultTaxCodes(ctx context.Context, input t
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (taxcode.OrganizationDefaultTaxCodes, error) {
-		existing, err := a.db.OrganizationDefaultTaxCodes.Query().
-			Where(orgdefaultsdb.NamespaceEQ(input.Namespace)).
-			Where(orgdefaultsdb.DeletedAtIsNil()).
-			Only(ctx)
-		if err != nil && !db.IsNotFound(err) {
-			return taxcode.OrganizationDefaultTaxCodes{}, fmt.Errorf("failed to query organization default tax codes: %w", err)
-		}
-
-		if existing != nil {
-			_, err = a.db.OrganizationDefaultTaxCodes.UpdateOneID(existing.ID).
-				SetInvoicingTaxCodeID(input.InvoicingTaxCodeID).
-				SetCreditGrantTaxCodeID(input.CreditGrantTaxCodeID).
-				Save(ctx)
-			if err != nil {
-				if db.IsConstraintError(err) {
-					return taxcode.OrganizationDefaultTaxCodes{}, models.NewGenericConflictError(fmt.Errorf("invalid tax code reference"))
-				}
-
-				return taxcode.OrganizationDefaultTaxCodes{}, fmt.Errorf("failed to update organization default tax codes: %w", err)
+		err := a.db.OrganizationDefaultTaxCodes.Create().
+			SetNamespace(input.Namespace).
+			SetInvoicingTaxCodeID(input.InvoicingTaxCodeID).
+			SetCreditGrantTaxCodeID(input.CreditGrantTaxCodeID).
+			OnConflict(
+				sql.ConflictColumns(orgdefaultsdb.FieldNamespace),
+				sql.ConflictWhere(sql.IsNull(orgdefaultsdb.FieldDeletedAt)),
+			).
+			UpdateNewValues().
+			Exec(ctx)
+		if err != nil {
+			if db.IsConstraintError(err) {
+				return taxcode.OrganizationDefaultTaxCodes{}, models.NewGenericConflictError(fmt.Errorf("invalid tax code reference"))
 			}
-		} else {
-			_, err = a.db.OrganizationDefaultTaxCodes.Create().
-				SetNamespace(input.Namespace).
-				SetInvoicingTaxCodeID(input.InvoicingTaxCodeID).
-				SetCreditGrantTaxCodeID(input.CreditGrantTaxCodeID).
-				Save(ctx)
-			if err != nil {
-				if db.IsConstraintError(err) {
-					return taxcode.OrganizationDefaultTaxCodes{}, models.NewGenericConflictError(fmt.Errorf("invalid tax code reference"))
-				}
 
-				return taxcode.OrganizationDefaultTaxCodes{}, fmt.Errorf("failed to create organization default tax codes: %w", err)
-			}
+			return taxcode.OrganizationDefaultTaxCodes{}, fmt.Errorf("failed to upsert organization default tax codes: %w", err)
 		}
 
 		return a.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{

@@ -158,17 +158,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	organizationDefaultTaxCodesRepository, err := common.NewOrganizationDefaultTaxCodesAdapter(logger, client)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	taxcodeService, err := common.NewTaxCodeService(logger, taxCodeRepository, organizationDefaultTaxCodesRepository)
+	taxcodeService, err := common.NewTaxCodeService(logger, taxCodeRepository)
 	if err != nil {
 		cleanup6()
 		cleanup5()

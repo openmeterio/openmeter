@@ -261,16 +261,9 @@ func InitBillingService(t *testing.T, ctx context.Context, in InitBillingService
 	})
 	require.NoError(t, err)
 
-	orgDefaultsAdapter, err := taxcodeadapter.NewOrganizationDefaultTaxCodesAdapter(taxcodeadapter.Config{
-		Client: in.DBClient,
-		Logger: slog.Default(),
-	})
-	require.NoError(t, err)
-
 	taxCodeService, err := taxcodeservice.New(taxcodeservice.Config{
-		Adapter:                     taxCodeAdapter,
-		OrganizationDefaultsAdapter: orgDefaultsAdapter,
-		Logger:                      slog.Default(),
+		Adapter: taxCodeAdapter,
+		Logger:  slog.Default(),
 	})
 	require.NoError(t, err)
 

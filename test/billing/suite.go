@@ -222,16 +222,9 @@ func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 	})
 	require.NoError(t, err)
 
-	orgDefaultsAdapter, err := taxcodeadapter.NewOrganizationDefaultTaxCodesAdapter(taxcodeadapter.Config{
-		Client: dbClient,
-		Logger: slog.Default(),
-	})
-	require.NoError(t, err)
-
 	taxCodeService, err := taxcodeservice.New(taxcodeservice.Config{
-		Adapter:                     taxCodeAdapter,
-		OrganizationDefaultsAdapter: orgDefaultsAdapter,
-		Logger:                      slog.Default(),
+		Adapter: taxCodeAdapter,
+		Logger:  slog.Default(),
 	})
 	require.NoError(t, err)
 	s.TaxCodeService = taxCodeService

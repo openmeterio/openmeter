@@ -13,8 +13,8 @@ func (s *Service) GetOrganizationDefaultTaxCodes(ctx context.Context, input taxc
 		return taxcode.OrganizationDefaultTaxCodes{}, err
 	}
 
-	return transaction.Run(ctx, s.orgDefaultsAdapter, func(ctx context.Context) (taxcode.OrganizationDefaultTaxCodes, error) {
-		return s.orgDefaultsAdapter.GetOrganizationDefaultTaxCodes(ctx, input)
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (taxcode.OrganizationDefaultTaxCodes, error) {
+		return s.adapter.GetOrganizationDefaultTaxCodes(ctx, input)
 	})
 }
 
@@ -23,7 +23,7 @@ func (s *Service) UpsertOrganizationDefaultTaxCodes(ctx context.Context, input t
 		return taxcode.OrganizationDefaultTaxCodes{}, err
 	}
 
-	return transaction.Run(ctx, s.orgDefaultsAdapter, func(ctx context.Context) (taxcode.OrganizationDefaultTaxCodes, error) {
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (taxcode.OrganizationDefaultTaxCodes, error) {
 		// Ensure both tax code IDs belong to the namespace.
 		if _, err := s.GetTaxCode(ctx, taxcode.GetTaxCodeInput{
 			NamespacedID: models.NamespacedID{Namespace: input.Namespace, ID: input.InvoicingTaxCodeID},
@@ -37,6 +37,6 @@ func (s *Service) UpsertOrganizationDefaultTaxCodes(ctx context.Context, input t
 			return taxcode.OrganizationDefaultTaxCodes{}, err
 		}
 
-		return s.orgDefaultsAdapter.UpsertOrganizationDefaultTaxCodes(ctx, input)
+		return s.adapter.UpsertOrganizationDefaultTaxCodes(ctx, input)
 	})
 }

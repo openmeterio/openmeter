@@ -13,7 +13,6 @@ import (
 
 var TaxCode = wire.NewSet(
 	NewTaxCodeAdapter,
-	NewOrganizationDefaultTaxCodesAdapter,
 	NewTaxCodeService,
 )
 
@@ -24,21 +23,12 @@ func NewTaxCodeAdapter(logger *slog.Logger, db *entdb.Client) (taxcode.TaxCodeRe
 	})
 }
 
-func NewOrganizationDefaultTaxCodesAdapter(logger *slog.Logger, db *entdb.Client) (taxcode.OrganizationDefaultTaxCodesRepository, error) {
-	return taxcodeadapter.NewOrganizationDefaultTaxCodesAdapter(taxcodeadapter.Config{
-		Client: db,
-		Logger: logger.With("subsystem", "taxcode"),
-	})
-}
-
 func NewTaxCodeService(
 	logger *slog.Logger,
 	adapter taxcode.TaxCodeRepository,
-	orgDefaultsAdapter taxcode.OrganizationDefaultTaxCodesRepository,
 ) (taxcode.Service, error) {
 	return taxcodeservice.New(taxcodeservice.Config{
-		Adapter:                     adapter,
-		OrganizationDefaultsAdapter: orgDefaultsAdapter,
-		Logger:                      logger.With("subsystem", "taxcode"),
+		Adapter: adapter,
+		Logger:  logger.With("subsystem", "taxcode"),
 	})
 }

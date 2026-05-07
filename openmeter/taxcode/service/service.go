@@ -10,15 +10,13 @@ import (
 var _ taxcode.Service = (*Service)(nil)
 
 type Service struct {
-	adapter            taxcode.TaxCodeRepository
-	orgDefaultsAdapter taxcode.OrganizationDefaultTaxCodesRepository
-	logger             *slog.Logger
+	adapter taxcode.TaxCodeRepository
+	logger  *slog.Logger
 }
 
 type Config struct {
-	Adapter                     taxcode.TaxCodeRepository
-	OrganizationDefaultsAdapter taxcode.OrganizationDefaultTaxCodesRepository
-	Logger                      *slog.Logger
+	Adapter taxcode.TaxCodeRepository
+	Logger  *slog.Logger
 }
 
 func (c Config) Validate() error {
@@ -26,10 +24,6 @@ func (c Config) Validate() error {
 
 	if c.Adapter == nil {
 		errs = append(errs, errors.New("adapter is required"))
-	}
-
-	if c.OrganizationDefaultsAdapter == nil {
-		errs = append(errs, errors.New("organization defaults adapter is required"))
 	}
 
 	if c.Logger == nil {
@@ -45,8 +39,7 @@ func New(config Config) (*Service, error) {
 	}
 
 	return &Service{
-		adapter:            config.Adapter,
-		orgDefaultsAdapter: config.OrganizationDefaultsAdapter,
-		logger:             config.Logger,
+		adapter: config.Adapter,
+		logger:  config.Logger,
 	}, nil
 }
