@@ -388,6 +388,7 @@ func (s *CreditsTestSuite) createFinalizedUsageBasedCreditOnlyCharge(setup credi
 	s.NoError(err)
 	s.Equal(meta.ChargeStatusFinal, meta.ChargeStatus(usageBasedCharge.Status))
 	s.Len(usageBasedCharge.Realizations, 1)
+	s.True(usageBasedCharge.Realizations[0].NoFiatTransactionRequired)
 	s.Len(usageBasedCharge.Realizations[0].CreditsAllocated, 1)
 	s.True(usageBasedCharge.Realizations[0].CreditsAllocated[0].Amount.Equal(setup.amount))
 
