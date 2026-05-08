@@ -329,6 +329,9 @@ var (
 				Name:    "appcustomer_namespace_app_id_customer_id",
 				Unique:  true,
 				Columns: []*schema.Column{AppCustomersColumns[1], AppCustomersColumns[5], AppCustomersColumns[6]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
 			},
 		},
 	}
