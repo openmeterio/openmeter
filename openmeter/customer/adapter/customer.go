@@ -11,6 +11,8 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	appcustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
+	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	customerdb "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	customersubjectsdb "github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	plandb "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
@@ -365,6 +367,27 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customer.DeleteCusto
 			Exec(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to delete customer subjects: %w", err)
+		}
+
+		// Soft delete the app customer associations
+		err = repo.db.AppCustomer.Update().
+			Where(appcustomerdb.CustomerID(input.ID)).
+			Where(appcustomerdb.Namespace(input.Namespace)).
+			Where(appcustomerdb.DeletedAtIsNil()).
+			SetDeletedAt(deletedAt).
+			Exec(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to delete app customer: %w", err)
+		}
+
+		// Soft delete the app stripe customer associations
+		err = repo.db.AppStripeCustomer.Update().
+			Where(appstripecustomerdb.CustomerID(input.ID)).
+			Where(appstripecustomerdb.DeletedAtIsNil()).
+			SetDeletedAt(deletedAt).
+			Exec(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to delete app stripe customer: %w", err)
 		}
 
 		return nil
