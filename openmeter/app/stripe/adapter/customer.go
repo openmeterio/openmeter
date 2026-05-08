@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"entgo.io/ent/dialect/sql"
+
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
@@ -129,7 +131,14 @@ func (a *adapter) UpsertStripeCustomerData(ctx context.Context, input appstripe.
 			SetStripeCustomerID(input.StripeCustomerID).
 			SetNillableStripeDefaultPaymentMethodID(input.StripeDefaultPaymentMethodID).
 			// Upsert
-			OnConflictColumns(appstripecustomerdb.FieldNamespace, appstripecustomerdb.FieldAppID, appstripecustomerdb.FieldCustomerID).
+			OnConflict(
+				sql.ConflictColumns(
+					appstripecustomerdb.FieldNamespace,
+					appstripecustomerdb.FieldAppID,
+					appstripecustomerdb.FieldCustomerID,
+				),
+				sql.ConflictWhere(sql.IsNull(appstripecustomerdb.FieldDeletedAt)),
+			).
 			UpdateStripeCustomerID().
 			UpdateStripeDefaultPaymentMethodID().
 			Exec(ctx)

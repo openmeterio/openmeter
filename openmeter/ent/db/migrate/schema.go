@@ -329,6 +329,9 @@ var (
 				Name:    "appcustomer_namespace_app_id_customer_id",
 				Unique:  true,
 				Columns: []*schema.Column{AppCustomersColumns[1], AppCustomersColumns[5], AppCustomersColumns[6]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
 			},
 		},
 	}
@@ -421,11 +424,17 @@ var (
 				Name:    "appstripecustomer_namespace_app_id_customer_id",
 				Unique:  true,
 				Columns: []*schema.Column{AppStripeCustomersColumns[1], AppStripeCustomersColumns[7], AppStripeCustomersColumns[8]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
 			},
 			{
 				Name:    "appstripecustomer_app_id_stripe_customer_id",
 				Unique:  true,
 				Columns: []*schema.Column{AppStripeCustomersColumns[7], AppStripeCustomersColumns[5]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
 			},
 		},
 	}
