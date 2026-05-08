@@ -6,6 +6,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating/delta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating/periodpreserving"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -55,10 +56,11 @@ func (s *service) GetPreferredRatingEngineFor(_ usagebased.Intent) usagebased.Ra
 }
 
 type service struct {
-	streamingConnector   streaming.Connector
-	ratingService        billingrating.Service
-	detailedLinesFetcher DetailedLinesFetcher
-	deltaRater           delta.Engine
+	streamingConnector    streaming.Connector
+	ratingService         billingrating.Service
+	detailedLinesFetcher  DetailedLinesFetcher
+	deltaRater            delta.Engine
+	periodPreservingRater periodpreserving.Engine
 }
 
 func New(config Config) (Service, error) {
@@ -67,9 +69,10 @@ func New(config Config) (Service, error) {
 	}
 
 	return &service{
-		streamingConnector:   config.StreamingConnector,
-		ratingService:        config.RatingService,
-		detailedLinesFetcher: config.DetailedLinesFetcher,
-		deltaRater:           delta.New(config.RatingService),
+		streamingConnector:    config.StreamingConnector,
+		ratingService:         config.RatingService,
+		detailedLinesFetcher:  config.DetailedLinesFetcher,
+		deltaRater:            delta.New(config.RatingService),
+		periodPreservingRater: periodpreserving.New(config.RatingService),
 	}, nil
 }
