@@ -23,6 +23,7 @@ const (
 	invoiceLineMetadataType         = "om_line_type"
 	invoiceLineMetadataTypeLine     = "line"
 	invoiceLineMetadataTypeDiscount = "discount"
+	invoiceLineMetadataTypeCredit   = "credit"
 )
 
 var _ billing.InvoicingApp = (*App)(nil)
@@ -226,6 +227,15 @@ func (a App) createInvoice(ctx context.Context, invoice billing.StandardInvoice)
 			stripeLineAdd = append(stripeLineAdd, getDiscountStripeAddInvoiceItemParams(calculator, line, discount, stripeCustomerData.StripeCustomerID))
 		}
 
+		// Add applied credits for line if any
+		for _, credit := range line.CreditsApplied {
+			if credit.CreditRealizationID == "" {
+				return nil, fmt.Errorf("credit realization ID is required")
+			}
+
+			stripeLineAdd = append(stripeLineAdd, getCreditStripeAddInvoiceItemParams(calculator, line, credit, stripeCustomerData.StripeCustomerID))
+		}
+
 		// Add line
 		stripeLineAdd = append(stripeLineAdd, getStripeAddInvoiceItemParams(line, calculator, stripeCustomerData.StripeCustomerID))
 	}
@@ -319,6 +329,7 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.StandardInvoice)
 	}
 
 	stripeLinesByID := make(map[string]*stripe.InvoiceLineItem)
+	stripeCreditLinesByCreditRealizationID := make(map[string]*stripe.InvoiceLineItem)
 
 	for _, stripeLine := range stripeInvoiceLineItems {
 		// We set all to true and the code later clears the ones that we keep
@@ -328,6 +339,12 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.StandardInvoice)
 		// This allows looking up by stripe invoice item ID too (in case we ran into any inconsistencies going forward)
 		if stripeLine.InvoiceItem != nil {
 			stripeLinesByID[stripeLine.InvoiceItem.ID] = stripeLine
+		}
+
+		if stripeLine.Metadata[invoiceLineMetadataType] == invoiceLineMetadataTypeCredit {
+			if creditRealizationID := stripeLine.Metadata[invoiceLineMetadataID]; creditRealizationID != "" {
+				stripeCreditLinesByCreditRealizationID[creditRealizationID] = stripeLine
+			}
 		}
 	}
 
@@ -357,6 +374,21 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.StandardInvoice)
 			} else {
 				// Add the discount line item if it doesn't have an external ID yet
 				stripeLineAdd = append(stripeLineAdd, getDiscountStripeAddInvoiceItemParams(calculator, line, discount, stripeCustomerData.StripeCustomerID))
+			}
+		}
+
+		// Add or update applied credit line items.
+		for _, credit := range line.CreditsApplied {
+			if credit.CreditRealizationID == "" {
+				return nil, fmt.Errorf("credit realization ID is required")
+			}
+
+			if stripeLine, ok := stripeCreditLinesByCreditRealizationID[credit.CreditRealizationID]; ok {
+				delete(stripeLinesToRemove, stripeLine.ID)
+
+				stripeLinesUpdate = append(stripeLinesUpdate, getCreditStripeUpdateInvoiceItemParams(calculator, line, credit, stripeLine))
+			} else {
+				stripeLineAdd = append(stripeLineAdd, getCreditStripeAddInvoiceItemParams(calculator, line, credit, stripeCustomerData.StripeCustomerID))
 			}
 		}
 
@@ -501,6 +533,44 @@ func getDiscountStripeAddInvoiceItemParams(calculator StripeCalculator, line bil
 	return params
 }
 
+// getCreditStripeUpdateInvoiceItemParams returns the Stripe line item for an applied credit.
+func getCreditStripeUpdateInvoiceItemParams(
+	calculator StripeCalculator,
+	line billing.DetailedLine,
+	credit billing.CreditApplied,
+	stripeLine *stripe.InvoiceLineItem,
+) *stripeclient.StripeInvoiceItemWithID {
+	return &stripeclient.StripeInvoiceItemWithID{
+		ID:                stripeLine.ID,
+		InvoiceItemParams: getCreditStripeInvoiceItemParams(calculator, line, credit),
+	}
+}
+
+// getCreditStripeInvoiceItemParams returns the Stripe line item for an applied credit.
+func getCreditStripeInvoiceItemParams(calculator StripeCalculator, line billing.DetailedLine, credit billing.CreditApplied) *stripe.InvoiceItemParams {
+	name := getCreditLineName(line, credit)
+	period := getPeriod(line)
+
+	addParams := &stripe.InvoiceItemParams{
+		Description: lo.ToPtr(name),
+		Amount:      lo.ToPtr(-calculator.RoundToAmount(credit.Amount)),
+		Period:      period,
+		Metadata: map[string]string{
+			invoiceLineMetadataID:   credit.CreditRealizationID,
+			invoiceLineMetadataType: invoiceLineMetadataTypeCredit,
+		},
+	}
+
+	return applyTaxSettingsToInvoiceItem(addParams, line)
+}
+
+func getCreditStripeAddInvoiceItemParams(calculator StripeCalculator, line billing.DetailedLine, credit billing.CreditApplied, stripeCustomerID string) *stripe.InvoiceItemParams {
+	params := getCreditStripeInvoiceItemParams(calculator, line, credit)
+	// Customer is required for adds
+	params.Customer = stripe.String(stripeCustomerID)
+	return params
+}
+
 func applyTaxSettingsToInvoiceItem(add *stripe.InvoiceItemParams, line billing.DetailedLine) *stripe.InvoiceItemParams {
 	if line.TaxConfig != nil && !lo.IsEmpty(line.TaxConfig) {
 		if line.TaxConfig.Behavior != nil {
@@ -541,7 +611,7 @@ func getStripeInvoiceItemParams(line billing.DetailedLine, calculator StripeCalc
 	}
 
 	// If the line has a quantity we add the quantity and per unit amount to the description
-	if line.Quantity.GreaterThan(alpacadecimal.NewFromInt(1)) {
+	if line.Quantity.GreaterThan(alpacadecimal.NewFromInt(1)) || line.Quantity.IsNegative() {
 		description = fmt.Sprintf(
 			"%s (%s x %s)",
 			description,
@@ -584,6 +654,16 @@ func getDiscountLineName(line billing.DetailedLine, discount billing.AmountLineD
 	name := line.Name
 	if discount.Description != nil {
 		name = fmt.Sprintf("%s (%s)", name, *discount.Description)
+	}
+
+	return name
+}
+
+// getCreditLineName returns the applied-credit line name.
+func getCreditLineName(line billing.DetailedLine, credit billing.CreditApplied) string {
+	name := fmt.Sprintf("credits applied for %s", getLineName(line))
+	if credit.Description != "" {
+		name = fmt.Sprintf("%s (%s)", name, credit.Description)
 	}
 
 	return name
@@ -640,6 +720,10 @@ func addResultExternalIDs(
 		// Add line discount external ID
 		if lineType == invoiceLineMetadataTypeDiscount {
 			result.AddLineDiscountExternalID(id, stripeLine.LineID)
+			continue
+		}
+
+		if lineType == invoiceLineMetadataTypeCredit {
 			continue
 		}
 
