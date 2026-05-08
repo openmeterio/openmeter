@@ -137,6 +137,7 @@ type Result struct {
 	DetailedLines usagebased.DetailedLines
 }
 
+// epochClosedPeriod stores service periods at streaming window precision; sub-second input is intentionally dropped.
 type epochClosedPeriod struct {
 	From int64
 	To   int64

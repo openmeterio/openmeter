@@ -1246,6 +1246,7 @@ func runLateEventRatingTestCase(t *testing.T, tc lateEventRatingTestCase) {
 	bookedDetailedLinesByPhase := make([]usagebased.DetailedLines, len(tc.phases))
 	phaseRunIDs := make([]usagebased.RealizationRunID, len(tc.phases))
 
+	// Phase subtests must not call t.Parallel: each t.Run consumes prior bookedDetailedLinesByPhase and phaseRunIDs.
 	for phaseIdx, phase := range tc.phases {
 		runID := phase.runID
 		if runID == "" {
