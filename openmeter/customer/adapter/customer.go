@@ -383,6 +383,7 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customer.DeleteCusto
 		// Soft delete the app stripe customer associations
 		err = repo.db.AppStripeCustomer.Update().
 			Where(appstripecustomerdb.CustomerID(input.ID)).
+			Where(appstripecustomerdb.Namespace(input.Namespace)).
 			Where(appstripecustomerdb.DeletedAtIsNil()).
 			SetDeletedAt(deletedAt).
 			Exec(ctx)
