@@ -66,6 +66,14 @@ func (t Totals) Validate() error {
 	return nil
 }
 
+func (t Totals) ValidateTotalNonNegative() error {
+	if t.Total.IsNegative() {
+		return errors.New("total is negative")
+	}
+
+	return nil
+}
+
 func (t Totals) Add(others ...Totals) Totals {
 	res := t
 

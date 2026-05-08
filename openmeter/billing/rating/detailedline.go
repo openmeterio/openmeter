@@ -31,10 +31,6 @@ type DetailedLine struct {
 }
 
 func (i DetailedLine) Validate() error {
-	if i.Quantity.IsNegative() {
-		return fmt.Errorf("quantity must be zero or positive")
-	}
-
 	if i.PerUnitAmount.IsNegative() {
 		return fmt.Errorf("amount must be zero or positive")
 	}

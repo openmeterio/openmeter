@@ -68,3 +68,11 @@ func TestTotalsEqual(t *testing.T) {
 	other.Total = alpacadecimal.NewFromInt(9)
 	require.False(t, in.Equal(other))
 }
+
+func TestValidateTotalNonNegative(t *testing.T) {
+	t.Parallel()
+
+	require.NoError(t, Totals{Total: alpacadecimal.Zero}.ValidateTotalNonNegative())
+	require.NoError(t, Totals{Total: alpacadecimal.NewFromInt(1)}.ValidateTotalNonNegative())
+	require.ErrorContains(t, Totals{Total: alpacadecimal.NewFromInt(-1)}.ValidateTotalNonNegative(), "total is negative")
+}
