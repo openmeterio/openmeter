@@ -1,20 +1,13 @@
 package clickhouse
 
-import (
-	"fmt"
-
-	"github.com/huandu/go-sqlbuilder"
-)
+import "github.com/huandu/go-sqlbuilder"
 
 type validateJsonPathQuery struct {
 	jsonPath string
 }
 
+// See: https://github.com/huandu/go-sqlbuilder#freestyle-builder
 func (d validateJsonPathQuery) toSQL() (string, []interface{}) {
-	sb := sqlbuilder.ClickHouse.NewSelectBuilder()
-	sb.Select(fmt.Sprintf("JSON_VALUE('{}', '%s')", sqlbuilder.Escape(d.jsonPath)))
-
-	sql, args := sb.Build()
-
-	return sql, args
+	return sqlbuilder.Buildf("SELECT JSON_VALUE('{}', %v)", d.jsonPath).
+		BuildWithFlavor(sqlbuilder.ClickHouse)
 }
