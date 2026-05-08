@@ -56,6 +56,10 @@ func (NoopLineEngine) OnCollectionCompleted(_ context.Context, input billing.OnC
 	return input.Lines, nil
 }
 
+func (NoopLineEngine) OnMutableStandardLinesDeleted(context.Context, billing.OnMutableStandardLinesDeletedInput) error {
+	return nil
+}
+
 func (NoopLineEngine) OnInvoiceIssued(context.Context, billing.OnInvoiceIssuedInput) error {
 	return nil
 }

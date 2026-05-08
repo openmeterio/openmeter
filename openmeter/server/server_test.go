@@ -1829,6 +1829,10 @@ func (n NoopBillingService) GetRegisteredLineEngines() []billing.LineEngineType 
 	return nil
 }
 
+func (n NoopBillingService) OnMutableStandardLinesDeleted(ctx context.Context, input billing.OnMutableStandardLinesDeletedInput) error {
+	return nil
+}
+
 func (n NoopBillingService) GetLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]billing.LineOrHierarchy, error) {
 	return []billing.LineOrHierarchy{}, nil
 }

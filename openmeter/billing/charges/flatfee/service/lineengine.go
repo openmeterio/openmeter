@@ -118,6 +118,10 @@ func (e *LineEngine) OnCollectionCompleted(_ context.Context, input billing.OnCo
 	return input.Lines, nil
 }
 
+func (e *LineEngine) OnMutableStandardLinesDeleted(_ context.Context, _ billing.OnMutableStandardLinesDeletedInput) error {
+	return nil
+}
+
 func (e *LineEngine) OnInvoiceIssued(_ context.Context, _ billing.OnInvoiceIssuedInput) error {
 	return nil
 }

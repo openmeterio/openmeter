@@ -40,6 +40,7 @@ type mockCollectionCompletedLineEngine struct {
 	buildStandardInvoiceLines func(ctx context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error)
 	onStandardInvoiceCreated  func(ctx context.Context, input ombilling.OnStandardInvoiceCreatedInput) (ombilling.StandardLines, error)
 	onCollectionCompleted     func(ctx context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error)
+	onMutableLinesDeleted     func(ctx context.Context, input ombilling.OnMutableStandardLinesDeletedInput) error
 	onInvoiceIssued           func(ctx context.Context, input ombilling.OnInvoiceIssuedInput) error
 	onPaymentAuthorized       func(ctx context.Context, input ombilling.OnPaymentAuthorizedInput) error
 	onPaymentSettled          func(ctx context.Context, input ombilling.OnPaymentSettledInput) error
@@ -97,6 +98,14 @@ func (m *mockCollectionCompletedLineEngine) OnStandardInvoiceCreated(ctx context
 	}
 
 	return m.onStandardInvoiceCreated(ctx, input)
+}
+
+func (m *mockCollectionCompletedLineEngine) OnMutableStandardLinesDeleted(ctx context.Context, input ombilling.OnMutableStandardLinesDeletedInput) error {
+	if m.onMutableLinesDeleted == nil {
+		return nil
+	}
+
+	return m.onMutableLinesDeleted(ctx, input)
 }
 
 func (m *mockCollectionCompletedLineEngine) OnInvoiceIssued(ctx context.Context, input ombilling.OnInvoiceIssuedInput) error {

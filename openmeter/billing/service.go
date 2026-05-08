@@ -64,6 +64,7 @@ type LineEngineService interface {
 	RegisterLineEngine(engine LineEngine) error
 	DeregisterLineEngine(engineType LineEngineType) error
 	GetRegisteredLineEngines() []LineEngineType
+	OnMutableStandardLinesDeleted(ctx context.Context, input OnMutableStandardLinesDeletedInput) error
 }
 
 type SplitLineGroupService interface {
