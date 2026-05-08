@@ -40,6 +40,10 @@ func (u *Updater) ApplyPatches(ctx context.Context, customerID customer.Customer
 		return fmt.Errorf("provisioning upcoming lines: %w", err)
 	}
 
+	if err := u.resolveGatheringLineDeletesByChargeID(ctx, customerID, &patchesParsed); err != nil {
+		return fmt.Errorf("resolving gathering line deletes by charge ID: %w", err)
+	}
+
 	invoicesByID, err := u.listInvoicesByID(ctx, customerID.Namespace, lo.Keys(patchesParsed.updatedLinesByInvoiceID))
 	if err != nil {
 		return fmt.Errorf("listing invoices: %w", err)
@@ -156,6 +160,8 @@ func isDryRunLoggablePatch(patch Patch, invoicesByID map[string]billing.Invoice)
 		}
 
 		return isMutableInvoice(updatePatch.TargetState.GetInvoiceID(), invoicesByID)
+	case PatchOpDeleteGatheringLineByChargeID:
+		return true
 	default:
 		return true
 	}
@@ -195,6 +201,8 @@ type patchesParsed struct {
 	newLines []billing.GatheringLine
 
 	updatedLinesByInvoiceID map[string]invoicePatches
+
+	gatheringLineDeletesByChargeID []string
 }
 
 type invoicePatches struct {
@@ -234,6 +242,13 @@ func (u *Updater) parsePatches(patches []Patch) (patchesParsed, error) {
 			lineUpdates := parsed.updatedLinesByInvoiceID[update.TargetState.GetInvoiceID()]
 			lineUpdates.updatedLines = append(lineUpdates.updatedLines, update.TargetState)
 			parsed.updatedLinesByInvoiceID[update.TargetState.GetInvoiceID()] = lineUpdates
+		case PatchOpDeleteGatheringLineByChargeID:
+			deletePatch, err := patch.AsDeleteGatheringLineByChargeIDPatch()
+			if err != nil {
+				return patchesParsed{}, fmt.Errorf("getting charge ID: %w", err)
+			}
+
+			parsed.gatheringLineDeletesByChargeID = append(parsed.gatheringLineDeletesByChargeID, deletePatch.ChargeID)
 		default:
 			return patchesParsed{}, fmt.Errorf("unexpected patch operation: %s", patch.Op())
 		}
@@ -259,6 +274,46 @@ func (u *Updater) provisionUpcomingLines(ctx context.Context, customerID custome
 		})
 		if err != nil {
 			return fmt.Errorf("creating pending invoice lines: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (u *Updater) resolveGatheringLineDeletesByChargeID(ctx context.Context, customerID customer.CustomerID, parsed *patchesParsed) error {
+	if len(parsed.gatheringLineDeletesByChargeID) == 0 {
+		return nil
+	}
+
+	chargeIDs := make(map[string]struct{}, len(parsed.gatheringLineDeletesByChargeID))
+	for _, chargeID := range parsed.gatheringLineDeletesByChargeID {
+		chargeIDs[chargeID] = struct{}{}
+	}
+
+	invoices, err := u.billingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
+		Namespaces: []string{customerID.Namespace},
+		Customers:  []string{customerID.ID},
+		Expand: billing.GatheringInvoiceExpands{
+			billing.GatheringInvoiceExpandLines,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("listing gathering invoices: %w", err)
+	}
+
+	for _, invoice := range invoices.Items {
+		for _, line := range invoice.Lines.OrEmpty() {
+			if line.DeletedAt != nil || line.ChargeID == nil {
+				continue
+			}
+
+			if _, ok := chargeIDs[*line.ChargeID]; !ok {
+				continue
+			}
+
+			lineUpdates := parsed.updatedLinesByInvoiceID[invoice.ID]
+			lineUpdates.deletedLines = append(lineUpdates.deletedLines, line.GetLineID())
+			parsed.updatedLinesByInvoiceID[invoice.ID] = lineUpdates
 		}
 	}
 

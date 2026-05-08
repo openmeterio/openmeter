@@ -3,12 +3,14 @@ package service
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
@@ -20,6 +22,7 @@ type service struct {
 	// Note: if meta has a service layer, we should use it here instead of the adapter
 	metaAdapter    meta.Adapter
 	billingService billing.Service
+	invoiceUpdater *invoiceupdater.Updater
 	featureService feature.FeatureConnector
 
 	flatFeeService        flatfee.Service
@@ -31,6 +34,8 @@ type service struct {
 }
 
 type Config struct {
+	Logger *slog.Logger
+
 	Adapter     charges.Adapter
 	MetaAdapter meta.Adapter
 
@@ -47,6 +52,10 @@ type Config struct {
 
 func (c Config) Validate() error {
 	var errs []error
+
+	if c.Logger == nil {
+		errs = append(errs, errors.New("logger cannot be null"))
+	}
 
 	if c.Adapter == nil {
 		errs = append(errs, errors.New("adapter cannot be null"))
@@ -91,6 +100,7 @@ func New(config Config) (*service, error) {
 	svc := &service{
 		adapter:               config.Adapter,
 		billingService:        config.BillingService,
+		invoiceUpdater:        invoiceupdater.New(config.BillingService, config.Logger),
 		featureService:        config.FeatureService,
 		metaAdapter:           config.MetaAdapter,
 		flatFeeService:        config.FlatFeeService,

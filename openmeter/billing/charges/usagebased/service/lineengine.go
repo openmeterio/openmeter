@@ -3,12 +3,15 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	usagebasedrun "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -228,8 +231,126 @@ func (e *LineEngine) OnCollectionCompleted(ctx context.Context, input billing.On
 	return input.Lines, nil
 }
 
-func (e *LineEngine) OnMutableStandardLinesDeleted(_ context.Context, _ billing.OnMutableStandardLinesDeletedInput) error {
+func (e *LineEngine) OnMutableStandardLinesDeleted(ctx context.Context, input billing.OnMutableStandardLinesDeletedInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("validating input: %w", err)
+	}
+
+	chargesByID, err := e.getChargesForMutableStandardLineDelete(ctx, input)
+	if err != nil {
+		return err
+	}
+
+	for _, stdLine := range input.Lines {
+		charge, ok := chargesByID[*stdLine.ChargeID]
+		if !ok {
+			return fmt.Errorf("usage based charge[%s] not found for deleted standard line[%s]", *stdLine.ChargeID, stdLine.ID)
+		}
+
+		run, err := charge.Realizations.GetByLineID(stdLine.ID)
+		if err != nil {
+			return err
+		}
+
+		if run.InvoiceID == nil || *run.InvoiceID != input.Invoice.ID {
+			return fmt.Errorf("usage based standard line[%s] cannot be deleted because realization run[%s] is not associated with invoice[%s]", stdLine.ID, run.ID.ID, input.Invoice.ID)
+		}
+
+		if run.Payment != nil {
+			return fmt.Errorf("usage based standard line[%s] cannot be deleted because realization run[%s] has payment allocation", stdLine.ID, run.ID.ID)
+		}
+
+		if run.InvoiceUsage != nil {
+			return fmt.Errorf("usage based standard line[%s] cannot be deleted because realization run[%s] has invoice accrued allocation", stdLine.ID, run.ID.ID)
+		}
+
+		currencyCalculator, err := charge.Intent.Currency.Calculator()
+		if err != nil {
+			return fmt.Errorf("getting currency calculator for charge[%s]: %w", charge.ID, err)
+		}
+
+		now := clock.Now()
+
+		if _, err := e.service.runs.CorrectAllCredits(ctx, usagebasedrun.CorrectAllCreditRealizationsInput{
+			Charge:             charge,
+			Run:                run,
+			AllocateAt:         now,
+			CurrencyCalculator: currencyCalculator,
+		}); err != nil {
+			return fmt.Errorf("correcting credits for deleted usage based standard line[%s] run[%s]: %w", stdLine.ID, run.ID.ID, err)
+		}
+
+		charge, err = e.markMutableStandardLineRunDeleted(ctx, charge, run, now)
+		if err != nil {
+			return fmt.Errorf("marking realization run[%s] deleted for usage based standard line[%s]: %w", run.ID.ID, stdLine.ID, err)
+		}
+
+		chargesByID[*stdLine.ChargeID] = charge
+	}
+
 	return nil
+}
+
+func (e *LineEngine) markMutableStandardLineRunDeleted(
+	ctx context.Context,
+	charge usagebased.Charge,
+	run usagebased.RealizationRun,
+	deletedAt time.Time,
+) (usagebased.Charge, error) {
+	if _, err := e.service.adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
+		ID:        run.ID,
+		DeletedAt: mo.Some(lo.ToPtr(deletedAt)),
+	}); err != nil {
+		return usagebased.Charge{}, err
+	}
+
+	charge.Realizations = charge.Realizations.Without(run.ID)
+
+	currentRunDeleted := charge.State.CurrentRealizationRunID != nil && *charge.State.CurrentRealizationRunID == run.ID.ID
+	if currentRunDeleted {
+		charge.State.CurrentRealizationRunID = nil
+
+		updatedChargeBase, err := e.service.adapter.UpdateCharge(ctx, charge.ChargeBase)
+		if err != nil {
+			return usagebased.Charge{}, err
+		}
+
+		charge.ChargeBase = updatedChargeBase
+	}
+
+	return charge, nil
+}
+
+func (e *LineEngine) getChargesForMutableStandardLineDelete(ctx context.Context, input billing.OnMutableStandardLinesDeletedInput) (map[string]usagebased.Charge, error) {
+	for _, stdLine := range input.Lines {
+		if stdLine.ChargeID == nil || *stdLine.ChargeID == "" {
+			return nil, fmt.Errorf("usage based standard line[%s]: charge id is required", stdLine.ID)
+		}
+
+		if stdLine.Namespace != input.Invoice.Namespace {
+			return nil, fmt.Errorf("usage based standard line[%s]: namespace %s does not match invoice namespace %s", stdLine.ID, stdLine.Namespace, input.Invoice.Namespace)
+		}
+	}
+
+	chargeIDs := lo.Uniq(lo.Map(input.Lines, func(stdLine *billing.StandardLine, _ int) string {
+		return *stdLine.ChargeID
+	}))
+
+	charges, err := e.service.GetByIDs(ctx, usagebased.GetByIDsInput{
+		Namespace: input.Invoice.Namespace,
+		IDs:       chargeIDs,
+		Expands: meta.Expands{
+			meta.ExpandRealizations,
+			meta.ExpandDetailedLines,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("getting usage based charges for deleted standard lines: %w", err)
+	}
+
+	return lo.KeyBy(charges, func(charge usagebased.Charge) string {
+		return charge.ID
+	}), nil
 }
 
 func (e *LineEngine) OnInvoiceIssued(ctx context.Context, input billing.OnInvoiceIssuedInput) error {

@@ -180,6 +180,7 @@ Rules:
 - normalize intent timestamps before validation and before any derived calculation that depends on durations or boundaries
 - flat-fee proration must use normalized periods, otherwise sub-second inputs can change `AmountAfterProration`
 - for usage-based lifecycle timestamps (`AdvanceAfter`, `StoredAtLT`, `ServicePeriodTo`), normalize the computed timestamp before persisting it or handing it to downstream persistence callbacks
+- do not normalize deletion timestamps such as `DeletedAt`; they should preserve the caller-provided instant and precision
 
 Important timestamp surfaces:
 

@@ -9,6 +9,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
@@ -199,6 +200,26 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 }
 
 func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, _ meta.PatchDeletePolicy) error {
+	patches := []invoiceupdater.Patch{
+		invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(s.Charge.ID),
+	}
+
+	for _, run := range s.Charge.Realizations {
+		if run.LineID == nil || run.InvoiceID == nil {
+			continue
+		}
+
+		patches = append(patches, invoiceupdater.NewDeleteLinePatch(
+			billing.LineID{
+				Namespace: s.Charge.Namespace,
+				ID:        *run.LineID,
+			},
+			*run.InvoiceID,
+		))
+	}
+
+	s.AddInvoicePatch(patches...)
+
 	if err := s.Adapter.DeleteCharge(ctx, s.Charge); err != nil {
 		return fmt.Errorf("delete charge: %w", err)
 	}

@@ -224,6 +224,7 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 	}
 
 	chargesService, err := chargesservice.New(chargesservice.Config{
+		Logger:                logger,
 		Adapter:               rootAdapter,
 		FeatureService:        config.FeatureService,
 		MetaAdapter:           metaAdapter,

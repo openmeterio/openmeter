@@ -10,9 +10,10 @@ import (
 type PatchOperation string
 
 const (
-	PatchOpLineCreate PatchOperation = "line_create"
-	PatchOpLineDelete PatchOperation = "line_delete"
-	PatchOpLineUpdate PatchOperation = "line_update"
+	PatchOpLineCreate                    PatchOperation = "line_create"
+	PatchOpLineDelete                    PatchOperation = "line_delete"
+	PatchOpLineUpdate                    PatchOperation = "line_update"
+	PatchOpDeleteGatheringLineByChargeID PatchOperation = "delete_gathering_line_by_charge_id"
 )
 
 type PatchLineCreate struct {
@@ -28,12 +29,17 @@ type PatchLineUpdate struct {
 	TargetState billing.GenericInvoiceLine
 }
 
+type PatchDeleteGatheringLineByChargeID struct {
+	ChargeID string
+}
+
 type Patch struct {
 	op PatchOperation
 
-	createLinePatch PatchLineCreate
-	deleteLinePatch PatchLineDelete
-	updateLinePatch PatchLineUpdate
+	createLinePatch                    PatchLineCreate
+	deleteLinePatch                    PatchLineDelete
+	updateLinePatch                    PatchLineUpdate
+	deleteGatheringLineByChargeIDPatch PatchDeleteGatheringLineByChargeID
 }
 
 func (p Patch) Op() PatchOperation {
@@ -64,12 +70,29 @@ func (p Patch) AsUpdateLinePatch() (PatchLineUpdate, error) {
 	return p.updateLinePatch, nil
 }
 
+func (p Patch) AsDeleteGatheringLineByChargeIDPatch() (PatchDeleteGatheringLineByChargeID, error) {
+	if p.op != PatchOpDeleteGatheringLineByChargeID {
+		return PatchDeleteGatheringLineByChargeID{}, fmt.Errorf("expected delete gathering line by charge ID patch, got %s", p.op)
+	}
+
+	return p.deleteGatheringLineByChargeIDPatch, nil
+}
+
 func NewDeleteLinePatch(lineID billing.LineID, invoiceID string) Patch {
 	return Patch{
 		op: PatchOpLineDelete,
 		deleteLinePatch: PatchLineDelete{
 			Line:      lineID,
 			InvoiceID: invoiceID,
+		},
+	}
+}
+
+func NewDeleteGatheringLineByChargeIDPatch(chargeID string) Patch {
+	return Patch{
+		op: PatchOpDeleteGatheringLineByChargeID,
+		deleteGatheringLineByChargeIDPatch: PatchDeleteGatheringLineByChargeID{
+			ChargeID: chargeID,
 		},
 	}
 }
@@ -100,6 +123,8 @@ func (p Patch) Log(logger *slog.Logger) {
 		logger.Info("delete line patch", "line_id", p.deleteLinePatch.Line, "invoice_id", p.deleteLinePatch.InvoiceID)
 	case PatchOpLineUpdate:
 		logger.Info("update line patch", "line_id", p.updateLinePatch.TargetState.GetLineID().ID, "invoice_id", p.updateLinePatch.TargetState.GetInvoiceID(), "new_service_period_from", p.updateLinePatch.TargetState.GetServicePeriod().From, "new_service_period_to", p.updateLinePatch.TargetState.GetServicePeriod().To, "unique_reference_id", p.updateLinePatch.TargetState.GetChildUniqueReferenceID())
+	case PatchOpDeleteGatheringLineByChargeID:
+		logger.Info("delete gathering line by charge id patch", "charge_id", p.deleteGatheringLineByChargeIDPatch.ChargeID)
 	default:
 		logger.Info("unknown patch operation", "operation", p.op)
 	}

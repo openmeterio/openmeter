@@ -120,6 +120,7 @@ type UpdateRealizationRunInput struct {
 	ID RealizationRunID
 
 	StoredAtLT                mo.Option[time.Time]             `json:"storedAtLT"`
+	DeletedAt                 mo.Option[*time.Time]            `json:"deletedAt,omitempty"`
 	LineID                    mo.Option[*string]               `json:"lineId,omitempty"`
 	MeteredQuantity           mo.Option[alpacadecimal.Decimal] `json:"meteredQuantity"`
 	Totals                    mo.Option[totals.Totals]         `json:"totals"`
@@ -144,6 +145,13 @@ func (r UpdateRealizationRunInput) Validate() error {
 
 	if r.StoredAtLT.IsPresent() && r.StoredAtLT.OrEmpty().IsZero() {
 		errs = append(errs, fmt.Errorf("stored at lt must be non-zero when set"))
+	}
+
+	if r.DeletedAt.IsPresent() {
+		deletedAt := r.DeletedAt.OrEmpty()
+		if deletedAt != nil && deletedAt.IsZero() {
+			errs = append(errs, fmt.Errorf("deleted at must be non-zero when set"))
+		}
 	}
 
 	if r.LineID.IsPresent() {
@@ -348,6 +356,18 @@ func (r RealizationRuns) GetByID(id string) (RealizationRun, error) {
 		}
 	}
 	return RealizationRun{}, fmt.Errorf("realization run not found [id=%s]", id)
+}
+
+func (r RealizationRuns) GetByLineID(lineID string) (RealizationRun, error) {
+	// Billing standard line IDs are assigned once to a single realization run.
+	run, found := lo.Find(r, func(run RealizationRun) bool {
+		return run.LineID != nil && *run.LineID == lineID
+	})
+	if found {
+		return run, nil
+	}
+
+	return RealizationRun{}, fmt.Errorf("realization run not found [line_id=%s]", lineID)
 }
 
 func (r RealizationRuns) Without(id RealizationRunID) RealizationRuns {

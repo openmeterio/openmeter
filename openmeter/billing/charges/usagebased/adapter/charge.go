@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeusagebased "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	dbchargeusagebasedruns "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -211,7 +212,8 @@ func (a *adapter) GetByID(ctx context.Context, input usagebased.GetByIDInput) (u
 func expandRealizations(query *db.ChargeUsageBasedQuery) *db.ChargeUsageBasedQuery {
 	return query.WithRuns(
 		func(runs *db.ChargeUsageBasedRunsQuery) {
-			runs.WithCreditAllocations().
+			runs.Where(dbchargeusagebasedruns.DeletedAtIsNil()).
+				WithCreditAllocations().
 				WithInvoicedUsage().
 				WithPayment()
 		},

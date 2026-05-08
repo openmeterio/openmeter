@@ -151,6 +151,7 @@ func (s *BaseSuite) SetupSuite() {
 	s.NoError(err)
 
 	chargesService, err := New(Config{
+		Logger:  slog.Default(),
 		Adapter: chargesAdapter,
 
 		FeatureService:        s.FeatureService,
