@@ -43,6 +43,7 @@ func (s *StripeInvoiceTestSuite) TestUsageBasedCreditThenInvoiceProgressiveBilli
 
 	clock.FreezeTime(setupAt)
 	defer clock.UnFreeze()
+	defer s.MockStreamingConnector.Reset()
 
 	var (
 		partialInvoice billing.StandardInvoice
@@ -169,6 +170,7 @@ func (s *StripeInvoiceTestSuite) TestUsageBasedCreditThenInvoiceProgressiveBilli
 		externalID, ok := upsertResult.GetExternalID()
 		s.True(ok)
 		s.Equal("stripe-partial-invoice-id", externalID)
+		s.StripeAppClient.AssertExpectations(t)
 
 		partialInvoice, err = s.BillingService.ApproveInvoice(ctx, partialInvoice.GetInvoiceID())
 		s.NoError(err)
@@ -231,6 +233,7 @@ func (s *StripeInvoiceTestSuite) TestUsageBasedCreditThenInvoiceProgressiveBilli
 		externalID, ok := upsertResult.GetExternalID()
 		s.True(ok)
 		s.Equal("stripe-final-invoice-id", externalID)
+		s.StripeAppClient.AssertExpectations(t)
 	})
 }
 

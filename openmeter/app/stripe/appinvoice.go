@@ -229,6 +229,10 @@ func (a App) createInvoice(ctx context.Context, invoice billing.StandardInvoice)
 
 		// Add applied credits for line if any
 		for _, credit := range line.CreditsApplied {
+			if credit.CreditRealizationID == "" {
+				return nil, fmt.Errorf("credit realization ID is required")
+			}
+
 			stripeLineAdd = append(stripeLineAdd, getCreditStripeAddInvoiceItemParams(calculator, line, credit, stripeCustomerData.StripeCustomerID))
 		}
 
