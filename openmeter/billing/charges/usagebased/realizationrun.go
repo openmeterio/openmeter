@@ -359,6 +359,7 @@ func (r RealizationRuns) GetByID(id string) (RealizationRun, error) {
 }
 
 func (r RealizationRuns) GetByLineID(lineID string) (RealizationRun, error) {
+	// Billing standard line IDs are assigned once to a single realization run.
 	run, found := lo.Find(r, func(run RealizationRun) bool {
 		return run.LineID != nil && *run.LineID == lineID
 	})

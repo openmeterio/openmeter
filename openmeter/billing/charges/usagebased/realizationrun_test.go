@@ -97,6 +97,12 @@ func TestRealizationRuns_GetByLineID(t *testing.T) {
 	runs := RealizationRuns{
 		{
 			RealizationRunBase: RealizationRunBase{
+				ID:     RealizationRunID{Namespace: "namespace", ID: "run-without-line"},
+				LineID: nil,
+			},
+		},
+		{
+			RealizationRunBase: RealizationRunBase{
 				ID:     RealizationRunID{Namespace: "namespace", ID: "run-1"},
 				LineID: &otherLineID,
 			},

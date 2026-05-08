@@ -48,7 +48,7 @@ func (s *CreditsTestSuite) SetupSuite() {
 	logger := omtestutils.NewLogger(s.T())
 
 	deps, err := ledgertestutils.InitDeps(s.DBClient, logger)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	s.Ledger = deps.HistoricalLedger
 	s.BalanceQuerier = deps.HistoricalLedger
@@ -58,12 +58,12 @@ func (s *CreditsTestSuite) SetupSuite() {
 	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
 		Client: s.DBClient,
 	})
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	lineageService, err := lineageservice.New(lineageservice.Config{
 		Adapter: lineageAdapter,
 	})
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	revenueRecognizer, err := recognizer.NewService(recognizer.Config{
 		Ledger: deps.HistoricalLedger,
@@ -75,7 +75,7 @@ func (s *CreditsTestSuite) SetupSuite() {
 		Lineage:            lineageService,
 		TransactionManager: enttx.NewCreator(s.DBClient),
 	})
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.RevenueRecognizer = revenueRecognizer
 
 	collectorService := ledgercollector.NewService(ledgercollector.Config{
@@ -97,7 +97,7 @@ func (s *CreditsTestSuite) SetupSuite() {
 		CreditPurchaseHandler: ledgerchargeadapter.NewCreditPurchaseHandler(deps.HistoricalLedger, deps.HistoricalLedger, deps.ResolversService, deps.AccountService),
 		UsageBasedHandler:     ledgerchargeadapter.NewUsageBasedHandler(deps.HistoricalLedger, transactions.ResolverDependencies{AccountService: deps.ResolversService, AccountCatalog: deps.AccountService, BalanceQuerier: deps.HistoricalLedger}, collectorService),
 	})
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Charges = stack.ChargesService
 }
 

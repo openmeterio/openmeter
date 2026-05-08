@@ -160,6 +160,8 @@ func isDryRunLoggablePatch(patch Patch, invoicesByID map[string]billing.Invoice)
 		}
 
 		return isMutableInvoice(updatePatch.TargetState.GetInvoiceID(), invoicesByID)
+	case PatchOpDeleteGatheringLineByChargeID:
+		return true
 	default:
 		return true
 	}

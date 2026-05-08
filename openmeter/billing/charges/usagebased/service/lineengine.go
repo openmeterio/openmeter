@@ -269,16 +269,18 @@ func (e *LineEngine) OnMutableStandardLinesDeleted(ctx context.Context, input bi
 			return fmt.Errorf("getting currency calculator for charge[%s]: %w", charge.ID, err)
 		}
 
+		now := clock.Now()
+
 		if _, err := e.service.runs.CorrectAllCredits(ctx, usagebasedrun.CorrectAllCreditRealizationsInput{
 			Charge:             charge,
 			Run:                run,
-			AllocateAt:         clock.Now(),
+			AllocateAt:         now,
 			CurrencyCalculator: currencyCalculator,
 		}); err != nil {
 			return fmt.Errorf("correcting credits for deleted usage based standard line[%s] run[%s]: %w", stdLine.ID, run.ID.ID, err)
 		}
 
-		charge, err = e.markMutableStandardLineRunDeleted(ctx, charge, run, clock.Now())
+		charge, err = e.markMutableStandardLineRunDeleted(ctx, charge, run, now)
 		if err != nil {
 			return fmt.Errorf("marking realization run[%s] deleted for usage based standard line[%s]: %w", run.ID.ID, stdLine.ID, err)
 		}
@@ -320,9 +322,6 @@ func (e *LineEngine) markMutableStandardLineRunDeleted(
 }
 
 func (e *LineEngine) getChargesForMutableStandardLineDelete(ctx context.Context, input billing.OnMutableStandardLinesDeletedInput) (map[string]usagebased.Charge, error) {
-	chargeIDs := make([]string, 0, len(input.Lines))
-	seenChargeIDs := make(map[string]struct{}, len(input.Lines))
-
 	for _, stdLine := range input.Lines {
 		if stdLine.ChargeID == nil || *stdLine.ChargeID == "" {
 			return nil, fmt.Errorf("usage based standard line[%s]: charge id is required", stdLine.ID)
@@ -331,14 +330,11 @@ func (e *LineEngine) getChargesForMutableStandardLineDelete(ctx context.Context,
 		if stdLine.Namespace != input.Invoice.Namespace {
 			return nil, fmt.Errorf("usage based standard line[%s]: namespace %s does not match invoice namespace %s", stdLine.ID, stdLine.Namespace, input.Invoice.Namespace)
 		}
-
-		if _, ok := seenChargeIDs[*stdLine.ChargeID]; ok {
-			continue
-		}
-
-		seenChargeIDs[*stdLine.ChargeID] = struct{}{}
-		chargeIDs = append(chargeIDs, *stdLine.ChargeID)
 	}
+
+	chargeIDs := lo.Uniq(lo.Map(input.Lines, func(stdLine *billing.StandardLine, _ int) string {
+		return *stdLine.ChargeID
+	}))
 
 	charges, err := e.service.GetByIDs(ctx, usagebased.GetByIDsInput{
 		Namespace: input.Invoice.Namespace,
