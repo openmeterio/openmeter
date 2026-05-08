@@ -26,6 +26,25 @@ line, they can produce negative commitment or discount deltas on invoice output.
 That can be mathematically correct but still incompatible with downstream
 invoice systems.
 
+## TODO
+
+Period-preserving rating should own invoice-facing mutation corrections
+explicitly instead of relying only on raw detailed-line subtraction:
+
+- maximum commitments can create positive amount deltas with negative discount
+  deltas when prior capped usage is corrected
+- minimum commitments can appear or disappear depending on whether the current
+  cumulative snapshot is final
+- usage discounts and percentage discounts can create negative discount lines
+  when repricing or usage decreases
+
+The intended fix is to make period-preserving rating emit invoice-compatible
+correction lines for these mutation cases.
+
+We should support late events: the rating engine must work when after the final
+rating run, we reinvoke for the same service period with bigger cutoff. This is
+not tested as of now.
+
 ## Algorithm
 
 Input:
@@ -148,18 +167,3 @@ period 2 current:    +16 units @ 5  = +80
 
 The negative correction remains on period 1 and references the period 1 run via
 `CorrectsRunID`. The current line remains on period 2.
-
-## TODO
-
-Period-preserving rating should own invoice-facing mutation corrections
-explicitly instead of relying only on raw detailed-line subtraction:
-
-- maximum commitments can create positive amount deltas with negative discount
-  deltas when prior capped usage is corrected
-- minimum commitments can appear or disappear depending on whether the current
-  cumulative snapshot is final
-- usage discounts and percentage discounts can create negative discount lines
-  when repricing or usage decreases
-
-The intended fix is to make period-preserving rating emit invoice-compatible
-correction lines for these mutation cases.
