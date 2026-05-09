@@ -13,6 +13,7 @@ import "./apps/index.tsp";
 import "./billing/index.tsp";
 import "./tax/index.tsp";
 import "./defaults/index.tsp";
+import "./governance/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -54,6 +55,10 @@ using TypeSpec.OpenAPI;
   #{ description: Shared.ProductCatalogDescription }
 )
 @tagMetadata(Shared.DefaultsTag, #{ description: Shared.DefaultsDescription })
+@tagMetadata(
+  Shared.GovernanceTag,
+  #{ description: Shared.GovernanceDescription }
+)
 @useAuth(systemAccountAccessToken | personalAccessToken | konnectAccessToken)
 namespace MeteringAndBilling;
 
@@ -183,8 +188,13 @@ interface PlanAddonEndpoints extends ProductCatalog.PlanAddonOperations {}
 interface OrganizationDefaultTaxCodesEndpoints
   extends Defaults.OrganizationDefaultTaxCodesOperations {}
 
+@route("/openmeter/governance")
+@tag(Shared.GovernanceTag)
+interface GovernanceEndpoints extends Governance.GovernanceOperations {}
+
 /**
- * The system account access token is meant for automations and integrations that are not directly associated with a human identity.
+ * The system account access token is meant for automations and integrations that
+ * are not directly associated with a human identity.
  */
 #suppress "@openmeter/api-spec-aip/casing" "Use existing values"
 @friendlyName("systemAccountAccessToken")
@@ -194,7 +204,8 @@ model systemAccountAccessToken {
 }
 
 /**
- * The personal access token is meant to be used as an alternative to basic-auth when accessing Konnect via APIs.
+ * The personal access token is meant to be used as an alternative to basic-auth
+ * when accessing Konnect via APIs.
  */
 #suppress "@openmeter/api-spec-aip/casing" "Use existing values"
 @friendlyName("personalAccessToken")
@@ -204,7 +215,8 @@ model personalAccessToken {
 }
 
 /**
- * The Konnect access token is meant to be used by the Konnect dashboard and the decK CLI authenticate with.
+ * The Konnect access token is meant to be used by the Konnect dashboard and the
+ * decK CLI authenticate with.
  */
 #suppress "@openmeter/api-spec-aip/casing" "Use existing values"
 @friendlyName("konnectAccessToken")

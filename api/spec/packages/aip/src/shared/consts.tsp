@@ -39,6 +39,9 @@ const ProductCatalogDescription = "Product catalog manages plans, add-ons, and t
 const DefaultsTag = "OpenMeter Defaults";
 const DefaultsDescription = "Organization-level default configuration.";
 
+const GovernanceTag = "OpenMeter Governance";
+const GovernanceDescription = "Governance APIs let API Gateway plugins and other enforcement points evaluate, in bulk, whether customers have access to features. Designed to be called on a fixed refresh interval and cached on the gateway hot path; quota and credit computation stays in OpenMeter.";
+
 // The functionality should be considered unstable.
 const UnstableExtension = "x-unstable";
 // The functionality is internal and should not be used by customers.

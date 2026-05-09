@@ -7,8 +7,8 @@ info:
     url: http://www.apache.org/licenses/LICENSE-2.0.html
   termsOfService: https://openmeter.cloud/terms-of-service
   description: |-
-    OpenMeter is a cloud native usage metering and billing service.
-    The OpenMeter API allows you to ingest events, query meter usage, and manage resources.
+    OpenMeter is a cloud native usage metering and billing service. The OpenMeter
+    API allows you to ingest events, query meter usage, and manage resources.
 servers:
   - url: http://localhost:{port}/api/v3
     description: Local
@@ -19,6 +19,8 @@ servers:
     description: Cloud
     variables: {}
 tags:
+  - name: OpenMeter Governance
+    description: Governance APIs let API Gateway plugins and other enforcement points evaluate, in bulk, whether customers have access to features. Designed to be called on a fixed refresh interval and cached on the gateway hot path; quota and credit computation stays in OpenMeter.
   - name: OpenMeter Defaults
     description: Organization-level default configuration.
   - name: OpenMeter Product Catalog
@@ -1516,6 +1518,44 @@ paths:
               $ref: '#/components/schemas/MeterQueryRequest'
       x-internal: true
       x-unstable: true
+  /openmeter/governance/query:
+    post:
+      operationId: query-governance-access
+      summary: Query governance access
+      description: |-
+        Query feature access for a list of customers.
+
+        The endpoint resolves each provided identifier to a customer and returns the
+        access status for the requested features, plus optional credit balance
+        availability.
+
+        _Designed to be called on a fixed refresh interval and the query response is
+        intended to be cached._
+      parameters:
+        - $ref: '#/components/parameters/CursorPaginationQuery'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GovernanceQueryResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Governance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GovernanceQueryRequest'
+      x-internal: true
+      x-unstable: true
   /openmeter/llm-cost/overrides:
     get:
       operationId: list-llm-cost-overrides
@@ -2798,20 +2838,8 @@ components:
       name: page
       in: query
       required: false
-      description: Determines which page of the collection to retrieve.
       schema:
-        type: object
-        properties:
-          size:
-            type: integer
-            description: The number of items to include per page.
-          after:
-            type: string
-            description: Request the next page of data, starting with the item after this parameter.
-          before:
-            type: string
-            description: Request the previous page of data, starting with the item before this parameter.
-        additionalProperties: false
+        $ref: '#/components/schemas/CursorPaginationQueryPage'
       style: deepObject
     PagePaginationQuery:
       name: page
@@ -5120,13 +5148,16 @@ components:
           allOf:
             - $ref: '#/components/schemas/ResourceKey'
           description: |-
-            A key is a semi-unique string that is used to identify the plan.
-            It is used to reference the latest `active` version of the plan and is unique with the version number.
+            A key is a semi-unique string that is used to identify the plan. It is used to
+            reference the latest `active` version of the plan and is unique with the version
+            number.
           title: Key
         version:
           type: integer
           minimum: 1
-          description: Plans are versioned to allow you to make changes without affecting running subscriptions.
+          description: |-
+            Plans are versioned to allow you to make changes without affecting running
+            subscriptions.
           title: Version
           default: 1
           readOnly: true
@@ -5149,24 +5180,24 @@ components:
           allOf:
             - $ref: '#/components/schemas/DateTime'
           description: |-
-            The date and time when the plan becomes `active`.
-            When not specified, the plan is in `draft` status.
+            The date and time when the plan becomes `active`. When not specified, the plan
+            is in `draft` status.
           title: Effective start date
           readOnly: true
         effective_to:
           allOf:
             - $ref: '#/components/schemas/DateTime'
           description: |-
-            A scheduled date and time when the plan becomes `archived`.
-            When not specified, the plan is in `active` status indefinitely.
+            A scheduled date and time when the plan becomes `archived`. When not specified,
+            the plan is in `active` status indefinitely.
           title: Effective end date
           readOnly: true
         status:
           allOf:
             - $ref: '#/components/schemas/BillingPlanStatus'
           description: |-
-            The status of the plan.
-            Computed based on the effective start and end dates:
+            The status of the plan. Computed based on the effective start and end dates:
+
             - draft = no effectiveFrom
             - active = effectiveFrom <= now < effectiveTo
             - archived / inactive = effectiveTo <= now
@@ -5179,15 +5210,16 @@ components:
             $ref: '#/components/schemas/BillingPlanPhase'
           minItems: 1
           description: |-
-            The plan phases define the pricing ramp for a subscription.
-            A phase switch occurs only at the end of a billing period.
-            At least one phase is required.
+            The plan phases define the pricing ramp for a subscription. A phase switch
+            occurs only at the end of a billing period. At least one phase is required.
           title: Plan phases
         validation_errors:
           type: array
           items:
             $ref: '#/components/schemas/ProductCatalogValidationError'
-          description: List of validation errors in `draft` state that prevent the plan from being published.
+          description: |-
+            List of validation errors in `draft` state that prevent the plan from being
+            published.
           title: Validation errors
           readOnly: true
       additionalProperties: false
@@ -5222,8 +5254,8 @@ components:
           allOf:
             - $ref: '#/components/schemas/ISO8601Duration'
           description: |-
-            The duration of the phase.
-            When not specified, the phase runs indefinitely. Only the last phase may omit the duration.
+            The duration of the phase. When not specified, the phase runs indefinitely. Only
+            the last phase may omit the duration.
           title: Duration
         rate_cards:
           type: array
@@ -5232,7 +5264,9 @@ components:
           description: The rate cards of the plan.
           title: Rate cards
       additionalProperties: false
-      description: The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
+      description: |-
+        The plan phase or pricing ramp allows changing a plan's rate cards over time as
+        a subscription progresses.
     BillingPlanStatus:
       type: string
       enum:
@@ -5242,6 +5276,7 @@ components:
         - scheduled
       description: |-
         The status of a plan.
+
         - `draft`: The plan has not yet been published and can be edited.
         - `active`: The plan is published and can be used in subscriptions.
         - `archived`: The plan is no longer available for use.
@@ -7157,8 +7192,9 @@ components:
           allOf:
             - $ref: '#/components/schemas/ResourceKey'
           description: |-
-            A key is a semi-unique string that is used to identify the plan.
-            It is used to reference the latest `active` version of the plan and is unique with the version number.
+            A key is a semi-unique string that is used to identify the plan. It is used to
+            reference the latest `active` version of the plan and is unique with the version
+            number.
           title: Key
         currency:
           allOf:
@@ -7181,9 +7217,8 @@ components:
             $ref: '#/components/schemas/BillingPlanPhase'
           minItems: 1
           description: |-
-            The plan phases define the pricing ramp for a subscription.
-            A phase switch occurs only at the end of a billing period.
-            At least one phase is required.
+            The plan phases define the pricing ramp for a subscription. A phase switch
+            occurs only at the end of a billing period. At least one phase is required.
           title: Plan phases
       additionalProperties: false
       description: Plan create request.
@@ -7314,6 +7349,20 @@ components:
           $ref: '#/components/schemas/PaginatedMeta'
       additionalProperties: false
       description: Page paginated response.
+    CursorPaginationQueryPage:
+      type: object
+      properties:
+        size:
+          type: integer
+          description: Maximum number of customer rows to include in the response.
+        after:
+          type: string
+          description: Request the next page of data, starting with the item after this parameter.
+        before:
+          type: string
+          description: Request the previous page of data, starting with the item before this parameter.
+      additionalProperties: false
+      description: Determines which page of the collection to retrieve.
     CustomerPagePaginatedResponse:
       type: object
       required:
@@ -7559,6 +7608,251 @@ components:
           description: Filter credit balance by currency.
       additionalProperties: false
       description: Filter options for getting a credit balance.
+    GovernanceFeatureAccess:
+      type: object
+      required:
+        - has_access
+      properties:
+        has_access:
+          type: boolean
+          description: |-
+            Whether the customer currently has access to the feature.
+
+            `true` for boolean and static entitlements that are available, and for metered
+            entitlements with remaining balance. `false` when the feature is unavailable,
+            the usage limit has been reached, or (when applicable) credits have been
+            exhausted.
+          title: Has access
+          readOnly: true
+        denied_reason:
+          allOf:
+            - $ref: '#/components/schemas/GovernanceFeatureAccessDeniedReason'
+          description: |-
+            Optional reason when the customer does not have access to the feature. Populated
+            when `has_access` is `false`.
+          title: Denied reason
+          readOnly: true
+      additionalProperties: false
+      description: Access status for a single feature.
+    GovernanceFeatureAccessDeniedReason:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          allOf:
+            - $ref: '#/components/schemas/GovernanceFeatureAccessDeniedReasonCode'
+          description: Machine-readable error code.
+          title: Code
+          readOnly: true
+        message:
+          type: string
+          description: Human-readable description of the error.
+          title: Message
+          readOnly: true
+        attributes:
+          type: object
+          additionalProperties: {}
+          description: Additional structured context.
+          title: Attributes
+          readOnly: true
+      additionalProperties: false
+      description: Reason a feature is not accessible to a customer.
+    GovernanceFeatureAccessDeniedReasonCode:
+      type: string
+      enum:
+        - unknown
+        - usage_limit_reached
+        - feature_unavailable
+        - feature_not_found
+        - no_credit_available
+      description: Machine-readable reason code for denied feature access.
+    GovernanceQueryCustomersFilter:
+      type: object
+      required:
+        - keys
+      properties:
+        keys:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 1000
+          description: |-
+            Each entry can be a customer `key` or a usage-attribution subject `key`.
+            Identifiers that cannot be resolved to a customer are reported in the response
+            `errors` array.
+          title: Customer usage attribution keys
+      additionalProperties: false
+      description: List of customer identifiers to evaluate access for.
+    GovernanceQueryError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          allOf:
+            - $ref: '#/components/schemas/GovernanceQueryErrorCode'
+          description: Machine-readable error code.
+          title: Code
+          readOnly: true
+        message:
+          type: string
+          description: Human-readable description of the error.
+          title: Message
+          readOnly: true
+        attributes:
+          type: object
+          additionalProperties: {}
+          description: Additional structured context.
+          title: Attributes
+          readOnly: true
+        customer:
+          type: string
+          description: The customer identifier from the request that produced this error.
+          title: Customer Identifier
+          readOnly: true
+      additionalProperties: false
+      description: Query error within a partially successful governance query response.
+    GovernanceQueryErrorCode:
+      type: string
+      enum:
+        - unknown
+        - customer_not_found
+      description: Error code for a governance query failure.
+    GovernanceQueryFeaturesFilter:
+      type: object
+      required:
+        - keys
+      properties:
+        keys:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 1000
+          description: List of feature keys to evaluate access for.
+          title: Feature Keys
+      additionalProperties: false
+      description: |-
+        Optional list of feature keys to evaluate access for. If omitted, all features
+        available in the organization are returned. Providing this list is recommended
+        to reduce the response size and the load on the backend services.
+    GovernanceQueryFilters:
+      type: object
+      required:
+        - customers
+      properties:
+        customers:
+          $ref: '#/components/schemas/GovernanceQueryCustomersFilter'
+        features:
+          $ref: '#/components/schemas/GovernanceQueryFeaturesFilter'
+        include_credits:
+          type: boolean
+          description: |-
+            Whether to include credit balance availability for each resolved customer. When
+            true, each result entry includes `has_available_credits`.
+
+            Defaults to `false`.
+          title: Include credits
+          default: false
+      additionalProperties: false
+      description: Filters to apply to the governance query.
+    GovernanceQueryRequest:
+      type: object
+      required:
+        - filters
+      properties:
+        filters:
+          $ref: '#/components/schemas/GovernanceQueryFilters'
+      additionalProperties: false
+      description: Query to evaluate feature access for a list of customers.
+    GovernanceQueryResponse:
+      type: object
+      required:
+        - data
+        - errors
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/GovernanceQueryResult'
+          description: Access evaluation results, one entry per resolved customer.
+          title: Data
+          readOnly: true
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/GovernanceQueryError'
+          description: Partial errors encountered while processing the request.
+          title: Errors
+          readOnly: true
+        meta:
+          allOf:
+            - $ref: '#/components/schemas/CursorMeta'
+          description: |-
+            Pagination metadata. The endpoint may return a partial response if the full
+            response would exceed server-side limits.
+          title: Meta
+          readOnly: true
+      additionalProperties: false
+      description: Response of the governance query.
+    GovernanceQueryResult:
+      type: object
+      required:
+        - matched
+        - customer
+        - features
+        - updated_at
+      properties:
+        matched:
+          type: array
+          items:
+            type: string
+          description: |-
+            The list of identifiers from the request that resolved to this customer. Each
+            entry is either the customer `key` or one of its usage-attribution subject
+            `key`s.
+          title: Matched Identifiers
+          readOnly: true
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/BillingCustomer'
+          description: The customer the matched identifiers resolved to.
+          title: Customer
+          readOnly: true
+        has_available_credits:
+          type: boolean
+          description: |-
+            Whether the customer has any available prepaid credit balance.
+
+            Only populated when the request was made with `include_credits=true`.
+          title: Has available credits
+          readOnly: true
+        features:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/GovernanceFeatureAccess'
+          description: |-
+            Map of features with their access status.
+
+            Map keys are the feature keys requested in `filters.features.keys`, or every
+            feature `key` available in the organization when the feature filter was omitted.
+          title: Features
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            Timestamp of the most recent change to the customer's access state reflected in
+            this result.
+          title: Updated at
+          readOnly: true
+      additionalProperties: false
+      description: Access evaluation result for a single resolved customer.
     ISO8601Duration:
       type: string
       pattern: ^P(?:\d+(?:\.\d+)?Y)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?W)?(?:\d+(?:\.\d+)?D)?(?:T(?:\d+(?:\.\d+)?H)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?S)?)?$
@@ -8520,33 +8814,31 @@ components:
     ProductCatalogValidationError:
       type: object
       required:
-        - field
         - code
         - message
+        - field
       properties:
+        code:
+          type: string
+          description: Machine-readable error code.
+          title: Code
+          readOnly: true
+        message:
+          type: string
+          description: Human-readable description of the error.
+          title: Message
+          readOnly: true
+        attributes:
+          type: object
+          additionalProperties: {}
+          description: Additional structured context.
+          title: Attributes
+          readOnly: true
         field:
           type: string
           description: The path to the field.
           title: Field
           example: addons/pro/ratecards/token/featureKey
-          readOnly: true
-        code:
-          type: string
-          description: The machine readable code of the error.
-          title: Code
-          example: invalid_feature_key
-          readOnly: true
-        message:
-          type: string
-          description: The human readable description of the error.
-          title: Message
-          example: not found feature by key
-          readOnly: true
-        attributes:
-          type: object
-          additionalProperties: {}
-          description: Additional attributes.
-          title: Attributes
           readOnly: true
       additionalProperties: false
       description: Validation errors providing detailed description of the issue.
@@ -9142,9 +9434,8 @@ components:
             $ref: '#/components/schemas/BillingPlanPhase'
           minItems: 1
           description: |-
-            The plan phases define the pricing ramp for a subscription.
-            A phase switch occurs only at the end of a billing period.
-            At least one phase is required.
+            The plan phases define the pricing ramp for a subscription. A phase switch
+            occurs only at the end of a billing period. At least one phase is required.
           title: Plan phases
       additionalProperties: false
       description: Plan upsert request.
