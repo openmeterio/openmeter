@@ -36,19 +36,21 @@ model Meter {
   event_type: string;
 
   /**
-   * The date since the meter should include events.
-   * Useful to skip old events.
-   * If not specified, all historical events are included.
+   * The date since the meter should include events. Useful to skip old events. If
+   * not specified, all historical events are included.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
   events_from?: Shared.DateTime;
 
   /**
-   * JSONPath expression to extract the value from the ingested event's data property.
+   * JSONPath expression to extract the value from the ingested event's data
+   * property.
    *
-   * The ingested value for sum, avg, min, and max aggregations is a number or a string that can be parsed to a number.
+   * The ingested value for sum, avg, min, and max aggregations is a number or a
+   * string that can be parsed to a number.
    *
-   * For unique_count aggregation, the ingested value must be a string. For count aggregation the value_property is ignored.
+   * For unique_count aggregation, the ingested value must be a string. For count
+   * aggregation the value_property is ignored.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
   @minLength(1)
@@ -59,7 +61,6 @@ model Meter {
    * Named JSONPath expressions to extract the group by values from the event data.
    *
    * Keys must be unique and consist only alphanumeric and underscore characters.
-   *
    */
   // TODO: add key format enforcement
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)

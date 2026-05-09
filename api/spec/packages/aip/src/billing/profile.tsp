@@ -6,14 +6,16 @@ import "./tax.tsp";
 namespace Billing;
 
 /**
- * Billing profiles contain the settings for billing and controls invoice generation.
+ * Billing profiles contain the settings for billing and controls invoice
+ * generation.
  */
 @friendlyName("BillingProfile")
 model BillingProfile {
   ...Shared.Resource;
 
   /**
-   * The name and contact information for the supplier this billing profile represents
+   * The name and contact information for the supplier this billing profile
+   * represents
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   supplier: Invoices.BillingParty;
@@ -79,7 +81,8 @@ model BillingWorkflow {
 }
 
 /**
- * Workflow collection specifies how to collect the pending line items for an invoice.
+ * Workflow collection specifies how to collect the pending line items for an
+ * invoice.
  */
 @summary("Workflow collection settings")
 @friendlyName("BillingWorkflowCollectionSettings")
@@ -91,10 +94,11 @@ model BillingWorkflowCollectionSettings {
   alignment?: BillingWorkflowCollectionAlignment = DefaultBillingWorkflowCollectionAlignment;
 
   /**
-   * This grace period can be used to delay the collection of the pending line items specified in
-   * alignment.
+   * This grace period can be used to delay the collection of the pending line items
+   * specified in alignment.
    *
-   * This is useful, in case of multiple subscriptions having slightly different billing periods.
+   * This is useful, in case of multiple subscriptions having slightly different
+   * billing periods.
    */
   @encode(DurationKnownEncoding.ISO8601)
   @example("P1D")
@@ -103,8 +107,8 @@ model BillingWorkflowCollectionSettings {
 }
 
 /**
- * BillingCollectionAlignment specifies when the pending line items should be collected into
- * an invoice.
+ * BillingCollectionAlignment specifies when the pending line items should be
+ * collected into an invoice.
  */
 @friendlyName("BillingCollectionAlignment")
 @summary("Collection alignment")
@@ -127,8 +131,9 @@ const DefaultBillingWorkflowCollectionAlignment: BillingWorkflowCollectionAlignm
 /**
  * The alignment for collecting the pending line items into an invoice.
  *
- * Defaults to subscription, which means that we are to create a new invoice every time the
- * a subscription period starts (for in advance items) or ends (for in arrears items).
+ * Defaults to subscription, which means that we are to create a new invoice every
+ * time the a subscription period starts (for in advance items) or ends (for in
+ * arrears items).
  */
 @friendlyName("BillingWorkflowCollectionAlignment")
 @discriminated(#{ discriminatorPropertyName: "type", envelope: "none" })
@@ -138,8 +143,8 @@ union BillingWorkflowCollectionAlignment {
 }
 
 /**
- * BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items
- * into an invoice.
+ * BillingWorkflowCollectionAlignmentAnchored specifies the alignment for
+ * collecting the pending line items into an invoice.
  */
 @friendlyName("BillingWorkflowCollectionAlignmentAnchored")
 model BillingWorkflowCollectionAlignmentAnchored {
@@ -157,8 +162,8 @@ model BillingWorkflowCollectionAlignmentAnchored {
 }
 
 /**
- * BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the pending line items
- * into an invoice.
+ * BillingWorkflowCollectionAlignmentSubscription specifies the alignment for
+ * collecting the pending line items into an invoice.
  */
 @friendlyName("BillingWorkflowCollectionAlignmentSubscription")
 model BillingWorkflowCollectionAlignmentSubscription {
@@ -203,17 +208,17 @@ model BillingWorkflowInvoicingSettings {
 @friendlyName("BillingWorkflowTaxSettings")
 model BillingWorkflowTaxSettings {
   /**
-   * Enable automatic tax calculation when tax is supported by the app.
-   * For example, with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.
+   * Enable automatic tax calculation when tax is supported by the app. For example,
+   * with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   enabled?: boolean = true;
 
   /**
-   * Enforce tax calculation when tax is supported by the app.
-   * When enabled, the billing system will not allow to create an invoice without tax calculation.
-   * Enforcement is different per apps, for example, Stripe app requires customer
-   * to have a tax location when starting a paid subscription.
+   * Enforce tax calculation when tax is supported by the app. When enabled, the
+   * billing system will not allow to create an invoice without tax calculation.
+   * Enforcement is different per apps, for example, Stripe app requires customer to
+   * have a tax location when starting a paid subscription.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   enforced?: boolean = false;
@@ -274,7 +279,8 @@ model BillingProfileAppReferences {
 }
 
 /**
- * Collection method specifies how the invoice should be collected (automatic or manual).
+ * Collection method specifies how the invoice should be collected (automatic or
+ * manual).
  */
 @friendlyName("BillingCollectionMethod")
 @summary("Collection method")
@@ -300,7 +306,8 @@ union BillingWorkflowPaymentSettings {
 }
 
 /**
- * Payment settings for a billing workflow when the collection method is charge automatically.
+ * Payment settings for a billing workflow when the collection method is charge
+ * automatically.
  */
 @friendlyName("BillingWorkflowPaymentChargeAutomaticallySettings")
 model BillingWorkflowPaymentChargeAutomaticallySettings {
@@ -312,7 +319,8 @@ model BillingWorkflowPaymentChargeAutomaticallySettings {
 }
 
 /**
- * Payment settings for a billing workflow when the collection method is send invoice.
+ * Payment settings for a billing workflow when the collection method is send
+ * invoice.
  */
 @friendlyName("BillingWorkflowPaymentSendInvoiceSettings")
 model BillingWorkflowPaymentSendInvoiceSettings {
@@ -323,8 +331,8 @@ model BillingWorkflowPaymentSendInvoiceSettings {
   collection_method: CollectionMethod.SendInvoice;
 
   /**
-   * The period after which the invoice is due.
-   * With some payment solutions it's only applicable for manual collection method.
+   * The period after which the invoice is due. With some payment solutions it's only
+   * applicable for manual collection method.
    */
   @encode(DurationKnownEncoding.ISO8601)
   @example("P30D")

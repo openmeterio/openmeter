@@ -43,8 +43,8 @@ interface PlanOperations {
     ...Common.PagePaginationQuery,
 
     /**
-     * Sort plans returned in the response.
-     * Supported sort attributes are:
+     * Sort plans returned in the response. Supported sort attributes are:
+     *
      * - `id`
      * - `key`
      * - `version`
@@ -176,16 +176,16 @@ interface AddonOperations {
     ...Common.PagePaginationQuery,
 
     /**
-     * Sort add-ons returned in the response.
-     * Supported sort attributes are:
+     * Sort add-ons returned in the response. Supported sort attributes are:
+     *
      * - `id`
      * - `key`
      * - `name`
      * - `created_at` (default)
      * - `updated_at`
      *
-     * The `asc` suffix is optional as the default sort order is ascending.
-     * The `desc` suffix is used to specify a descending order.
+     * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+     * suffix is used to specify a descending order.
      */
     @query(#{ name: "sort" })
     sort?: Common.SortQuery,

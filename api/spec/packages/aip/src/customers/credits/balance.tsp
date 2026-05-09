@@ -33,16 +33,16 @@ model CreditBalance {
   currency: Currencies.CurrencyCode;
 
   /**
-   * Credits that have been granted but cannot yet be consumed.
-   * Includes grants awaiting payment clearance or with a future effective date.
+   * Credits that have been granted but cannot yet be consumed. Includes grants
+   * awaiting payment clearance or with a future effective date.
    */
   @visibility(Lifecycle.Read)
   @example("200.00")
   pending: Shared.Numeric;
 
   /**
-   * Credits that can be consumed right now.
-   * Derived from cleared grants after applying eligibility and restriction rules.
+   * Credits that can be consumed right now. Derived from cleared grants after
+   * applying eligibility and restriction rules.
    */
   @visibility(Lifecycle.Read)
   @example("150.00")

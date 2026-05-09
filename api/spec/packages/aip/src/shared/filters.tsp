@@ -8,8 +8,8 @@ using TypeSpec.JsonSchema;
 namespace Shared;
 
 /**
- * A query filter for a string attribute.
- * Operators are mutually exclusive, only one operator is allowed at a time.
+ * A query filter for a string attribute. Operators are mutually exclusive, only
+ * one operator is allowed at a time.
  */
 @friendlyName("QueryFilterString")
 @summary("Query String Filter")
@@ -64,8 +64,8 @@ model QueryFilterString {
 }
 
 /**
- * A query filter for an item in a string map attribute.
- * Operators are mutually exclusive, only one operator is allowed at a time.
+ * A query filter for an item in a string map attribute. Operators are mutually
+ * exclusive, only one operator is allowed at a time.
  */
 @friendlyName("QueryFilterStringMapItem")
 @summary("Query String Map Item Filter")
@@ -81,8 +81,8 @@ model QueryFilterStringMapItem {
 alias QueryFilterStringMap = Record<QueryFilterStringMapItem>;
 
 /**
- * A query filter for an integer attribute.
- * Operators are mutually exclusive, only one operator is allowed at a time.
+ * A query filter for an integer attribute. Operators are mutually exclusive, only
+ * one operator is allowed at a time.
  */
 @friendlyName("QueryFilterInteger")
 @summary("Query Integer Filter")
@@ -147,8 +147,8 @@ model QueryFilterInteger {
 }
 
 /**
- * A query filter for a float attribute.
- * Operators are mutually exclusive, only one operator is allowed at a time.
+ * A query filter for a float attribute. Operators are mutually exclusive, only one
+ * operator is allowed at a time.
  */
 @friendlyName("QueryFilterFloat")
 @summary("Query Float Filter")
@@ -189,8 +189,8 @@ model QueryFilterFloat {
 }
 
 /**
- * A query filter for a numeric attribute.
- * Operators are mutually exclusive, only one operator is allowed at a time.
+ * A query filter for a numeric attribute. Operators are mutually exclusive, only
+ * one operator is allowed at a time.
  */
 @friendlyName("QueryFilterNumeric")
 @summary("Query Numeric Filter")
@@ -231,8 +231,8 @@ model QueryFilterNumeric {
 }
 
 /**
- * A query filter for a boolean attribute.
- * Operators are mutually exclusive, only one operator is allowed at a time.
+ * A query filter for a boolean attribute. Operators are mutually exclusive, only
+ * one operator is allowed at a time.
  */
 @friendlyName("QueryFilterBoolean")
 @summary("Query Boolean Filter")
@@ -244,8 +244,8 @@ model QueryFilterBoolean {
 }
 
 /**
- * A query filter for a time attribute.
- * Operators are mutually exclusive, only one operator is allowed at a time.
+ * A query filter for a time attribute. Operators are mutually exclusive, only one
+ * operator is allowed at a time.
  */
 @friendlyName("QueryFilterDateTime")
 @summary("Query Date-time Filter")

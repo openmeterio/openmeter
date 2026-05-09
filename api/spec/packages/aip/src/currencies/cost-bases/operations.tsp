@@ -26,8 +26,8 @@ model ListCostBasesParamsFilter {
 
 interface CurrenciesCustomCostBasesOperations {
   /**
-   * List cost bases for a currency.
-   * For custom currencies, there can be multiple cost bases with different `effective_from` dates.
+   * List cost bases for a currency. For custom currencies, there can be multiple
+   * cost bases with different `effective_from` dates.
    */
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
@@ -40,7 +40,8 @@ interface CurrenciesCustomCostBasesOperations {
     /**
      * Filter cost bases returned in the response.
      *
-     * To filter cost bases by fiat currency code add the following query param: filter[fiat_code]=USD
+     * To filter cost bases by fiat currency code add the following query param:
+     * filter[fiat_code]=USD
      */
     @query(#{ style: "deepObject", explode: true })
     filter?: ListCostBasesParamsFilter,

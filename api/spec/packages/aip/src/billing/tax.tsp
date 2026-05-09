@@ -9,8 +9,8 @@ model TaxConfig {
   /**
    * Tax behavior.
    *
-   * If not specified the billing profile is used to determine the tax behavior.
-   * If not specified in the billing profile, the provider's default behavior is used.
+   * If not specified the billing profile is used to determine the tax behavior. If
+   * not specified in the billing profile, the provider's default behavior is used.
    */
   @summary("Tax behavior")
   behavior?: TaxBehavior;
@@ -18,8 +18,8 @@ model TaxConfig {
   /**
    * Stripe tax config.
    *
-   * @deprecated Use `tax_code` instead. When both `stripe.code` and `tax_code` are provided,
-   * `tax_code` takes precedence and `stripe.code` is ignored.
+   * @deprecated Use `tax_code` instead. When both `stripe.code` and `tax_code` are
+   * provided, `tax_code` takes precedence and `stripe.code` is ignored.
    */
   #deprecated "Use tax_code instead"
   @summary("Stripe tax config")
@@ -46,8 +46,9 @@ model TaxConfig {
   /**
    * Tax code reference.
    *
-   * When both `tax_code` and `tax_code_id` are provided, `tax_code` takes precedence.
-   * When `stripe.code` is also provided, `tax_code` still wins and `stripe.code` is ignored.
+   * When both `tax_code` and `tax_code_id` are provided, `tax_code` takes
+   * precedence. When `stripe.code` is also provided, `tax_code` still wins and
+   * `stripe.code` is ignored.
    */
   @summary("Tax code")
   tax_code?: Tax.TaxCodeReference;
@@ -56,7 +57,8 @@ model TaxConfig {
 /**
  * Tax behavior.
  *
- * This enum is used to specify whether tax is included in the price or excluded from the price.
+ * This enum is used to specify whether tax is included in the price or excluded
+ * from the price.
  */
 @friendlyName("BillingTaxBehavior")
 enum TaxBehavior {
