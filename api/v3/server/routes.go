@@ -458,3 +458,9 @@ func (s *Server) GetOrganizationDefaultTaxCodes(w http.ResponseWriter, r *http.R
 func (s *Server) UpdateOrganizationDefaultTaxCodes(w http.ResponseWriter, r *http.Request) {
 	s.taxcodesHandler.UpsertOrganizationDefaultTaxCodes().ServeHTTP(w, r)
 }
+
+// Governance
+
+func (s *Server) QueryGovernanceAccess(w http.ResponseWriter, r *http.Request, params api.QueryGovernanceAccessParams) {
+	unimplemented.QueryGovernanceAccess(w, r, params)
+}

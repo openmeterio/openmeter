@@ -8,30 +8,34 @@ using TypeSpec.OpenAPI;
 namespace Common;
 
 /**
+ * Determines which page of the collection to retrieve.
+ */
+@friendlyName("CursorPaginationQueryPage")
+model CursorPaginationQueryPage {
+  /**
+   * Maximum number of customer rows to include in the response.
+   */
+  size?: integer;
+
+  /**
+   * Request the next page of data, starting with the item after this parameter.
+   */
+  after?: string;
+
+  /**
+   * Request the previous page of data, starting with the item before this parameter.
+   */
+  before?: string;
+}
+
+/**
  * Cursor page query.
  */
 @friendlyName("CursorPaginationQuery")
 model CursorPaginationQuery {
-  /**
-   * Determines which page of the collection to retrieve.
-   */
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "-"
   @query(#{ explode: true, style: "deepObject" })
-  page?: {
-    /**
-     * The number of items to include per page.
-     */
-    size?: integer;
-
-    /**
-     * Request the next page of data, starting with the item after this parameter.
-     */
-    after?: string;
-
-    /**
-     * Request the previous page of data, starting with the item before this parameter.
-     */
-    before?: string;
-  };
+  page?: CursorPaginationQueryPage;
 }
 
 /**
