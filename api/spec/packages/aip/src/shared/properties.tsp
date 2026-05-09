@@ -37,7 +37,8 @@ union ULIDOrResourceKey {
 }
 
 /**
- * ExternalResourceKey is a unique string that is used to identify a resource in an external system.
+ * ExternalResourceKey is a unique string that is used to identify a resource in an
+ * external system.
  */
 @maxLength(256)
 @minLength(1)
@@ -57,7 +58,8 @@ union ULIDOrExternalResourceKey {
 }
 
 /**
- * [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+ * [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in
+ * UTC.
  */
 @encode(DateTimeKnownEncoding.rfc3339)
 @friendlyName("DateTime")
@@ -77,7 +79,8 @@ scalar DateTime extends utcDateTime;
 // A stricter alternative that doesn't allow fractional components is: ^P(?:\d+Y)?(?:\d+M)?(?:\d+W)?(?:\d+D)?(?:T(?:\d+H)?(?:\d+M)?(?:\d+S)?)?$
 // ^before using the stricter pattern make sure to double escape the backslashes
 /**
- * [ISO 8601 Duration](https://docs.digi.com/resources/documentation/digidocs/90001488-13/reference/r_iso_8601_duration_format.htm) string.
+ * [ISO 8601 Duration](https://docs.digi.com/resources/documentation/digidocs/90001488-13/reference/r_iso_8601_duration_format.htm)
+ * string.
  */
 @encode(DurationKnownEncoding.ISO8601)
 @pattern("^P(?:\\d+(?:\\.\\d+)?Y)?(?:\\d+(?:\\.\\d+)?M)?(?:\\d+(?:\\.\\d+)?W)?(?:\\d+(?:\\.\\d+)?D)?(?:T(?:\\d+(?:\\.\\d+)?H)?(?:\\d+(?:\\.\\d+)?M)?(?:\\d+(?:\\.\\d+)?S)?)?$")
@@ -87,8 +90,9 @@ scalar DateTime extends utcDateTime;
 scalar ISO8601Duration extends string;
 
 /**
- * Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
- * Custom three-letter currency codes are also supported for convenience.
+ * Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html)
+ * currency code. Custom three-letter currency codes are also supported for
+ * convenience.
  */
 @pattern("^[A-Z]{3}$")
 @friendlyName("CurrencyCode")
@@ -98,8 +102,8 @@ scalar ISO8601Duration extends string;
 scalar CurrencyCode extends string;
 
 /**
- * [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country code.
- * Custom two-letter country codes are also supported for convenience.
+ * [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country
+ * code. Custom two-letter country codes are also supported for convenience.
  */
 @pattern("^[A-Z]{2}$")
 @friendlyName("CountryCode")
@@ -127,7 +131,8 @@ model CurrencyAmount {
 }
 
 /**
- * Tax identifier code is a normalized tax code shown on the original identity document.
+ * Tax identifier code is a normalized tax code shown on the original identity
+ * document.
  */
 @minLength(1)
 @maxLength(32)

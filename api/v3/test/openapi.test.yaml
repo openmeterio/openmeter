@@ -39,7 +39,9 @@ components:
     DateTime:
       type: string
       format: date-time
-      description: "[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC."
+      description: |-
+        [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in
+        UTC.
       title: RFC3339 Date-Time
       example: 2023-01-01T01:01:01.001Z
     DateTimeFieldFilter:
@@ -69,8 +71,8 @@ components:
               description: Value is greater than or equal to the given RFC-3339 formatted timestamp in UTC.
           additionalProperties: false
       description: |-
-        Filters on the given datetime (RFC-3339) field value.
-        All properties are optional; provide exactly one to specify the comparison.
+        Filters on the given datetime (RFC-3339) field value. All properties are
+        optional; provide exactly one to specify the comparison.
       title: DateTime Field Filter
       x-go-type-import:
         path: github.com/openmeterio/openmeter/api/v3/filters
@@ -101,9 +103,10 @@ components:
       description: |-
         Filters on the resource's `labels` field.
 
-        The schema is a map keyed by the label name; each value is a `StringFieldFilter`.
-        Both deepObject forms are accepted: `filter[labels][key]=value` (nested) and
-        `filter[labels.key]=value` (dot-notation).
+        The schema is a map keyed by the label name; each value is a
+        `StringFieldFilter`. Both deepObject forms are accepted:
+        `filter[labels][key]=value` (nested) and `filter[labels.key]=value`
+        (dot-notation).
       title: Labels Field Filter
       x-go-type-import:
         path: github.com/openmeterio/openmeter/api/v3/filters
@@ -147,8 +150,8 @@ components:
               description: Value is greater than or equal to the given numeric value.
           additionalProperties: false
       description: |-
-        Filter by a numeric value.
-        All properties are optional; provide exactly one to specify the comparison.
+        Filter by a numeric value. All properties are optional; provide exactly one to
+        specify the comparison.
       title: Numeric Field Filter
       x-go-type-import:
         path: github.com/openmeterio/openmeter/api/v3/filters
@@ -172,19 +175,25 @@ components:
               items:
                 type: string
               format: ArrayEncoding.commaDelimited
-              description: Returns entities that fuzzy-match any of the comma-delimited phrases in the filter string.
+              description: |-
+                Returns entities that fuzzy-match any of the comma-delimited phrases in the
+                filter string.
             oeq:
               type: string
               items:
                 type: string
               format: ArrayEncoding.commaDelimited
-              description: Returns entities that exact match any of the comma-delimited phrases in the filter string.
+              description: |-
+                Returns entities that exact match any of the comma-delimited phrases in the
+                filter string.
             gt:
               type: string
               description: Value is greater than the given string value (lexicographic compare).
             gte:
               type: string
-              description: Value is greater than or equal to the given string value (lexicographic compare).
+              description: |-
+                Value is greater than or equal to the given string value (lexicographic
+                compare).
             lt:
               type: string
               description: Value is less than the given string value (lexicographic compare).
@@ -193,11 +202,13 @@ components:
               description: Value is less than or equal to the given string value (lexicographic compare).
             exists:
               type: boolean
-              description: When true, the field must be present (non-null); when false, the field must be absent (null).
+              description: |-
+                When true, the field must be present (non-null); when false, the field must be
+                absent (null).
           additionalProperties: false
       description: |-
-        Filters on the given string field value by either exact or fuzzy match.
-        All properties are optional; provide exactly one to specify the comparison.
+        Filters on the given string field value by either exact or fuzzy match. All
+        properties are optional; provide exactly one to specify the comparison.
       x-go-type-import:
         path: github.com/openmeterio/openmeter/api/v3/filters
       x-go-type: filters.FilterString
@@ -214,14 +225,16 @@ components:
               items:
                 type: string
               format: ArrayEncoding.commaDelimited
-              description: Returns entities that exact match any of the comma-delimited phrases in the filter string.
+              description: |-
+                Returns entities that exact match any of the comma-delimited phrases in the
+                filter string.
             neq:
               type: string
               description: Value does not equal the given string value.
           additionalProperties: false
       description: |-
-        Filters on the given string field value by exact match.
-        All properties are optional; provide exactly one to specify the comparison.
+        Filters on the given string field value by exact match. All properties are
+        optional; provide exactly one to specify the comparison.
       title: String Field Filter Exact
       x-go-type-import:
         path: github.com/openmeterio/openmeter/api/v3/filters
@@ -246,15 +259,17 @@ components:
               items:
                 $ref: "#/components/schemas/ULID"
               format: ArrayEncoding.commaDelimited
-              description: Returns entities that exact match any of the comma-delimited ULIDs in the filter string.
+              description: |-
+                Returns entities that exact match any of the comma-delimited ULIDs in the filter
+                string.
             neq:
               allOf:
                 - $ref: "#/components/schemas/ULID"
               description: Value does not equal the given ULID value.
           additionalProperties: false
       description: |-
-        Filters on the given ULID field value by exact match.
-        All properties are optional; provide exactly one to specify the comparison.
+        Filters on the given ULID field value by exact match. All properties are
+        optional; provide exactly one to specify the comparison.
       title: ULID Field Filter
       x-go-type-import:
         path: github.com/openmeterio/openmeter/api/v3/filters

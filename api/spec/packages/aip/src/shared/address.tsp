@@ -8,7 +8,8 @@ namespace Shared;
 @friendlyName("Address")
 model Address {
   /**
-   * Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 format.
+   * Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html)
+   * alpha-2 format.
    */
   @visibility(Lifecycle.Create, Lifecycle.Read, Lifecycle.Update)
   @summary("Country")

@@ -34,18 +34,7 @@ When a caller lacks access to a resource:
 - Return `403 Forbidden` if the resource is owned by the caller's organization (they exist but can't touch it)
 - Return `404 Not Found` otherwise — this prevents data-existence leakage across tenants
 
-## OpenMeter Common types
+## See also
 
-Use `Common.ErrorResponses` (= `BadRequest | Unauthorized | Forbidden`) on every operation, then add specific types explicitly. Types with ★ are OpenMeter extensions beyond what AIP-193 documents by name.
-
-| Type                          | Status | Source      | When to add explicitly                              |
-| ----------------------------- | ------ | ----------- | --------------------------------------------------- |
-| `Common.NotFound`             | 404    | AIP-193     | GET, PATCH, PUT, DELETE by ID                       |
-| `Common.Conflict`             | 409    | AIP-193     | Create operations that may conflict                 |
-| `Common.Gone`                 | 410    | ★ OpenMeter | PUT/PATCH when the resource was soft-deleted        |
-| `Common.PayloadTooLarge`      | 413    | ★ OpenMeter | Endpoints accepting large bodies or bulk operations |
-| `Common.UnprocessableContent` | 422    | ★ OpenMeter | Semantically invalid requests                       |
-
-```tsp
-get(@path meterId: Shared.ULID): Shared.GetResponse<Meter> | Common.NotFound | Common.ErrorResponses;
-```
+- `rules/openmeter-error-types.md` — OpenMeter `Common.*` types that wire AIP-193 onto operations, including OpenMeter-only status codes (410, 413, 422).
+- `rules/inline-errors.md` — inline errors returned **inside** a 2xx response body (partial successes, pre-flight validation on draft resources). AIP-193 itself only covers transport-level error responses.

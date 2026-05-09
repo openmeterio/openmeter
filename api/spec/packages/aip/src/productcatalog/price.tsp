@@ -4,11 +4,14 @@ namespace ProductCatalog;
 
 /**
  * The type of the price.
+ *
  * - `free`: No charge, the rate card is included at no cost.
  * - `flat`: A fixed amount charged once per billing period, regardless of usage.
  * - `unit`: A fixed rate charged per billing unit consumed.
- * - `graduated`: Tiered pricing where each tier's rate applies only to usage within that tier.
- * - `volume`: Tiered pricing where the rate for the highest tier reached applies to all units in the period.
+ * - `graduated`: Tiered pricing where each tier's rate applies only to usage
+ *   within that tier.
+ * - `volume`: Tiered pricing where the rate for the highest tier reached applies
+ *   to all units in the period.
  */
 @friendlyName("BillingPriceType")
 enum PriceType {
@@ -107,9 +110,8 @@ model PriceFlat {
 /**
  * Unit price.
  *
- * Charges a fixed rate per billing unit.
- * When UnitConfig is present on the rate card, billing units are the
- * converted quantities (e.g. GB instead of bytes).
+ * Charges a fixed rate per billing unit. When UnitConfig is present on the rate
+ * card, billing units are the converted quantities (e.g. GB instead of bytes).
  */
 @friendlyName("BillingPriceUnit")
 model PriceUnit {
@@ -131,11 +133,11 @@ model PriceUnit {
 /**
  * Graduated tiered price.
  *
- * Each tier's rate applies only to the usage within that tier.
- * Pricing can change as cumulative usage crosses tier boundaries.
+ * Each tier's rate applies only to the usage within that tier. Pricing can change
+ * as cumulative usage crosses tier boundaries.
  *
- * When UnitConfig is present on the rate card, tier boundaries (up_to_amount)
- * are expressed in converted billing units.
+ * When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are
+ * expressed in converted billing units.
  */
 @friendlyName("BillingPriceGraduated")
 model PriceGraduated {
@@ -147,8 +149,7 @@ model PriceGraduated {
   type: PriceType.Graduated;
 
   /**
-   * The tiers of the graduated price.
-   * At least one tier is required.
+   * The tiers of the graduated price. At least one tier is required.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Tiers")
@@ -159,11 +160,11 @@ model PriceGraduated {
 /**
  * Volume tiered price.
  *
- * The maximum quantity within a period determines the per-unit price for
- * all units in that period.
+ * The maximum quantity within a period determines the per-unit price for all units
+ * in that period.
  *
- * When UnitConfig is present on the rate card, tier boundaries (up_to_amount)
- * are expressed in converted billing units.
+ * When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are
+ * expressed in converted billing units.
  */
 @friendlyName("BillingPriceVolume")
 model PriceVolume {
@@ -175,8 +176,7 @@ model PriceVolume {
   type: PriceType.Volume;
 
   /**
-   * The tiers of the volume price.
-   * At least one tier is required.
+   * The tiers of the volume price. At least one tier is required.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Tiers")
@@ -187,31 +187,29 @@ model PriceVolume {
 /**
  * A price tier used in graduated and volume pricing.
  *
- * At least one price component (flat_price or unit_price) must be set.
- * When UnitConfig is present on the rate card, up_to_amount is expressed
- * in converted billing units.
+ * At least one price component (flat_price or unit_price) must be set. When
+ * UnitConfig is present on the rate card, up_to_amount is expressed in converted
+ * billing units.
  */
 @friendlyName("BillingPriceTier")
 model PriceTier {
   /**
-   * Up to and including this quantity will be contained in the tier.
-   * If undefined, the tier is open-ended (the last tier).
+   * Up to and including this quantity will be contained in the tier. If undefined,
+   * the tier is open-ended (the last tier).
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Up to quantity")
   up_to_amount?: Shared.Numeric;
 
   /**
-   * The flat price component of the tier.
-   * Charged once when the tier is entered.
+   * The flat price component of the tier. Charged once when the tier is entered.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Flat price component")
   flat_price?: PriceFlat;
 
   /**
-   * The unit price component of the tier.
-   * Charged per billing unit within the tier.
+   * The unit price component of the tier. Charged per billing unit within the tier.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Unit price component")
@@ -219,8 +217,8 @@ model PriceTier {
 }
 
 /**
- * Spend commitments for a rate card.
- * The customer is committed to spend at least the minimum amount and at most the maximum amount.
+ * Spend commitments for a rate card. The customer is committed to spend at least
+ * the minimum amount and at most the maximum amount.
  */
 @friendlyName("BillingSpendCommitments")
 model SpendCommitments {

@@ -4,7 +4,8 @@ import "../common/properties.tsp";
 namespace Customers;
 
 /**
- * Customers can be individuals or organizations that can subscribe to plans and have access to features.
+ * Customers can be individuals or organizations that can subscribe to plans and
+ * have access to features.
  */
 @friendlyName("BillingCustomer")
 model Customer {
@@ -29,16 +30,14 @@ model Customer {
   primary_email?: string;
 
   /**
-   * Currency of the customer.
-   * Used for billing, tax and invoicing.
+   * Currency of the customer. Used for billing, tax and invoicing.
    */
   @visibility(Lifecycle.Create, Lifecycle.Read, Lifecycle.Update)
   @summary("Currency")
   currency?: Shared.CurrencyCode;
 
   /**
-   * The billing address of the customer.
-   * Used for tax and invoicing.
+   * The billing address of the customer. Used for tax and invoicing.
    */
   @visibility(Lifecycle.Create, Lifecycle.Read, Lifecycle.Update)
   @summary("Billing Address")
@@ -51,7 +50,8 @@ model Customer {
 @friendlyName("BillingAddress")
 model Address {
   /**
-   * Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 format.
+   * Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html)
+   * alpha-2 format.
    */
   @visibility(Lifecycle.Create, Lifecycle.Read, Lifecycle.Update)
   @summary("Country")
@@ -101,15 +101,14 @@ model Address {
 }
 
 /**
- * Mapping to attribute metered usage to the customer.
- * One customer can have zero or more subjects,
- * but one subject can only belong to one customer.
+ * Mapping to attribute metered usage to the customer. One customer can have zero
+ * or more subjects, but one subject can only belong to one customer.
  */
 @friendlyName("BillingCustomerUsageAttribution")
 model CustomerUsageAttribution {
   /**
-   * The subjects that are attributed to the customer.
-   * Can be empty when no usage event subjects are associated with the customer.
+   * The subjects that are attributed to the customer. Can be empty when no usage
+   * event subjects are associated with the customer.
    */
   @visibility(Lifecycle.Create, Lifecycle.Read, Lifecycle.Update)
   @summary("Subject Keys")

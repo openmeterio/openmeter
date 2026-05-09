@@ -6,8 +6,8 @@ using TypeSpec.JsonSchema;
 namespace Meters;
 
 /**
- * The granularity of the time grouping.
- * Time durations are specified in ISO 8601 format.
+ * The granularity of the time grouping. Time durations are specified in ISO 8601
+ * format.
  */
 @friendlyName("MeterQueryGranularity")
 union MeterQueryGranularity {
@@ -42,8 +42,8 @@ union MeterQueryGranularity {
 @friendlyName("MeterQueryFilters")
 model MeterQueryFilters {
   /**
-   * Filters to apply to the dimensions of the query.
-   * For `subject` and `customer_id` only equals ("eq", "in") comparisons are supported.
+   * Filters to apply to the dimensions of the query. For `subject` and `customer_id`
+   * only equals ("eq", "in") comparisons are supported.
    */
   @maxProperties(10)
   dimensions?: Record<Shared.QueryFilterStringMapItem>;
@@ -72,15 +72,15 @@ model MeterQueryRequest {
   to?: Shared.DateTime;
 
   /**
-   * The size of the time buckets to group the usage into.
-   * If not specified, the usage is aggregated over the entire period.
+   * The size of the time buckets to group the usage into. If not specified, the
+   * usage is aggregated over the entire period.
    */
   granularity?: MeterQueryGranularity;
 
   /**
-   * The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
-   * The time zone is used to determine the start and end of the time buckets.
-   * If not specified, the UTC timezone will be used.
+   * The value is the name of the time zone as defined in the IANA Time Zone Database
+   * (http://www.iana.org/time-zones). The time zone is used to determine the start
+   * and end of the time buckets. If not specified, the UTC timezone will be used.
    */
   time_zone?: string = "UTC";
 
@@ -129,8 +129,7 @@ model MeterQueryResult {
   to?: Shared.DateTime;
 
   /**
-   * The usage data.
-   * If no data is available, an empty array is returned.
+   * The usage data. If no data is available, an empty array is returned.
    */
   data: MeterQueryRow[];
 }
@@ -167,8 +166,8 @@ model MeterQueryRow {
   to: Shared.DateTime;
 
   /**
-   * The dimensions the value is aggregated over.
-   * `subject` and `customer_id` are reserved dimensions.
+   * The dimensions the value is aggregated over. `subject` and `customer_id` are
+   * reserved dimensions.
    */
   dimensions: Record<string>;
 }
