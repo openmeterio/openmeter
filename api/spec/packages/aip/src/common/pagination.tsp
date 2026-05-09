@@ -13,7 +13,7 @@ namespace Common;
 @friendlyName("CursorPaginationQueryPage")
 model CursorPaginationQueryPage {
   /**
-   * Maximum number of customer rows to include in the response.
+   * The number of items to include per page.
    */
   size?: integer;
 

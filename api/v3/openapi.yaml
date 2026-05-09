@@ -20,7 +20,7 @@ servers:
     variables: {}
 tags:
   - name: OpenMeter Governance
-    description: Governance APIs let API Gateway plugins and other enforcement points evaluate, in bulk, whether customers have access to features. Designed to be called on a fixed refresh interval and cached on the gateway hot path; quota and credit computation stays in OpenMeter.
+    description: Governance evaluation of customers to check their feature access.
   - name: OpenMeter Defaults
     description: Organization-level default configuration.
   - name: OpenMeter Product Catalog
@@ -7467,7 +7467,7 @@ components:
       properties:
         size:
           type: integer
-          description: Maximum number of customer rows to include in the response.
+          description: The number of items to include per page.
         after:
           type: string
           description: Request the next page of data, starting with the item after this parameter.
@@ -7940,6 +7940,9 @@ components:
             The list of identifiers from the request that resolved to this customer. Each
             entry is either the customer `key` or one of its usage-attribution subject
             `key`s.
+
+            Duplicate or aliased identifiers that resolve to the same customer collapse to a
+            single result entry, with every requested identifier listed here.
           title: Matched Identifiers
           readOnly: true
         customer:

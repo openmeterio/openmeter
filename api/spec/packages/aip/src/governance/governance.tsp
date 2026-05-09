@@ -52,7 +52,6 @@ model GovernanceQueryFilters {
    *
    * Defaults to `false`.
    */
-  @visibility(Lifecycle.Create)
   @summary("Include credits")
   include_credits?: boolean = false;
 }
@@ -103,6 +102,9 @@ model GovernanceQueryResult {
    * The list of identifiers from the request that resolved to this customer. Each
    * entry is either the customer `key` or one of its usage-attribution subject
    * `key`s.
+   *
+   * Duplicate or aliased identifiers that resolve to the same customer collapse to a
+   * single result entry, with every requested identifier listed here.
    */
   @visibility(Lifecycle.Read)
   @summary("Matched Identifiers")
