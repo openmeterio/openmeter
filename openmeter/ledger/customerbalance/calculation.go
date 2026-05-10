@@ -44,6 +44,12 @@ func (i Impact) RealizedCredits() alpacadecimal.Decimal {
 		total := alpacadecimal.Zero
 
 		for _, run := range charge.Realizations {
+			// Deleted realizations have already had their credit allocations reversed, so they
+			// no longer reduce the customer's outstanding balance.
+			if run.DeletedAt != nil {
+				continue
+			}
+
 			total = total.Add(run.CreditsAllocated.Sum())
 		}
 

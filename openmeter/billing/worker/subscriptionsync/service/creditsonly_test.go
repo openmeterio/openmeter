@@ -935,7 +935,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedMidPe
 						To:   cancelAt,
 					},
 				},
-				InvoiceAt:  []time.Time{invoiceAt[0]},
+				InvoiceAt:  []time.Time{cancelAt},
 				FeatureKey: s.APIRequestsTotalFeature.Key,
 				Price:      *unitPrice,
 			},

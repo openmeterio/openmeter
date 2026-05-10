@@ -106,6 +106,12 @@ func (s *service) GetDetailedRatingForUsage(ctx context.Context, in GetDetailedR
 
 	// Let's fetch invoice based realizations that are before the current run's service period to.
 	eligibleRealizations := lo.Filter(charge.Realizations, func(run usagebased.RealizationRun, _ int) bool {
+		// Deleted realizations have had their billing effect undone, so rating must
+		// not treat their periods as previously invoiced when calculating late usage.
+		if run.DeletedAt != nil {
+			return false
+		}
+
 		if run.Type != usagebased.RealizationRunTypeFinalRealization && run.Type != usagebased.RealizationRunTypePartialInvoice {
 			return false
 		}
@@ -156,6 +162,12 @@ func (s *service) ensureDetailedLinesLoadedForRating(ctx context.Context, charge
 	}
 
 	if !lo.EveryBy(charge.Realizations, func(run usagebased.RealizationRun) bool {
+		// Deleted realizations are no longer part of the billable history, so rating
+		// does not require detailed lines for them.
+		if run.DeletedAt != nil {
+			return true
+		}
+
 		return !run.ServicePeriodTo.Before(servicePeriodTo) || run.DetailedLines.IsPresent()
 	}) {
 		expandedCharge, err := s.detailedLinesFetcher.FetchDetailedLines(ctx, charge)
@@ -167,6 +179,12 @@ func (s *service) ensureDetailedLinesLoadedForRating(ctx context.Context, charge
 	}
 
 	for idx, run := range charge.Realizations {
+		// Deleted realizations are not part of effective billable history, so they
+		// cannot block rating because their detailed lines are absent.
+		if run.DeletedAt != nil {
+			continue
+		}
+
 		// Extra safety: the fetcher contract should return all prior-run detailed
 		// lines, but rating must not proceed with incomplete prior runs as we will overcharge
 		// customers.

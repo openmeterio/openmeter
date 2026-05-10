@@ -137,7 +137,7 @@ func (a *adapter) GetByIDs(ctx context.Context, input usagebased.GetByIDsInput) 
 			Where(dbchargeusagebased.IDIn(input.IDs...))
 
 		if input.Expands.Has(meta.ExpandRealizations) {
-			query = expandRealizations(query)
+			query = expandRealizations(query, input.Expands)
 		}
 
 		entities, err := query.All(ctx)
@@ -181,7 +181,7 @@ func (a *adapter) GetByID(ctx context.Context, input usagebased.GetByIDInput) (u
 			Where(dbchargeusagebased.ID(input.ChargeID.ID))
 
 		if input.Expands.Has(meta.ExpandRealizations) {
-			query = expandRealizations(query)
+			query = expandRealizations(query, input.Expands)
 		}
 
 		entity, err := query.First(ctx)
@@ -209,11 +209,14 @@ func (a *adapter) GetByID(ctx context.Context, input usagebased.GetByIDInput) (u
 	})
 }
 
-func expandRealizations(query *db.ChargeUsageBasedQuery) *db.ChargeUsageBasedQuery {
+func expandRealizations(query *db.ChargeUsageBasedQuery, expands meta.Expands) *db.ChargeUsageBasedQuery {
 	return query.WithRuns(
 		func(runs *db.ChargeUsageBasedRunsQuery) {
-			runs.Where(dbchargeusagebasedruns.DeletedAtIsNil()).
-				WithCreditAllocations().
+			if !expands.Has(meta.ExpandDeletedRealizations) {
+				runs = runs.Where(dbchargeusagebasedruns.DeletedAtIsNil())
+			}
+
+			runs.WithCreditAllocations().
 				WithInvoicedUsage().
 				WithPayment()
 		},

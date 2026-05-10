@@ -251,6 +251,11 @@ func (e *LineEngine) OnMutableStandardLinesDeleted(ctx context.Context, input bi
 		if err != nil {
 			return err
 		}
+		// Deleted realizations have already been cleaned up through a prior line deletion,
+		// so billing must not run the cleanup path for them again.
+		if run.DeletedAt != nil {
+			return fmt.Errorf("usage based standard line[%s] cannot be deleted because realization run[%s] is already deleted", stdLine.ID, run.ID.ID)
+		}
 
 		if run.InvoiceID == nil || *run.InvoiceID != input.Invoice.ID {
 			return fmt.Errorf("usage based standard line[%s] cannot be deleted because realization run[%s] is not associated with invoice[%s]", stdLine.ID, run.ID.ID, input.Invoice.ID)
@@ -270,7 +275,6 @@ func (e *LineEngine) OnMutableStandardLinesDeleted(ctx context.Context, input bi
 		}
 
 		now := clock.Now()
-
 		if _, err := e.service.runs.CorrectAllCredits(ctx, usagebasedrun.CorrectAllCreditRealizationsInput{
 			Charge:             charge,
 			Run:                run,
@@ -309,6 +313,10 @@ func (e *LineEngine) markMutableStandardLineRunDeleted(
 	currentRunDeleted := charge.State.CurrentRealizationRunID != nil && *charge.State.CurrentRealizationRunID == run.ID.ID
 	if currentRunDeleted {
 		charge.State.CurrentRealizationRunID = nil
+		if charge.Status != usagebased.StatusDeleted {
+			charge.Status = usagebased.StatusActive
+			charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(charge.Intent.ServicePeriod.To))
+		}
 
 		updatedChargeBase, err := e.service.adapter.UpdateCharge(ctx, charge.ChargeBase)
 		if err != nil {
@@ -322,6 +330,9 @@ func (e *LineEngine) markMutableStandardLineRunDeleted(
 }
 
 func (e *LineEngine) getChargesForMutableStandardLineDelete(ctx context.Context, input billing.OnMutableStandardLinesDeletedInput) (map[string]usagebased.Charge, error) {
+	chargeIDs := make([]string, 0, len(input.Lines))
+	seenChargeIDs := make(map[string]struct{}, len(input.Lines))
+
 	for _, stdLine := range input.Lines {
 		if stdLine.ChargeID == nil || *stdLine.ChargeID == "" {
 			return nil, fmt.Errorf("usage based standard line[%s]: charge id is required", stdLine.ID)
@@ -330,11 +341,14 @@ func (e *LineEngine) getChargesForMutableStandardLineDelete(ctx context.Context,
 		if stdLine.Namespace != input.Invoice.Namespace {
 			return nil, fmt.Errorf("usage based standard line[%s]: namespace %s does not match invoice namespace %s", stdLine.ID, stdLine.Namespace, input.Invoice.Namespace)
 		}
-	}
 
-	chargeIDs := lo.Uniq(lo.Map(input.Lines, func(stdLine *billing.StandardLine, _ int) string {
-		return *stdLine.ChargeID
-	}))
+		if _, ok := seenChargeIDs[*stdLine.ChargeID]; ok {
+			continue
+		}
+
+		seenChargeIDs[*stdLine.ChargeID] = struct{}{}
+		chargeIDs = append(chargeIDs, *stdLine.ChargeID)
+	}
 
 	charges, err := e.service.GetByIDs(ctx, usagebased.GetByIDsInput{
 		Namespace: input.Invoice.Namespace,

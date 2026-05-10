@@ -73,6 +73,35 @@ func TestRealizationRuns_MapToBillingMeteredQuantity(t *testing.T) {
 			),
 			wantErr: true,
 		},
+		{
+			name: "ignores deleted prior runs",
+			runs: RealizationRuns{
+				func() RealizationRun {
+					run := newRealizationRunForBillingMeteredQuantityTest(
+						"deleted-run",
+						RealizationRunTypePartialInvoice,
+						periodStart.Add(48*time.Hour),
+						18,
+					)
+					run.DeletedAt = &periodStart
+					return run
+				}(),
+				newRealizationRunForBillingMeteredQuantityTest(
+					"run-1",
+					RealizationRunTypePartialInvoice,
+					periodStart.Add(24*time.Hour),
+					5,
+				),
+			},
+			currentRun: newRealizationRunForBillingMeteredQuantityTest(
+				"current",
+				RealizationRunTypeFinalRealization,
+				periodStart.Add(72*time.Hour),
+				20,
+			),
+			wantLine:    15,
+			wantPreLine: 5,
+		},
 	}
 
 	for _, tt := range tests {
@@ -95,12 +124,6 @@ func TestRealizationRuns_GetByLineID(t *testing.T) {
 	otherLineID := "line-2"
 
 	runs := RealizationRuns{
-		{
-			RealizationRunBase: RealizationRunBase{
-				ID:     RealizationRunID{Namespace: "namespace", ID: "run-without-line"},
-				LineID: nil,
-			},
-		},
 		{
 			RealizationRunBase: RealizationRunBase{
 				ID:     RealizationRunID{Namespace: "namespace", ID: "run-1"},

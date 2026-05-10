@@ -142,11 +142,11 @@ Important routing rules:
 
 The `filterInScopeLines` function gates which target items enter reconciliation. It filters out non-billable items for every backend, and only invoicing-backed targets are additionally gated on `GetExpectedLine()`. This runs before any diffing so absent targets naturally produce delete/no-op outcomes.
 
-Current charge limitations:
-- charge collections only support create
-- delete/shrink/extend/prorate return unsupported errors
-
-This is intentional. If a test expects credit-only cancellation to fail on delete, that is current behavior, not a bug in the test.
+Charge-backed mutation notes:
+- charge collections support create/delete and period-shape changes
+- shrink and most extend operations are emitted as an emulated replacement: delete the existing charge and create a replacement charge from the target state
+- usage-based `credit_then_invoice` extend is emitted as a native charge patch so the usage-based state machine can preserve existing immutable invoice/ledger state and keep the invoice train unblocked
+- charge-backed explicit prorate still returns unsupported; charge domains own their own proration/materialization behavior
 
 ## Invoice vs Charge Semantics
 
@@ -160,8 +160,10 @@ Keep these separate:
 - Charge sync:
   - provisions charge intents directly
   - does not go through invoice-line rendering
-  - currently only create is supported
-  - invoice-style semantic proration is skipped in `diffItem(...)`; charges own their own proration logic
+  - supports create/delete and period-shape changes
+  - emits shrink and most extend operations as delete+create replacements
+  - emits usage-based `credit_then_invoice` extend as a native charge patch
+  - keeps explicit prorate unsupported because charges own their own proration logic
 
 Do not force charge behavior through invoice abstractions.
 

@@ -119,6 +119,7 @@ func (r CreateRealizationRunInput) Validate() error {
 type UpdateRealizationRunInput struct {
 	ID RealizationRunID
 
+	Type                      mo.Option[RealizationRunType]    `json:"type"`
 	StoredAtLT                mo.Option[time.Time]             `json:"storedAtLT"`
 	DeletedAt                 mo.Option[*time.Time]            `json:"deletedAt,omitempty"`
 	LineID                    mo.Option[*string]               `json:"lineId,omitempty"`
@@ -141,6 +142,12 @@ func (r UpdateRealizationRunInput) Validate() error {
 
 	if err := r.ID.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("namespaced id: %w", err))
+	}
+
+	if r.Type.IsPresent() {
+		if err := r.Type.OrEmpty().Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("type: %w", err))
+		}
 	}
 
 	if r.StoredAtLT.IsPresent() && r.StoredAtLT.OrEmpty().IsZero() {
@@ -294,6 +301,12 @@ func (r RealizationRuns) MapToBillingMeteredQuantity(currentRun RealizationRun) 
 	var latestPriorRun *RealizationRun
 
 	for idx := range r {
+		// Deleted realizations no longer represent an effective invoice line, so
+		// they must not contribute previously billed quantity to later lines.
+		if r[idx].DeletedAt != nil {
+			continue
+		}
+
 		if r[idx].Type != RealizationRunTypeFinalRealization && r[idx].Type != RealizationRunTypePartialInvoice {
 			continue
 		}
@@ -359,7 +372,6 @@ func (r RealizationRuns) GetByID(id string) (RealizationRun, error) {
 }
 
 func (r RealizationRuns) GetByLineID(lineID string) (RealizationRun, error) {
-	// Billing standard line IDs are assigned once to a single realization run.
 	run, found := lo.Find(r, func(run RealizationRun) bool {
 		return run.LineID != nil && *run.LineID == lineID
 	})

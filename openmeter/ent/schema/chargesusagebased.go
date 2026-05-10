@@ -172,8 +172,7 @@ func (ChargeUsageBasedRuns) Fields() []ent.Field {
 			Comment("For future-proofing runs may diverge from the charge feature later, but today this matches the parent charge feature_id."),
 
 		field.Enum("type").
-			GoType(usagebased.RealizationRunType("")).
-			Immutable(),
+			GoType(usagebased.RealizationRunType("")),
 
 		field.Time("stored_at_lt"),
 

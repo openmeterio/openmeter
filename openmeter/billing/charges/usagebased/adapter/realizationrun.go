@@ -57,6 +57,10 @@ func (a *adapter) UpdateRealizationRun(ctx context.Context, input usagebased.Upd
 		update := tx.db.ChargeUsageBasedRuns.UpdateOneID(input.ID.ID).
 			Where(dbchargeusagebasedruns.NamespaceEQ(input.ID.Namespace))
 
+		if input.Type.IsPresent() {
+			update = update.SetType(input.Type.OrEmpty())
+		}
+
 		if input.StoredAtLT.IsPresent() {
 			update = update.SetStoredAtLt(input.StoredAtLT.OrEmpty())
 		}

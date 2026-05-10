@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
@@ -168,6 +169,20 @@ func (_u *ChargeUsageBasedRunsUpdate) SetTotal(v alpacadecimal.Decimal) *ChargeU
 func (_u *ChargeUsageBasedRunsUpdate) SetNillableTotal(v *alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdate {
 	if v != nil {
 		_u.SetTotal(*v)
+	}
+	return _u
+}
+
+// SetType sets the "type" field.
+func (_u *ChargeUsageBasedRunsUpdate) SetType(v usagebased.RealizationRunType) *ChargeUsageBasedRunsUpdate {
+	_u.mutation.SetType(v)
+	return _u
+}
+
+// SetNillableType sets the "type" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdate) SetNillableType(v *usagebased.RealizationRunType) *ChargeUsageBasedRunsUpdate {
+	if v != nil {
+		_u.SetType(*v)
 	}
 	return _u
 }
@@ -474,6 +489,11 @@ func (_u *ChargeUsageBasedRunsUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *ChargeUsageBasedRunsUpdate) check() error {
+	if v, ok := _u.mutation.GetType(); ok {
+		if err := chargeusagebasedruns.TypeValidator(v); err != nil {
+			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRuns.type": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.LineID(); ok {
 		if err := chargeusagebasedruns.LineIDValidator(v); err != nil {
 			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRuns.line_id": %w`, err)}
@@ -532,6 +552,9 @@ func (_u *ChargeUsageBasedRunsUpdate) sqlSave(ctx context.Context) (_node int, e
 	}
 	if value, ok := _u.mutation.Total(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.GetType(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldType, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.StoredAtLt(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldStoredAtLt, field.TypeTime, value)
@@ -925,6 +948,20 @@ func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableTotal(v *alpacadecimal.Decim
 	return _u
 }
 
+// SetType sets the "type" field.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetType(v usagebased.RealizationRunType) *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.SetType(v)
+	return _u
+}
+
+// SetNillableType sets the "type" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableType(v *usagebased.RealizationRunType) *ChargeUsageBasedRunsUpdateOne {
+	if v != nil {
+		_u.SetType(*v)
+	}
+	return _u
+}
+
 // SetStoredAtLt sets the "stored_at_lt" field.
 func (_u *ChargeUsageBasedRunsUpdateOne) SetStoredAtLt(v time.Time) *ChargeUsageBasedRunsUpdateOne {
 	_u.mutation.SetStoredAtLt(v)
@@ -1240,6 +1277,11 @@ func (_u *ChargeUsageBasedRunsUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *ChargeUsageBasedRunsUpdateOne) check() error {
+	if v, ok := _u.mutation.GetType(); ok {
+		if err := chargeusagebasedruns.TypeValidator(v); err != nil {
+			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRuns.type": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.LineID(); ok {
 		if err := chargeusagebasedruns.LineIDValidator(v); err != nil {
 			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRuns.line_id": %w`, err)}
@@ -1315,6 +1357,9 @@ func (_u *ChargeUsageBasedRunsUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 	}
 	if value, ok := _u.mutation.Total(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.GetType(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldType, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.StoredAtLt(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldStoredAtLt, field.TypeTime, value)

@@ -33,6 +33,17 @@ const (
 	StatusDeleted Status = Status(meta.ChargeStatusDeleted)
 )
 
+// mutableFinalRealizationStatuses are final realization states backed by mutable invoice lines.
+var mutableFinalRealizationStatuses = []Status{
+	StatusActiveFinalRealizationStarted,
+	StatusActiveFinalRealizationWaitingForCollection,
+	StatusActiveFinalRealizationProcessing,
+}
+
+func IsMutableFinalRealizationStatus(status Status) bool {
+	return slices.Contains(mutableFinalRealizationStatuses, status)
+}
+
 func (Status) Values() []string {
 	return []string{
 		string(StatusCreated),

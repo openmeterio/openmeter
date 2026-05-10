@@ -929,6 +929,18 @@ func (u *ChargeUsageBasedRunsUpsert) UpdateTotal() *ChargeUsageBasedRunsUpsert {
 	return u
 }
 
+// SetType sets the "type" field.
+func (u *ChargeUsageBasedRunsUpsert) SetType(v usagebased.RealizationRunType) *ChargeUsageBasedRunsUpsert {
+	u.Set(chargeusagebasedruns.FieldType, v)
+	return u
+}
+
+// UpdateType sets the "type" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsert) UpdateType() *ChargeUsageBasedRunsUpsert {
+	u.SetExcluded(chargeusagebasedruns.FieldType)
+	return u
+}
+
 // SetStoredAtLt sets the "stored_at_lt" field.
 func (u *ChargeUsageBasedRunsUpsert) SetStoredAtLt(v time.Time) *ChargeUsageBasedRunsUpsert {
 	u.Set(chargeusagebasedruns.FieldStoredAtLt, v)
@@ -1023,9 +1035,6 @@ func (u *ChargeUsageBasedRunsUpsertOne) UpdateNewValues() *ChargeUsageBasedRunsU
 		}
 		if _, exists := u.create.mutation.FeatureID(); exists {
 			s.SetIgnore(chargeusagebasedruns.FieldFeatureID)
-		}
-		if _, exists := u.create.mutation.GetType(); exists {
-			s.SetIgnore(chargeusagebasedruns.FieldType)
 		}
 		if _, exists := u.create.mutation.ServicePeriodTo(); exists {
 			s.SetIgnore(chargeusagebasedruns.FieldServicePeriodTo)
@@ -1208,6 +1217,20 @@ func (u *ChargeUsageBasedRunsUpsertOne) SetTotal(v alpacadecimal.Decimal) *Charg
 func (u *ChargeUsageBasedRunsUpsertOne) UpdateTotal() *ChargeUsageBasedRunsUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
 		s.UpdateTotal()
+	})
+}
+
+// SetType sets the "type" field.
+func (u *ChargeUsageBasedRunsUpsertOne) SetType(v usagebased.RealizationRunType) *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetType(v)
+	})
+}
+
+// UpdateType sets the "type" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertOne) UpdateType() *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateType()
 	})
 }
 
@@ -1483,9 +1506,6 @@ func (u *ChargeUsageBasedRunsUpsertBulk) UpdateNewValues() *ChargeUsageBasedRuns
 			if _, exists := b.mutation.FeatureID(); exists {
 				s.SetIgnore(chargeusagebasedruns.FieldFeatureID)
 			}
-			if _, exists := b.mutation.GetType(); exists {
-				s.SetIgnore(chargeusagebasedruns.FieldType)
-			}
 			if _, exists := b.mutation.ServicePeriodTo(); exists {
 				s.SetIgnore(chargeusagebasedruns.FieldServicePeriodTo)
 			}
@@ -1668,6 +1688,20 @@ func (u *ChargeUsageBasedRunsUpsertBulk) SetTotal(v alpacadecimal.Decimal) *Char
 func (u *ChargeUsageBasedRunsUpsertBulk) UpdateTotal() *ChargeUsageBasedRunsUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
 		s.UpdateTotal()
+	})
+}
+
+// SetType sets the "type" field.
+func (u *ChargeUsageBasedRunsUpsertBulk) SetType(v usagebased.RealizationRunType) *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetType(v)
+	})
+}
+
+// UpdateType sets the "type" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertBulk) UpdateType() *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateType()
 	})
 }
 
