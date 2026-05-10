@@ -160,8 +160,10 @@ Keep these separate:
 - Charge sync:
   - provisions charge intents directly
   - does not go through invoice-line rendering
-  - currently only create is supported
-  - invoice-style semantic proration is skipped in `diffItem(...)`; charges own their own proration logic
+  - supports create/delete and period-shape changes
+  - emits shrink and most extend operations as delete+create replacements
+  - emits usage-based `credit_then_invoice` extend as a native charge patch
+  - keeps explicit prorate unsupported because charges own their own proration logic
 
 Do not force charge behavior through invoice abstractions.
 

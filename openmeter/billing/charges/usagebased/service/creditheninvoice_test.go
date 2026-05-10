@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -38,6 +39,72 @@ func TestUnsupportedExtendOperation(t *testing.T) {
 			require.Empty(t, machine.InvoicePatches())
 		})
 	}
+}
+
+func TestUnsupportedExtendOperationIsConfiguredForFinalRealizationBoundary(t *testing.T) {
+	for _, status := range []usagebased.Status{
+		usagebased.StatusActiveFinalRealizationIssuing,
+		usagebased.StatusActiveFinalRealizationCompleted,
+	} {
+		t.Run(string(status), func(t *testing.T) {
+			machine := newCreditThenInvoiceStateMachineForTest(t, status)
+			patch, err := meta.NewPatchExtend(meta.NewPatchExtendInput{
+				NewServicePeriodTo:     time.Date(2026, 2, 2, 0, 0, 0, 0, time.UTC),
+				NewFullServicePeriodTo: time.Date(2026, 2, 2, 0, 0, 0, 0, time.UTC),
+				NewBillingPeriodTo:     time.Date(2026, 2, 2, 0, 0, 0, 0, time.UTC),
+			})
+			require.NoError(t, err)
+
+			canFire, err := machine.CanFire(t.Context(), meta.TriggerExtend)
+			require.NoError(t, err)
+			require.True(t, canFire)
+
+			err = machine.FireAndActivate(t.Context(), patch.Trigger(), patch.TriggerParams())
+			require.Error(t, err)
+			require.True(t, models.IsGenericPreConditionFailedError(err))
+			require.ErrorContains(t, err, "cannot extend usage-based charge in status "+string(status))
+			require.Empty(t, machine.InvoicePatches())
+			require.Equal(t, status, machine.GetCharge().Status)
+		})
+	}
+}
+
+func newCreditThenInvoiceStateMachineForTest(t *testing.T, status usagebased.Status) *CreditThenInvoiceStateMachine {
+	t.Helper()
+
+	charge := usagebased.Charge{
+		ChargeBase: usagebased.ChargeBase{
+			ManagedResource: meta.ManagedResource{
+				NamespacedModel: models.NamespacedModel{
+					Namespace: "namespace",
+				},
+				ID: "charge-id",
+			},
+			Status: status,
+		},
+	}
+
+	machine, err := chargestatemachine.New(chargestatemachine.Config[usagebased.Charge, usagebased.ChargeBase, usagebased.Status]{
+		Charge: charge,
+		Persistence: chargestatemachine.Persistence[usagebased.Charge, usagebased.ChargeBase]{
+			UpdateBase: func(_ context.Context, base usagebased.ChargeBase) (usagebased.ChargeBase, error) {
+				return base, nil
+			},
+			Refetch: func(_ context.Context, _ meta.ChargeID) (usagebased.Charge, error) {
+				return charge, nil
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	out := &CreditThenInvoiceStateMachine{
+		stateMachine: &stateMachine{
+			Machine: machine,
+		},
+	}
+	out.configureStates()
+
+	return out
 }
 
 func TestStartInvoiceCreatedRunValidatesInput(t *testing.T) {

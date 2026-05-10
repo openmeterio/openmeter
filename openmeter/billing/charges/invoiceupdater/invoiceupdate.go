@@ -362,6 +362,9 @@ func (u *Updater) resolveGatheringLineUpdatesByChargeID(ctx context.Context, cus
 
 			line.ServicePeriod.To = updatePatch.ServicePeriodTo
 			line.InvoiceAt = updatePatch.ServicePeriodTo
+			if line.Subscription != nil {
+				line.Subscription.BillingPeriod.To = updatePatch.ServicePeriodTo
+			}
 
 			genericLine, err := line.AsInvoiceLine().AsGenericLine()
 			if err != nil {

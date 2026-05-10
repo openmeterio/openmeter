@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"slices"
 	"time"
 
 	"github.com/samber/lo"
@@ -310,7 +309,7 @@ func (s *CreditThenInvoiceStateMachine) UnsupportedExtendOperation(_ context.Con
 // that case the old invoice remains the historical partial bill and only the
 // extended tail is left for a future invoice.
 func (s *CreditThenInvoiceStateMachine) handleFinalRunOnExtend(ctx context.Context, oldServicePeriod timeutil.ClosedPeriod) (mo.Option[timeutil.ClosedPeriod], error) {
-	if slices.Contains(usagebased.MutableFinalRealizationStatuses, s.Charge.Status) {
+	if usagebased.IsMutableFinalRealizationStatus(s.Charge.Status) {
 		if s.Charge.State.CurrentRealizationRunID == nil {
 			return mo.None[timeutil.ClosedPeriod](), fmt.Errorf("current final realization run is required [charge_id=%s,status=%s]", s.Charge.ID, s.Charge.Status)
 		}
