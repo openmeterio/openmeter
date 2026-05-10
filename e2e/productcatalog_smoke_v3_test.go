@@ -64,10 +64,7 @@ func TestV3ProductCatalogSmoke(t *testing.T) {
 		status, f, problem := c.CreateFeature(apiv3.CreateFeatureRequest{
 			Key:  featureKey,
 			Name: "Test Feature " + featureKey,
-			Meter: &struct {
-				Filters *map[string]apiv3.QueryFilterStringMapItem `json:"filters,omitempty"`
-				Id      apiv3.ULID                                 `json:"id"`
-			}{
+			Meter: &apiv3.FeatureMeterReference{
 				Id: meterID,
 			},
 		})
