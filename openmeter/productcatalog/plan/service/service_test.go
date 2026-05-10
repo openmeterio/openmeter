@@ -113,7 +113,7 @@ func TestPlanService(t *testing.T) {
 
 	t.Run("Plan", func(t *testing.T) {
 		t.Run("Create", func(t *testing.T) {
-			planInput := pctestutils.NewTestPlan(t, namespace, []productcatalog.Phase{
+			planPhases := []productcatalog.Phase{
 				{
 					PhaseMeta: productcatalog.PhaseMeta{
 						Key:         "trial",
@@ -200,7 +200,9 @@ func TestPlanService(t *testing.T) {
 						},
 					},
 				},
-			}...)
+			}
+
+			planInput := pctestutils.NewTestPlan(t, namespace, pctestutils.WithPlanPhases(planPhases...))
 
 			var draftPlanV1 *plan.Plan
 
@@ -214,9 +216,15 @@ func TestPlanService(t *testing.T) {
 				"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusDraft, draftPlanV1.Status())
 
 			t.Run("WithCreditOnlySettlement", func(t *testing.T) {
-				creditOnlyInput := pctestutils.NewTestPlan(t, namespace, planInput.Phases...)
-				creditOnlyInput.Key = "test-credit-only"
-				creditOnlyInput.SettlementMode = productcatalog.CreditOnlySettlementMode
+				creditOnlyInput := pctestutils.NewTestPlan(t, namespace,
+					pctestutils.WithPlanPhases(planInput.Phases...),
+					func(t *testing.T, p *productcatalog.Plan) {
+						t.Helper()
+
+						p.Key = "test-credit-only"
+						p.SettlementMode = productcatalog.CreditOnlySettlementMode
+					},
+				)
 
 				p, err := env.Plan.CreatePlan(ctx, creditOnlyInput)
 				require.NoErrorf(t, err, "creating plan with credit_only settlement must not fail")
@@ -227,9 +235,15 @@ func TestPlanService(t *testing.T) {
 			})
 
 			t.Run("DefaultsSettlementModeWhenEmpty", func(t *testing.T) {
-				defaultInput := pctestutils.NewTestPlan(t, namespace, planInput.Phases...)
-				defaultInput.Key = "test-default-settlement"
-				defaultInput.SettlementMode = "" // explicitly empty, simulating API caller that doesn't set it
+				defaultInput := pctestutils.NewTestPlan(t, namespace,
+					pctestutils.WithPlanPhases(planInput.Phases...),
+					func(t *testing.T, p *productcatalog.Plan) {
+						t.Helper()
+
+						p.Key = "test-default-settlement"
+						p.SettlementMode = ""
+					},
+				)
 
 				p, err := env.Plan.CreatePlan(ctx, defaultInput)
 				require.NoErrorf(t, err, "creating plan without settlement mode must not fail")
@@ -840,31 +854,37 @@ func TestListPlansFilters(t *testing.T) {
 
 	// createPlan builds a draft plan with a minimal FlatFeeRateCard phase (no feature reference).
 	createPlan := func(key, name string, cur currency.Code) {
-		input := pctestutils.NewTestPlan(t, ns, productcatalog.Phase{
-			PhaseMeta: productcatalog.PhaseMeta{
-				Key:  "default",
-				Name: "Default",
-			},
-			RateCards: []productcatalog.RateCard{
-				&productcatalog.FlatFeeRateCard{
-					RateCardMeta: productcatalog.RateCardMeta{
-						Key:  "flat-fee",
-						Name: "Flat Fee",
-						TaxConfig: &productcatalog.TaxConfig{
-							Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-						},
-						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-							Amount:      decimal.NewFromInt(0),
-							PaymentTerm: productcatalog.InArrearsPaymentTerm,
-						}),
-					},
-					BillingCadence: &monthPeriod,
+		input := pctestutils.NewTestPlan(t, ns,
+			pctestutils.WithPlanPhases(productcatalog.Phase{
+				PhaseMeta: productcatalog.PhaseMeta{
+					Key:  "default",
+					Name: "Default",
 				},
+				RateCards: []productcatalog.RateCard{
+					&productcatalog.FlatFeeRateCard{
+						RateCardMeta: productcatalog.RateCardMeta{
+							Key:  "flat-fee",
+							Name: "Flat Fee",
+							TaxConfig: &productcatalog.TaxConfig{
+								Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+							},
+							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+								Amount:      decimal.NewFromInt(0),
+								PaymentTerm: productcatalog.InArrearsPaymentTerm,
+							}),
+						},
+						BillingCadence: &monthPeriod,
+					},
+				},
+			}),
+			func(t *testing.T, p *productcatalog.Plan) {
+				t.Helper()
+
+				p.Key = key
+				p.Name = name
+				p.Currency = cur
 			},
-		})
-		input.Key = key
-		input.Name = name
-		input.Currency = cur
+		)
 
 		_, err := env.Plan.CreatePlan(ctx, input)
 		require.NoError(t, err, "creating plan %q must not fail", key)

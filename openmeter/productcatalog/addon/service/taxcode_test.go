@@ -19,7 +19,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
-	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -807,27 +806,32 @@ func TestAddonWithPlanTaxCode(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create a plan. Rate card billing cadence must match the plan's P1M cadence.
-		planMonthPeriod := datetime.MustParseDuration(t, "P1M")
-		planInput := pctestutils.NewTestPlan(t, namespace, productcatalog.Phase{
-			PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
-			RateCards: productcatalog.RateCards{
-				&productcatalog.FlatFeeRateCard{
-					RateCardMeta: productcatalog.RateCardMeta{
-						Key:        features[0].Key,
-						Name:       features[0].Name,
-						FeatureKey: lo.ToPtr(features[0].Key),
-						FeatureID:  lo.ToPtr(features[0].ID),
-						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-							Amount:      decimal.NewFromInt(100),
-							PaymentTerm: productcatalog.InArrearsPaymentTerm,
-						}),
+		planInput := pctestutils.NewTestPlan(t, namespace,
+			pctestutils.WithPlanPhases(productcatalog.Phase{
+				PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
+				RateCards: productcatalog.RateCards{
+					&productcatalog.FlatFeeRateCard{
+						RateCardMeta: productcatalog.RateCardMeta{
+							Key:        features[0].Key,
+							Name:       features[0].Name,
+							FeatureKey: lo.ToPtr(features[0].Key),
+							FeatureID:  lo.ToPtr(features[0].ID),
+							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+								Amount:      decimal.NewFromInt(100),
+								PaymentTerm: productcatalog.InArrearsPaymentTerm,
+							}),
+						},
+						BillingCadence: &pctestutils.MonthPeriod,
 					},
-					BillingCadence: &planMonthPeriod,
 				},
+			}),
+			func(t *testing.T, p *productcatalog.Plan) {
+				t.Helper()
+
+				p.Key = "plan-for-addon-backfill"
+				p.Name = "Plan For Addon Backfill"
 			},
-		})
-		planInput.Key = "plan-for-addon-backfill"
-		planInput.Name = "Plan For Addon Backfill"
+		)
 
 		p, err := env.Plan.CreatePlan(ctx, planInput)
 		require.NoError(t, err)
