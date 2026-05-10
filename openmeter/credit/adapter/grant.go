@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils/softdelete"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -81,6 +82,12 @@ func (g *grantDBADapter) VoidGrant(ctx context.Context, grantID models.Namespace
 }
 
 func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListParams) (pagination.Result[grant.Grant], error) {
+	// Soft-delete filtering is normally injected by softdelete.Interceptor.
+	// Honor IncludeDeleted by skipping the interceptor on this call.
+	if params.IncludeDeleted {
+		ctx = softdelete.Skip(ctx)
+	}
+
 	query := g.db.Grant.Query().Where(db_grant.Namespace(params.Namespace))
 
 	now := clock.Now()
@@ -90,6 +97,10 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListParams
 	}
 
 	if !params.IncludeDeleted {
+		// TODO(soft-delete): These manual predicates are now redundant with
+		// the softdelete interceptor on Grant. Leaving them in place during
+		// the pilot; remove in the follow-up that audits all soft-delete
+		// call sites for this entity.
 		query = query.Where(
 			db_grant.Or(db_grant.DeletedAtIsNil(), db_grant.DeletedAtGT(now)),
 			db_grant.HasEntitlementWith(db_entitlement.Or(
@@ -209,6 +220,12 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListParams
 }
 
 func (g *grantDBADapter) ListActiveGrantsBetween(ctx context.Context, owner models.NamespacedID, from, to time.Time) ([]grant.Grant, error) {
+	// This query intentionally inspects rows whose `deleted_at` falls
+	// between `from` and the current time. The softdelete interceptor
+	// would AND-in `deleted_at IS NULL OR deleted_at > now`, which hides
+	// exactly the rows this function needs. Skip it explicitly.
+	ctx = softdelete.Skip(ctx)
+
 	query := g.db.Grant.Query().
 		Where(db_grant.And(db_grant.OwnerID(owner.ID), db_grant.Namespace(owner.Namespace))).
 		Where(db_grant.AmountGTE(0.0)). // For a time we allowed negative grant amounts with an undefined behavior, for continuity we just silently ignore them.

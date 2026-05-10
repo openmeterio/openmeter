@@ -9722,12 +9722,14 @@ func (c *CustomerSubjectsClient) QueryCustomer(_m *CustomerSubjects) *CustomerQu
 
 // Hooks returns the client hooks.
 func (c *CustomerSubjectsClient) Hooks() []Hook {
-	return c.hooks.CustomerSubjects
+	hooks := c.hooks.CustomerSubjects
+	return append(hooks[:len(hooks):len(hooks)], customersubjects.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *CustomerSubjectsClient) Interceptors() []Interceptor {
-	return c.inters.CustomerSubjects
+	inters := c.inters.CustomerSubjects
+	return append(inters[:len(inters):len(inters)], customersubjects.Interceptors[:]...)
 }
 
 func (c *CustomerSubjectsClient) mutate(ctx context.Context, m *CustomerSubjectsMutation) (Value, error) {
@@ -10345,12 +10347,14 @@ func (c *GrantClient) QueryEntitlement(_m *Grant) *EntitlementQuery {
 
 // Hooks returns the client hooks.
 func (c *GrantClient) Hooks() []Hook {
-	return c.hooks.Grant
+	hooks := c.hooks.Grant
+	return append(hooks[:len(hooks):len(hooks)], dbgrant.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *GrantClient) Interceptors() []Interceptor {
-	return c.inters.Grant
+	inters := c.inters.Grant
+	return append(inters[:len(inters):len(inters)], dbgrant.Interceptors[:]...)
 }
 
 func (c *GrantClient) mutate(ctx context.Context, m *GrantMutation) (Value, error) {

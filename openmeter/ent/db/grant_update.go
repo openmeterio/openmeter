@@ -106,7 +106,9 @@ func (_u *GrantUpdate) Mutation() *GrantMutation {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *GrantUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -133,11 +135,15 @@ func (_u *GrantUpdate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *GrantUpdate) defaults() {
+func (_u *GrantUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if dbgrant.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized dbgrant.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := dbgrant.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -309,7 +315,9 @@ func (_u *GrantUpdateOne) Select(field string, fields ...string) *GrantUpdateOne
 
 // Save executes the query and returns the updated Grant entity.
 func (_u *GrantUpdateOne) Save(ctx context.Context) (*Grant, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -336,11 +344,15 @@ func (_u *GrantUpdateOne) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *GrantUpdateOne) defaults() {
+func (_u *GrantUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if dbgrant.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized dbgrant.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := dbgrant.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
