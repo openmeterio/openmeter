@@ -3,6 +3,7 @@ package invoiceupdater
 import (
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 )
@@ -14,6 +15,7 @@ const (
 	PatchOpLineDelete                    PatchOperation = "line_delete"
 	PatchOpLineUpdate                    PatchOperation = "line_update"
 	PatchOpDeleteGatheringLineByChargeID PatchOperation = "delete_gathering_line_by_charge_id"
+	PatchOpUpdateGatheringLineByChargeID PatchOperation = "update_gathering_line_by_charge_id"
 )
 
 type PatchLineCreate struct {
@@ -33,6 +35,11 @@ type PatchDeleteGatheringLineByChargeID struct {
 	ChargeID string
 }
 
+type PatchUpdateGatheringLineByChargeID struct {
+	ChargeID        string
+	ServicePeriodTo time.Time
+}
+
 type Patch struct {
 	op PatchOperation
 
@@ -40,6 +47,7 @@ type Patch struct {
 	deleteLinePatch                    PatchLineDelete
 	updateLinePatch                    PatchLineUpdate
 	deleteGatheringLineByChargeIDPatch PatchDeleteGatheringLineByChargeID
+	updateGatheringLineByChargeIDPatch PatchUpdateGatheringLineByChargeID
 }
 
 func (p Patch) Op() PatchOperation {
@@ -78,6 +86,14 @@ func (p Patch) AsDeleteGatheringLineByChargeIDPatch() (PatchDeleteGatheringLineB
 	return p.deleteGatheringLineByChargeIDPatch, nil
 }
 
+func (p Patch) AsUpdateGatheringLineByChargeIDPatch() (PatchUpdateGatheringLineByChargeID, error) {
+	if p.op != PatchOpUpdateGatheringLineByChargeID {
+		return PatchUpdateGatheringLineByChargeID{}, fmt.Errorf("expected update gathering line by charge ID patch, got %s", p.op)
+	}
+
+	return p.updateGatheringLineByChargeIDPatch, nil
+}
+
 func NewDeleteLinePatch(lineID billing.LineID, invoiceID string) Patch {
 	return Patch{
 		op: PatchOpLineDelete,
@@ -93,6 +109,16 @@ func NewDeleteGatheringLineByChargeIDPatch(chargeID string) Patch {
 		op: PatchOpDeleteGatheringLineByChargeID,
 		deleteGatheringLineByChargeIDPatch: PatchDeleteGatheringLineByChargeID{
 			ChargeID: chargeID,
+		},
+	}
+}
+
+func NewUpdateGatheringLineByChargeIDPatch(chargeID string, servicePeriodTo time.Time) Patch {
+	return Patch{
+		op: PatchOpUpdateGatheringLineByChargeID,
+		updateGatheringLineByChargeIDPatch: PatchUpdateGatheringLineByChargeID{
+			ChargeID:        chargeID,
+			ServicePeriodTo: servicePeriodTo,
 		},
 	}
 }
@@ -125,6 +151,8 @@ func (p Patch) Log(logger *slog.Logger) {
 		logger.Info("update line patch", "line_id", p.updateLinePatch.TargetState.GetLineID().ID, "invoice_id", p.updateLinePatch.TargetState.GetInvoiceID(), "new_service_period_from", p.updateLinePatch.TargetState.GetServicePeriod().From, "new_service_period_to", p.updateLinePatch.TargetState.GetServicePeriod().To, "unique_reference_id", p.updateLinePatch.TargetState.GetChildUniqueReferenceID())
 	case PatchOpDeleteGatheringLineByChargeID:
 		logger.Info("delete gathering line by charge id patch", "charge_id", p.deleteGatheringLineByChargeIDPatch.ChargeID)
+	case PatchOpUpdateGatheringLineByChargeID:
+		logger.Info("update gathering line by charge id patch", "charge_id", p.updateGatheringLineByChargeIDPatch.ChargeID, "new_service_period_to", p.updateGatheringLineByChargeIDPatch.ServicePeriodTo)
 	default:
 		logger.Info("unknown patch operation", "operation", p.op)
 	}

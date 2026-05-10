@@ -18,12 +18,6 @@ func (s *service) ApplyPatches(ctx context.Context, input charges.ApplyPatchesIn
 	}
 
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
-		// TODO[later]: Remove this once we have proper shrink/extend patching in place.
-		input, err := s.tmpMapShrinkExtendToCreateDelete(ctx, input)
-		if err != nil {
-			return err
-		}
-
 		if err := s.applyPatches(ctx, input.CustomerID, input.PatchesByChargeID); err != nil {
 			return err
 		}

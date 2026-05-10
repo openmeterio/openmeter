@@ -97,41 +97,27 @@ func (c *chargePatchCollection) AddDelete(_ string, existing persistedstate.Item
 	return c.addPatch(existing.ID().ID, chargesmeta.NewPatchDelete(chargesmeta.RefundAsCreditsDeletePolicy))
 }
 
-func (c *chargePatchCollection) AddShrink(uniqueID string, existing persistedstate.Item, target targetstate.StateItem) error {
-	targetServicePeriod := target.GetServicePeriod()
-
-	patch, err := chargesmeta.NewPatchShrink(chargesmeta.NewPatchShrinkInput{
-		NewServicePeriodTo:     targetServicePeriod.To,
-		NewFullServicePeriodTo: target.FullServicePeriod.To,
-		NewBillingPeriodTo:     target.BillingPeriod.To,
-	})
-	if err != nil {
-		return err
-	}
-
-	return c.addPatch(existing.ID().ID, patch)
-}
-
-func (c *chargePatchCollection) AddExtend(existing persistedstate.Item, target targetstate.StateItem) error {
-	targetServicePeriod := target.GetServicePeriod()
-
-	patch, err := chargesmeta.NewPatchExtend(chargesmeta.NewPatchExtendInput{
-		NewServicePeriodTo:     targetServicePeriod.To,
-		NewFullServicePeriodTo: target.FullServicePeriod.To,
-		NewBillingPeriodTo:     target.BillingPeriod.To,
-	})
-	if err != nil {
-		return err
-	}
-
-	return c.addPatch(existing.ID().ID, patch)
-}
-
 func (c *chargePatchCollection) AddProrate(existing persistedstate.Item, target targetstate.StateItem, originalPeriod, targetPeriod timeutil.ClosedPeriod, originalAmount, targetAmount alpacadecimal.Decimal) error {
 	// Charge-backed reconciliation does not emit explicit prorate patches. For charges,
 	// any period-shape change is carried by shrink/extend and the charge domain is
 	// responsible for recalculating the effective amount from the updated periods.
 	return c.unsupportedOperationError(PatchOperationProrate, target.UniqueID, existing)
+}
+
+func (c *chargePatchCollection) addEmulatedReplacement(existing persistedstate.Item, replacement charges.ChargeIntent) error {
+	if err := replacement.Validate(); err != nil {
+		return fmt.Errorf("invalid replacement intent: %w", err)
+	}
+
+	if err := c.addPatch(existing.ID().ID, chargesmeta.NewPatchDelete(chargesmeta.RefundAsCreditsDeletePolicy)); err != nil {
+		return fmt.Errorf("adding replacement delete patch: %w", err)
+	}
+
+	if err := c.addCreate(replacement); err != nil {
+		return fmt.Errorf("adding replacement create intent: %w", err)
+	}
+
+	return nil
 }
 
 func newChargeIntentBaseFromTargetState(target targetstate.StateItem) (chargesmeta.Intent, error) {

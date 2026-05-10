@@ -191,5 +191,9 @@ func validateExpands(expands meta.Expands) error {
 		return fmt.Errorf("%q requires %q", meta.ExpandDetailedLines, meta.ExpandRealizations)
 	}
 
+	if expands.Has(meta.ExpandDeletedRealizations) && !expands.Has(meta.ExpandRealizations) {
+		return fmt.Errorf("%q requires %q", meta.ExpandDeletedRealizations, meta.ExpandRealizations)
+	}
+
 	return nil
 }

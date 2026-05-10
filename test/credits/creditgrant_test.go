@@ -35,14 +35,14 @@ func TestCreditGrantTestSuite(t *testing.T) {
 }
 
 type CreditGrantTestSuite struct {
-	CreditsTestSuite
+	BaseSuite
 
 	CreditPurchaseService creditpurchase.Service
 	CreditGrantService    creditgrant.Service
 }
 
 func (s *CreditGrantTestSuite) SetupSuite() {
-	s.CreditsTestSuite.SetupSuite()
+	s.BaseSuite.SetupSuite()
 
 	logger := omtestutils.NewLogger(s.T())
 	metaAdapter, err := metaadapter.New(metaadapter.Config{
@@ -91,7 +91,7 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedCreatesInvoiceArtifacts() 
 	ns := s.GetUniqueNamespace("creditgrant-service-invoice-funded")
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
-	cust := s.createLedgerBackedCustomer(ns, "test-subject")
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
 		billingtest.WithProgressiveBilling(),
@@ -146,7 +146,7 @@ func (s *CreditGrantTestSuite) TestCreatePromotionalGrant() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("creditgrant-service-promotional")
 
-	cust := s.createLedgerBackedCustomer(ns, "test-subject")
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
@@ -184,7 +184,7 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantAndSettle() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("creditgrant-service-external")
 
-	cust := s.createLedgerBackedCustomer(ns, "test-subject")
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
@@ -241,7 +241,7 @@ func (s *CreditGrantTestSuite) TestListCreditGrants() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("creditgrant-service-list")
 
-	cust := s.createLedgerBackedCustomer(ns, "test-subject")
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
@@ -274,7 +274,7 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantPropagatesTaxConfigTo
 	ns := s.GetUniqueNamespace("creditgrant-taxconfig-propagation")
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
-	cust := s.createLedgerBackedCustomer(ns, "test-subject")
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
 		billingtest.WithProgressiveBilling(),
@@ -342,7 +342,7 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantNilTaxConfigInvoiceLi
 	ns := s.GetUniqueNamespace("creditgrant-taxconfig-nil")
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
-	cust := s.createLedgerBackedCustomer(ns, "test-subject")
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
 		billingtest.WithProgressiveBilling(),
@@ -388,7 +388,7 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantPropagatesTaxConfigToCharg
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("creditgrant-external-taxconfig")
 
-	cust := s.createLedgerBackedCustomer(ns, "test-subject")
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
@@ -438,7 +438,7 @@ func (s *CreditGrantTestSuite) TestCreatePromotionalGrantPropagatesTaxConfigToCh
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("creditgrant-promotional-taxconfig")
 
-	cust := s.createLedgerBackedCustomer(ns, "test-subject")
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 

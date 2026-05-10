@@ -124,6 +124,12 @@ func areAllInvoicedRunsSettled(charge usagebased.Charge) bool {
 	hasFinalInvoicedRun := false
 
 	for _, run := range charge.Realizations {
+		// Deleted realizations no longer represent invoice obligations, so they
+		// must not delay the charge from reaching final after remaining payments settle.
+		if run.DeletedAt != nil {
+			continue
+		}
+
 		if run.Type == usagebased.RealizationRunTypeFinalRealization && run.InvoiceUsage != nil {
 			hasFinalInvoicedRun = true
 		}

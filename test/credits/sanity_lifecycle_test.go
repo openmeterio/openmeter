@@ -2,11 +2,13 @@ package credits
 
 import (
 	"context"
+	"testing"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
+	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
@@ -24,6 +26,14 @@ import (
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
 
+func TestSanityLifecycleSuite(t *testing.T) {
+	suite.Run(t, new(SanityLifecycleSuite))
+}
+
+type SanityLifecycleSuite struct {
+	BaseSuite
+}
+
 type usageBasedPartialBackfillLifecycleState struct {
 	customerID             customer.CustomerID
 	usageChargeID          meta.ChargeID
@@ -32,8 +42,8 @@ type usageBasedPartialBackfillLifecycleState struct {
 	costBasis              alpacadecimal.Decimal
 }
 
-func (s *CreditsTestSuite) TestUsageBasedCreditOnlyLifecyclePartialBackfillCorrectionThenDeleteSanity() {
-	ctx := context.Background()
+func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecyclePartialBackfillCorrectionThenDeleteSanity() {
+	ctx := s.T().Context()
 	state := s.setupUsageBasedCreditOnlyLifecyclePartialBackfillCorrection(ctx, "charges-sanity-usagebased-credit-only-lifecycle-partial-backfill-correction-delete")
 
 	// When the now-corrected charge is deleted with refund-as-credits, the delete path has to use
@@ -48,27 +58,27 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyLifecyclePartialBackfillCorre
 
 	// Then the corrected usage is fully unwound. The only remaining open receivable is the still-unsettled
 	// purchase-side obligation in the purchased cost-basis bucket.
-	s.Equal(alpacadecimal.Zero, s.mustCustomerReceivableBalance(state.customerID, USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerAccruedBalance(state.customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)))
-	s.Equal(state.purchaseAmount.Neg(), s.mustCustomerReceivableBalance(state.customerID, USD, mo.Some(&state.costBasis), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerAccruedBalance(state.customerID, USD, mo.Some(&state.costBasis)))
-	s.Equal(state.purchaseAmount, s.mustCustomerFBOBalance(state.customerID, USD, mo.Some(&state.costBasis)))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerFBOBalance(state.customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerReceivableBalance(state.customerID, USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerAccruedBalance(state.customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)))
+	s.Equal(state.purchaseAmount.Neg(), s.MustCustomerReceivableBalance(state.customerID, USD, mo.Some(&state.costBasis), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerAccruedBalance(state.customerID, USD, mo.Some(&state.costBasis)))
+	s.Equal(state.purchaseAmount, s.MustCustomerFBOBalance(state.customerID, USD, mo.Some(&state.costBasis)))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerFBOBalance(state.customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)))
 
 	// When we close the later credit purchase payment lifecycle too.
 	s.mustSettleExternalCreditPurchase(ctx, state.creditPurchaseChargeID)
 
 	// Then the purchased-cost-basis receivable is fully cleaned up, while the refunded purchased
 	// credits stay available in FBO. The remaining nil-cost-basis receivable is also netted out here.
-	s.Equal(alpacadecimal.Zero, s.mustCustomerReceivableBalance(state.customerID, USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerAccruedBalance(state.customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerReceivableBalance(state.customerID, USD, mo.Some(&state.costBasis), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerAccruedBalance(state.customerID, USD, mo.Some(&state.costBasis)))
-	s.Equal(state.purchaseAmount, s.mustCustomerFBOBalance(state.customerID, USD, mo.Some(&state.costBasis)))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerReceivableBalance(state.customerID, USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerAccruedBalance(state.customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerReceivableBalance(state.customerID, USD, mo.Some(&state.costBasis), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerAccruedBalance(state.customerID, USD, mo.Some(&state.costBasis)))
+	s.Equal(state.purchaseAmount, s.MustCustomerFBOBalance(state.customerID, USD, mo.Some(&state.costBasis)))
 }
 
-func (s *CreditsTestSuite) TestUsageBasedCreditOnlyLifecyclePartialBackfillCorrectionSettleBeforeDeleteSanity() {
-	ctx := context.Background()
+func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecyclePartialBackfillCorrectionSettleBeforeDeleteSanity() {
+	ctx := s.T().Context()
 	state := s.setupUsageBasedCreditOnlyLifecyclePartialBackfillCorrection(ctx, "charges-sanity-usagebased-credit-only-lifecycle-partial-backfill-correction-settle-before-delete")
 
 	// When we close the later credit purchase payment lifecycle before refunding the original charge.
@@ -76,11 +86,11 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyLifecyclePartialBackfillCorre
 
 	// Then the purchased receivable is already cleaned up, but the corrected purchased-credit-backed
 	// usage is still split between accrued and available FBO.
-	s.Equal(alpacadecimal.NewFromInt(-5), s.mustCustomerReceivableBalance(state.customerID, USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(5), s.mustCustomerAccruedBalance(state.customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerReceivableBalance(state.customerID, USD, mo.Some(&state.costBasis), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(6), s.mustCustomerAccruedBalance(state.customerID, USD, mo.Some(&state.costBasis)))
-	s.Equal(alpacadecimal.NewFromInt(9), s.mustCustomerFBOBalance(state.customerID, USD, mo.Some(&state.costBasis)))
+	s.Equal(alpacadecimal.NewFromInt(-5), s.MustCustomerReceivableBalance(state.customerID, USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromInt(5), s.MustCustomerAccruedBalance(state.customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerReceivableBalance(state.customerID, USD, mo.Some(&state.costBasis), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromInt(6), s.MustCustomerAccruedBalance(state.customerID, USD, mo.Some(&state.costBasis)))
+	s.Equal(alpacadecimal.NewFromInt(9), s.MustCustomerFBOBalance(state.customerID, USD, mo.Some(&state.costBasis)))
 
 	// When the original charge is deleted with refund-as-credits afterwards.
 	err := s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
@@ -93,18 +103,18 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyLifecyclePartialBackfillCorre
 
 	// Then the end state is fully cleaned up: the purchase is settled, the corrected usage is refunded,
 	// and no receivable remains open on either route.
-	s.Equal(alpacadecimal.Zero, s.mustCustomerReceivableBalance(state.customerID, USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerAccruedBalance(state.customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerReceivableBalance(state.customerID, USD, mo.Some(&state.costBasis), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerAccruedBalance(state.customerID, USD, mo.Some(&state.costBasis)))
-	s.Equal(state.purchaseAmount, s.mustCustomerFBOBalance(state.customerID, USD, mo.Some(&state.costBasis)))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerReceivableBalance(state.customerID, USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerAccruedBalance(state.customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerReceivableBalance(state.customerID, USD, mo.Some(&state.costBasis), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerAccruedBalance(state.customerID, USD, mo.Some(&state.costBasis)))
+	s.Equal(state.purchaseAmount, s.MustCustomerFBOBalance(state.customerID, USD, mo.Some(&state.costBasis)))
 }
 
-func (s *CreditsTestSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPurchasesSanity() {
-	ctx := context.Background()
+func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPurchasesSanity() {
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-sanity-usagebased-credit-only-lifecycle-two-charges-two-purchases")
 
-	cust := s.createLedgerBackedCustomer(ns, "test-subject")
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID(),
 		billingtest.WithProgressiveBilling(),
@@ -145,16 +155,16 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPurchas
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
 		Intents: charges.ChargeIntents{
-			s.createMockChargeIntent(createMockChargeIntentInput{
-				customer:          cust.GetID(),
-				currency:          USD,
-				servicePeriod:     servicePeriodA,
-				settlementMode:    productcatalog.CreditOnlySettlementMode,
-				price:             productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
-				name:              "usage-based-charge-a",
-				managedBy:         billing.SubscriptionManagedLine,
-				uniqueReferenceID: "usage-based-charge-a",
-				featureKey:        meterSlug,
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:          cust.GetID(),
+				Currency:          USD,
+				ServicePeriod:     servicePeriodA,
+				SettlementMode:    productcatalog.CreditOnlySettlementMode,
+				Price:             productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
+				Name:              "usage-based-charge-a",
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: "usage-based-charge-a",
+				FeatureKey:        meterSlug,
 			}),
 		},
 	})
@@ -164,8 +174,8 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPurchas
 	chargeA, err := res[0].AsUsageBasedCharge()
 	s.NoError(err)
 	s.Equal(meta.ChargeStatusFinal, meta.ChargeStatus(chargeA.Status))
-	s.Equal(alpacadecimal.NewFromInt(-20), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(20), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
+	s.Equal(alpacadecimal.NewFromInt(-20), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromInt(20), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
 
 	// Given Charge B belongs to the next service period.
 	// When it is created while that service period is already active, it starts in Active with no allocation yet.
@@ -190,16 +200,16 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPurchas
 	res, err = s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
 		Intents: charges.ChargeIntents{
-			s.createMockChargeIntent(createMockChargeIntentInput{
-				customer:          cust.GetID(),
-				currency:          USD,
-				servicePeriod:     servicePeriodB,
-				settlementMode:    productcatalog.CreditOnlySettlementMode,
-				price:             priceB,
-				name:              "usage-based-charge-b",
-				managedBy:         billing.SubscriptionManagedLine,
-				uniqueReferenceID: "usage-based-charge-b",
-				featureKey:        meterSlug,
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:          cust.GetID(),
+				Currency:          USD,
+				ServicePeriod:     servicePeriodB,
+				SettlementMode:    productcatalog.CreditOnlySettlementMode,
+				Price:             priceB,
+				Name:              "usage-based-charge-b",
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: "usage-based-charge-b",
+				FeatureKey:        meterSlug,
 			}),
 		},
 	})
@@ -209,8 +219,8 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPurchas
 	chargeB, err := res[0].AsUsageBasedCharge()
 	s.NoError(err)
 	s.Equal(meta.ChargeStatusActive, meta.ChargeStatus(chargeB.Status))
-	s.Equal(alpacadecimal.NewFromInt(-20), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(20), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
+	s.Equal(alpacadecimal.NewFromInt(-20), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromInt(20), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
 
 	// Given Charge B records 10 units during its own service period.
 	s.MockStreamingConnector.AddSimpleEvent(
@@ -224,23 +234,23 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPurchas
 	advancedChargeB := s.mustAdvanceUsageBasedChargeByID(ctx, cust.GetID(), chargeB.GetChargeID())
 	s.Require().NotNil(advancedChargeB)
 	s.Equal(usagebased.StatusActiveFinalRealizationWaitingForCollection, advancedChargeB.Status)
-	s.Equal(alpacadecimal.NewFromInt(-40), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(40), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
+	s.Equal(alpacadecimal.NewFromInt(-40), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromInt(40), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
 
 	// Given the first later credit purchase arrives while both charges still contribute uncovered advance.
 	// When the customer buys 25 credits at cost basis 0.5, it backfills the older uncovered usage first.
 	res, err = s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
 		Intents: charges.ChargeIntents{
-			s.createCreditPurchaseIntent(createCreditPurchaseIntentInput{
-				customer: cust.GetID(),
-				currency: USD,
-				amount:   purchase1Amount,
-				servicePeriod: timeutil.ClosedPeriod{
+			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
+				Customer: cust.GetID(),
+				Currency: USD,
+				Amount:   purchase1Amount,
+				ServicePeriod: timeutil.ClosedPeriod{
 					From: chargeBStartFinalizationAt,
 					To:   chargeBStartFinalizationAt,
 				},
-				settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
+				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 					GenericSettlement: creditpurchase.GenericSettlement{
 						Currency:  USD,
 						CostBasis: costBasis1,
@@ -255,12 +265,12 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPurchas
 
 	purchase1Charge, err := res[0].AsCreditPurchaseCharge()
 	s.NoError(err)
-	s.Equal(alpacadecimal.NewFromInt(-40), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(-15), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(15), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
-	s.Equal(purchase1Amount.Neg(), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis1), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(purchase1Amount, s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
+	s.Equal(alpacadecimal.NewFromInt(-40), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromInt(-15), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromInt(15), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
+	s.Equal(purchase1Amount.Neg(), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis1), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(purchase1Amount, s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
 
 	// Given one more unit becomes visible for Charge B before the final cutoff.
 	// This reduces Charge B's priced amount from 20 down to 11, so part of Purchase 1 is released again.
@@ -282,14 +292,14 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPurchas
 	advancedChargeB = s.mustAdvanceUsageBasedChargeByID(ctx, cust.GetID(), chargeB.GetChargeID())
 	s.Require().NotNil(advancedChargeB)
 	s.Equal(meta.ChargeStatusFinal, meta.ChargeStatus(advancedChargeB.Status))
-	s.Equal(alpacadecimal.NewFromInt(-36), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromInt(-36), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
 	// After the correction, Charge A still accounts for the full 20 costBasis1-backed usage,
 	// while Charge B drops back to 11 uncovered usage and releases those 5 purchased credits to FBO.
-	s.Equal(alpacadecimal.NewFromInt(-11), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(11), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
-	s.Equal(purchase1Amount.Neg(), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis1), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(20), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
-	s.Equal(alpacadecimal.NewFromInt(5), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
+	s.Equal(alpacadecimal.NewFromInt(-11), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromInt(11), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
+	s.Equal(purchase1Amount.Neg(), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis1), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromInt(20), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
+	s.Equal(alpacadecimal.NewFromInt(5), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
 
 	// Given a second later credit purchase now sees only Charge B's remaining uncovered amount.
 	// !!! The released 5 from Purchase 1 stayed as available purchased credit in FBO; it did not
@@ -299,15 +309,15 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPurchas
 	res, err = s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
 		Intents: charges.ChargeIntents{
-			s.createCreditPurchaseIntent(createCreditPurchaseIntentInput{
-				customer: cust.GetID(),
-				currency: USD,
-				amount:   purchase2Amount,
-				servicePeriod: timeutil.ClosedPeriod{
+			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
+				Customer: cust.GetID(),
+				Currency: USD,
+				Amount:   purchase2Amount,
+				ServicePeriod: timeutil.ClosedPeriod{
 					From: clock.Now(),
 					To:   clock.Now(),
 				},
-				settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
+				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 					GenericSettlement: creditpurchase.GenericSettlement{
 						Currency:  USD,
 						CostBasis: costBasis2,
@@ -322,48 +332,48 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPurchas
 
 	purchase2Charge, err := res[0].AsCreditPurchaseCharge()
 	s.NoError(err)
-	s.Equal(alpacadecimal.NewFromInt(-36), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(-1), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(1), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
-	s.Equal(purchase1Amount.Neg(), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis1), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(20), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
-	s.Equal(alpacadecimal.NewFromInt(5), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
-	s.Equal(purchase2Amount.Neg(), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis2), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(purchase2Amount, s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis2)))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis2)))
+	s.Equal(alpacadecimal.NewFromInt(-36), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromInt(-1), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromInt(1), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
+	s.Equal(purchase1Amount.Neg(), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis1), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromInt(20), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
+	s.Equal(alpacadecimal.NewFromInt(5), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
+	s.Equal(purchase2Amount.Neg(), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis2), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(purchase2Amount, s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis2)))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis2)))
 
 	// When Charge B is refunded, only its current backing should be released.
-	s.mustRefundCharge(ctx, cust.GetID(), chargeB.GetChargeID())
-	s.Equal(alpacadecimal.NewFromInt(-35), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
-	s.Equal(purchase1Amount.Neg(), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis1), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(20), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
-	s.Equal(alpacadecimal.NewFromInt(5), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
-	s.Equal(purchase2Amount.Neg(), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis2), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis2)))
-	s.Equal(purchase2Amount, s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis2)))
+	s.MustRefundCharge(ctx, cust.GetID(), chargeB.GetChargeID())
+	s.Equal(alpacadecimal.NewFromInt(-35), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
+	s.Equal(purchase1Amount.Neg(), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis1), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromInt(20), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
+	s.Equal(alpacadecimal.NewFromInt(5), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
+	s.Equal(purchase2Amount.Neg(), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis2), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis2)))
+	s.Equal(purchase2Amount, s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis2)))
 
 	// When both later purchases complete their payment lifecycle too.
 	s.mustSettleExternalCreditPurchase(ctx, purchase1Charge.GetChargeID())
 	s.mustSettleExternalCreditPurchase(ctx, purchase2Charge.GetChargeID())
-	s.Equal(alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis1), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(20), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
-	s.Equal(alpacadecimal.NewFromInt(5), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis2), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis2)))
-	s.Equal(purchase2Amount, s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis2)))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis1), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromInt(20), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
+	s.Equal(alpacadecimal.NewFromInt(5), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis2), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis2)))
+	s.Equal(purchase2Amount, s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis2)))
 }
 
 // Use this helper for the shared single-charge lifecycle setup that stops after
 // the later correction has already been applied.
-func (s *CreditsTestSuite) setupUsageBasedCreditOnlyLifecyclePartialBackfillCorrection(ctx context.Context, namespacePrefix string) usageBasedPartialBackfillLifecycleState {
+func (s *SanityLifecycleSuite) setupUsageBasedCreditOnlyLifecyclePartialBackfillCorrection(ctx context.Context, namespacePrefix string) usageBasedPartialBackfillLifecycleState {
 	ns := s.GetUniqueNamespace(namespacePrefix)
 
-	cust := s.createLedgerBackedCustomer(ns, "test-subject")
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID(),
 		billingtest.WithProgressiveBilling(),
@@ -410,16 +420,16 @@ func (s *CreditsTestSuite) setupUsageBasedCreditOnlyLifecyclePartialBackfillCorr
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
 		Intents: charges.ChargeIntents{
-			s.createMockChargeIntent(createMockChargeIntentInput{
-				customer:          cust.GetID(),
-				currency:          USD,
-				servicePeriod:     servicePeriod,
-				settlementMode:    productcatalog.CreditOnlySettlementMode,
-				price:             price,
-				name:              "usage-based-credit-only-lifecycle-partial-backfill-correction-delete",
-				managedBy:         billing.SubscriptionManagedLine,
-				uniqueReferenceID: namespacePrefix,
-				featureKey:        meterSlug,
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:          cust.GetID(),
+				Currency:          USD,
+				ServicePeriod:     servicePeriod,
+				SettlementMode:    productcatalog.CreditOnlySettlementMode,
+				Price:             price,
+				Name:              "usage-based-credit-only-lifecycle-partial-backfill-correction-delete",
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: namespacePrefix,
+				FeatureKey:        meterSlug,
 			}),
 		},
 	})
@@ -434,11 +444,11 @@ func (s *CreditsTestSuite) setupUsageBasedCreditOnlyLifecyclePartialBackfillCorr
 	advancedCharge := s.mustAdvanceSingleUsageBasedCharge(ctx, cust.GetID())
 	s.Require().NotNil(advancedCharge)
 	s.Equal(meta.ChargeStatusActive, meta.ChargeStatus(advancedCharge.Status))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis)))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis)))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)))
 
 	// Given the customer records 10 units during the service period.
 	s.MockStreamingConnector.AddSimpleEvent(
@@ -453,25 +463,25 @@ func (s *CreditsTestSuite) setupUsageBasedCreditOnlyLifecyclePartialBackfillCorr
 	advancedCharge = s.mustAdvanceSingleUsageBasedCharge(ctx, cust.GetID())
 	s.Require().NotNil(advancedCharge)
 	s.Equal(usagebased.StatusActiveFinalRealizationWaitingForCollection, advancedCharge.Status)
-	s.Equal(alpacadecimal.NewFromInt(-20), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(20), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis)))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)))
+	s.Equal(alpacadecimal.NewFromInt(-20), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromInt(20), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis)))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)))
 
 	// Given a later external credit purchase partially backfills that earlier advance-backed usage.
 	res, err = s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
 		Intents: charges.ChargeIntents{
-			s.createCreditPurchaseIntent(createCreditPurchaseIntentInput{
-				customer: cust.GetID(),
-				currency: USD,
-				amount:   purchaseAmount,
-				servicePeriod: timeutil.ClosedPeriod{
+			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
+				Customer: cust.GetID(),
+				Currency: USD,
+				Amount:   purchaseAmount,
+				ServicePeriod: timeutil.ClosedPeriod{
 					From: startFinalizationAt,
 					To:   startFinalizationAt,
 				},
-				settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
+				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 					GenericSettlement: creditpurchase.GenericSettlement{
 						Currency:  USD,
 						CostBasis: costBasis,
@@ -486,12 +496,12 @@ func (s *CreditsTestSuite) setupUsageBasedCreditOnlyLifecyclePartialBackfillCorr
 
 	creditPurchaseCharge, err := res[0].AsCreditPurchaseCharge()
 	s.NoError(err)
-	s.Equal(alpacadecimal.NewFromInt(-20), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(-5), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(5), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
-	s.Equal(purchaseAmount.Neg(), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(purchaseAmount, s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis)))
-	s.Equal(alpacadecimal.Zero, s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)))
+	s.Equal(alpacadecimal.NewFromInt(-20), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromInt(-5), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromInt(5), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
+	s.Equal(purchaseAmount.Neg(), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(purchaseAmount, s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis)))
+	s.Equal(alpacadecimal.Zero, s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)))
 
 	// Given one more unit becomes visible before the final stored_at cutoff.
 	// This shrinks the previously allocated amount from 20 down to 11 during finalization.
@@ -507,12 +517,12 @@ func (s *CreditsTestSuite) setupUsageBasedCreditOnlyLifecyclePartialBackfillCorr
 	advancedCharge = s.mustAdvanceSingleUsageBasedCharge(ctx, cust.GetID())
 	s.Require().NotNil(advancedCharge)
 	s.Equal(meta.ChargeStatusFinal, meta.ChargeStatus(advancedCharge.Status))
-	s.Equal(alpacadecimal.NewFromInt(-20), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(-5), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(5), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
-	s.Equal(purchaseAmount.Neg(), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(6), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis)))
-	s.Equal(alpacadecimal.NewFromInt(9), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)))
+	s.Equal(alpacadecimal.NewFromInt(-20), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromInt(-5), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromInt(5), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
+	s.Equal(purchaseAmount.Neg(), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromInt(6), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis)))
+	s.Equal(alpacadecimal.NewFromInt(9), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)))
 
 	return usageBasedPartialBackfillLifecycleState{
 		customerID:             cust.GetID(),
@@ -525,7 +535,7 @@ func (s *CreditsTestSuite) setupUsageBasedCreditOnlyLifecyclePartialBackfillCorr
 
 // Use this helper when the test wants to drive a purchase through the normal
 // external-payment authorized -> settled lifecycle.
-func (s *CreditsTestSuite) mustSettleExternalCreditPurchase(ctx context.Context, chargeID meta.ChargeID) {
+func (s *SanityLifecycleSuite) mustSettleExternalCreditPurchase(ctx context.Context, chargeID meta.ChargeID) {
 	s.T().Helper()
 
 	updatedCharge, err := s.Charges.HandleCreditPurchaseExternalPaymentStateTransition(ctx, charges.HandleCreditPurchaseExternalPaymentStateTransitionInput{
@@ -543,23 +553,9 @@ func (s *CreditsTestSuite) mustSettleExternalCreditPurchase(ctx context.Context,
 	s.Equal(payment.StatusSettled, updatedCharge.Realizations.ExternalPaymentSettlement.Status)
 }
 
-// Use this helper when the test wants to delete a charge through the real
-// refund-as-credits patch flow.
-func (s *CreditsTestSuite) mustRefundCharge(ctx context.Context, customerID customer.CustomerID, chargeID meta.ChargeID) {
-	s.T().Helper()
-
-	err := s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
-		CustomerID: customerID,
-		PatchesByChargeID: map[string]charges.Patch{
-			chargeID.ID: meta.NewPatchDelete(meta.RefundAsCreditsDeletePolicy),
-		},
-	})
-	s.NoError(err)
-}
-
 // Use this helper when one advance call may return multiple usage-based charges
 // and the test cares about the transition for one specific charge.
-func (s *CreditsTestSuite) mustAdvanceUsageBasedChargeByID(ctx context.Context, customerID customer.CustomerID, chargeID meta.ChargeID) *usagebased.Charge {
+func (s *SanityLifecycleSuite) mustAdvanceUsageBasedChargeByID(ctx context.Context, customerID customer.CustomerID, chargeID meta.ChargeID) *usagebased.Charge {
 	s.T().Helper()
 
 	advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
@@ -584,7 +580,7 @@ func (s *CreditsTestSuite) mustAdvanceUsageBasedChargeByID(ctx context.Context, 
 }
 
 // Use this helper when the test expects exactly one usage-based charge to advance.
-func (s *CreditsTestSuite) mustAdvanceSingleUsageBasedCharge(ctx context.Context, customerID customer.CustomerID) *usagebased.Charge {
+func (s *SanityLifecycleSuite) mustAdvanceSingleUsageBasedCharge(ctx context.Context, customerID customer.CustomerID) *usagebased.Charge {
 	s.T().Helper()
 
 	advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{

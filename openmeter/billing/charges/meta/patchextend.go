@@ -110,8 +110,8 @@ func (p PatchExtend) ValidateWith(intent Intent) error {
 		errs = append(errs, err)
 	}
 
-	if p.GetNewServicePeriodTo().Before(intent.ServicePeriod.To) {
-		errs = append(errs, fmt.Errorf("new service period to must be greater than or equal to existing service period to"))
+	if !p.GetNewServicePeriodTo().After(intent.ServicePeriod.To) {
+		errs = append(errs, fmt.Errorf("new service period to must be greater than existing service period to"))
 	}
 
 	if p.GetNewFullServicePeriodTo().Before(intent.FullServicePeriod.To) {

@@ -33,6 +33,14 @@ const (
 	StatusDeleted Status = Status(meta.ChargeStatusDeleted)
 )
 
+// MutableFinalRealizationStatuses are the statuses that can have a mutable final invoices, so that
+// we can just delete the line without having to be concerned about credit-notes.
+var MutableFinalRealizationStatuses = []Status{
+	StatusActiveFinalRealizationStarted,
+	StatusActiveFinalRealizationWaitingForCollection,
+	StatusActiveFinalRealizationProcessing,
+}
+
 func (Status) Values() []string {
 	return []string{
 		string(StatusCreated),

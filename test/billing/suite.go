@@ -741,3 +741,9 @@ func (s *BaseSuite) RequireTotals(expected ExpectedTotals, actual totals.Totals)
 		CreditsTotal:        actual.CreditsTotal.InexactFloat64(),
 	})
 }
+
+func (s *BaseSuite) AssertDecimalEqual(expected, actual alpacadecimal.Decimal, label string) {
+	s.T().Helper()
+
+	s.True(actual.Equal(expected), "%s: expected %s, got %s", label, expected.String(), actual.String())
+}

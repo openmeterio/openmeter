@@ -23,20 +23,47 @@ func newFlatFeeChargeCollection(preallocatedCapacity int) *flatFeeChargeCollecti
 }
 
 func (c *flatFeeChargeCollection) AddCreate(target targetstate.StateItem) error {
+	intent, err := newFlatFeeChargeIntent(target)
+	if err != nil {
+		return err
+	}
+
+	return c.addCreate(intent)
+}
+
+func (c *flatFeeChargeCollection) AddShrink(_ string, existing persistedstate.Item, target targetstate.StateItem) error {
+	intent, err := newFlatFeeChargeIntent(target)
+	if err != nil {
+		return err
+	}
+
+	return c.addEmulatedReplacement(existing, intent)
+}
+
+func (c *flatFeeChargeCollection) AddExtend(existing persistedstate.Item, target targetstate.StateItem) error {
+	intent, err := newFlatFeeChargeIntent(target)
+	if err != nil {
+		return err
+	}
+
+	return c.addEmulatedReplacement(existing, intent)
+}
+
+func newFlatFeeChargeIntent(target targetstate.StateItem) (charges.ChargeIntent, error) {
 	rateCardMeta := target.Spec.RateCard.AsMeta()
 	price := rateCardMeta.Price
 	if price == nil {
-		return fmt.Errorf("price is required for flat fee charge")
+		return charges.ChargeIntent{}, fmt.Errorf("price is required for flat fee charge")
 	}
 
 	flatPrice, err := price.AsFlat()
 	if err != nil {
-		return fmt.Errorf("converting price to flat: %w", err)
+		return charges.ChargeIntent{}, fmt.Errorf("converting price to flat: %w", err)
 	}
 
 	baseIntent, err := newChargeIntentBaseFromTargetState(target)
 	if err != nil {
-		return err
+		return charges.ChargeIntent{}, err
 	}
 
 	intent := charges.NewChargeIntent(chargesflatfee.Intent{
@@ -50,5 +77,5 @@ func (c *flatFeeChargeCollection) AddCreate(target targetstate.StateItem) error 
 		AmountBeforeProration: flatPrice.Amount,
 	})
 
-	return c.addCreate(intent)
+	return intent, nil
 }

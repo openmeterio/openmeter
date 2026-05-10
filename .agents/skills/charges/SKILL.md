@@ -113,6 +113,8 @@ Do not emulate every billing rating mutator in the line mapper. Usage discounts 
 Detailed-line expansion rules:
 
 - `meta.ExpandDetailedLines` is not standalone for charge reads; it requires `meta.ExpandRealizations`
+- usage-based deleted realization runs are hidden from `meta.ExpandRealizations` by default because their invoice/ledger effect has been cleaned up; request `meta.ExpandDeletedRealizations` together with `meta.ExpandRealizations` only when a caller must inspect cleanup state, such as frontend audit views or deletion tests
+- production code that sums or interprets realization history must explicitly skip runs with `DeletedAt != nil`, documenting the business reason at the guard, because deleted realizations are no longer effective billable history
 - usage-based detailed lines live under `RealizationRun.DetailedLines`
 - flat-fee detailed lines also live under `Charge.Realizations.DetailedLines`, not on the root charge
 - `mo.None()` means detailed lines were not expanded; present options mean expanded data, even when the underlying slice is nil/empty
@@ -148,6 +150,18 @@ Important rules:
 - usage-based payment handling is intentionally different from flat-fee and credit-purchase: the usage-based state machine owns realization only, while the usage-based line engine/run service records payment authorization/settlement directly on historical runs and only re-enters the state machine through an aggregate trigger (for example `all_payments_settled`) once all invoiced runs on the charge are settled. Do not apply this rule generically to flat-fee or credit-purchase; those charge types may still keep payment states inside their own state machines.
 - usage-based invoice branches should read in this order: `started -> waiting_for_collection -> processing -> issuing -> completed`, then auto-advance out of the branch. Keep `invoice_issued` as the boundary between `processing` and `issuing`, run `FinalizeInvoiceRun(...)` from the `issuing` state, and let `completed` be the last branch-local status before `next` returns a partial invoice to `active` or moves a final invoice to `active.awaiting_payment_settlement`
 - when adding or renaming usage-based detailed statuses, remember that `status_detailed` is an Ent enum for `ChargeUsageBased`; run `make generate` so the generated enum validators and migrate schema include the new values before trusting state-machine changes
+
+Usage-based credit-then-invoice extension rules:
+
+- `PatchExtend` must represent a real extension: the new service period end must be after the persisted intent end; full service period and billing period ends may stay unchanged but must not move backwards.
+- Do not stretch an in-progress final realization run to cover the extension. There can only be one active run, and stretching the old final run would keep the run open across the extension and delay the standard invoice lifecycle.
+- If the current final realization run is still backed by a mutable invoice line, the extend flow should update the charge intent, emit an invoice-line delete patch for that mutable standard line, and let the billing invoice updater/line engine delete the invoice line and mark the run deleted. The charge should move back to `active` with `AdvanceAfter` set to the new service-period end so the extended tail can realize later.
+- While a mutable final invoice run is before invoice issuing (`active.final_realization.started`, `active.final_realization.waiting_for_collection`, or `active.final_realization.processing`), billing remains the owner of the ongoing invoice lifecycle. Extension may delete the mutable line, mark the current run deleted, and recreate a gathering line; a direct `AdvanceCharges(...)` before the new service-period end must be a no-op, and the replacement final run should be created by billing when the replacement gathering line is invoiced at the extended end.
+- Once a final invoice run reaches `active.final_realization.issuing` or `active.final_realization.completed`, extend is explicitly rejected by `UnsupportedExtendOperation` because invoice lifecycle callbacks or state-machine advancement still own those states. Subscription sync is expected to retry instead of moving the charge out of those states manually.
+- Extending from `active.awaiting_payment_settlement` is allowed: preserve the invoice line and ledger bookings, reclassify the old final run as partial, move the charge back to `active`, and create only a tail gathering line.
+- If the old final realization has already passed into immutable invoice territory, keep the invoice and ledger untouched. Reclassify the old final run as a partial invoice run and move the charge back to `active`; the extended tail will produce a new final run later. Immutable invoice cleanup should be surfaced as validation warnings by billing rather than reversing ledger bookings.
+- Pending gathering lines for the charge should be extended in place by charge ID. Existing standard invoice lines should only be deleted in the mutable-current-final case above.
+- These rules are intentionally about not blocking the invoice train: extension should not hold a standard invoice lifecycle open while waiting for newly extended usage windows to finish.
 
 Operational consequence:
 

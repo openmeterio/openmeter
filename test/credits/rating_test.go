@@ -22,7 +22,7 @@ func TestRatingTestSuite(t *testing.T) {
 }
 
 type RatingTestSuite struct {
-	CreditsTestSuite
+	BaseSuite
 }
 
 func (s *RatingTestSuite) TestListChargesExpandsRealtimeUsageForMultipleUsageBasedCharges() {
@@ -34,7 +34,7 @@ func (s *RatingTestSuite) TestListChargesExpandsRealtimeUsageForMultipleUsageBas
 		doubleRateReference   = "usage-based-double-rate"
 	)
 
-	cust := s.createLedgerBackedCustomer(ns, "rating-list-charges")
+	cust := s.CreateLedgerBackedCustomer(ns, "rating-list-charges")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
@@ -55,27 +55,27 @@ func (s *RatingTestSuite) TestListChargesExpandsRealtimeUsageForMultipleUsageBas
 	createdCharges, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
 		Intents: charges.ChargeIntents{
-			s.createMockChargeIntent(createMockChargeIntentInput{
-				customer:          cust.GetID(),
-				currency:          USD,
-				servicePeriod:     servicePeriod,
-				settlementMode:    productcatalog.InvoiceOnlySettlementMode,
-				price:             productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
-				name:              standardRateReference,
-				managedBy:         billing.SubscriptionManagedLine,
-				uniqueReferenceID: standardRateReference,
-				featureKey:        apiRequestsTotal.Feature.Key,
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:          cust.GetID(),
+				Currency:          USD,
+				ServicePeriod:     servicePeriod,
+				SettlementMode:    productcatalog.InvoiceOnlySettlementMode,
+				Price:             productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
+				Name:              standardRateReference,
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: standardRateReference,
+				FeatureKey:        apiRequestsTotal.Feature.Key,
 			}),
-			s.createMockChargeIntent(createMockChargeIntentInput{
-				customer:          cust.GetID(),
-				currency:          USD,
-				servicePeriod:     servicePeriod,
-				settlementMode:    productcatalog.InvoiceOnlySettlementMode,
-				price:             productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(2)}),
-				name:              doubleRateReference,
-				managedBy:         billing.SubscriptionManagedLine,
-				uniqueReferenceID: doubleRateReference,
-				featureKey:        apiRequestsTotal.Feature.Key,
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:          cust.GetID(),
+				Currency:          USD,
+				ServicePeriod:     servicePeriod,
+				SettlementMode:    productcatalog.InvoiceOnlySettlementMode,
+				Price:             productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(2)}),
+				Name:              doubleRateReference,
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: doubleRateReference,
+				FeatureKey:        apiRequestsTotal.Feature.Key,
 			}),
 		},
 	})

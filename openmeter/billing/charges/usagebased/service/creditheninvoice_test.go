@@ -7,9 +7,38 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	chargestatemachine "github.com/openmeterio/openmeter/openmeter/billing/charges/statemachine"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
+
+func TestUnsupportedExtendOperation(t *testing.T) {
+	for _, status := range []usagebased.Status{
+		usagebased.StatusActiveFinalRealizationIssuing,
+		usagebased.StatusActiveFinalRealizationCompleted,
+	} {
+		t.Run(string(status), func(t *testing.T) {
+			machine := CreditThenInvoiceStateMachine{
+				stateMachine: &stateMachine{
+					Machine: &chargestatemachine.Machine[usagebased.Charge, usagebased.ChargeBase, usagebased.Status]{
+						Charge: usagebased.Charge{
+							ChargeBase: usagebased.ChargeBase{
+								Status: status,
+							},
+						},
+					},
+				},
+			}
+
+			err := machine.UnsupportedExtendOperation(t.Context(), meta.PatchExtend{})
+			require.Error(t, err)
+			require.True(t, models.IsGenericPreConditionFailedError(err))
+			require.ErrorContains(t, err, "cannot extend usage-based charge in status "+string(status))
+			require.Empty(t, machine.InvoicePatches())
+		})
+	}
+}
 
 func TestStartInvoiceCreatedRunValidatesInput(t *testing.T) {
 	var machine CreditThenInvoiceStateMachine

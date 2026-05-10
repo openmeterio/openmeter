@@ -13,7 +13,9 @@ func TestValidateExpands(t *testing.T) {
 
 	require.NoError(t, validateExpands(meta.Expands{meta.ExpandRealizations}))
 	require.NoError(t, validateExpands(meta.Expands{meta.ExpandRealizations, meta.ExpandDetailedLines}))
+	require.NoError(t, validateExpands(meta.Expands{meta.ExpandRealizations, meta.ExpandDeletedRealizations}))
 	require.Error(t, validateExpands(meta.Expands{meta.ExpandDetailedLines}))
+	require.Error(t, validateExpands(meta.Expands{meta.ExpandDeletedRealizations}))
 }
 
 func TestRatingEngineValidate(t *testing.T) {
