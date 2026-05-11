@@ -278,16 +278,15 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 		logger.Debug("creating Plan")
 
 		if len(params.Phases) > 0 {
-			for _, phase := range params.Phases {
-				if err = s.resolveFeatures(ctx, params.Namespace, &phase.RateCards); err != nil {
+			for i := range params.Phases {
+				if err = s.resolveFeatures(ctx, params.Namespace, &params.Phases[i].RateCards); err != nil {
 					if models.IsGenericNotFoundError(err) {
 						err = models.NewGenericValidationError(err)
 					}
 
 					return nil, fmt.Errorf("failed to expand Features for RateCards in PlanPhase: %w", err)
 				}
-			}
-			for i := range params.Phases {
+
 				if err = s.resolveTaxCodes(ctx, params.Namespace, &params.Phases[i].RateCards); err != nil {
 					return nil, fmt.Errorf("failed to resolve TaxCodes for RateCards in PlanPhase: %w", err)
 				}
@@ -426,8 +425,8 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 		logger.Debug("updating Plan")
 
 		if params.Phases != nil && len(*params.Phases) > 0 {
-			for _, phase := range *params.Phases {
-				if err := s.resolveFeatures(ctx, params.Namespace, &phase.RateCards); err != nil {
+			for i := range *params.Phases {
+				if err := s.resolveFeatures(ctx, params.Namespace, &(*params.Phases)[i].RateCards); err != nil {
 					if models.IsGenericNotFoundError(err) {
 						err = models.NewGenericValidationError(err)
 					}

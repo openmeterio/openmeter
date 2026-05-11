@@ -129,7 +129,7 @@ func TestPlanService(t *testing.T) {
 								Name:        features[0].Name,
 								Description: lo.ToPtr("RateCard 1"),
 								Metadata:    models.Metadata{"name": features[0].Name},
-								FeatureKey:  lo.ToPtr(features[0].Key),
+								FeatureKey:  nil,
 								FeatureID:   lo.ToPtr(features[0].ID),
 								TaxConfig: &productcatalog.TaxConfig{
 									Stripe: &productcatalog.StripeTaxConfig{
@@ -161,7 +161,7 @@ func TestPlanService(t *testing.T) {
 								Description: lo.ToPtr("RateCard 1"),
 								Metadata:    models.Metadata{"name": features[0].Name},
 								FeatureKey:  lo.ToPtr(features[0].Key),
-								FeatureID:   lo.ToPtr(features[0].ID),
+								FeatureID:   nil,
 								TaxConfig: &productcatalog.TaxConfig{
 									Stripe: &productcatalog.StripeTaxConfig{
 										Code: "txcd_10000000",
