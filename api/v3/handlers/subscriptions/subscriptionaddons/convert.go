@@ -6,6 +6,7 @@ import (
 	"github.com/samber/lo"
 
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/labels"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -39,6 +40,7 @@ func toAPISubscriptionAddon(addon subscriptionaddon.SubscriptionAddon) (apiv3.Su
 		Addon: apiv3.AddonReferenceItem{
 			Id: addon.Addon.ID,
 		},
+		Labels:     labels.FromMetadata(addon.Metadata),
 		Quantity:   inst.Quantity,
 		QuantityAt: now,
 		ActiveFrom: lo.FromPtrOr(union.From, now),
