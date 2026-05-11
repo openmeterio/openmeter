@@ -83,7 +83,7 @@ func (c *accrualCollector) resolveCollectedInputs(ctx context.Context, input Col
 		return nil, fmt.Errorf("currency: %w", err)
 	}
 
-	sources, err := c.collectCustomerFBO(ctx, c.customerID(input), input.Currency, amount)
+	sources, err := c.collectCustomerFBO(ctx, c.customerID(input), input.Currency, amount, input.At)
 	if err != nil {
 		return nil, fmt.Errorf("collect customer FBO: %w", err)
 	}

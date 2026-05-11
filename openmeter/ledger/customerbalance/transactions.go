@@ -161,7 +161,9 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 	s.applyChargeMetadataToCreditTransactions(ctx, input.CustomerID.Namespace, items)
 
 	if len(items) > 0 {
-		runningBalance, err := s.GetBalance(ctx, input.CustomerID, items[0].Currency, lo.ToPtr(creditTransactionCursor(items[0])))
+		runningBalance, err := s.GetBalance(ctx, input.CustomerID, items[0].Currency, ledger.BalanceQuery{
+			After: lo.ToPtr(creditTransactionCursor(items[0])),
+		})
 		if err != nil {
 			return ListCreditTransactionsResult{}, fmt.Errorf("get FBO balance after transaction %s: %w", items[0].ID.ID, err)
 		}

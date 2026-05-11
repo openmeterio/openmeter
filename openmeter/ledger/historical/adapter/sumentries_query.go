@@ -87,6 +87,12 @@ func (b *sumEntriesQuery) entryPredicates() ([]predicate.LedgerEntry, error) {
 		}))
 	}
 
+	if b.query.Filters.AsOf != nil {
+		entryPredicates = append(entryPredicates, ledgerentrydb.HasTransactionWith(
+			ledgertransactiondb.BookedAtLTE(*b.query.Filters.AsOf),
+		))
+	}
+
 	subAccountPredicates, err := b.subAccountPredicates()
 	if err != nil {
 		return nil, err
