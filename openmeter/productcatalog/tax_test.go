@@ -735,6 +735,14 @@ func (s *stubTaxCodeService) DeleteTaxCode(_ context.Context, _ taxcode.DeleteTa
 	panic("not implemented")
 }
 
+func (s *stubTaxCodeService) GetOrganizationDefaultTaxCodes(_ context.Context, _ taxcode.GetOrganizationDefaultTaxCodesInput) (taxcode.OrganizationDefaultTaxCodes, error) {
+	panic("not implemented")
+}
+
+func (s *stubTaxCodeService) UpsertOrganizationDefaultTaxCodes(_ context.Context, _ taxcode.UpsertOrganizationDefaultTaxCodesInput) (taxcode.OrganizationDefaultTaxCodes, error) {
+	panic("not implemented")
+}
+
 func TestResolveTaxConfig(t *testing.T) {
 	const ns = "test-ns"
 

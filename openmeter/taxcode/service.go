@@ -10,6 +10,11 @@ import (
 )
 
 type Service interface {
+	TaxCodeService
+	OrganizationDefaultTaxCodesService
+}
+
+type TaxCodeService interface {
 	CreateTaxCode(ctx context.Context, input CreateTaxCodeInput) (TaxCode, error)
 	UpdateTaxCode(ctx context.Context, input UpdateTaxCodeInput) (TaxCode, error)
 	ListTaxCodes(ctx context.Context, input ListTaxCodesInput) (pagination.Result[TaxCode], error)
@@ -17,6 +22,11 @@ type Service interface {
 	GetTaxCodeByAppMapping(ctx context.Context, input GetTaxCodeByAppMappingInput) (TaxCode, error)
 	GetOrCreateByAppMapping(ctx context.Context, input GetOrCreateByAppMappingInput) (TaxCode, error)
 	DeleteTaxCode(ctx context.Context, input DeleteTaxCodeInput) error
+}
+
+type OrganizationDefaultTaxCodesService interface {
+	GetOrganizationDefaultTaxCodes(ctx context.Context, input GetOrganizationDefaultTaxCodesInput) (OrganizationDefaultTaxCodes, error)
+	UpsertOrganizationDefaultTaxCodes(ctx context.Context, input UpsertOrganizationDefaultTaxCodesInput) (OrganizationDefaultTaxCodes, error)
 }
 
 type inputOptions struct {
@@ -31,6 +41,8 @@ var (
 	_ models.Validator = (*GetTaxCodeByAppMappingInput)(nil)
 	_ models.Validator = (*GetOrCreateByAppMappingInput)(nil)
 	_ models.Validator = (*DeleteTaxCodeInput)(nil)
+	_ models.Validator = (*GetOrganizationDefaultTaxCodesInput)(nil)
+	_ models.Validator = (*UpsertOrganizationDefaultTaxCodesInput)(nil)
 )
 
 type CreateTaxCodeInput struct {
@@ -189,5 +201,43 @@ func (i DeleteTaxCodeInput) Validate() error {
 	if err := i.NamespacedID.Validate(); err != nil {
 		errs = append(errs, err)
 	}
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type GetOrganizationDefaultTaxCodesInput struct {
+	Namespace string
+	Expand    OrganizationDefaultTaxCodesExpand
+}
+
+func (i GetOrganizationDefaultTaxCodesInput) Validate() error {
+	if i.Namespace == "" {
+		return models.NewNillableGenericValidationError(ErrResourceNamespaceEmpty)
+	}
+
+	return nil
+}
+
+type UpsertOrganizationDefaultTaxCodesInput struct {
+	Namespace            string
+	InvoicingTaxCodeID   string
+	CreditGrantTaxCodeID string
+	Expand               OrganizationDefaultTaxCodesExpand
+}
+
+func (i UpsertOrganizationDefaultTaxCodesInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, ErrResourceNamespaceEmpty)
+	}
+
+	if i.InvoicingTaxCodeID == "" {
+		errs = append(errs, ErrResourceIDEmpty.WithPathString("invoicing_tax_code_id"))
+	}
+
+	if i.CreditGrantTaxCodeID == "" {
+		errs = append(errs, ErrResourceIDEmpty.WithPathString("credit_grant_tax_code_id"))
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

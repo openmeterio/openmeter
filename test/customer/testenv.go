@@ -263,7 +263,13 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create tax code adapter: %w", err)
 	}
 
-	taxCodeService := taxcodeservice.New(taxCodeAdapter, logger.WithGroup("taxcode"))
+	taxCodeService, err := taxcodeservice.New(taxcodeservice.Config{
+		Adapter: taxCodeAdapter,
+		Logger:  logger.WithGroup("taxcode"),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create tax code service: %w", err)
+	}
 
 	planService, err := planservice.New(planservice.Config{
 		Adapter:   planAdapter,

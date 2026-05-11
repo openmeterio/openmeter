@@ -256,7 +256,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	taxcodeService := common.NewTaxCodeService(logger, repository)
+	taxcodeService, err := common.NewTaxCodeService(logger, repository)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	planService, err := common.NewPlanService(logger, client, productCatalogConfiguration, featureConnector, taxcodeService, eventbusPublisher)
 	if err != nil {
 		cleanup7()

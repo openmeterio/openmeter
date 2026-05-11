@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -11,19 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-type service struct {
-	adapter taxcode.Repository
-	logger  *slog.Logger
-}
-
-func New(adapter taxcode.Repository, logger *slog.Logger) taxcode.Service {
-	return &service{
-		adapter: adapter,
-		logger:  logger,
-	}
-}
-
-func (s *service) CreateTaxCode(ctx context.Context, input taxcode.CreateTaxCodeInput) (taxcode.TaxCode, error) {
+func (s *Service) CreateTaxCode(ctx context.Context, input taxcode.CreateTaxCodeInput) (taxcode.TaxCode, error) {
 	if err := input.Validate(); err != nil {
 		return taxcode.TaxCode{}, err
 	}
@@ -33,7 +20,7 @@ func (s *service) CreateTaxCode(ctx context.Context, input taxcode.CreateTaxCode
 	})
 }
 
-func (s *service) UpdateTaxCode(ctx context.Context, input taxcode.UpdateTaxCodeInput) (taxcode.TaxCode, error) {
+func (s *Service) UpdateTaxCode(ctx context.Context, input taxcode.UpdateTaxCodeInput) (taxcode.TaxCode, error) {
 	if err := input.Validate(); err != nil {
 		return taxcode.TaxCode{}, err
 	}
@@ -52,7 +39,7 @@ func (s *service) UpdateTaxCode(ctx context.Context, input taxcode.UpdateTaxCode
 	})
 }
 
-func (s *service) ListTaxCodes(ctx context.Context, input taxcode.ListTaxCodesInput) (pagination.Result[taxcode.TaxCode], error) {
+func (s *Service) ListTaxCodes(ctx context.Context, input taxcode.ListTaxCodesInput) (pagination.Result[taxcode.TaxCode], error) {
 	if err := input.Validate(); err != nil {
 		return pagination.Result[taxcode.TaxCode]{}, err
 	}
@@ -62,7 +49,7 @@ func (s *service) ListTaxCodes(ctx context.Context, input taxcode.ListTaxCodesIn
 	})
 }
 
-func (s *service) GetTaxCode(ctx context.Context, input taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {
+func (s *Service) GetTaxCode(ctx context.Context, input taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {
 	if err := input.Validate(); err != nil {
 		return taxcode.TaxCode{}, err
 	}
@@ -72,7 +59,7 @@ func (s *service) GetTaxCode(ctx context.Context, input taxcode.GetTaxCodeInput)
 	})
 }
 
-func (s *service) GetTaxCodeByAppMapping(ctx context.Context, input taxcode.GetTaxCodeByAppMappingInput) (taxcode.TaxCode, error) {
+func (s *Service) GetTaxCodeByAppMapping(ctx context.Context, input taxcode.GetTaxCodeByAppMappingInput) (taxcode.TaxCode, error) {
 	if err := input.Validate(); err != nil {
 		return taxcode.TaxCode{}, err
 	}
@@ -84,7 +71,7 @@ func (s *service) GetTaxCodeByAppMapping(ctx context.Context, input taxcode.GetT
 
 // GetOrCreateByAppMapping looks up a TaxCode by its app mapping. If none exists,
 // it creates one with a key derived from the app-specific code.
-func (s *service) GetOrCreateByAppMapping(ctx context.Context, input taxcode.GetOrCreateByAppMappingInput) (taxcode.TaxCode, error) {
+func (s *Service) GetOrCreateByAppMapping(ctx context.Context, input taxcode.GetOrCreateByAppMappingInput) (taxcode.TaxCode, error) {
 	if err := input.Validate(); err != nil {
 		return taxcode.TaxCode{}, err
 	}
@@ -124,7 +111,7 @@ func (s *service) GetOrCreateByAppMapping(ctx context.Context, input taxcode.Get
 	})
 }
 
-func (s *service) DeleteTaxCode(ctx context.Context, input taxcode.DeleteTaxCodeInput) error {
+func (s *Service) DeleteTaxCode(ctx context.Context, input taxcode.DeleteTaxCodeInput) error {
 	if err := input.Validate(); err != nil {
 		return err
 	}
