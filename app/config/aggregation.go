@@ -134,7 +134,11 @@ func (c ClickhouseEventsTableEngineConfig) Validate() error {
 
 	switch c.Type {
 	case "", ClickhouseEventsTableEngineMergeTree:
-		// MergeTree (or unset, treated as MergeTree) takes no engine parameters.
+		if c.Cluster != "" {
+			errs = append(errs, fmt.Errorf("cluster requires %s engine; MergeTree with ON CLUSTER produces independent (non-replicated) tables per node",
+				ClickhouseEventsTableEngineReplicatedMergeTree,
+			))
+		}
 	case ClickhouseEventsTableEngineReplicatedMergeTree:
 		if strings.TrimSpace(c.ZooKeeperPath) == "" {
 			errs = append(errs, errors.New("zooKeeperPath is required for ReplicatedMergeTree"))

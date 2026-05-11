@@ -23,11 +23,12 @@ func TestClickhouseEventsTableEngineConfigValidate(t *testing.T) {
 			},
 		},
 		{
-			name: "MergeTree with cluster is valid",
+			name: "MergeTree with cluster is rejected (non-replicated ON CLUSTER produces independent tables)",
 			cfg: ClickhouseEventsTableEngineConfig{
 				Type:    ClickhouseEventsTableEngineMergeTree,
 				Cluster: "c1",
 			},
+			wantErr: "cluster requires ReplicatedMergeTree",
 		},
 		{
 			name: "ReplicatedMergeTree without zk path is invalid",
@@ -64,14 +65,19 @@ func TestClickhouseEventsTableEngineConfigValidate(t *testing.T) {
 		{
 			name: "cluster name with hyphen is valid (backtick-quoted at render time)",
 			cfg: ClickhouseEventsTableEngineConfig{
-				Type:    ClickhouseEventsTableEngineMergeTree,
-				Cluster: "prod-cluster-1",
+				Type:          ClickhouseEventsTableEngineReplicatedMergeTree,
+				ZooKeeperPath: "/p",
+				ReplicaName:   "{replica}",
+				Cluster:       "prod-cluster-1",
 			},
 		},
 		{
 			name: "cluster name with whitespace-only is rejected",
 			cfg: ClickhouseEventsTableEngineConfig{
-				Cluster: "   ",
+				Type:          ClickhouseEventsTableEngineReplicatedMergeTree,
+				ZooKeeperPath: "/p",
+				ReplicaName:   "{replica}",
+				Cluster:       "   ",
 			},
 			wantErr: "must not be whitespace-only",
 		},

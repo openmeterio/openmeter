@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -14,15 +15,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
-// EventsTableEngineSuite drives the engine-config code path against a live
-// ClickHouse instance. It is gated by TEST_CLICKHOUSE_DSN like the other
-// integration suites in this package.
-//
-// The ReplicatedMergeTree variant additionally requires a Keeper-backed
-// cluster; it is gated by TEST_CLICKHOUSE_REPLICATED=1 and the docker-compose
-// stack at the repository root (see `make up-replicated`). The CI single-node
-// suite skips it; local runs against the replicated stack exercise the full
-// code path.
+// Gated by TEST_CLICKHOUSE_DSN (same as the rest of this package). The
+// ReplicatedMergeTree variant is additionally gated by
+// TEST_CLICKHOUSE_REPLICATED=1 and the TEST_CLICKHOUSE_REPLICATED_* topology
+// env vars read inline in TestReplicatedMergeTreeEngine.
 type EventsTableEngineSuite struct {
 	CHTestSuite
 }
@@ -92,36 +88,54 @@ func (s *EventsTableEngineSuite) TestInvalidEngineConfigFailsValidation() {
 	s.Contains(err.Error(), "events table engine")
 }
 
-// TestReplicatedMergeTreeEngine exercises the ReplicatedMergeTree code path
-// end-to-end against a Keeper-backed cluster. It is skipped unless
-// TEST_CLICKHOUSE_REPLICATED=1 is set; bring the cluster up with
-// `make up-replicated` before running, and point TEST_CLICKHOUSE_DSN at one
-// of the replicas (port 39000 or 39001 by default).
+// End-to-end ReplicatedMergeTree probe against a Keeper-backed cluster.
+// Skipped unless TEST_CLICKHOUSE_REPLICATED=1, and skipped (with a clear
+// message) if any of the TEST_CLICKHOUSE_REPLICATED_* topology env vars below
+// are missing.
 func (s *EventsTableEngineSuite) TestReplicatedMergeTreeEngine() {
 	if os.Getenv("TEST_CLICKHOUSE_REPLICATED") != "1" {
 		s.T().Skip("TEST_CLICKHOUSE_REPLICATED is not set; skipping ReplicatedMergeTree test")
 	}
+
+	cluster := os.Getenv("TEST_CLICKHOUSE_REPLICATED_CLUSTER")
+	if cluster == "" {
+		s.T().Skip("TEST_CLICKHOUSE_REPLICATED_CLUSTER is not set; skipping ReplicatedMergeTree test")
+	}
+	zkPath := os.Getenv("TEST_CLICKHOUSE_REPLICATED_ZK_PATH")
+	if zkPath == "" {
+		s.T().Skip("TEST_CLICKHOUSE_REPLICATED_ZK_PATH is not set; skipping ReplicatedMergeTree test")
+	}
+	replicaName := os.Getenv("TEST_CLICKHOUSE_REPLICATED_REPLICA_NAME")
+	if replicaName == "" {
+		s.T().Skip("TEST_CLICKHOUSE_REPLICATED_REPLICA_NAME is not set; skipping ReplicatedMergeTree test")
+	}
+	node2DSN := os.Getenv("TEST_CLICKHOUSE_REPLICATED_NODE2_DSN")
+	if node2DSN == "" {
+		s.T().Skip("TEST_CLICKHOUSE_REPLICATED_NODE2_DSN is not set; skipping ReplicatedMergeTree test")
+	}
+	replicaCountEnv := os.Getenv("TEST_CLICKHOUSE_REPLICATED_REPLICA_COUNT")
+	if replicaCountEnv == "" {
+		s.T().Skip("TEST_CLICKHOUSE_REPLICATED_REPLICA_COUNT is not set; skipping ReplicatedMergeTree test")
+	}
+	expectedReplicas, err := strconv.ParseUint(replicaCountEnv, 10, 64)
+	s.NoError(err, "TEST_CLICKHOUSE_REPLICATED_REPLICA_COUNT must be a positive integer")
+	s.Greater(expectedReplicas, uint64(0))
 
 	t := s.T()
 	ctx := t.Context()
 
 	// CHTestSuite.CreateTempDatabase only creates the database on the
 	// connected node. ReplicatedMergeTree with ON CLUSTER propagates the DDL
-	// to every replica, so the database must exist on all of them. Re-issue
-	// the CREATE DATABASE on the cluster — IF NOT EXISTS makes it a no-op on
-	// the node that already has it.
+	// to every replica, so the database must exist on all of them.
 	s.NoError(s.ClickHouse.Exec(ctx, fmt.Sprintf(
-		"CREATE DATABASE IF NOT EXISTS %s ON CLUSTER openmeter_cluster", s.Database,
+		"CREATE DATABASE IF NOT EXISTS %s ON CLUSTER %s", s.Database, quoteClusterIdentifier(cluster),
 	)))
-	// Drop on the cluster so the DB is removed from every replica, not just
-	// the one CHTestSuite.TearDownTest cleans up locally. We use defer here
-	// (not t.Cleanup) because testify's TearDownTest closes s.ClickHouse and
-	// nils the field before subtest t.Cleanup callbacks fire — defer runs
-	// while the connection is still open.
+	// defer (not t.Cleanup) because testify's TearDownTest closes
+	// s.ClickHouse before subtest t.Cleanup callbacks fire.
 	conn, dbName := s.ClickHouse, s.Database
 	defer func() {
 		_ = conn.Exec(t.Context(), fmt.Sprintf(
-			"DROP DATABASE IF EXISTS %s ON CLUSTER openmeter_cluster SYNC", dbName,
+			"DROP DATABASE IF EXISTS %s ON CLUSTER %s SYNC", dbName, quoteClusterIdentifier(cluster),
 		))
 	}()
 
@@ -132,33 +146,31 @@ func (s *EventsTableEngineSuite) TestReplicatedMergeTreeEngine() {
 		EventsTableName: eventsTableName,
 		EventsTableEngine: EventsTableEngine{
 			Type:          EventsTableEngineReplicatedMergeTree,
-			ZooKeeperPath: "/clickhouse/tables/{shard}/{database}/{table}",
-			ReplicaName:   "{replica}",
-			Cluster:       "openmeter_cluster",
+			ZooKeeperPath: zkPath,
+			ReplicaName:   replicaName,
+			Cluster:       cluster,
 		},
 		ProgressManager: progressmanager.NewMockProgressManager(),
 	})
 	s.NoError(err, "failed to create connector with ReplicatedMergeTree engine")
 	s.NotNil(connector)
 
-	// system.tables.engine reports the bare engine name without arguments.
 	s.assertEngine("ReplicatedMergeTree")
 
-	// Table must exist on every replica in the cluster — this is what `ON
-	// CLUSTER` is supposed to guarantee.
+	// Table must exist on every replica — what `ON CLUSTER` guarantees.
 	var replicaCount uint64
 	row := s.ClickHouse.QueryRow(ctx, fmt.Sprintf(`
-		SELECT count() FROM clusterAllReplicas('openmeter_cluster', system.tables)
+		SELECT count() FROM clusterAllReplicas('%s', system.tables)
 		WHERE database = '%s' AND name = '%s'`,
-		s.Database, eventsTableName,
+		escapeStringLiteral(cluster), s.Database, eventsTableName,
 	))
 	s.NoError(row.Scan(&replicaCount))
-	s.EqualValues(2, replicaCount, "events table should exist on both replicas")
+	s.EqualValues(expectedReplicas, replicaCount,
+		"events table should exist on every replica in the cluster")
 
-	// End-to-end replication probe: insert via the connector (which targets
-	// node-01) and read the row back from node-02. If the {shard}/{replica}
-	// macros were not substituted by Keeper, the second replica wouldn't
-	// receive the data and the read would return zero rows.
+	// End-to-end replication probe: insert via the connector and read back
+	// from node-02. If Keeper didn't substitute {shard}/{replica}, node-02
+	// would not receive the row.
 	now := time.Now().UTC()
 	s.NoError(connector.BatchInsert(ctx, []streaming.RawEvent{{
 		Namespace:  "ns-replicated",
@@ -173,7 +185,7 @@ func (s *EventsTableEngineSuite) TestReplicatedMergeTreeEngine() {
 		StoreRowID: "1",
 	}}))
 
-	node02Opts, err := clickhouse.ParseDSN("clickhouse://default:default@127.0.0.1:39001/openmeter")
+	node02Opts, err := clickhouse.ParseDSN(node2DSN)
 	s.NoError(err)
 	node02, err := clickhouse.Open(node02Opts)
 	s.NoError(err)
