@@ -304,12 +304,13 @@ type ListCustomersInput struct {
 	Order   sortx.Order
 
 	// Filters
-	Key          *filter.FilterString
-	Name         *filter.FilterString
-	PrimaryEmail *filter.FilterString
-	Subject      *string
-	PlanKey      *string
-	CustomerIDs  []string
+	Key                        *filter.FilterString
+	Name                       *filter.FilterString
+	PrimaryEmail               *filter.FilterString
+	UsageAttributionSubjectKey *filter.FilterString
+	PlanKey                    *filter.FilterString
+	CustomerIDs                []string
+	BillingProfileID           *filter.FilterULID
 
 	// Expand
 	Expands Expands
@@ -341,6 +342,24 @@ func (i ListCustomersInput) Validate() error {
 	if i.PrimaryEmail != nil {
 		if err := i.PrimaryEmail.Validate(); err != nil {
 			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid primary email filter: %w", err)))
+		}
+	}
+
+	if i.UsageAttributionSubjectKey != nil {
+		if err := i.UsageAttributionSubjectKey.Validate(); err != nil {
+			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid usage attribution subject key filter: %w", err)))
+		}
+	}
+
+	if i.PlanKey != nil {
+		if err := i.PlanKey.Validate(); err != nil {
+			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid plan key filter: %w", err)))
+		}
+	}
+
+	if i.BillingProfileID != nil {
+		if err := i.BillingProfileID.Validate(); err != nil {
+			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid billing profile id filter: %w", err)))
 		}
 	}
 

@@ -32,6 +32,15 @@ func containsFilter(value *string) *filter.FilterString {
 	return &filter.FilterString{Contains: value}
 }
 
+// eqFilter wraps a *string query parameter in a FilterString with an Eq
+// operator, preserving the v1 exact-match semantics.
+func eqFilter(value *string) *filter.FilterString {
+	if value == nil {
+		return nil
+	}
+	return &filter.FilterString{Eq: value}
+}
+
 type (
 	ListCustomersResponse = pagination.Result[api.Customer]
 	ListCustomersParams   = api.ListCustomersParams
@@ -62,11 +71,11 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 				Order:   sortx.Order(defaultx.WithDefault(params.Order, api.SortOrderASC)),
 
 				// Filters
-				Key:          containsFilter(params.Key),
-				Name:         containsFilter(params.Name),
-				PrimaryEmail: containsFilter(params.PrimaryEmail),
-				Subject:      params.Subject,
-				PlanKey:      params.PlanKey,
+				Key:                        containsFilter(params.Key),
+				Name:                       containsFilter(params.Name),
+				PrimaryEmail:               containsFilter(params.PrimaryEmail),
+				UsageAttributionSubjectKey: containsFilter(params.Subject),
+				PlanKey:                    eqFilter(params.PlanKey),
 
 				// Modifiers
 				IncludeDeleted: lo.FromPtrOr(params.IncludeDeleted, customer.IncludeDeleted),
@@ -99,9 +108,9 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 				})
 
 				subscriptions, err := h.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
-					Namespaces:  []string{request.Namespace},
-					CustomerIDs: customerIDs,
-					ActiveAt:    lo.ToPtr(time.Now()),
+					Namespaces: []string{request.Namespace},
+					CustomerID: &filter.FilterULID{FilterString: filter.FilterString{In: &customerIDs}},
+					ActiveAt:   lo.ToPtr(time.Now()),
 				})
 				if err != nil {
 					return ListCustomersResponse{}, err
@@ -623,9 +632,9 @@ func (h *handler) mapCustomerWithSubscriptionsToAPI(ctx context.Context, cust cu
 
 	// Get the customer's subscriptions
 	subscriptions, err := h.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
-		Namespaces:  []string{cust.Namespace},
-		CustomerIDs: []string{cust.ID},
-		ActiveAt:    lo.ToPtr(time.Now()),
+		Namespaces: []string{cust.Namespace},
+		CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &cust.ID}},
+		ActiveAt:   lo.ToPtr(time.Now()),
 	})
 	if err != nil {
 		return GetCustomerResponse{}, err

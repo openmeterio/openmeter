@@ -8,6 +8,7 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/api/v3/filters"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -58,11 +59,20 @@ func (h *handler) ListSubscriptions() ListSubscriptionsHandler {
 
 			// Filters
 			if params.Filter != nil {
-				// Filter by customer ID
-				if params.Filter.CustomerId != nil {
-					// Add the customer ID filter to the request
-					req.CustomerIDs = []string{*params.Filter.CustomerId}
+				customerID, err := filters.FromAPIFilterULID(params.Filter.CustomerId)
+				if err != nil {
+					return ListSubscriptionsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[customer_id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
 				}
+				req.CustomerID = customerID
+				planKey, err := filters.FromAPIFilterString(params.Filter.PlanKey)
+				if err != nil {
+					return ListSubscriptionsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[plan_key]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.PlanKey = planKey
 			}
 
 			return req, nil
