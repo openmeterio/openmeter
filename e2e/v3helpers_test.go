@@ -376,7 +376,7 @@ func validFlatRateCard(keyPrefix string) apiv3.BillingRateCard {
 // validUnitRateCard returns a usage-based unit-priced rate card. Unit prices
 // cannot use payment_term=in_advance (that's flat-only), so this uses
 // in_arrears.
-func validUnitRateCard(keyPrefix string) apiv3.BillingRateCard {
+func validUnitRateCard(f apiv3.Feature) apiv3.BillingRateCard {
 	cadence := apiv3.ISO8601Duration("P1M")
 	term := apiv3.BillingPricePaymentTermInArrears
 
@@ -389,27 +389,18 @@ func validUnitRateCard(keyPrefix string) apiv3.BillingRateCard {
 	}
 
 	return apiv3.BillingRateCard{
-		Key:            uniqueKey(keyPrefix),
-		Name:           "Test Unit Rate Card " + keyPrefix,
+		Key:            f.Key,
+		Name:           "Test Unit Rate Card " + f.Key,
 		Price:          price,
 		BillingCadence: &cadence,
 		PaymentTerm:    &term,
+		Feature:        &apiv3.FeatureReferenceItem{Id: f.Id},
 	}
-}
-
-// validUsageRateCard returns a unit-priced rate card bound to the given
-// feature ID — the shape needed when a plan/addon meters usage against a
-// metered feature. Reuses validUnitRateCard's price + cadence + payment_term
-// (unit prices must use in_arrears).
-func validUsageRateCard(keyPrefix, featureID string) apiv3.BillingRateCard {
-	rc := validUnitRateCard(keyPrefix)
-	rc.Feature = &apiv3.FeatureReferenceItem{Id: featureID}
-	return rc
 }
 
 // validGraduatedRateCard returns a graduated tiered rate card with two tiers:
 // 0–100 units at $0.10/unit and 100+ units at $0.05/unit.
-func validGraduatedRateCard(keyPrefix string) apiv3.BillingRateCard {
+func validGraduatedRateCard(f apiv3.Feature) apiv3.BillingRateCard {
 	cadence := apiv3.ISO8601Duration("P1M")
 	term := apiv3.BillingPricePaymentTermInArrears
 
@@ -437,11 +428,12 @@ func validGraduatedRateCard(keyPrefix string) apiv3.BillingRateCard {
 	}
 
 	return apiv3.BillingRateCard{
-		Key:            uniqueKey(keyPrefix),
-		Name:           "Test Graduated Rate Card " + keyPrefix,
+		Key:            f.Key,
+		Name:           "Test Graduated Rate Card " + f.Key,
 		Price:          price,
 		BillingCadence: &cadence,
 		PaymentTerm:    &term,
+		Feature:        &apiv3.FeatureReferenceItem{Id: f.Id},
 	}
 }
 

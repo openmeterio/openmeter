@@ -10,111 +10,18 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-var MonthPeriod = datetime.NewISODuration(0, 1, 0, 0, 0, 0, 0)
-
-var planPhases = []productcatalog.Phase{
-	{
-		PhaseMeta: productcatalog.PhaseMeta{
-			Key:         "trial",
-			Name:        "Trial",
-			Description: lo.ToPtr("Trial phase"),
-			Metadata:    models.Metadata{"name": "trial"},
-			Duration:    &MonthPeriod,
-		},
-		RateCards: []productcatalog.RateCard{
-			&productcatalog.FlatFeeRateCard{
-				RateCardMeta: productcatalog.RateCardMeta{
-					Key:                 "trial-ratecard-1",
-					Name:                "Trial RateCard 1",
-					Description:         lo.ToPtr("Trial RateCard 1"),
-					Metadata:            models.Metadata{"name": "trial-ratecard-1"},
-					FeatureKey:          nil,
-					FeatureID:           nil,
-					EntitlementTemplate: nil,
-					TaxConfig: &productcatalog.TaxConfig{
-						Stripe: &productcatalog.StripeTaxConfig{
-							Code: "txcd_10000000",
-						},
-					},
-					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-						Amount:      decimal.NewFromInt(0),
-						PaymentTerm: productcatalog.InArrearsPaymentTerm,
-					}),
-				},
-				BillingCadence: &MonthPeriod,
-			},
-		},
-	},
-	{
-		PhaseMeta: productcatalog.PhaseMeta{
-			Key:         "pro",
-			Name:        "Pro",
-			Description: lo.ToPtr("Pro phase"),
-			Metadata:    models.Metadata{"name": "pro"},
-			Duration:    nil,
-		},
-		RateCards: []productcatalog.RateCard{
-			&productcatalog.UsageBasedRateCard{
-				RateCardMeta: productcatalog.RateCardMeta{
-					Key:                 "pro-ratecard-1",
-					Name:                "Pro RateCard 1",
-					Description:         lo.ToPtr("Pro RateCard 1"),
-					Metadata:            models.Metadata{"name": "pro-ratecard-1"},
-					FeatureKey:          nil,
-					FeatureID:           nil,
-					EntitlementTemplate: nil,
-					TaxConfig: &productcatalog.TaxConfig{
-						Stripe: &productcatalog.StripeTaxConfig{
-							Code: "txcd_10000000",
-						},
-					},
-					Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
-						Mode: productcatalog.VolumeTieredPrice,
-						Tiers: []productcatalog.PriceTier{
-							{
-								UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-								FlatPrice: &productcatalog.PriceTierFlatPrice{
-									Amount: decimal.NewFromInt(100),
-								},
-								UnitPrice: &productcatalog.PriceTierUnitPrice{
-									Amount: decimal.NewFromInt(50),
-								},
-							},
-							{
-								UpToAmount: nil,
-								FlatPrice: &productcatalog.PriceTierFlatPrice{
-									Amount: decimal.NewFromInt(5),
-								},
-								UnitPrice: &productcatalog.PriceTierUnitPrice{
-									Amount: decimal.NewFromInt(25),
-								},
-							},
-						},
-						Commitments: productcatalog.Commitments{
-							MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-							MaximumAmount: nil,
-						},
-					}),
-				},
-				BillingCadence: MonthPeriod,
-			},
-		},
-	},
-}
-
 func TestPostgresAdapter(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	env := pctestutils.NewTestEnv(t)
 	t.Cleanup(func() {
 		env.Close(t)
@@ -125,7 +32,125 @@ func TestPostgresAdapter(t *testing.T) {
 	// Get new namespace ID
 	namespace := pctestutils.NewTestNamespace(t)
 
-	planV1Input := pctestutils.NewTestPlan(t, namespace, planPhases...)
+	// Setup meter repository
+	err := env.Meter.ReplaceMeters(t.Context(), pctestutils.NewTestMeters(t, namespace))
+	require.NoError(t, err, "replacing meters must not fail")
+
+	result, err := env.Meter.ListMeters(t.Context(), meter.ListMetersParams{
+		Page: pagination.Page{
+			PageSize:   1000,
+			PageNumber: 1,
+		},
+		Namespace: namespace,
+	})
+	require.NoErrorf(t, err, "listing meters must not fail")
+
+	meters := result.Items
+	require.NotEmptyf(t, meters, "list of Meters must not be empty")
+
+	// Set a feature for each meter
+	features := make([]feature.Feature, 0, len(meters))
+	for _, m := range meters {
+		input := pctestutils.NewTestFeatureFromMeter(t, &m)
+
+		feat, err := env.Feature.CreateFeature(t.Context(), input)
+		require.NoErrorf(t, err, "creating feature must not fail")
+		require.NotNil(t, feat, "feature must not be empty")
+
+		features = append(features, feat)
+	}
+
+	planPhases := []productcatalog.Phase{
+		{
+			PhaseMeta: productcatalog.PhaseMeta{
+				Key:         "trial",
+				Name:        "Trial",
+				Description: lo.ToPtr("Trial phase"),
+				Metadata:    models.Metadata{"name": "trial"},
+				Duration:    &pctestutils.MonthPeriod,
+			},
+			RateCards: []productcatalog.RateCard{
+				&productcatalog.FlatFeeRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:                 "trial-ratecard-1",
+						Name:                "Trial RateCard 1",
+						Description:         lo.ToPtr("Trial RateCard 1"),
+						Metadata:            models.Metadata{"name": "trial-ratecard-1"},
+						FeatureKey:          nil,
+						FeatureID:           nil,
+						EntitlementTemplate: nil,
+						TaxConfig: &productcatalog.TaxConfig{
+							Stripe: &productcatalog.StripeTaxConfig{
+								Code: "txcd_10000000",
+							},
+						},
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      decimal.NewFromInt(0),
+							PaymentTerm: productcatalog.InArrearsPaymentTerm,
+						}),
+					},
+					BillingCadence: &pctestutils.MonthPeriod,
+				},
+			},
+		},
+		{
+			PhaseMeta: productcatalog.PhaseMeta{
+				Key:         "pro",
+				Name:        "Pro",
+				Description: lo.ToPtr("Pro phase"),
+				Metadata:    models.Metadata{"name": "pro"},
+				Duration:    nil,
+			},
+			RateCards: []productcatalog.RateCard{
+				&productcatalog.UsageBasedRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:                 features[0].Key,
+						Name:                "Pro RateCard 1",
+						Description:         lo.ToPtr("Pro RateCard 1"),
+						Metadata:            models.Metadata{"name": features[0].Key},
+						FeatureKey:          &features[0].Key,
+						FeatureID:           nil,
+						EntitlementTemplate: nil,
+						TaxConfig: &productcatalog.TaxConfig{
+							Stripe: &productcatalog.StripeTaxConfig{
+								Code: "txcd_10000000",
+							},
+						},
+						Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+							Mode: productcatalog.VolumeTieredPrice,
+							Tiers: []productcatalog.PriceTier{
+								{
+									UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+									FlatPrice: &productcatalog.PriceTierFlatPrice{
+										Amount: decimal.NewFromInt(100),
+									},
+									UnitPrice: &productcatalog.PriceTierUnitPrice{
+										Amount: decimal.NewFromInt(50),
+									},
+								},
+								{
+									UpToAmount: nil,
+									FlatPrice: &productcatalog.PriceTierFlatPrice{
+										Amount: decimal.NewFromInt(5),
+									},
+									UnitPrice: &productcatalog.PriceTierUnitPrice{
+										Amount: decimal.NewFromInt(25),
+									},
+								},
+							},
+							Commitments: productcatalog.Commitments{
+								MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+								MaximumAmount: nil,
+							},
+						}),
+					},
+					BillingCadence: pctestutils.MonthPeriod,
+				},
+			},
+		},
+	}
+
+	planV1Input := pctestutils.NewTestPlan(t, namespace, pctestutils.WithPlanPhases(planPhases...))
 
 	t.Run("Plan", func(t *testing.T) {
 		var (
@@ -134,7 +159,7 @@ func TestPostgresAdapter(t *testing.T) {
 		)
 
 		t.Run("Create", func(t *testing.T) {
-			planV1, err = env.Plan.CreatePlan(ctx, planV1Input)
+			planV1, err = env.Plan.CreatePlan(t.Context(), planV1Input)
 			require.NoErrorf(t, err, "creating new plan must not fail")
 
 			require.NotNilf(t, planV1, "plan must not be nil")
@@ -143,11 +168,17 @@ func TestPostgresAdapter(t *testing.T) {
 		})
 
 		t.Run("CreateWithCreditOnlySettlement", func(t *testing.T) {
-			input := pctestutils.NewTestPlan(t, namespace, planPhases...)
-			input.Key = "test-credit-only"
-			input.SettlementMode = productcatalog.CreditOnlySettlementMode
+			input := pctestutils.NewTestPlan(t, namespace,
+				pctestutils.WithPlanPhases(planPhases...),
+				func(t *testing.T, p *productcatalog.Plan) {
+					t.Helper()
 
-			p, err := env.PlanRepository.CreatePlan(ctx, input)
+					p.Key = "test-credit-only"
+					p.SettlementMode = productcatalog.CreditOnlySettlementMode
+				},
+			)
+
+			p, err := env.PlanRepository.CreatePlan(t.Context(), input)
 			require.NoErrorf(t, err, "creating plan with credit_only settlement must not fail")
 			require.NotNilf(t, p, "plan must not be nil")
 
@@ -155,7 +186,7 @@ func TestPostgresAdapter(t *testing.T) {
 				"settlement mode mismatch: expected=%s, actual=%s", productcatalog.CreditOnlySettlementMode, p.SettlementMode)
 
 			// Verify persistence via GetPlan
-			fetched, err := env.PlanRepository.GetPlan(ctx, plan.GetPlanInput{
+			fetched, err := env.PlanRepository.GetPlan(t.Context(), plan.GetPlanInput{
 				NamespacedID: models.NamespacedID{
 					Namespace: namespace,
 					ID:        p.ID,
@@ -169,7 +200,7 @@ func TestPostgresAdapter(t *testing.T) {
 
 		t.Run("Get", func(t *testing.T) {
 			t.Run("ById", func(t *testing.T) {
-				getPlanV1, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
+				getPlanV1, err := env.Plan.GetPlan(t.Context(), plan.GetPlanInput{
 					NamespacedID: models.NamespacedID{
 						Namespace: namespace,
 						ID:        planV1.ID,
@@ -183,7 +214,7 @@ func TestPostgresAdapter(t *testing.T) {
 			})
 
 			t.Run("ByKey", func(t *testing.T) {
-				getPlanV1, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
+				getPlanV1, err := env.Plan.GetPlan(t.Context(), plan.GetPlanInput{
 					NamespacedID: models.NamespacedID{
 						Namespace: namespace,
 					},
@@ -198,7 +229,7 @@ func TestPostgresAdapter(t *testing.T) {
 			})
 
 			t.Run("ByKeyVersion", func(t *testing.T) {
-				getPlanV1, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
+				getPlanV1, err := env.Plan.GetPlan(t.Context(), plan.GetPlanInput{
 					NamespacedID: models.NamespacedID{
 						Namespace: namespace,
 					},
@@ -213,7 +244,7 @@ func TestPostgresAdapter(t *testing.T) {
 			})
 
 			t.Run("ByIdExpandAddon", func(t *testing.T) {
-				getPlanV1, err := env.PlanRepository.GetPlan(ctx, plan.GetPlanInput{
+				getPlanV1, err := env.PlanRepository.GetPlan(t.Context(), plan.GetPlanInput{
 					NamespacedID: models.NamespacedID{
 						Namespace: namespace,
 						ID:        planV1.ID,
@@ -232,7 +263,7 @@ func TestPostgresAdapter(t *testing.T) {
 
 		t.Run("List", func(t *testing.T) {
 			t.Run("ById", func(t *testing.T) {
-				listPlanV1, err := env.PlanRepository.ListPlans(ctx, plan.ListPlansInput{
+				listPlanV1, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
 					Namespaces: []string{namespace},
 					IDs:        []string{planV1.ID},
 				})
@@ -244,7 +275,7 @@ func TestPostgresAdapter(t *testing.T) {
 			})
 
 			t.Run("ByKey", func(t *testing.T) {
-				listPlanV1, err := env.PlanRepository.ListPlans(ctx, plan.ListPlansInput{
+				listPlanV1, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
 					Namespaces: []string{namespace},
 					Keys:       []string{planV1Input.Key},
 				})
@@ -256,7 +287,7 @@ func TestPostgresAdapter(t *testing.T) {
 			})
 
 			t.Run("ByKeyVersion", func(t *testing.T) {
-				listPlanV1, err := env.PlanRepository.ListPlans(ctx, plan.ListPlansInput{
+				listPlanV1, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
 					Namespaces:  []string{namespace},
 					KeyVersions: map[string][]int{planV1Input.Key: {1}},
 				})
@@ -289,7 +320,7 @@ func TestPostgresAdapter(t *testing.T) {
 				Phases: nil,
 			}
 
-			planV1, err = env.PlanRepository.UpdatePlan(ctx, planV1Update)
+			planV1, err = env.PlanRepository.UpdatePlan(t.Context(), planV1Update)
 			require.NoErrorf(t, err, "updating plan must not fail")
 
 			require.NotNilf(t, planV1, "plan must not be nil")
@@ -300,7 +331,7 @@ func TestPostgresAdapter(t *testing.T) {
 		t.Run("UpdateSettlementMode", func(t *testing.T) {
 			newMode := productcatalog.CreditOnlySettlementMode
 
-			planV1, err = env.PlanRepository.UpdatePlan(ctx, plan.UpdatePlanInput{
+			planV1, err = env.PlanRepository.UpdatePlan(t.Context(), plan.UpdatePlanInput{
 				NamespacedID: models.NamespacedID{
 					Namespace: namespace,
 					ID:        planV1.ID,
@@ -314,7 +345,7 @@ func TestPostgresAdapter(t *testing.T) {
 				"settlement mode mismatch: expected=%s, actual=%s", productcatalog.CreditOnlySettlementMode, planV1.SettlementMode)
 
 			// Verify persistence
-			fetched, err := env.PlanRepository.GetPlan(ctx, plan.GetPlanInput{
+			fetched, err := env.PlanRepository.GetPlan(t.Context(), plan.GetPlanInput{
 				NamespacedID: models.NamespacedID{
 					Namespace: namespace,
 					ID:        planV1.ID,
@@ -327,7 +358,7 @@ func TestPostgresAdapter(t *testing.T) {
 		})
 
 		t.Run("Delete", func(t *testing.T) {
-			err = env.PlanRepository.DeletePlan(ctx, plan.DeletePlanInput{
+			err = env.PlanRepository.DeletePlan(t.Context(), plan.DeletePlanInput{
 				NamespacedID: models.NamespacedID{
 					Namespace: planV1.Namespace,
 					ID:        planV1.ID,
@@ -335,7 +366,7 @@ func TestPostgresAdapter(t *testing.T) {
 			})
 			require.NoErrorf(t, err, "deleting plan must not fail")
 
-			getPlanV1, err := env.PlanRepository.GetPlan(ctx, plan.GetPlanInput{
+			getPlanV1, err := env.PlanRepository.GetPlan(t.Context(), plan.GetPlanInput{
 				NamespacedID: models.NamespacedID{
 					Namespace: namespace,
 					ID:        planV1.ID,
@@ -349,7 +380,7 @@ func TestPostgresAdapter(t *testing.T) {
 		})
 
 		t.Run("ListStatusFilter", func(t *testing.T) {
-			testListPlanStatusFilter(ctx, t, env.PlanRepository)
+			testListPlanStatusFilter(t.Context(), t, env.PlanRepository)
 		})
 	})
 }
@@ -387,7 +418,7 @@ func testListPlanStatusFilter(ctx context.Context, t *testing.T, repo plan.Repos
 
 	ns := "list-plan-status-filter"
 
-	planV1Input := pctestutils.NewTestPlan(t, ns, planPhases...)
+	planV1Input := pctestutils.NewTestPlan(t, ns)
 
 	err := createPlanVersion(ctx, repo, createPlanVersionInput{
 		Namespace: ns,

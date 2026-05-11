@@ -30,49 +30,63 @@ import (
 func TestV3ProductCatalogSmoke(t *testing.T) {
 	c := newV3Client(t)
 
-	meterKey := uniqueKey("sanity_meter")
-	eventType := uniqueKey("sanity_event")
-	featureKey := uniqueKey("sanity_feature")
+	eventTypes := []string{
+		uniqueKey("sanity_event"),
+		uniqueKey("sanity_event"),
+	}
 
-	var (
-		meterID     string
-		featureID   string
-		planID      string
-		addonID     string
-		planAddonID string
-		phaseKey    string
-	)
+	meterKeys := []string{
+		uniqueKey("sanity_meter"),
+		uniqueKey("sanity_meter"),
+	}
 
-	t.Run("Should create a meter", func(t *testing.T) {
+	meters := make([]apiv3.Meter, 0, len(meterKeys))
+
+	for i := range meterKeys {
 		valueProperty := "$.value"
+
 		status, m, problem := c.CreateMeter(apiv3.CreateMeterRequest{
-			Key:           meterKey,
-			Name:          "Test Meter " + meterKey,
+			Key:           meterKeys[i],
+			Name:          "Test Meter " + meterKeys[i],
 			Aggregation:   apiv3.MeterAggregationSum,
-			EventType:     eventType,
+			EventType:     eventTypes[i],
 			ValueProperty: &valueProperty,
 		})
 		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
 		require.NotNil(t, m)
 		require.NotEmpty(t, m.Id)
-		meterID = m.Id
-	})
 
-	t.Run("Should create a feature bound to the meter", func(t *testing.T) {
-		require.NotEmpty(t, meterID)
+		meters = append(meters, *m)
+	}
 
+	featureKeys := []string{
+		uniqueKey("sanity_feature"),
+		uniqueKey("sanity_feature"),
+	}
+
+	features := make([]apiv3.Feature, 0, len(featureKeys))
+
+	for i := range featureKeys {
 		status, f, problem := c.CreateFeature(apiv3.CreateFeatureRequest{
-			Key:  featureKey,
-			Name: "Test Feature " + featureKey,
+			Key:  featureKeys[i],
+			Name: "Test Feature " + featureKeys[i],
 			Meter: &apiv3.FeatureMeterReference{
-				Id: meterID,
+				Id: meters[i].Id,
 			},
 		})
 		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
 		require.NotNil(t, f)
 		require.NotEmpty(t, f.Id)
-		featureID = f.Id
-	})
+
+		features = append(features, *f)
+	}
+
+	var (
+		planID      string
+		addonID     string
+		planAddonID string
+		phaseKey    string
+	)
 
 	t.Run("Should create a draft plan with a single flat rate card", func(t *testing.T) {
 		body := validPlanRequest("sanity_plan")
@@ -89,12 +103,6 @@ func TestV3ProductCatalogSmoke(t *testing.T) {
 	})
 
 	t.Run("Should update the plan to carry flat + usage + graduated rate cards", func(t *testing.T) {
-		t.Skip("Skip this test as it does not use rate cards with features properly")
-
-		require.NotEmpty(t, planID)
-		require.NotEmpty(t, phaseKey)
-		require.NotEmpty(t, featureID)
-
 		// Three different rate card shapes on one phase. The flat fee is
 		// in_advance, both usage-based ones are in_arrears (unit/graduated
 		// prices cannot be in_advance). Only the unit one carries a feature
@@ -102,8 +110,8 @@ func TestV3ProductCatalogSmoke(t *testing.T) {
 		// round-trip pattern (no feature) to keep this iteration close to
 		// known-good shapes.
 		flat := validFlatRateCard("sanity_flat")
-		usage := validUsageRateCard("sanity_usage", featureID)
-		graduated := validGraduatedRateCard("sanity_graduated")
+		usage := validUnitRateCard(features[0])
+		graduated := validGraduatedRateCard(features[1])
 
 		update := apiv3.UpsertPlanRequest{
 			Name: "Sanity Plan",
@@ -129,7 +137,7 @@ func TestV3ProductCatalogSmoke(t *testing.T) {
 		}
 		require.NotNil(t, usageRC, "usage rate card missing after update")
 		require.NotNil(t, usageRC.Feature, "usage rate card lost its feature binding after update")
-		assert.Equal(t, featureID, usageRC.Feature.Id)
+		assert.Equal(t, usage.Feature.Id, usageRC.Feature.Id)
 	})
 
 	// Track the three valid rate cards across the invalid-loop subtests so
@@ -137,8 +145,6 @@ func TestV3ProductCatalogSmoke(t *testing.T) {
 	var validRateCards []apiv3.BillingRateCard
 
 	t.Run("Should add a defective rate card and surface validation_errors", func(t *testing.T) {
-		t.Skip("Skip this test as it does not use rate cards with features properly")
-
 		require.NotEmpty(t, planID)
 		require.NotEmpty(t, phaseKey)
 
@@ -190,8 +196,6 @@ func TestV3ProductCatalogSmoke(t *testing.T) {
 	})
 
 	t.Run("Should remove the defective rate card and clear validation_errors", func(t *testing.T) {
-		t.Skip("Skip this test as it does not use rate cards with features properly")
-
 		require.NotEmpty(t, planID)
 		require.NotEmpty(t, phaseKey)
 		require.NotEmpty(t, validRateCards)

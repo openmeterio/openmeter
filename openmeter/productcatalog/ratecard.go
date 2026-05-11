@@ -224,6 +224,13 @@ func (r RateCardMeta) Validate() error {
 					err),
 			))
 		}
+
+		// Ratecard with usage-based price type must have feature key.
+		if r.Price.Type() != FlatPriceType {
+			if r.FeatureKey == nil {
+				errs = append(errs, ErrRateCardUsageBasedPriceWithNoFeature)
+			}
+		}
 	}
 
 	if r.FeatureKey != nil {
