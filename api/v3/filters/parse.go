@@ -85,6 +85,7 @@ var (
 	filterLabelsType      = reflect.TypeFor[FilterLabels]()
 	filterLabelsPtrType   = reflect.TypeFor[*FilterLabels]()
 	stringPtrType         = reflect.TypeFor[*string]()
+	timePtrType           = reflect.TypeFor[*time.Time]()
 )
 
 // parseFiltersValue iterates struct fields and dispatches to per-type parsers.
@@ -185,6 +186,14 @@ func parseFiltersValue(qs url.Values, v reflect.Value) error {
 				return err
 			}
 
+		case timePtrType:
+			if hasOperatorStyleKeys(qs, name) {
+				return fmt.Errorf("filter[%s]: operator-style keys are not supported for this field", name)
+			}
+			if err := parseTimePtr(qs, name, fieldVal); err != nil {
+				return err
+			}
+
 		default:
 			// Handle *T where T is a named string-based type (e.g. *BillingCreditTransactionType).
 			if fieldVal.Kind() == reflect.Pointer && fieldVal.Type().Elem().Kind() == reflect.String {
@@ -217,6 +226,30 @@ func parseStringPtr(qs url.Values, name string, fieldVal reflect.Value) error {
 		if val != "" {
 			fieldVal.Set(reflect.ValueOf(&val))
 		}
+		break
+	}
+	return nil
+}
+
+// parseTimePtr handles simple filter[field]=value for *time.Time fields.
+func parseTimePtr(qs url.Values, name string, fieldVal reflect.Value) error {
+	prefix := "filter[" + name + "]"
+	for key, values := range qs {
+		if key != prefix {
+			continue
+		}
+		val, err := singleValue(key, values)
+		if err != nil {
+			return err
+		}
+		if val == "" {
+			return fmt.Errorf("filter[%s]: empty datetime value", name)
+		}
+		parsed, err := time.Parse(time.RFC3339, val)
+		if err != nil {
+			return fmt.Errorf("filter[%s]: %w", name, ErrInvalidDateTime)
+		}
+		fieldVal.Set(reflect.ValueOf(&parsed))
 		break
 	}
 	return nil

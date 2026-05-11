@@ -128,7 +128,7 @@ func decimalPointersEqual(left, right *alpacadecimal.Decimal) bool {
 }
 
 func settledBalanceForSubAccount(ctx context.Context, deps ResolverDependencies, subAccount ledger.SubAccount) (alpacadecimal.Decimal, error) {
-	balance, err := deps.BalanceQuerier.GetSubAccountBalance(ctx, subAccount, nil)
+	balance, err := deps.BalanceQuerier.GetSubAccountBalance(ctx, subAccount, ledger.BalanceQuery{})
 	if err != nil {
 		return alpacadecimal.Decimal{}, fmt.Errorf("get balance for sub-account %s: %w", subAccount.Address().SubAccountID(), err)
 	}
